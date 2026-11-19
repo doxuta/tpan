@@ -68,7 +68,8 @@ type Tool struct {
 	// Untrusted: kết quả chứa text do người lạ gửi tới (log, output lệnh); gọi
 	// công cụ này thì phiên bị đánh dấu, và Plan đề xuất sau đó mang cảnh báo.
 	Untrusted bool
-	// Trường không xuất (hàm chạy...) do thợ của đợt 2 thêm.
+	// run giải đối số (đã đổi bí danh) và chạy công cụ (catalog.go).
+	run runFunc
 }
 
 // Deps là những gì công cụ cần. cmd/tpan dựng nó giống server.Deps.
@@ -92,8 +93,9 @@ type SessionOptions struct {
 // Session là một phiên làm việc của agent: bộ che, chế độ duyệt, số thứ tự
 // lần gọi. Một tiến trình `tpan mcp` có đúng một Session.
 type Session struct {
-	// Trường không xuất (Deps, bản ghi store.AISession, *ai.Redactor,
-	// core.AgentSettings, số thứ tự lần gọi...) do thợ của đợt 2 thêm.
+	// st giữ Deps, bản ghi phiên, bộ che, chế độ duyệt và số thứ tự lần gọi
+	// (khai báo ở session.go, để file này không phải import thêm gói).
+	st sessionState
 }
 
 // Error là lỗi trả cho agent: Code ổn định, Message đã che.
