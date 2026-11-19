@@ -293,10 +293,10 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- tổng quan
 
-// handleOverview gom mọi thứ Bảng điều khiển cần. Phép kiểm của site, phép
-// kiểm stack và số liệu máy chạy song song: mỗi phần có thể mất vài trăm mili
-// giây tới vài giây. Một site kiểm lỗi thì site đó không có phép kiểm, không
-// làm hỏng cả trang.
+// handleOverview gom mọi thứ Bảng điều khiển cần. Số liệu máy đo trước (xem
+// chú thích bên dưới), rồi phép kiểm của site và phép kiểm stack chạy song
+// song: mỗi phần có thể mất vài trăm mili giây tới vài giây. Một site kiểm lỗi
+// thì site đó không có phép kiểm, không làm hỏng cả trang.
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	refresh := r.URL.Query().Get("refresh") == "1"
@@ -322,9 +322,13 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		Sites:    make([]SiteRow, len(sites)),
 		Jobs:     apiNonNil(jobs),
 	}
+	// Số liệu máy đo trước, một mình: CPU% là phần bận giữa hai lần đọc
+	// /proc/stat, mà phép kiểm (wp verify-checksums, nginx -t, curl...) chính
+	// là tải. Đo song song với chúng thì Bảng điều khiển luôn thấy CPU bận vì
+	// chính tpan (trên máy ảo: 15-30% khi máy rỗi, /machine đo riêng ra 0%).
+	ov.Machine = s.apiMachine(ctx)
 	var stackErr error
 	var wg sync.WaitGroup
-	wg.Go(func() { ov.Machine = s.apiMachine(ctx) })
 	wg.Go(func() {
 		h, err := s.apiStack().Health(ctx)
 		ov.StackChecks, stackErr = apiNonNil(h.Results), err

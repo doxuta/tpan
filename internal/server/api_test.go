@@ -492,3 +492,52 @@ func TestAPIOverview(t *testing.T) {
 		}
 	}
 }
+
+// apiSampleSystem đếm số lệnh chạy trong lúc monitor đang đo CPU (giữa hai lần
+// đọc /proc/stat).
+type apiSampleSystem struct {
+	*system.FakeSystem
+	mu        sync.Mutex
+	reads     int // số lần đọc /proc/stat
+	duringCPU []string
+}
+
+func (a *apiSampleSystem) ReadFile(p string) ([]byte, error) {
+	if p == "/proc/stat" {
+		a.mu.Lock()
+		a.reads++
+		a.mu.Unlock()
+	}
+	return a.FakeSystem.ReadFile(p)
+}
+
+func (a *apiSampleSystem) Run(ctx context.Context, cmd system.Cmd) (system.Result, error) {
+	a.mu.Lock()
+	if a.reads%2 == 1 {
+		a.duringCPU = append(a.duringCPU, cmd.String())
+	}
+	a.mu.Unlock()
+	return a.FakeSystem.Run(ctx, cmd)
+}
+
+// Số liệu máy của /overview không được đo trong lúc phép kiểm đang chạy: phép
+// kiểm là tải, đo chung thì CPU% luôn cao vì chính tpan (thấy trên máy ảo ở e2e M3).
+func TestAPIOverviewCPUNotDuringChecks(t *testing.T) {
+	e := apiNewEnv(t)
+	e.stack(t)
+	e.addSite(t, "a.example.com")
+	e.addSite(t, "b.example.com")
+	e.f.SetFile("/proc/stat", []byte("cpu  100 0 100 800 0 0 0 0 0 0\ncpu0 100 0 100 800 0 0 0 0 0 0\n"), 0o444, system.Root)
+	ss := &apiSampleSystem{FakeSystem: e.f}
+	e.s.deps.Sys = ss
+	apiDecode[apiOverviewJSON](t, apiCall(e.s.handleOverview, "GET", "/", ""), 200)
+	if ss.reads != 2 {
+		t.Fatalf("đọc /proc/stat %d lần, muốn 2 (test không đo được gì)", ss.reads)
+	}
+	if len(e.f.Ran()) == 0 {
+		t.Fatal("tổng quan không chạy lệnh nào (test không đo được gì)")
+	}
+	if len(ss.duringCPU) != 0 {
+		t.Errorf("%d lệnh chạy trong lúc đo CPU, ví dụ %q", len(ss.duringCPU), ss.duringCPU[0])
+	}
+}
