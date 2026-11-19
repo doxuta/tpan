@@ -48,8 +48,8 @@ func (s *Stack) PrepareInstallWith(ctx context.Context, web WebServer, opts Inst
 	firstInstall := cfg.Web == ""
 	if !firstInstall && cfg.Web != web {
 		return nil, refuse("stack_switch_required", i18n.T(
-			fmt.Sprintf("máy này đã được tpan cài với %s; muốn đổi sang %s thì dùng `tpan stack switch --to %s` (chưa có ở bản này)", cfg.Web, web, web),
-			fmt.Sprintf("tpan already installed this machine with %s; to change to %s use `tpan stack switch --to %s` (not in this version yet)", cfg.Web, web, web)))
+			fmt.Sprintf("máy này đã được tpan cài với %s; muốn đổi sang %s thì dùng `tpan stack switch --to %s`", cfg.Web, web, web),
+			fmt.Sprintf("tpan already installed this machine with %s; to change to %s use `tpan stack switch --to %s`", cfg.Web, web, web)))
 	}
 	cfg.Web = web
 	if cfg, err = withSources(cfg, opts, firstInstall); err != nil {
@@ -225,15 +225,27 @@ func codenameOrRefuse(sys system.System) (string, error) {
 // nginxOrgSteps là các bước thích nghi bố cục của gói nginx.org với cách tpan
 // đặt vhost (sites-available, sites-enabled, nhóm www-data). Nằm sau bước cài
 // gói, trước các bước ghi site mặc định.
-func nginxOrgSteps(test, reload *system.Cmd) ([]engine.Step, error) {
+//
+// running false (chuyển web server, nginx đang tắt và chỉ chạy ở WebSwap):
+// không có bước bật dịch vụ, và thêm user vào nhóm mà không khởi động lại
+// (nhóm có hiệu lực khi nginx khởi động ở WebSwap). Xem webSteps.
+func nginxOrgSteps(test, reload *system.Cmd, running bool) ([]engine.Step, error) {
 	inc, err := templates.NginxOrgInclude()
 	if err != nil {
-		return nil, fmt.Errorf("dựng Plan cài stack: %w", err)
+		return nil, fmt.Errorf("dựng bước thích nghi nginx.org: %w", err)
 	}
-	return []engine.Step{
+	var ss []engine.Step
+	if running {
 		// Gói nginx.org có bật dịch vụ sau khi cài hay không thì các bước dưới
 		// đều reload nginx, nên bật nó trước (reload một dịch vụ đang tắt là lỗi).
-		&steps.Service{Unit: "nginx"},
+		ss = append(ss, &steps.Service{Unit: "nginx"})
+	}
+	add := &steps.UserInGroup{User: "nginx", Group: "www-data"}
+	var group engine.Step = add
+	if running {
+		group = &groupRestart{add: add, unit: "nginx", test: test}
+	}
+	return append(ss,
 		&steps.Dir{Path: "/etc/nginx/sites-available", Perm: 0o755, Owner: system.Root},
 		&steps.Dir{Path: "/etc/nginx/sites-enabled", Perm: 0o755, Owner: system.Root},
 		&steps.File{Path: nginxOrgConf, Content: inc, Perm: 0o644, Owner: system.Root, Test: test, Reload: reload,
@@ -243,12 +255,8 @@ func nginxOrgSteps(test, reload *system.Cmd) ([]engine.Step, error) {
 				"The nginx.org package only reads /etc/nginx/conf.d/*.conf and knows nothing about sites-enabled, where tpan enables vhosts. Without this file tpan's default site and every site are never loaded.")},
 		// Câu mặc định của Absent (site mặc định của distro) đúng với file này.
 		&steps.Absent{Path: "/etc/nginx/conf.d/default.conf", Test: test, Reload: reload},
-		&groupRestart{
-			add:  &steps.UserInGroup{User: "nginx", Group: "www-data"},
-			unit: "nginx",
-			test: test,
-		},
-	}, nil
+		group,
+	), nil
 }
 
 const nginxOrgConf = "/etc/nginx/conf.d/tpan.conf"
