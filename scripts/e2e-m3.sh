@@ -391,7 +391,7 @@ main_run() {
   ok "đối chứng: không --cacert thì curl không tin chứng chỉ tự ký (mã 60)" rc_is 60
 
   printf '\nTrạng thái trước khi chạy lại setup:\n'
-  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin_password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"'
+  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"'
   local before="$OUT"
   section "bước 1: chạy lại setup: không đổi gì, không mật khẩu mới"
   vroot tpan setup --yes
@@ -400,7 +400,7 @@ main_run() {
   ok "báo mật khẩu đã có, giữ nguyên" hasF 'đã có từ trước, giữ nguyên'
   ok "không bước nào chạy (không có dòng \"xong\")" hasnt '^  xong$'
   ok "cùng fingerprint" hasF "$fp"
-  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin_password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"'
+  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"'
   ok "cert, key, unit, PID dịch vụ, hash mật khẩu không đổi" test "$OUT" = "$before"
 
   section "bước 2: từ Mac tới https://<vm>:8443 (curl --cacert cert.pem của panel)"

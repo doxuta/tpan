@@ -302,7 +302,7 @@ X509v3 Key Usage: critical
 X509v3 Extended Key Usage: 
     TLS Web Server Authentication
 X509v3 Subject Alternative Name: 
-    DNS:tpan-test, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:FD4B:5324:B51A:DC21:5054:FF:FE3C:A4BD
+    DNS:tpan-test, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:<vm-ipv6>
 [2026-11-19 16:51:08] (mã thoát 0)
   => ĐẠT: SAN của chứng chỉ có IP máy ảo
 
@@ -5281,3 +5281,13 @@ Sau đó: tắt bộ chuyển cổng trên Mac, `scripts/e2e-m3.sh http-down` (k
 
 
 ######## [2026-11-19 16:54:18] TỔNG KẾT: 0 khẳng định không đạt
+
+
+######## [2026-11-19 17:20] Sửa khẳng định "hash mật khẩu không đổi khi chạy lại setup" (phiên chính)
+Hai dòng kiểm ở bước 1 của scripts/e2e-m3.sh đọc nhầm khoá settings `admin_password_hash`
+(khoá thật là `admin.password_hash`), nên cả hai lần đều lỗi giống nhau và khẳng định "ĐẠT" ở
+trên không chứng minh gì. Đã sửa khoá trong script. Kiểm lại tay trên máy ảo đang có panel:
+  sha256 của hash trước `tpan setup --yes`: 8bfd58f2dc2c0a30
+  tpan setup --yes: mọi bước "đã đúng, bỏ qua", "Mật khẩu quản trị đã có từ trước, giữ nguyên."
+  sha256 của hash sau:                      8bfd58f2dc2c0a30
+  => ĐẠT: chạy lại setup không đổi hash mật khẩu quản trị
