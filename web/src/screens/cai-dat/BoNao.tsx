@@ -1,0 +1,163 @@
+// Mục "AI và bộ não" ở màn Cài đặt (mục 8.2 và mục 10 của KE-HOACH.md):
+// GET /api/v1/ai/brain. Chỉ để xem và để đọc cách nối. Bật AI là lệnh trên máy
+// chủ (`sudo tpan mcp config --brain bridge`), nối bộ não là lệnh trên máy cá
+// nhân của người vận hành; trang web không làm hai việc đó thay họ, và không
+// bao giờ chạm vào đăng nhập Claude.
+
+import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { errorMessage, get } from "../../api/client";
+import type { BrainStatus } from "../../api/types";
+import { Button } from "../../components/Button";
+import { CommandBlock } from "../../components/CommandBlock";
+import { MonoText } from "../../components/MonoText";
+import { StatusMark } from "../../components/StatusMark";
+import { Tag } from "../../components/Tag";
+import { tx, useLang, useStrings } from "../../i18n";
+import { strings } from "../../i18n/cai-dat";
+import { strings as khung } from "../../i18n/khung";
+import { formatDateTime } from "../lich-su/format";
+
+/** Lệnh bật AI trên máy chủ. CommandBlock tự thêm sudo khi hiện và khi chép. */
+const enableCommand = "tpan mcp config --brain bridge";
+
+/** Claude Code đăng nhập bằng gói claude.ai thì không tính tiền theo API; mọi cách khác thì có. */
+const planAuth = "claude.ai";
+
+const labelClass = "font-mono text-[11px] tracking-[0.08em] text-muted";
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="border-t border-hair py-[12px]">
+      <dt className={labelClass}>{label}</dt>
+      <dd className="m-0 mt-[6px]">{children}</dd>
+    </div>
+  );
+}
+
+/** Cảnh báo bằng dấu trạng thái "cảnh báo" và chữ, không chỉ màu (mục 2 của GIAO-DIEN.md). */
+function Warn({ children }: { children: ReactNode }) {
+  const k = useStrings(khung);
+  return (
+    <p className="mt-[8px] mb-0 flex items-start gap-[10px]">
+      <span className="mt-[3px] flex-none">
+        <StatusMark status="warn" label={k.status.warn} />
+      </span>
+      <span className="min-w-0">{children}</span>
+    </p>
+  );
+}
+
+export function BoNao() {
+  const t = useStrings(strings);
+  const k = useStrings(khung);
+  const { lang } = useLang();
+  // Cùng khoá với ngăn AI nên hai nơi dùng chung một lần tải.
+  const q = useQuery({ queryKey: ["ai", "brain"], queryFn: () => get<BrainStatus>("/api/v1/ai/brain"), refetchInterval: 10_000, retry: false });
+  const b = q.data;
+  const modeText = b ? { off: t.brainModeOff, bridge: t.brainModeBridge, demo: t.brainModeDemo }[b.mode] : "";
+  const ready = b !== undefined && (b.connected || b.mode === "demo");
+  const versionDiffers = b?.connected === true && !!b.claude_version && !!b.tested_version && b.claude_version !== b.tested_version;
+  const authIsApi = b?.connected === true && !!b.auth_method && b.auth_method !== planAuth;
+
+  return (
+    <section aria-labelledby="bo-nao-tieu-de" className="pt-[28px]">
+      <h2 id="bo-nao-tieu-de" className="m-0 text-[16px] font-semibold">
+        {t.brainHeading}
+      </h2>
+      <p className="mt-[6px] mb-[14px] text-muted">{t.brainIntro}</p>
+
+      {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
+      {q.isError && (
+        <div role="alert">
+          <p className="m-0">
+            {t.brainLoadFailed} {errorMessage(q.error, lang)}
+          </p>
+          <Button className="mt-[12px]" onClick={() => void q.refetch()}>
+            {k.retry}
+          </Button>
+        </div>
+      )}
+      {b && (
+        <>
+          <dl className="m-0 max-w-[760px]">
+            <Row label={t.brainModeLabel}>
+              <Tag>{b.mode}</Tag>
+              <p className="mt-[6px] mb-0">{modeText}</p>
+            </Row>
+            <Row label={t.brainStateLabel}>
+              <span className="inline-flex items-center gap-[10px]">
+                <StatusMark status={ready ? "pass" : "unknown"} label={ready ? t.brainConnected : t.brainNotConnected} />
+                {b.mode === "demo" ? t.brainDemoReady : b.connected ? t.brainConnected : t.brainNotConnected}
+              </span>
+            </Row>
+            {b.connected && b.host && (
+              <Row label={t.brainHostLabel}>
+                <MonoText size={12}>{b.host}</MonoText>
+              </Row>
+            )}
+            {b.connected && b.claude_version && (
+              <Row label={t.brainVersionLabel}>
+                <MonoText size={12}>{b.claude_version}</MonoText>
+                {versionDiffers && <Warn>{t.brainVersionWarn(b.claude_version, b.tested_version ?? "")}</Warn>}
+              </Row>
+            )}
+            {b.connected && b.model && (
+              <Row label={t.brainModelLabel}>
+                <MonoText size={12}>{b.model}</MonoText>
+              </Row>
+            )}
+            {b.connected && b.auth_method && (
+              <Row label={t.brainAuthLabel}>
+                <MonoText size={12}>{b.auth_method}</MonoText>
+                {authIsApi && <Warn>{t.brainAuthWarn(b.auth_method)}</Warn>}
+              </Row>
+            )}
+            {b.connected && b.since && (
+              <Row label={t.brainSinceLabel}>
+                <span title={b.since} className="font-mono text-[13px]">
+                  {formatDateTime(b.since, lang)}
+                </span>
+              </Row>
+            )}
+            {b.warnings && b.warnings.length > 0 && (
+              <Row label={t.brainWarningsLabel}>
+                {b.warnings.map((w, i) => (
+                  <p key={i} className="m-0">
+                    {tx(w, lang)}
+                  </p>
+                ))}
+              </Row>
+            )}
+          </dl>
+
+          {/* Chưa nối: hai lệnh ở hai máy khác nhau, nên mỗi lệnh nói rõ chạy ở đâu. Demo thì không có gì để nối. */}
+          {!b.connected && b.mode !== "demo" && (
+            <div className="mt-[14px] flex max-w-[760px] flex-col gap-[16px] border-t border-hair pt-[14px]">
+              {b.mode === "off" && (
+                <div>
+                  <h3 className="m-0 text-[14px] font-semibold">{t.brainEnableTitle}</h3>
+                  <p className="mt-[4px] mb-[8px] text-muted">{t.brainEnableBody}</p>
+                  <CommandBlock commands={[enableCommand]} />
+                </div>
+              )}
+              <div>
+                <h3 className="m-0 text-[14px] font-semibold">{t.brainConnectTitle}</h3>
+                <p className="mt-[4px] mb-[8px] text-muted">{t.brainConnectBody}</p>
+                <div className="bg-pre p-[12px]">
+                  <p className="m-0 text-[13px] text-muted">{t.brainConnectWhere}</p>
+                  <p className="mt-[8px] mb-0 font-mono text-[12px] leading-[1.55]">
+                    <span aria-hidden="true" className="text-muted select-none">
+                      ${" "}
+                    </span>
+                    <MonoText size={12}>{b.connect_command}</MonoText>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}

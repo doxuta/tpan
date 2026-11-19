@@ -1,10 +1,6 @@
-// Màn Phiên AI (M8): SessionList ở "/ai", SessionDetail ở "/ai/:id".
-// Giữ chỗ của đợt 0; thợ giao diện đợt 2 thay bằng màn thật.
+// Màn Phiên AI (mục 10 của KE-HOACH.md, màn 12). Hai export mà web/src/routes.tsx dùng:
+//   SessionList   /ai      các phiên AI, mới dùng trước
+//   SessionDetail /ai/:id  một phiên: từng lượt, ngữ cảnh đã gửi, lần gọi công cụ, Plan
 
-export function SessionList() {
-  return null;
-}
-
-export function SessionDetail() {
-  return null;
-}
+export { SessionDetail } from "./SessionDetail";
+export { SessionList } from "./SessionList";

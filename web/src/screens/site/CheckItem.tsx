@@ -3,7 +3,9 @@
 // các điều kiện chưa đạt của một lần từ chối.
 
 import { useState } from "react";
+import { useAi } from "../../ai/AiProvider";
 import type { CheckResult } from "../../api/types";
+import { Button } from "../../components/Button";
 import { CommandBlock } from "../../components/CommandBlock";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { StatusMark } from "../../components/StatusMark";
@@ -26,6 +28,7 @@ export function CheckItem({ check, open, onToggle }: Props) {
   const t = useStrings(strings);
   const k = useStrings(khung);
   const { lang } = useLang();
+  const { openAI } = useAi();
   const panelId = checkPanelId(check.id);
   const cause = tx(check.cause, lang);
   const fix = check.manual_fix ?? [];
@@ -66,6 +69,23 @@ export function CheckItem({ check, open, onToggle }: Props) {
             <div>
               <div className="mb-[6px] font-mono text-[11px] tracking-[0.08em] text-muted">{t.manualFix}</div>
               <CommandBlock commands={fix} />
+            </div>
+          )}
+          {/* Phép kiểm không đạt: ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
+          {(check.status === "fail" || check.status === "warn") && (
+            <div>
+              <Button
+                title={t.explainHint}
+                onClick={() =>
+                  openAI({
+                    mode: "explain",
+                    question: t.explainCheckQuestion(tx(check.title, lang)),
+                    pointer: { kind: "check", ref: check.id, label: tx(check.title, lang) },
+                  })
+                }
+              >
+                {t.explain}
+              </Button>
             </div>
           )}
         </div>

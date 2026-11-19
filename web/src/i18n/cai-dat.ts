@@ -4,7 +4,7 @@ import { defineStrings } from "./index";
 
 const vi = {
   title: "Cài đặt",
-  summary: "Mật khẩu quản trị, các phiên đang đăng nhập, ngôn ngữ, sáng hoặc tối.",
+  summary: "Mật khẩu quản trị, các phiên đang đăng nhập, ngôn ngữ, sáng hoặc tối, AI và bộ não.",
 
   // Mật khẩu quản trị
   pwHeading: "Mật khẩu quản trị",
@@ -42,13 +42,36 @@ const vi = {
   themeSystem: "Theo hệ điều hành",
   themeSystemNow: (dark: boolean) => `Đang theo hệ điều hành, hiện là ${dark ? "tối" : "sáng"}.`,
 
-  // AI và MCP
-  aiLater: "Có ở bản sau: nối bộ não AI và cho agent khác nối vào qua MCP.",
+  // AI và bộ não (M8). Mục "Agent và MCP" bên dưới có chuỗi riêng ở agent.ts.
+  brainHeading: "AI và bộ não",
+  brainIntro: "AI trong panel là Claude Code chạy trên máy cá nhân của bạn, nối vào tpan bằng một lệnh. tpan không giữ đăng nhập Claude của bạn.",
+  brainLoadFailed: "Chưa đọc được tình trạng bộ não.",
+  brainModeLabel: "CHẾ ĐỘ",
+  brainModeOff: "AI đang tắt. Ngăn AI chưa hỏi được cho tới khi bạn bật.",
+  brainModeBridge: "AI đang bật. Bộ não là Claude Code trên máy cá nhân của bạn, nối vào qua lệnh tpan brain.",
+  brainModeDemo: "Chế độ demo: bộ não giả trả lời có sẵn, không dùng Claude thật.",
+  brainStateLabel: "BỘ NÃO",
+  brainConnected: "Đã nối",
+  brainNotConnected: "Chưa nối",
+  brainDemoReady: "Bộ não giả, không cần nối",
+  brainHostLabel: "MÁY ĐANG NỐI",
+  brainVersionLabel: "CLAUDE CODE",
+  brainVersionWarn: (v: string, tested: string) => `Bản ${v} khác bản đã chạy bài kiểm của tpan (${tested}). Định dạng đầu ra có thể đã đổi; nếu AI trả lời lạ hoặc thiếu chữ, xem phiên ở trang Phiên AI.`,
+  brainModelLabel: "MODEL",
+  brainAuthLabel: "ĐĂNG NHẬP",
+  brainAuthWarn: (method: string) => `Claude Code đang đăng nhập bằng “${method}”, không phải gói claude.ai. Mỗi câu hỏi có thể bị tính tiền theo API.`,
+  brainSinceLabel: "NỐI TỪ",
+  brainWarningsLabel: "LƯU Ý",
+  brainEnableTitle: "Bật AI",
+  brainEnableBody: "Gõ lệnh này trên máy chủ, rồi nối bộ não ở bước sau.",
+  brainConnectTitle: "Nối bộ não",
+  brainConnectBody: "Gõ lệnh này trên máy cá nhân của bạn, trong một terminal, và giữ terminal đó mở. Đây không phải lệnh trên máy chủ, và không cần sudo.",
+  brainConnectWhere: "Chạy trên máy cá nhân của bạn (máy có Claude Code), không phải trên máy chủ.",
 };
 
 export const strings = defineStrings(vi, {
   title: "Settings",
-  summary: "Admin password, active sessions, language, light or dark.",
+  summary: "Admin password, active sessions, language, light or dark, AI and brain.",
 
   pwHeading: "Admin password",
   pwIntro: (min) => `The new password must be at least ${min} characters. After the change, every other session is logged out.`,
@@ -83,5 +106,28 @@ export const strings = defineStrings(vi, {
   themeSystem: "Follow the system",
   themeSystemNow: (dark) => `Following the system, currently ${dark ? "dark" : "light"}.`,
 
-  aiLater: "Coming in a later version: connect an AI brain and let other agents connect through MCP.",
+  brainHeading: "AI and brain",
+  brainIntro: "AI in the panel is Claude Code running on your own machine, connected to tpan with one command. tpan does not keep your Claude login.",
+  brainLoadFailed: "Could not read the brain status.",
+  brainModeLabel: "MODE",
+  brainModeOff: "AI is off. The AI drawer cannot ask anything until you turn it on.",
+  brainModeBridge: "AI is on. The brain is Claude Code on your own machine, connected with the tpan brain command.",
+  brainModeDemo: "Demo mode: a fake brain gives canned answers and does not use the real Claude.",
+  brainStateLabel: "BRAIN",
+  brainConnected: "Connected",
+  brainNotConnected: "Not connected",
+  brainDemoReady: "Fake brain, no connection needed",
+  brainHostLabel: "CONNECTED MACHINE",
+  brainVersionLabel: "CLAUDE CODE",
+  brainVersionWarn: (v, tested) => `Version ${v} differs from the one tpan was tested with (${tested}). The output format may have changed; if the AI answers oddly or with missing text, look at the session on the AI sessions page.`,
+  brainModelLabel: "MODEL",
+  brainAuthLabel: "LOGIN",
+  brainAuthWarn: (method) => `Claude Code is logged in with “${method}”, not a claude.ai plan. Each question may be billed at API prices.`,
+  brainSinceLabel: "CONNECTED SINCE",
+  brainWarningsLabel: "NOTES",
+  brainEnableTitle: "Turn AI on",
+  brainEnableBody: "Type this command on the server, then connect the brain in the next step.",
+  brainConnectTitle: "Connect the brain",
+  brainConnectBody: "Type this command on your own machine, in a terminal, and keep that terminal open. It is not a command for the server, and it needs no sudo.",
+  brainConnectWhere: "Runs on your own machine (the one with Claude Code), not on the server.",
 });

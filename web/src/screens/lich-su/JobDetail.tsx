@@ -4,6 +4,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams } from "react-router";
+import { useAi } from "../../ai/AiProvider";
 import { errorMessage } from "../../api/client";
 import type { CheckResult } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -146,6 +147,7 @@ export function JobDetail() {
               <BlockItem
                 key={i}
                 domId={`s${i}`}
+                jobId={job.id}
                 label={t.stepNumber(i + 1)}
                 block={b}
                 text={t.stepState[b.state]}
@@ -172,6 +174,7 @@ export function JobDetail() {
                 <BlockItem
                   key={i}
                   domId={`u${i}`}
+                  jobId={job.id}
                   label={n > 0 ? t.stepNumber(n) : ""}
                   block={b}
                   text={t.undoState[b.state]}
@@ -226,6 +229,8 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 
 type BlockItemProps = {
   domId: string;
+  /** Để nút "Giải thích" chỉ đúng bước: ref là "<job>/<bước>". */
+  jobId: string;
   /** "Bước 3"; rỗng nếu không biết. */
   label: string;
   block: Block<string>;
@@ -238,8 +243,9 @@ type BlockItemProps = {
 };
 
 /** Một bước (hoặc một lần hoàn tác): dấu trạng thái là nút mở ra lệnh và output của nó. */
-function BlockItem({ domId, label, block, text, mark, open, onToggle, lang }: BlockItemProps) {
+function BlockItem({ domId, jobId, label, block, text, mark, open, onToggle, lang }: BlockItemProps) {
   const t = useStrings(strings);
+  const { openAI } = useAi();
   const ms = block.ended ? elapsedMs(block.started, block.ended) : null;
   return (
     <li className="border-t border-hair">
@@ -267,6 +273,23 @@ function BlockItem({ domId, label, block, text, mark, open, onToggle, lang }: Bl
       {open && (
         <div id={`${domId}-panel`} className="pb-[12px]">
           <BlockLog block={block} />
+          {/* Chỉ bước hỏng: ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
+          {block.state === "failed" && (
+            <div className="mt-[10px]">
+              <Button
+                title={t.explainStepHint}
+                onClick={() =>
+                  openAI({
+                    mode: "explain",
+                    question: t.explainStepQuestion(block.id),
+                    pointer: { kind: "job_step", ref: `${jobId}/${block.id}`, label: t.explainStepLabel(block.id) },
+                  })
+                }
+              >
+                {t.explain}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </li>

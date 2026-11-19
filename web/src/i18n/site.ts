@@ -98,6 +98,16 @@ const vi = {
 
   siteMissing: (domain: string) => `Không có site ${domain} trên máy này. Domain có thể gõ sai, hoặc site đã bị xoá. Xem danh sách site rồi chọn lại.`,
   backToList: "Về danh sách site",
+
+  // Nút "Giải thích" trên phép kiểm không đạt và trên một dòng log: mở ngăn AI với câu hỏi soạn sẵn, người xem trước rồi tự gửi.
+  explain: "Giải thích",
+  explainHint: "Mở ngăn AI với câu hỏi soạn sẵn. Bạn xem thứ sẽ gửi rồi mới bấm Gửi.",
+  explainCheckQuestion: (title: string) => `Giải thích vì sao phép kiểm “${title}” không đạt và mình nên làm gì.`,
+  explainLogButton: "Giải thích dòng này",
+  explainLogNone: "Bấm một dòng log để chọn nó, hoặc dùng mũi tên lên xuống khi đang ở khung log. Chọn dòng thì log tạm dừng.",
+  explainLogSelected: "Đã chọn một dòng, log đang tạm dừng. Bấm lại dòng đó để bỏ chọn, hoặc bấm Tiếp tục.",
+  explainLogQuestion: "Dòng log này nghĩa là gì, có đáng lo không, và mình nên làm gì.",
+  explainLogLabel: (file: string) => `Dòng log ${file}`,
 };
 
 export const strings = defineStrings(vi, {
@@ -191,4 +201,13 @@ export const strings = defineStrings(vi, {
 
   siteMissing: (domain) => `There is no site ${domain} on this machine. The domain may be mistyped, or the site was deleted. Open the site list and pick again.`,
   backToList: "Back to the site list",
+
+  explain: "Explain",
+  explainHint: "Opens the AI drawer with a prepared question. You see what will be sent, then press Send yourself.",
+  explainCheckQuestion: (title) => `Explain why the check “${title}” did not pass and what I should do.`,
+  explainLogButton: "Explain this line",
+  explainLogNone: "Click a log line to select it, or use the up and down arrows while the log box has focus. Selecting a line pauses the log.",
+  explainLogSelected: "One line selected, the log is paused. Click the line again to deselect, or press Resume.",
+  explainLogQuestion: "What does this log line mean, is it worrying, and what should I do.",
+  explainLogLabel: (file) => `${file} log line`,
 });

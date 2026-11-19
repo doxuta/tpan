@@ -87,6 +87,12 @@ const vi = {
   secretCopy: "Chép",
   secretCopyOf: (what: string) => `Chép ${what}`,
   secretDismiss: "Đã lưu, ẩn đi",
+
+  // Nút "Giải thích" trên bước lỗi: mở ngăn AI với câu hỏi soạn sẵn, người xem trước rồi tự gửi.
+  explain: "Giải thích",
+  explainStepHint: "Mở ngăn AI với câu hỏi soạn sẵn. Bạn xem thứ sẽ gửi rồi mới bấm Gửi.",
+  explainStepQuestion: (step: string) => `Giải thích vì sao bước ${step} lỗi và mình nên làm gì.`,
+  explainStepLabel: (step: string) => `Bước ${step}`,
 };
 
 export const strings = defineStrings(vi, {
@@ -170,4 +176,9 @@ export const strings = defineStrings(vi, {
   secretCopy: "Copy",
   secretCopyOf: (what) => `Copy ${what}`,
   secretDismiss: "Saved, hide it",
+
+  explain: "Explain",
+  explainStepHint: "Opens the AI drawer with a prepared question. You see what will be sent, then press Send yourself.",
+  explainStepQuestion: (step) => `Explain why step ${step} failed and what I should do.`,
+  explainStepLabel: (step) => `Step ${step}`,
 });

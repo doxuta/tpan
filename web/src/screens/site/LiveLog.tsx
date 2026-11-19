@@ -10,7 +10,8 @@
 // 500 dòng cuối. Tạm dừng chỉ đóng băng phần đang hiện; luồng vẫn mở và dòng
 // mới vẫn được giữ, nên "Tiếp tục" không làm mất dòng nào.
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useAi } from "../../ai/AiProvider";
 import { subscribeSiteLog } from "../../api/client";
 import type { LogFile } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -35,6 +36,10 @@ export function LiveLog({ domain }: { domain: string }) {
   const [endReason, setEndReason] = useState("");
   const [buf, setBuf] = useState<Buf>({ lines: [], total: 0 });
   const [frozen, setFrozen] = useState<Buf | null>(null);
+  // Dòng đang chọn để "Giải thích" (chỉ số trong shown.lines). Chọn dòng thì log tạm dừng: dòng mới
+  // đẩy dòng cũ ra khỏi 500 dòng giữ lại, chỉ số sẽ trôi sang dòng khác.
+  const [selected, setSelected] = useState<number | null>(null);
+  const { openAI } = useAi();
 
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true); // người dùng đang ở cuối thì tự cuộn theo dòng mới
@@ -51,6 +56,7 @@ export function LiveLog({ domain }: { domain: string }) {
     setConn("connecting");
     setEndReason("");
     setFrozen(null);
+    setSelected(null);
     pending.current = [];
     setBuf({ lines: [], total: 0 });
     stick.current = true;
@@ -82,6 +88,23 @@ export function LiveLog({ domain }: { domain: string }) {
     const el = box.current;
     if (el && stick.current && !frozen) el.scrollTop = el.scrollHeight;
   }, [shown, frozen]);
+
+  const select = (i: number | null) => {
+    if (i !== null && !frozen) setFrozen(buf);
+    setSelected(i);
+  };
+  const selectedLine = selected === null ? undefined : shown.lines[selected];
+
+  // Mũi tên lên xuống đổi dòng chọn khi con trỏ đang ở khung log (người dùng bàn phím không có chuột để bấm dòng).
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || shown.lines.length === 0) return;
+    e.preventDefault();
+    const last = shown.lines.length - 1;
+    const down = e.key === "ArrowDown";
+    const next = selected === null ? (down ? 0 : last) : Math.min(last, Math.max(0, selected + (down ? 1 : -1)));
+    select(next);
+    box.current?.children[next]?.scrollIntoView({ block: "nearest" });
+  };
 
   const onScroll = () => {
     const el = box.current;
@@ -116,14 +139,38 @@ export function LiveLog({ domain }: { domain: string }) {
         {over ? (
           <Button onClick={() => setAttempt((n) => n + 1)}>{t.logReconnect}</Button>
         ) : (
-          <Button aria-pressed={frozen !== null} onClick={() => setFrozen(frozen ? null : buf)}>
+          <Button
+            aria-pressed={frozen !== null}
+            onClick={() => {
+              setSelected(null);
+              setFrozen(frozen ? null : buf);
+            }}
+          >
             {frozen ? t.logResume : t.logPause}
           </Button>
         )}
+        {/* Dòng log là chữ không tin cậy: chỉ đi vào câu hỏi như chữ thường, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
+        <Button
+          disabled={selectedLine === undefined}
+          title={t.explainHint}
+          onClick={() =>
+            selectedLine !== undefined &&
+            openAI({
+              mode: "explain",
+              question: t.explainLogQuestion,
+              pointer: { kind: "log_line", ref: `${domain}/${file}`, text: selectedLine, label: t.explainLogLabel(t.logFiles[file]) },
+            })
+          }
+        >
+          {t.explainLogButton}
+        </Button>
         <span aria-live="polite" className="min-w-0 flex-[1_1_240px] text-[13px] text-muted [overflow-wrap:anywhere]">
           {status}
         </span>
       </div>
+      <p aria-live="polite" className="m-0 pb-[8px] text-[12px] text-muted">
+        {selected === null ? t.explainLogNone : t.explainLogSelected}
+      </p>
       {/* tabIndex 0 để người dùng bàn phím cuộn được khung; aria-live tắt vì dòng log tới liên tục sẽ làm trình đọc màn hình nói không ngừng. */}
       <div
         ref={box}
@@ -132,13 +179,14 @@ export function LiveLog({ domain }: { domain: string }) {
         aria-live="off"
         aria-label={`${t.logHeading}: ${t.logFiles[file]}`}
         onScroll={onScroll}
+        onKeyDown={onKeyDown}
         className="max-h-[360px] min-h-[120px] overflow-y-auto bg-pre p-[12px] font-mono text-[12px] leading-[1.55] text-ink"
       >
         {shown.lines.length === 0 ? (
           <span className="text-muted">{conn === "live" ? t.logEmpty : ""}</span>
         ) : (
           shown.lines.map((line, i) => (
-            <div key={i} className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+            <div key={i} onClick={() => select(selected === i ? null : i)} className={`cursor-pointer whitespace-pre-wrap [overflow-wrap:anywhere] ${selected === i ? "bg-ink text-on-ink" : ""}`}>
               {line || " "}
             </div>
           ))

@@ -1,6 +1,6 @@
 // Màn Cài đặt (mục 10 của KE-HOACH.md, màn 10): mật khẩu quản trị, các phiên
-// đang đăng nhập, ngôn ngữ, sáng hoặc tối, và mục Agent và MCP (M7). Bộ não AI
-// trong panel có từ M8.
+// đang đăng nhập, ngôn ngữ, sáng hoặc tối, mục "AI và bộ não" (M8), và mục
+// Agent và MCP (M7).
 
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { SegmentButton } from "../../components/SegmentButton";
@@ -11,6 +11,7 @@ import { useTheme, type ThemeChoice } from "../../theme";
 import { MatKhau } from "./MatKhau";
 import { Phien } from "./Phien";
 import { Agent } from "./Agent";
+import { BoNao } from "./BoNao";
 
 export default function CaiDat() {
   const t = useStrings(strings);
@@ -56,6 +57,7 @@ export default function CaiDat() {
         {choice === "system" && <p className="mt-[10px] mb-0 text-muted">{t.themeSystemNow(theme === "dark")}</p>}
       </section>
 
+      <BoNao />
       <Agent />
     </>
   );
