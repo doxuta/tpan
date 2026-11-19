@@ -275,10 +275,14 @@ func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Layout, e
 }
 
 // siteChecks là bộ phép kiểm của một site, dùng chung cho kiểm chứng sau khi
-// tạo và cho health (mục 6.7): SiteChecks theo đường đi của request, rồi cô lập
-// hai chiều với từng site còn lại.
-func siteChecks(web WebServer, php string, l site.Layout, others []site.Layout) []checks.Check {
+// tạo và cho health (mục 6.7): SiteChecks theo đường đi của request (bản SSL
+// khi site đã có chứng chỉ: cổng 80 giờ trả 301), rồi cô lập hai chiều với
+// từng site còn lại.
+func siteChecks(web WebServer, php string, l site.Layout, others []site.Layout, ssl bool) []checks.Check {
 	cs := checks.SiteChecks(string(web), php, l)
+	if ssl {
+		cs = checks.SiteChecksSSL(string(web), php, l)
+	}
 	for _, o := range others {
 		cs = append(cs, checks.Isolated(l, o), checks.Isolated(o, l))
 	}
@@ -392,15 +396,21 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		return nil, err
 	}
 	version, hash := s.wordpress()
+	// Site đã có SSL (chạy lại): URL https và vhost 443 (addPlan); không thì
+	// chạy lại sẽ đè vhost 443 bằng bản cổng 80.
+	scheme := "http://"
+	if rec.SSL {
+		scheme = "https://"
+	}
 	install := &wpInstallStep{WPInstall: &steps.WPInstall{
-		Layout: l, URL: "http://" + d.String(), Title: title,
+		Layout: l, URL: scheme + d.String(), Title: title,
 		AdminUser: siteAdminUser, AdminEmail: in.Email, AdminPassword: adminPw,
 	}}
-	plan, err := addPlan(cfg.Web, rec.PHPVersion, l, dbPw, version, hash, install)
+	plan, err := addPlan(cfg.Web, rec.PHPVersion, l, dbPw, version, hash, install, rec.SSL)
 	if err != nil {
 		return nil, err
 	}
-	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, l, others)
+	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, l, others, rec.SSL)
 	return &SiteAdd{
 		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan,
 		sites: s, adminPassword: adminPw, install: install,
@@ -408,7 +418,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 }
 
 // addPlan dựng Plan "site.add" đúng thứ tự mục 6.2.
-func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep) (engine.Plan, error) {
+func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep, ssl bool) (engine.Plan, error) {
 	wrap := func(err error) error { return fmt.Errorf("dựng Plan tạo site %s: %w", l.Domain, err) }
 
 	// Bước 2, 3, 4: user Linux, thư mục và log, DB.
@@ -435,7 +445,11 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 		}
 		ss = append(ss, ht)
 	}
-	vhost, err := steps.SiteVhost(l, string(web), acmeRoot)
+	vhostOf := steps.SiteVhost
+	if ssl {
+		vhostOf = steps.SiteVhostSSL
+	}
+	vhost, err := vhostOf(l, string(web), acmeRoot)
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
@@ -555,6 +569,13 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 		&steps.RemoveTree{Path: l.LogDir, Under: siteLogRoot},
 		&steps.SiteUserAbsent{Layout: l},
 	)
+	if st.SSL {
+		// Xoá chứng chỉ ở CUỐI (mục 6.4): bước nào trước đó lỗi thì engine hoàn
+		// tác trả lại vhost 443, mà vhost đó trỏ tới chứng chỉ; chứng chỉ đã mất
+		// thì kiểm config lúc hoàn tác lỗi theo. Để cuối thì lỗi ở đây chỉ còn
+		// sót chứng chỉ, chạy lại `site rm` dọn nốt.
+		ss = append(ss, &steps.CertbotDelete{Layout: l})
+	}
 	return &SiteRemove{Site: st, Layout: l, sites: s, Plan: engine.Plan{
 		Kind:   "site.rm",
 		Target: d.String(),
@@ -641,6 +662,6 @@ func (s *Sites) health(ctx context.Context, d validate.Domain) (Health, site.Sit
 	if err != nil {
 		return Health{}, st, err
 	}
-	h.Results = checks.RunAll(ctx, s.Sys, siteChecks(cfg.Web, php, st.Layout(), others))
+	h.Results = checks.RunAll(ctx, s.Sys, siteChecks(cfg.Web, php, st.Layout(), others, st.SSL))
 	return h, st, nil
 }
