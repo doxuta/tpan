@@ -1,0 +1,1501 @@
+
+
+######## [2026-11-20 02:35:55] PHẦN 0: make release trên Mac, máy ảo sạch
+
+[2026-11-20 02:35:55] $ git log --oneline -1
+52c14c3 e2e M11: kịch bản cài bằng một lệnh, chạy lại, gói hỏng, cài qua curl, self-update và rollback
+[2026-11-20 02:35:55] (mã thoát 0)
+
+[2026-11-20 02:35:55] $ git status --short
+?? docs/bang-chung/M11.log
+[2026-11-20 02:35:55] (mã thoát 0)
+Bản của cây (git describe --tags --always --dirty): 52c14c3
+
+[2026-11-20 02:35:55] $ make release VERSION=52c14c3 DATE=2026-11-19T19:35:55Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 11h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 11ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 332 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-BQkOncIF.css                                   27.26 kB │ gzip:   6.71 kB
+dist/assets/OriginTag-oEtuz3Ep.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-Dw-kWVTj.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/Field-DnkTn54k.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/MonoText-DlGU9Q_S.js                                  0.67 kB │ gzip:   0.43 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-CGvj8VHS.js                                 0.89 kB │ gzip:   0.44 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/useMutation-ConnMiPZ.js                               2.32 kB │ gzip:   0.97 kB
+dist/assets/bao-mat-DEAThMkc.js                                   4.16 kB │ gzip:   1.81 kB
+dist/assets/dang-nhap-CCDwAMZo.js                                 5.82 kB │ gzip:   2.57 kB
+dist/assets/CheckRow-Buz5iMXm.js                                  6.02 kB │ gzip:   2.63 kB
+dist/assets/plan-cho-duyet-BVEZxswb.js                            6.12 kB │ gzip:   2.09 kB
+dist/assets/model-CyCzzw_z.js                                     6.78 kB │ gzip:   2.70 kB
+dist/assets/thung-rac-Cqgy9hEg.js                                 9.08 kB │ gzip:   3.57 kB
+dist/assets/backup-CEIENE__.js                                    9.79 kB │ gzip:   3.17 kB
+dist/assets/ssl-BpT34eSy.js                                      12.17 kB │ gzip:   4.50 kB
+dist/assets/cron-DU14RIGy.js                                     12.22 kB │ gzip:   4.65 kB
+dist/assets/co-so-du-lieu-CoBXHml1.js                            12.57 kB │ gzip:   4.55 kB
+dist/assets/tao-site-406WRwq8.js                                 14.51 kB │ gzip:   4.81 kB
+dist/assets/cap-nhat-CFFWOxU8.js                                 15.45 kB │ gzip:   5.08 kB
+dist/assets/stack-DnQiCkgz.js                                    18.01 kB │ gzip:   5.59 kB
+dist/assets/cai-dat-B_3E7dFh.js                                  18.01 kB │ gzip:   5.64 kB
+dist/assets/phien-ai-TYZS3bfv.js                                 18.27 kB │ gzip:   5.87 kB
+dist/assets/su-co-CTOq4BTZ.js                                    22.87 kB │ gzip:   7.28 kB
+dist/assets/site-ChZOC5H7.js                                     23.77 kB │ gzip:   6.87 kB
+dist/assets/bang-dieu-khien-DqC-9Wfd.js                          25.51 kB │ gzip:   7.80 kB
+dist/assets/lich-su-BKmB5838.js                                  26.38 kB │ gzip:   8.50 kB
+dist/assets/ErrorNote-B_JyXH3Z.js                                28.85 kB │ gzip:  10.12 kB
+dist/assets/ScreenHeader-B5TtQn9K.js                             40.66 kB │ gzip:  14.61 kB
+dist/assets/hooks-Dcr5kuzL.js                                    74.14 kB │ gzip:  24.43 kB
+dist/assets/index-CZPmYzuM.js                                   340.04 kB │ gzip: 107.09 kB
+
+✓ built in 146ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=52c14c3 -X github.com/doxuta/tpan/internal/buildinfo.Commit=52c14c3 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:35:55Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=52c14c3 -X github.com/doxuta/tpan/internal/buildinfo.Commit=52c14c3 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:35:55Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/52c14c3
+mkdir -p dist/release/52c14c3
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/52c14c3/
+chmod 0755 dist/release/52c14c3/tpan-linux-amd64 dist/release/52c14c3/tpan-linux-arm64 dist/release/52c14c3/install.sh
+cd dist/release/52c14c3 && if command -v sha256sum >/dev/null 2>&1; then \
+	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	else \
+	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	fi > SHA256SUMS
+Gói phát hành: dist/release/52c14c3/
+total 84880
+-rw-r--r--@ 1 <user>  staff       243 Nov 20 02:35 SHA256SUMS
+-rwxr-xr-x@ 1 <user>  staff     20019 Nov 20 02:35 install.sh
+-rwxr-xr-x@ 1 <user>  staff  22585504 Nov 20 02:35 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  20840608 Nov 20 02:35 tpan-linux-arm64
+[2026-11-20 02:35:58] (mã thoát 0)
+  => ĐẠT: make release VERSION=52c14c3
+
+[2026-11-20 02:35:58] $ make release VERSION=e2e-m11-b DATE=2026-11-19T19:35:55Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 11h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 11ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 332 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-BQkOncIF.css                                   27.26 kB │ gzip:   6.71 kB
+dist/assets/OriginTag-oEtuz3Ep.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-Dw-kWVTj.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/Field-DnkTn54k.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/MonoText-DlGU9Q_S.js                                  0.67 kB │ gzip:   0.43 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-CGvj8VHS.js                                 0.89 kB │ gzip:   0.44 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/useMutation-ConnMiPZ.js                               2.32 kB │ gzip:   0.97 kB
+dist/assets/bao-mat-DEAThMkc.js                                   4.16 kB │ gzip:   1.81 kB
+dist/assets/dang-nhap-CCDwAMZo.js                                 5.82 kB │ gzip:   2.57 kB
+dist/assets/CheckRow-Buz5iMXm.js                                  6.02 kB │ gzip:   2.63 kB
+dist/assets/plan-cho-duyet-BVEZxswb.js                            6.12 kB │ gzip:   2.09 kB
+dist/assets/model-CyCzzw_z.js                                     6.78 kB │ gzip:   2.70 kB
+dist/assets/thung-rac-Cqgy9hEg.js                                 9.08 kB │ gzip:   3.57 kB
+dist/assets/backup-CEIENE__.js                                    9.79 kB │ gzip:   3.17 kB
+dist/assets/ssl-BpT34eSy.js                                      12.17 kB │ gzip:   4.50 kB
+dist/assets/cron-DU14RIGy.js                                     12.22 kB │ gzip:   4.65 kB
+dist/assets/co-so-du-lieu-CoBXHml1.js                            12.57 kB │ gzip:   4.55 kB
+dist/assets/tao-site-406WRwq8.js                                 14.51 kB │ gzip:   4.81 kB
+dist/assets/cap-nhat-CFFWOxU8.js                                 15.45 kB │ gzip:   5.08 kB
+dist/assets/stack-DnQiCkgz.js                                    18.01 kB │ gzip:   5.59 kB
+dist/assets/cai-dat-B_3E7dFh.js                                  18.01 kB │ gzip:   5.64 kB
+dist/assets/phien-ai-TYZS3bfv.js                                 18.27 kB │ gzip:   5.87 kB
+dist/assets/su-co-CTOq4BTZ.js                                    22.87 kB │ gzip:   7.28 kB
+dist/assets/site-ChZOC5H7.js                                     23.77 kB │ gzip:   6.87 kB
+dist/assets/bang-dieu-khien-DqC-9Wfd.js                          25.51 kB │ gzip:   7.80 kB
+dist/assets/lich-su-BKmB5838.js                                  26.38 kB │ gzip:   8.50 kB
+dist/assets/ErrorNote-B_JyXH3Z.js                                28.85 kB │ gzip:  10.12 kB
+dist/assets/ScreenHeader-B5TtQn9K.js                             40.66 kB │ gzip:  14.61 kB
+dist/assets/hooks-Dcr5kuzL.js                                    74.14 kB │ gzip:  24.43 kB
+dist/assets/index-CZPmYzuM.js                                   340.04 kB │ gzip: 107.09 kB
+
+✓ built in 138ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=e2e-m11-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=52c14c3 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:35:55Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=e2e-m11-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=52c14c3 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:35:55Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/e2e-m11-b
+mkdir -p dist/release/e2e-m11-b
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/e2e-m11-b/
+chmod 0755 dist/release/e2e-m11-b/tpan-linux-amd64 dist/release/e2e-m11-b/tpan-linux-arm64 dist/release/e2e-m11-b/install.sh
+cd dist/release/e2e-m11-b && if command -v sha256sum >/dev/null 2>&1; then \
+	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	else \
+	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	fi > SHA256SUMS
+Gói phát hành: dist/release/e2e-m11-b/
+total 84880
+-rw-r--r--@ 1 <user>  staff       243 Nov 20 02:35 SHA256SUMS
+-rwxr-xr-x@ 1 <user>  staff     20019 Nov 20 02:35 install.sh
+-rwxr-xr-x@ 1 <user>  staff  22585504 Nov 20 02:35 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  20840608 Nov 20 02:35 tpan-linux-arm64
+[2026-11-20 02:35:59] (mã thoát 0)
+  => ĐẠT: make release VERSION=e2e-m11-b
+
+[2026-11-20 02:35:59] $ ls -l dist/release/52c14c3 dist/release/e2e-m11-b
+dist/release/52c14c3:
+total 84880
+-rw-r--r--@ 1 <user>  staff       243 Nov 20 02:35 SHA256SUMS
+-rwxr-xr-x@ 1 <user>  staff     20019 Nov 20 02:35 install.sh
+-rwxr-xr-x@ 1 <user>  staff  22585504 Nov 20 02:35 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  20840608 Nov 20 02:35 tpan-linux-arm64
+
+dist/release/e2e-m11-b:
+total 84880
+-rw-r--r--@ 1 <user>  staff       243 Nov 20 02:35 SHA256SUMS
+-rwxr-xr-x@ 1 <user>  staff     20019 Nov 20 02:35 install.sh
+-rwxr-xr-x@ 1 <user>  staff  22585504 Nov 20 02:35 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  20840608 Nov 20 02:35 tpan-linux-arm64
+[2026-11-20 02:35:59] (mã thoát 0)
+
+[2026-11-20 02:35:59] $ cat dist/release/52c14c3/SHA256SUMS dist/release/e2e-m11-b/SHA256SUMS
+6735834992840ef189fab100d75ec0b5dc361f72b0702459b2d63f8247e90b7a  tpan-linux-amd64
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  tpan-linux-arm64
+329de7b8a4ac21be8a378f873d27e7e50b6c2f997eb7523fce15ce5ac166c472  install.sh
+d41e8c5323c80961b9157311c7bfa20ccc29c986d3fae5e67d9563f2d198b1ec  tpan-linux-amd64
+2c8d9019e27096bce82a266d0dd8d8d0732ab4a3a8ec669e19f2ee193b38f67e  tpan-linux-arm64
+329de7b8a4ac21be8a378f873d27e7e50b6c2f997eb7523fce15ce5ac166c472  install.sh
+[2026-11-20 02:35:59] (mã thoát 0)
+
+[2026-11-20 02:35:59] $ bash -c cd "$1" && shasum -a 256 -c SHA256SUMS && cd "$OLDPWD/$2" && shasum -a 256 -c SHA256SUMS _ dist/release/52c14c3 dist/release/e2e-m11-b
+tpan-linux-amd64: OK
+tpan-linux-arm64: OK
+install.sh: OK
+tpan-linux-amd64: OK
+tpan-linux-arm64: OK
+install.sh: OK
+[2026-11-20 02:35:59] (mã thoát 0)
+  => ĐẠT: SHA256SUMS của hai gói khớp file trong gói
+  => ĐẠT: gói 52c14c3 có đủ 4 file
+  => ĐẠT: install.sh trong gói giống hệt scripts/install.sh
+Máy ảo: tpan-test
+
+[2026-11-20 02:35:59] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-test  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-test.clean
+[2K[0A[0EStarting tpan-test  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E
+[2026-11-20 02:36:13] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-20 02:36:13] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-20 02:36:14] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-20 02:36:15] $ scripts/vm.sh exec bash -c command -v tpan; ls -la /usr/local/bin; systemctl cat tpan.service 2>&1 | head -1; ls /etc/tpan /var/lib/tpan 2>&1
+total 8
+drwxr-xr-x  2 root root 4096 Oct 17 19:57 .
+drwxr-xr-x 10 root root 4096 Oct 17 19:57 ..
+No files found for tpan.service.
+ls: cannot access '/etc/tpan': No such file or directory
+ls: cannot access '/var/lib/tpan': No such file or directory
+[2026-11-20 02:36:15] (mã thoát 2)
+  => ĐẠT: máy sạch: chưa có lệnh tpan
+  => ĐẠT: máy sạch: chưa có tpan.service
+  => ĐẠT: máy sạch: chưa có /etc/tpan, /var/lib/tpan
+
+==== Phần 0: 10 đạt, 0 không đạt
+
+
+######## [2026-11-20 02:36:15] PHẦN 1: chép gói sang máy, cài bằng MỘT lệnh: cd <gói> && sudo ./install.sh --web nginx
+
+[2026-11-20 02:36:15] $ multipass transfer -r dist/release/52c14c3 tpan-test:/home/ubuntu/
+[2026-11-20 02:36:15] (mã thoát 0)
+  => ĐẠT: chép thư mục gói sang máy ảo
+
+[2026-11-20 02:36:15] $ scripts/vm.sh exec bash -c cd "$1" && stat -c "%a %U %s %n" * && sha256sum -c SHA256SUMS _ /home/ubuntu/52c14c3
+644 ubuntu 243 SHA256SUMS
+755 ubuntu 20019 install.sh
+755 ubuntu 22585504 tpan-linux-amd64
+755 ubuntu 20840608 tpan-linux-arm64
+tpan-linux-amd64: OK
+tpan-linux-arm64: OK
+install.sh: OK
+[2026-11-20 02:36:16] (mã thoát 0)
+  => ĐẠT: gói trong máy ảo: file chạy và install.sh có quyền chạy, SHA256SUMS khớp
+
+
+######## [2026-11-20 02:36:16] 1: lệnh cài
+
+[2026-11-20 02:36:16] $ scripts/vm.sh exec bash -c cd /home/ubuntu/52c14c3 && sudo ./install.sh --web nginx
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /home/ubuntu/52c14c3/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+Đã đặt /usr/local/bin/tpan
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job b60ee4e2cab03750
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job b60ee4e2cab03750: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <bí mật, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    D5:9A:B2:3F:42:52:1C:E6:4E:DE:98:9D:76:F1:61:AE:82:EC:9D:EE:3A:2F:AA:BC:7D:91:2A:ED:70:D5:96:84
+Mở: https://<IP của máy>:8443
+
+==> Cài stack: tpan stack install --web nginx
+Bắt đầu job 91b7d702b952f712
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 91b7d702b952f712: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+
+Xong. Bước tiếp:
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-20 02:37:08] (mã thoát 0)
+Mật khẩu quản trị panel trong output: 1 lần
+  => ĐẠT: install.sh thoát 0
+  => ĐẠT: kiểm sha256 trong install.sh: khớp
+  => ĐẠT: in bản 52c14c3
+  => ĐẠT: đã đặt /usr/local/bin/tpan
+  => ĐẠT: setup và stack install: hai job thành công
+  => ĐẠT: mật khẩu quản trị in đúng một lần
+  => ĐẠT: có fingerprint SHA-256 dạng AB:CD:...
+  => ĐẠT: kết thúc bằng 'Xong. Bước tiếp:'
+
+
+######## [2026-11-20 02:37:08] 1: kiểm độc lập
+
+[2026-11-20 02:37:08] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+[2026-11-20 02:37:09] (mã thoát 0)
+sha256 trong dist/release/52c14c3/SHA256SUMS cho tpan-linux-arm64: 2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c
+  => ĐẠT: /usr/local/bin/tpan đúng sha256 của tpan-linux-arm64 trong SHA256SUMS (dist/release/52c14c3)
+
+[2026-11-20 02:37:09] $ scripts/vm.sh exec bash -c stat -c "%a %U:%G %n" /usr/local/bin/tpan; ls -la /usr/local/bin; tpan version
+755 root:root /usr/local/bin/tpan
+total 27340
+drwxr-xr-x  2 root root     4096 Nov 20 02:37 .
+drwxr-xr-x 10 root root     4096 Oct 17 19:57 ..
+-rwxr-xr-x  1 root root 20840608 Nov 20 02:36 tpan
+-rwxr-xr-x  1 root root  7142777 Nov 20 02:37 wp
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+[2026-11-20 02:37:09] (mã thoát 0)
+  => ĐẠT: /usr/local/bin/tpan 755 root:root
+  => ĐẠT: không sót tpan.install-tmp
+  => ĐẠT: tpan version là 52c14c3
+
+[2026-11-20 02:37:09] $ scripts/vm.sh exec systemctl is-active tpan
+active
+[2026-11-20 02:37:09] (mã thoát 0)
+  => ĐẠT: tpan.service active
+
+[2026-11-20 02:37:09] $ scripts/vm.sh exec systemctl is-enabled tpan
+enabled
+[2026-11-20 02:37:09] (mã thoát 0)
+  => ĐẠT: tpan.service enabled
+
+[2026-11-20 02:37:09] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                                                            
+LISTEN 0      4096         0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=886,fd=3),("systemd",pid=1,fd=213))                            
+LISTEN 0      511          0.0.0.0:80        0.0.0.0:*    users:(("nginx",pid=13800,fd=5),("nginx",pid=13799,fd=5),("nginx",pid=10229,fd=5))
+LISTEN 0      4096   127.0.0.53%lo:53        0.0.0.0:*    users:(("systemd-resolve",pid=494,fd=15))                                         
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*    users:(("mariadbd",pid=13700,fd=23))                                              
+LISTEN 0      4096      127.0.0.54:53        0.0.0.0:*    users:(("systemd-resolve",pid=494,fd=17))                                         
+LISTEN 0      4096               *:8443            *:*    users:(("tpan",pid=1705,fd=8))                                                    
+LISTEN 0      4096            [::]:22           [::]:*    users:(("sshd",pid=886,fd=4),("systemd",pid=1,fd=214))                            
+LISTEN 0      511             [::]:80           [::]:*    users:(("nginx",pid=13800,fd=6),("nginx",pid=13799,fd=6),("nginx",pid=10229,fd=6))
+[2026-11-20 02:37:09] (mã thoát 0)
+  => ĐẠT: tpan nghe cổng 8443
+
+[2026-11-20 02:37:09] $ scripts/vm.sh exec systemctl is-active nginx php8.3-fpm mariadb
+active
+active
+active
+[2026-11-20 02:37:09] (mã thoát 0)
+  => ĐẠT: nginx, php8.3-fpm, mariadb active
+
+[2026-11-20 02:37:09] $ scripts/vm.sh root bash -c p=$(systemctl show -p MainPID --value tpan); /proc/$p/exe version
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+[2026-11-20 02:37:09] (mã thoát 0)
+  => ĐẠT: tiến trình của tpan.service chạy bản 52c14c3
+
+[2026-11-20 02:37:09] $ scripts/vm.sh root tpan health --json
+(máy)  service.active:nginx  pass
+(máy)  service.active:php8.3-fpm  pass
+(máy)  service.active:mariadb  pass
+(máy)  config.nginx:nginx  pass
+(máy)  config.phpfpm:8.3  pass
+(máy)  port.localonly:3306  pass
+(máy)  http.default:nginx  pass
+(máy)  db.secure:mariadb  pass
+(máy)  wpcli.binary:wp  pass
+(máy)  disk.usage:/  pass
+(máy)  php.www_pool:8.3  pass
+(máy)  memory:ram  pass
+(máy)  drift:/etc/logrotate.d/tpan-sites  pass
+(máy)  drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf  pass
+(máy)  drift:/etc/nginx/sites-available/tpan-default.conf  pass
+(máy)  drift:/etc/systemd/system/tpan.service  pass
+(máy)  drift:/etc/tpan/tls/cert.pem  pass
+tpan  tpan.db:integrity  pass
+tpan  disk.free:/var/lib/tpan  pass
+tpan  tpan.cert:/etc/tpan/tls/cert.pem  pass
+tpan  tpan.perm:/var/lib/tpan/tpan.db  pass
+tpan  tpan.perm:/etc/tpan/tls/key.pem  pass
+tpan  tpan.perm:/etc/tpan  pass
+tpan  tpan.jobs:stuck  pass
+tpan  tpan.scheduler:health  pass
+tpan  tpan.backup:db  warn  -- chưa có bản sao lưu tpan.db nào
+(chỉ in id, trạng thái và tóm tắt của phép kiểm không đạt)
+[2026-11-20 02:37:09] (mã thoát 0)
+Số phép kiểm: 26; không pass: 1
+  => ĐẠT: health: mọi phép kiểm pass, trừ tpan.backup:db warn (máy mới, chưa sao lưu tpan.db lần nào)
+  => ĐẠT: health có nhóm tpan (tự kiểm sau setup)
+
+==== Phần 1: 21 đạt, 0 không đạt
+
+
+######## [2026-11-20 02:37:09] PHẦN 2: tạo site, đăng nhập API qua https
+
+[2026-11-20 02:37:09] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job 7fab69b8ef880761
+- Tạo user Linux tp_a_example_com_7653e4 cho site ...
+  xong
+- Tạo thư mục /var/www/a.example.com ...
+  xong
+- Tạo thư mục /var/www/a.example.com/public ...
+  xong
+- Tạo thư mục /var/www/a.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/a.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_a_example_com_7653e4 và user DB riêng của site a.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/a.example.com/public ...
+  xong
+- Tạo /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của a.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho a.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf ...
+  xong
+- Cài WordPress cho a.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job 7fab69b8ef880761: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://a.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <bí mật, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-20 02:37:20] (mã thoát 0)
+Mật khẩu quản trị WordPress trong output: 1 lần; đã đọc mật khẩu DB của site vào danh sách che (32 ký tự)
+  => ĐẠT: site add a.example.com: thoát 0, job thành công
+
+[2026-11-20 02:37:20] $ scripts/vm.sh exec bash -c 
+d=$1
+body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\nHTTP %{http_code}\n" "http://$d/")
+printf "%s\n" "$body" | tail -1
+printf "%s\n" "$body" | grep -o "<title>[^<]*</title>"
+echo "thân nhắc $d: $(printf "%s" "$body" | grep -cF "$d") dòng"
+ _ a.example.com
+HTTP 200
+<title>a.example.com</title>
+thân nhắc a.example.com: 30 dòng
+[2026-11-20 02:37:20] (mã thoát 0)
+  => ĐẠT: a.example.com: HTTP 200 (curl --resolve trong máy ảo)
+  => ĐẠT: a.example.com: có <title>
+  => ĐẠT: a.example.com: thân trang có tên a.example.com
+
+[2026-11-20 02:37:20] $ curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve a.example.com:80:<vm> http://a.example.com/
+200
+[2026-11-20 02:37:20] (mã thoát 0)
+  => ĐẠT: a.example.com gọi từ Mac qua IP máy ảo (curl --resolve): 200
+
+[2026-11-20 02:37:20] $ scripts/vm.sh root tpan health a.example.com --json
+a.example.com  web.vhost:a.example.com  pass
+a.example.com  php.socket:a.example.com  pass
+a.example.com  wp.checksums:a.example.com  pass
+a.example.com  wp.config:a.example.com  pass
+a.example.com  db.access:a.example.com  pass
+a.example.com  http.site:a.example.com  pass
+(chỉ in id, trạng thái và tóm tắt của phép kiểm không đạt)
+[2026-11-20 02:37:22] (mã thoát 0)
+Số phép kiểm: 6; không pass: 0
+  => ĐẠT: health của a.example.com: mọi phép kiểm pass
+  => ĐẠT: health có nhóm của site a.example.com
+
+
+######## [2026-11-20 02:37:22] 2: https://<vm>:8443 từ Mac: chứng chỉ, fingerprint
+
+[2026-11-20 02:37:22] $ openssl x509 -in <tmp>/cert.pem -noout -fingerprint -sha256
+sha256 Fingerprint=D5:9A:B2:3F:42:52:1C:E6:4E:DE:98:9D:76:F1:61:AE:82:EC:9D:EE:3A:2F:AA:BC:7D:91:2A:ED:70:D5:96:84
+[2026-11-20 02:37:22] (mã thoát 0)
+  => ĐẠT: fingerprint của cert.pem khớp dòng tpan setup in ra
+
+[2026-11-20 02:37:22] $ bash -c echo | openssl s_client -connect "$1" -servername localhost 2>/dev/null | openssl x509 -noout -fingerprint -sha256 _ <vm>:8443
+sha256 Fingerprint=D5:9A:B2:3F:42:52:1C:E6:4E:DE:98:9D:76:F1:61:AE:82:EC:9D:EE:3A:2F:AA:BC:7D:91:2A:ED:70:D5:96:84
+[2026-11-20 02:37:22] (mã thoát 0)
+  => ĐẠT: fingerprint chứng chỉ panel đang phục vụ (openssl s_client từ Mac) khớp
+
+
+######## [2026-11-20 02:37:22] 2: đăng nhập rồi GET /api/v1/sites
+
+[2026-11-20 02:37:22] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -o <tmp>/body -w -> HTTP %{http_code}\n https://<vm>:8443/api/v1/sites
+-> HTTP 401
+[2026-11-20 02:37:22] (mã thoát 0)
+  => ĐẠT: GET /api/v1/sites khi chưa đăng nhập: 401
+
+[2026-11-20 02:37:22] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -o <tmp>/body -w -> HTTP %{http_code}\n -H Content-Type: application/json --data-binary @<tmp>/login.json https://<vm>:8443/api/v1/login
+-> HTTP 204
+[2026-11-20 02:37:22] (mã thoát 0)
+  => ĐẠT: POST /api/v1/login bằng mật khẩu install.sh in ra: 204
+Cookie phiên: 1 giá trị (đã vào danh sách che)
+
+[2026-11-20 02:37:22] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -o <tmp>/body -w -> HTTP %{http_code}\n https://<vm>:8443/api/v1/sites
+-> HTTP 200
+[2026-11-20 02:37:22] (mã thoát 0)
+[{"domain":"a.example.com","slug":"a_example_com_7653e4","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-19T19:37:19.756904713Z"}]
+  => ĐẠT: GET /api/v1/sites: 200
+true
+  => ĐẠT: danh sách site có a.example.com
+
+==== Phần 2: 13 đạt, 0 không đạt
+
+
+######## [2026-11-20 02:37:22] PHẦN 3: chạy lại install.sh trong gói: không đổi gì
+
+[2026-11-20 02:37:22] $ scripts/vm.sh root bash -c 
+sha256sum /usr/local/bin/tpan /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service
+stat -c "%a %U:%G %n" /usr/local/bin/tpan
+systemctl show -p MainPID -p ExecMainStartTimestamp -p ActiveState -p UnitFileState tpan
+python3 -c "import sqlite3, hashlib; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", hashlib.sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"
+echo "cây cấu hình (nginx, apache2, php, tpan, systemd):" $(find /etc/nginx /etc/apache2 /etc/php /etc/tpan /etc/systemd/system -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | cut -c1-16)
+echo "gói đã cài:" $(dpkg-query -W -f "\${Package} \${Version} \${db:Status-Status}\n" | sort | sha256sum | cut -c1-16)
+systemctl show -p MainPID nginx php8.3-fpm mariadb apache2 | tr "\n" " "; echo
+ls /usr/local/bin   (output giữ để so, không in)
+[2026-11-20 02:37:22] (mã thoát 0; 15 dòng)
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+63d3efbebdd05a0919bda62d43bfabb2954c5593f84db51f3c84ede6b51f7256  /etc/tpan/tls/cert.pem
+fc1a2b42160fc3cf0dab873c1a1a6e41a28e8d7954bec63cb25b685a5fb0fd6e  /etc/tpan/tls/key.pem
+df72e9179b370f6d3a87a6f6f0471ff5a8b21e47adffaab8d2a494cca4d1e30f  /etc/systemd/system/tpan.service
+755 root:root /usr/local/bin/tpan
+MainPID=1705
+ExecMainStartTimestamp=Fri 2026-11-20 02:36:16 +07
+ActiveState=active
+UnitFileState=enabled
+hash mật khẩu (sha256 của hash): 5e0a553cb988a45d
+cây cấu hình (nginx, apache2, php, tpan, systemd): 37c614a14869a8ca
+gói đã cài: 8c86f3072810e823
+MainPID=10229  MainPID=13484  MainPID=13700  MainPID=0 
+tpan
+wp
+
+[2026-11-20 02:37:22] $ scripts/vm.sh exec bash -c cd /home/ubuntu/52c14c3 && sudo ./install.sh --web nginx
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /home/ubuntu/52c14c3/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+/usr/local/bin/tpan đã đúng bản này, giữ nguyên
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job 08c1f61fb657e0c9
+- Tạo thư mục /etc/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /etc/tpan/tls ...
+  đã đúng, bỏ qua
+- Ghi chứng chỉ tự ký của panel ...
+  đã đúng, bỏ qua
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Ghi file dịch vụ systemd của tpan ...
+  đã đúng, bỏ qua
+- Chạy và bật tpan.service khi khởi động ...
+  đã đúng, bỏ qua
+
+Job 08c1f61fb657e0c9: thành công
+
+Mật khẩu quản trị đã có từ trước, giữ nguyên. Quên thì chạy: sudo tpan admin passwd
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    D5:9A:B2:3F:42:52:1C:E6:4E:DE:98:9D:76:F1:61:AE:82:EC:9D:EE:3A:2F:AA:BC:7D:91:2A:ED:70:D5:96:84
+Mở: https://<IP của máy>:8443
+
+==> Cài stack: tpan stack install --web nginx
+Bắt đầu job 32e8391e03f5cef6
+- Làm mới danh sách gói (apt-get update) ...
+  đã đúng, bỏ qua
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  đã đúng, bỏ qua
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  đã đúng, bỏ qua
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php8.3-fpm bằng pool tpan-idle ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  đã đúng, bỏ qua
+- Gỡ /etc/nginx/sites-enabled/default ...
+  đã đúng, bỏ qua
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  đã đúng, bỏ qua
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  đã đúng, bỏ qua
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  đã đúng, bỏ qua
+- Ghi /etc/logrotate.d/tpan-sites ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 32e8391e03f5cef6: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.1%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+
+Xong. Bước tiếp:
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-20 02:37:22] (mã thoát 0)
+Mật khẩu quản trị panel trong output: 0 lần
+  => ĐẠT: install.sh lần hai thoát 0
+  => ĐẠT: báo file chạy đã đúng bản này, giữ nguyên
+  => ĐẠT: không chép lại file chạy (không có 'Đã đặt')
+  => ĐẠT: không khởi động lại dịch vụ tpan
+  => ĐẠT: báo mật khẩu đã có, giữ nguyên
+  => ĐẠT: không in mật khẩu nào
+  => ĐẠT: fingerprint giữ nguyên
+  => ĐẠT: không bước nào chạy (không có dòng "xong")
+
+[2026-11-20 02:37:22] $ scripts/vm.sh root bash -c 
+sha256sum /usr/local/bin/tpan /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service
+stat -c "%a %U:%G %n" /usr/local/bin/tpan
+systemctl show -p MainPID -p ExecMainStartTimestamp -p ActiveState -p UnitFileState tpan
+python3 -c "import sqlite3, hashlib; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", hashlib.sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"
+echo "cây cấu hình (nginx, apache2, php, tpan, systemd):" $(find /etc/nginx /etc/apache2 /etc/php /etc/tpan /etc/systemd/system -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | cut -c1-16)
+echo "gói đã cài:" $(dpkg-query -W -f "\${Package} \${Version} \${db:Status-Status}\n" | sort | sha256sum | cut -c1-16)
+systemctl show -p MainPID nginx php8.3-fpm mariadb apache2 | tr "\n" " "; echo
+ls /usr/local/bin   (output giữ để so, không in)
+[2026-11-20 02:37:22] (mã thoát 0; 15 dòng)
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+63d3efbebdd05a0919bda62d43bfabb2954c5593f84db51f3c84ede6b51f7256  /etc/tpan/tls/cert.pem
+fc1a2b42160fc3cf0dab873c1a1a6e41a28e8d7954bec63cb25b685a5fb0fd6e  /etc/tpan/tls/key.pem
+df72e9179b370f6d3a87a6f6f0471ff5a8b21e47adffaab8d2a494cca4d1e30f  /etc/systemd/system/tpan.service
+755 root:root /usr/local/bin/tpan
+MainPID=1705
+ExecMainStartTimestamp=Fri 2026-11-20 02:36:16 +07
+ActiveState=active
+UnitFileState=enabled
+hash mật khẩu (sha256 của hash): 5e0a553cb988a45d
+cây cấu hình (nginx, apache2, php, tpan, systemd): 37c614a14869a8ca
+gói đã cài: 8c86f3072810e823
+MainPID=10229  MainPID=13484  MainPID=13700  MainPID=0 
+tpan
+wp
+  => ĐẠT: sha256 file chạy, cert, key, unit; PID và giờ khởi động của dịch vụ; hash mật khẩu; cây cấu hình; gói đã cài; PID nginx, php, mariadb: không đổi
+
+[2026-11-20 02:37:22] $ scripts/vm.sh exec bash -c 
+d=$1
+body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\nHTTP %{http_code}\n" "http://$d/")
+printf "%s\n" "$body" | tail -1
+printf "%s\n" "$body" | grep -o "<title>[^<]*</title>"
+echo "thân nhắc $d: $(printf "%s" "$body" | grep -cF "$d") dòng"
+ _ a.example.com
+HTTP 200
+<title>a.example.com</title>
+thân nhắc a.example.com: 30 dòng
+[2026-11-20 02:37:23] (mã thoát 0)
+  => ĐẠT: a.example.com: HTTP 200 (curl --resolve trong máy ảo)
+  => ĐẠT: a.example.com: có <title>
+  => ĐẠT: a.example.com: thân trang có tên a.example.com
+
+[2026-11-20 02:37:23] $ curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve a.example.com:80:<vm> http://a.example.com/
+200
+[2026-11-20 02:37:23] (mã thoát 0)
+  => ĐẠT: a.example.com gọi từ Mac qua IP máy ảo (curl --resolve): 200
+
+[2026-11-20 02:37:23] $ scripts/vm.sh root tpan health a.example.com --json
+a.example.com  web.vhost:a.example.com  pass
+a.example.com  php.socket:a.example.com  pass
+a.example.com  wp.checksums:a.example.com  pass
+a.example.com  wp.config:a.example.com  pass
+a.example.com  db.access:a.example.com  pass
+a.example.com  http.site:a.example.com  pass
+(chỉ in id, trạng thái và tóm tắt của phép kiểm không đạt)
+[2026-11-20 02:37:25] (mã thoát 0)
+Số phép kiểm: 6; không pass: 0
+  => ĐẠT: health của a.example.com: mọi phép kiểm pass
+  => ĐẠT: health có nhóm của site a.example.com
+
+==== Phần 3: 15 đạt, 0 không đạt
+
+
+######## [2026-11-20 02:37:25] PHẦN 4: gói hỏng một byte: install.sh dừng ở bước kiểm sha256
+
+[2026-11-20 02:37:25] $ scripts/vm.sh root bash -c 
+sha256sum /usr/local/bin/tpan /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service
+stat -c "%a %U:%G %n" /usr/local/bin/tpan
+systemctl show -p MainPID -p ExecMainStartTimestamp -p ActiveState -p UnitFileState tpan
+python3 -c "import sqlite3, hashlib; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", hashlib.sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"
+echo "cây cấu hình (nginx, apache2, php, tpan, systemd):" $(find /etc/nginx /etc/apache2 /etc/php /etc/tpan /etc/systemd/system -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | cut -c1-16)
+echo "gói đã cài:" $(dpkg-query -W -f "\${Package} \${Version} \${db:Status-Status}\n" | sort | sha256sum | cut -c1-16)
+systemctl show -p MainPID nginx php8.3-fpm mariadb apache2 | tr "\n" " "; echo
+ls /usr/local/bin   (output giữ để so, không in)
+[2026-11-20 02:37:25] (mã thoát 0; 15 dòng)
+
+[2026-11-20 02:37:25] $ scripts/vm.sh exec bash -c set -e; rm -rf /tmp/pkg-bad; cp -a "$1" /tmp/pkg-bad; f=/tmp/pkg-bad/tpan-linux-$2
+    sha256sum "$f"
+    python3 -c "import sys; p = sys.argv[1]; b = bytearray(open(p, \"rb\").read()); b[4096] ^= 0xFF; open(p, \"wb\").write(b)" "$f"
+    sha256sum "$f"; cmp -l "$1/tpan-linux-$2" "$f" || true; grep " tpan-linux-$2\$" /tmp/pkg-bad/SHA256SUMS _ /home/ubuntu/52c14c3 arm64
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /tmp/pkg-bad/tpan-linux-arm64
+f2944984bde5082319013a1dcea463dd97aaf4b1d9e2534a18d7d2f299fe4fbe  /tmp/pkg-bad/tpan-linux-arm64
+    4097 220 157
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  tpan-linux-arm64
+[2026-11-20 02:37:25] (mã thoát 0)
+  => ĐẠT: bản sao gói: đúng một byte khác, SHA256SUMS giữ nguyên
+
+[2026-11-20 02:37:25] $ scripts/vm.sh exec bash -c cd /tmp/pkg-bad && sudo ./install.sh --web nginx
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /tmp/pkg-bad/tpan-linux-arm64
+
+==> Kiểm sha256
+
+LỖI: sha256 của /tmp/pkg-bad/tpan-linux-arm64 không khớp /tmp/pkg-bad/SHA256SUMS: file hỏng hoặc bị sửa giữa đường. Không cài.
+Ở bước: Kiểm sha256
+Làm gì tiếp: tải hoặc chép lại gói phát hành rồi chạy lại.
+[2026-11-20 02:37:25] (mã thoát 1)
+Mật khẩu quản trị panel trong output: 0 lần
+  => ĐẠT: install.sh thoát khác 0
+  => ĐẠT: báo sha256 không khớp, không cài
+  => ĐẠT: dừng ở bước 'Kiểm sha256'
+  => ĐẠT: không tới bước đặt file chạy hay setup
+
+[2026-11-20 02:37:25] $ scripts/vm.sh root bash -c 
+sha256sum /usr/local/bin/tpan /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service
+stat -c "%a %U:%G %n" /usr/local/bin/tpan
+systemctl show -p MainPID -p ExecMainStartTimestamp -p ActiveState -p UnitFileState tpan
+python3 -c "import sqlite3, hashlib; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", hashlib.sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"
+echo "cây cấu hình (nginx, apache2, php, tpan, systemd):" $(find /etc/nginx /etc/apache2 /etc/php /etc/tpan /etc/systemd/system -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | cut -c1-16)
+echo "gói đã cài:" $(dpkg-query -W -f "\${Package} \${Version} \${db:Status-Status}\n" | sort | sha256sum | cut -c1-16)
+systemctl show -p MainPID nginx php8.3-fpm mariadb apache2 | tr "\n" " "; echo
+ls /usr/local/bin   (output giữ để so, không in)
+[2026-11-20 02:37:25] (mã thoát 0; 15 dòng)
+  => ĐẠT: file đang cài, dịch vụ, cấu hình, mật khẩu: nguyên vẹn
+
+[2026-11-20 02:37:25] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+[2026-11-20 02:37:25] (mã thoát 0)
+sha256 trong dist/release/52c14c3/SHA256SUMS cho tpan-linux-arm64: 2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c
+  => ĐẠT: /usr/local/bin/tpan đúng sha256 của tpan-linux-arm64 trong SHA256SUMS (dist/release/52c14c3)
+
+[2026-11-20 02:37:25] $ scripts/vm.sh exec bash -c ls -la /usr/local/bin; systemctl is-active tpan
+total 27340
+drwxr-xr-x  2 root root     4096 Nov 20 02:37 .
+drwxr-xr-x 10 root root     4096 Oct 17 19:57 ..
+-rwxr-xr-x  1 root root 20840608 Nov 20 02:36 tpan
+-rwxr-xr-x  1 root root  7142777 Nov 20 02:37 wp
+active
+[2026-11-20 02:37:26] (mã thoát 0)
+  => ĐẠT: không sót tpan.install-tmp; tpan.service active
+
+==== Phần 4: 8 đạt, 0 không đạt
+
+
+######## [2026-11-20 02:37:26] PHẦN 5: máy sạch lần hai, curl | sudo bash từ máy chủ HTTP loopback, --web apache
+Máy ảo: tpan-test
+
+[2026-11-20 02:37:26] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-test  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-test.clean
+[2K[0A[0EStarting tpan-test  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\ [2K[0A[0E
+[2026-11-20 02:37:39] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-20 02:37:39] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-20 02:37:40] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-20 02:37:40] $ scripts/vm.sh exec bash -c command -v tpan; ls -la /usr/local/bin; systemctl cat tpan.service 2>&1 | head -1; ls /etc/tpan /var/lib/tpan 2>&1
+total 8
+drwxr-xr-x  2 root root 4096 Oct 17 19:57 .
+drwxr-xr-x 10 root root 4096 Oct 17 19:57 ..
+No files found for tpan.service.
+ls: cannot access '/etc/tpan': No such file or directory
+ls: cannot access '/var/lib/tpan': No such file or directory
+[2026-11-20 02:37:40] (mã thoát 2)
+  => ĐẠT: máy sạch: chưa có lệnh tpan
+  => ĐẠT: máy sạch: chưa có tpan.service
+  => ĐẠT: máy sạch: chưa có /etc/tpan, /var/lib/tpan
+
+[2026-11-20 02:37:40] $ multipass transfer -r dist/release/52c14c3 tpan-test:/home/ubuntu/
+[2026-11-20 02:37:40] (mã thoát 0)
+  => ĐẠT: chép gói 52c14c3 sang máy ảo
+
+[2026-11-20 02:37:40] $ multipass transfer -r dist/release/e2e-m11-b tpan-test:/home/ubuntu/52c14c3/
+[2026-11-20 02:37:41] (mã thoát 0)
+  => ĐẠT: chép gói e2e-m11-b vào /home/ubuntu/52c14c3/e2e-m11-b
+
+[2026-11-20 02:37:41] $ scripts/vm.sh exec bash -c cd "$1" && ls -lR . | sed "s/ [A-Z][a-z][a-z] .* / /" _ /home/ubuntu/52c14c3
+.:
+total 42444
+-rw-r--r-- 1 ubuntu ubuntu      243 SHA256SUMS
+drwxr-xr-x 2 ubuntu ubuntu     4096 e2e-m11-b
+-rwxr-xr-x 1 ubuntu ubuntu    20019 install.sh
+-rwxr-xr-x 1 ubuntu ubuntu 22585504 tpan-linux-amd64
+-rwxr-xr-x 1 ubuntu ubuntu 20840608 tpan-linux-arm64
+
+./e2e-m11-b:
+total 42440
+-rw-r--r-- 1 ubuntu ubuntu      243 SHA256SUMS
+-rwxr-xr-x 1 ubuntu ubuntu    20019 install.sh
+-rwxr-xr-x 1 ubuntu ubuntu 22585504 tpan-linux-amd64
+-rwxr-xr-x 1 ubuntu ubuntu 20840608 tpan-linux-arm64
+[2026-11-20 02:37:41] (mã thoát 0)
+
+[2026-11-20 02:37:41] $ scripts/vm.sh root systemd-run --unit=tpan-e2e-rel python3 -m http.server 18711 --bind 127.0.0.1 --directory /home/ubuntu/52c14c3
+Running as unit: tpan-e2e-rel.service; invocation ID: 9b3d911a9c9b4b7f9a31bffbd1af3b04
+[2026-11-20 02:37:41] (mã thoát 0)
+  => ĐẠT: máy chủ HTTP 127.0.0.1:18711 chạy (systemd-run)
+
+[2026-11-20 02:37:43] $ scripts/vm.sh exec bash -c for p in install.sh SHA256SUMS "$2/SHA256SUMS"; do curl -sS -o /dev/null -w "%{http_code} $p\n" "http://127.0.0.1:$1/$p"; done _ 18711 e2e-m11-b
+200 install.sh
+200 SHA256SUMS
+200 e2e-m11-b/SHA256SUMS
+[2026-11-20 02:37:43] (mã thoát 0)
+  => ĐẠT: máy chủ HTTP trả install.sh, SHA256SUMS, e2e-m11-b/SHA256SUMS
+
+[2026-11-20 02:37:43] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                               
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=888,fd=3),("systemd",pid=1,fd=91))
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=479,fd=17))            
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=479,fd=15))            
+LISTEN 0      5          127.0.0.1:18711      0.0.0.0:*    users:(("python3",pid=1511,fd=3))                    
+LISTEN 0      4096            [::]:22            [::]:*    users:(("sshd",pid=888,fd=4),("systemd",pid=1,fd=92))
+[2026-11-20 02:37:43] (mã thoát 0)
+  => ĐẠT: máy chủ HTTP chỉ nghe 127.0.0.1:18711
+
+
+######## [2026-11-20 02:37:43] 5: lệnh cài
+
+[2026-11-20 02:37:43] $ scripts/vm.sh exec bash -c curl -fsSL http://127.0.0.1:18711/install.sh | sudo bash -s -- --from http://127.0.0.1:18711 --web apache
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Tải tpan từ http://127.0.0.1:18711
+Tải http://127.0.0.1:18711/SHA256SUMS
+Tải http://127.0.0.1:18711/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+Đã đặt /usr/local/bin/tpan
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job 3a9efff47593f951
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 3a9efff47593f951: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <bí mật, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    09:09:B6:C6:A9:27:6E:6E:AD:52:32:C4:26:3D:C9:1C:12:65:D0:14:BC:79:58:18:A1:94:A7:96:2A:7B:7E:F9
+Mở: https://<IP của máy>:8443
+
+==> Cài stack: tpan stack install --web apache
+Bắt đầu job 51face4d2873eb4a
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2 ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Module Apache: bật mpm_event proxy_fcgi setenvif rewrite headers http2; tắt mpm_prefork ...
+  xong
+- Gỡ /etc/apache2/sites-enabled/000-default.conf ...
+  xong
+- Ghi /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Bật /etc/apache2/sites-enabled/000-tpan-default.conf → /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Chạy và bật apache2 khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 51face4d2873eb4a: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.7%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+
+Xong. Bước tiếp:
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-20 02:38:15] (mã thoát 0)
+Mật khẩu quản trị panel trong output: 1 lần
+  => ĐẠT: curl | sudo bash thoát 0
+  => ĐẠT: tải từ http://127.0.0.1:18711
+  => ĐẠT: kiểm sha256 khớp
+  => ĐẠT: setup và stack install: hai job thành công
+  => ĐẠT: mật khẩu quản trị in đúng một lần
+  => ĐẠT: có fingerprint
+
+
+######## [2026-11-20 02:38:16] 5: kiểm độc lập
+
+[2026-11-20 02:38:16] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+[2026-11-20 02:38:16] (mã thoát 0)
+sha256 trong dist/release/52c14c3/SHA256SUMS cho tpan-linux-arm64: 2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c
+  => ĐẠT: /usr/local/bin/tpan đúng sha256 của tpan-linux-arm64 trong SHA256SUMS (dist/release/52c14c3)
+
+[2026-11-20 02:38:16] $ scripts/vm.sh exec ls -la /usr/local/bin
+total 27340
+drwxr-xr-x  2 root root     4096 Nov 20 02:38 .
+drwxr-xr-x 10 root root     4096 Oct 17 19:57 ..
+-rwxr-xr-x  1 root root 20840608 Nov 20 02:37 tpan
+-rwxr-xr-x  1 root root  7142777 Nov 20 02:38 wp
+[2026-11-20 02:38:16] (mã thoát 0)
+  => ĐẠT: không sót tpan.install-tmp
+
+[2026-11-20 02:38:16] $ scripts/vm.sh exec systemctl is-active tpan
+active
+[2026-11-20 02:38:16] (mã thoát 0)
+  => ĐẠT: tpan.service active
+
+[2026-11-20 02:38:16] $ scripts/vm.sh exec systemctl is-enabled tpan
+enabled
+[2026-11-20 02:38:16] (mã thoát 0)
+  => ĐẠT: tpan.service enabled
+
+[2026-11-20 02:38:16] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                                                                  
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=888,fd=3),("systemd",pid=1,fd=183))                                  
+LISTEN 0      80         127.0.0.1:3306       0.0.0.0:*    users:(("mariadbd",pid=14439,fd=22))                                                    
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=479,fd=17))                                               
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=479,fd=15))                                               
+LISTEN 0      5          127.0.0.1:18711      0.0.0.0:*    users:(("python3",pid=1511,fd=3))                                                       
+LISTEN 0      4096               *:8443             *:*    users:(("tpan",pid=1821,fd=8))                                                          
+LISTEN 0      511                *:80               *:*    users:(("apache2",pid=15271,fd=4),("apache2",pid=14999,fd=4),("apache2",pid=14618,fd=4))
+LISTEN 0      4096            [::]:22            [::]:*    users:(("sshd",pid=888,fd=4),("systemd",pid=1,fd=184))                                  
+[2026-11-20 02:38:16] (mã thoát 0)
+  => ĐẠT: tpan nghe cổng 8443
+
+[2026-11-20 02:38:16] $ scripts/vm.sh exec systemctl is-active apache2 php8.3-fpm mariadb
+active
+active
+active
+[2026-11-20 02:38:16] (mã thoát 0)
+  => ĐẠT: apache2, php8.3-fpm, mariadb active
+
+[2026-11-20 02:38:16] $ scripts/vm.sh exec systemctl is-active nginx
+inactive
+[2026-11-20 02:38:16] (mã thoát 4)
+  => ĐẠT: nginx không chạy (máy LAMP)
+
+[2026-11-20 02:38:16] $ scripts/vm.sh root tpan health --json
+(máy)  service.active:apache2  pass
+(máy)  service.active:php8.3-fpm  pass
+(máy)  service.active:mariadb  pass
+(máy)  config.apache:apache2  pass
+(máy)  config.phpfpm:8.3  pass
+(máy)  port.localonly:3306  pass
+(máy)  http.default:apache  pass
+(máy)  db.secure:mariadb  pass
+(máy)  wpcli.binary:wp  pass
+(máy)  disk.usage:/  pass
+(máy)  php.www_pool:8.3  pass
+(máy)  memory:ram  pass
+(máy)  drift:/etc/apache2/sites-available/000-tpan-default.conf  pass
+(máy)  drift:/etc/logrotate.d/tpan-sites  pass
+(máy)  drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf  pass
+(máy)  drift:/etc/systemd/system/tpan.service  pass
+(máy)  drift:/etc/tpan/tls/cert.pem  pass
+tpan  tpan.db:integrity  pass
+tpan  disk.free:/var/lib/tpan  pass
+tpan  tpan.cert:/etc/tpan/tls/cert.pem  pass
+tpan  tpan.perm:/var/lib/tpan/tpan.db  pass
+tpan  tpan.perm:/etc/tpan/tls/key.pem  pass
+tpan  tpan.perm:/etc/tpan  pass
+tpan  tpan.jobs:stuck  pass
+tpan  tpan.scheduler:health  pass
+tpan  tpan.backup:db  warn  -- chưa có bản sao lưu tpan.db nào
+(chỉ in id, trạng thái và tóm tắt của phép kiểm không đạt)
+[2026-11-20 02:38:17] (mã thoát 0)
+Số phép kiểm: 26; không pass: 1
+  => ĐẠT: health: mọi phép kiểm pass, trừ tpan.backup:db warn (máy mới, chưa sao lưu tpan.db lần nào)
+
+[2026-11-20 02:38:17] $ scripts/vm.sh root tpan site add b.example.com --email admin@example.com --yes
+Bắt đầu job c3fdf9c64d0103e3
+- Tạo user Linux tp_b_example_com_cd59d5 cho site ...
+  xong
+- Tạo thư mục /var/www/b.example.com ...
+  xong
+- Tạo thư mục /var/www/b.example.com/public ...
+  xong
+- Tạo thư mục /var/www/b.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/b.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/b.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_b_example_com_cd59d5 và user DB riêng của site b.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-b_example_com_cd59d5 cho b.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/b.example.com/public ...
+  xong
+- Tạo /var/www/b.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/b.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của b.example.com (5 phút một lần) ...
+  xong
+- Ghi /var/www/b.example.com/public/.htaccess ...
+  xong
+- Ghi vhost apache cho b.example.com ...
+  xong
+- Bật /etc/apache2/sites-enabled/tpan-b.example.com.conf → /etc/apache2/sites-available/tpan-b.example.com.conf ...
+  xong
+- Cài WordPress cho b.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job c3fdf9c64d0103e3: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_b_example_com_cd59d5
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_b_example_com_cd59d5
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của b.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://b.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <bí mật, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-20 02:38:27] (mã thoát 0)
+Mật khẩu quản trị WordPress trong output: 1 lần; đã đọc mật khẩu DB của site vào danh sách che (32 ký tự)
+  => ĐẠT: site add b.example.com: thoát 0, job thành công
+
+[2026-11-20 02:38:27] $ scripts/vm.sh exec bash -c 
+d=$1
+body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\nHTTP %{http_code}\n" "http://$d/")
+printf "%s\n" "$body" | tail -1
+printf "%s\n" "$body" | grep -o "<title>[^<]*</title>"
+echo "thân nhắc $d: $(printf "%s" "$body" | grep -cF "$d") dòng"
+ _ b.example.com
+HTTP 200
+<title>b.example.com</title>
+thân nhắc b.example.com: 30 dòng
+[2026-11-20 02:38:27] (mã thoát 0)
+  => ĐẠT: b.example.com: HTTP 200 (curl --resolve trong máy ảo)
+  => ĐẠT: b.example.com: có <title>
+  => ĐẠT: b.example.com: thân trang có tên b.example.com
+
+[2026-11-20 02:38:27] $ curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve b.example.com:80:<vm> http://b.example.com/
+200
+[2026-11-20 02:38:27] (mã thoát 0)
+  => ĐẠT: b.example.com gọi từ Mac qua IP máy ảo (curl --resolve): 200
+
+[2026-11-20 02:38:27] $ scripts/vm.sh root tpan health b.example.com --json
+b.example.com  web.vhost:b.example.com  pass
+b.example.com  php.socket:b.example.com  pass
+b.example.com  wp.checksums:b.example.com  pass
+b.example.com  wp.config:b.example.com  pass
+b.example.com  db.access:b.example.com  pass
+b.example.com  http.site:b.example.com  pass
+(chỉ in id, trạng thái và tóm tắt của phép kiểm không đạt)
+[2026-11-20 02:38:29] (mã thoát 0)
+Số phép kiểm: 6; không pass: 0
+  => ĐẠT: health của b.example.com: mọi phép kiểm pass
+  => ĐẠT: health có nhóm của site b.example.com
+
+==== Phần 5: 31 đạt, 0 không đạt
+
+
+######## [2026-11-20 02:38:29] PHẦN 6: tpan self-update từ máy chủ loopback lên e2e-m11-b, rồi --rollback
+
+[2026-11-20 02:38:29] $ scripts/vm.sh exec systemctl is-active tpan-e2e-rel
+active
+[2026-11-20 02:38:29] (mã thoát 0)
+
+[2026-11-20 02:38:29] $ scripts/vm.sh exec curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:18711/e2e-m11-b/SHA256SUMS
+200
+[2026-11-20 02:38:29] (mã thoát 0)
+  => ĐẠT: máy chủ HTTP trả e2e-m11-b/SHA256SUMS
+
+[2026-11-20 02:38:29] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+[2026-11-20 02:38:29] (mã thoát 0)
+
+
+######## [2026-11-20 02:38:29] 6: --dry-run
+
+[2026-11-20 02:38:29] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18711/e2e-m11-b --dry-run
+Kế hoạch: Cập nhật tpan (đang chạy bản 52c14c3)
+3 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 2 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Tải bản tpan mới vào /usr/local/bin/tpan.new  (self.download:/usr/local/bin/tpan.new)
+    Vì sao: Bản mới được tải vào file riêng và kiểm sha256 theo SHA256SUMS của bản phát hành trước khi đụng tới file đang chạy. File hỏng hay bị sửa giữa đường thì bị xoá, không bao giờ được chạy bằng quyền root.
+    $ curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:18711/e2e-m11-b/SHA256SUMS
+    $ curl -fsSL --max-time 300 --proto-redir =https -o /usr/local/bin/tpan.new http://127.0.0.1:18711/e2e-m11-b/tpan-linux-arm64
+    $ /usr/local/bin/tpan.new version
+ 2. [sẽ chạy] Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old  (self.install:/usr/local/bin/tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đây là lúc bản mới thành file chạy của tpan. Bản cũ không bị xoá mà đổi tên thành /usr/local/bin/tpan.old, để quay về được nếu bản mới có lỗi. Dịch vụ tpan chỉ dùng bản mới sau khi khởi động lại.
+ 3. [sẽ chạy] Khởi động lại tpan  (service.restart:tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Dịch vụ đang chạy vẫn dùng bản cũ trong bộ nhớ cho tới khi được khởi động lại; không làm bước này thì bản vá chưa có tác dụng. Cấu hình được kiểm trước, sai thì không khởi động lại.
+    $ systemctl restart tpan
+    Ghi chú hoàn tác: Không hoàn tác: khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về.
+[2026-11-20 02:38:29] (mã thoát 0)
+  => ĐẠT: dry-run thoát 0
+
+[2026-11-20 02:38:29] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+[2026-11-20 02:38:29] (mã thoát 0)
+  => ĐẠT: dry-run không đổi file chạy
+
+
+######## [2026-11-20 02:38:29] 6: --yes
+
+[2026-11-20 02:38:29] $ scripts/vm.sh exec systemctl show -p MainPID tpan
+MainPID=1821
+[2026-11-20 02:38:29] (mã thoát 0)
+
+[2026-11-20 02:38:29] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18711/e2e-m11-b --yes
+Bắt đầu job ff4dc8d0adc51dba
+- Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+  xong
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+  xong
+- Khởi động lại tpan ...
+  xong
+  [đạt] File chạy /usr/local/bin/tpan chạy được
+
+Job ff4dc8d0adc51dba: thành công
+Kiểm chứng:
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan e2e-m11-b (commit 52c14c3, build 2026-11-19T19:35:55Z)
+tpan đã đổi: 52c14c3 -> e2e-m11-b
+[2026-11-20 02:38:30] (mã thoát 0)
+  => ĐẠT: self-update thoát 0, job thành công
+  => ĐẠT: in 52c14c3 -> e2e-m11-b
+
+[2026-11-20 02:38:30] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2c8d9019e27096bce82a266d0dd8d8d0732ab4a3a8ec669e19f2ee193b38f67e  /usr/local/bin/tpan
+[2026-11-20 02:38:30] (mã thoát 0)
+sha256 trong dist/release/e2e-m11-b/SHA256SUMS cho tpan-linux-arm64: 2c8d9019e27096bce82a266d0dd8d8d0732ab4a3a8ec669e19f2ee193b38f67e
+  => ĐẠT: /usr/local/bin/tpan đúng sha256 của tpan-linux-arm64 trong SHA256SUMS (dist/release/e2e-m11-b)
+
+[2026-11-20 02:38:30] $ scripts/vm.sh exec bash -c tpan version; ls -la /usr/local/bin; /usr/local/bin/tpan.old version
+tpan e2e-m11-b (commit 52c14c3, build 2026-11-19T19:35:55Z)
+total 47696
+drwxr-xr-x  2 root root     4096 Nov 20 02:38 .
+drwxr-xr-x 10 root root     4096 Oct 17 19:57 ..
+-rwxr-xr-x  1 root root 20840608 Nov 20 02:38 tpan
+-rwxr-xr-x  1 root root 20840608 Nov 20 02:37 tpan.old
+-rwxr-xr-x  1 root root  7142777 Nov 20 02:38 wp
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+[2026-11-20 02:38:30] (mã thoát 0)
+  => ĐẠT: tpan version là e2e-m11-b, tpan.old là 52c14c3
+
+[2026-11-20 02:38:32] $ scripts/vm.sh exec systemctl show -p MainPID -p ActiveState tpan
+MainPID=16722
+ActiveState=active
+[2026-11-20 02:38:32] (mã thoát 0)
+  => ĐẠT: tpan.service active, khởi động lại (PID mới)
+
+[2026-11-20 02:38:32] $ scripts/vm.sh root bash -c p=$(systemctl show -p MainPID --value tpan); /proc/$p/exe version
+tpan e2e-m11-b (commit 52c14c3, build 2026-11-19T19:35:55Z)
+[2026-11-20 02:38:32] (mã thoát 0)
+  => ĐẠT: tiến trình của dịch vụ chạy bản e2e-m11-b
+
+[2026-11-20 02:38:32] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                                                                  
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=888,fd=3),("systemd",pid=1,fd=183))                                  
+LISTEN 0      80         127.0.0.1:3306       0.0.0.0:*    users:(("mariadbd",pid=14439,fd=22))                                                    
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=479,fd=17))                                               
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=479,fd=15))                                               
+LISTEN 0      5          127.0.0.1:18711      0.0.0.0:*    users:(("python3",pid=1511,fd=3))                                                       
+LISTEN 0      4096               *:8443             *:*    users:(("tpan",pid=16722,fd=8))                                                         
+LISTEN 0      511                *:80               *:*    users:(("apache2",pid=16007,fd=4),("apache2",pid=15966,fd=4),("apache2",pid=14618,fd=4))
+LISTEN 0      4096            [::]:22            [::]:*    users:(("sshd",pid=888,fd=4),("systemd",pid=1,fd=184))                                  
+[2026-11-20 02:38:32] (mã thoát 0)
+  => ĐẠT: tpan nghe cổng 8443
+
+[2026-11-20 02:38:32] $ scripts/vm.sh exec bash -c 
+d=$1
+body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\nHTTP %{http_code}\n" "http://$d/")
+printf "%s\n" "$body" | tail -1
+printf "%s\n" "$body" | grep -o "<title>[^<]*</title>"
+echo "thân nhắc $d: $(printf "%s" "$body" | grep -cF "$d") dòng"
+ _ b.example.com
+HTTP 200
+<title>b.example.com</title>
+thân nhắc b.example.com: 30 dòng
+[2026-11-20 02:38:33] (mã thoát 0)
+  => ĐẠT: b.example.com: HTTP 200 (curl --resolve trong máy ảo)
+  => ĐẠT: b.example.com: có <title>
+  => ĐẠT: b.example.com: thân trang có tên b.example.com
+
+[2026-11-20 02:38:33] $ curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve b.example.com:80:<vm> http://b.example.com/
+200
+[2026-11-20 02:38:33] (mã thoát 0)
+  => ĐẠT: b.example.com gọi từ Mac qua IP máy ảo (curl --resolve): 200
+
+[2026-11-20 02:38:33] $ scripts/vm.sh root tpan health b.example.com --json
+b.example.com  web.vhost:b.example.com  pass
+b.example.com  php.socket:b.example.com  pass
+b.example.com  wp.checksums:b.example.com  pass
+b.example.com  wp.config:b.example.com  pass
+b.example.com  db.access:b.example.com  pass
+b.example.com  http.site:b.example.com  pass
+(chỉ in id, trạng thái và tóm tắt của phép kiểm không đạt)
+[2026-11-20 02:38:34] (mã thoát 0)
+Số phép kiểm: 6; không pass: 0
+  => ĐẠT: health của b.example.com: mọi phép kiểm pass
+  => ĐẠT: health có nhóm của site b.example.com
+
+
+######## [2026-11-20 02:38:34] 6: --rollback
+
+[2026-11-20 02:38:34] $ scripts/vm.sh exec systemctl show -p MainPID tpan
+MainPID=16722
+[2026-11-20 02:38:34] (mã thoát 0)
+
+[2026-11-20 02:38:34] $ scripts/vm.sh root tpan self-update --rollback --yes
+Bắt đầu job cef21af0712c3ce1
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.old, giữ bản cũ ở /usr/local/bin/tpan.new ...
+  xong
+- Khởi động lại tpan ...
+  xong
+  [đạt] File chạy /usr/local/bin/tpan chạy được
+
+Job cef21af0712c3ce1: thành công
+Kiểm chứng:
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+tpan đã quay về bản trước: e2e-m11-b -> 52c14c3
+[2026-11-20 02:38:35] (mã thoát 0)
+  => ĐẠT: rollback thoát 0, job thành công
+
+[2026-11-20 02:38:35] $ scripts/vm.sh exec tpan version
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+[2026-11-20 02:38:35] (mã thoát 0)
+  => ĐẠT: về 52c14c3
+
+[2026-11-20 02:38:35] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+[2026-11-20 02:38:35] (mã thoát 0)
+  => ĐẠT: file chạy giống hệt bản trước self-update
+
+[2026-11-20 02:38:35] $ scripts/vm.sh root sha256sum /usr/local/bin/tpan
+2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c  /usr/local/bin/tpan
+[2026-11-20 02:38:35] (mã thoát 0)
+sha256 trong dist/release/52c14c3/SHA256SUMS cho tpan-linux-arm64: 2d10640407c5131992b4011ccbe8e74d317529d31ac2db65631c48c6e17e9b9c
+  => ĐẠT: /usr/local/bin/tpan đúng sha256 của tpan-linux-arm64 trong SHA256SUMS (dist/release/52c14c3)
+
+[2026-11-20 02:38:37] $ scripts/vm.sh exec systemctl show -p MainPID -p ActiveState tpan
+MainPID=17395
+ActiveState=active
+[2026-11-20 02:38:37] (mã thoát 0)
+  => ĐẠT: tpan.service active, khởi động lại (PID mới)
+
+[2026-11-20 02:38:37] $ scripts/vm.sh root bash -c p=$(systemctl show -p MainPID --value tpan); /proc/$p/exe version
+tpan 52c14c3 (commit 52c14c3, build 2026-11-19T19:35:55Z)
+[2026-11-20 02:38:37] (mã thoát 0)
+  => ĐẠT: tiến trình của dịch vụ chạy bản 52c14c3
+
+[2026-11-20 02:38:37] $ scripts/vm.sh root tpan health --json
+(máy)  service.active:apache2  pass
+(máy)  service.active:php8.3-fpm  pass
+(máy)  service.active:mariadb  pass
+(máy)  config.apache:apache2  pass
+(máy)  config.phpfpm:8.3  pass
+(máy)  port.localonly:3306  pass
+(máy)  http.default:apache  pass
+(máy)  db.secure:mariadb  pass
+(máy)  wpcli.binary:wp  pass
+(máy)  disk.usage:/  pass
+(máy)  php.www_pool:8.3  pass
+(máy)  memory:ram  pass
+(máy)  drift:/etc/apache2/sites-available/000-tpan-default.conf  pass
+(máy)  drift:/etc/cron.d/tpan-b_example_com_cd59d5  pass
+(máy)  drift:/etc/logrotate.d/tpan-sites  pass
+(máy)  drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf  pass
+(máy)  drift:/etc/systemd/system/tpan.service  pass
+(máy)  drift:/etc/tpan/tls/cert.pem  pass
+b.example.com  web.vhost:b.example.com  pass
+b.example.com  php.socket:b.example.com  pass
+b.example.com  wp.checksums:b.example.com  pass
+b.example.com  wp.config:b.example.com  pass
+b.example.com  db.access:b.example.com  pass
+b.example.com  http.site:b.example.com  pass
+b.example.com  drift:/etc/apache2/sites-available/tpan-b.example.com.conf  pass
+b.example.com  drift:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  pass
+tpan  tpan.db:integrity  pass
+tpan  disk.free:/var/lib/tpan  pass
+tpan  tpan.cert:/etc/tpan/tls/cert.pem  pass
+tpan  tpan.perm:/var/lib/tpan/tpan.db  pass
+tpan  tpan.perm:/etc/tpan/tls/key.pem  pass
+tpan  tpan.perm:/etc/tpan  pass
+tpan  tpan.jobs:stuck  pass
+tpan  tpan.scheduler:health  pass
+tpan  tpan.backup:db  warn  -- chưa có bản sao lưu tpan.db nào
+(chỉ in id, trạng thái và tóm tắt của phép kiểm không đạt)
+[2026-11-20 02:38:39] (mã thoát 0)
+Số phép kiểm: 35; không pass: 1
+  => ĐẠT: health: mọi phép kiểm pass, trừ tpan.backup:db warn (máy mới, chưa sao lưu tpan.db lần nào)
+
+[2026-11-20 02:38:39] $ scripts/vm.sh root systemctl stop tpan-e2e-rel
+[2026-11-20 02:38:39] (mã thoát 0)
+
+==== Phần 6: 23 đạt, 0 không đạt
+
+
+######## [2026-11-20 02:38:39] bí mật, cookie, IP, tên user Mac có lọt vào chính file log không
+Số bí mật đã gặp (mật khẩu, cookie): 7; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu hay cookie nào
+  => ĐẠT: log không chứa IP máy ảo
+  => ĐẠT: log không chứa mạng Multipass
+  => ĐẠT: log không chứa IPv6 của máy ảo (cả chữ hoa)
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+
+
+######## [2026-11-20 02:38:39] TỔNG KẾT: 127 khẳng định đạt, 0 khẳng định không đạt
