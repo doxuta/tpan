@@ -34,7 +34,7 @@ func (s *Server) apiUpdates() *core.Updates {
 	st := s.deps.Store
 	return &core.Updates{
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
-		Settings: st, Sites: st, Journal: st,
+		Settings: st, Sites: st, Journal: st, Backups: st,
 		Version: buildinfo.Version, WPCLISHA512: s.deps.WPCLISHA512,
 	}
 }

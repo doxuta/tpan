@@ -76,7 +76,7 @@ func (s *Server) apiSites() *core.Sites {
 	st := s.deps.Store
 	return &core.Sites{
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
-		Settings: st, Store: st, Journal: st,
+		Settings: st, Store: st, Journal: st, Backups: st,
 		WPHash: s.deps.WPHash,
 	}
 }
@@ -102,9 +102,13 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 		status = http.StatusConflict
 		switch re.Code {
 		case validate.CodeDomainInvalid, validate.CodeEmailInvalid, "title_invalid", "ssl_server_invalid",
-			"sites_file_invalid", "trash_days_invalid", "apply_empty", "domain_duplicate", "prune_empty":
+			"sites_file_invalid", "trash_days_invalid", "apply_empty", "domain_duplicate", "prune_empty",
+			// M9: số bản giữ, giờ backup sai là lỗi đầu vào.
+			"backup_keep_invalid", "backup_at_invalid":
 			status = http.StatusBadRequest
-		case "site_not_found":
+		case "site_not_found",
+			// M9: id backup không có (hoặc không thuộc site đó) là "không có".
+			"backup_not_found":
 			status = http.StatusNotFound
 		}
 		return status, ErrorBody{Error: ErrorDetail{Code: re.Code, Message: re.Message, Checks: re.Checks}}

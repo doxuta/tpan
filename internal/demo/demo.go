@@ -39,7 +39,7 @@ const (
 func Hashes() (wordPress, wpcli string) { return wordPressSHA1(), wpCLISHA512() }
 
 func NewSites(sys system.System, st *store.Store) *core.Sites {
-	return &core.Sites{Sys: sys, Settings: st, Store: st, Journal: st, WPHash: wordPressSHA1()}
+	return &core.Sites{Sys: sys, Settings: st, Store: st, Journal: st, Backups: st, WPHash: wordPressSHA1()}
 }
 
 // NewStack dựng core.Stack cho máy demo, vì cùng lý do với NewSites: phép kiểm
@@ -101,6 +101,12 @@ func seed(ctx context.Context, m *machine, st *store.Store) error {
 		if err := st.SetSetting(ctx, k, v); err != nil {
 			return fmt.Errorf("ghi setting %s: %w", k, err)
 		}
+	}
+
+	// M9 (m9.go): lệnh giả của backup, cron, thao tác DB và dữ liệu mẫu. Gọi
+	// trước khi tạo site: wp-config.php của site mẫu phải có các dòng DB_*.
+	if err := seedM9(ctx, m, st); err != nil {
+		return err
 	}
 
 	// Thứ tự theo thời gian; ago là "cách đây bao lâu", để lịch sử có ngày khác
