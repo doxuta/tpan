@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: mốc M0 (khung dự án) xong ngày 19/11/2026; mốc M1 (lõi và cài stack) xong cùng ngày, chờ chủ dự án duyệt trước khi merge vào `main`. Bằng chứng ở `docs/bang-chung/M1.log`, giải thích ở `docs/giai-thich/00-go-can-ban.md` và `01-m1-cai-stack.md`. Mốc tiếp theo là M2. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: mốc M0 (khung dự án), M1 (lõi và cài stack) và M2 (site WordPress có cô lập) xong ngày 19/11/2026. Bằng chứng ở `docs/bang-chung/M1.log` và `M2.log`, giải thích ở `docs/giai-thich/00-go-can-ban.md`, `01-m1-cai-stack.md` và `02-m2-site-wordpress.md`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); mốc tiếp theo là M3. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -317,7 +317,7 @@ Chạy lại phải được phép, kể cả sau một lần hỏng giữa ch�
 8. Ghi vhost từ template; kiểm config; reload web server.
 9. `wp core install` với mật khẩu quản trị ngẫu nhiên (qua stdin); đặt permalink `/%postname%/`.
 10. Kiểm chứng:
-    - Gọi `http://127.0.0.1/` với header `Host: <domain>` → 200 và có dấu hiệu WordPress.
+    - Gọi `http://<domain>/` với `curl --resolve <domain>:80:127.0.0.1` (đi vào chính máy, đúng vhost) → 200, có dấu hiệu WordPress và có chính domain của site (request rơi nhầm vào vhost khác thì không qua).
     - `wp core verify-checksums` → mã nguồn nguyên vẹn.
     - Socket của pool tồn tại, đúng chủ và quyền.
     - Đăng nhập DB bằng user của site được; user đó không thấy DB của site khác.
@@ -771,7 +771,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 |---|---|---|
 | **M0** ✅ | Khung: repo, build chéo, nhúng giao diện, CI, máy ảo test | `make check` xanh; `tpan version` chạy trong máy ảo |
 | **M1** ✅ | `validate`, `system`, `engine`, `store`, `checks`; `tpan stack install` cho cả Nginx và Apache; `--dry-run`; `tpan health` cho stack. Nguồn gói và bản PHP là tham số đọc từ `settings`, không ghi cứng ở đâu, để M12 không phải viết lại | e2e bước 1 cho cả hai web server; chạy lại không đổi gì |
-| **M2** | `tpan site add/list/info/rm` với cô lập đầy đủ và hoàn tác; phép kiểm theo đường đi request | e2e bước 2 đến 6 |
+| **M2** ✅ | `tpan site add/list/info/rm` với cô lập đầy đủ và hoàn tác; phép kiểm theo đường đi request | e2e bước 2 đến 6 |
 | **M3** | `tpan setup`, API, đăng nhập, SSE; giao diện theo `docs/GIAO-DIEN.md`, sáng và tối: menu chính, bảng điều khiển với bản đồ tuyến và số liệu máy, màn cơ sở dữ liệu (chỉ xem), đổi mật khẩu quản trị và `tpan admin passwd` để đặt lại khi quên, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
 | **M4** | Health đầy đủ: chạy định kỳ, sự cố, sửa tự động và sửa tay, tự kiểm TPAN, phát hiện lệch, log trực tiếp, số request và lỗi 5xx theo site, `scripts/faults/` | e2e bước 9 và 11 |
 | **M5** | SSL (staging), trang bảo mật, ufw, fail2ban | chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt |
