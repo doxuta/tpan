@@ -40,14 +40,14 @@ func TestDriftPass(t *testing.T) {
 	assertShape(t, Drift(p, strings.ToUpper(want), StageWeb).Run(bg(), fake), "drift:"+p, StageWeb, Pass)
 }
 
-func TestDriftWarnKhiSuaTay(t *testing.T) {
+func TestDriftFailKhiSuaTay(t *testing.T) {
 	fake := system.NewFake()
 	const p = "/etc/php/8.3/fpm/pool.d/tpan-a.conf"
 	fake.SetFile(p, []byte("sua tay"), 0o644, system.Root)
 	want := sha256Of("ban goc")
 
 	r := Drift(p, want, StagePHP).Run(bg(), fake)
-	assertShape(t, r, "drift:"+p, StagePHP, Warn)
+	assertShape(t, r, "drift:"+p, StagePHP, Fail)
 	assertNoCmd(t, fake)
 	if !strings.Contains(r.Summary.Vi, p) || !strings.Contains(r.Summary.En, p) {
 		t.Errorf("Summary phải nêu đường dẫn: %+v", r.Summary)

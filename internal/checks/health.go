@@ -36,9 +36,10 @@ var sha256RE = regexp.MustCompile(`^[0-9a-fA-F]{64}$`)
 
 // Drift (ID "drift:<path>", chặng stage): so sha256 của file đang có với
 // wantSHA256 (hex, giá trị ở bảng managed_files lúc tpan ghi). Khớp: Pass.
-// Khác: Warn (không phải Fail: máy có thể vẫn chạy đúng, nhưng lần chạy lại
-// Plan sẽ ghi đè bản sửa tay), Summary nêu đúng đường dẫn, Evidence có sha256
-// hai bên. File không còn: Fail. Cách sửa tay: xem diff bằng `tpan health
+// Khác: Fail, Summary nêu đúng đường dẫn, Evidence có sha256 hai bên. Fail chứ
+// không Warn: một file cấu hình mà tiến trình root đọc bị sửa ngoài tpan là
+// chuyện cần người xem (mở sự cố), và chỉ ở sự cố mới có lựa chọn ghi lại bản
+// của tpan hay nhận bản sửa tay làm chuẩn mới (mục 6.7). File không còn: Fail. Cách sửa tay: xem diff bằng `tpan health
 // --fix --dry-run`, hoặc tự đưa file về; AutoFix do core điền (mục 6.7: ghi
 // lại bản của tpan, hoặc nhận bản sửa tay làm chuẩn mới).
 // Đọc file bằng sys.ReadFile, tính sha256 bằng Go (như WPCLI).
@@ -73,7 +74,7 @@ func Drift(p, wantSHA256 string, stage Stage) Check {
 		if got == want {
 			return b.pass(i18n.T("File "+p+" đúng như tpan đã ghi", "File "+p+" is as tpan wrote it"), ev)
 		}
-		return b.bad(Warn,
+		return b.bad(Fail,
 			i18n.T("File "+p+" khác bản tpan đã ghi (có thể bị sửa tay)", "File "+p+" differs from what tpan wrote (it may have been edited by hand)"),
 			i18n.T("Có người hoặc chương trình khác sửa file này. Máy có thể vẫn chạy đúng, nhưng lần tới tpan dựng lại cấu hình sẽ ghi đè bản sửa tay.",
 				"Someone or something else changed this file. The machine may still work, but the next time tpan rebuilds the configuration it will overwrite the manual edit."),
