@@ -11,6 +11,7 @@ package core
 // dẫn phải trùng đúng một file tpan tự dựng lại được.
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -99,6 +100,38 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 		}, nil
 	}
 	return engine.Plan{}, noAutoFix(r.ID)
+}
+
+// dropAccepted bỏ khỏi ss các bước ghi file mà nội dung đang có khớp đúng
+// sha256 trong managed_files nhưng khác template: đó là bản sửa tay người dùng
+// đã nhận làm chuẩn (POST /api/v1/files/accept). web.rewrite chỉ sửa file bị
+// lệch hay hỏng; ghi đè bản đã nhận là xoá việc người dùng vừa chọn, và bước
+// đó còn chạy `nginx -t` trong lúc file hỏng thật chưa được ghi lại, nên cả
+// job hỏng và hoàn tác (tìm thấy ở e2e M4: nhận bản sửa tay của site a rồi
+// gây lỗi vhost site b). File không có dòng, không đọc được, hay lệch thì giữ.
+func (f *Fixes) dropAccepted(ctx context.Context, ss []engine.Step) ([]engine.Step, error) {
+	if f.Files == nil {
+		return ss, nil
+	}
+	out := ss[:0:0]
+	for _, s := range ss {
+		if x, ok := s.(*steps.File); ok {
+			want, rec, err := f.Files.FileSHA256(ctx, x.Path)
+			if err != nil {
+				return nil, err
+			}
+			if rec {
+				if cur, err := f.Sys.ReadFile(x.Path); err == nil && !bytes.Equal(cur, x.Content) {
+					sum := sha256.Sum256(cur)
+					if strings.EqualFold(hex.EncodeToString(sum[:]), want) {
+						continue
+					}
+				}
+			}
+		}
+		out = append(out, s)
+	}
+	return out, nil
 }
 
 // activeSite đọc domain từ ID, đòi nó đúng dạng chuẩn và là site active.
@@ -296,6 +329,9 @@ func (f *Fixes) webRewrite(ctx context.Context, cfg StackConfig, id, kind string
 			return engine.Plan{}, fmt.Errorf("dựng lại vhost của %s: %w", st.Domain, err)
 		}
 		ss = append(ss, vhost...)
+	}
+	if ss, err = f.dropAccepted(ctx, ss); err != nil {
+		return engine.Plan{}, err
 	}
 	unit := webUnit(cfg.Web)
 	return engine.Plan{

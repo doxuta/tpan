@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -61,7 +62,7 @@ type fixEnv struct {
 }
 
 var (
-	fixLockState = "SELECT COUNT(*), COALESCE(MAX(JSON_VALUE(Priv, '$.account_locked') = 'true'), 0) FROM mysql.global_priv WHERE User='"
+	fixLockState = "SELECT COUNT(*), COALESCE(MAX(JSON_VALUE(Priv, '$.account_locked') IN ('1', 'true')), 0) FROM mysql.global_priv WHERE User='"
 	fixAlter     = "ALTER USER '"
 )
 
@@ -369,6 +370,53 @@ func TestFixWebRewrite(t *testing.T) {
 	}
 	if x.Plan.Target != "nginx" {
 		t.Errorf("target %s", x.Plan.Target)
+	}
+}
+
+// fileRecords là managed_files trong bộ nhớ: path → sha256 hex.
+type fileRecords map[string]string
+
+func (r fileRecords) FileSHA256(_ context.Context, p string) (string, bool, error) {
+	s, ok := r[p]
+	return s, ok, nil
+}
+
+// File người dùng đã nhận bản sửa tay làm chuẩn (sha256 trong managed_files
+// khớp nội dung đang có) thì web.rewrite không ghi đè, chỉ ghi file hỏng. Lỗi
+// tìm thấy ở e2e M4: web.rewrite ghi lại vhost đã nhận của site khác, chạy
+// `nginx -t` lúc vhost hỏng chưa được ghi, cả job hỏng và hoàn tác.
+func TestFixWebRewriteKeepsAccepted(t *testing.T) {
+	e := newFixEnv(t, Nginx, "blog.example.com", fixDom)
+	l := site.LayoutOf(mustDomain(t, fixDom))
+	blog := site.LayoutOf(mustDomain(t, "blog.example.com"))
+	orig, _ := e.m.ReadFile(blog.NginxConf)
+	accepted := append(slices.Clone(orig), []byte("# sửa tay, đã nhận\n")...)
+	e.m.SetFile(blog.NginxConf, accepted, 0o644, system.Root)
+	e.m.SetFile(l.NginxConf, []byte("server { hỏng\n"), 0o644, system.Root)
+	e.f.Files = fileRecords{
+		blog.NginxConf: hex.EncodeToString(sha256Of(accepted)),
+		l.NginxConf:    hex.EncodeToString(sha256Of(orig)), // bản tpan ghi; file đang có khác: lệch
+	}
+
+	x := e.fix(t, checks.Result{ID: "config.nginx:nginx", Status: checks.Fail})
+	for _, id := range stepIDsOf(x) {
+		if id == "file:"+blog.NginxConf {
+			t.Errorf("web.rewrite vẫn ghi file đã nhận làm chuẩn: %v", stepIDsOf(x))
+		}
+	}
+	if got, _ := e.m.ReadFile(blog.NginxConf); string(got) != string(accepted) {
+		t.Error("bản sửa tay đã nhận bị ghi đè")
+	}
+	if got, _ := e.m.ReadFile(l.NginxConf); string(got) == "server { hỏng\n" {
+		t.Error("vhost hỏng chưa được ghi lại")
+	}
+
+	// Đối chứng: không có Files thì giữ cách cũ (ghi mọi file khác template).
+	e.f.Files = nil
+	e.m.SetFile(l.NginxConf, []byte("server { hỏng\n"), 0o644, system.Root)
+	x = e.fix(t, checks.Result{ID: "config.nginx:nginx", Status: checks.Fail})
+	if !slices.Contains(stepIDsOf(x), "file:"+blog.NginxConf) {
+		t.Errorf("Files nil mà vẫn bỏ bước: %v", stepIDsOf(x))
 	}
 }
 

@@ -73,7 +73,7 @@ const (
 	// "php.socket:<domain>" Fail: khởi động lại PHP-FPM của site để socket
 	// được tạo lại (steps.PHPFPMRestart). Danger: mọi site gián đoạn vài giây.
 	FixPHPRestart = "php.restart"
-	// "drift:<path>" Warn hoặc Fail: ghi lại file đó từ template (đúng Step
+	// "drift:<path>" Fail: ghi lại file đó từ template (đúng Step
 	// File của Plan đã ghi nó: SitePool, SiteVhost, SiteHtaccess, hay file của
 	// stack), có kiểm cú pháp và reload như lúc tạo. Chỉ có khi core dựng lại
 	// được nội dung của path (file của tpan setup như unit systemd thì không).
@@ -99,7 +99,7 @@ func AutoFixName(r checks.Result) string {
 	switch r.Status {
 	case checks.Fail:
 	case checks.Warn:
-		// Lệch là Warn (máy có thể vẫn chạy đúng); vẫn cho ghi lại bản của tpan.
+		// Từ đợt 2 lệch là Fail; vẫn nhận Warn để kết quả cũ trong DB còn sửa được.
 		if kind == "drift" {
 			return FixFileRewrite
 		}
@@ -133,6 +133,17 @@ type Fixes struct {
 	Journal engine.Journal
 	// WPCLISHA512 như Stack (dùng khi dựng lại file của stack).
 	WPCLISHA512 string
+	// Files đọc sha256 tpan đang coi là chuẩn của một file (managed_files).
+	// web.rewrite dùng nó để không ghi đè file người dùng đã nhận bản sửa tay
+	// làm chuẩn. nil: không lọc, mọi file web khác template đều được ghi lại.
+	Files FileRecords
+}
+
+// FileRecords là phần của store mà sửa tự động cần từ bảng managed_files.
+// *store.Store thoả giao diện này.
+type FileRecords interface {
+	// FileSHA256 trả sha256 (hex) đang ghi cho path; ok=false khi không có dòng.
+	FileSHA256(ctx context.Context, path string) (sha string, ok bool, err error)
 }
 
 // Fix là một lần sửa đã dựng Plan. Dùng cho đúng một lần Execute.
@@ -148,8 +159,7 @@ type Fix struct {
 // Prepare dựng Plan sửa cho r theo r.AutoFix (gọi lại AutoFixName(r) nếu
 // trường rỗng). Plan.Kind là "fix." + Name, Plan.Target là đối tượng (domain,
 // unit, hay đường dẫn), Plan.Verify chứa lại đúng phép kiểm r (dựng lại từ ID)
-// để job chỉ thành công khi phép kiểm đã đạt (Warn của Drift không tính là lỗi
-// nhưng Drift sau khi ghi lại phải Pass).
+// để job chỉ thành công khi phép kiểm đã đạt (Drift sau khi ghi lại phải Pass).
 // Không có cách sửa tự động: *RefusedError code "no_auto_fix".
 func (f *Fixes) Prepare(ctx context.Context, r checks.Result) (*Fix, error) {
 	name := AutoFixName(r)
