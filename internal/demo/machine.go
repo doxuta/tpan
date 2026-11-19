@@ -72,16 +72,16 @@ var (
 type machine struct {
 	*system.FakeSystem
 
-	mu        sync.Mutex
-	users     map[string]string // user Linux → thư mục home
-	dbs       map[string]bool
-	dbUsers   map[string]bool
+	mu      sync.Mutex
+	users   map[string]string // user Linux → thư mục home
+	dbs     map[string]bool
+	dbUsers map[string]bool
 	// dbLocked: user DB bị khoá (ALTER USER ... ACCOUNT LOCK, thùng rác M6).
 	dbLocked map[string]bool
 	// expired: user Linux có hạn tài khoản (usermod --expiredate, thùng rác
 	// M6), giá trị là dòng "Account expires" của chage -l.
 	expired   map[string]string
-	installed map[string]bool // WordPress đã cài, theo user của site
+	installed map[string]bool              // WordPress đã cài, theo user của site
 	options   map[string]map[string]string // tuỳ chọn WordPress (wp option), theo user của site
 	sockets   map[string]bool              // socket pool mà lần reload gần nhất đã tạo
 	units     map[string]bool              // dịch vụ systemd đang chạy và tự bật
@@ -121,6 +121,8 @@ func newMachine() *machine {
 	// Sau securityHandlers: m12.go thay handler `apt-get -s` của security.go
 	// (cùng độ dài prefix thì handler đăng ký sau thắng).
 	m.m12Setup()
+	// Sau m12Setup: m10.go thay các handler systemctl, apt-get install, curl, ss.
+	m.m10Setup()
 	m.writeProc()
 	return m
 }
@@ -538,7 +540,10 @@ var (
 func (m *machine) vhostSocket(l site.Layout) string {
 	conf, err := m.ReadFile(l.NginxConf)
 	if err != nil {
-		return ""
+		// Đã chuyển sang Apache (M10): vhost nằm ở /etc/apache2.
+		if conf, err = m.ReadFile(l.ApacheConf); err != nil {
+			return ""
+		}
 	}
 	if g := fastcgiSockRE.FindSubmatch(conf); g != nil {
 		return string(g[1])
