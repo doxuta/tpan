@@ -47,7 +47,8 @@ func (EmptySettings) SetSetting(_ context.Context, key, _ string) error {
 // (không kèm chi tiết kỹ thuật) và API trả nó thành {"error": {...}} (mục 9).
 type RefusedError struct {
 	// Code ổn định cho script đọc: web_invalid, source_unsupported,
-	// stack_switch_required, precondition_failed.
+	// stack_switch_required, precondition_failed, stack_not_installed,
+	// stack_same_web.
 	Code    string    `json:"code"`
 	Message i18n.Text `json:"message"`
 	// Checks là các điều kiện đầu bị Fail, kèm Summary và ManualFix.
@@ -261,7 +262,6 @@ func (in *Install) Execute(ctx context.Context, onEvent func(engine.Event)) (eng
 func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA string) (engine.Plan, error) {
 	web := cfg.Web
 	unit := webUnit(web)
-	reloadWeb := &system.Cmd{Name: "systemctl", Args: []string{"reload", unit}}
 	detected := php
 	if *php != "" {
 		detected = new(string)
@@ -308,50 +308,12 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 		&steps.Dir{Path: stateDir, Perm: 0o755, Owner: system.Root},
 		&steps.Dir{Path: acmeRoot, Perm: 0o755, Owner: system.Root},
 	)
-	def := templates.DefaultSite{AcmeRoot: acmeRoot}
-	switch web {
-	case Nginx:
-		conf, err := templates.NginxDefault(def)
-		if err != nil {
-			return engine.Plan{}, fmt.Errorf("dựng Plan cài stack: %w", err)
-		}
-		test := &system.Cmd{Name: "nginx", Args: []string{"-t"}}
-		if nginxOrg(cfg) {
-			adapt, err := nginxOrgSteps(test, reloadWeb)
-			if err != nil {
-				return engine.Plan{}, err
-			}
-			ss = append(ss, adapt...)
-		}
-		avail := "/etc/nginx/sites-available/tpan-default.conf"
-		ss = append(ss,
-			&steps.Absent{Path: "/etc/nginx/sites-enabled/default", Test: test, Reload: reloadWeb},
-			&steps.File{Path: avail, Content: conf, Perm: 0o644, Owner: system.Root, Test: test, Reload: reloadWeb},
-			&steps.Symlink{Target: avail, Link: "/etc/nginx/sites-enabled/tpan-default.conf", Test: test, Reload: reloadWeb},
-		)
-	case Apache:
-		conf, err := templates.ApacheDefault(def)
-		if err != nil {
-			return engine.Plan{}, fmt.Errorf("dựng Plan cài stack: %w", err)
-		}
-		test := &system.Cmd{Name: "apachectl", Args: []string{"configtest"}}
-		// Tên 000- để Apache nạp file này đầu tiên và coi nó là site mặc định
-		// (mục 6.1): ngoại lệ duy nhất của luật tiền tố tpan-.
-		avail := "/etc/apache2/sites-available/000-tpan-default.conf"
-		ss = append(ss,
-			&steps.ApacheModules{
-				// Chưa bật ssl ở M1: bật nó là Apache nghe cổng 443 mà chưa có vhost
-				// nào hứng, nên trang mặc định của Ubuntu lộ ra ở 443 (thấy trên máy
-				// ảo, docs/bang-chung/M1.log). M5 bật ssl cùng một vhost 443 mặc định.
-				Enable:  apacheModules,
-				Disable: []string{"mpm_prefork"},
-			},
-			&steps.Absent{Path: "/etc/apache2/sites-enabled/000-default.conf", Test: test, Reload: reloadWeb},
-			&steps.File{Path: avail, Content: conf, Perm: 0o644, Owner: system.Root, Test: test, Reload: reloadWeb},
-			&steps.Symlink{Target: avail, Link: "/etc/apache2/sites-enabled/000-tpan-default.conf", Test: test, Reload: reloadWeb},
-		)
+	webSs, err := webSteps(cfg, true)
+	if err != nil {
+		return engine.Plan{}, fmt.Errorf("dựng Plan cài stack: %w", err)
 	}
-	if !nginxOrg(cfg) { // nginx.org: bước bật dịch vụ đã nằm đầu nginxOrgSteps
+	ss = append(ss, webSs...)
+	if !nginxOrg(cfg) { // nginx.org: bước bật dịch vụ đã nằm đầu webSteps
 		ss = append(ss, &steps.Service{Unit: unit})
 	}
 
@@ -362,14 +324,11 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 	)
 
 	// Bước 7: logrotate cho log của các site.
-	lr, err := templates.LogrotateSites(templates.Logrotate{Web: string(web)})
+	lr, err := logrotateStep(web)
 	if err != nil {
 		return engine.Plan{}, fmt.Errorf("dựng Plan cài stack: %w", err)
 	}
-	ss = append(ss, &steps.File{
-		Path: logrotateCnf, Content: lr, Perm: 0o644, Owner: system.Root,
-		Test: &system.Cmd{Name: "logrotate", Args: []string{"-d", logrotateCnf}},
-	})
+	ss = append(ss, lr)
 
 	return engine.Plan{
 		Kind:   "stack.install",
@@ -378,6 +337,85 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 		Steps:  ss,
 		// Bước 8: kiểm chứng.
 		Verify: stackChecks(web, func() string { return *php }, wpSHA),
+	}, nil
+}
+
+// webSteps là phần web server của stack, dùng chung cho cài stack (mục 6.1
+// bước 5) và chuyển web server (mục 6.6 bước 2) để hai nơi không lệch nhau:
+// thích nghi bố cục của gói nginx.org hoặc bật module Apache, rồi gỡ site mặc
+// định của distro và ghi site mặc định cổng 80 của tpan (file và symlink).
+//
+// running true (cài stack): web server đang chạy hoặc được bật ngay. nginx.org
+// thêm bước bật dịch vụ ở đầu (các bước ghi file reload nginx, mà reload một
+// dịch vụ đang tắt là lỗi) và khởi động lại nginx sau khi thêm user nginx vào
+// nhóm www-data; ApacheModules restart apache2.
+//
+// running false (chuyển web server): web server mới đang tắt và chỉ được chạy
+// ở bước WebSwap. Không bật dịch vụ, không khởi động lại (nhóm mới có hiệu lực
+// khi nginx khởi động ở WebSwap), ApacheModules NoRestart. Reload của các bước
+// ghi file vẫn còn: người gọi bỏ bằng steps.WithoutReload.
+func webSteps(cfg StackConfig, running bool) ([]engine.Step, error) {
+	reload := &system.Cmd{Name: "systemctl", Args: []string{"reload", webUnit(cfg.Web)}}
+	def := templates.DefaultSite{AcmeRoot: acmeRoot}
+	var ss []engine.Step
+	switch cfg.Web {
+	case Nginx:
+		conf, err := templates.NginxDefault(def)
+		if err != nil {
+			return nil, err
+		}
+		test := &system.Cmd{Name: "nginx", Args: []string{"-t"}}
+		if nginxOrg(cfg) {
+			adapt, err := nginxOrgSteps(test, reload, running)
+			if err != nil {
+				return nil, err
+			}
+			ss = append(ss, adapt...)
+		}
+		avail := "/etc/nginx/sites-available/tpan-default.conf"
+		ss = append(ss,
+			&steps.Absent{Path: "/etc/nginx/sites-enabled/default", Test: test, Reload: reload},
+			&steps.File{Path: avail, Content: conf, Perm: 0o644, Owner: system.Root, Test: test, Reload: reload},
+			&steps.Symlink{Target: avail, Link: "/etc/nginx/sites-enabled/tpan-default.conf", Test: test, Reload: reload},
+		)
+	case Apache:
+		conf, err := templates.ApacheDefault(def)
+		if err != nil {
+			return nil, err
+		}
+		test := &system.Cmd{Name: "apachectl", Args: []string{"configtest"}}
+		// Tên 000- để Apache nạp file này đầu tiên và coi nó là site mặc định
+		// (mục 6.1): ngoại lệ duy nhất của luật tiền tố tpan-.
+		avail := "/etc/apache2/sites-available/000-tpan-default.conf"
+		ss = append(ss,
+			&steps.ApacheModules{
+				// Chưa bật ssl ở M1: bật nó là Apache nghe cổng 443 mà chưa có vhost
+				// nào hứng, nên trang mặc định của Ubuntu lộ ra ở 443 (thấy trên máy
+				// ảo, docs/bang-chung/M1.log). M5 bật ssl cùng một vhost 443 mặc định.
+				Enable:    apacheModules,
+				Disable:   []string{"mpm_prefork"},
+				NoRestart: !running,
+			},
+			&steps.Absent{Path: "/etc/apache2/sites-enabled/000-default.conf", Test: test, Reload: reload},
+			&steps.File{Path: avail, Content: conf, Perm: 0o644, Owner: system.Root, Test: test, Reload: reload},
+			&steps.Symlink{Target: avail, Link: "/etc/apache2/sites-enabled/000-tpan-default.conf", Test: test, Reload: reload},
+		)
+	default:
+		return nil, fmt.Errorf("web server %q không hợp lệ (chỉ nhận nginx hoặc apache)", cfg.Web)
+	}
+	return ss, nil
+}
+
+// logrotateStep ghi /etc/logrotate.d/tpan-sites cho web server web (cách xoay
+// log và báo web server mở lại file log khác nhau giữa nginx và Apache).
+func logrotateStep(web WebServer) (*steps.File, error) {
+	lr, err := templates.LogrotateSites(templates.Logrotate{Web: string(web)})
+	if err != nil {
+		return nil, err
+	}
+	return &steps.File{
+		Path: logrotateCnf, Content: lr, Perm: 0o644, Owner: system.Root,
+		Test: &system.Cmd{Name: "logrotate", Args: []string{"-d", logrotateCnf}},
 	}, nil
 }
 

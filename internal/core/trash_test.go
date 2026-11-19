@@ -226,6 +226,40 @@ func TestSiteTrashAndRestore(t *testing.T) {
 	}
 }
 
+// Site vào thùng rác lúc stack chạy nginx (không có .htaccess), rồi stack
+// chuyển sang Apache: khôi phục phải ghi .htaccess ngay sau khi chuyển thư mục
+// về, không thì mọi permalink /%postname%/ là 404 (e2e M10 thấy trên máy ảo).
+// Site đã có .htaccess (dựng trên Apache) thì không có bước này: xem
+// TestSiteTrashAndRestore.
+func TestSiteRestoreOnApacheAfterNginxWritesHtaccess(t *testing.T) {
+	const dom = "shop.example.com"
+	se := newSiteEnv(t, Nginx)
+	se.add(t, dom)
+	d := mustDomain(t, dom)
+	l := site.LayoutOf(d)
+	se.trash(t, dom)
+	if se.exists(site.TrashDir(l) + "/public/.htaccess") {
+		t.Fatal("site dựng trên nginx mà đã có .htaccess: test không còn đúng tình huống")
+	}
+	mustSet(t, se.st, SettingWeb, string(Apache))
+
+	rs, err := se.s.PrepareRestore(ctx, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ht := "file:" + l.Public + "/.htaccess"
+	if got := stepIDs(rs.Plan); len(got) < 2 || got[0] != "dir.move:"+site.TrashDir(l) || got[1] != ht {
+		t.Errorf("bước khôi phục = %v; muốn %s ngay sau dir.move", got, ht)
+	}
+	rep, err := rs.Execute(ctx, nil)
+	if err != nil || rep.Job.Status != engine.JobSucceeded {
+		t.Fatalf("khôi phục: %v %s (%s)%s", err, rep.Job.Status, rep.Job.Error, failedChecks(rep.Checks))
+	}
+	if !se.exists(l.Public+"/.htaccess") || !se.exists(l.ApacheLink) {
+		t.Error("khôi phục trên Apache chưa ghi .htaccess hoặc chưa bật vhost Apache")
+	}
+}
+
 // Kiểm chứng lỗi (tên miền vẫn được phục vụ) thì engine hoàn tác mọi bước:
 // máy về đúng như trước, dòng giữ active.
 func TestSiteTrashUndo(t *testing.T) {

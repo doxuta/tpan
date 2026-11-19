@@ -682,3 +682,12 @@ export type UpdateStatus = {
 
 /** Thân POST /api/v1/mariadb/upgrade. */
 export type MariaDBUpgradeBody = { line: string };
+
+// ---- M10: chuyển LEMP ⇄ LAMP (internal/server/types_m10.go) ----
+
+/**
+ * Thân POST /api/v1/stack/switch[?dry_run=1] → Preview | JobStarted. Từ chối
+ * 409: web_invalid, stack_not_installed, stack_same_web, precondition_failed
+ * (checks là các site đang không trả lời đúng trên web server hiện tại).
+ */
+export type StackSwitchBody = { to: "nginx" | "apache" };

@@ -21,6 +21,12 @@ type ApacheModules struct {
 	Enable  []string
 	Disable []string
 
+	// NoRestart: không bao giờ `systemctl restart apache2` (Apply, Undo, lúc tự
+	// trả module về khi lỗi); vẫn chạy `apachectl configtest`. Dùng khi apache2
+	// đang tắt trong Plan chuyển web server (mục 6.6): restart sẽ khởi động nó
+	// lúc nginx còn giữ cổng 80, nên nó chỉ được chạy ở WebSwap.
+	NoRestart bool
+
 	// Các module bước này đã thật sự đổi, để Undo chỉ đảo đúng những module đó.
 	enabled, disabled []string
 	applied           bool
@@ -64,7 +70,10 @@ func (s *ApacheModules) Info() engine.StepInfo {
 	if len(s.Enable) > 0 {
 		cmds = append(cmds, a2enmod(s.Enable).String())
 	}
-	cmds = append(cmds, apacheConfigtest.String(), apacheRestart.String())
+	cmds = append(cmds, apacheConfigtest.String())
+	if !s.NoRestart {
+		cmds = append(cmds, apacheRestart.String())
+	}
 	return engine.StepInfo{
 		ID:    "apache.modules:apache2",
 		Title: apacheModulesTitle(s.Enable, s.Disable),
@@ -73,7 +82,7 @@ func (s *ApacheModules) Info() engine.StepInfo {
 			"Without proxy_fcgi Apache cannot hand requests to PHP-FPM and serves PHP source or a 500 error. With mpm_prefork every connection holds a whole process and a small machine runs out of RAM under load; mpm_event and http2 serve more connections with the same RAM. Without rewrite WordPress pretty links return 404.",
 		),
 		Commands: cmds,
-		Danger:   true,
+		Danger:   !s.NoRestart, // không restart thì không cắt kết nối nào
 	}
 }
 
@@ -163,8 +172,10 @@ func (s *ApacheModules) Apply(ctx context.Context, sys system.System) error {
 	if res, err := sys.Run(ctx, apacheConfigtest); err != nil {
 		return fail(withStdout(fmt.Errorf("kiểm cấu hình Apache sau khi đổi module: %w", err), res), false)
 	}
-	if res, err := sys.Run(ctx, apacheRestart); err != nil {
-		return fail(withStdout(fmt.Errorf("khởi động lại apache2 sau khi đổi module: %w", err), res), true)
+	if !s.NoRestart {
+		if res, err := sys.Run(ctx, apacheRestart); err != nil {
+			return fail(withStdout(fmt.Errorf("khởi động lại apache2 sau khi đổi module: %w", err), res), true)
+		}
 	}
 	s.enabled, s.disabled, s.applied = enabled, disabled, true
 	return nil
@@ -199,6 +210,9 @@ func (s *ApacheModules) revert(ctx context.Context, sys system.System, enabled, 
 	}
 	if res, err := sys.Run(ctx, apacheConfigtest); err != nil {
 		return withStdout(fmt.Errorf("kiểm cấu hình Apache sau khi trả module về: %w", err), res)
+	}
+	if s.NoRestart {
+		return nil
 	}
 	if res, err := sys.Run(ctx, apacheRestart); err != nil {
 		return withStdout(fmt.Errorf("khởi động lại apache2 sau khi trả module về: %w", err), res)

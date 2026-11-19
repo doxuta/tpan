@@ -64,6 +64,18 @@ const vi = {
   suryOff:
     "Kho PHP của Ondřej Surý chưa được thêm. Cài một bản mà Ubuntu không có sẽ thêm kho ngoài này vào máy; bản xem trước hiện rõ kho và khoá ký sẽ thêm.",
   previewError: (version: string, install: boolean) => `Chưa dựng được bản xem trước để ${install ? "cài" : "gỡ"} PHP ${version}`,
+
+  // ---- đổi web server (M10) ----
+  switchHeading: "Đổi web server",
+  switchCurrent: "Đang chạy",
+  switchNotInstalled: "Stack chưa cài trên máy này nên chưa có web server để đổi.",
+  switchTo: (web: string) => `Đổi sang ${web}`,
+  switchHint: (from: string, to: string) =>
+    `Cài ${to} nếu máy chưa có, ghi lại vhost của mọi site, rồi dừng ${from} và chạy ${to}. Mọi site ngừng trả lời một khoảnh khắc lúc đổi. ` +
+    `Bước nào lỗi thì máy quay về ${from}.`,
+  switchCommandHint: "Muốn tự gõ trên máy thì dùng lệnh này. Có --dry-run nên nó chỉ cho xem trước, chưa đổi gì.",
+  switchCommand: (web: string) => `sudo tpan stack switch --to ${web} --dry-run`,
+  switchPreviewError: (web: string) => `Chưa dựng được bản xem trước để đổi sang ${web}`,
 };
 
 export const strings = defineStrings(vi, {
@@ -123,4 +135,15 @@ export const strings = defineStrings(vi, {
   suryOff:
     "Ondřej Surý's PHP repository has not been added. Installing a version Ubuntu does not have adds this external repository to the machine; the preview shows the repository and the signing key it will add.",
   previewError: (version, install) => `Could not build the preview to ${install ? "install" : "remove"} PHP ${version}`,
+
+  switchHeading: "Change web server",
+  switchCurrent: "Running",
+  switchNotInstalled: "The stack is not installed on this machine, so there is no web server to change yet.",
+  switchTo: (web) => `Switch to ${web}`,
+  switchHint: (from, to) =>
+    `Installs ${to} if the machine does not have it, rewrites the vhost of every site, then stops ${from} and starts ${to}. Every site stops answering for a moment during the switch. ` +
+    `If any step fails, the machine goes back to ${from}.`,
+  switchCommandHint: "To type it yourself on the machine, use this command. It has --dry-run, so it only shows a preview and changes nothing.",
+  switchCommand: (web) => `sudo tpan stack switch --to ${web} --dry-run`,
+  switchPreviewError: (web) => `Could not build the preview to switch to ${web}`,
 });
