@@ -28,14 +28,41 @@ var errNotWritten = errors.New("core: chưa viết")
 // Checks trả bộ phép kiểm của stack (stackChecks dựng từ settings).
 // installed=false (chưa có stack.php_version) thì không trả phép kiểm nào.
 func (s *Stack) Checks(ctx context.Context) (cs []checks.Check, installed bool, err error) {
-	return nil, false, errNotWritten
+	cfg, err := s.Config(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	if cfg.PHPVersion == "" {
+		return nil, false, nil
+	}
+	_, sha := s.wpcli()
+	return stackChecks(cfg.Web, func() string { return cfg.PHPVersion }, sha), true, nil
 }
 
 // Checks trả bộ phép kiểm của site d (siteChecks: đường đi request, rồi cô
 // lập hai chiều với từng site active khác). Stack chưa cài: nil, không lỗi.
 // Site không có: lỗi như find (RefusedError site_not_found).
 func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, error) {
-	return nil, errNotWritten
+	st, err := s.find(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := (&Stack{Settings: s.Settings}).Config(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.Web == "" || cfg.PHPVersion == "" {
+		return nil, nil
+	}
+	php := st.PHPVersion
+	if php == "" {
+		php = cfg.PHPVersion
+	}
+	others, err := s.others(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	return siteChecks(cfg.Web, php, st.Layout(), others), nil
 }
 
 // Tên các cách sửa tự động (giá trị của checks.Result.AutoFix). Đối tượng
