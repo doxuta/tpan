@@ -221,6 +221,8 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("POST /api/v1/updates", auth(s.handleUpdateApply))
 	mux.Handle("POST /api/v1/updates/auto", auth(s.handleUpdateAuto))
 	mux.Handle("POST /api/v1/mariadb/upgrade", auth(s.handleMariaDBUpgrade))
+	// M10: chuyển LEMP ⇄ LAMP (types_m10.go, api_m10.go).
+	mux.Handle("POST /api/v1/stack/switch", auth(s.handleStackSwitch))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

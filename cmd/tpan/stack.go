@@ -18,7 +18,7 @@ func stackCmd(e *env) *cobra.Command {
 		Use:   "stack",
 		Short: "Cài và xem stack (web server, PHP-FPM, MariaDB)",
 	}
-	c.AddCommand(stackInstallCmd(e), stackStatusCmd(e))
+	c.AddCommand(stackInstallCmd(e), stackStatusCmd(e), stackSwitchCmd(e))
 	return c
 }
 
