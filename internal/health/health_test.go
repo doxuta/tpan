@@ -426,3 +426,32 @@ func wait(t *testing.T, ch <-chan Report) Report {
 		return Report{}
 	}
 }
+
+// Vòng đầy đủ đầu tiên bị bỏ vì bận (tpan setup vừa bật dịch vụ, còn giữ khoá)
+// thì được thử lại sau BusyRetry, không chờ tới giờ sau.
+func TestSchedulerThuLaiKhiVongDauBan(t *testing.T) {
+	e := newEnv(t, true)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var calls atomic.Int32
+	reps := make(chan Report, 4)
+	s := &Scheduler{Runner: e.r, LightEvery: time.Hour, FullEvery: time.Hour, BusyRetry: 10 * time.Millisecond,
+		Busy:     func() bool { return calls.Add(1) == 1 },
+		OnReport: func(r Report) { reps <- r }}
+	go s.Run(ctx)
+	if _, ok := targets(t, wait(t, reps))["wp.checksums:"+dA]; !ok {
+		t.Error("lần thử lại phải là vòng đầy đủ (có wp.checksums)")
+	}
+}
+
+// .htaccess do WordPress tự ghi lại khi lưu permalink: không kiểm lệch.
+func TestRunBoLechHtaccess(t *testing.T) {
+	e := newEnv(t, true)
+	p := site.LayoutOf(dom(t, dA)).Public + "/.htaccess"
+	if err := e.st.RecordFile(context.Background(), p, strings.Repeat("0", 64), "job-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := targets(t, e.run(t, Options{Full: true}))["drift:"+p]; ok {
+		t.Error(".htaccess không được có phép kiểm lệch")
+	}
+}

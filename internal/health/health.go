@@ -27,6 +27,8 @@ import (
 const (
 	LightEvery = 5 * time.Minute
 	FullEvery  = time.Hour
+	// BusyRetry: vòng đầy đủ bị bỏ vì đang có job thì thử lại sau chừng này.
+	BusyRetry = 30 * time.Second
 	// StuckAfter: job còn "running" lâu hơn chừng này là treo.
 	StuckAfter = time.Hour
 	// SchedulerMaxAge: nhịp của bộ hẹn giờ cũ hơn chừng này thì phép kiểm
@@ -187,6 +189,8 @@ type Scheduler struct {
 	Runner *Runner
 	// LightEvery, FullEvery: 0 thì dùng hằng cùng tên.
 	LightEvery, FullEvery time.Duration
+	// BusyRetry: 0 thì dùng hằng cùng tên.
+	BusyRetry time.Duration
 	// Busy trả true khi đang có job thay đổi máy (trong tiến trình này, hoặc
 	// khoá toàn cục đang bị tiến trình khác giữ). Khi đó vòng này bỏ qua: kiểm
 	// một site đang dựng dở chỉ mở sự cố giả. nil là không bao giờ bận.
@@ -214,24 +218,42 @@ func (s *Scheduler) Run(ctx context.Context) {
 	if full <= 0 {
 		full = FullEvery
 	}
+	busyRetry := s.BusyRetry
+	if busyRetry <= 0 {
+		busyRetry = BusyRetry
+	}
 	lightT := time.NewTicker(light)
 	defer lightT.Stop()
 	fullT := time.NewTicker(full)
 	defer fullT.Stop()
 	kick := s.kickChan()
 
-	s.round(ctx, Options{Full: true})
+	// retry: vòng đầy đủ bị bỏ vì đang có job thì thử lại sau BusyRetry, không
+	// chờ tới giờ sau. Vòng đầu tiên ngay khi `tpan setup` bật tpan.service luôn
+	// bị bỏ (setup còn giữ khoá); không có retry thì panel trống kết quả tới 5
+	// phút, và wp.checksums tới 1 giờ (thấy ở e2e M4).
+	var retry <-chan time.Time
+	if !s.round(ctx, Options{Full: true}) {
+		retry = time.After(busyRetry)
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-retry:
+			retry = nil
+			if !s.round(ctx, Options{Full: true}) {
+				retry = time.After(busyRetry)
+			}
 		case <-fullT.C:
 			// Đầy đủ đã gồm mọi thứ của lần nhẹ: bỏ nhịp nhẹ trùng lúc.
 			select {
 			case <-lightT.C:
 			default:
 			}
-			s.round(ctx, Options{Full: true})
+			if !s.round(ctx, Options{Full: true}) && retry == nil {
+				retry = time.After(busyRetry)
+			}
 		case <-lightT.C:
 			o := Options{}
 			select {
@@ -262,9 +284,9 @@ func (s *Scheduler) kickChan() chan struct{} {
 	return s.kick
 }
 
-// round chạy một vòng. Không lấy khoá toàn cục: phép kiểm chỉ đọc, và giữ khoá
+// round chạy một vòng; trả false khi vòng bị bỏ vì đang có job. Không lấy khoá toàn cục: phép kiểm chỉ đọc, và giữ khoá
 // thì người bấm "tạo site" đúng lúc health chạy sẽ bị từ chối.
-func (s *Scheduler) round(ctx context.Context, o Options) {
+func (s *Scheduler) round(ctx context.Context, o Options) bool {
 	r := s.Runner
 	// Ghi nhịp TRƯỚC khi xem Busy: phép kiểm tpan.scheduler hỏi "bộ hẹn giờ còn
 	// sống không", không hỏi "vừa kiểm xong chưa". Một job dài (cài stack, sao
@@ -277,18 +299,19 @@ func (s *Scheduler) round(ctx context.Context, o Options) {
 		// Kiểm một site đang dựng dở chỉ mở sự cố giả. Vòng sau (hoặc Kick của
 		// chính job đó khi xong) sẽ kiểm.
 		slog.Info("health: đang có job, bỏ vòng này", "full", o.Full, "domain", o.Domain)
-		return
+		return false
 	}
 	rep, err := r.Run(ctx, o)
 	if err != nil {
 		if ctx.Err() == nil {
 			slog.Error("health: một vòng kiểm lỗi", "full", o.Full, "domain", o.Domain, "err", err)
 		}
-		return
+		return true
 	}
 	if s.OnReport != nil {
 		s.OnReport(rep)
 	}
+	return true
 }
 
 // Kick xin một lần chạy sớm cho domain (rỗng là mọi thứ, nhẹ), ví dụ ngay sau

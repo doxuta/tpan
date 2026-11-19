@@ -3,6 +3,7 @@ package health
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -89,6 +90,14 @@ func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, instal
 		return nil, false, fmt.Errorf("đọc danh sách file quản lý: %w", err)
 	}
 	for _, f := range files {
+		// .htaccess: tpan ghi bản đầu, nhưng WordPress tự ghi lại đoạn giữa
+		// "# BEGIN WordPress" và "# END WordPress" mỗi khi lưu permalink, nên so
+		// sha256 cả file là báo lệch giả (thấy trên máy ảo Apache, e2e M4).
+		// ponytail: bỏ hẳn khỏi phép kiểm lệch; nâng cấp: so phần ngoài đoạn
+		// BEGIN/END nếu cần bắt sửa tay ở đó.
+		if path.Base(f.Path) == ".htaccess" {
+			continue
+		}
 		// Xét cả site không active (thùng rác): file của nó vẫn là của nó, gắn
 		// vào "" thì lệch hiện sai chỗ trên bản đồ.
 		add(fileOwner(f.Path, all), checks.Drift(f.Path, f.SHA256, checks.DriftStage(f.Path)))
