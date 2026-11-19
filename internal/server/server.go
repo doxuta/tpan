@@ -182,6 +182,13 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("POST /api/v1/plans/{id}/approve", auth(s.handlePlanApprove))
 	mux.Handle("POST /api/v1/plans/{id}/reject", auth(s.handlePlanReject))
 	mux.Handle("GET /api/v1/agent", auth(s.handleAgent))
+	// M6: thùng rác và hàng loạt (types_m6.go, api_trash.go).
+	mux.Handle("POST /api/v1/sites/{domain}/restore", auth(s.handleSiteRestore))
+	mux.Handle("GET /api/v1/trash", auth(s.handleTrash))
+	mux.Handle("POST /api/v1/trash/settings", auth(s.handleTrashSettings))
+	mux.Handle("DELETE /api/v1/trash/{domain}", auth(s.handleTrashPurge))
+	mux.Handle("POST /api/v1/apply", auth(s.handleApply))
+	mux.Handle("GET /api/v1/export", auth(s.handleExport))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

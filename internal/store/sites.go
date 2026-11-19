@@ -14,7 +14,7 @@ import (
 	"github.com/doxuta/tpan/internal/validate"
 )
 
-const siteColumns = "domain, status, php_version, ssl, created_at, trashed_at"
+const siteColumns = "domain, status, php_version, ssl, created_at, trashed_at, purge_at"
 
 // siteScan đọc một dòng sites. Dữ liệu DB cũng không tin mù: domain đi lại
 // qua validate.ParseDomain, slug suy lại từ domain (cột slug chỉ để DB chặn
@@ -23,9 +23,9 @@ func siteScan(r rowScanner) (site.Site, error) {
 	var (
 		domain, status, php, created string
 		ssl                          int
-		trashed                      sql.NullString
+		trashed, purge               sql.NullString
 	)
-	if err := r.Scan(&domain, &status, &php, &ssl, &created, &trashed); err != nil {
+	if err := r.Scan(&domain, &status, &php, &ssl, &created, &trashed, &purge); err != nil {
 		return site.Site{}, err
 	}
 	d, err := validate.ParseDomain(domain)
@@ -44,6 +44,11 @@ func siteScan(r rowScanner) (site.Site, error) {
 	}
 	if trashed.Valid {
 		if s.TrashedAt, err = parseTime(trashed.String); err != nil {
+			return site.Site{}, fmt.Errorf("site %s: %w", d, err)
+		}
+	}
+	if purge.Valid {
+		if s.PurgeAt, err = parseTime(purge.String); err != nil {
 			return site.Site{}, fmt.Errorf("site %s: %w", d, err)
 		}
 	}
@@ -95,13 +100,14 @@ func (s *Store) SaveSite(ctx context.Context, st site.Site) error {
 	// Ghi đè là ghi đè cả dòng: người gọi đọc Site ra, sửa, rồi lưu lại nên
 	// Created đã mang giá trị cũ.
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO sites (domain, slug, status, php_version, ssl, created_at, trashed_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO sites (domain, slug, status, php_version, ssl, created_at, trashed_at, purge_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT (domain) DO UPDATE SET
 		   slug = excluded.slug, status = excluded.status, php_version = excluded.php_version,
-		   ssl = excluded.ssl, created_at = excluded.created_at, trashed_at = excluded.trashed_at`,
+		   ssl = excluded.ssl, created_at = excluded.created_at, trashed_at = excluded.trashed_at,
+		   purge_at = excluded.purge_at`,
 		st.Domain.String(), validate.SlugOf(st.Domain).String(), string(st.Status), st.PHPVersion,
-		siteBool(st.SSL), fmtTime(st.Created), nullTime(st.TrashedAt))
+		siteBool(st.SSL), fmtTime(st.Created), nullTime(st.TrashedAt), nullTime(st.PurgeAt))
 	if err != nil {
 		return fmt.Errorf("lưu site %s: %w", st.Domain, err)
 	}

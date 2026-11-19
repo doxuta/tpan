@@ -69,6 +69,15 @@ type Sites struct {
 	// steps.DefaultWordPressVersion/SHA1. Test đặt SHA-1 của một file giả.
 	WPVersion string
 	WPHash    string
+	// Now nil thì dùng time.Now. Test đặt để có TrashedAt, PurgeAt cố định (M6).
+	Now func() time.Time
+}
+
+func (s *Sites) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
 }
 
 func (s *Sites) wordpress() (version, hash string) {

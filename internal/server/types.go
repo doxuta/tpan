@@ -195,6 +195,9 @@ type JobDetail struct {
 	// thật sự cài WordPress: tài khoản quản trị WordPress, hiện một lần rồi bỏ
 	// khỏi bộ nhớ (mục 11, "Bí mật"). Không bao giờ ghi vào DB hay log.
 	Secret *AdminSecret `json:"secret,omitempty"`
+	// Secrets: như Secret nhưng cho job hàng loạt (M6, POST /apply), một dòng
+	// cho mỗi site vừa cài WordPress. Hiện một lần rồi bỏ.
+	Secrets []AdminSecret `json:"secrets,omitempty"`
 }
 
 type AdminSecret struct {

@@ -109,7 +109,9 @@ export type EventKind =
   | "undo.done"
   | "undo.fail"
   | "check"
-  | "job.done";
+  | "job.done"
+  /** M6: kết quả một site của job hàng loạt; message là JSON của UnitResult. */
+  | "unit.done";
 
 export type JobEvent = {
   job_id: string;
@@ -130,6 +132,8 @@ export type JobDetail = {
   events: JobEvent[];
   /** Chỉ có ở lần đầu đọc job site.add vừa cài WordPress. Hiện một lần. */
   secret?: AdminSecret;
+  /** M6: như secret, cho job hàng loạt (POST /apply), một dòng mỗi site. */
+  secrets?: AdminSecret[];
 };
 
 // ---- Site (internal/site, internal/core) ----
@@ -144,6 +148,8 @@ export type Site = {
   ssl: boolean;
   created: string;
   trashed_at?: string;
+  /** M6: hạn xoá hẳn khi site ở thùng rác. */
+  purge_at?: string;
 };
 
 export type Layout = {
@@ -411,3 +417,42 @@ export type SSLSettings = { email?: string; staging?: boolean };
 // ---- Bảo mật (M5, internal/core/security.go) ----
 
 export type SecurityStatus = { results: CheckResult[] };
+
+// ---- Thùng rác và hàng loạt (M6, internal/server/types_m6.go) ----
+
+export type TrashOverview = { days: number; sites: Site[] };
+
+export type TrashSettings = { days: number };
+
+export type SitesDefaults = { admin_email?: string; ssl?: boolean };
+
+export type SitesEntry = { domain: string; title?: string; admin_email?: string; ssl?: boolean };
+
+/** Thân của POST /api/v1/apply: cùng trường với sites.yaml, thêm prune. */
+export type ApplyRequest = { defaults: SitesDefaults; sites: SitesEntry[]; prune?: boolean };
+
+export type ApplyAction = "create" | "skip" | "trash" | "refused";
+
+export type ApplyItem = {
+  domain: string;
+  action: ApplyAction;
+  ssl?: boolean;
+  /** Chỉ có khi refused. */
+  code?: string;
+  reason?: Text;
+};
+
+/** POST /api/v1/apply?dry_run=1. preview vắng khi không có gì để làm. */
+export type ApplyPreview = { items: ApplyItem[]; preview?: Preview };
+
+export type UnitStatus = "succeeded" | "rolled_back" | "undo_failed" | "not_run";
+
+/** message của sự kiện unit.done (JSON). */
+export type UnitResult = {
+  target: string;
+  status: UnitStatus;
+  /** "prepare" | "commit" | "finish" | "verify"; vắng khi succeeded. */
+  phase?: string;
+  step_id?: string;
+  error?: string;
+};
