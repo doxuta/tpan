@@ -330,7 +330,7 @@ func (s *Server) apiFixes() *core.Fixes {
 	return &core.Fixes{
 		// Bọc như apiSites: chờ khoá toàn cục có hạn rồi trả 409.
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
-		Settings: st, Store: st, Journal: st,
+		Settings: st, Store: st, Journal: st, Files: st,
 		WPCLISHA512: s.deps.WPCLISHA512,
 	}
 }

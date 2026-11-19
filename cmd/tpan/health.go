@@ -11,6 +11,7 @@ package main
 // nhật ký và gắn vào sự cố của phép kiểm đó.
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -182,7 +183,7 @@ func (h *healthRun) fix(ctx context.Context, before health.Report, dryRun, yes b
 			"cannot ask for confirmation (no terminal, or --json is set); preview with --fix --dry-run, then run again with --fix --yes")})
 	}
 
-	fx := &core.Fixes{Sys: e.sys, Settings: h.st, Store: h.st, Journal: h.st}
+	fx := &core.Fixes{Sys: e.sys, Settings: h.st, Store: h.st, Journal: h.st, Files: h.st}
 	failed := false
 	for _, r := range todo {
 		o, ok, err := h.fixOne(ctx, fx, r, dryRun, yes)
@@ -250,6 +251,7 @@ func (h *healthRun) fixOne(ctx context.Context, fx *core.Fixes, r checks.Result,
 	if !h.asJSON {
 		printf(e.stdout, "\n%s %s (%s)\n", e.tr("Sửa", "Fix"), x.CheckID, x.Name)
 		printPreview(e, pv)
+		printFileDiffs(e, pv)
 	}
 	if dryRun {
 		return o, true, nil
@@ -287,6 +289,82 @@ func (h *healthRun) fixOne(ctx context.Context, fx *core.Fixes, r checks.Result,
 		printf(e.stderr, "tpan: %v\n", err)
 	}
 	return o, err == nil && rep.Job.Status == engine.JobSucceeded, nil
+}
+
+// printFileDiffs in chỗ khác nhau giữa file đang có và bản tpan sẽ ghi, cho mọi
+// file mà cách sửa sẽ đổi nội dung (mục 6.7: "file bị sửa tay: hiện diff").
+// Không có nó, `tpan health --fix --dry-run` (lệnh mà phép kiểm lệch bảo người
+// dùng chạy để xem diff) chỉ nói "sửa <file>". Chỉ gọi ở health --fix: file
+// của cách sửa là cấu hình (vhost, pool, .htaccess, file của stack), không có
+// bí mật; printPreview dùng chung cho cả setup, site add nên không in ở đó.
+func printFileDiffs(e *env, pv engine.Preview) {
+	for _, s := range pv.Steps {
+		if s.Done {
+			continue
+		}
+		for _, f := range s.Info.Files {
+			if f.Delete || !f.OldExists || bytes.Equal(f.Old, f.New) {
+				continue
+			}
+			printf(e.stdout, "\n    --- %s (%s)\n    +++ %s (%s)\n", f.Path, e.tr("đang có", "current"), f.Path, e.tr("tpan sẽ ghi", "tpan will write"))
+			for _, l := range lineDiff(f.Old, f.New) {
+				printf(e.stdout, "    %s\n", l)
+			}
+		}
+	}
+}
+
+// diffContext là số dòng giống nhau in quanh khúc khác; maxDiffLines chặn một
+// file khác hoàn toàn khỏi đổ hàng trăm dòng ra màn hình.
+const (
+	diffContext  = 3
+	maxDiffLines = 80
+)
+
+// lineDiff trả các dòng diff giữa old và new: " " giống, "-" chỉ có ở old, "+"
+// chỉ có ở new.
+// ponytail: chỉ bỏ phần đầu và phần cuối giống nhau rồi in cả khúc giữa (dòng
+// cũ "-", dòng mới "+"). Đúng với mọi file; với một chỗ sửa tay (trường hợp
+// thường gặp) là diff tối thiểu, với nhiều chỗ cách xa nhau thì khúc giữa dài
+// hơn cần. Cần diff tối thiểu thì thay bằng Myers/LCS.
+func lineDiff(old, new []byte) []string {
+	if bytes.Equal(old, new) {
+		return nil
+	}
+	a, b := splitLines(old), splitLines(new)
+	pre := 0
+	for pre < len(a) && pre < len(b) && a[pre] == b[pre] {
+		pre++
+	}
+	suf := 0
+	for suf < len(a)-pre && suf < len(b)-pre && a[len(a)-1-suf] == b[len(b)-1-suf] {
+		suf++
+	}
+	var out []string
+	for _, l := range a[max(0, pre-diffContext):pre] {
+		out = append(out, "  "+l)
+	}
+	for _, l := range a[pre : len(a)-suf] {
+		out = append(out, "- "+l)
+	}
+	for _, l := range b[pre : len(b)-suf] {
+		out = append(out, "+ "+l)
+	}
+	for _, l := range a[len(a)-suf : min(len(a), len(a)-suf+diffContext)] {
+		out = append(out, "  "+l)
+	}
+	if len(out) > maxDiffLines {
+		out = append(out[:maxDiffLines], fmt.Sprintf("... (+%d)", len(out)-maxDiffLines))
+	}
+	return out
+}
+
+func splitLines(b []byte) []string {
+	s := strings.TrimSuffix(string(b), "\n")
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, "\n")
 }
 
 // printHealthReport in kết quả theo từng đối tượng (máy và stack, từng site,

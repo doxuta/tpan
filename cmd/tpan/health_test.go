@@ -284,3 +284,50 @@ func TestHealthExit(t *testing.T) {
 		}
 	}
 }
+
+func TestLineDiff(t *testing.T) {
+	old := []byte("a\nb\nc\nd\ne\nf\ng\nh\n")
+	for _, tc := range []struct {
+		name string
+		new  string
+		want []string
+	}{
+		{"giống hệt", "a\nb\nc\nd\ne\nf\ng\nh\n", nil},
+		{"bỏ một dòng ở cuối", "a\nb\nc\nd\ne\nf\ng\n", []string{"  e", "  f", "  g", "- h"}},
+		{"đổi một dòng giữa", "a\nb\nc\nX\ne\nf\ng\nh\n", []string{"  a", "  b", "  c", "- d", "+ X", "  e", "  f", "  g"}},
+		{"thêm ở đầu", "Z\na\nb\nc\nd\ne\nf\ng\nh\n", []string{"+ Z", "  a", "  b", "  c"}},
+	} {
+		got := lineDiff(old, []byte(tc.new))
+		if strings.Join(got, "|") != strings.Join(tc.want, "|") {
+			t.Errorf("%s: %q, muốn %q", tc.name, got, tc.want)
+		}
+	}
+	// Bản sửa tay thêm dòng cuối, tpan sẽ ghi lại bản không có nó: dòng đó là "-".
+	got := lineDiff([]byte("server {\n}\n# sửa tay\n"), []byte("server {\n}\n"))
+	if strings.Join(got, "|") != "  server {|  }|- # sửa tay" {
+		t.Errorf("sửa tay ở cuối: %q", got)
+	}
+	// File khác hoàn toàn: bị chặn ở maxDiffLines, kèm số dòng bị bỏ.
+	big := lineDiff([]byte(strings.Repeat("x\n", 100)), []byte(strings.Repeat("y\n", 100)))
+	if len(big) != maxDiffLines+1 || big[maxDiffLines] != "... (+120)" {
+		t.Errorf("không chặn diff dài: %d dòng, dòng cuối %q", len(big), big[len(big)-1])
+	}
+}
+
+func TestPrintFileDiffs(t *testing.T) {
+	var out strings.Builder
+	e := &env{stdout: &out, lang: "vi"}
+	const p = "/etc/nginx/sites-available/tpan-shop.example.com.conf"
+	pv := engine.Preview{Steps: []engine.StepPreview{
+		{Info: engine.StepInfo{ID: "file:" + p, Files: []engine.FileChange{{Path: p, OldExists: true, Old: []byte("server {\n}\n# sửa tay\n"), New: []byte("server {\n}\n")}}}},
+		// Bước đã đúng, file mới tạo, file giữ nguyên: không có diff.
+		{Done: true, Info: engine.StepInfo{Files: []engine.FileChange{{Path: "/done", OldExists: true, Old: []byte("a\n"), New: []byte("b\n")}}}},
+		{Info: engine.StepInfo{Files: []engine.FileChange{{Path: "/new", New: []byte("a\n")}}}},
+		{Info: engine.StepInfo{Files: []engine.FileChange{{Path: "/same", OldExists: true, Old: []byte("a\n"), New: []byte("a\n")}}}},
+	}}
+	printFileDiffs(e, pv)
+	want := "\n    --- " + p + " (đang có)\n    +++ " + p + " (tpan sẽ ghi)\n      server {\n      }\n    - # sửa tay\n"
+	if out.String() != want {
+		t.Errorf("printFileDiffs:\n%s\nmuốn:\n%s", out.String(), want)
+	}
+}
