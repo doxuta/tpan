@@ -1,0 +1,18 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Site mặc định của Nginx ở cổng 443: hứng mọi kết nối HTTPS mà tên (SNI) không
+# khớp vhost nào. Không có nó, Nginx lấy vhost 443 đầu tiên làm mặc định, và khách
+# gõ IP hay một domain lạ trỏ về máy sẽ nhận chứng chỉ (và thấy tên) của site đó.
+server {
+    # default_server: server này nhận kết nối khi không có server_name nào khớp.
+    # Dòng [::] cho IPv6; thiếu nó thì kết nối tới địa chỉ IPv6 rơi vào site thật.
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+
+    # "_" không phải domain thật, chỉ là tên không ai dùng.
+    server_name _;
+
+    # Từ chối ngay lúc bắt tay TLS (cần Nginx 1.19.4 trở lên), nên server này
+    # không cần chứng chỉ nào và không lộ tên site nào qua chứng chỉ mặc định.
+    ssl_reject_handshake on;
+}

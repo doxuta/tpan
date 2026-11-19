@@ -1,0 +1,8 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Bật jail sshd của fail2ban: chặn IP đoán mật khẩu SSH. Ubuntu 24.04 ghi log
+# của sshd vào journal (có máy không còn /var/log/auth.log), nên đọc log từ
+# systemd thay vì từ file.
+[sshd]
+enabled = true
+backend = systemd
