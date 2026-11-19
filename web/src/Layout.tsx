@@ -6,17 +6,22 @@
 // Chưa đăng nhập (GET /api/v1/session trả logged_in=false) thì chuyển tới
 // /dang-nhap, kèm ?next= để đăng nhập xong quay lại đúng chỗ.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { errorMessage, loginHref, loginPath, post } from "./api/client";
 import { machineStatus, useOverview, useSession } from "./api/queries";
 import type { Overview, StackSummary } from "./api/types";
+import { AiDrawer } from "./ai/AiDrawer";
+import { AiProvider, useAi } from "./ai/AiProvider";
+import { CommandPalette } from "./ai/CommandPalette";
+import { drawerShortcut, paletteKbd, paletteShortcut } from "./ai/platform";
 import { buttonClass } from "./components/Button";
 import { Logo } from "./components/Logo";
 import { ScreenHeader } from "./components/ScreenHeader";
 import { SegmentButton } from "./components/SegmentButton";
 import { Tag } from "./components/Tag";
 import { useLang, useStrings, type Lang } from "./i18n";
+import { strings as aiStrings } from "./i18n/ai";
 import { strings } from "./i18n/khung";
 import { screens, type MenuGroup, type ScreenEntry } from "./routes";
 import { useTheme, type Theme } from "./theme";
@@ -45,24 +50,61 @@ export function Layout() {
   }
   if (!loggedIn) return <Navigate to={loginHref(location.pathname + location.search)} replace />;
 
-  const o = overview.data;
+  return (
+    <AiProvider>
+      <Shell t={t} hostname={session.data.hostname ?? ""} demo={session.data.demo} overview={overview.data} />
+    </AiProvider>
+  );
+}
+
+/**
+ * Khung trang sau khi đã đăng nhập. Tách khỏi Layout vì ngăn AI và thanh lệnh
+ * cần AiProvider, mà provider chỉ nên có khi đã đăng nhập (nó báo máy chủ mỗi
+ * lần chuyển mục). Ngăn AI nằm ở đây, không trong màn nào, nên đi theo người
+ * dùng qua mọi mục.
+ */
+function Shell({ t, hostname, demo, overview }: { t: T; hostname: string; demo: boolean; overview?: Overview }) {
+  const ai = useAi();
+  const [palette, setPalette] = useState(false);
+
+  // ⌘K (Ctrl+K) mở hoặc đóng thanh lệnh; ⌘/ (Ctrl+/) mở hoặc đóng ngăn AI. Bắt ở
+  // cả hai hệ điều hành vì người dùng Mac cắm bàn phím ngoài vẫn gõ Ctrl.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPalette((p) => !p);
+      } else if (e.key === "/") {
+        e.preventDefault();
+        ai.toggle();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [ai.toggle]);
+
   return (
     <div className="mx-auto box-border max-w-[1440px] px-[32px] pb-[48px]">
       <a href="#noi-dung" className="sr-only focus:not-sr-only focus:absolute focus:top-[8px] focus:left-[8px] focus:bg-surface focus:p-[8px]">
         {t.skipToContent}
       </a>
-      <Header t={t} hostname={session.data.hostname || o?.hostname || ""} stack={o?.stack} demo={session.data.demo} overview={o} />
+      <Header t={t} hostname={hostname || overview?.hostname || ""} stack={overview?.stack} demo={demo} overview={overview} onOpenPalette={() => setPalette(true)} />
       <div className="flex flex-wrap gap-x-[32px]">
-        <Menu t={t} overview={o} />
+        <Menu t={t} overview={overview} />
         <main id="noi-dung" tabIndex={-1} className="min-w-0 flex-[999_1_560px]">
           <Outlet />
         </main>
+        <AiDrawer />
       </div>
+      <CommandPalette open={palette} onOpenChange={setPalette} />
     </div>
   );
 }
 
-function Header({ t, hostname, stack, demo, overview }: { t: T; hostname: string; stack?: StackSummary; demo: boolean; overview?: Overview }) {
+function Header({ t, hostname, stack, demo, overview, onOpenPalette }: { t: T; hostname: string; stack?: StackSummary; demo: boolean; overview?: Overview; onOpenPalette: () => void }) {
+  const a = useStrings(aiStrings);
+  const ai = useAi();
   const { lang, setLang } = useLang();
   const { theme, setTheme } = useTheme();
   const { tips, setTips } = useTips();
@@ -93,22 +135,32 @@ function Header({ t, hostname, stack, demo, overview }: { t: T; hostname: string
       </div>
 
       <div className="ml-auto flex flex-[1_1_420px] flex-wrap items-center justify-end gap-[10px]">
-        {/* ponytail: ô lệnh ⌘K chỉ giữ chỗ cho đúng hình; thanh lệnh làm ở M8 (mục 10, màn 11 của KE-HOACH.md). */}
         <button
           type="button"
-          aria-disabled="true"
-          aria-describedby="o-lenh-chua-co"
-          className="box-border flex h-[44px] max-w-[400px] flex-[1_1_260px] items-center gap-[8px] border border-ink bg-surface px-[10px] text-left text-[14px] text-muted sm:h-[40px]"
+          onClick={onOpenPalette}
+          aria-haspopup="dialog"
+          aria-keyshortcuts={paletteShortcut}
+          className="box-border flex h-[44px] max-w-[400px] flex-[1_1_260px] items-center gap-[8px] border border-ink bg-surface px-[10px] text-left text-[14px] text-muted hover:bg-pre sm:h-[40px]"
         >
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
             <circle cx="11" cy="11" r="6.5" />
             <path d="M16 16l4.5 4.5" />
           </svg>
           <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{t.command}</span>
-          <kbd className="border border-hair px-[5px] py-[1px] font-mono text-[11px] text-muted">⌘K</kbd>
-          <span id="o-lenh-chua-co" className="sr-only">
-            {t.commandSoon}
-          </span>
+          <kbd className="border border-hair px-[5px] py-[1px] font-mono text-[11px] text-muted">{paletteKbd}</kbd>
+        </button>
+
+        <button
+          type="button"
+          id="nut-hoi-ai"
+          aria-expanded={ai.open}
+          aria-controls="ngan-ai"
+          aria-keyshortcuts={drawerShortcut}
+          title={a.askAiHint}
+          onClick={ai.toggle}
+          className={buttonClass("secondary")}
+        >
+          {a.askAi}
         </button>
 
         <SegmentButton<Lang>
