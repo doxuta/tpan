@@ -690,7 +690,7 @@ default:
 }
 ```
 
-`ServerURL` chọn địa chỉ đưa cho certbot: `ssl.server` nếu có, không thì `steps.LetsEncryptStaging` hoặc `steps.LetsEncryptProd`. Mục 6.3 viết "thêm `--staging`"; mã luôn truyền `--server <địa chỉ>` thay vì `--staging`. Hệ quả nhìn thấy được: một cờ đó chọn được cả ba trường hợp (thật, staging, pebble), và file renewal của certbot ghi lại đúng địa chỉ đó ở dòng `server = ...`, là dòng `CertbotCert.Check` so khi chạy lại (mục 3.6). Chỗ khác đặc tả này chưa được ghi trong `docs/thay-doi/M5.md`.
+`ServerURL` chọn địa chỉ đưa cho certbot: `ssl.server` nếu có, không thì `steps.LetsEncryptStaging` hoặc `steps.LetsEncryptProd`. Mục 6.3 viết "thêm `--staging`"; mã luôn truyền `--server <địa chỉ>` thay vì `--staging`. Hệ quả nhìn thấy được: một cờ đó chọn được cả ba trường hợp (thật, staging, pebble), và file renewal của certbot ghi lại đúng địa chỉ đó ở dòng `server = ...`, là dòng `CertbotCert.Check` so khi chạy lại (mục 3.6). Chỗ khác đặc tả này ghi trong `docs/thay-doi/M5.md` để gộp vào KE-HOACH.md khi ghép.
 
 `SetConfig` kiểm hết các trường rồi mới ghi, để một trường sai không để lại cấu hình ghi dở. `ssl.server` phải khớp `sslServerRe` (chỉ `https://`), nên lần thử `--server http://...` ở mục 2.2 bị từ chối.
 
@@ -872,7 +872,7 @@ if server != "" {
 }
 ```
 
-`--dry-run` làm cả quy trình gia hạn (kể cả thử thách HTTP-01) với máy chủ thử của Let's Encrypt mà không ghi chứng chỉ mới. Đây là cách duy nhất biết trước gia hạn tự động có chạy được không. `--server` chỉ thêm khi dùng máy chủ tuỳ chỉnh (pebble); với Let's Encrypt, certbot đọc máy chủ từ file renewal, đúng cái gia hạn tự động sẽ dùng. Phép này nặng (gọi ra internet), nên chỉ nằm ở kiểm chứng của Plan SSL, không ở health định kỳ.
+`--dry-run` làm cả quy trình gia hạn (kể cả thử thách HTTP-01) với máy chủ thử của Let's Encrypt mà không ghi chứng chỉ mới. Đây là cách duy nhất biết trước gia hạn tự động có chạy được không. `--server` chỉ thêm khi dùng máy chủ tuỳ chỉnh (pebble). Không có `--server` thì `--dry-run` luôn đi tới máy chủ staging của Let's Encrypt, kể cả khi chứng chỉ là bản thật, chứ không đọc file renewal (thấy trên máy ảo: một lần chạy thiếu `--server` đã gọi ra staging thật và bị từ chối vì tên `example.com`). Nhờ vậy gia hạn thử không tốn hạn mức của chứng chỉ thật. Phép này nặng (gọi ra internet), nên chỉ nằm ở kiểm chứng của Plan SSL, không ở health định kỳ.
 
 ### 3.11 `Execute`, và `internal/core/site.go` nhớ SSL
 
