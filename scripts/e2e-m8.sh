@@ -571,7 +571,9 @@ main_fake() {
     bash -c 'jq -e "(.args | index(\"--session-id\")) != null and (.args | index(\"--resume\")) == null and (.args[(.args | index(\"--max-turns\")) + 1] == \"4\") and (.args[(.args | index(\"--tools\")) + 1] == \"\") and (.args | index(\"--strict-mcp-config\")) != null and (.args | index(\"--bare\")) == null" "$1" >/dev/null' _ "$(rec 1)"
   ok "MCP server trong --mcp-config là ssh ... sudo -n tpan mcp --session $SID1" \
     bash -c 'jq -r ".args[(.args | index(\"--mcp-config\")) + 1]" "$1" | jq -e --arg s "$2" ".mcpServers | keys == [\"tpan\"] and .tpan.command == \"ssh\" and (.tpan.args[-6:] == [\"sudo\", \"-n\", \"tpan\", \"mcp\", \"--session\", \$s])" >/dev/null' _ "$(rec 1)" "$SID1"
-  ok "claude giả thấy 18 công cụ mcp__tpan__*" bash -c 'jq -e "(.tools | length) == 18 and all(.tools[]; startswith(\"mcp__tpan__\"))" "$1" >/dev/null' _ "$(rec 1)"
+  # 21 = danh mục sau khi ghép M9 (thêm list_backups, propose_backup_create,
+  # propose_backup_restore); khẳng định cũ (18) viết trước khi ghép M9.
+  ok "claude giả thấy 21 công cụ mcp__tpan__*" bash -c 'jq -e "(.tools | length) == 21 and all(.tools[]; startswith(\"mcp__tpan__\"))" "$1" >/dev/null' _ "$(rec 1)"
   ok "prompt claude nhận qua stdin trùng từng byte với prompt của bản xem trước" bash -c '[ "$(jq -r .prompt "$1")" = "$(jq -r .prompt "$2")" ]' _ "$(rec 1)" "$TMPD/preview1.json"
   ok "thư mục làm việc của phiên rỗng sau lượt 1" bash -c '[ -d "$1" ] && [ -z "$(ls -A "$1")" ]' _ "$(jq -r .cwd "$(rec 1)")"
   ok "lượt 1 gọi đúng 2 công cụ (ai_calls tăng 2)" test "$(ai_calls_count)" -eq $((calls0 + 2))
