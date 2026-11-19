@@ -83,7 +83,7 @@ func SitePool(l site.Layout, phpVersion string) (engine.Step, error) {
 	}
 	d := l.Domain.String()
 	return &File{Path: l.PoolConf(phpVersion), Content: conf, Perm: 0o644, Owner: system.Root,
-		Test: test, Reload: reload,
+		Test: test, Reload: reload, WaitFor: l.Socket,
 		Title: i18n.T("Ghi pool PHP-FPM "+l.Pool+" cho "+d, "Write PHP-FPM pool "+l.Pool+" for "+d),
 		Why: i18n.T(
 			"Pool riêng cho PHP của site chạy dưới user "+l.User+", chỉ mở được file trong "+l.Dir+". Thiếu nó thì web server không có chỗ chuyển file .php tới (502); dùng chung pool thì một site bị chiếm đọc được file của site khác.",
