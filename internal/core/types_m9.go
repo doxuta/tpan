@@ -106,43 +106,26 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/site"
 )
 
-// BackupKind là loại file backup.
-type BackupKind string
+// Kiểu dòng của bảng backups nằm ở gói lá site (store không import được core:
+// test của core import store). Bí danh để mã của core, CLI, API gọi tên core.Backup.
+type (
+	BackupKind   = site.BackupKind
+	BackupReason = site.BackupReason
+	Backup       = site.Backup
+)
 
 const (
-	// BackupFull: .tar.gz gồm public/, db.sql, manifest.json (mục 6.5).
-	BackupFull BackupKind = "full"
-	// BackupSQL: bản xuất DB riêng .sql (mục 6.9).
-	BackupSQL BackupKind = "sql"
+	BackupFull          = site.BackupFull
+	BackupSQL           = site.BackupSQL
+	ReasonManual        = site.ReasonManual
+	ReasonSchedule      = site.ReasonSchedule
+	ReasonBeforeRestore = site.ReasonBeforeRestore
+	ReasonBeforePurge   = site.ReasonBeforePurge
+	ReasonBeforeImport  = site.ReasonBeforeImport
 )
-
-// BackupReason là vì sao có bản backup.
-type BackupReason string
-
-const (
-	ReasonManual        BackupReason = "manual"
-	ReasonSchedule      BackupReason = "schedule"
-	ReasonBeforeRestore BackupReason = "before-restore"
-	ReasonBeforePurge   BackupReason = "before-purge"
-	ReasonBeforeImport  BackupReason = "before-import"
-)
-
-// Backup là một dòng của bảng backups.
-type Backup struct {
-	ID         string       `json:"id"`
-	Domain     string       `json:"domain"`
-	Kind       BackupKind   `json:"kind"`
-	Reason     BackupReason `json:"reason"`
-	Path       string       `json:"path"`
-	Size       int64        `json:"size"`
-	SHA256     string       `json:"sha256"`
-	WPVersion  string       `json:"wp_version,omitempty"`
-	PHPVersion string       `json:"php_version,omitempty"`
-	JobID      string       `json:"job_id,omitempty"`
-	Created    time.Time    `json:"created"`
-}
 
 // BackupStore là phần của store mà backup cần. *store.Store thoả giao diện này.
 type BackupStore interface {
@@ -204,24 +187,17 @@ type Backups struct {
 	Now func() time.Time
 }
 
-// CronStatus là kết quả một lần chạy cron WordPress.
-type CronStatus string
-
-const (
-	CronOK      CronStatus = "ok"
-	CronFail    CronStatus = "fail"
-	CronSkipped CronStatus = "skipped"
+// Kiểu dòng của bảng cron_runs nằm ở gói lá site (như Backup).
+type (
+	CronStatus = site.CronStatus
+	CronRun    = site.CronRun
 )
 
-// CronRun là một dòng của bảng cron_runs.
-type CronRun struct {
-	Domain   string        `json:"domain"`
-	Started  time.Time     `json:"started"`
-	Duration time.Duration `json:"duration_ns"`
-	Status   CronStatus    `json:"status"`
-	ExitCode int           `json:"exit_code"`
-	Output   string        `json:"output"`
-}
+const (
+	CronOK      = site.CronOK
+	CronFail    = site.CronFail
+	CronSkipped = site.CronSkipped
+)
 
 // CronStore là phần của store mà cron cần. *store.Store thoả giao diện này.
 type CronStore interface {

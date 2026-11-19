@@ -1,5 +1,7 @@
 package site
 
+import "time"
+
 // Đường dẫn của backup và cron (mục 5, 6.5, 6.10 của docs/KE-HOACH.md, M9).
 // Tách file riêng như trash.go để Layout không phải đổi.
 
@@ -46,3 +48,62 @@ func CronFile(l Layout) string {
 
 // BackupCronFile là lịch backup theo giờ đặt (`tpan backup settings --at`).
 const BackupCronFile = "/etc/cron.d/tpan-backup"
+
+// ---- Dòng của bảng backups và cron_runs (migration 900). Ở gói lá này để
+// store (ghi) và core (dùng) cùng thấy mà store không phải import core.
+
+// BackupKind là loại file backup.
+type BackupKind string
+
+const (
+	// BackupFull: .tar.gz gồm public/, db.sql, manifest.json (mục 6.5).
+	BackupFull BackupKind = "full"
+	// BackupSQL: bản xuất DB riêng .sql (mục 6.9).
+	BackupSQL BackupKind = "sql"
+)
+
+// BackupReason là vì sao có bản backup.
+type BackupReason string
+
+const (
+	ReasonManual        BackupReason = "manual"
+	ReasonSchedule      BackupReason = "schedule"
+	ReasonBeforeRestore BackupReason = "before-restore"
+	ReasonBeforePurge   BackupReason = "before-purge"
+	ReasonBeforeImport  BackupReason = "before-import"
+)
+
+// Backup là một dòng của bảng backups. Domain là chuỗi, không phải
+// validate.Domain: dòng của site đã xoá hẳn vẫn được đọc lại nguyên vẹn.
+type Backup struct {
+	ID         string       `json:"id"`
+	Domain     string       `json:"domain"`
+	Kind       BackupKind   `json:"kind"`
+	Reason     BackupReason `json:"reason"`
+	Path       string       `json:"path"`
+	Size       int64        `json:"size"`
+	SHA256     string       `json:"sha256"`
+	WPVersion  string       `json:"wp_version,omitempty"`
+	PHPVersion string       `json:"php_version,omitempty"`
+	JobID      string       `json:"job_id,omitempty"`
+	Created    time.Time    `json:"created"`
+}
+
+// CronStatus là kết quả một lần chạy cron WordPress.
+type CronStatus string
+
+const (
+	CronOK      CronStatus = "ok"
+	CronFail    CronStatus = "fail"
+	CronSkipped CronStatus = "skipped"
+)
+
+// CronRun là một dòng của bảng cron_runs.
+type CronRun struct {
+	Domain   string        `json:"domain"`
+	Started  time.Time     `json:"started"`
+	Duration time.Duration `json:"duration_ns"`
+	Status   CronStatus    `json:"status"`
+	ExitCode int           `json:"exit_code"`
+	Output   string        `json:"output"`
+}
