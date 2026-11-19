@@ -344,20 +344,13 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 		if cfg.Web != Apache {
 			continue
 		}
-		// Site dựng trên nginx không có .htaccess: thiếu nó thì trang chủ vẫn
-		// 200 mà mọi permalink /%postname%/ là 404 trên Apache. Có rồi thì để
-		// nguyên: WordPress tự ghi lại đoạn của nó.
 		l := st.Layout()
-		_, err = s.Sys.Stat(l.Public + "/.htaccess")
-		switch {
-		case errors.Is(err, fs.ErrNotExist):
-			ht, err := steps.SiteHtaccess(l)
-			if err != nil {
-				return nil, err
-			}
+		ht, err := htaccessIfMissing(s.Sys, l, l.Public)
+		if err != nil {
+			return nil, err
+		}
+		if ht != nil {
 			ss = append(ss, ht)
-		case err != nil:
-			return nil, fmt.Errorf("kiểm .htaccess của %s: %w", st.Domain, err)
 		}
 	}
 	lr, err := logrotateStep(cfg.Web)
@@ -372,6 +365,25 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 		}
 	}
 	return steps.WithoutReload(ss), nil
+}
+
+// htaccessIfMissing là bước ghi .htaccess của WordPress cho site l khi
+// <public>/.htaccess chưa có (đọc lúc dựng Plan), nil khi đã có. public là nơi
+// thư mục public của site đang nằm lúc dựng Plan: l.Public, hoặc trong thùng
+// rác khi khôi phục; bước luôn ghi vào l.Public. Site dựng trên nginx không có
+// .htaccess: thiếu nó thì trang chủ vẫn 200 mà mọi permalink /%postname%/ là
+// 404 trên Apache. Có rồi thì để nguyên: WordPress tự ghi lại đoạn của nó.
+// Dùng khi chuyển sang Apache (site active) và khi khôi phục trên Apache một
+// site đã vào thùng rác lúc còn chạy nginx (trash.go).
+func htaccessIfMissing(sys system.System, l site.Layout, public string) (engine.Step, error) {
+	_, err := sys.Stat(public + "/.htaccess")
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return steps.SiteHtaccess(l)
+	case err != nil:
+		return nil, fmt.Errorf("kiểm .htaccess của %s: %w", l.Domain, err)
+	}
+	return nil, nil
 }
 
 // oldWebFiles là các file tpan đã ghi cho web server cũ, link trước file:

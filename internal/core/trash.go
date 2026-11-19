@@ -199,6 +199,18 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan khôi phục site %s: %w", d, err)
 	}
+	// Site vào thùng rác lúc còn chạy nginx rồi stack chuyển sang Apache
+	// (stack switch chỉ ghi .htaccess cho site active): thiếu .htaccess thì mọi
+	// permalink là 404. Ghi ngay sau khi chuyển thư mục về, trước vhost.
+	if cfg.Web == Apache {
+		ht, err := htaccessIfMissing(s.Sys, l, site.TrashDir(l)+"/public")
+		if err != nil {
+			return nil, err
+		}
+		if ht != nil {
+			ss = append(ss[:1], append([]engine.Step{ht}, ss[1:]...)...)
+		}
+	}
 	others, err := s.others(ctx, d)
 	if err != nil {
 		return nil, err
