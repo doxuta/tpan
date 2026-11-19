@@ -432,7 +432,7 @@ func (s *AptRepo) Apply(ctx context.Context, sys system.System) error {
 			}
 		}
 	}
-	if res, err := sys.Run(ctx, aptUpdateLocked); err != nil {
+	if res, err := RunAptUpdate(ctx, sys, aptUpdateLocked); err != nil {
 		return fail(withStdout(fmt.Errorf("apt-get update sau khi thêm kho %s: %w", s.Name, err), res))
 	}
 	s.prev, s.created, s.applied = done, created, true
@@ -453,7 +453,7 @@ func (s *AptRepo) Undo(ctx context.Context, sys system.System) error {
 	if err := removeDirs(sys, s.created); err != nil {
 		errs = append(errs, err)
 	}
-	if res, err := sys.Run(ctx, aptUpdateLocked); err != nil {
+	if res, err := RunAptUpdate(ctx, sys, aptUpdateLocked); err != nil {
 		errs = append(errs, withStdout(fmt.Errorf("apt-get update sau khi gỡ kho %s: %w", s.Name, err), res))
 	}
 	return errors.Join(errs...)

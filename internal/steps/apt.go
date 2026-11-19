@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -70,6 +71,34 @@ type AptUpdate struct {
 
 var aptUpdateCmd = system.Cmd{Name: "apt-get", Args: []string{"update"}}
 
+// listsLockTries, listsLockWait: RunAptUpdate chờ tối đa 60 × 5 giây = 5 phút
+// (bằng DPkg::Lock::Timeout=300 của các lệnh apt-get khác). Test đặt wait = 0.
+var (
+	listsLockTries = 60
+	listsLockWait  = 5 * time.Second
+)
+
+// RunAptUpdate chạy cmd (một lệnh `apt-get update`) và chạy lại khi một
+// apt-get update khác đang giữ khoá danh sách gói. Đã kiểm trên máy ảo M12
+// (apt 2.8.3, Ubuntu 24.04): `-o DPkg::Lock::Timeout=...` chỉ làm apt chờ khoá
+// dpkg; với khoá /var/lib/apt/lists/lock thì `apt-get update` lỗi ngay ("E:
+// Could not get lock /var/lib/apt/lists/lock. It is held by process ...", mã
+// 100). Máy vừa khởi động (VPS mới, bản sao máy ảo) có apt-daily chạy đúng
+// lệnh đó, nên không chờ thì `tpan update --check` và mọi bước thêm kho lỗi.
+func RunAptUpdate(ctx context.Context, sys system.System, cmd system.Cmd) (system.Result, error) {
+	for i := 1; ; i++ {
+		res, err := sys.Run(ctx, cmd)
+		if err == nil || i >= listsLockTries || !strings.Contains(err.Error()+res.Stderr+res.Stdout, "/var/lib/apt/lists/lock") {
+			return res, err
+		}
+		select {
+		case <-ctx.Done():
+			return res, errors.Join(err, ctx.Err())
+		case <-time.After(listsLockWait):
+		}
+	}
+}
+
 func (s *AptUpdate) Info() engine.StepInfo {
 	return engine.StepInfo{
 		ID:    "apt.update:lists",
@@ -101,7 +130,7 @@ func (s *AptUpdate) Apply(ctx context.Context, sys system.System) error {
 	if err := checkNames("gói", debName, s.Packages); err != nil {
 		return err
 	}
-	if res, err := sys.Run(ctx, aptUpdateCmd); err != nil {
+	if res, err := RunAptUpdate(ctx, sys, aptUpdateCmd); err != nil {
 		return withStdout(fmt.Errorf("làm mới danh sách gói: %w", err), res)
 	}
 	s.updated = true
