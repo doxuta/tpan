@@ -43,11 +43,23 @@ func printResult(w io.Writer, lang string, r checks.Result, indent string) {
 		printf(w, "%s    %s %s\n", indent, i18n.T("Nguyên nhân:", "Cause:").In(lang), r.Cause.In(lang))
 	}
 	if len(r.ManualFix) > 0 {
-		printf(w, "%s    %s\n", indent, i18n.T("Sửa tay:", "Manual fix:").In(lang))
+		printf(w, "%s    %s\n", indent, i18n.T("Sửa tay (gõ trên máy này, thư mục nào cũng được):", "Manual fix (type on this machine, from any directory):").In(lang))
 		for _, l := range r.ManualFix {
-			printf(w, "%s      %s\n", indent, l)
+			printf(w, "%s      %s\n", indent, withSudo(l))
 		}
 	}
+}
+
+// withSudo thêm "sudo " vào lệnh sửa tay chưa có. Dữ liệu phép kiểm giữ lệnh
+// trần; chỗ in ra cho người gõ mới thêm, vì người vận hành gõ bằng user thường
+// trong phiên SSH, thiếu sudo thì gặp "permission denied". Giao diện web làm
+// giống hệt ở web/src/components/CommandBlock.tsx.
+func withSudo(l string) string {
+	t := strings.TrimSpace(l)
+	if t == "" || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "sudo ") {
+		return l
+	}
+	return "sudo " + t
 }
 
 func printRefusal(e *env, re *core.RefusedError) {
