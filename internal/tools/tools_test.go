@@ -92,6 +92,16 @@ func TestCatalogRedactsEverything(t *testing.T) {
 	do("propose_health_fix", `{"check_id":"web.vhost:nothere.example.org"}`, false)
 	// Chưa đặt email Let's Encrypt: bị từ chối, nhưng lời từ chối vẫn phải đã che.
 	do("propose_ssl_issue", `{"domain":"`+a+`"}`, false)
+	// M9: một bản backup của site có dấu; tạo và khôi phục trên máy giả bị từ
+	// chối (không đo được, không có bản đó) nhưng lời lỗi vẫn phải đã che.
+	if _, err := e.st.AddBackup(ctx, core.Backup{Domain: mustDomain(t, domU).String(), Kind: core.BackupFull, Reason: core.ReasonManual,
+		Path: "/var/lib/tpan/backups/" + mustDomain(t, domU).String() + "/x.tar.gz", Size: 10, Created: e.now}); err != nil {
+		t.Fatal(err)
+	}
+	do("list_backups", `{}`, true)
+	do("list_backups", `{"domain":"`+u+`"}`, true)
+	do("propose_backup_create", `{"domain":"`+a+`"}`, false)
+	do("propose_backup_restore", `{"domain":"`+u+`","backup_id":"ffffffffffffffff"}`, false)
 	// current_view: đường dẫn và nhãn chứa domain ở mọi dạng giao diện có thể
 	// báo (punycode, %xx của dạng có dấu, dạng có dấu) và tên máy.
 	pu := mustDomain(t, domU).String()
@@ -211,8 +221,8 @@ func TestPromptInjectionInLog(t *testing.T) {
 // 3. Danh mục đóng.
 func TestCatalogClosed(t *testing.T) {
 	want := []string{
-		"apply_plan", "current_view", "get_job", "get_plan", "list_jobs", "list_plans", "list_sites", "machine", "managed_file",
-		"propose_health_fix", "propose_site_add", "propose_site_remove", "propose_site_repair", "propose_ssl_issue", "propose_stack_repair",
+		"apply_plan", "current_view", "get_job", "get_plan", "list_backups", "list_jobs", "list_plans", "list_sites", "machine", "managed_file",
+		"propose_backup_create", "propose_backup_restore", "propose_health_fix", "propose_site_add", "propose_site_remove", "propose_site_repair", "propose_ssl_issue", "propose_stack_repair",
 		"site_health", "stack_status", "tail_log",
 	}
 	var got []string
@@ -260,7 +270,7 @@ func TestCatalogClosed(t *testing.T) {
 	attacks := []string{"a.com; rm -rf /", "$(id).example.com", "../../etc/passwd", "a.com\nb.com", "`id`.example.com", strings.Repeat("a", 300) + ".com", ""}
 	for _, d := range attacks {
 		dj, _ := json.Marshal(d)
-		for _, name := range []string{"site_health", "propose_site_remove", "propose_site_repair"} {
+		for _, name := range []string{"site_health", "propose_site_remove", "propose_site_repair", "propose_backup_create"} {
 			if err := callErr(t, s, name, `{"domain":`+string(dj)+`}`); err.Code != validate.CodeDomainInvalid {
 				t.Errorf("%s %q: %v", name, d, err)
 			}

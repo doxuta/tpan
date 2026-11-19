@@ -101,6 +101,8 @@ var toolsInPanel = map[string]bool{
 	"list_plans": true, "get_plan": true, "current_view": true,
 	"propose_site_add": true, "propose_site_remove": true, "propose_site_repair": true,
 	"propose_stack_repair": true, "propose_health_fix": true, "propose_ssl_issue": true,
+	// M9.
+	"list_backups": true, "propose_backup_create": true, "propose_backup_restore": true,
 }
 
 var toolLike = regexp.MustCompile("`([a-z]+(?:_[a-z]+)+)`")
@@ -132,7 +134,7 @@ func TestNoiDungTungBan(t *testing.T) {
 }
 
 func TestMucChuaCoTinhNangNoiThang(t *testing.T) {
-	for _, n := range []string{"backup", "cron", "thung-rac", "cap-nhat"} {
+	for _, n := range []string{"thung-rac", "cap-nhat"} {
 		b, _ := files.ReadFile(n + ".md")
 		text := string(b)
 		if !strings.Contains(text, "does not have this operation yet") {

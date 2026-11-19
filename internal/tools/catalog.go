@@ -200,6 +200,7 @@ var catalog = sync.OnceValue(func() []Tool {
 		newTool("get_plan", KindRead, false,
 			"Show one plan and its preview: every step, the commands it will run and the files it will write (as text).",
 			nil, getPlan),
+		newTool("list_backups", KindRead, false, "List the backups tpan made, newest first: id, site domain, kind (full = files and database, sql = database export only), reason (manual, schedule, before-restore, before-purge, before-import), time and size in bytes. Pass a domain for one site; without it the list also has backups of sites already deleted for good.", nil, listBackups),
 		newTool("current_view", KindRead, false,
 			"Show what the user has open in the tpan web panel right now and up to 10 screens they visited just before (newest first). Use it when the user talks about \"what is open on the panel\" or \"this site\" without naming it.",
 			nil, currentView),
@@ -223,6 +224,9 @@ var catalog = sync.OnceValue(func() []Tool {
 		newTool("propose_ssl_issue", KindPlan, false,
 			"Propose a plan that gets a Let's Encrypt certificate for a site and switches it to HTTPS (vhost on port 443, redirect from port 80, WordPress URLs). Refused when the domain does not point to this server or no Let's Encrypt email is set."+proposeNote,
 			nil, proposeSSLIssue),
+
+		newTool("propose_backup_create", KindPlan, false, "Propose a plan that makes a full backup of one site (its files and a dump of its database) under /var/lib/tpan/backups, refused when the disk is too full. Old copies beyond the configured number are pruned after it succeeds."+proposeNote, nil, proposeBackupCreate),
+		newTool("propose_backup_restore", KindPlan, false, "Propose a plan that restores one site from one of its full backups (take backup_id from list_backups). tpan first makes a fresh full backup of the site as it is now, then overwrites the site's code and database with the backup (the running wp-config.php is kept); if the checks after the restore fail, the site is put back as it was."+proposeNote, nil, proposeBackupRestore),
 
 		// ---- chạy Plan
 		newTool("apply_plan", KindApply, false,

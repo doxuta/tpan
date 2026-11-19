@@ -1,17 +1,17 @@
 # Playbook: cron
 
-The user is on the cron page.
+The user is on the cron page: the WordPress cron of each site and the daily backup schedule.
 
-tpan does not have this operation yet: it cannot create, edit, or list scheduled tasks through the panel, and you have no tool for them. Do not pretend you can read the schedule: you cannot see it.
+How it works: tpan turns off WordPress's page-view cron (DISABLE_WP_CRON) and runs each active site's due WordPress events every 5 minutes from a system cron file, as the site's own Linux user. The page shows each site's last run, its result and output. A site in the trash has no cron. The backup schedule runs once a day at the time set on the backups page.
 
-What you can do: answer in words only.
-- Explain how WordPress schedules its own work (WP-Cron runs when a page is visited, so a quiet site runs it late) and why a real system cron is sometimes preferred.
-- If the user wants a schedule, give the line they could add themselves, marked "AI suggestion, not checked", and say which machine and which user it runs as. Remind them to edit it as the site's own Linux user, never as root.
-- If the question is whether tpan's own periodic work runs (health checks every 5 minutes, heavy checks hourly), read it from the health data: `site_health` and `stack_status` show recent results.
+You have no tool to read this page's data or to run a site's cron. Do not pretend you can see the schedule or the last run: ask the user to read it from the page, or to run `sudo tpan cron list` on the server.
 
-Useful read tools:
-- `list_sites` for names.
-- `list_jobs` and `get_job` for what tpan ran and when.
-- `machine` for load, if a task is suspected of overloading the machine.
+Diagnose a "scheduled post did not publish" or "cron failed" report in this order:
+1. Is the site active? `list_sites`. A trashed site has no cron.
+2. Is the site itself healthy? `site_health`: a broken database or PHP makes every cron run fail too.
+3. What did tpan change recently? `list_jobs` and `get_job`.
+4. Is the machine overloaded? `machine` for load and memory.
 
-Plans allowed here: none. Do not call any `propose_*` tool from this page.
+If the user wants to run the cron right away, they can run `sudo tpan cron run <domain>` on the server or press the button on this page; mark any command as "AI suggestion, not checked".
+
+Plans allowed here: `propose_site_repair` when the site's cron file or DISABLE_WP_CRON is missing (re-running the site plan puts them back). Never suggest editing /etc/cron.d by hand.

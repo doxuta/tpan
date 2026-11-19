@@ -13,6 +13,6 @@ Start with:
 Diagnose in request-path order. A database fault shows up late: "Error establishing a database connection" means every stage before it passed, so do not re-check DNS or TLS.
 - Service not active: stack problem, not a site problem.
 - Service active but the site user cannot log in: credentials in wp-config.php differ from the database user; give the user the hand-fix command from the health result.
-- Database missing: restoring needs a backup; say that tpan has no database or backup operation yet.
+- Database missing or damaged: check `list_backups` for a full backup of the site; restoring one brings back its files and database together.
 
-Plans allowed here: `propose_site_repair` for a drifted site configuration, `propose_stack_repair` when MariaDB itself is broken. tpan has no operation yet to edit, dump, or drop a database or to change its password: answer in words only. Never invent a `tpan db ...` command.
+Plans allowed here: `propose_site_repair` for a drifted site configuration, `propose_stack_repair` when MariaDB itself is broken, `propose_backup_restore` with a backup_id from `list_backups` when the data must come back. Changing a database password, exporting or importing a database are done on this page or with `sudo tpan db ...` on the server; you have no tool for them. Never drop or edit a database.

@@ -21,6 +21,8 @@
 //	//   lập Plan: propose_site_add{domain, email, title}, propose_site_remove{domain},
 //	//            propose_site_repair{domain}, propose_stack_repair{},
 //	//            propose_health_fix{check_id}, propose_ssl_issue{domain} (M8)
+//	//   M9 (m9.go): list_backups{domain?} (đọc), propose_backup_create{domain},
+//	//            propose_backup_restore{domain, backup_id} (lập Plan)
 //	//   chạy:    apply_plan{plan_id}
 //	func Catalog() []Tool
 //	// OpenSession mở phiên: o.ID rỗng thì tạo phiên mới (entry mcp, origin
