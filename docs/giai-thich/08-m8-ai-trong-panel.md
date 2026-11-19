@@ -17,13 +17,15 @@ Có bốn log của mốc này:
 | Log | Chạy gì | Lúc |
 |---|---|---|
 | `M8-claude-init.log` | lần gọi `claude -p` thật số 1 đến 3, trên Mac, để xem sự kiện `init` thật | đợt 0 và 1 |
-| `M8.log` | e2e bước 13 với lệnh `claude` giả, máy ảo `tpan-m8`, 105 dòng `=> ĐẠT`, dòng cuối `TỔNG KẾT: 0 khẳng định không đạt` | 22:00 tới 22:01 |
+| `M8.log` | e2e bước 13 với lệnh `claude` giả, máy ảo `tpan-m8`. Có hai bản: bản đầu (105 dòng `=> ĐẠT`) commit ở `f97ca1c`; bản hiện tại là lần chạy lại trên mã cuối (106 dòng `=> ĐẠT`), dòng cuối của cả hai là `TỔNG KẾT: 0 khẳng định không đạt` | bản đầu 22:00 tới 22:01; chạy lại 22:21 tới 22:22 |
 | `M8-claude-1.log` | Claude Code thật hỏi từ panel, lần gọi 4 và 5, **trước** khi sửa chữ dính | 21:48 tới 21:50 |
 | `M8-claude.log` | Claude Code thật, lần gọi 6 và 7, chạy lại sau khi sửa chữ dính, 63 dòng `=> ĐẠT`, 0 không đạt | 21:56 tới 21:57 |
 
 Tên file dễ gây nhầm: `M8-claude-1.log` là lần chạy **cũ hơn**.
 
-Điều quan trọng khi đọc ba log máy ảo: cả ba build từ commit `e03df6e`. Ở `M8-claude-1.log`, `git status --short` không có file mã nào đã sửa (chỉ có log và kịch bản e2e chưa commit). Ở `M8.log` và `M8-claude.log`, bản build là `e03df6e-dirty` và `git status --short` liệt kê `stream.go`, `types.go` và test của `claudecode` là đã sửa (bản sửa chữ dính), nhưng **không** có `internal/ai/panel.go`. Tức là bản sửa "câu trả lời là toàn bộ chữ đã nối" (commit `a7a6090`, sửa `panel.go`) được commit sau cả ba lần chạy. Không log máy ảo nào chạy mã cuối cùng của mốc. Mình nói rõ chỗ nào bị ảnh hưởng ở 2.10.
+Điều quan trọng khi đọc ba log máy ảo: cả ba build từ commit `e03df6e`. Ở `M8-claude-1.log`, `git status --short` không có file mã nào đã sửa (chỉ có log và kịch bản e2e chưa commit). Ở `M8.log` và `M8-claude.log`, bản build là `e03df6e-dirty` và `git status --short` liệt kê `stream.go`, `types.go` và test của `claudecode` là đã sửa (bản sửa chữ dính), nhưng **không** có `internal/ai/panel.go`. Tức là bản sửa "câu trả lời là toàn bộ chữ đã nối" (commit `a7a6090`, sửa `panel.go`) được commit sau cả ba lần chạy đó. Sau đó e2e M8 được chạy lại trên mã cuối (build từ `2543ecc`, có cả bản sửa reload của 2.13 lúc chưa commit) và ghi đè `docs/bang-chung/M8.log`; kết quả ở 2.10.
+
+Các mục 2.1 đến 2.8 trích **bản đầu** của `M8.log`, xem lại bằng `git show f97ca1c:docs/bang-chung/M8.log`. Bản chạy lại đi đúng các bước đó nhưng id phiên, id Plan và số mili giây khác (ví dụ phiên `8dc11f0a8ba8a814`, Plan `b40a4e8ee0eb88b0`, lời từ chối `Bash` ở `+0.194s`).
 
 Kịch bản tự che: `<vm>` là IP máy ảo, `<tmp>` là thư mục tạm trên Mac, `<mac-host>` là tên máy Mac, `<user>` là tên user. `curl` đứng thay trình duyệt: không log nào mở giao diện thật. Phần ngăn AI trên trình duyệt chưa có bằng chứng chạy tay.
 
@@ -368,9 +370,37 @@ Lỗi hai: sự kiện cuối của lần 4 là
 
 tức chỉ đoạn cuối. Trường `result` của Claude Code chỉ giữ tin nhắn cuối cùng của model. Panel lúc đó thay toàn bộ chữ đang hiện bằng `done`, nên câu "Tôi chạy health check..." biến mất ngay khi lượt xong. Sửa ở `panel.go` (commit `a7a6090`, xem 3.12).
 
-Bản sửa thứ hai **chưa chạy trên máy ảo**: như nói ở đầu phần 2, ba log máy ảo build trước commit này. Ở lần 6, model gọi hết công cụ rồi mới viết một tin nhắn duy nhất, nên `done` tình cờ trùng toàn bộ chữ và không lộ lỗi. Trong `M8.log`, dòng `=> ĐẠT: done mang tin nhắn cuối, trùng đoạn cuối của chữ hiện dần` kiểm đúng hành vi **cũ**; với mã hiện tại, `done` mang toàn bộ chữ đã nối, nên khẳng định đó có thể không còn đúng nguyên văn. Lệnh để kiểm lại (chưa chạy): trên Mac, `scripts/e2e-m8.sh`.
+Ba lần chạy đầu trên máy ảo build trước bản sửa thứ hai. Ở lần 6, model gọi hết công cụ rồi mới viết một tin nhắn duy nhất, nên `done` tình cờ trùng toàn bộ chữ và không lộ lỗi. Bản đầu của `M8.log` còn có dòng `=> ĐẠT: done mang tin nhắn cuối, trùng đoạn cuối của chữ hiện dần`, tức kiểm đúng hành vi **cũ**.
 
-Bản sửa đã được kiểm bằng unit test. Mình vừa chạy trên Mac:
+Lần chạy lại `scripts/e2e-m8.sh` trên mã cuối (bản hiện tại của `docs/bang-chung/M8.log`, 106 dòng `=> ĐẠT`, `TỔNG KẾT: 0 khẳng định không đạt`) đổi khẳng định đó và thêm một khẳng định trên trang Phiên AI. Lượt 1, luồng SSE (nguyên văn):
+
+```
++1.986s text (tổng 197 ký tự): …4e8ee0eb88b0` đang chờ bạn duyệt; máy chưa đổi gì.
++2.125s done: Mình xem danh sách site trên máy trước.
+
+Máy đang có site `tpan:site/a.example.com`. Theo yêu cầu, mình đề xuất tạo site mới.
+
+Plan `tpan:plan/b40a4e8ee0eb88b0` đang chờ bạn duyệt; máy chưa đổi gì.
+```
+
+```
+  => ĐẠT: chữ sau mỗi lần gọi công cụ là đoạn mới (ngăn bằng dòng trống)
+  => ĐẠT: done mang toàn bộ chữ đã nối, trùng chữ hiện dần cuối cùng (không chỉ result = tin nhắn cuối)
+```
+
+So với bản đầu (2.4): `done` giờ bắt đầu bằng "Mình xem danh sách site trên máy trước.", câu viết **trước** lần gọi `list_sites`, chứ không chỉ có tin nhắn cuối. `claude` giả trả `result` chỉ có tin cuối như Claude Code thật, nên chữ đầy đủ này chỉ có thể đến từ `shower.show`. Trên trang Phiên AI (`GET /api/v1/ai/sessions/8dc11f0a8ba8a814`), câu trả lời lưu của lượt 1:
+
+```
+      "answer": "Mình xem danh sách site trên máy trước.\n\nMáy đang có site `tpan:site/a.example.com`. Theo yêu cầu, mình đề xuất tạo site mới.\n\nPlan `tpan:plan/b40a4e8ee0eb88b0` đang chờ bạn duyệt; máy chưa đổi gì."
+```
+
+```
+  => ĐẠT: answer của lượt 1 trên trang phiên là toàn bộ chữ: có đoạn viết trước lần gọi công cụ đầu và đoạn cuối
+```
+
+Lần chạy lại dùng `claude` giả. Với Claude Code thật, bản sửa này chưa chạy (lần 6 và 7 build trước nó).
+
+Bản sửa cũng được kiểm bằng unit test. Mình đã chạy trên Mac:
 
 ```bash
 go test ./internal/ai/ -run 'TestCauTraLoiGiuDoanTruocCongCu|TestChuHienThiDoiVeTenThatKeCaBiDanhBiCat' -v
@@ -434,15 +464,11 @@ ok  	github.com/doxuta/tpan/internal/ai/bridge	0.374s
 
 `TestGateTuChoi` có 10 trường hợp con, trong đó `tiền_tố_gần_giống` (công cụ `mcp__tpanx__run`) và `MCP_server_lạ`.
 
-### 2.13 Việc dọn dở của M7: đang làm song song
+### 2.13 Việc dọn dở của M7: reload nginx và kịch bản lỗi 07
 
-Bảng chia việc đợt 4 có hai việc dở để lại từ lúc ghép M4, M5, M7 (cuối mục 8.3 của KE-HOACH.md): chuyển lỗi vhost đang viết thẳng trong `scripts/e2e-m7.sh` thành một kịch bản riêng trong `scripts/faults/` (dự kiến `07-vhost-disable.sh`), và xem lại phép kiểm chạy ngay sau `systemctl reload nginx`. Hai việc này đang được làm song song với file này. Lúc mình viết:
+Bảng chia việc đợt 4 có hai việc dở để lại từ lúc ghép M4, M5, M7 (cuối mục 8.3 của KE-HOACH.md): xem lại phép kiểm chạy ngay sau `systemctl reload nginx`, và chuyển lỗi vhost đang viết thẳng trong `scripts/e2e-m7.sh` thành một kịch bản riêng trong `scripts/faults/`. Cả hai đã xong ở đợt 4b: commit `2b0e2e2` (sửa reload), `73f87eb` (kịch bản 07), `5926bfa` (bằng chứng). Ghi chú đầy đủ ở `docs/thay-doi/M8.md`, mục "Sửa khi chạy trên máy ảo" và "Kết quả kiểm cho mục 16".
 
-- Việc thứ nhất: file `scripts/faults/07-vhost-disable.sh` vừa xuất hiện, chưa commit, chưa có log chạy nào: **chưa có kết quả**.
-- Việc thứ hai: có số đo `docs/bang-chung/M8-reload.log` (kịch bản `scripts/e2e-m8/reload-measure.sh`), tiêu đề ghi "TRƯỚC khi sửa", build từ `f97ca1c`. Bản sửa đang được viết (`internal/steps/common.go`, `internal/core/ssl.go` đang sửa, `internal/steps/reload_test.go` mới), tất cả chưa commit, chưa có số đo "sau khi sửa".
-- `docs/thay-doi/M8.md` chưa ghi gì về hai việc này. Đọc lại các file đó khi chúng được commit; mục này cần viết lại theo kết quả cuối.
-
-Log đo bật và tắt vhost của `a.example.com` nhiều lần, mỗi lần reload rồi `curl` ngay, kèm danh sách worker của nginx. Một lần tắt (nguyên văn):
+**Đo trước khi sửa.** `scripts/e2e-m8/reload-measure.sh` chạy trong máy ảo: gỡ hoặc bật symlink vhost của `a.example.com`, reload, rồi `curl` ngay và in danh sách worker của nginx. Kết quả ở `docs/bang-chung/M8-reload.log`. Một lần gỡ vhost, trước khi sửa (nguyên văn):
 
 ```
 === systemctl, lần 1, off (a.example.com)
@@ -454,13 +480,71 @@ systemctl reload nginx trả về sau 9 ms
 kết quả cuối: curl 000/52
 ```
 
-`systemctl reload nginx` trả về sau 9 ms, nhưng worker cũ (29094, 29095) còn sống và vẫn trả 200 theo cấu hình cũ thêm khoảng 90 ms; khi chỉ còn worker mới thì ra mã 52. Phần nginx của log có 20 lần (5 lần tắt, 5 lần bật, qua `systemctl reload nginx` và qua `tpan internal reload-web`): cả 20 lần, `curl` ở `+0ms` đều ra kết quả cũ, và kết quả mới xuất hiện ở lần `curl` thứ hai hoặc thứ ba, sau 93 đến 102 ms. (Đo bằng những lần `curl` rời rạc nên đây là con số thô, không phải thời điểm chính xác.) Tức phép kiểm chạy ngay sau reload có thể thấy kết quả cũ, đúng như mục 8.3 lo. Phần Apache của log (`apachectl graceful`) mình không rút kết luận: có lần bật vhost mà `curl` ngay sau reload ra `000/28` (hết giờ) rồi 1140 ms sau mới `200/0`, và có một mục ghi "off" mà kết quả cuối lại là `200/0`. Cách sửa thế nào thì chưa có.
+`systemctl reload nginx` trả về sau 9 ms, nhưng worker cũ (29094, 29095) còn sống và vẫn trả 200 theo cấu hình cũ; chỉ khi còn mỗi worker mới thì mới ra mã 52. Phần "TRƯỚC khi sửa" của nginx có 20 lần: 10 lần qua `systemctl reload nginx`, 10 lần qua `tpan internal reload-web` (đường reload của chính tpan). Cả 20 lần, request đầu tiên ngay sau khi lệnh trả về đều theo config cũ (gỡ vhost vẫn 200, bật vhost vẫn 444), và kết quả đổi sau 93 đến 102 ms. Hệ quả: phép kiểm HTTP chạy ngay sau reload có thể **đạt giả**. Cùng hiện tượng thấy ở phần e của `M8-claude.log`: `lần 1: 200 (curl mã 0)`, rồi `lần 2: curl: (52) Empty reply from server`.
 
-Cùng hiện tượng thấy ở phần e của `M8-claude.log`: ngay sau reload đã gỡ vhost của `b.example.com`, `lần 1: 200 (curl mã 0)`, rồi `lần 2: curl: (52) Empty reply from server`.
+**Sau khi sửa** (`steps.Reload`, xem 3.18), cùng phép đo qua đường của tpan (nguyên văn):
+
+```
+=== SAU tpan, lần 1, off (a.example.com)
+trước reload: 13684 nginx: worker process;13685 nginx: worker process;
+tpan internal reload-web trả về sau 120 ms
++0ms curl 000/52 | 13858 nginx: worker process;13859 nginx: worker process;
+kết quả cuối: curl 000/52
+```
+
+Lệnh của tpan giờ trả về chậm hơn (120 ms thay vì khoảng 20 ms), nhưng lúc nó trả về thì chỉ còn worker mới và request đầu đã theo config mới. Bảng tổng hợp trong `docs/thay-doi/M8.md` (mình đối chiếu với log):
+
+| | Lệnh reload | Trả về sau | Request đầu tiên sau khi lệnh trả về |
+|---|---|---|---|
+| nginx, trước khi sửa | `tpan internal reload-web` | 16 đến 27 ms | theo config cũ, 10/10 lần |
+| nginx, sau khi sửa | `tpan internal reload-web` | 120 đến 169 ms | theo config mới, 10/10 lần |
+| nginx, sau khi sửa (đối chứng) | `systemctl reload nginx` | 7 đến 27 ms | vẫn theo config cũ, 4/4 lần |
+
+Dòng đối chứng cho thấy nginx không đổi gì; chỉ có tpan biết chờ.
+
+Apache (`apachectl graceful`) không cần chờ: không lần nào trong 20 lần đo request đầu theo config cũ. Phần đo thêm cuối log (`curl -m 10`, bản đã sửa) cho thấy request đầu đôi khi chậm nhưng vẫn đúng:
+
+```
+lần 1: systemctl reload apache2; request đầu: HTTP 200 0.000664s (curl mã 0)
+lần 2: systemctl reload apache2; request đầu: HTTP 200 1.132675s (curl mã 0)
+```
+
+(4/10 lần mất 1,01 đến 1,13 giây, 6/10 lần dưới 1 ms.) Ở phần đo trước đó với `-m 1`, những lần chậm đó hiện thành `000/28` (hết giờ); đó là lý do mình từng thấy khó đọc.
+
+**Kịch bản lỗi 07.** `scripts/faults/07-vhost-disable.sh break <domain>` xoá symlink bật vhost của site ở `sites-enabled` (nginx hoặc apache), kiểm cú pháp (vẫn qua) rồi reload; `restore` tạo lại. Mong đợi Fail `web.vhost:<domain>` rồi `http.site:<domain>`, sửa tự động `web.rewrite`. Kịch bản là bash và reload bằng `systemctl`, nên vẫn có khoảng 100 ms nói trên: `scripts/faults/README.md` ghi rõ ai gọi HTTP ngay sau nó thì phải tự chờ (e2e gọi lại tới khi `curl` ra mã 52). `scripts/e2e-m7.sh` và chế độ `real` của `scripts/e2e-m8.sh` gọi nó thay cho lệnh viết tay; `scripts/e2e-m4.sh` chạy nó ở bước 11 cho cả nginx và apache.
+
+**Hồi quy từ máy sạch với bản đã sửa:**
+
+- `docs/bang-chung/M8-hoi-quy-m4.log`: 312 dòng `=> ĐẠT`, `TỔNG KẾT: 0 khẳng định không đạt`. Bước 11 với 07 trên nginx, ví dụ:
+
+  ```
+    => ĐẠT: 07-vhost-disable.sh break thoát 0
+    => ĐẠT: a.example.com rơi vào site mặc định (nginx 444, curl mã 52)
+    => ĐẠT: web.vhost:a.example.com là Fail
+    => ĐẠT: a.example.com: chặng Fail đầu tiên trên đường đi request là web
+  ```
+
+- `docs/bang-chung/M8-hoi-quy-m7.log`: 98 dòng `=> ĐẠT`, 0 không đạt. Khẳng định về danh mục công cụ đổi từ 15 thành 18, vì M8 thêm `current_view`, `propose_health_fix`, `propose_ssl_issue`: `=> ĐẠT: đủ 18 công cụ đúng tên của danh mục (15 của M7, 3 của M8)`. Theo `docs/thay-doi/M8.md`, lần hồi quy đầu ra 1 không đạt vì khẳng định cũ đòi đúng 15; đó là kịch bản lỗi thời, không phải lỗi của mã.
+- `docs/bang-chung/M8-hoi-quy-m5.log`: đang chạy lúc mình viết, chưa có dòng tổng kết. Xem log.
+
+Unit test của bản sửa, mình vừa chạy trên Mac:
+
+```bash
+go test ./internal/steps/ -run 'TestReload' -v
+```
+
+```
+--- PASS: TestReloadNginxChoTheHeMoi (0.00s)
+--- PASS: TestReloadNginxHetHan (0.03s)
+--- PASS: TestReloadKhongCho (0.00s)
+--- PASS: TestReloadNginxPIDLa (0.00s)
+ok  	github.com/doxuta/tpan/internal/steps	0.529s
+```
 
 ### 2.14 Chưa chạy
 
-- e2e trên mã cuối cùng (sau `a7a6090`): `scripts/e2e-m8.sh`.
+- Claude Code thật trên mã cuối cùng (lần 6 và 7 build trước `a7a6090` và trước bản sửa reload): `scripts/e2e-m8.sh real`, tốn hai lần gọi hạn mức.
+- Hồi quy e2e M5 với bản sửa reload: đang chạy lúc viết, xem `docs/bang-chung/M8-hoi-quy-m5.log`.
 - Mở panel bằng trình duyệt thật, dùng ngăn AI, `⌘K`, nút "Giải thích".
 - Duyệt Plan `health.fix` do AI đề xuất rồi xem site trở lại 200. Lần chạy chỉ kiểm Plan nằm `pending` và máy không đổi.
 - Phần "Việc chủ dự án tự làm trên VPS" của `docs/thay-doi/M8.md` vẫn ghi "(điền ở đợt 4)".
@@ -825,6 +909,30 @@ Cấu hình đọc từ `fakeclaude.json` cạnh file chạy, vì `tpan brain` c
 
 `e2e-m8.sh` có ba chế độ: mặc định (claude giả, `M8.log`), `real-rehearse` (kịch bản thật chạy bằng claude giả, không tốn hạn mức), `real` (`claude` thật, `M8-claude.log`).
 
+### 3.18 Ngoài đường của AI: `steps.Reload` (`internal/steps/common.go`)
+
+Chặng này không nằm trên đường đi của một câu hỏi, nhưng là việc dở M8 nhận làm (2.13). Mọi Step ghi file, tạo hay xoá symlink đều reload qua `runReload`, và `runReload` gọi `Reload`:
+
+```go
+func Reload(ctx context.Context, sys system.System, cmd system.Cmd) (system.Result, error) {
+	if cmd.Name != "systemctl" || !slices.Equal(cmd.Args, []string{"reload", "nginx"}) {
+		return sys.Run(ctx, cmd)
+	}
+	master, old := nginxWorkers(ctx, sys, "")
+	res, err := sys.Run(ctx, cmd)
+	if err != nil || master == "" || len(old) == 0 {
+		return res, err
+	}
+	return res, waitNginxReload(ctx, sys, master, old)
+}
+```
+
+Thứ tự là: chụp danh sách worker cũ, reload, rồi chờ. `nginxWorkers` đọc PID của master ở `/run/nginx.pid`, chạy `ps -o pid=,args= --ppid <master>` (vẫn qua `system.System`, argv) và chỉ đếm tiến trình tên đúng `nginx: worker process`; worker cũ đã nhận lệnh thôi việc đổi tên thành `nginx: worker process is shutting down` nên không bị đếm. `waitNginxReload` hỏi lại mỗi 20 ms (`reloadWaitTick`) tới khi có worker và không worker nào thuộc tập cũ. Quá 5 giây (`reloadWaitMax`) là lỗi: nginx từ chối config mới thì chỉ ghi vào `error.log`, `systemctl` vẫn báo thành công, nên không được im lặng coi như đã reload.
+
+Vì sao chờ worker chứ không `sleep 200ms`: một con số cố định là đoán, máy chậm thì vẫn hụt, máy nhanh thì phí. Chờ đúng điều kiện "chỉ còn thế hệ mới nhận kết nối" thì vừa đủ. Apache và mọi lệnh khác đi thẳng `sys.Run`, vì đo cho thấy Apache không có khoảng hở (2.13). Không đọc được PID (test với `FakeSystem`, `--demo`, nginx chưa chạy) thì không chờ.
+
+`core.ReloadWeb` (`internal/core/ssl.go`), đường reload của SSL và hook gia hạn, đổi `sys.Run(ctx, reload)` thành `steps.Reload(ctx, sys, reload)`. Test ở `internal/steps/reload_test.go` dựng các "thế hệ" worker giả: `TestReloadNginxChoTheHeMoi` (lẫn cũ mới hai lần rồi mới đổi, `ps` chạy trước reload), `TestReloadNginxHetHan` (worker cũ còn mãi thì lỗi), `TestReloadKhongCho` (không có `/run/nginx.pid`, reload apache hay PHP-FPM: chỉ chạy đúng lệnh reload, không `ps`), `TestReloadNginxPIDLa` (PID file chứa `1 --pid 2` thì không được lọt vào argv của `ps`, chỉ chạy reload).
+
 ## 4. Kiến thức nền
 
 ### Unix socket và quyền 600
@@ -905,7 +1013,7 @@ Mỗi lượt `claude` mở một SSH mới cho MCP. Có thể dùng `ControlMas
 ### Chỗ sai trong mốc này
 
 - **Chữ hai tin nhắn dính nhau.** Bộ đọc luồng nối mọi `text_delta` như một tin. Phát hiện ở lần gọi thật 4 (`đã lưu.Nguyên nhân`, 2.10). Cùng lúc sửa (`eaa11ed`), `claude` giả được sửa để viết như Claude Code thật ("nay viết mỗi tin nhắn không có dấu cách đầu và trả `result` chỉ có tin cuối", theo `docs/thay-doi/M8.md`), và `e2e-m8.sh` kiểm "chữ sau mỗi lần gọi công cụ là đoạn mới". Bài học: bản giả chỉ bắt được lỗi mà người viết nó đã nghĩ tới; hai lỗi này chỉ lộ khi chạy bản thật.
-- **Câu trả lời cuối chỉ là `result`.** Hợp đồng ban đầu của `ai.Event` coi `result` là câu trả lời. Phát hiện cùng lần gọi 4: tới `done`, các câu viết trước khi gọi công cụ biến mất khỏi ngăn AI. Sửa ở `a7a6090`; mới kiểm bằng unit test, e2e chưa chạy lại (2.10). `docs/thay-doi/M8.md` lúc mình đọc vẫn ghi "Chưa sửa" cho mục này.
+- **Câu trả lời cuối chỉ là `result`.** Hợp đồng ban đầu của `ai.Event` coi `result` là câu trả lời. Phát hiện cùng lần gọi 4: tới `done`, các câu viết trước khi gọi công cụ biến mất khỏi ngăn AI. Sửa ở `a7a6090`; kiểm bằng unit test và bằng lần chạy lại e2e M8 với `claude` giả (2.10). Với Claude Code thật thì chưa chạy lại.
 - **Bí danh viết tắt (còn mở).** Model viết `site-a` thay cho `site-a.example`, panel hiện nguyên `site-a` (2.9). Bộ che chỉ đổi đúng bí danh đầy đủ, để không đổi nhầm chữ khác. Chưa sửa; e2e không bắt được vì chỉ tìm dạng đầy đủ.
 
 ## 6. Tự kiểm
@@ -926,7 +1034,7 @@ Mỗi lượt `claude` mở một SSH mới cho MCP. Có thể dùng `ControlMas
 1. Không có chỗ nào. `brainEnvKeys` trong `cmd/tpan/brain.go` chỉ chuyển `HOME`, `PATH`, `USER`, `LOGNAME`, `TMPDIR` cho `claude`; chú thích đầu file ghi `tpan brain` không bao giờ đọc `~/.claude`. `claudecode.Auth` chỉ giải hai trường `loggedIn`, `authMethod` vào struct `AuthStatus`; không in, không lưu trường khác. Không có ô nhập token nào trên giao diện, không có cột nào trong migration 800 chứa đăng nhập. `Args` không bao giờ thêm `--bare`. `claude` đăng nhập được vì nó chạy dưới user của bạn với HOME của bạn và tự tìm thông tin đăng nhập của nó (trên macOS là Keychain, cần `USER`/`LOGNAME`). Máy chủ chỉ nhận chữ (job đi xuống, sự kiện đi lên) qua `brain-link`.
 2. Vì bí danh có thể bị cắt giữa hai mẩu: `tpan:site/site-a.exa` rồi `mple.com` (2.4, `+1.472s` và `+1.589s`). Đổi trên từng mẩu thì không mẩu nào chứa bí danh nguyên vẹn, `Unalias` không đổi gì, và màn hình hiện `site-a.example`, tức người dùng thấy bí danh thay cho tên thật. `shower.show` nối vào `acc` rồi đổi trên cả chuỗi. Gửi toàn bộ chữ còn có lợi phụ: trình duyệt nối lại SSE nhận lại sự kiện cũ cũng không sai, vì nó thay thế chứ không nối thêm.
 3. Lượt 1 vẫn chạy. Lượt 2 hỏng: theo chú thích trong `claudecode.Run`, Claude Code lưu phiên theo thư mục làm việc và `--resume <uuid>` ở thư mục khác không tìm thấy phiên. Panel khi đó sẽ hiện lượt `error` với lỗi của `claude`; trường hợp này chưa chạy thử. 2.6 kiểm chiều ngược lại ("thư mục làm việc của lượt 2 trùng lượt 1"). Bỏ kiểm thư mục rỗng: `claude` tự đọc `CLAUDE.md` và các file ở thư mục làm việc, nên ai đặt được một file vào đó (một chương trình khác dưới user của bạn) là chèn được chỉ dẫn cho AI. AI vẫn không có công cụ shell (cửa kiểm), nhưng nó có thể bị dẫn đi đề xuất Plan sai hoặc trả lời sai. `TestRunThuMucKhongRong` kiểm Run từ chối.
-4. Trường `result` của `claude -p` chỉ chứa tin nhắn cuối của model. Ở lần 4 model viết "Tôi chạy health check...", gọi công cụ, viết thêm, gọi công cụ nữa, rồi mới viết tin cuối bắt đầu bằng `**Chẩn đoán**`. Mã cũ lấy `result` làm câu trả lời và giao diện thay chữ đang hiện bằng nó, nên các đoạn trước biến mất. Mã hiện tại (`shower.show`, `finish`, commit `a7a6090`) lấy chữ đã nối `acc`. `result` còn giữ cho trường hợp không có `text_delta` nào (một bộ não khác, hay một bản Claude Code không phát delta): khi đó không còn gì khác để hiện. Đã kiểm bằng `TestCauTraLoiGiuDoanTruocCongCu`; e2e trên mã này chưa chạy.
+4. Trường `result` của `claude -p` chỉ chứa tin nhắn cuối của model. Ở lần 4 model viết "Tôi chạy health check...", gọi công cụ, viết thêm, gọi công cụ nữa, rồi mới viết tin cuối bắt đầu bằng `**Chẩn đoán**`. Mã cũ lấy `result` làm câu trả lời và giao diện thay chữ đang hiện bằng nó, nên các đoạn trước biến mất. Mã hiện tại (`shower.show`, `finish`, commit `a7a6090`) lấy chữ đã nối `acc`. `result` còn giữ cho trường hợp không có `text_delta` nào (một bộ não khác, hay một bản Claude Code không phát delta): khi đó không còn gì khác để hiện. Đã kiểm bằng `TestCauTraLoiGiuDoanTruocCongCu` và bằng lần chạy lại e2e M8 (`=> ĐẠT: done mang toàn bộ chữ đã nối...`, 2.10).
 5. Về nguyên tắc có một khoảng: `claude` in `init` rồi mới hỏi model, và cửa kiểm giết `claude` ngay khi đọc dòng `init` (chưa đo khoảng này). Model cần thời gian để quyết định gọi công cụ: lần thật 6 gọi công cụ đầu ở `+2.805s` trong khi `init` ở `+0.442s`. Tức cửa kiểm thắng nhờ độ trễ của model, không phải nhờ một rào cứng. `claude` giả thì không có model, nên phải chờ `think_ms` (1 giây) để mô phỏng độ trễ đó; không chờ thì nó gọi công cụ ngay và phép thử không đo đúng tình huống thật. Log 2.7: `refused` ở `+0.297s`, không có dấu `turn-3.toolcall`, `ai_calls` 3 trước 3 sau. Lớp chặn còn lại: mọi công cụ `tpan` chỉ đọc hoặc lập Plan chờ duyệt. Đây là chỗ nên nói thẳng với người review: cửa kiểm là lớp bảo đảm "nếu cờ không còn tác dụng thì phát hiện và dừng", không phải chặn tuyệt đối từng mili giây.
 6. `playbookSent` chỉ gửi bản hướng dẫn khi phiên chưa gửi bản cùng tên ở một lượt đã tới được `claude`. Ở 2.9 cả hai lượt ở trang site, bản `site` đã gửi ở lượt 1, nên lượt 2 không gửi lại (`null`). Ở 2.6 lượt 2 ở `/incidents`, bản `su-co` chưa gửi, nên gửi. Lượt bị `refused` không có sự kiện `init` (cửa kiểm từ chối trước khi phát `EventInit`), nên `reachedBrain` là false và bản hướng dẫn của lượt đó được coi là chưa gửi: lượt sau gửi lại.
 7. `onLine` gọi `refuse`: giết `claude`, gửi `EventRefused` với lời "dòng JSON đầu tiên của claude không phải sự kiện init". Không chờ được vì chưa có `init` thì chưa biết phiên đã nạp gì; một dòng `assistant` có thể mang `tool_use` của một công cụ lạ, và tin nó trước khi qua cửa là ngược nguyên tắc "kiểm cửa rồi mới tin". `TestRunCuaKiemTuChoi/status-first` kiểm trường hợp gần giống.
