@@ -290,8 +290,14 @@ func TestApplyPlanClientMode(t *testing.T) {
 		}
 	}
 
+	// Plan tạo site của chính phiên vẫn phải qua người: mật khẩu quản trị chỉ hiện cho người.
+	add := callOK(t, s, "propose_site_add", `{"domain":"another.example.com","email":"admin@example.com"}`)
+	if err := callErr(t, s, "apply_plan", `{"plan_id":"`+field[string](t, add, "plan_id")+`"}`); err.Code != "approval_required" {
+		t.Errorf("apply_plan cho Plan tạo site: %v", err)
+	}
+
 	// Plan của chính phiên: chạy.
-	own := callOK(t, s, "propose_site_remove", `{"domain":"`+alias(s, mustDomain(t, domU).String())+`"}`)
+	own :=callOK(t, s, "propose_site_remove", `{"domain":"`+alias(s, mustDomain(t, domU).String())+`"}`)
 	id := field[string](t, own, "plan_id")
 	out := callOK(t, s, "apply_plan", `{"plan_id":"`+id+`"}`)
 	jobID := field[string](t, out, "job_id")

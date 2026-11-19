@@ -5,7 +5,9 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
@@ -108,6 +110,16 @@ func applyPlan(ctx context.Context, c *call, in planIDIn, _ validate.Domain) (an
 	// người, của phiên panel hay của agent khác vẫn phải qua người duyệt.
 	if pp.Origin != engine.OriginMCP || pp.SessionID != st.rec.ID {
 		return nil, &Error{Code: "approval_required", Message: "plan " + pp.ID + " was not proposed by this session. " + howToApprove(pp.ID)}
+	}
+	// Plan tạo site sinh mật khẩu quản trị WordPress chỉ được hiện cho người,
+	// một lần (mục 11). Chạy từ đây thì mật khẩu không tới được ai, nên loại
+	// Plan này luôn phải duyệt ở panel hoặc CLI, kể cả ở chế độ client.
+	var req core.PlanRequest
+	if err := json.Unmarshal(pp.Request, &req); err != nil {
+		return nil, fmt.Errorf("đọc yêu cầu của Plan %s: %w", pp.ID, err)
+	}
+	if req.Kind == core.PlanSiteAdd {
+		return nil, &Error{Code: "approval_required", Message: "a plan that creates a site makes a WordPress admin password that only a person may see, so it is always approved by a person. " + howToApprove(pp.ID)}
 	}
 	ap, err := c.s.planner().PrepareApprove(ctx, pp.ID, "mcp:"+st.rec.ID)
 	if err != nil {
