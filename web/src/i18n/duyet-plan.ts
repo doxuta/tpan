@@ -77,7 +77,7 @@ export const strings = defineStrings(vi, {
   stepNumber: (n) => `Step ${n}`,
   danger: "dangerous",
   willSkip: "already right, skipped",
-  noUndo: (why) => `Cannot be undone: ${why}`,
+  noUndo: (why) => `Cannot be rolled back: ${why}`,
   checkError: (msg) => `This step could not be checked during the preview (${msg}). It will still run.`,
   commandsLabel: "COMMANDS THAT WILL RUN",
   filesLabel: "FILES CHANGED",

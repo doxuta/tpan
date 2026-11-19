@@ -115,7 +115,7 @@ export const strings = defineStrings(vi, {
   },
   siteGone: "site deleted",
   shaCopy: (sha) => `Copy the full sha256 ${sha}`,
-  shaTitle: "click to copy the full sha256",
+  shaTitle: "press to copy the full sha256",
   restore: "Restore",
   restoreFor: (d, when) => `Restore ${d} from the backup of ${when}`,
   previewing: "Building the preview…",
@@ -139,7 +139,10 @@ export const strings = defineStrings(vi, {
   atLabel: "Daily backup time",
   atHint: "In the server's time. Leave it empty to turn the scheduled backup off. The schedule is written as a cron file on the machine, so you see a preview before saving.",
   atClear: "Clear the time (turn off)",
-  current: (keep, at) => (at ? `Keeping ${keep} copies, backing up at ${at} every day.` : `Keeping ${keep} copies, scheduled backup is off.`),
+  current: (keep, at) => {
+    const copies = `${keep} ${keep === 1 ? "copy" : "copies"}`;
+    return at ? `Keeping ${copies}, backing up at ${at} every day.` : `Keeping ${copies}, scheduled backup is off.`;
+  },
   settingsPreview: "Preview the change",
   settingsErrorHeading: "Could not build the backup schedule preview",
 

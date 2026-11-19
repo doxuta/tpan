@@ -181,7 +181,7 @@ export const strings = defineStrings(vi, {
   routeHeading: "Request path",
   routeLabel: (domain) => `Request path of ${domain}`,
   routeHint: "Press a station to see the evidence for that stage.",
-  failedAt: (stage, summary) => `Broken at ${stage}: ${summary}`,
+  failedAt: (stage, summary) => `Failed at ${stage}: ${summary}`,
   stages: {
     dns: "DNS",
     tls: "TLS",
@@ -244,7 +244,7 @@ export const strings = defineStrings(vi, {
   phpVersion: "PHP version in use",
   phpSocket: "Socket",
   phpChoose: "Change to version",
-  phpNone: "No other PHP version is installed to switch to. Install one on the Stack page.",
+  phpNone: "No other PHP version is installed to switch to. Install one on the Stack screen.",
   phpChange: "Change PHP version",
   phpPreviewing: "Building the preview…",
   phpHint:
@@ -272,8 +272,8 @@ export const strings = defineStrings(vi, {
   explainHint: "Opens the AI drawer with a prepared question. You see what will be sent, then press Send yourself.",
   explainCheckQuestion: (title) => `Explain why the check “${title}” did not pass and what I should do.`,
   explainLogButton: "Explain this line",
-  explainLogNone: "Click a log line to select it, or use the up and down arrows while the log box has focus. Selecting a line pauses the log.",
-  explainLogSelected: "One line selected, the log is paused. Click the line again to deselect, or press Resume.",
+  explainLogNone: "Press a log line to select it, or use the up and down arrows while the log box has focus. Selecting a line pauses the log.",
+  explainLogSelected: "One line selected, the log is paused. Press the line again to deselect, or press Resume.",
   explainLogQuestion: "What does this log line mean, is it worrying, and what should I do.",
   explainLogLabel: (file) => `${file} log line`,
 

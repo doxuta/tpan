@@ -228,6 +228,35 @@ Chữ trên giao diện viết như một người đang nói với một ngư�
 | Không có dữ liệu | Chưa có site nào. Tạo site đầu tiên |
 | Tiến hành khôi phục | Khôi phục |
 
+### Thuật ngữ đã thống nhất
+
+Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới thì tra bảng này trước; gặp khái niệm chưa có thì thêm một dòng vào đây cùng lúc.
+
+| Tiếng Việt | English | Ghi chú |
+|---|---|---|
+| TPAN | TPAN | Tên sản phẩm, luôn viết hoa. `tpan` chữ thường chỉ cho tên lệnh, đường dẫn và tên dịch vụ (`tpan.db`, "log của tpan"). |
+| Plan | plan | Tiếng Việt viết hoa như tên riêng; tiếng Anh chữ thường trong câu, và "Plan #3" khi kèm số. |
+| Plan chờ duyệt | Pending plans | Ba trạng thái: chờ duyệt, đã chạy, đã từ chối / pending, applied, rejected. |
+| Sự cố | Incident | Đang mở / đã đóng: open / closed. |
+| Thùng rác, Xoá hẳn | Trash, Delete permanently | |
+| Hoàn tác | Roll back (danh từ: rollback) | Job hỏng thì TPAN tự gỡ các bước đã chạy. "Không hoàn tác được" / "cannot be undone" chỉ dùng cho việc không lấy lại được (xoá hẳn). |
+| Sửa tay, Sửa tự động | Fix by hand, Automatic fix | Nhãn mono: SỬA TAY / FIX BY HAND. |
+| Phép kiểm | Check | Dấu trạng thái: đạt, cảnh báo, lỗi, chưa kiểm được / pass, warning, failed, not checked. |
+| Bằng chứng | Evidence | |
+| Bản xem trước | Preview | Lỗi dựng bản xem trước: "Chưa dựng được bản xem trước ..." / "Could not build the preview ...". |
+| Điều kiện chưa đạt | Conditions not met | |
+| Chặng (ga trên bản đồ) | Stage (station) | |
+| Bộ não, Ngăn AI, Phiên AI | Brain, AI drawer, AI session | |
+| Cấu hình | Configuration | "Cài đặt" / "Settings" chỉ là tên màn Cài đặt. |
+| Việc (tên cột) | Action | Cột nút bấm của bảng. Không dùng "Thao tác". |
+| Cỡ | Size | Dung lượng file hoặc cơ sở dữ liệu. |
+| Màn | screen | "màn Backup" / "the Backups screen". Tên màn viết đúng như tên trong menu. "Trang" chỉ dùng cho trang của một site hoặc trang lỗi. |
+| Đăng xuất | Log out | |
+| Bấm | Press | Nút và liên kết. Không dùng "click" trong chữ giao diện. |
+| Giờ giấc | `3 s`, `2 min 3 s`, `1 h 5 min`, `2 d` | Tiếng Anh viết số, cách một dấu cách, rồi đơn vị. |
+
+Giữ nguyên tiếng Anh ở cả hai bản: site, request, pool, socket, reload, log, vhost, job, domain, stack, backup, cron, DNS, TLS, SSL, PHP, MariaDB, MCP, agent, prompt.
+
 ## 9. Không làm
 
 - Không nền chuyển màu, không bóng đổ, không kính mờ, không bo góc thẻ.

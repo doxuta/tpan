@@ -62,7 +62,7 @@ export const strings = defineStrings(vi, {
   title: "SSL",
   summary: "The HTTPS certificate of each site: issue it, issue it again, and see how long it has left.",
 
-  settingsHeading: "Settings",
+  settingsHeading: "Configuration",
   emailLabel: "Email for Let's Encrypt",
   emailHint: "Let's Encrypt uses this email to contact you about the account. It is needed before the first certificate.",
   stagingLabel: "Test certificates (staging)",
@@ -84,7 +84,7 @@ export const strings = defineStrings(vi, {
   colDomain: "Domain",
   colSsl: "SSL",
   colCert: "Certificate",
-  colDays: "Left",
+  colDays: "Time left",
   colAction: "Action",
   sslYes: "Yes",
   sslNo: "Not yet",

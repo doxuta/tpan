@@ -112,7 +112,7 @@ export const strings = defineStrings(vi, {
   statusLabel: (what, status) => `${what}: ${status}`,
 
   evidence: "EVIDENCE",
-  copy: "click to copy",
+  copy: "press to copy",
   copied: "Copied",
   copyFailed: "Could not copy. Select the text and copy it by hand.",
   copyCommand: "Copy command",

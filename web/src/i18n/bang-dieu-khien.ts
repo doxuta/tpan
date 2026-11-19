@@ -85,8 +85,8 @@ const vi = {
   jobStatus: {
     running: "đang chạy",
     succeeded: "xong",
-    rolled_back: "đã hoàn tác",
-    undo_failed: "hoàn tác hỏng, cần xem tay",
+    rolled_back: "lỗi, đã hoàn tác",
+    undo_failed: "lỗi, hoàn tác cũng lỗi",
   },
 
   // Cột bên
@@ -133,7 +133,7 @@ export const strings = defineStrings(vi, {
   noSites: "No sites yet.",
   createFirst: "Create the first site",
   stackMissingTitle: "No stack yet",
-  stackMissingBody: "This machine has no web server, PHP or MariaDB yet, so there are no routes to draw. Run one of these two commands on the machine (click to copy), then reload the page:",
+  stackMissingBody: "This machine has no web server, PHP or MariaDB yet, so there are no routes to draw. Run one of these two commands on the machine (press to copy), then reload the page:",
   stackLemp: "LEMP, uses nginx",
   stackLamp: "LAMP, uses apache",
   stackCmdNginx: "tpan stack install --web nginx",
@@ -161,7 +161,7 @@ export const strings = defineStrings(vi, {
   ofTotal: (total) => `of ${total}`,
   diskSub: (total) => `of ${total} · mark at 80%`,
   swapNone: "none",
-  swapNoneSub: "create one so RAM running out is not sudden",
+  swapNoneSub: "add some so running out of RAM is not sudden",
   machineErrors: "Could not read:",
 
   tpanTitle: "TPAN self-check",
@@ -176,8 +176,8 @@ export const strings = defineStrings(vi, {
   jobStatus: {
     running: "running",
     succeeded: "done",
-    rolled_back: "rolled back",
-    undo_failed: "undo failed, needs a manual look",
+    rolled_back: "failed, rolled back",
+    undo_failed: "failed, rollback failed too",
   },
 
   incidentsTitle: "Open incidents",

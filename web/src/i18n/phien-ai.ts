@@ -25,7 +25,7 @@ const vi = {
   listFailed: "Chưa đọc được danh sách phiên AI.",
 
   // ---- một phiên ----
-  detailSummary: "Đúng thứ đã đi qua lại giữa panel, AI và tpan. Mọi nội dung là bản đã che.",
+  detailSummary: "Đúng thứ đã đi qua lại giữa panel, AI và TPAN. Mọi nội dung là bản đã che.",
   notFound: (id: string) => `Không có phiên AI ${id}. Có thể địa chỉ gõ sai. Mở danh sách phiên và chọn lại.`,
   detailFailed: "Chưa đọc được phiên AI này.",
   backToList: "Về danh sách phiên",
@@ -57,7 +57,7 @@ const vi = {
 
   // ---- lần gọi công cụ ----
   callsHeading: "Các lần gọi công cụ",
-  callsHint: "Đúng thứ đi qua lại giữa AI và tpan: đầu vào AI gửi, đầu ra tpan trả về.",
+  callsHint: "Đúng thứ đi qua lại giữa AI và TPAN: đầu vào AI gửi, đầu ra TPAN trả về.",
   callsLabel: "Các lần gọi công cụ",
   callsOfTurn: "AI ĐÃ ĐỌC",
   noCalls: "AI chưa gọi công cụ nào.",
@@ -100,7 +100,7 @@ export const strings = defineStrings(vi, {
   listEmpty: "No AI sessions yet. Ask AI from the AI drawer, or connect an agent through MCP.",
   listFailed: "Could not read the AI session list.",
 
-  detailSummary: "Exactly what went back and forth between the panel, the AI and tpan. All content is the masked version.",
+  detailSummary: "Exactly what went back and forth between the panel, the AI and TPAN. All content is the masked version.",
   notFound: (id) => `There is no AI session ${id}. The address may be mistyped. Open the session list and pick again.`,
   detailFailed: "Could not read this AI session.",
   backToList: "Back to the session list",
@@ -108,8 +108,8 @@ export const strings = defineStrings(vi, {
   fieldSession: "Session",
   fieldCreated: "Started",
   fieldLast: "Last used",
-  untrustedWarning: "This session read content sent by strangers (logs). That content can steer the AI wrong, so read every Plan it proposed carefully before you approve.",
-  mcpNote: "This is the session of an agent connected straight in through MCP. It has no questions from the panel, only tool calls and the Plans it proposed.",
+  untrustedWarning: "This session read content sent by strangers (logs). That content can steer the AI wrong, so read every plan it proposed carefully before you approve.",
+  mcpNote: "This is the session of an agent connected straight in through MCP. It has no questions from the panel, only tool calls and the plans it proposed.",
   noTurns: "This session has no questions yet.",
 
   turnHeading: (n) => `Turn ${n}`,
@@ -131,7 +131,7 @@ export const strings = defineStrings(vi, {
   goTo: "GO TO",
 
   callsHeading: "Tool calls",
-  callsHint: "Exactly what went back and forth between the AI and tpan: the input the AI sent, the output tpan returned.",
+  callsHint: "Exactly what went back and forth between the AI and TPAN: the input the AI sent, the output TPAN returned.",
   callsLabel: "Tool calls",
   callsOfTurn: "AI READ",
   noCalls: "The AI has not called any tool.",
@@ -146,10 +146,10 @@ export const strings = defineStrings(vi, {
   showAll: "Show all",
   showLess: "Show less",
 
-  plansHeading: "Proposed Plans",
-  plansLabel: "Proposed Plans",
-  noPlans: "This session has not proposed any Plan.",
-  planStatus: { pending: "waiting for approval", applied: "applied", rejected: "rejected" },
+  plansHeading: "Proposed plans",
+  plansLabel: "Proposed plans",
+  noPlans: "This session has not proposed any plan.",
+  planStatus: { pending: "pending", applied: "applied", rejected: "rejected" },
   planOpen: (id) => `Open Plan #${id}`,
   planUntrusted: "read stranger text before proposing",
 });

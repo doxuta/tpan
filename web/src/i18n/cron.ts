@@ -119,7 +119,7 @@ export const strings = defineStrings(vi, {
   missingHint: "Sites created by an older TPAN have no cron file, so WordPress still runs its scheduled tasks on visitor traffic. Run the command below for each site: it writes the cron file and turns on DISABLE_WP_CRON in wp-config.php. The site keeps running.",
 
   backupHeading: "Backup schedule",
-  backupHint: "Once a day, back up every running site and copy tpan.db. Change the time and how many to keep on the Backup screen.",
+  backupHint: "Once a day, back up every running site and copy tpan.db. Change the time and how many to keep on the Backups screen.",
   backupTableName: "Backup schedule",
   backupJob: "Back up every running site, then copy tpan.db",
   colKeep: "Keep",
@@ -128,7 +128,7 @@ export const strings = defineStrings(vi, {
   backupOff: "Off",
   backupKeep: (n) => `${n} per site`,
   backupFileNone: "no file while the schedule is off",
-  backupChange: "Change on the Backup screen",
+  backupChange: "Change on the Backups screen",
 
   durationMs: (n) => `${n} ms`,
   durationSec: (n) => `${n} s`,

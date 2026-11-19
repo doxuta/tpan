@@ -60,13 +60,13 @@ const vi = {
   // ---- nút chép lệnh cho Claude Code ----
   claudeCopy: "Chép lệnh cho Claude Code",
   claudeLabel: "LỆNH SẼ CHÉP",
-  claudeHint: "Dán vào terminal trên máy cá nhân đã nối Claude Code với tpan. Plan nó đề xuất sẽ hiện ở đây để bạn duyệt.",
+  claudeHint: "Dán vào terminal trên máy cá nhân đã nối Claude Code với TPAN. Plan nó đề xuất sẽ hiện ở đây để bạn duyệt.",
   thisMachine: "máy này",
   diagnoseCheck: (check: string, where: string) => `Dùng công cụ tpan chẩn đoán phép kiểm ${check} của ${where} đang lỗi rồi đề xuất Plan sửa.`,
 
   // ---- Cài đặt: Agent và MCP ----
   agentHeading: "Agent và MCP",
-  agentIntro: "Cho Claude Code, Codex hay agent khác dùng tpan qua MCP, nối bằng SSH. Agent chỉ đọc và đề xuất Plan.",
+  agentIntro: "Cho Claude Code, Codex hay agent khác dùng TPAN qua MCP, nối bằng SSH. Agent chỉ đọc và đề xuất Plan.",
   agentLoadFailed: "Chưa tải được thiết lập agent.",
   approvalLabel: "CHẾ ĐỘ DUYỆT",
   approvalPanel: "Plan của agent chờ bạn duyệt ở đây",
@@ -87,7 +87,7 @@ export const strings = defineStrings(vi, {
   originMcp: "Proposed by an agent via MCP",
   originHuman: "Created by a person",
 
-  status: { pending: "waiting for approval", applied: "applied", rejected: "rejected" },
+  status: { pending: "pending", applied: "applied", rejected: "rejected" },
 
   listTitle: "Pending plans",
   listSummary: "Changes proposed by AI or an agent, and the plans already approved or rejected. The machine only changes when you approve.",
@@ -130,12 +130,12 @@ export const strings = defineStrings(vi, {
 
   claudeCopy: "Copy command for Claude Code",
   claudeLabel: "COMMAND THAT WILL BE COPIED",
-  claudeHint: "Paste it in a terminal on your own machine where Claude Code is connected to tpan. The plan it proposes shows up here for you to approve.",
+  claudeHint: "Paste it in a terminal on your own machine where Claude Code is connected to TPAN. The plan it proposes shows up here for you to approve.",
   thisMachine: "this machine",
-  diagnoseCheck: (check, where) => `Use the tpan tools to diagnose the failing check ${check} of ${where}, then propose a Plan to fix it.`,
+  diagnoseCheck: (check, where) => `Use the tpan tools to diagnose the failing check ${check} of ${where}, then propose a plan to fix it.`,
 
   agentHeading: "Agent and MCP",
-  agentIntro: "Let Claude Code, Codex or another agent use tpan through MCP, connected over SSH. An agent can only read and propose plans.",
+  agentIntro: "Let Claude Code, Codex or another agent use TPAN through MCP, connected over SSH. An agent can only read and propose plans.",
   agentLoadFailed: "Could not load the agent settings.",
   approvalLabel: "APPROVAL MODE",
   approvalPanel: "The agent's plans wait here for you to approve",

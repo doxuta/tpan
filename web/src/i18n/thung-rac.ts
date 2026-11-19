@@ -35,7 +35,7 @@ const vi = {
   purgeFor: (d: string) => `Xoá hẳn ${d}`,
   previewing: "Đang dựng bản xem trước…",
   emptyLead: "Thùng rác trống. Site bạn xoá sẽ nằm ở đây cho tới hạn xoá hẳn. Muốn xoá một site, mở ",
-  emptyLink: "trang Site",
+  emptyLink: "màn Site",
   emptyTail: ", chọn site rồi bấm xoá.",
 
   // Xem trước và lỗi
@@ -76,7 +76,7 @@ const en: typeof vi = {
   purgeFor: (d) => `Permanently delete ${d}`,
   previewing: "Building the preview…",
   emptyLead: "The trash is empty. A site you delete will wait here until its permanent deletion. To delete a site, open the ",
-  emptyLink: "Sites page",
+  emptyLink: "Sites screen",
   emptyTail: ", pick the site and press delete.",
 
   restoreErrorHeading: (d) => `Could not build the restore preview for ${d}`,

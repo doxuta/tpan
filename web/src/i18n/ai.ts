@@ -64,7 +64,7 @@ const vi = {
   planOpen: "Mở bản xem trước",
   goTo: "ĐI TỚI",
   refused: (why: string) => (why ? `AI từ chối: ${why}` : "AI từ chối câu hỏi này."),
-  failed: (why: string) => (why ? `Lượt này lỗi: ${why}` : "Lượt này bị ngắt giữa chừng. Hỏi lại, hoặc xem phiên ở trang Phiên AI."),
+  failed: (why: string) => (why ? `Lượt này lỗi: ${why}` : "Lượt này bị ngắt giữa chừng. Hỏi lại, hoặc xem phiên ở màn Phiên AI."),
   empty: "Chưa có câu hỏi nào. Hỏi một câu, hoặc bấm “Hỏi AI” ở một sự cố hay một lỗi.",
 
   // ---- ô hỏi ----
@@ -161,7 +161,7 @@ export const strings = defineStrings(vi, {
   planOpen: "Open the preview",
   goTo: "GO TO",
   refused: (why) => (why ? `AI refused: ${why}` : "AI refused this question."),
-  failed: (why) => (why ? `This turn failed: ${why}` : "This turn was cut off. Ask again, or look at the session on the AI sessions page."),
+  failed: (why) => (why ? `This turn failed: ${why}` : "This turn was cut off. Ask again, or look at the session on the AI sessions screen."),
   empty: "No questions yet. Ask one, or press “Ask AI” on an incident or an error.",
 
   askLabel: "ASK AI",
@@ -173,8 +173,8 @@ export const strings = defineStrings(vi, {
   needBrain: "Connect the brain before sending.",
   footer: "AI only reads and proposes. The machine changes only when you approve.",
 
-  viewCreateSite: "Create site",
-  viewPlans: "Plans waiting for approval",
+  viewCreateSite: "Create a site",
+  viewPlans: "Pending plans",
   viewSite: (domain) => `Site page ${domain}`,
   viewIncident: (id) => `Incident #${id}`,
   viewJob: (id) => `Job ${id}`,
@@ -193,7 +193,7 @@ export const strings = defineStrings(vi, {
   palettePlaceholder: "Type a command name or ask AI…",
   paletteList: "Commands",
   paletteOpen: (name) => `Open ${name}`,
-  paletteCreateSite: "Create site",
+  paletteCreateSite: "Create a site",
   paletteOpenAi: "Open the AI drawer",
   paletteCloseAi: "Close the AI drawer",
   paletteAsk: (q) => `Ask AI: ${q}`,

@@ -11,7 +11,7 @@ const vi = {
   colDb: "DB",
   colUser: "User",
   colSite: "Site",
-  colSize: "Dung lượng",
+  colSize: "Cỡ",
   colTables: "Số bảng",
   colAction: "Việc",
   unreadable: "không đọc được",
