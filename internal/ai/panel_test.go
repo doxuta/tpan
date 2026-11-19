@@ -548,6 +548,28 @@ func TestChuHienThiDoiVeTenThatKeCaBiDanhBiCat(t *testing.T) {
 	}
 }
 
+// result của Claude Code chỉ giữ tin nhắn cuối (lần gọi thật #4): câu trả lời
+// phải là toàn bộ chữ đã nối, kể cả đoạn viết trước khi gọi công cụ.
+func TestCauTraLoiGiuDoanTruocCongCu(t *testing.T) {
+	b := script(
+		ai.Event{Kind: ai.EventText, Text: "Đã xem."},
+		ai.Event{Kind: ai.EventToolCall, Tool: "mcp__tpan__list_sites", Input: json.RawMessage(`{}`)},
+		ai.Event{Kind: ai.EventText, Text: "\n\nKết luận."},
+		ai.Event{Kind: ai.EventDone, Text: "Kết luận."},
+	)
+	e := newEnv(t, b)
+	st := ask(t, e, ai.AskInput{Question: "?"})
+	evs := wait(t, e.p, st.SessionID, st.Seq)
+	want := "Đã xem.\n\nKết luận."
+	if last := evs[len(evs)-1]; last.Kind != ai.EventDone || last.Text != want {
+		t.Errorf("sự kiện cuối %+v", last)
+	}
+	turn, _ := e.st.AITurn(context.Background(), st.SessionID, st.Seq)
+	if turn.Answer != want {
+		t.Errorf("câu trả lời lưu %q", turn.Answer)
+	}
+}
+
 func TestRefusedKhongCoCauTraLoi(t *testing.T) {
 	b := script(
 		ai.Event{Kind: ai.EventText, Text: "chữ lọt"},

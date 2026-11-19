@@ -828,7 +828,10 @@ func (s *shower) show(ev Event, red *Redactor) Event {
 		s.acc.WriteString(ev.Text)
 		ev.Text = red.Unalias(s.acc.String())
 	case EventDone:
-		if ev.Text == "" {
+		// Ưu tiên chữ đã nối: trường result của Claude Code chỉ giữ tin nhắn
+		// cuối, mất các đoạn AI viết trước khi gọi công cụ (thấy ở lần gọi
+		// thật #4). result chỉ dùng khi không có phần chữ nào.
+		if s.acc.Len() > 0 {
 			ev.Text = s.acc.String()
 		}
 		ev.Text = red.Unalias(ev.Text)
@@ -952,9 +955,10 @@ func (p *Panel) finish(r *turnRun, ev Event) {
 	end := store.TurnEnd{At: now}
 	switch ev.Kind {
 	case EventDone:
-		end.Status, end.Answer = store.TurnDone, ev.Text
+		// Như shower.show: chữ đã nối đủ hơn result của Claude Code.
+		end.Status, end.Answer = store.TurnDone, acc
 		if end.Answer == "" {
-			end.Answer = acc
+			end.Answer = ev.Text
 		}
 	case EventRefused:
 		// Cửa kiểm từ chối phiên: không chữ nào của lượt được coi là câu trả lời.
