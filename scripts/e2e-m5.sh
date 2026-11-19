@@ -103,8 +103,11 @@ run() {
   local shown
   shown="$(mask_str <<<"$*")"
   printf '\n[%s] $ %s\n' "$(ts)" "$shown"
-  OUT="$("$@" 2>&1)"
+  # Output vào file rồi mới đọc: `multipass exec` (bản trên Mac) thỉnh thoảng
+  # treo, quay 100% CPU, khi stdout là pipe và lệnh in vài chục KB (M6).
+  "$@" >"$TMPD/run.out" 2>&1
   RC=$?
+  OUT="$(cat "$TMPD/run.out")"
   mask
   [ -n "$OUT" ] && printf '%s\n' "$OUT"
   printf '[%s] (mã thoát %s)\n' "$(ts)" "$RC"
@@ -257,8 +260,9 @@ site_add() {
   shift
   local cmd=("$VM" root tpan site add "$d" --email "$EMAIL" --yes "$@")
   printf '\n[%s] $ %s\n' "$(ts)" "${cmd[*]}"
-  OUT="$("${cmd[@]}" 2>&1)"
+  "${cmd[@]}" >"$TMPD/run.out" 2>&1
   RC=$?
+  OUT="$(cat "$TMPD/run.out")"
   local pw dbpw
   pw="$(sed -nE 's/^  Mật khẩu: +([A-Za-z0-9]{32})\r?$/\1/p' <<<"$OUT" | head -1)"
   PW_HITS=0
@@ -303,8 +307,9 @@ panel_setup_login() {
   section "nginx: tpan setup (panel nghe 8443) rồi đăng nhập từ Mac"
   local cmd=("$VM" root tpan setup --yes) pw
   printf '\n[%s] $ %s\n' "$(ts)" "${cmd[*]}"
-  OUT="$("${cmd[@]}" 2>&1)"
+  "${cmd[@]}" >"$TMPD/run.out" 2>&1
   RC=$?
+  OUT="$(cat "$TMPD/run.out")"
   pw="$(grep -A1 '^Mật khẩu quản trị (chỉ hiện MỘT lần' <<<"$OUT" | sed -nE 's/^    ([A-Z2-7]{26})\r?$/\1/p' | head -1)"
   add_secret "$pw"
   (umask 077 && printf '%s' "$pw" | jq -Rs '{password: .}' >"$TMPD/login.json")
@@ -559,6 +564,33 @@ run_web() {
     show '{config, sites: [.sites[] | {domain, ssl, cert: (.cert | if . then {id, status, summary: .summary.vi} else null end)}]}'
     ok "đúng dạng: config.email, config.server, $S1 ssl=true cert pass, $S2 ssl=false không cert" bash -c 'jq -e --arg s1 "$2" --arg s2 "$3" --arg e "$4" --arg a "$5" ".config.email == \$e and .config.server == \$a and .config.staging == true and ([.sites[] | select(.domain == \$s1 and .ssl and .cert.status == \"pass\")] | length) == 1 and ([.sites[] | select(.domain == \$s2 and (.ssl | not) and .cert == null)] | length) == 1" "$1" >/dev/null' _ "$TMPD/body" "$S1" "$S2" "$EMAIL" "$ACME"
   fi
+
+  # M6: site có SSL vào thùng rác rồi khôi phục: chứng chỉ giữ nguyên, vhost
+  # 443 (file giữ trong sites-available) được bật lại, https trả 200.
+  local enabled="${avail%/sites-available}/sites-enabled"
+  section "$web bước 5a: site rm $S1 (có SSL) vào thùng rác rồi site restore"
+  vroot bash -c 'sha256sum "$2/tpan-$1.conf"; grep -cE "^[^#]*(listen|VirtualHost).*443" "$2/tpan-$1.conf"; openssl x509 -in "/etc/letsencrypt/live/$1/cert.pem" -noout -serial; ls /etc/letsencrypt/renewal' _ "$S1" "$avail"
+  local ssl0="$OUT"
+  ok "trước khi xoá: vhost $S1 có 443, có chứng chỉ" bash -c 'grep -q "^serial=" <<<"$1" && grep -qF "$2.conf" <<<"$1"' _ "$OUT" "$S1"
+  vroot tpan site rm "$S1" --yes
+  ok "site rm $S1 thoát 0, thành công" bash -c '[ "$2" = 0 ] && grep -q "^Job .*: thành công" <<<"$1"' _ "$OUT" "$RC"
+  vroot python3 -c "$JOB_PY" site.rm
+  ok "job site.rm không có lệnh certbot nào (chứng chỉ giữ để khôi phục)" hasnt 'command .*certbot'
+  http_code "$S1" 443 "https://$S1/"
+  ok "ở thùng rác: https://$S1/ không còn trả 200 (curl mã $RC)" bash -c '[ "$(tr -d "\r" <<<"$1")" != 200 ]' _ "$OUT"
+  vroot bash -c 'sha256sum "$2/tpan-$1.conf"; grep -cE "^[^#]*(listen|VirtualHost).*443" "$2/tpan-$1.conf"; openssl x509 -in "/etc/letsencrypt/live/$1/cert.pem" -noout -serial; ls /etc/letsencrypt/renewal; ls "$3"' _ "$S1" "$avail" "$enabled"
+  ok "ở thùng rác: file vhost 443 và chứng chỉ giữ nguyên (sha256, serial, renewal), link ở sites-enabled đã gỡ" bash -c '[ "$(head -n 4 <<<"$1")" = "$2" ] && ! grep -qx "tpan-$3.conf" <<<"$1"' _ "$(tr -d '\r' <<<"$OUT")" "$(tr -d '\r' <<<"$ssl0")" "$S1"
+  vroot tpan trash list
+  ok "trash list có $S1" has "^$S1 "
+  vroot tpan site restore "$S1" --yes
+  ok "site restore $S1 thoát 0, thành công" bash -c '[ "$2" = 0 ] && grep -q "^Job .*: thành công" <<<"$1"' _ "$OUT" "$RC"
+  ok "kiểm chứng của restore có https đạt" has '^  \[đạt\] .*https'
+  http_code "$S1" 443 "https://$S1/"
+  ok "sau khôi phục: https://$S1/ 200" out_is 200
+  vexec curl -sS -m 20 --resolve "$S1:80:127.0.0.1" -o /dev/null -w '%{http_code} %{redirect_url}\n' "http://$S1/"
+  ok "sau khôi phục: http 301 sang https://$S1/" out_is "301 https://$S1/"
+  vroot bash -c 'sha256sum "$2/tpan-$1.conf"; grep -cE "^[^#]*(listen|VirtualHost).*443" "$2/tpan-$1.conf"; openssl x509 -in "/etc/letsencrypt/live/$1/cert.pem" -noout -serial; ls /etc/letsencrypt/renewal; ls -l "$3/tpan-$1.conf"; echo | openssl s_client -connect 127.0.0.1:443 -servername "$1" 2>/dev/null | openssl x509 -noout -serial' _ "$S1" "$avail" "$enabled"
+  ok "sau khôi phục: vhost 443 bật lại (link trỏ đúng file), file vhost và chứng chỉ như trước, 443 phục vụ đúng chứng chỉ đó" bash -c '[ "$(head -n 4 <<<"$1")" = "$2" ] && grep -q -- "-> $3/tpan-$4.conf\$" <<<"$1" && [ "$(tail -1 <<<"$1")" = "$(sed -n 3p <<<"$1")" ]' _ "$(tr -d '\r' <<<"$OUT")" "$(tr -d '\r' <<<"$ssl0")" "$avail" "$S1"
 
   # Từ M6, `site rm` chỉ đưa vào thùng rác (chứng chỉ giữ để khôi phục được);
   # `trash purge` xoá hẳn và mới chạy certbot delete.
