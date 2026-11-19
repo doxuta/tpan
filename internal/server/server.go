@@ -169,6 +169,12 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("POST /api/v1/health/run", auth(s.handleHealthRun))
 	mux.Handle("GET /api/v1/sites/{domain}/traffic", auth(s.handleSiteTraffic))
 	mux.Handle("GET /api/v1/sites/{domain}/log", auth(s.handleSiteLog))
+	// M7: Plan chờ duyệt và cổng agent (plans_types.go, api_plans.go).
+	mux.Handle("GET /api/v1/plans", auth(s.handlePlans))
+	mux.Handle("GET /api/v1/plans/{id}", auth(s.handlePlan))
+	mux.Handle("POST /api/v1/plans/{id}/approve", auth(s.handlePlanApprove))
+	mux.Handle("POST /api/v1/plans/{id}/reject", auth(s.handlePlanReject))
+	mux.Handle("GET /api/v1/agent", auth(s.handleAgent))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

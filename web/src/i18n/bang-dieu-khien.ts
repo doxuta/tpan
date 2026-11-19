@@ -92,7 +92,6 @@ const vi = {
   // Cột bên
   incidentsTitle: "Sự cố đang mở",
   warningsTitle: "Cảnh báo",
-  pendingTitle: "Chờ bạn duyệt",
   none: "Không có",
   sharedIncident: "Cả máy",
   incidentMeta: (where: string, stage: string, title: string, since: string) => `${where} · chặng hỏng: ${stage} · ${title} · từ ${since}`,
@@ -183,7 +182,6 @@ export const strings = defineStrings(vi, {
 
   incidentsTitle: "Open incidents",
   warningsTitle: "Warnings",
-  pendingTitle: "Waiting for your approval",
   none: "None",
   sharedIncident: "Whole machine",
   incidentMeta: (where, stage, title, since) => `${where} · failed stage: ${stage} · ${title} · since ${since}`,

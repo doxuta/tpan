@@ -11,11 +11,14 @@ import { Link } from "react-router";
 import type { Incident as IncidentData, Overview, Stage } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { ClaudeCommand } from "../../components/ClaudeCommand";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
+import { strings as agent } from "../../i18n/agent";
 import { strings } from "../../i18n/bang-dieu-khien";
 import { strings as khung } from "../../i18n/khung";
+import { PendingPlans } from "../plan-cho-duyet/PendingPlans";
 import { checksWith, fmtWhen, type Entry } from "./model";
 
 function Block({ title, count, children }: { title: string; count: number; children: ReactNode }) {
@@ -56,6 +59,7 @@ function Where({ domain, stage, size }: { domain: string | null; stage: Stage; s
 function Incident({ inc }: { inc: IncidentData }) {
   const t = useStrings(strings);
   const kt = useStrings(khung);
+  const at = useStrings(agent);
   const { lang } = useLang();
   const domain = inc.target === "" || inc.target === "tpan" ? null : inc.target;
   const stage = t.stage[inc.stage];
@@ -77,6 +81,7 @@ function Incident({ inc }: { inc: IncidentData }) {
           {t.openIncident}
         </Link>
       </div>
+      <ClaudeCommand prompt={at.diagnoseCheck(tx(inc.title, lang), domain ?? at.thisMachine)} />
     </Card>
   );
 }
@@ -144,10 +149,7 @@ export function Side({ o }: { o: Overview }) {
           </div>
         )}
       </Block>
-      {/* Chưa có Plan nào chờ duyệt (Plan do AI hay agent đề xuất đến từ M8). */}
-      <Block title={t.pendingTitle} count={0}>
-        <None />
-      </Block>
+      <PendingPlans />
     </aside>
   );
 }

@@ -344,3 +344,46 @@ export type LogLine = { line: string };
 
 /** data của sự kiện "end": tail đã thoát; đóng EventSource, không tự nối lại. */
 export type LogEnd = { error: string };
+
+// ---- Plan chờ duyệt và cổng agent (M7: engine/pending.go, server/plans_types.go) ----
+
+/** Nguồn gốc của một Plan chờ duyệt: người, AI trong panel, agent qua MCP. */
+export type PlanOrigin = "human" | "ai" | "mcp";
+
+export type PlanStatus = "pending" | "applied" | "rejected";
+
+/** core.PlanRequest: đủ để dựng lại Plan. */
+export type PlanRequest = {
+  kind: "site.add" | "site.rm" | "site.repair" | "stack.repair";
+  domain?: string;
+  email?: string;
+  title?: string;
+};
+
+export type PendingPlan = {
+  id: string;
+  kind: string;
+  target: string;
+  title: Text;
+  request: PlanRequest;
+  /** Bản xem trước mới nhất; lần duyệt thấy máy đã khác thì server thay bản này (409 plan_changed). */
+  preview: Preview;
+  fingerprint: string;
+  origin: PlanOrigin;
+  session_id?: string;
+  /** Lúc đề xuất, phiên đó đã đọc nội dung do người lạ gửi tới (log). Màn duyệt hiện cảnh báo. */
+  untrusted: boolean;
+  status: PlanStatus;
+  created: string;
+  decided?: string;
+  decided_by?: string;
+  job_id?: string;
+};
+
+export type AgentInfo = {
+  approval: "panel" | "client";
+  redact: "all" | "secrets";
+  hostname: string;
+  claude_command: string;
+  codex_command: string;
+};

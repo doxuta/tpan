@@ -8,6 +8,8 @@
 #   scripts/vm.sh exec ...  chạy một lệnh trong máy ảo
 #   scripts/vm.sh root ...  chạy một lệnh trong máy ảo bằng quyền root
 #   scripts/vm.sh ip        in IP của máy ảo
+#   scripts/vm.sh ssh-key <file .pub>   thêm khoá công khai vào ~ubuntu/.ssh/authorized_keys
+#                           của máy ảo (không thêm trùng), để SSH thẳng từ Mac vào máy ảo
 #   scripts/vm.sh down      tắt máy ảo
 #
 # Đổi tên hoặc cấu hình máy ảo bằng biến môi trường TPAN_VM, TPAN_VM_IMAGE,
@@ -71,6 +73,26 @@ case "$cmd" in
   exec) multipass exec "$VM" -- "$@" ;;
   root) multipass exec "$VM" -- sudo "$@" ;;
   ip) multipass info "$VM" --format json | jq -r --arg vm "$VM" '.info[$vm].ipv4[0]' ;;
+  ssh-key)
+    # Bắt buộc đưa đường dẫn: script không tự đọc ~/.ssh của máy cá nhân.
+    key="${1:-}"
+    [ -n "$key" ] && [ -f "$key" ] || { echo "Cách dùng: scripts/vm.sh ssh-key <file khoá công khai .pub>" >&2; exit 2; }
+    # Chỉ nhận đúng một dòng khoá công khai: chặn nhầm file khoá riêng.
+    if grep -q 'PRIVATE KEY' "$key" || [ "$(grep -c . "$key")" -ne 1 ] ||
+      ! grep -qE '^(ssh-|ecdsa-|sk-)[a-z0-9@.-]+ [A-Za-z0-9+/=]+( .*)?$' "$key"; then
+      echo "$key không phải một khoá công khai OpenSSH (một dòng, bắt đầu bằng ssh-... hoặc ecdsa-...)" >&2
+      exit 2
+    fi
+    # Khoá đi qua stdin, không nối vào chuỗi lệnh. grep -qxF: đã có đúng dòng
+    # đó thì không thêm lần nữa.
+    multipass exec "$VM" -- bash -c 'set -eu
+      k="$(cat)"
+      install -d -m 700 "$HOME/.ssh"
+      f="$HOME/.ssh/authorized_keys"
+      touch "$f"
+      chmod 600 "$f"
+      if grep -qxF -- "$k" "$f"; then echo "Khoá đã có trong $f, không thêm."; else printf "%s\n" "$k" >>"$f"; echo "Đã thêm khoá vào $f."; fi' <"$key"
+    ;;
   down) multipass stop "$VM" ;;
-  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
