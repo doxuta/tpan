@@ -55,6 +55,7 @@ const Removed = "••••"
 
 // Redactor che dữ liệu của một phiên AI. Bí danh ổn định suốt phiên.
 type Redactor struct {
-	// Trường không xuất (khoá, mức che, bảng bí danh hai chiều) do thợ của
-	// đợt 1 thêm.
+	// st giữ khoá, mức che và bảng bí danh hai chiều (khai báo ở redact.go).
+	// Gom vào một trường để file này không phải import sync, regexp.
+	st redactState
 }
