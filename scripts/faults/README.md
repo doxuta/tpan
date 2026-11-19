@@ -9,11 +9,11 @@ sudo tpan health --fix --yes                 # sửa tự động phải đưa v
 scripts/faults/NN-ten.sh restore <domain>   # chỉ khi sửa tự động hỏng: đưa máy về tay
 ```
 
-| Kịch bản | Gây lỗi | Chặng | Phép kiểm Fail (Warn) | Sửa tự động |
+| Kịch bản | Gây lỗi | Chặng | Phép kiểm Fail | Sửa tự động |
 |---|---|---|---|---|
 | `01-php-fpm-stop.sh` | `systemctl stop php<v>-fpm` | PHP | `service.active:php<v>-fpm`, `php.socket:<domain>` | `service.start` |
 | `02-pool-socket-rm.sh` | xoá socket pool của site | PHP | `php.socket:<domain>` | `php.restart` |
-| `03-vhost-break.sh` | thêm dòng sai cú pháp vào vhost, không reload | Web | `config.nginx:nginx` / `config.apache:apache2` (`drift:<vhost>` Warn) | `web.rewrite` |
+| `03-vhost-break.sh` | thêm dòng sai cú pháp vào vhost, không reload | Web | `config.nginx:nginx` / `config.apache:apache2`, `drift:<vhost>` | `web.rewrite` |
 | `04-wpconfig-perm.sh` | `chmod 644 wp-config.php` | WordPress | `wp.config:<domain>` | `wp.config.perm` |
 | `05-db-user-lock.sh` | `ALTER USER ... ACCOUNT LOCK` | DB | `db.access:<domain>` | `db.unlock` |
 | `06-disk-full.sh` | file giả `/var/tmp/tpan-fault-fill` cho `/` dùng ~91% | Máy | `disk.usage:/` | không có: `restore` là cách duy nhất |

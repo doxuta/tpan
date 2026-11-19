@@ -10,7 +10,7 @@
 # site vẫn trả 200, nhưng lần reload tới sẽ hỏng. Đúng thứ health phải bắt.
 # Chặng chuyển sang lỗi: Web server. Mong đợi:
 #   config.nginx:nginx hoặc config.apache:apache2   Fail (nginx -t / apachectl configtest)
-#   drift:<đường dẫn vhost>                         Warn (file khác bản tpan đã ghi)
+#   drift:<đường dẫn vhost>                         Fail (file khác bản tpan đã ghi; lệch là Fail, docs/thay-doi/M4.md)
 # Sửa tự động mong đợi: core.FixWebRewrite ("web.rewrite") ghi lại mọi file web
 # của tpan (file đúng được bỏ qua, chỉ vhost này được ghi) rồi kiểm cú pháp và
 # reload; sau đó core.FixFileRewrite ("file.rewrite") của drift thấy file đã
@@ -42,7 +42,7 @@ case "$mode" in
       vm_root sed -i "\$a $bad" "$conf"
       printf 'Đã thêm dòng sai cú pháp vào %s (không reload).\n' "$conf"
     fi
-    printf 'Mong đợi: %s Fail, drift:%s Warn\n' "$check" "$conf"
+    printf 'Mong đợi: %s Fail, drift:%s Fail\n' "$check" "$conf"
     ;;
   restore)
     vm_root sed -i '/tpan_fault_invalid/d' "$conf"
