@@ -1,18 +1,20 @@
-# Giao diện tpan: bản "Tuyến"
+# Giao diện TPAN: bản "Tuyến"
 
 Chốt ngày 19/11/2026 sau khi so ba bản mẫu. Tài liệu này là đặc tả hình thức cho thư mục `web/`. Nó đi cùng mục 10 của `docs/KE-HOACH.md` (mục đó nói giao diện có những màn nào và vì sao; tài liệu này nói chúng trông ra sao).
 
 Hình chuẩn để so là các trang mẫu tĩnh, mở thẳng bằng trình duyệt:
 
-- `docs/mau-giao-dien/tong-quan-sang.html`: màn Tổng quan, chế độ sáng
-- `docs/mau-giao-dien/tong-quan-toi.html`: màn Tổng quan, chế độ tối
-- `docs/mau-giao-dien/ngan-ai-sang.html`: màn Tổng quan khi đang mở ngăn AI
+- `docs/mau-giao-dien/bang-dieu-khien-sang.html`: Bảng điều khiển (trang chủ), chế độ sáng
+- `docs/mau-giao-dien/bang-dieu-khien-toi.html`: Bảng điều khiển, chế độ tối
+- `docs/mau-giao-dien/ngan-ai-sang.html`: Bảng điều khiển khi đang mở ngăn AI
+
+Logo nằm ở `docs/logo/` (mục 11).
 
 Các trang mẫu tải font từ Google Fonts cho tiện xem. Bản thật không làm vậy (mục 4).
 
 ## 1. Ý chính
 
-Màn Tổng quan vẽ như sơ đồ tuyến tàu điện. Mỗi site là một tuyến chạy ngang. Mỗi chặng của đường đi request là một ga: DNS, TLS, web server, pool PHP, WordPress, DB. Các tuyến xếp chồng nên ga cùng loại thẳng cột với nhau.
+Bảng điều khiển, tức trang chủ, vẽ như sơ đồ tuyến tàu điện. Mỗi site là một tuyến chạy ngang. Mỗi chặng của đường đi request là một ga: DNS, TLS, web server, pool PHP, WordPress, DB. Các tuyến xếp chồng nên ga cùng loại thẳng cột với nhau.
 
 - Tuyến liền nét tới ga cuối cùng còn đạt, đứt nét từ ga hỏng trở đi. Nhìn là biết request đi được tới đâu.
 - Một ga hỏng trên một tuyến: lỗi của riêng site đó. Cả một cột ga hỏng: lỗi của tầng dùng chung.
@@ -124,7 +126,7 @@ Tương phản đã đo (công thức WCAG 2.1; chữ cần từ 4,5:1, hình c�
 | Số liệu lớn | IBM Plex Sans | 24 px, 500, chữ số đều cột (`tabular-nums`) |
 | Dữ liệu kỹ thuật: domain, đường dẫn, lệnh, mã HTTP, mã job | IBM Plex Mono | 12 đến 13 px |
 | Nhãn cột, nhãn khối (SITE, HTTP, BẰNG CHỨNG) | IBM Plex Mono | 11 px, chữ hoa, giãn chữ 0,08em, màu `--muted` |
-| Tên `tpan` trên thanh đầu trang | IBM Plex Mono | 24 px, 600, giãn chữ −0,02em |
+| Tên TPAN trên thanh đầu trang | IBM Plex Mono | 22 px, 600, chữ hoa, giãn chữ 0,04em |
 
 - Font nằm trong repo dưới dạng file `woff2` và được nhúng vào file chạy; giao diện không gọi ra mạng. Lấy font qua gói npm của đúng hai họ font này, đọc tài liệu của gói để chỉ nhúng phần ký tự Latin và tiếng Việt, ba độ đậm 400, 500, 600.
 - Sau khi nhúng, mở giao diện và nhìn các chuỗi có dấu ("Đường đi request", "chưa kiểm được", "Sửa tự động") ở cả hai font. Thiếu dấu ở font nào thì báo chủ dự án; không tự đổi sang font khác.
@@ -149,12 +151,13 @@ Tất cả đều góc vuông, viền 1 px, không bóng đổ.
 | Nhãn (LEMP, nginx 1.24) | chữ mono 12 px, viền `--ink`, đệm 2 px 8 px, không nền |
 | Thẻ | viền `--card-border`, nền `--surface`, đệm 18 px. Thẻ sự cố có thêm vạch trên dày 4 px màu `--fail` |
 | Khối bằng chứng | nền `--pre`, chữ mono 12 px, dòng 1,55, tự xuống dòng; dòng lệnh (bắt đầu bằng `$`) đậm 600 |
-| Hàng tuyến | cao 44 px; cột tên site rộng 200 px (mono, là liên kết tới trang site); sáu ga chia đều; cột mã HTTP rộng 76 px. Mã khác 200 có nền `--fail`, chữ `--on-fail`. Dưới hàng lỗi có một dòng chữ `--fail-text` nói hỏng ở đâu, từ lúc nào |
+| Hàng tuyến | cao 44 px; cột tên site rộng 180 px (mono, là liên kết tới trang site); sáu ga chia đều; cột mã HTTP rộng 76 px. Mã khác 200 có nền `--fail`, chữ `--on-fail`. Dưới hàng lỗi có một dòng chữ `--fail-text` nói hỏng ở đâu, từ lúc nào |
 | Thanh số liệu | nhãn mono 11 px, số 24 px, một dòng phụ, rồi thanh cao 6 px: nền `--track`, phần đầy `--ink`, vạch ngưỡng 80% màu `--muted` |
 | Hàng lịch sử | mã job, giờ (mono, `--muted`), việc và đối tượng, kết quả (`--muted`), liên kết "bằng chứng" và "hoàn tác"; kẻ trên `--hair` |
 | Ô lệnh `⌘K` | một nút trông như ô nhập: biểu tượng kính lúp, dòng gợi ý màu `--muted`, phím tắt trong khung nhỏ |
-| Ngăn AI | một thẻ rộng chừng 420 px ở cột bên, giữ nguyên khi chuyển mục. Từ trên xuống: đầu ngăn (tên, tình trạng bộ não, nút đóng); "Ngữ cảnh gửi kèm" gồm các nhãn bỏ được và dòng "Bạn vừa đi qua"; cuộc trò chuyện; ô hỏi tiếp. Hình chuẩn: `ngan-ai-sang.html` |
-| Thanh đầu trang | tên `tpan`, tên máy, các nhãn stack, rồi dồn phải: ô lệnh, VI/EN, Sáng/Tối, công tắc "Gợi ý". Kẻ dưới dày 2 px màu `--ink` |
+| Ngăn AI | một thẻ rộng chừng 400 px ở cột bên, giữ nguyên khi chuyển mục. Từ trên xuống: đầu ngăn (tên, tình trạng bộ não, nút đóng); "Ngữ cảnh gửi kèm" gồm các nhãn bỏ được và dòng "Bạn vừa đi qua"; cuộc trò chuyện; ô hỏi tiếp. Hình chuẩn: `ngan-ai-sang.html` |
+| Thanh đầu trang | logo và tên TPAN (bấm là về Bảng điều khiển), tên máy, các nhãn stack, rồi dồn phải: ô lệnh, VI/EN, Sáng/Tối, công tắc "Gợi ý". Kẻ dưới dày 2 px màu `--ink` |
+| Menu chính | cột bên trái rộng 192 px, kẻ phải `--hair`. Mỗi mục cao 40 px, chữ 14 px. Mục đang mở có vạch trái 3 px màu `--ink`, nền `--surface`, chữ đậm 600 và `aria-current="page"`. Số đếm nằm sát phải, chữ mono 12 px màu `--muted`; riêng "Sự cố" khi có sự cố đang mở thì số nằm trên nền `--fail`, chữ `--on-fail`. Tên nhóm (MÁY, AI, TÀI KHOẢN) là nhãn mono 11 px |
 
 Các trạng thái của thành phần bấm được:
 
@@ -175,17 +178,24 @@ Cuộc trò chuyện trong ngăn AI:
 
 Biểu tượng: vẽ bằng SVG nét, khung 24, nét 2, đầu nét tròn. Chỉ dùng khi chữ không đủ (kính lúp, dấu ×, dấu ✓). Không dùng emoji.
 
-## 7. Bố cục màn Tổng quan
+## 7. Bố cục
 
-- Khung trang rộng tối đa 1440 px, đệm ngang 32 px.
-- Hai cột bằng flex có xuống dòng: cột chính (`flex: 999 1 640px`) và cột bên (`flex: 1 1 380px`), cách nhau 40 px. Màn hẹp thì cột bên tự rơi xuống dưới.
-- Cột chính, từ trên xuống: tiêu đề "Đường đi request" kèm dòng tóm tắt và chú giải; bản đồ tuyến; "Máy" (CPU, RAM, đĩa, swap); "Lịch sử máy".
+Khung chung của mọi màn:
+
+- Khung trang rộng tối đa 1440 px, đệm ngang 32 px. Trên cùng là thanh đầu trang. Bên dưới là một hàng hai phần cách nhau 32 px: menu chính (192 px) và nội dung.
+- Hàng đó dùng flex có xuống dòng (menu `flex: 1 1 192px`, nội dung `flex: 999 1 560px`). Màn hẹp thì menu nằm trên, nội dung nằm dưới; menu không bao giờ dính cố định.
+- Mỗi màn mở đầu bằng tên màn (`h1`) và một dòng tóm tắt. Thứ tự và tên các mục của menu ghi ở mục 10 của KE-HOACH.md.
+
+Bảng điều khiển (trang chủ):
+
+- Nội dung chia hai cột bằng flex có xuống dòng: cột chính (`flex: 999 1 560px`) và cột bên (`flex: 1 1 372px`), cách nhau 40 px. Màn hẹp thì cột bên tự rơi xuống dưới.
+- Cột chính, từ trên xuống: tên màn "Bảng điều khiển" và dòng tóm tắt; khối "Đường đi request của từng site" kèm chú giải bốn trạng thái; bản đồ tuyến; "Máy" (CPU, RAM, đĩa, swap); "Lịch sử máy".
 - Cột bên, từ trên xuống: "Sự cố đang mở"; "Cảnh báo"; "Chờ bạn duyệt". Khối nào không có gì thì ghi một dòng "Không có", không ẩn đi.
-- Bản đồ tuyến có bề rộng tối thiểu 760 px và nằm trong một khung cuộn ngang riêng; cả trang không bao giờ cuộn ngang.
+- Bản đồ tuyến có bề rộng tối thiểu 700 px và nằm trong một khung cuộn ngang riêng; cả trang không bao giờ cuộn ngang.
 - Thẻ sự cố luôn có ba nút theo thứ tự: "Sửa tự động · xem trước N bước" (nút chính), "Sửa tay", "Hỏi AI".
 - Khi ngăn AI mở, nó nằm trên cùng của cột bên; ba khối kia xếp xuống dưới nó. Chuyển sang màn khác thì ngăn vẫn ở cột bên của màn đó.
 
-Các màn khác dùng lại đúng các thành phần ở mục 6. Trang Site vẽ một tuyến duy nhất, ga to hơn và có tên ga bên dưới. Màn duyệt Plan trình bày như một pull request: tóm tắt, phạm vi ảnh hưởng, file thay đổi dạng diff, lệnh sẽ chạy. Dòng thêm và dòng bớt trong diff có dấu `+` và `−` ở đầu dòng, không chỉ khác màu.
+Các màn khác dùng lại đúng các thành phần ở mục 6. Trang Site vẽ một tuyến duy nhất, ga to hơn và có tên ga bên dưới. Màn duyệt Plan trình bày như một pull request: tóm tắt, phạm vi ảnh hưởng, file thay đổi dạng diff, lệnh sẽ chạy. Dòng thêm và dòng bớt trong diff có dấu `+` và `−` ở đầu dòng, không chỉ khác màu. Các màn danh sách (Site, Cơ sở dữ liệu, Cron, Backup, Thùng rác) là bảng kẻ mảnh như "Lịch sử máy": không thẻ, không màu nền xen kẽ.
 
 ## 8. Giọng chữ
 
@@ -223,3 +233,12 @@ Chữ trên giao diện viết như một người đang nói với một ngư�
 3. Thu cửa sổ còn 390 px: không cuộn ngang cả trang, nút vẫn bấm được.
 4. Đổi sang tiếng Anh: không chuỗi nào bị cắt hay tràn.
 5. Tắt màu của màn hình (chế độ xám của hệ điều hành): bốn trạng thái vẫn phân biệt được.
+
+## 11. Tên và logo
+
+- Tên sản phẩm viết hoa: **TPAN**. Trên giao diện nó được dựng bằng IBM Plex Mono đậm 600, giãn chữ 0,04em. Tên lệnh và đường dẫn vẫn viết thường (`tpan`).
+- Dấu logo là một tuyến hình chữ T có ba ga, vẽ trên khung 32 × 32: nét ngang và nét dọc dày 4; hai ga ở hai đầu nét ngang là vòng rỗng (bán kính 3,5, viền 2, ruột cùng màu với nền đặt logo); ga cuối ở chân nét dọc là một hình đặc.
+- **Ga cuối là dấu trạng thái của cả máy**, dùng đúng các hình ở mục 2: chấm tròn xanh khi mọi phép kiểm đạt, hình thoi vàng khi có cảnh báo, ô vuông đỏ khi có sự cố đang mở. Logo trên thanh đầu trang và biểu tượng trên tab trình duyệt cùng đổi theo, nên chưa mở panel đã biết máy có chuyện.
+- Tài liệu, README và bản in dùng bản một màu: ga cuối là chấm tròn cùng màu với nét.
+- File gốc nằm ở `docs/logo/`: `tpan.svg` (một màu), `tpan-dat.svg`, `tpan-canh-bao.svg`, `tpan-loi.svg`. Trong `web/`, logo là một component nhận trạng thái. Biểu tượng tab là các file SVG tĩnh trong `web/public/`, đổi bằng cách đổi `href` của thẻ `<link rel="icon">`; không dùng địa chỉ `data:` vì CSP của panel chặn.
+- Không đặt logo lên ảnh, không đổi màu nét, không bo góc, không thêm bóng. Cỡ nhỏ nhất là 16 px.

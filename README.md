@@ -1,4 +1,4 @@
-# tpan
+# TPAN
 
 Panel tự động hoá máy chủ web: cài LEMP hoặc LAMP lên một VPS Ubuntu 24.04 và tạo nhiều site WordPress trên cùng một máy. Một file chạy duy nhất viết bằng Go, có CLI, API và giao diện web.
 
@@ -27,4 +27,4 @@ Làm giao diện: mở hai terminal, chạy `make dev-api` và `make dev-web`, r
 
 ## Cảnh báo
 
-tpan thay đổi cấu hình hệ thống bằng quyền root. Chỉ chạy nó trong máy ảo test hoặc trên một VPS sạch dành riêng cho nó.
+TPAN thay đổi cấu hình hệ thống bằng quyền root. Chỉ chạy nó trong máy ảo test hoặc trên một VPS sạch dành riêng cho nó.
