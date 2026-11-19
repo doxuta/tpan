@@ -423,6 +423,20 @@ run_web() {
   ok "$S2 vẫn http 200" out_is 200
   vroot bash -c 'sed -i "/ $1\$/d" /etc/hosts; getent ahostsv4 "$1"; echo "getent mã $?"' _ "$S2"
 
+  section "$web bước 3: ssl issue $S1 --dry-run (xem trước, không đổi gì)"
+  vroot sha256sum "$avail/tpan-$S1.conf"
+  local vh1="$OUT"
+  vroot python3 -c "$JOB_PY"
+  local jobs1
+  jobs1="$(sed -nE 's/^số job trong tpan.db: ([0-9]+).*/\1/p' <<<"$OUT")"
+  vroot tpan ssl issue "$S1" --dry-run
+  ok "dry-run thoát 0, in Plan có bước xin chứng chỉ sẽ chạy" bash -c '[ "$2" = 0 ] && grep -q "^Kế hoạch: Xin chứng chỉ SSL cho $3" <<<"$1" && grep -q "\[sẽ chạy\] Xin chứng chỉ Let.s Encrypt cho $3" <<<"$1"' _ "$OUT" "$RC" "$S1"
+  vroot bash -c 'ls -la /etc/letsencrypt/renewal 2>&1; sha256sum "$2"' _ "$S1" "$avail/tpan-$S1.conf"
+  ok "không có renewal/$S1.conf" bash -c '! grep -qF " $2.conf" <<<"$1"' _ "$OUT" "$S1"
+  ok "vhost $S1 vẫn bản cổng 80 (sha256 không đổi)" bash -c 'grep -qF "$2" <<<"$1"' _ "$OUT" "$vh1"
+  vroot python3 -c "$JOB_PY"
+  ok "dry-run không tạo job (vẫn $jobs1 job)" hasF "số job trong tpan.db: $jobs1"
+
   section "$web bước 3: ssl issue $S1 với pebble"
   vroot tpan ssl issue "$S1" --yes --verbose
   ok "ssl issue thoát 0" rc_is 0
@@ -471,6 +485,18 @@ run_web() {
   ok "hook gia hạn 755 root, gọi tpan internal reload-web" bash -c 'grep -q "^755 root:root " <<<"$1" && grep -q "^#!/bin/sh" <<<"$1" && grep -q "exec /usr/local/bin/tpan internal reload-web" <<<"$1"' _ "$OUT"
   vexec systemctl is-active certbot.timer
   ok "certbot.timer active" has '^active'
+
+  section "$web bước 3: đúng các lệnh kiểm trong hướng dẫn VPS (docs/thay-doi/M5.md)"
+  vroot certbot certificates
+  ok "certbot certificates liệt kê $S1" bash -c '[ "$2" = 0 ] && grep -q "Certificate Name: $3" <<<"$1"' _ "$OUT" "$RC" "$S1"
+  # Lệnh của hướng dẫn VPS, thêm --server của pebble: không có --server thì
+  # certbot --dry-run luôn đi tới staging THẬT của Let's Encrypt (không đọc file
+  # renewal), mà Let's Encrypt từ chối tên example.com. Trên VPS bỏ --server.
+  # --no-random-sleep-on-renew: không có terminal thì certbot chờ ngẫu nhiên.
+  vroot certbot renew --dry-run --no-random-sleep-on-renew --cert-name "$S1" --server "$ACME"
+  ok "certbot renew --dry-run --cert-name đạt" bash -c '[ "$2" = 0 ] && grep -q "Congratulations, all simulated renewals succeeded" <<<"$1"' _ "$OUT" "$RC"
+  vexec bash -c 'curl -sI "http://$1/" | head -3; curl -skI "https://$1/" | head -3' _ "$S1"
+  ok "curl -sI http trả 301, curl -skI https trả 200" bash -c 'grep -q "^HTTP/1.1 301" <<<"$1" && grep -qE "^HTTP/(1.1|2) 200" <<<"$1"' _ "$(tr -d '\r' <<<"$OUT")"
 
   section "$web bước 3: hook gia hạn chạy thật (gia hạn ép với pebble)"
   vroot bash -c 'echo | openssl s_client -connect 127.0.0.1:443 -servername "$1" 2>/dev/null | openssl x509 -noout -serial' _ "$S1"
@@ -571,6 +597,12 @@ run_security() {
   vroot tpan security ufw --dry-run
   ok "xem trước thoát 0" rc_is 0
   ok "xem trước mở đúng $sshp/tcp, 80/tcp, 443/tcp, 8443/tcp" bash -c 'grep -qF "$2/tcp, 80/tcp, 443/tcp, 8443/tcp" <<<"$1"' _ "$OUT" "$sshp"
+  # Như nút "Xem trước" trên màn Bảo mật: cookie phiên, Origin của panel,
+  # Sec-Fetch-Site same-origin, KHÔNG có thân request (web/src/api/client.ts).
+  api POST '/api/v1/security/ufw?dry_run=1' -H 'Accept: application/json' -H 'Sec-Fetch-Site: same-origin' -H "Origin: $BASE"
+  ok "POST /api/v1/security/ufw?dry_run=1 (thân rỗng) 200" code_is 200
+  show '{title: .title.vi, steps: [.steps[] | {id: .info.id, done}]}'
+  ok "Preview có bước ufw.allow (22/tcp, 80/tcp, 443/tcp, 8443/tcp) và ufw.enable sẽ chạy" bash -c 'jq -e --arg p "$2" "([.steps[] | select(.info.id == (\"ufw.allow:\" + \$p + \"/tcp,80/tcp,443/tcp,8443/tcp\") and (.done | not))] | length) == 1 and ([.steps[] | select(.info.id == \"ufw.enable\" and (.done | not))] | length) == 1" "$1" >/dev/null' _ "$TMPD/body" "$sshp"
   vexec ufw version
   vroot ufw status
   ok "ufw chưa bật" hasF 'Status: inactive'
@@ -605,6 +637,36 @@ run_security() {
   ok "GET /api/v1/security 200" code_is 200
   show '[.results[] | {id, status, summary: .summary.vi}]'
   ok "đúng dạng: results[] có id, status; ufw và fail2ban đạt" bash -c 'jq -e "(.results | length) >= 7 and all(.results[]; has(\"id\") and has(\"status\") and has(\"summary\")) and ([.results[] | select(.id == \"sec.ufw\" and .status == \"pass\")] | length) == 1 and ([.results[] | select(.id == \"sec.fail2ban\" and .status == \"pass\")] | length) == 1" "$1" >/dev/null' _ "$TMPD/body"
+
+  section "nginx bước 6: nút \"Xin chứng chỉ\" của màn SSL, chỉ xem trước (POST /api/v1/sites/$S2/ssl?dry_run=1)"
+  vroot bash -c 'echo "127.0.0.1 $1" >>/etc/hosts && getent ahostsv4 "$1"' _ "$S2"
+  ok "(đồ nghề) $S2 -> 127.0.0.1" has '^127\.0\.0\.1 '
+  vroot python3 -c "$JOB_PY"
+  local jobs6
+  jobs6="$(sed -nE 's/^số job trong tpan.db: ([0-9]+).*/\1/p' <<<"$OUT")"
+  api POST "/api/v1/sites/$S2/ssl?dry_run=1" -H 'Accept: application/json' -H 'Sec-Fetch-Site: same-origin' -H "Origin: $BASE"
+  ok "POST /api/v1/sites/$S2/ssl?dry_run=1 (thân rỗng) 200, không 400" code_is 200
+  show '{title: .title.vi, steps: [.steps[] | {id: .info.id, done}]}'
+  ok "Preview có bước thử HTTP, xin chứng chỉ, vhost HTTPS của $S2, đều sẽ chạy" bash -c 'jq -e --arg d "$2" "[.steps[] | select((.info.id == (\"ssl.probe:\" + \$d) or .info.id == (\"ssl.cert:\" + \$d)) and (.done | not))] | length == 2" "$1" >/dev/null' _ "$TMPD/body" "$S2"
+  vroot bash -c 'ls /etc/letsencrypt/renewal; grep -cE "^[^#]*listen.*443" "/etc/nginx/sites-available/tpan-$1.conf"' _ "$S2"
+  ok "xem trước không tạo chứng chỉ, vhost $S2 vẫn bản cổng 80" bash -c '! grep -qF "$2" <<<"$1" && [ "$(tail -1 <<<"$1" | tr -d "\r")" = 0 ]' _ "$OUT" "$S2"
+  vroot python3 -c "$JOB_PY"
+  ok "xem trước qua API không tạo job (vẫn $jobs6 job)" hasF "số job trong tpan.db: $jobs6"
+
+  section "nginx: dọn đồ nghề, xoá cài đặt ẩn ssl.server, cấu hình về staging của Let's Encrypt"
+  printf "\n(lệnh dưới là: tpan ssl settings --server '' ; đối số sau --server là chuỗi rỗng, dòng in lệnh không hiện dấu nháy)\n"
+  vroot tpan ssl settings --server ''
+  ok "settings --server '' thoát 0" rc_is 0
+  vroot tpan ssl settings
+  ok "tpan ssl settings (không cờ) in ACME là staging của Let's Encrypt" hasF 'ACME:      https://acme-staging-v02.api.letsencrypt.org/directory'
+  ok "staging bật, email giữ nguyên" bash -c 'grep -qF "Staging:   bật" <<<"$1" && grep -qF "Email:     $2" <<<"$1"' _ "$OUT" "$EMAIL"
+  vroot tpan ssl settings --json
+  ok "--json: server rỗng, staging true" bash -c 'jq -e "(.server // \"\") == \"\" and .staging == true" <<<"$1" >/dev/null' _ "$OUT"
+  vroot tpan ssl settings --staging=false
+  ok "--staging=false: ACME là Let's Encrypt thật" bash -c '[ "$2" = 0 ] && grep -qF "ACME:      https://acme-v02.api.letsencrypt.org/directory" <<<"$1"' _ "$OUT" "$RC"
+  vroot tpan ssl settings --staging=true
+  ok "--staging=true: về lại staging" hasF 'ACME:      https://acme-staging-v02.api.letsencrypt.org/directory'
+  vroot bash -c 'sed -i "/ $1\$/d" /etc/hosts; systemctl stop "$2"; systemctl is-active "$2"' _ "$S2" "$PEBBLE_UNIT"
 }
 
 case "${1:-all}" in
