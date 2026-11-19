@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"strings"
 	"sync"
 	"time"
 
@@ -376,11 +377,33 @@ func (s recSys) Run(ctx context.Context, cmd system.Cmd) (system.Result, error) 
 	s.r.emit(EventCommand, s.stepID, cmd.String())
 	// Step đã đặt OnOutput riêng thì vẫn gọi nó, sau khi ghi sự kiện.
 	own := cmd.OnOutput
+	secrets := stdinLines(cmd.Stdin)
 	cmd.OnOutput = func(line string) {
-		s.r.emit(EventOutput, s.stepID, line)
+		s.r.emit(EventOutput, s.stepID, maskLines(line, secrets))
 		if own != nil {
 			own(line)
 		}
 	}
 	return s.System.Run(ctx, cmd)
+}
+
+// stdinLines trả các dòng khác rỗng của stdin. Stdin là chỗ đưa mật khẩu vào
+// lệnh; vài chương trình in lại thứ đã đọc (WP-CLI với --prompt in lại cả câu
+// lệnh kèm giá trị vừa hỏi), nên output phải được che trước khi vào log job.
+func stdinLines(stdin []byte) []string {
+	var out []string
+	for _, ln := range strings.Split(string(stdin), "\n") {
+		if ln = strings.TrimSpace(ln); ln != "" {
+			out = append(out, ln)
+		}
+	}
+	return out
+}
+
+// maskLines thay mọi dòng stdin xuất hiện trong line bằng "••••".
+func maskLines(line string, secrets []string) string {
+	for _, sec := range secrets {
+		line = strings.ReplaceAll(line, sec, "••••")
+	}
+	return line
 }

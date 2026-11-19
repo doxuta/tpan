@@ -553,10 +553,30 @@ func TestStepOwnOnOutputStillCalled(t *testing.T) {
 	wantEq(t, "kinds", kinds(h.events), "job.start step.start:a command:a output:a step.done:a job.done")
 }
 
+// Lệnh in lại thứ đã đọc từ stdin (WP-CLI với --prompt): log của job phải che
+// đi, còn OnOutput riêng của Step vẫn thấy nguyên văn.
+func TestOutputMasksStdinLines(t *testing.T) {
+	h := newHarness()
+	h.sys.output = []string{"wp core install --admin_password=Secr3tPassw0rdXYZ --quiet"}
+	var got []string
+	s := &cmdStep{id: "a", stdin: []byte("Secr3tPassw0rdXYZ\n"), onOutput: func(l string) { got = append(got, l) }}
+	mustExecute(t, h, plan(s))
+	for _, ev := range h.events {
+		if strings.Contains(ev.Message, "Secr3tPassw0rdXYZ") {
+			t.Errorf("sự kiện %s lộ mật khẩu: %q", ev.Kind, ev.Message)
+		}
+		if ev.Kind == EventOutput {
+			wantEq(t, "output đã che", ev.Message, "wp core install --admin_password=•••• --quiet")
+		}
+	}
+	wantEq(t, "OnOutput của Step", strings.Join(got, ","), h.sys.output[0])
+}
+
 // cmdStep chạy một lệnh có OnOutput riêng.
 type cmdStep struct {
 	id       string
 	onOutput func(string)
+	stdin    []byte
 	done     bool
 }
 
@@ -564,7 +584,7 @@ func (s *cmdStep) Info() StepInfo                                     { return S
 func (s *cmdStep) Check(context.Context, system.System) (bool, error) { return s.done, nil }
 func (s *cmdStep) Undo(context.Context, system.System) error          { return nil }
 func (s *cmdStep) Apply(ctx context.Context, sys system.System) error {
-	_, err := sys.Run(ctx, system.Cmd{Name: "true", OnOutput: s.onOutput})
+	_, err := sys.Run(ctx, system.Cmd{Name: "true", Stdin: s.stdin, OnOutput: s.onOutput})
 	s.done = err == nil
 	return err
 }
