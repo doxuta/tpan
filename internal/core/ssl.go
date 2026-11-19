@@ -385,7 +385,8 @@ func ReloadWeb(ctx context.Context, sys system.System, settings Settings) error 
 		return fmt.Errorf("kiểm config %s trước khi reload: %w", cfg.Web, err)
 	}
 	reload := system.Cmd{Name: "systemctl", Args: []string{"reload", webUnit(cfg.Web)}}
-	if _, err := sys.Run(ctx, reload); err != nil {
+	// steps.Reload: với nginx, chỉ trả về khi worker cũ đã thôi nhận kết nối.
+	if _, err := steps.Reload(ctx, sys, reload); err != nil {
 		return fmt.Errorf("reload %s: %w", webUnit(cfg.Web), err)
 	}
 	return nil

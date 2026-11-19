@@ -1,0 +1,439 @@
+######## TRƯỚC khi sửa: tpan tpan f97ca1c (commit f97ca1c, build 2026-11-19T15:07:16Z), nginx, máy ảo tpan-m8 (Ubuntu 24.04 arm64), 2026-11-19 22:09:48
+nginx version: nginx/1.24.0 (Ubuntu)
+
+=== systemctl, lần 1, off (a.example.com)
+trước reload: 29094 nginx: worker process;29095 nginx: worker process;
+systemctl reload nginx trả về sau 9 ms
++0ms curl 200/0 | 29094 nginx: worker process;29095 nginx: worker process;29379 nginx: worker process;29380 nginx: worker process;
++93ms curl 200/0 | 29094 nginx: worker process is shutting down;29095 nginx: worker process;29379 nginx: worker process;29380 nginx: worker process;
++99ms curl 000/52 | 29379 nginx: worker process;29380 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== systemctl, lần 1, on (a.example.com)
+trước reload: 29379 nginx: worker process;29380 nginx: worker process;
+systemctl reload nginx trả về sau 24 ms
++0ms curl 000/52 | 29379 nginx: worker process;29380 nginx: worker process;30691 nginx: worker process;30692 nginx: worker process;
++98ms curl 200/0 | 30691 nginx: worker process;30692 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== systemctl, lần 2, off (a.example.com)
+trước reload: 30691 nginx: worker process;30692 nginx: worker process;
+systemctl reload nginx trả về sau 12 ms
++0ms curl 200/0 | 30691 nginx: worker process;30692 nginx: worker process;32085 nginx: worker process;32086 nginx: worker process;
++94ms curl 200/0 | 30692 nginx: worker process;32085 nginx: worker process;32086 nginx: worker process;
++100ms curl 000/52 | 32085 nginx: worker process;32086 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== systemctl, lần 2, on (a.example.com)
+trước reload: 32085 nginx: worker process;32086 nginx: worker process;
+systemctl reload nginx trả về sau 8 ms
++0ms curl 000/52 | 32085 nginx: worker process;32086 nginx: worker process;33396 nginx: worker process;33397 nginx: worker process;
++98ms curl 200/0 | 33396 nginx: worker process;33397 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== systemctl, lần 3, off (a.example.com)
+trước reload: 33396 nginx: worker process;33397 nginx: worker process;
+systemctl reload nginx trả về sau 17 ms
++0ms curl 200/0 | 33396 nginx: worker process;33397 nginx: worker process;34694 nginx: worker process;34695 nginx: worker process;
++97ms curl 000/52 | 34694 nginx: worker process;34695 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== systemctl, lần 3, on (a.example.com)
+trước reload: 34694 nginx: worker process;34695 nginx: worker process;
+systemctl reload nginx trả về sau 12 ms
++0ms curl 000/52 | 34694 nginx: worker process;34695 nginx: worker process;35955 nginx: worker process;35956 nginx: worker process;
++98ms curl 200/0 | 35955 nginx: worker process;35956 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== systemctl, lần 4, off (a.example.com)
+trước reload: 35955 nginx: worker process;35956 nginx: worker process;
+systemctl reload nginx trả về sau 9 ms
++0ms curl 200/0 | 35955 nginx: worker process;35956 nginx: worker process;37121 nginx: worker process;37122 nginx: worker process;
++97ms curl 000/52 | 37121 nginx: worker process;37122 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== systemctl, lần 4, on (a.example.com)
+trước reload: 37121 nginx: worker process;37122 nginx: worker process;
+systemctl reload nginx trả về sau 18 ms
++0ms curl 000/52 | 37121 nginx: worker process;37122 nginx: worker process;38361 nginx: worker process;38362 nginx: worker process;
++100ms curl 200/0 | 38361 nginx: worker process;38362 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== systemctl, lần 5, off (a.example.com)
+trước reload: 38361 nginx: worker process;38362 nginx: worker process;
+systemctl reload nginx trả về sau 11 ms
++0ms curl 200/0 | 38361 nginx: worker process;38362 nginx: worker process;39617 nginx: worker process;39618 nginx: worker process;
++96ms curl 200/0 | 39617 nginx: worker process;39618 nginx: worker process;
++102ms curl 000/52 | 39617 nginx: worker process;39618 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== systemctl, lần 5, on (a.example.com)
+trước reload: 39617 nginx: worker process;39618 nginx: worker process;
+systemctl reload nginx trả về sau 14 ms
++0ms curl 000/52 | 39617 nginx: worker process;39618 nginx: worker process;40937 nginx: worker process;40938 nginx: worker process;
++93ms curl 200/0 | 39617 nginx: worker process;39618 nginx: worker process;40937 nginx: worker process;40938 nginx: worker process;
++98ms curl 000/52 | 40937 nginx: worker process;40938 nginx: worker process;
++104ms curl 200/0 | 40937 nginx: worker process;40938 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== tpan, lần 1, off (a.example.com)
+trước reload: 40937 nginx: worker process;40938 nginx: worker process;
+tpan internal reload-web trả về sau 22 ms
++0ms curl 200/0 | 40937 nginx: worker process;40938 nginx: worker process;42303 nginx: worker process;42304 nginx: worker process;
++94ms curl 200/0 | 42303 nginx: worker process;42304 nginx: worker process;
++99ms curl 000/52 | 42303 nginx: worker process;42304 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== tpan, lần 1, on (a.example.com)
+trước reload: 42303 nginx: worker process;42304 nginx: worker process;
+tpan internal reload-web trả về sau 19 ms
++0ms curl 000/52 | 42303 nginx: worker process;42304 nginx: worker process;43679 nginx: worker process;43680 nginx: worker process;
++91ms curl 000/52 | 42303 nginx: worker process is shutting down;42304 nginx: worker process;43679 nginx: worker process;43680 nginx: worker process;
++97ms curl 200/0 | 43679 nginx: worker process;43680 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== tpan, lần 2, off (a.example.com)
+trước reload: 43679 nginx: worker process;43680 nginx: worker process;
+tpan internal reload-web trả về sau 27 ms
++0ms curl 200/0 | 43679 nginx: worker process;43680 nginx: worker process;44915 nginx: worker process;44916 nginx: worker process;
++100ms curl 000/52 | 44915 nginx: worker process;44916 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== tpan, lần 2, on (a.example.com)
+trước reload: 44915 nginx: worker process;44916 nginx: worker process;
+tpan internal reload-web trả về sau 20 ms
++0ms curl 000/52 | 44915 nginx: worker process;44916 nginx: worker process;46311 nginx: worker process;46312 nginx: worker process;
++92ms curl 000/52 | 44915 [nginx];44916 nginx: worker process;46311 nginx: worker process;46312 nginx: worker process;
++98ms curl 200/0 | 46311 nginx: worker process;46312 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== tpan, lần 3, off (a.example.com)
+trước reload: 46311 nginx: worker process;46312 nginx: worker process;
+tpan internal reload-web trả về sau 23 ms
++0ms curl 200/0 | 46311 nginx: worker process;46312 nginx: worker process;47589 nginx: worker process;47590 nginx: worker process;
++93ms curl 000/52 | 47589 nginx: worker process;47590 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== tpan, lần 3, on (a.example.com)
+trước reload: 47589 nginx: worker process;47590 nginx: worker process;
+tpan internal reload-web trả về sau 22 ms
++0ms curl 000/52 | 47589 nginx: worker process;47590 nginx: worker process;48755 nginx: worker process;48756 nginx: worker process;
++94ms curl 200/0 | 48755 nginx: worker process;48756 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== tpan, lần 4, off (a.example.com)
+trước reload: 48755 nginx: worker process;48756 nginx: worker process;
+tpan internal reload-web trả về sau 21 ms
++0ms curl 200/0 | 48755 nginx: worker process;48756 nginx: worker process;50144 nginx: worker process;50145 nginx: worker process;
++93ms curl 200/0 | 50144 nginx: worker process;50145 nginx: worker process;
++98ms curl 000/52 | 50144 nginx: worker process;50145 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== tpan, lần 4, on (a.example.com)
+trước reload: 50144 nginx: worker process;50145 nginx: worker process;
+tpan internal reload-web trả về sau 18 ms
++0ms curl 000/52 | 50144 nginx: worker process;50145 nginx: worker process;51345 nginx: worker process;51346 nginx: worker process;
++93ms curl 000/52 | 50144 [nginx] <defunct>;50145 nginx: worker process is shutting down;51345 nginx: worker process;51346 nginx: worker process;
++99ms curl 200/0 | 51345 nginx: worker process;51346 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== tpan, lần 5, off (a.example.com)
+trước reload: 51345 nginx: worker process;51346 nginx: worker process;
+tpan internal reload-web trả về sau 16 ms
++0ms curl 200/0 | 51345 nginx: worker process;51346 nginx: worker process;52679 nginx: worker process;52680 nginx: worker process;
++97ms curl 000/52 | 52679 nginx: worker process;52680 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== tpan, lần 5, on (a.example.com)
+trước reload: 52679 nginx: worker process;52680 nginx: worker process;
+tpan internal reload-web trả về sau 22 ms
++0ms curl 000/52 | 52679 nginx: worker process;52680 nginx: worker process;54083 nginx: worker process;54084 nginx: worker process;
++95ms curl 200/0 | 54083 nginx: worker process;54084 nginx: worker process;
+kết quả cuối: curl 200/0
+
+
+######## TRƯỚC khi sửa: tpan tpan f97ca1c (commit f97ca1c, build 2026-11-19T15:07:16Z), apache (mpm_event, ExecReload=apachectl graceful), máy ảo sạch mới, 2026-11-19 22:11:15
+Server version: Apache/2.4.58 (Ubuntu)
+
+=== apache systemctl, lần 1, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 14764 /usr/sbin/apache2 -k start;14774 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 39 ms
++0ms curl 403/0 | 15177 /usr/sbin/apache2 -k start;15178 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache systemctl, lần 1, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 15177 /usr/sbin/apache2 -k start;15178 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 92 ms
++0ms curl 200/0 | 15178 [apache2] <defunct>;17612 /usr/sbin/apache2 -k start;
++989ms curl 200/0 | 17612 /usr/sbin/apache2 -k start;18831 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache systemctl, lần 2, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 17612 /usr/sbin/apache2 -k start;18831 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 40 ms
++0ms curl 000/28 | 20233 /usr/sbin/apache2 -k start;20234 /usr/sbin/apache2 -k start;
++1067ms curl 403/0 | 20233 /usr/sbin/apache2 -k start;20234 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache systemctl, lần 2, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 20233 /usr/sbin/apache2 -k start;20234 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 39 ms
++0ms curl 000/28 | 21534 /usr/sbin/apache2 -k start;21535 /usr/sbin/apache2 -k start;
++1012ms curl 200/0 | 21534 /usr/sbin/apache2 -k start;21535 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache systemctl, lần 3, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 21534 /usr/sbin/apache2 -k start;21535 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 45 ms
++0ms curl 403/0 | 22856 /usr/sbin/apache2 -k start;22857 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache systemctl, lần 3, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 22856 /usr/sbin/apache2 -k start;22857 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 58 ms
++0ms curl 200/0 | 22856 [apache2] <defunct>;24125 /usr/sbin/apache2 -k start;
++969ms curl 200/0 | 24125 /usr/sbin/apache2 -k start;25172 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache systemctl, lần 4, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 24125 /usr/sbin/apache2 -k start;25172 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 54 ms
++0ms curl 000/28 | 26445 /usr/sbin/apache2 -k start;26446 /usr/sbin/apache2 -k start;
++1049ms curl 403/0 | 26445 /usr/sbin/apache2 -k start;26446 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache systemctl, lần 4, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 26445 /usr/sbin/apache2 -k start;26446 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 43 ms
++0ms curl 000/28 | 27830 /usr/sbin/apache2 -k start;27831 /usr/sbin/apache2 -k start;
++1136ms curl 200/0 | 27830 /usr/sbin/apache2 -k start;27831 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache systemctl, lần 5, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 27830 /usr/sbin/apache2 -k start;27831 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 84 ms
++0ms curl 000/28 | 29050 /usr/sbin/apache2 -k start;29051 /usr/sbin/apache2 -k start;
++1118ms curl 403/0 | 29050 /usr/sbin/apache2 -k start;29051 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache systemctl, lần 5, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 29050 /usr/sbin/apache2 -k start;29051 /usr/sbin/apache2 -k start;
+systemctl reload apache2 trả về sau 39 ms
++0ms curl 200/0 | 29051 [apache2] <defunct>;30284 /usr/sbin/apache2 -k start;
++987ms curl 200/0 | 30284 /usr/sbin/apache2 -k start;
++993ms curl 200/0 | 30284 /usr/sbin/apache2 -k start;31501 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache tpan, lần 1, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 30284 /usr/sbin/apache2 -k start;31501 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 112 ms
++0ms curl 403/0 | 32713 /usr/sbin/apache2 -k start;32714 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache tpan, lần 1, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 32713 /usr/sbin/apache2 -k start;32714 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 87 ms
++0ms curl 000/28 | 34123 /usr/sbin/apache2 -k start;34124 /usr/sbin/apache2 -k start;
++1115ms curl 200/0 | 34123 /usr/sbin/apache2 -k start;34124 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache tpan, lần 2, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 34123 /usr/sbin/apache2 -k start;34124 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 75 ms
++0ms curl 000/28 | 35422 /usr/sbin/apache2 -k start;35423 /usr/sbin/apache2 -k start;
++1071ms curl 403/0 | 35422 /usr/sbin/apache2 -k start;35423 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache tpan, lần 2, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 35422 /usr/sbin/apache2 -k start;35423 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 115 ms
++0ms curl 200/0 | 36786 /usr/sbin/apache2 -k start;36787 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache tpan, lần 3, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 36786 /usr/sbin/apache2 -k start;36787 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 59 ms
++0ms curl 000/28 | 39411 /usr/sbin/apache2 -k start;39412 /usr/sbin/apache2 -k start;
++1135ms curl 403/0 | 39411 /usr/sbin/apache2 -k start;39412 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache tpan, lần 3, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 39411 /usr/sbin/apache2 -k start;39412 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 97 ms
++0ms curl 200/0 | 39411 [apache2] <defunct>;40719 /usr/sbin/apache2 -k start;
++972ms curl 200/0 | 40719 /usr/sbin/apache2 -k start;41973 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache tpan, lần 4, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 40719 /usr/sbin/apache2 -k start;41973 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 55 ms
++0ms curl 403/0 | 41973 [apache2] <defunct>;43425 /usr/sbin/apache2 -k start;
++987ms curl 403/0 | 43425 /usr/sbin/apache2 -k start;44770 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache tpan, lần 4, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 43425 /usr/sbin/apache2 -k start;44770 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 57 ms
++0ms curl 000/28 | 46156 /usr/sbin/apache2 -k start;46157 /usr/sbin/apache2 -k start;
++1140ms curl 200/0 | 46156 /usr/sbin/apache2 -k start;46157 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+=== apache tpan, lần 5, off (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 46156 /usr/sbin/apache2 -k start;46157 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 75 ms
++0ms curl 403/0 | 47366 /usr/sbin/apache2 -k start;47367 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 403/0
+
+=== apache tpan, lần 5, on (a.example.com)
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+trước reload: 47366 /usr/sbin/apache2 -k start;47367 /usr/sbin/apache2 -k start;
+tpan internal reload-web trả về sau 139 ms
++0ms curl 200/0 | 47367 [apache2] <defunct>;50016 /usr/sbin/apache2 -k start;
++986ms curl 200/0 | 50016 /usr/sbin/apache2 -k start;51289 /usr/sbin/apache2 -k start;
+kết quả cuối: curl 200/0
+
+
+######## SAU khi sửa (steps.Reload chờ worker cũ của nginx thôi nhận kết nối): tpan tpan 2543ecc-dirty (commit 2543ecc, build 2026-11-19T15:19:34Z), nginx, máy ảo sạch mới, 2026-11-19 22:20:27
+
+=== SAU tpan, lần 1, off (a.example.com)
+trước reload: 13684 nginx: worker process;13685 nginx: worker process;
+tpan internal reload-web trả về sau 120 ms
++0ms curl 000/52 | 13858 nginx: worker process;13859 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== SAU tpan, lần 1, on (a.example.com)
+trước reload: 13858 nginx: worker process;13859 nginx: worker process;
+tpan internal reload-web trả về sau 136 ms
++0ms curl 200/0 | 15238 nginx: worker process;15239 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== SAU tpan, lần 2, off (a.example.com)
+trước reload: 15238 nginx: worker process;15239 nginx: worker process;
+tpan internal reload-web trả về sau 153 ms
++0ms curl 000/52 | 16625 nginx: worker process;16626 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== SAU tpan, lần 2, on (a.example.com)
+trước reload: 16625 nginx: worker process;16626 nginx: worker process;
+tpan internal reload-web trả về sau 169 ms
++0ms curl 200/0 | 18020 nginx: worker process;18021 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== SAU tpan, lần 3, off (a.example.com)
+trước reload: 18020 nginx: worker process;18021 nginx: worker process;
+tpan internal reload-web trả về sau 127 ms
++0ms curl 000/52 | 19394 nginx: worker process;19395 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== SAU tpan, lần 3, on (a.example.com)
+trước reload: 19394 nginx: worker process;19395 nginx: worker process;
+tpan internal reload-web trả về sau 138 ms
++0ms curl 200/0 | 20720 nginx: worker process;20721 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== SAU tpan, lần 4, off (a.example.com)
+trước reload: 20720 nginx: worker process;20721 nginx: worker process;
+tpan internal reload-web trả về sau 139 ms
++0ms curl 000/52 | 22053 nginx: worker process;22054 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== SAU tpan, lần 4, on (a.example.com)
+trước reload: 22053 nginx: worker process;22054 nginx: worker process;
+tpan internal reload-web trả về sau 135 ms
++0ms curl 200/0 | 23357 nginx: worker process;23358 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== SAU tpan, lần 5, off (a.example.com)
+trước reload: 23357 nginx: worker process;23358 nginx: worker process;
+tpan internal reload-web trả về sau 123 ms
++0ms curl 000/52 | 24547 nginx: worker process;24548 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== SAU tpan, lần 5, on (a.example.com)
+trước reload: 24547 nginx: worker process;24548 nginx: worker process;
+tpan internal reload-web trả về sau 128 ms
++0ms curl 200/0 | 25872 nginx: worker process;25873 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== SAU systemctl, lần 1, off (a.example.com)
+trước reload: 25872 nginx: worker process;25873 nginx: worker process;
+systemctl reload nginx trả về sau 10 ms
++0ms curl 200/0 | 25872 nginx: worker process;25873 nginx: worker process;27171 nginx: worker process;27172 nginx: worker process;
++97ms curl 000/52 | 27171 nginx: worker process;27172 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== SAU systemctl, lần 1, on (a.example.com)
+trước reload: 27171 nginx: worker process;27172 nginx: worker process;
+systemctl reload nginx trả về sau 27 ms
++1ms curl 000/52 | 27171 nginx: worker process;27172 nginx: worker process;28470 nginx: worker process;28471 nginx: worker process;
++98ms curl 000/52 | 28470 nginx: worker process;28471 nginx: worker process;
++105ms curl 200/0 | 28470 nginx: worker process;28471 nginx: worker process;
+kết quả cuối: curl 200/0
+
+=== SAU systemctl, lần 2, off (a.example.com)
+trước reload: 28470 nginx: worker process;28471 nginx: worker process;
+systemctl reload nginx trả về sau 8 ms
++0ms curl 200/0 | 28470 nginx: worker process;28471 nginx: worker process;29773 nginx: worker process;29774 nginx: worker process;
++98ms curl 200/0 | 29773 nginx: worker process;29774 nginx: worker process;
++103ms curl 000/52 | 29773 nginx: worker process;29774 nginx: worker process;
+kết quả cuối: curl 000/52
+
+=== SAU systemctl, lần 2, on (a.example.com)
+trước reload: 29773 nginx: worker process;29774 nginx: worker process;
+systemctl reload nginx trả về sau 7 ms
++0ms curl 000/52 | 29773 nginx: worker process;29774 nginx: worker process;31160 nginx: worker process;31161 nginx: worker process;
++93ms curl 000/52 | 31160 nginx: worker process;31161 nginx: worker process;
++103ms curl 200/0 | 31160 nginx: worker process;31161 nginx: worker process;
+kết quả cuối: curl 200/0
+
+
+######## apache: request đầu tiên ngay sau reload kéo dài bao lâu (curl -m 10, đo time_total), bản đã sửa tpan 2543ecc-dirty (commit 2543ecc, build 2026-11-19T15:25:32Z), 2026-11-19 22:35:06
+lần 1: systemctl reload apache2; request đầu: HTTP 200 0.000664s (curl mã 0)
+lần 2: systemctl reload apache2; request đầu: HTTP 200 1.132675s (curl mã 0)
+lần 3: systemctl reload apache2; request đầu: HTTP 200 1.005875s (curl mã 0)
+lần 4: systemctl reload apache2; request đầu: HTTP 200 0.000396s (curl mã 0)
+lần 5: systemctl reload apache2; request đầu: HTTP 200 0.000370s (curl mã 0)
+lần 6: systemctl reload apache2; request đầu: HTTP 200 1.036262s (curl mã 0)
+lần 7: systemctl reload apache2; request đầu: HTTP 200 1.012730s (curl mã 0)
+lần 8: systemctl reload apache2; request đầu: HTTP 200 0.000381s (curl mã 0)
+lần 9: systemctl reload apache2; request đầu: HTTP 200 0.000349s (curl mã 0)
+lần 10: systemctl reload apache2; request đầu: HTTP 200 0.000312s (curl mã 0)

@@ -16,16 +16,14 @@
 # Các phần:
 #   a. máy sạch, triển khai, stack nginx, tpan setup, site a.example.com
 #   b. khoá dùng một lần, vm.sh ssh-key; đo ssh không tty, sudo -n
-#   c. bước 12: đủ 15 công cụ; list_sites dưới bí danh; log có câu lệnh cài
+#   c. bước 12: đủ 18 công cụ (15 của M7, 3 của M8); list_sites dưới bí danh; log có câu lệnh cài
 #      vào User-Agent nằm trong thẻ <untrusted>; propose_site_add b.example.com
 #      có plan_id, pending; máy không đổi gì; apply_plan ở chế độ panel bị từ
 #      chối; tpan plan list thấy Plan origin mcp, untrusted
 #   d. sudo tpan plan approve → b.example.com 200; duyệt lần hai bị từ chối
-#   e. lỗi cố ý: bỏ symlink bật vhost của a.example.com rồi reload nginx
-#      (nginx -t vẫn qua); site_health chỉ ra chặng; propose_site_repair;
-#      duyệt → health đạt lại, site 200. Lỗi này viết ngay ở đây vì
-#      scripts/faults/ thuộc M4 đang làm song song; có thể chuyển sang đó sau
-#      khi ghép các mốc.
+#   e. lỗi cố ý: scripts/faults/07-vhost-disable.sh bỏ symlink bật vhost của
+#      a.example.com rồi reload nginx (nginx -t vẫn qua); site_health chỉ ra
+#      chặng; propose_site_repair; duyệt → health đạt lại, site 200.
 #   f. chế độ client: propose_site_remove rồi apply_plan trong CÙNG một phiên
 #   g. API: GET /api/v1/plans, /api/v1/agent sau khi đăng nhập panel
 #   h. rò rỉ: output thô của mọi lần gọi client và bảng ai_calls không có tên
@@ -418,7 +416,9 @@ main_run() {
   printf 'connect: %s\n' "$(mask_str <<<"$conn")"
   tools="$(jq -c -s '[.[] | select(.op == "list_tools")][0].result.tools | map(.name) | sort' "$MCP_OUT")"
   printf 'Công cụ: %s\n' "$tools"
-  ok "đủ 15 công cụ đúng tên của danh mục" test "$tools" = '["apply_plan","get_job","get_plan","list_jobs","list_plans","list_sites","machine","managed_file","propose_site_add","propose_site_remove","propose_site_repair","propose_stack_repair","site_health","stack_status","tail_log"]'
+  # 15 công cụ của M7, cộng 3 của M8: current_view, propose_health_fix,
+  # propose_ssl_issue (docs/thay-doi/M8.md, đợt 1).
+  ok "đủ 18 công cụ đúng tên của danh mục (15 của M7, 3 của M8)" test "$tools" = '["apply_plan","current_view","get_job","get_plan","list_jobs","list_plans","list_sites","machine","managed_file","propose_health_fix","propose_site_add","propose_site_remove","propose_site_repair","propose_ssl_issue","propose_stack_repair","site_health","stack_status","tail_log"]'
   ok "không có công cụ shell, chạy lệnh hay ghi file" bash -c '! grep -qiE "shell|exec|bash|write_file|run_command" <<<"$1"' _ "$tools"
   sites="$(mtext list_sites)"
   ok "list_sites trả đúng 1 site dưới bí danh *.example (không phải $A)" bash -c 'jq -e "length == 1 and (.[0].domain | test(\"\\\\.example$\")) and .[0].domain != \"$2\"" <<<"$1" >/dev/null' _ "$sites" "$A"
@@ -470,12 +470,12 @@ main_run() {
   vroot tpan plan approve "$PC" --yes --json
   ok "duyệt lần hai: từ chối plan_not_pending, mã 1" bash -c '[ "$1" -eq 1 ] && jq -e ".error.code == \"plan_not_pending\"" <<<"$2" >/dev/null' _ "$RC" "$OUT"
 
-  section "e. lỗi cố ý: bỏ symlink bật vhost của $A, nginx -t vẫn qua, reload"
-  vroot bash -c "rm -v /etc/nginx/sites-enabled/tpan-$A.conf && nginx -t && systemctl reload nginx"
-  ok "gỡ symlink, nginx -t qua, reload xong" rc_is 0
-  # `systemctl reload nginx` trả về trước khi worker cũ thôi nhận kết nối: lần
-  # chạy đầu, curl ngay sau reload vẫn nhận 200 từ worker cũ (đã thấy một lần
-  # khi viết script; phép kiểm của site_health chạy sau đó 1,7 giây đã thấy 444).
+  section "e. lỗi cố ý (scripts/faults/07-vhost-disable.sh): bỏ symlink bật vhost của $A, nginx -t vẫn qua, reload"
+  run scripts/faults/07-vhost-disable.sh break "$A"
+  ok "07 break: gỡ symlink, nginx -t qua, reload xong" rc_is 0
+  # `systemctl reload nginx` của kịch bản trả về khoảng 100 ms trước khi worker
+  # cũ thôi nhận kết nối (docs/bang-chung/M8-reload.log). Đây là e2e chờ hiện
+  # tượng, không phải phép kiểm của tpan (bước reload của tpan đã tự chờ).
   # Gọi lại tới khi thấy nginx mới (444, curl mã 52), tối đa 10 giây, in mọi lần.
   vexec bash -c 'for i in $(seq 1 40); do c="$(curl -sS -m 5 -o /dev/null -w "%{http_code}" --resolve "$1:80:127.0.0.1" "http://$1/" 2>&1)"; rc=$?; echo "lần $i: $c (curl mã $rc)"; [ "$rc" = 52 ] && exit 52; sleep 0.25; done; exit "$rc"' _ "$A"
   ok "$A giờ rơi vào site mặc định (curl mã 52)" rc_is 52

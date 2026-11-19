@@ -141,6 +141,10 @@ type siteAddIn struct {
 
 func (a siteAddIn) domainArg() string { return a.Domain }
 
+type checkIDIn struct {
+	CheckID string `json:"check_id" jsonschema:"Id of a failing check exactly as site_health or stack_status returned it (for example web.vhost:site-a.example or service.active:nginx)."`
+}
+
 type planIDIn struct {
 	PlanID string `json:"plan_id" jsonschema:"Plan id returned by a propose_* tool or list_plans."`
 }
@@ -196,6 +200,9 @@ var catalog = sync.OnceValue(func() []Tool {
 		newTool("get_plan", KindRead, false,
 			"Show one plan and its preview: every step, the commands it will run and the files it will write (as text).",
 			nil, getPlan),
+		newTool("current_view", KindRead, false,
+			"Show what the user has open in the tpan web panel right now and up to 10 screens they visited just before (newest first). Use it when the user talks about \"what is open on the panel\" or \"this site\" without naming it.",
+			nil, currentView),
 
 		// ---- lập Plan
 		newTool("propose_site_add", KindPlan, false,
@@ -210,6 +217,12 @@ var catalog = sync.OnceValue(func() []Tool {
 		newTool("propose_stack_repair", KindPlan, false,
 			"Propose a plan that re-runs the stack install to fix the web server, PHP or MariaDB setup."+proposeNote,
 			nil, proposeStackRepair),
+		newTool("propose_health_fix", KindPlan, false,
+			"Propose tpan's automatic fix for one failing health check. Take check_id from site_health or stack_status. Only some failures have an automatic fix (a stopped service, a missing PHP socket, a broken or disabled vhost or config file, wp-config.php permissions, a locked database user); others are refused. The fix is built from the result recorded by tpan's last health run, not from what you pass, so a check that is not recorded, passes now or has no automatic fix is refused."+proposeNote,
+			nil, proposeHealthFix),
+		newTool("propose_ssl_issue", KindPlan, false,
+			"Propose a plan that gets a Let's Encrypt certificate for a site and switches it to HTTPS (vhost on port 443, redirect from port 80, WordPress URLs). Refused when the domain does not point to this server or no Let's Encrypt email is set."+proposeNote,
+			nil, proposeSSLIssue),
 
 		// ---- chạy Plan
 		newTool("apply_plan", KindApply, false,

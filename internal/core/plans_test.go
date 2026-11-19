@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
@@ -611,6 +612,141 @@ func TestStackRepair(t *testing.T) {
 	}
 }
 
+// memChecks là bảng check_results trong bộ nhớ (CheckLookup).
+type memChecks map[string]checks.Result
+
+func (m memChecks) CheckResultOf(_ context.Context, id string) (checks.Result, bool, error) {
+	r, ok := m[id]
+	return r, ok, nil
+}
+
+// health.fix: Prepare đọc kết quả ĐÃ LƯU của phép kiểm, không tin gì người gọi
+// gửi ngoài id; đi trọn đường đề xuất, duyệt, chạy thì phép kiểm đạt lại.
+func TestHealthFixPlan(t *testing.T) {
+	const dom = "shop.example.com"
+	pe := newPlanEnv(t, Nginx)
+	pe.add(t, dom)
+	l := pe.layout(t, dom)
+	id := "web.vhost:" + dom
+	if err := pe.m.Remove(l.NginxLink); err != nil {
+		t.Fatal(err)
+	}
+	cs, err := pe.s.Checks(ctx, mustDomain(t, dom))
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored := memChecks{}
+	for _, r := range checks.RunAll(ctx, pe.m, cs) {
+		stored[r.ID] = r
+	}
+	if stored[id].Status != checks.Fail {
+		t.Fatalf("xoá symlink mà %s = %s", id, stored[id].Status)
+	}
+
+	// Chưa có bảng kết quả (Checks nil), id trống, id không có: check_not_found.
+	for _, tc := range []struct {
+		name string
+		c    CheckLookup
+		id   string
+	}{
+		{"Checks nil", nil, id},
+		{"id trống", stored, ""},
+		{"id không có", stored, "web.vhost:none.example.com"},
+	} {
+		pe.p.Checks = tc.c
+		if _, err := pe.p.Prepare(ctx, PlanRequest{Kind: PlanHealthFix, CheckID: tc.id}); refusedCode(t, err) != "check_not_found" {
+			t.Errorf("%s: %v", tc.name, err)
+		}
+	}
+	pe.p.Checks = stored
+
+	// Kết quả đã lưu là Pass thì không có gì để sửa, dù người gọi muốn sửa.
+	passID := "wp.config:" + dom
+	if stored[passID].Status != checks.Pass {
+		t.Fatalf("%s = %s", passID, stored[passID].Status)
+	}
+	if _, err := pe.p.Prepare(ctx, PlanRequest{Kind: PlanHealthFix, CheckID: passID}); refusedCode(t, err) != "no_auto_fix" {
+		t.Errorf("kết quả đã lưu đạt: %v", err)
+	}
+
+	pp, err := pe.p.Propose(ctx, PlanRequest{Kind: PlanHealthFix, CheckID: id, Domain: "bo-qua.example.com"}, Proposal{Origin: engine.OriginAI})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(pp.Request) != `{"kind":"health.fix","check_id":"`+id+`"}` {
+		t.Errorf("Request = %s", pp.Request)
+	}
+	if pp.Kind != PlanHealthFix || pp.Target != dom || pp.Title.En == "" {
+		t.Errorf("Plan: kind %s, target %s, tiêu đề %+v", pp.Kind, pp.Target, pp.Title)
+	}
+	ap, err := pe.p.PrepareApprove(ctx, pp.ID, "cli")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := ap.Execute(ctx, nil)
+	if err != nil || res.Report.Job.Status != engine.JobSucceeded {
+		t.Fatalf("job: %v %s (%s)%s", err, res.Report.Job.Status, res.Report.Job.Error, failedChecks(res.Report.Checks))
+	}
+	if res.Report.Job.Kind != "fix."+FixWebRewrite {
+		t.Errorf("job kind %s", res.Report.Job.Kind)
+	}
+	for _, r := range checks.RunAll(ctx, pe.m, cs) {
+		if r.ID == id && r.Status != checks.Pass {
+			t.Errorf("sau khi sửa %s = %s", id, r.Status)
+		}
+	}
+	if got := pe.plans.get(t, pp.ID); got.JobID != res.Report.Job.ID {
+		t.Errorf("Plan không ghi job: %q", got.JobID)
+	}
+}
+
+// ssl.issue: Prepare qua SSL.PrepareIssue (cùng lời từ chối với `tpan ssl
+// issue`), Execute chạy SSLIssue.Execute.
+func TestSSLIssuePlan(t *testing.T) {
+	const dom = "shop.example.com"
+	se := newSSLEnv(t, Nginx)
+	se.add(t, dom)
+	p := &Planner{Sites: se.s, Plans: newMemPlans(), NotFound: errPlanMissing, NotPending: errPlanNotPending}
+
+	if _, err := p.Prepare(ctx, PlanRequest{Kind: PlanSSLIssue, Domain: dom}); refusedCode(t, err) != "acme_email_missing" {
+		t.Errorf("chưa có email ACME: %v", err)
+	}
+	se.setEmail(t)
+	if _, err := p.Prepare(ctx, PlanRequest{Kind: PlanSSLIssue, Domain: "none.example.com"}); refusedCode(t, err) != "site_not_found" {
+		t.Errorf("site không có: %v", err)
+	}
+	if _, err := p.Prepare(ctx, PlanRequest{Kind: PlanSSLIssue, Domain: "a.com; rm -rf /"}); !errors.As(err, new(*validate.Error)) {
+		t.Errorf("domain tấn công: %v", err)
+	}
+
+	pp, err := p.Propose(ctx, PlanRequest{Kind: PlanSSLIssue, Domain: "SHOP.example.com", Email: "bo-qua@example.com"}, Proposal{Origin: engine.OriginMCP})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(pp.Request) != `{"kind":"ssl.issue","domain":"`+dom+`"}` {
+		t.Errorf("Request = %s", pp.Request)
+	}
+	if pp.Kind != PlanSSLIssue || pp.Target != dom || !strings.Contains(pp.Title.En, "SSL") {
+		t.Errorf("Plan: kind %s, target %s, tiêu đề %+v", pp.Kind, pp.Target, pp.Title)
+	}
+	if len(se.certbot) != 0 {
+		t.Fatal("đề xuất đã chạy certbot")
+	}
+	ap, err := p.PrepareApprove(ctx, pp.ID, "cli")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := ap.Execute(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Kiểm chứng của Plan SSL gọi HTTPS thật (máy giả không có), nên job có
+	// thể hoàn tác; ở đây chỉ cần thấy đúng Plan xin SSL đã chạy.
+	if res.Report.Job.ID == "" || res.Report.Job.Kind != "site.ssl" || len(se.certbot) != 1 {
+		t.Errorf("job %+v; certbot %d lần", res.Report.Job, len(se.certbot))
+	}
+}
+
 func TestPrepareInputs(t *testing.T) {
 	pe := newPlanEnv(t, Nginx)
 	for _, tc := range []struct {
@@ -628,6 +764,9 @@ func TestPrepareInputs(t *testing.T) {
 		{"email tấn công", PlanRequest{Kind: PlanSiteAdd, Domain: "shop.example.com", Email: "a@example.com; rm -rf /"}, ""},
 		{"tiêu đề xuống dòng", PlanRequest{Kind: PlanSiteAdd, Domain: "shop.example.com", Email: "admin@example.com", Title: "a\nb"}, "title_invalid"},
 		{"xoá site không có", PlanRequest{Kind: PlanSiteRemove, Domain: "shop.example.com"}, "site_not_found"},
+		{"sửa phép kiểm không id", PlanRequest{Kind: PlanHealthFix}, "check_not_found"},
+		{"SSL domain tấn công", PlanRequest{Kind: PlanSSLIssue, Domain: "$(id).example.com"}, ""},
+		{"SSL domain trống", PlanRequest{Kind: PlanSSLIssue}, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := pe.p.Prepare(ctx, tc.req)
@@ -693,10 +832,14 @@ func TestAgentConfig(t *testing.T) {
 		want AgentSettings
 		err  bool
 	}{
-		{"chưa có DB", EmptySettings{}, AgentSettings{Approval: ApprovalPanel, Redact: "all"}, false},
-		{"trống", mapSettings{SettingMCPApproval: "", SettingAIRedact: ""}, AgentSettings{Approval: ApprovalPanel, Redact: "all"}, false},
-		{"client, secrets", mapSettings{SettingMCPApproval: "client", SettingAIRedact: "secrets"}, AgentSettings{Approval: ApprovalClient, Redact: "secrets"}, false},
-		{"panel, all", mapSettings{SettingMCPApproval: "panel", SettingAIRedact: "all"}, AgentSettings{Approval: ApprovalPanel, Redact: "all"}, false},
+		{"chưa có DB", EmptySettings{}, AgentSettings{Approval: ApprovalPanel, Redact: "all", Brain: BrainOff}, false},
+		{"trống", mapSettings{SettingMCPApproval: "", SettingAIRedact: "", SettingAIBrain: ""}, AgentSettings{Approval: ApprovalPanel, Redact: "all", Brain: BrainOff}, false},
+		{"client, secrets", mapSettings{SettingMCPApproval: "client", SettingAIRedact: "secrets"}, AgentSettings{Approval: ApprovalClient, Redact: "secrets", Brain: BrainOff}, false},
+		{"panel, all", mapSettings{SettingMCPApproval: "panel", SettingAIRedact: "all"}, AgentSettings{Approval: ApprovalPanel, Redact: "all", Brain: BrainOff}, false},
+		{"bộ não bridge", mapSettings{SettingAIBrain: "bridge"}, AgentSettings{Approval: ApprovalPanel, Redact: "all", Brain: BrainBridge}, false},
+		{"bộ não off", mapSettings{SettingAIBrain: "off"}, AgentSettings{Approval: ApprovalPanel, Redact: "all", Brain: BrainOff}, false},
+		{"bộ não lạ", mapSettings{SettingAIBrain: "local"}, AgentSettings{}, true},
+		{"bộ não hoa thường", mapSettings{SettingAIBrain: "Bridge"}, AgentSettings{}, true},
 		{"chế độ lạ", mapSettings{SettingMCPApproval: "auto"}, AgentSettings{}, true},
 		{"hoa thường", mapSettings{SettingMCPApproval: "Client"}, AgentSettings{}, true},
 		{"mức che lạ", mapSettings{SettingAIRedact: "none"}, AgentSettings{}, true},

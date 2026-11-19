@@ -11,6 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/doxuta/tpan/internal/ai"
+	"github.com/doxuta/tpan/internal/ai/bridge"
+	"github.com/doxuta/tpan/internal/ai/fake"
 	"github.com/doxuta/tpan/internal/buildinfo"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/demo"
@@ -123,6 +126,11 @@ func serveCmd(e *env) *cobra.Command {
 				printf(e.stdout, "%s %s\n", e.tr("Mật khẩu đăng nhập demo:", "Demo login password:"), pw)
 				wpHash, wpcliHash := demo.Hashes()
 				deps = server.Deps{Sys: sys, Store: st, Demo: true, Hostname: "demo", WPHash: wpHash, WPCLISHA512: wpcliHash}
+				// Bộ não giả (kịch bản soạn sẵn) để thử ngăn AI trên máy không
+				// có Claude Code. Delay để chữ hiện dần như thật. Brain (tình
+				// trạng bridge) để nil: không có Hub nào.
+				deps.AI = &ai.Panel{Store: st, Brain: &fake.Brain{Delay: 150 * time.Millisecond}, Hostname: "demo"}
+				deps.BrainMode = server.BrainModeDemo
 			} else {
 				st, err := openStore(ctx, e)
 				if err != nil {
@@ -136,6 +144,7 @@ func serveCmd(e *env) *cobra.Command {
 				// DBPath cho phép kiểm quyền 0600 của tpan.db trong health. Máy
 				// demo không có file thật nên không đặt.
 				deps.Store, deps.Hostname, deps.DBPath = st, host, e.dbPath
+				deps.AI, deps.Brain, deps.BrainMode = serveAI(ctx, e, st, host)
 			}
 			return server.Run(ctx, server.RunOptions{Listen: listen, CertFile: certFile, KeyFile: keyFile, Deps: deps})
 		},
@@ -146,6 +155,36 @@ func serveCmd(e *env) *cobra.Command {
 	f.StringVar(&keyFile, "tls-key", "", "file khoá riêng PEM của chứng chỉ")
 	f.BoolVar(&demoMode, "demo", false, "chạy trên máy giả có sẵn dữ liệu mẫu, không đụng máy thật")
 	return c
+}
+
+// serveAI dựng AI trong panel theo setting ai.brain (đọc một lần lúc khởi
+// động). Lỗi ở đây chỉ tắt AI và in rõ lý do ra stderr (journal của systemd),
+// không làm serve chết: panel vẫn phải chạy để quản trị máy.
+//
+// Chỉ gán Hub vào kết quả khi Listen thành công: một *bridge.Hub nil bỏ vào
+// interface (ai.Brain, Deps.Brain) thì interface đó khác nil, Panel tưởng AI
+// đang bật rồi panic ở lần hỏi đầu.
+func serveAI(ctx context.Context, e *env, st *store.Store, host string) (*ai.Panel, interface{ Status() bridge.Status }, string) {
+	// Dọn lượt còn running của lần chạy trước (tiến trình chết giữa lượt) kể
+	// cả khi AI giờ đã tắt: không thì lượt đó hiện "đang chạy" mãi ở trang
+	// Phiên AI.
+	if err := (&ai.Panel{Store: st}).Recover(ctx); err != nil {
+		printf(e.stderr, "%s %v\n", e.tr("Không dọn được các lượt hỏi AI còn dở:", "Could not close unfinished AI questions:"), err)
+	}
+	cfg, err := core.AgentConfig(ctx, st)
+	if err != nil {
+		printf(e.stderr, "%s %v\n", e.tr("AI tắt vì đọc cấu hình AI lỗi:", "AI is off because reading the AI settings failed:"), err)
+		return nil, nil, server.BrainModeOff
+	}
+	if cfg.Brain != core.BrainBridge {
+		return nil, nil, server.BrainModeOff
+	}
+	hub, err := bridge.Listen(ctx, bridge.SocketPath)
+	if err != nil {
+		printf(e.stderr, "%s %v\n", e.tr("AI tắt vì không mở được socket cho bộ não:", "AI is off because the brain socket could not be opened:"), err)
+		return nil, nil, server.BrainModeOff
+	}
+	return &ai.Panel{Store: st, Brain: hub, Hostname: host}, hub, server.BrainModeBridge
 }
 
 // isLoopbackListen: địa chỉ nghe chỉ nhận kết nối từ chính máy này.

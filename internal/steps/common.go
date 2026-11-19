@@ -25,6 +25,7 @@ import (
 	"io/fs"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -195,11 +196,107 @@ func runReload(ctx context.Context, sys system.System, reload *system.Cmd, what 
 	if reload == nil {
 		return nil
 	}
-	res, err := sys.Run(ctx, *reload)
+	res, err := Reload(ctx, sys, *reload)
 	if err != nil {
 		return withStdout(fmt.Errorf("nạp lại dịch vụ sau khi %s: %w", what, err), res)
 	}
 	return nil
+}
+
+// ---- Reload nginx: chờ tới khi config mới thật sự nhận kết nối ----
+
+// NginxPIDFile là nơi nginx.service của Ubuntu ghi PID của tiến trình master.
+const NginxPIDFile = "/run/nginx.pid"
+
+// Thời hạn và nhịp hỏi khi chờ nginx áp dụng một lần reload. Là biến để test
+// chạy nhanh.
+var (
+	reloadWaitMax  = 5 * time.Second
+	reloadWaitTick = 20 * time.Millisecond
+)
+
+// Reload chạy lệnh reload. Với `systemctl reload nginx`, nó chỉ trả về khi
+// mọi worker còn nhận kết nối đều thuộc thế hệ mới (đã đọc config mới).
+//
+// Vì sao phải chờ: `systemctl reload nginx` chỉ gửi SIGHUP cho master rồi trả
+// về ngay. Master đọc config, mở worker mới, rồi chờ thêm 100 ms mới bảo worker
+// cũ thôi nhận kết nối. Đo trên máy ảo (docs/bang-chung/M8-reload.log): 20/20
+// lần, request đầu tiên sau khi reload trả về vẫn do worker cũ trả lời, và kết
+// quả chỉ đổi sau 93 đến 102 ms. Phép kiểm HTTP chạy trong khoảng đó thấy máy
+// như trước reload: vhost vừa gỡ vẫn 200 (đạt giả), vhost vừa bật vẫn 444.
+//
+// Apache (`apachectl graceful`) không cần chờ: đo cùng cách, lúc reload trả về
+// tiến trình con cũ đã thoát và mọi trả lời đã theo config mới. Tiến trình con
+// cũ của apache còn phục vụ request dở thì vẫn mang tên cũ, nên chờ nó thoát là
+// chờ cả những lần tải file dài.
+//
+// Không đọc được PID của master (máy giả trong test, --demo, nginx chưa chạy)
+// thì không chờ.
+func Reload(ctx context.Context, sys system.System, cmd system.Cmd) (system.Result, error) {
+	if cmd.Name != "systemctl" || !slices.Equal(cmd.Args, []string{"reload", "nginx"}) {
+		return sys.Run(ctx, cmd)
+	}
+	master, old := nginxWorkers(ctx, sys, "")
+	res, err := sys.Run(ctx, cmd)
+	if err != nil || master == "" || len(old) == 0 {
+		return res, err
+	}
+	return res, waitNginxReload(ctx, sys, master, old)
+}
+
+// nginxWorkers trả PID của master (đọc NginxPIDFile khi master rỗng) và tập
+// PID các worker còn nhận kết nối: tiến trình con có tên đúng "nginx: worker
+// process". Worker cũ đã nhận lệnh thôi việc đổi tên thành "nginx: worker
+// process is shutting down" (nó đã đóng cổng nghe, chỉ phục vụ nốt kết nối
+// đang mở); cache manager, cache loader không nhận request. Lỗi thì trả tập rỗng.
+func nginxWorkers(ctx context.Context, sys system.System, master string) (string, map[string]bool) {
+	if master == "" {
+		b, err := sys.ReadFile(NginxPIDFile)
+		if err != nil {
+			return "", nil
+		}
+		master = strings.TrimSpace(string(b))
+		if master == "" || strings.Trim(master, "0123456789") != "" {
+			return "", nil
+		}
+	}
+	res, err := sys.Run(ctx, system.Cmd{Name: "ps", Args: []string{"-o", "pid=,args=", "--ppid", master}})
+	if err != nil {
+		return master, nil
+	}
+	ws := map[string]bool{}
+	for _, line := range strings.Split(res.Stdout, "\n") {
+		pid, args, _ := strings.Cut(strings.TrimSpace(line), " ")
+		if strings.TrimSpace(args) == "nginx: worker process" {
+			ws[pid] = true
+		}
+	}
+	return master, ws
+}
+
+// waitNginxReload chờ tới khi có worker nhận kết nối và không worker nào trong
+// số đó thuộc tập old. Quá reloadWaitMax là lỗi: master chưa áp dụng config
+// mới (nginx chỉ ghi lý do vào error.log, systemctl vẫn báo thành công).
+func waitNginxReload(ctx context.Context, sys system.System, master string, old map[string]bool) error {
+	deadline := time.Now().Add(reloadWaitMax)
+	for {
+		_, cur := nginxWorkers(ctx, sys, master)
+		stale := false
+		for p := range cur {
+			stale = stale || old[p]
+		}
+		if len(cur) > 0 && !stale {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("nginx chưa áp dụng cấu hình mới sau %v: worker cũ vẫn nhận kết nối (xem /var/log/nginx/error.log)", reloadWaitMax)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(reloadWaitTick):
+		}
+	}
 }
 
 // verifyOrRestore chạy Test rồi Reload sau một thay đổi. Hỏng ở đâu thì trả

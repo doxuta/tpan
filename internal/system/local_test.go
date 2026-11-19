@@ -324,3 +324,55 @@ func TestLocalLock(t *testing.T) {
 		t.Fatal("không lấy được khoá sau khi unlock")
 	}
 }
+
+// M8: Dir, Env (cộng vào môi trường cố định, PATH trong Env dùng để tìm lệnh)
+// và StartPipe (ống hai chiều cho tpan brain).
+func TestLocalRunDirEnvPipe(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	s := NewLocal()
+	res, err := s.Run(ctx, Cmd{Name: "pwd", Dir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// macOS: /var là symlink tới /private/var.
+	want, _ := filepath.EvalSymlinks(dir)
+	if got := strings.TrimSpace(res.Stdout); got != dir && got != want {
+		t.Errorf("pwd = %q, muốn %q", got, dir)
+	}
+	res, err = s.Run(ctx, Cmd{Name: "env", Env: []string{"TPAN_X=1", "LC_ALL=en_US.UTF-8"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(res.Stdout, "TPAN_X=1\n") || !strings.Contains(res.Stdout, "LC_ALL=en_US.UTF-8\n") || strings.Contains(res.Stdout, "LC_ALL=C\n") {
+		t.Errorf("env thiếu biến thêm hoặc không đè được biến trùng tên:\n%s", res.Stdout)
+	}
+	// Lệnh chỉ có trong PATH của Env thì vẫn tìm được.
+	bin := filepath.Join(dir, "tpan-only-here")
+	if err := os.WriteFile(bin, []byte("#!/bin/cat\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Run(ctx, Cmd{Name: "tpan-only-here"}); err == nil {
+		t.Error("lệnh ngoài PATH cố định mà vẫn chạy được")
+	}
+	if _, err := s.Run(ctx, Cmd{Name: "tpan-only-here", Env: []string{"PATH=" + dir}}); err != nil {
+		t.Errorf("lệnh trong PATH của Env: %v", err)
+	}
+
+	p, err := StartPipe(ctx, Cmd{Name: "cat"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Stdin.Write([]byte("xin chào\n")); err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 64)
+	n, err := p.Stdout.Read(buf)
+	if err != nil || string(buf[:n]) != "xin chào\n" {
+		t.Errorf("đọc lại qua ống = %q, %v", buf[:n], err)
+	}
+	_ = p.Stdin.Close()
+	if err := p.Wait(); err != nil {
+		t.Errorf("Wait: %v", err)
+	}
+}

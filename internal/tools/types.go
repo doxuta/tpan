@@ -4,7 +4,7 @@
 //
 // Ba loại:
 //   - đọc (KindRead): danh sách site, phép kiểm, số liệu máy, đuôi log, file do
-//     tpan quản lý, lịch sử job, Plan;
+//     tpan quản lý, lịch sử job, Plan, mục đang mở trên panel;
 //   - lập Plan (KindPlan): chỉ sinh một Plan ở trạng thái chờ duyệt;
 //   - chạy Plan (KindApply): apply_plan, chỉ chạy được ở chế độ duyệt client,
 //     cho Plan do chính phiên trực tiếp đó đề xuất (mục 8.3).
@@ -16,9 +16,11 @@
 //	//   đọc:     list_sites, site_health{domain}, stack_status, machine,
 //	//            tail_log{domain, log: access|error|php-error, lines<=200},
 //	//            managed_file{path} (chỉ file có trong managed_files),
-//	//            list_jobs{limit<=50}, get_job{id}, list_plans{status}, get_plan{id}
+//	//            list_jobs{limit<=50}, get_job{id}, list_plans{status}, get_plan{id},
+//	//            current_view{} (M8: mục đang mở trên panel và tối đa 10 mục vừa đi qua)
 //	//   lập Plan: propose_site_add{domain, email, title}, propose_site_remove{domain},
-//	//            propose_site_repair{domain}, propose_stack_repair{}
+//	//            propose_site_repair{domain}, propose_stack_repair{},
+//	//            propose_health_fix{check_id}, propose_ssl_issue{domain} (M8)
 //	//   chạy:    apply_plan{plan_id}
 //	func Catalog() []Tool
 //	// OpenSession mở phiên: o.ID rỗng thì tạo phiên mới (entry mcp, origin

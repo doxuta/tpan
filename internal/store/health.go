@@ -518,3 +518,11 @@ func (s *Store) StuckJobs(ctx context.Context, before time.Time) ([]engine.Job, 
 	}
 	return out, nil
 }
+
+// CheckResultOf là CheckResult chỉ lấy phần checks.Result (M8): core.Planner
+// dựng Plan sửa một phát hiện của health từ kết quả đã lưu, mà core không
+// import store nên không gọi tên được StoredResult.
+func (s *Store) CheckResultOf(ctx context.Context, id string) (checks.Result, bool, error) {
+	r, ok, err := s.CheckResult(ctx, id)
+	return r.Result, ok, err
+}

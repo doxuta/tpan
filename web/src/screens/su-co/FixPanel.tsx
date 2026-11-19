@@ -2,20 +2,21 @@
 // riêng cho file lệch:
 //   1. Sửa tự động: xem trước (dry_run) → PlanReview → chạy → chuyển sang /jobs/:id.
 //   2. Sửa tay: các lệnh để người vận hành tự gõ, dòng cuối là lệnh kiểm lại.
-//   3. Hỏi AI: chưa có ở bản này, chỉ một ghi chú, không nút giả.
+//   3. Hỏi AI (M8): mở ngăn AI với câu hỏi chẩn đoán soạn sẵn, người xem trước rồi tự gửi.
 //   +  Phép kiểm lệch ("drift:<path>"): nhận bản sửa tay làm chuẩn.
 // Máy chỉ đổi qua bản xem trước đã duyệt (nguyên tắc ở mục 10 của KE-HOACH.md).
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
+import { useAi } from "../../ai/AiProvider";
 import { post } from "../../api/client";
 import type { AcceptFileRequest, CheckResult, FixRequest, Incident, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
 import { CommandBlock } from "../../components/CommandBlock";
 import { Dialog } from "../../components/Dialog";
 import { MonoText } from "../../components/MonoText";
-import { useStrings } from "../../i18n";
+import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/su-co";
 import { PlanReview } from "../duyet-plan";
 import { ErrorNote } from "../site/ErrorNote";
@@ -31,6 +32,8 @@ type Props = {
 
 export function FixPanel({ incident, live }: Props) {
   const t = useStrings(strings);
+  const { lang } = useLang();
+  const { openAI } = useAi();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -147,9 +150,22 @@ export function FixPanel({ incident, live }: Props) {
         </Option>
       )}
 
-      {/* Hỏi AI: AI vào ở các mốc sau. Chỉ một ghi chú, không nút giả. */}
-      <Option heading={t.aiHeading} id="hoi-ai" muted>
+      {/* Hỏi AI: cùng lối vào với nút "Chẩn đoán" ở đầu trang. Ngăn AI mở ra ở bước xem trước, người xem rồi tự gửi. */}
+      <Option heading={t.aiHeading} id="hoi-ai">
         <p className="m-0 text-muted">{t.aiBody}</p>
+        <div className="pt-[10px]">
+          <Button
+            onClick={() =>
+              openAI({
+                mode: "diagnose",
+                question: t.diagnoseQuestion(tx(incident.title, lang)),
+                pointer: { kind: "incident", ref: String(incident.id), label: tx(incident.title, lang) },
+              })
+            }
+          >
+            {t.aiButton}
+          </Button>
+        </div>
       </Option>
     </section>
   );

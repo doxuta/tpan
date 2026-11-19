@@ -109,7 +109,13 @@ const vi = {
   acceptFailed: "Chưa nhận được bản sửa tay.",
 
   aiHeading: "Hỏi AI",
-  aiBody: "Chưa có ở bản này. AI đến ở các bản sau; khi đó bạn gửi phát hiện và bằng chứng đã che cho nó chẩn đoán.",
+  aiBody: "AI đọc phát hiện và bằng chứng đã che rồi chẩn đoán. Ngăn AI mở ra với câu hỏi soạn sẵn; bạn xem thứ sẽ gửi rồi tự bấm Gửi. AI chỉ đề xuất, máy chỉ đổi khi bạn duyệt.",
+  aiButton: "Hỏi AI",
+
+  // Nút "Chẩn đoán" ở đầu trang sự cố.
+  diagnose: "Chẩn đoán",
+  diagnoseHint: "Mở ngăn AI với câu hỏi soạn sẵn. Bạn xem thứ sẽ gửi rồi mới bấm Gửi.",
+  diagnoseQuestion: (title: string) => `Chẩn đoán sự cố “${title}”: nguyên nhân có thể là gì, và nên sửa theo cách nào.`,
 };
 
 export const strings = defineStrings(vi, {
@@ -216,5 +222,10 @@ export const strings = defineStrings(vi, {
   acceptFailed: "Could not keep the hand edit.",
 
   aiHeading: "Ask AI",
-  aiBody: "Not in this version. AI arrives in later versions; then you can send it the finding and the masked evidence to diagnose.",
+  aiBody: "AI reads the finding and the masked evidence, then diagnoses. The AI drawer opens with a prepared question; you see what will be sent and press Send yourself. AI only proposes, the machine changes only when you approve.",
+  aiButton: "Ask AI",
+
+  diagnose: "Diagnose",
+  diagnoseHint: "Opens the AI drawer with a prepared question. You see what will be sent, then press Send yourself.",
+  diagnoseQuestion: (title) => `Diagnose the incident “${title}”: what could the cause be, and how should I fix it.`,
 });

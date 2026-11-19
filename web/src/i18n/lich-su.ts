@@ -108,6 +108,12 @@ const vi = {
     ({ prepare: "Chuẩn bị site", commit: "Reload web server", finish: "Cài WordPress", verify: "Kiểm chứng" })[phase as "prepare" | "commit" | "finish" | "verify"] ?? phase,
   unitsFailedAll: "Không site nào xong. tpan đã hoàn tác từng site, máy về như trước khi chạy. Xem bảng bên dưới để biết site nào hỏng ở bước nào.",
   unitsFailedUndo: "Có lần hoàn tác bị lỗi nên máy có thể đang dở dang. Xem bảng bên dưới và phần Hoàn tác, kiểm máy rồi hãy chạy lại.",
+
+  // Nút "Giải thích" trên bước lỗi: mở ngăn AI với câu hỏi soạn sẵn, người xem trước rồi tự gửi.
+  explain: "Giải thích",
+  explainStepHint: "Mở ngăn AI với câu hỏi soạn sẵn. Bạn xem thứ sẽ gửi rồi mới bấm Gửi.",
+  explainStepQuestion: (step: string) => `Giải thích vì sao bước ${step} lỗi và mình nên làm gì.`,
+  explainStepLabel: (step: string) => `Bước ${step}`,
 };
 
 export const strings = defineStrings(vi, {
@@ -214,4 +220,9 @@ export const strings = defineStrings(vi, {
     ({ prepare: "Preparing the site", commit: "Reloading the web server", finish: "Installing WordPress", verify: "Verification" })[phase as "prepare" | "commit" | "finish" | "verify"] ?? phase,
   unitsFailedAll: "No site finished. tpan rolled back each site, so the machine is as it was before. Read the table below to see which site failed at which step.",
   unitsFailedUndo: "A rollback failed, so the machine may be half-changed. Read the table below and the Rollback section, and check the machine before running again.",
+
+  explain: "Explain",
+  explainStepHint: "Opens the AI drawer with a prepared question. You see what will be sent, then press Send yourself.",
+  explainStepQuestion: (step) => `Explain why step ${step} failed and what I should do.`,
+  explainStepLabel: (step) => `Step ${step}`,
 });

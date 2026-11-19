@@ -116,6 +116,11 @@ func AutoFixName(r checks.Result) string {
 		return FixFileRewrite
 	case "config.nginx", "config.apache":
 		return FixWebRewrite
+	case "web.vhost":
+		// Vhost của một site mất, bị thay, hay chưa bật (symlink ở
+		// sites-enabled bị xoá): ghi lại vhost và symlink của riêng site đó
+		// (Fixes.vhostRewrite), Verify là chính web.vhost.
+		return FixWebRewrite
 	case "wp.config":
 		return FixWPConfigPerm
 	case "db.access":

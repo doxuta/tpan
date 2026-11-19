@@ -16,7 +16,7 @@ import (
 	"fmt"
 )
 
-const aiSessionColumns = "id, entry, client, question, context, aliases, untrusted, created_at, last_at"
+const aiSessionColumns = "id, entry, client, question, context, aliases, untrusted, brain_session, created_at, last_at"
 
 // rawOrNull: JSON rỗng lưu thành "null" để cột NOT NULL luôn chứa JSON hợp lệ.
 // Thứ không phải JSON thì từ chối: nó sẽ làm hỏng việc trả lại qua API
@@ -63,9 +63,9 @@ func (s *Store) CreateAISession(ctx context.Context, a AISession) error {
 		a.Last = a.Created
 	}
 	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO ai_sessions (id, entry, client, question, context, aliases, untrusted, created_at, last_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.ID, a.Entry, a.Client, a.Question, sctx, aliases, siteBool(a.Untrusted),
+		`INSERT INTO ai_sessions (id, entry, client, question, context, aliases, untrusted, brain_session, created_at, last_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		a.ID, a.Entry, a.Client, a.Question, sctx, aliases, siteBool(a.Untrusted), a.BrainSession,
 		fmtTime(a.Created), fmtTime(a.Last))
 	if err != nil {
 		return fmt.Errorf("tạo phiên AI %s: %w", a.ID, err)
@@ -73,39 +73,49 @@ func (s *Store) CreateAISession(ctx context.Context, a AISession) error {
 	return nil
 }
 
-// AISession đọc một phiên; không có thì lỗi thoả errors.Is(err, ErrNotFound).
-// Aliases đọc ra luôn khác nil để người gọi ghi thêm vào được.
-func (s *Store) AISession(ctx context.Context, id string) (AISession, error) {
+// aiSessionScan đọc một dòng ai_sessions theo thứ tự aiSessionColumns. Dùng chung
+// cho AISession (một dòng) và AISessions (danh sách của panel). Aliases đọc ra
+// luôn khác nil để người gọi ghi thêm vào được.
+func aiSessionScan(r rowScanner, a *AISession) error {
 	var (
-		a             AISession
 		sctx, aliases string
 		untrusted     int
 		created, last string
 	)
-	err := s.db.QueryRowContext(ctx, "SELECT "+aiSessionColumns+" FROM ai_sessions WHERE id = ?", id).
-		Scan(&a.ID, &a.Entry, &a.Client, &a.Question, &sctx, &aliases, &untrusted, &created, &last)
-	if errors.Is(err, sql.ErrNoRows) {
-		return AISession{}, fmt.Errorf("phiên AI %s: %w", id, ErrNotFound)
-	}
-	if err != nil {
-		return AISession{}, fmt.Errorf("đọc phiên AI %s: %w", id, err)
+	if err := r.Scan(&a.ID, &a.Entry, &a.Client, &a.Question, &sctx, &aliases, &untrusted,
+		&a.BrainSession, &created, &last); err != nil {
+		return err
 	}
 	if sctx != "" {
 		a.Context = json.RawMessage(sctx)
 	}
 	a.Aliases = map[string]string{}
 	if err := json.Unmarshal([]byte(aliases), &a.Aliases); err != nil {
-		return AISession{}, fmt.Errorf("giải mã bảng bí danh của phiên AI %s: %w", id, err)
+		return fmt.Errorf("giải mã bảng bí danh của phiên AI %s: %w", a.ID, err)
 	}
 	if a.Aliases == nil { // cột chứa chữ "null"
 		a.Aliases = map[string]string{}
 	}
 	a.Untrusted = untrusted != 0
+	var err error
 	if a.Created, err = parseTime(created); err != nil {
-		return AISession{}, fmt.Errorf("phiên AI %s: %w", id, err)
+		return fmt.Errorf("phiên AI %s: %w", a.ID, err)
 	}
 	if a.Last, err = parseTime(last); err != nil {
-		return AISession{}, fmt.Errorf("phiên AI %s: %w", id, err)
+		return fmt.Errorf("phiên AI %s: %w", a.ID, err)
+	}
+	return nil
+}
+
+// AISession đọc một phiên; không có thì lỗi thoả errors.Is(err, ErrNotFound).
+func (s *Store) AISession(ctx context.Context, id string) (AISession, error) {
+	var a AISession
+	err := aiSessionScan(s.db.QueryRowContext(ctx, "SELECT "+aiSessionColumns+" FROM ai_sessions WHERE id = ?", id), &a)
+	if errors.Is(err, sql.ErrNoRows) {
+		return AISession{}, fmt.Errorf("phiên AI %s: %w", id, ErrNotFound)
+	}
+	if err != nil {
+		return AISession{}, fmt.Errorf("đọc phiên AI %s: %w", id, err)
 	}
 	return a, nil
 }

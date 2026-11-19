@@ -1,0 +1,1297 @@
+
+
+######## [2026-11-19 22:44:36] a. máy sạch, triển khai, stack nginx, tpan setup, site a.example.com và b.example.com
+
+[2026-11-19 22:44:36] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m8  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m8.clean
+[2K[0A[0EStarting tpan-m8  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ [2K[0A[0E
+[2026-11-19 22:44:49] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-19 22:44:49] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-19 22:44:49] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+Máy ảo: tpan-m8; IP máy ảo: <vm>; IP của Mac trong mạng Multipass: <mac>; tên máy Mac: <mac-host> (đều được che trong log)
+
+[2026-11-19 22:44:50] $ make vm-deploy DATE=2026-11-19T15:44:36Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 7h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 11ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 297 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-m05fWPrE.css                                   26.90 kB │ gzip:   6.64 kB
+dist/assets/OriginTag-BK52YIYu.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-AWK2LXTs.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/Field-vsahcV8m.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/MonoText-BqP2Sc49.js                                  0.67 kB │ gzip:   0.43 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-DhLOcJes.js                                 0.89 kB │ gzip:   0.44 kB
+dist/assets/useMutation-Bn8UXl33.js                               2.32 kB │ gzip:   0.97 kB
+dist/assets/co-so-du-lieu-DcAF4bG3.js                             2.98 kB │ gzip:   1.34 kB
+dist/assets/tao-site-BIzvOjxG.js                                  5.61 kB │ gzip:   2.44 kB
+dist/assets/dang-nhap-D_fwTvAt.js                                 5.82 kB │ gzip:   2.56 kB
+dist/assets/plan-cho-duyet-BN8Np8WD.js                            6.12 kB │ gzip:   2.09 kB
+dist/assets/bao-mat-DV4AH9eO.js                                   9.97 kB │ gzip:   4.07 kB
+dist/assets/ssl-C_pAuZCq.js                                      12.16 kB │ gzip:   4.50 kB
+dist/assets/site-CKkc8CY0.js                                     16.20 kB │ gzip:   5.23 kB
+dist/assets/cai-dat-B_wMjF5u.js                                  18.02 kB │ gzip:   5.64 kB
+dist/assets/phien-ai-bNUDEphC.js                                 18.28 kB │ gzip:   5.87 kB
+dist/assets/lich-su-mC7KXdp9.js                                  21.97 kB │ gzip:   7.23 kB
+dist/assets/su-co-B1PmUO2v.js                                    22.85 kB │ gzip:   7.28 kB
+dist/assets/ErrorNote-B0Ugrg-3.js                                23.90 kB │ gzip:   8.61 kB
+dist/assets/bang-dieu-khien-Clciouyc.js                          25.51 kB │ gzip:   7.80 kB
+dist/assets/ScreenHeader-Bkgn-o4K.js                             40.48 kB │ gzip:  14.54 kB
+dist/assets/hooks-9JzbPC4C.js                                    74.14 kB │ gzip:  24.43 kB
+dist/assets/index-C_3cyNxE.js                                   338.92 kB │ gzip: 106.72 kB
+
+✓ built in 152ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=cfb0a61 -X github.com/doxuta/tpan/internal/buildinfo.Commit=cfb0a61 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T15:44:36Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=cfb0a61 -X github.com/doxuta/tpan/internal/buildinfo.Commit=cfb0a61 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T15:44:36Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan cfb0a61 (commit cfb0a61, build 2026-11-19T15:44:36Z)
+[2026-11-19 22:44:52] (mã thoát 0)
+  => ĐẠT: build và chép tpan vào máy ảo
+
+[2026-11-19 22:44:52] $ go build -o <tmp>/tpan-darwin ./cmd/tpan
+[2026-11-19 22:44:53] (mã thoát 0)
+  => ĐẠT: build tpan cho Mac (chạy tpan brain)
+
+[2026-11-19 22:44:53] $ go build -o <tmp>/fakebin/claude ./scripts/e2e-m8/fakeclaude
+[2026-11-19 22:44:54] (mã thoát 0)
+  => ĐẠT: build claude giả (SDK go-sdk, CommandTransport)
+
+[2026-11-19 22:44:54] cấu hình claude giả: {"mode":"propose","extra_tool":"","think_ms":1000,"delta_ms":150}
+
+[2026-11-19 22:44:54] $ shasum -a 256 bin/tpan-linux-arm64 bin/tpan-linux-amd64
+5af25bf125ccc86f2dcbeb6faea976ed4c56fbfe6394eed63f47a52f5147acf2  bin/tpan-linux-arm64
+d727d0a59d70fc22e4a2058edd1ac98fecc7d0ffd43f011cafa247048bfe1408  bin/tpan-linux-amd64
+[2026-11-19 22:44:54] (mã thoát 0)
+
+[2026-11-19 22:44:54] $ git log --oneline -1
+cfb0a61 ghi chú M8: khối Đã chốt khi làm M8 (CLI, API, mã từ chối, migration 800, công cụ mới, sửa web.vhost, reload, prompt); tpan brain: --max-turns trong dòng cách dùng
+[2026-11-19 22:44:54] (mã thoát 0)
+
+[2026-11-19 22:44:54] $ git status --short
+?? docs/bang-chung/M8-claude-cuoi.log
+[2026-11-19 22:44:54] (mã thoát 0)
+
+[2026-11-19 22:44:54] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job db296331f6552e53
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+
+Job db296331f6552e53: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.1%
+[2026-11-19 22:45:18] (mã thoát 0)
+  => ĐẠT: stack install thoát 0
+
+[2026-11-19 22:45:18] $ scripts/vm.sh exec systemctl is-active nginx php8.3-fpm mariadb
+active
+active
+active
+[2026-11-19 22:45:18] (mã thoát 0)
+  => ĐẠT: 3 dịch vụ active
+
+[2026-11-19 22:45:18] $ scripts/vm.sh root tpan setup --yes
+Bắt đầu job 0e3766c5c119f0ee
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 0e3766c5c119f0ee: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    77:E5:A5:A1:FB:5A:36:C3:45:2F:70:2D:FE:38:A4:9E:96:91:82:B6:C8:48:15:24:F0:FA:00:90:49:D8:83:2B
+Mở: https://<IP của máy>:8443
+[2026-11-19 22:45:19] (mã thoát 0)
+  => ĐẠT: setup thoát 0, nhặt được mật khẩu panel
+
+[2026-11-19 22:45:19] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job 3bed69e1e823c4bf
+- Tạo user Linux tp_a_example_com_7653e4 cho site ...
+  xong
+- Tạo thư mục /var/www/a.example.com ...
+  xong
+- Tạo thư mục /var/www/a.example.com/public ...
+  xong
+- Tạo thư mục /var/www/a.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/a.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_a_example_com_7653e4 và user DB riêng của site a.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/a.example.com/public ...
+  xong
+- Tạo /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Ghi vhost nginx cho a.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf ...
+  xong
+- Cài WordPress cho a.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job 3bed69e1e823c4bf: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://a.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-19 22:45:29] (mã thoát 0)
+  => ĐẠT: site add a.example.com thoát 0
+Đã đọc mật khẩu DB của a.example.com vào danh sách che (32 ký tự).
+
+[2026-11-19 22:45:29] $ scripts/vm.sh exec curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-19 22:45:29] (mã thoát 0)
+  => ĐẠT: a.example.com trả 200
+
+[2026-11-19 22:45:29] $ scripts/vm.sh root tpan site add b.example.com --email admin@example.com --yes
+Bắt đầu job 81ce11dc30562ec1
+- Tạo user Linux tp_b_example_com_cd59d5 cho site ...
+  xong
+- Tạo thư mục /var/www/b.example.com ...
+  xong
+- Tạo thư mục /var/www/b.example.com/public ...
+  xong
+- Tạo thư mục /var/www/b.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/b.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/b.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_b_example_com_cd59d5 và user DB riêng của site b.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-b_example_com_cd59d5 cho b.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Giải nén WordPress vào /var/www/b.example.com/public ...
+  xong
+- Tạo /var/www/b.example.com/public/wp-config.php ...
+  xong
+- Ghi vhost nginx cho b.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-b.example.com.conf → /etc/nginx/sites-available/tpan-b.example.com.conf ...
+  xong
+- Cài WordPress cho b.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Site b.example.com không đọc được wp-config.php của site a.example.com
+  [đạt] Site a.example.com không đọc được wp-config.php của site b.example.com
+
+Job 81ce11dc30562ec1: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_b_example_com_cd59d5
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_b_example_com_cd59d5
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của b.example.com
+  [đạt] Site b.example.com không đọc được wp-config.php của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không đọc được wp-config.php của a.example.com
+  [đạt] Site a.example.com không đọc được wp-config.php của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không đọc được wp-config.php của b.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://b.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-19 22:45:34] (mã thoát 0)
+  => ĐẠT: site add b.example.com thoát 0
+Đã đọc mật khẩu DB của b.example.com vào danh sách che (32 ký tự).
+
+[2026-11-19 22:45:34] $ scripts/vm.sh exec curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve b.example.com:80:127.0.0.1 http://b.example.com/
+200
+[2026-11-19 22:45:34] (mã thoát 0)
+  => ĐẠT: b.example.com trả 200
+
+[2026-11-19 22:45:34] $ scripts/vm.sh root hostname
+tpan-m8
+[2026-11-19 22:45:35] (mã thoát 0)
+
+
+######## [2026-11-19 22:45:35] b. khoá ssh dùng một lần (thư mục tạm, không ~/.ssh), scripts/vm.sh ssh-key
+
+[2026-11-19 22:45:35] $ ssh-keygen -q -t ed25519 -N  -C tpan-e2e -f <tmp>/id_e2e
+[2026-11-19 22:45:35] (mã thoát 0)
+  => ĐẠT: sinh khoá ed25519
+
+[2026-11-19 22:45:35] $ scripts/vm.sh ssh-key <tmp>/id_e2e.pub
+Đã thêm khoá vào /home/ubuntu/.ssh/authorized_keys.
+[2026-11-19 22:45:35] (mã thoát 0)
+  => ĐẠT: vm.sh ssh-key thêm khoá
+
+[2026-11-19 22:45:35] $ ssh -F /dev/null -i <tmp>/id_e2e -o IdentitiesOnly=yes -o IdentityAgent=none -o UserKnownHostsFile=<tmp>/known_hosts -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o LogLevel=ERROR -o ConnectTimeout=10 ubuntu@<vm> sudo -n tpan version
+tpan cfb0a61 (commit cfb0a61, build 2026-11-19T15:44:36Z)
+[2026-11-19 22:45:35] (mã thoát 0)
+  => ĐẠT: sudo -n tpan qua ssh không tty: chạy, không hỏi mật khẩu
+
+
+######## [2026-11-19 22:45:35] c. bật bộ não: sudo tpan mcp config --brain bridge, khởi động lại tpan
+
+[2026-11-19 22:45:35] $ scripts/vm.sh root tpan mcp config --brain bridge
+Khởi động lại tpan để áp dụng: sudo systemctl restart tpan
+Chế độ duyệt:    panel (người duyệt trên web hoặc bằng sudo tpan plan approve <id>)
+Mức che:         all (che bí mật và thay domain, IP, email bằng bí danh)
+Bộ não:          bridge (Claude Code trên máy của bạn, nối bằng tpan brain <máy>)
+[2026-11-19 22:45:35] (mã thoát 0)
+  => ĐẠT: mcp config --brain bridge thoát 0
+
+[2026-11-19 22:45:35] $ scripts/vm.sh root tpan mcp config --json
+{
+  "approval": "panel",
+  "redact": "all",
+  "brain": "bridge"
+}
+[2026-11-19 22:45:35] (mã thoát 0)
+  => ĐẠT: ai.brain = bridge
+
+[2026-11-19 22:45:35] $ scripts/vm.sh root systemctl restart tpan
+[2026-11-19 22:45:35] (mã thoát 0)
+  => ĐẠT: restart tpan thoát 0
+
+[2026-11-19 22:45:35] $ scripts/vm.sh root bash -c for i in $(seq 1 20); do [ -S /run/tpan/brain.sock ] && break; sleep 0.5; done; systemctl is-active tpan; stat -c "%A %U:%G %n" /run/tpan /run/tpan/brain.sock
+active
+drwx------ root:root /run/tpan
+srw------- root:root /run/tpan/brain.sock
+[2026-11-19 22:45:36] (mã thoát 0)
+  => ĐẠT: tpan active, /run/tpan/brain.sock là socket 0600 của root
+
+[2026-11-19 22:45:36] $ scripts/vm.sh root bash -c journalctl -u tpan -b --no-pager -o cat | tail -n 20
+Started tpan.service - tpan panel.
+2026/11/19 22:45:19 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=cfb0a61
+2026/11/19 22:45:19 INFO health: đang có job, bỏ vòng này full=true domain=""
+Stopping tpan.service - tpan panel...
+tpan.service: Deactivated successfully.
+Stopped tpan.service - tpan panel.
+Started tpan.service - tpan panel.
+2026/11/19 22:45:36 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=cfb0a61
+pam_unix(runuser:session): session opened for user tp_a_example_com_7653e4(uid=999) by (uid=0)
+[2026-11-19 22:45:36] (mã thoát 0)
+  => ĐẠT: journal của tpan không có lỗi mở socket bộ não
+
+
+######## [2026-11-19 22:45:36] d. API: đăng nhập panel
+
+[2026-11-19 22:45:36] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login.json https://<vm>:8443/api/v1/login
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+set-cookie: __Host-tpan=<đã che>; Path=/; HttpOnly; Secure; SameSite=Strict
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 15:45:36 GMT
+
+-> HTTP 204, 0.167310s
+[2026-11-19 22:45:36] (mã thoát 0)
+  => ĐẠT: đăng nhập: 204
+
+[2026-11-19 22:45:36] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/ai/brain
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 92
+date: Thu, 19 Nov 2026 15:45:36 GMT
+
+-> HTTP 200, 0.003243s
+[2026-11-19 22:45:36] (mã thoát 0)
+{
+  "mode": "bridge",
+  "connected": false,
+  "connect_command": "tpan brain <user>@tpan-m8"
+}
+  => ĐẠT: GET /ai/brain trước khi nối: mode bridge, chưa nối, có lệnh nối
+
+
+######## [2026-11-19 22:45:36] e. lỗi cố ý ở b.example.com (scripts/faults/07-vhost-disable.sh): bỏ symlink bật vhost rồi reload nginx (nginx -t vẫn qua); ghi kết quả health
+
+[2026-11-19 22:45:36] $ scripts/faults/07-vhost-disable.sh break b.example.com
+Đã xoá symlink /etc/nginx/sites-enabled/tpan-b.example.com.conf.
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+Đã kiểm cú pháp và reload nginx. Mong đợi Fail: web.vhost:b.example.com
+Xem kết quả: scripts/vm.sh root tpan health
+Sửa tự động: scripts/vm.sh root tpan health --fix --yes
+[2026-11-19 22:45:41] (mã thoát 0)
+  => ĐẠT: 07 break: gỡ symlink, nginx -t qua, reload xong
+
+[2026-11-19 22:45:41] $ scripts/vm.sh exec bash -c for i in $(seq 1 40); do c="$(curl -sS -m 5 -o /dev/null -w "%{http_code}" --resolve "$1:80:127.0.0.1" "http://$1/" 2>&1)"; rc=$?; echo "lần $i: $c (curl mã $rc)"; [ "$rc" = 52 ] && exit 52; sleep 0.25; done; exit "$rc" _ b.example.com
+lần 1: 200 (curl mã 0)
+lần 2: curl: (52) Empty reply from server
+000 (curl mã 52)
+[2026-11-19 22:45:41] (mã thoát 52)
+  => ĐẠT: b.example.com rơi vào site mặc định (curl mã 52)
+
+[2026-11-19 22:45:41] $ scripts/vm.sh exec curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-19 22:45:41] (mã thoát 0)
+  => ĐẠT: a.example.com vẫn 200
+
+[2026-11-19 22:45:41] $ scripts/vm.sh root tpan health
+
+== Máy và stack ==
+[đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.5%
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 84.2% (3.2 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+[đạt] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi
+[đạt] File /etc/systemd/system/tpan.service còn đúng như tpan đã ghi: File /etc/systemd/system/tpan.service đúng như tpan đã ghi
+[đạt] File /etc/tpan/tls/cert.pem còn đúng như tpan đã ghi: File /etc/tpan/tls/cert.pem đúng như tpan đã ghi
+
+16 đạt
+
+== Site a.example.com ==
+[đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+[đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+[đạt] Site a.example.com không đọc được wp-config.php của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không đọc được wp-config.php của b.example.com
+[đạt] Site b.example.com không đọc được wp-config.php của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không đọc được wp-config.php của a.example.com
+[đạt] File /etc/nginx/sites-available/tpan-a.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-a.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf đúng như tpan đã ghi
+
+10 đạt
+
+== Site b.example.com ==
+[lỗi] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site chưa được bật (không có /etc/nginx/sites-enabled/tpan-b.example.com.conf)
+    Nguyên nhân: File vhost có nhưng không có symlink ở sites-enabled nên web server không đọc nó: request tới b.example.com rơi vào site mặc định.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ln -s /etc/nginx/sites-available/tpan-b.example.com.conf /etc/nginx/sites-enabled/tpan-b.example.com.conf
+      sudo nginx -t
+      sudo systemctl reload nginx
+      sudo ls -l /etc/nginx/sites-available/tpan-b.example.com.conf /etc/nginx/sites-enabled/tpan-b.example.com.conf
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_b_example_com_cd59d5
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_b_example_com_cd59d5
+[lỗi] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Web server đóng kết nối không trả gì cho b.example.com
+    Nguyên nhân: Request mang tên b.example.com rơi vào site mặc định (nginx đóng kết nối, mã 444): vhost của site chưa được bật hoặc chưa được nạp.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo grep -Rl b.example.com /etc/nginx/sites-enabled /etc/apache2/sites-enabled
+      sudo tpan site add b.example.com
+      sudo curl -sS --max-time 15 --resolve b.example.com:80:127.0.0.1 -o /dev/null -w '%{http_code}
+' http://b.example.com/
+[đạt] File /etc/nginx/sites-available/tpan-b.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-b.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf đúng như tpan đã ghi
+
+6 đạt, 2 lỗi
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.7 GiB
+[đạt] Chứng chỉ HTTPS của panel còn hạn: Chứng chỉ của panel còn 3652 ngày
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: /etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan có quyền 0700, chủ root:root: /etc/tpan: quyền 0700, chủ root:root đúng
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[đạt] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health vẫn chạy
+
+8 đạt
+
+Sự cố vừa mở:
+  #1 [web] Vhost của site có, do tpan quản lý và đang được bật (web.vhost:b.example.com)
+  #2 [e2e] Gọi HTTP vào site trả 200 và đúng là WordPress của site (http.site:b.example.com)
+[2026-11-19 22:45:45] (mã thoát 1)
+  => ĐẠT: tpan health báo lỗi (mã khác 0) ở b.example.com
+
+
+######## [2026-11-19 22:45:45] f. tpan brain với claude THẬT (--model sonnet --max-turns 4)
+
+[2026-11-19 22:45:45] $ claude --version
+2.1.328 (Claude Code)
+[2026-11-19 22:45:45] (mã thoát 0)
+
+[2026-11-19 22:45:45] $ <tmp>/tpan-darwin brain ubuntu@<vm> --ssh-opt=-F --ssh-opt=/dev/null --ssh-opt=-i --ssh-opt=<tmp>/id_e2e --ssh-opt=-oIdentitiesOnly=yes --ssh-opt=-oIdentityAgent=none --ssh-opt=-oUserKnownHostsFile=<tmp>/known_hosts --ssh-opt=-oGlobalKnownHostsFile=/dev/null --ssh-opt=-oStrictHostKeyChecking=accept-new --ssh-opt=-oLogLevel=ERROR --ssh-opt=-oConnectTimeout=10 --max-turns 4 --model sonnet &
+Bộ não: đã nối ubuntu@<vm>, Claude Code 2.1.328, model sonnet
+Mỗi câu hỏi từ panel hiện sau dấu ?, mỗi lần gọi công cụ sau dấu →. Dừng bằng Ctrl+C.
+  => ĐẠT: tpan brain nối được
+
+[2026-11-19 22:45:46] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/ai/brain
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 270
+date: Thu, 19 Nov 2026 15:45:46 GMT
+
+-> HTTP 200, 0.003014s
+[2026-11-19 22:45:46] (mã thoát 0)
+{
+  "mode": "bridge",
+  "connected": true,
+  "host": "<mac-host>",
+  "claude_version": "2.1.328",
+  "tested_version": "2.1.328",
+  "model": "sonnet",
+  "auth_method": "claude.ai",
+  "since": "2026-11-19T22:45:46.144499041+07:00",
+  "connect_command": "tpan brain <user>@tpan-m8"
+}
+  => ĐẠT: GET /ai/brain: connected, host là tên máy Mac, model sonnet
+
+
+######## [2026-11-19 22:45:46] g. đang ở trang site b.example.com, bấm Chẩn đoán: câu hỏi 1
+
+[2026-11-19 22:45:46] thân gửi tới /api/v1/ai/views: {"path":"/sites/b.example.com","label":"Trang site b.example.com"}
+[2026-11-19 22:45:46] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/view-b.json https://<vm>:8443/api/v1/ai/views
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 15:45:46 GMT
+
+-> HTTP 204, 0.003962s
+[2026-11-19 22:45:46] (mã thoát 0)
+  => ĐẠT: POST /ai/views: 204
+
+[2026-11-19 22:45:46] thân gửi tới /api/v1/ai/preview: {"question":"Chẩn đoán vì sao site này lỗi rồi đề xuất cách sửa","lang":"vi","view":{"path":"/sites/b.example.com","label":"Trang site b.example.com"},"trail":[{"path":"/","label":"Bảng điều khiển"},{"path":"/sites/b.example.com","label":"Trang site b.example.com"}],"pointer":{"kind":"site","ref":"b.example.com","label":"Site b.example.com"}}
+[2026-11-19 22:45:46] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/r1.json https://<vm>:8443/api/v1/ai/preview
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 15:45:46 GMT
+
+-> HTTP 200, 0.005994s
+[2026-11-19 22:45:46] (mã thoát 0)
+{
+  "playbook": "site",
+  "chips": [
+    {
+      "key": "view",
+      "content": "Trang site site-b.example (/sites/site-b.example)"
+    },
+    {
+      "key": "pointer",
+      "content": "kind: site\nref: site-b.example\nlabel: Site site-b.example"
+    },
+    {
+      "key": "trail",
+      "content": "Bảng điều khiển (/)\nTrang site site-b.example (/sites/site-b.example)"
+    },
+    {
+      "key": "evidence",
+      "content": "site site-b.example\nstatus: active\nphp: 8.3\nssl: false\ncreated: 2026-11-19T15:45:34Z\nstored check results:\n- [pass] db.access:site-b.example (db): User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_site_b\n- [pass] drift:/etc/nginx/sites-available/tpan-site-b.example.conf (web): File /etc/nginx/sites-available/tpan-site-b.example.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-site-b.example.conf đúng như tpan đã ghi\n- [pass] drift:/etc/php/8.3/fpm/pool.d/tpan-site_b.conf (php): File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf đúng như tpan đã ghi\n- [fail] http.site:site-b.example (e2e): Gọi HTTP vào site trả 200 và đúng là WordPress của site: Web server đóng kết nối không trả gì cho site-b.example\n- [pass] php.socket:site-b.example (php): Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660\n- [fail] web.vhost:site-b.example (web): Vhost của site có, do tpan quản lý và đang được bật: Vhost của site chưa được bật (không có /etc/nginx/sites-enabled/tpan-site-b.example.conf)\n- [pass] wp.checksums:site-b.example (wordpress): Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum\n- [pass] wp.config:site-b.example (wordpress): wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_site_b"
+    },
+    {
+      "key": "machine",
+      "content": "web server: nginx\ndefault php: 8.3\nactive sites: 2\ntpan version: cfb0a61\nui language: vi"
+    }
+  ]
+}
+  => ĐẠT: preview: view, pointer, trail, evidence, machine; bằng chứng có phép kiểm Fail của site
+  => ĐẠT: prompt xem trước không có a.example.com, b.example.com, IP máy ảo, hostname máy ảo
+
+[2026-11-19 22:45:46] $ scripts/vm.sh root bash -c 
+echo "## user tp_ (getent passwd | grep tp_)"; getent passwd | grep tp_
+echo "## ls /var/www"; ls /var/www
+echo "## SHOW DATABASES"; mariadb -N -e "SHOW DATABASES"
+echo "## user DB"; mariadb -N -e "SELECT User FROM mysql.user" | sort
+echo "## ls /etc/nginx/sites-enabled"; ls /etc/nginx/sites-enabled
+echo "## sha256sum /etc/nginx/sites-available/*"; sha256sum /etc/nginx/sites-available/*
+echo "## ls /etc/php/8.3/fpm/pool.d"; ls /etc/php/8.3/fpm/pool.d
+echo "## job, site trong tpan.db"; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"jobs:\", c.execute(\"SELECT COUNT(*) FROM jobs\").fetchone()[0], \"sites:\", c.execute(\"SELECT COUNT(*) FROM sites\").fetchone()[0])"
+## user tp_ (getent passwd | grep tp_)
+tp_a_example_com_7653e4:x:999:988::/var/www/a.example.com:/usr/sbin/nologin
+tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
+## ls /var/www
+a.example.com
+b.example.com
+html
+## SHOW DATABASES
+information_schema
+mysql
+performance_schema
+sys
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## user DB
+mariadb.sys
+mysql
+root
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## ls /etc/nginx/sites-enabled
+tpan-a.example.com.conf
+tpan-default.conf
+## sha256sum /etc/nginx/sites-available/*
+ce0901350a021608139b5639cf4ccd7717bef8c3a9e4f79031eb46386b67b03f  /etc/nginx/sites-available/default
+a7abe2d4240304755cc582efd59e97e2136d5396fb46812a86ebcb15c77f823a  /etc/nginx/sites-available/tpan-a.example.com.conf
+d1fd45089297cedac4ab67060774a3ffb1d96669aba80d2ea379fbef787d1adf  /etc/nginx/sites-available/tpan-b.example.com.conf
+bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23  /etc/nginx/sites-available/tpan-default.conf
+## ls /etc/php/8.3/fpm/pool.d
+tpan-a_example_com_7653e4.conf
+tpan-b_example_com_cd59d5.conf
+www.conf
+## job, site trong tpan.db
+jobs: 4 sites: 2
+[2026-11-19 22:45:46] (mã thoát 0)
+
+[2026-11-19 22:45:46] thân gửi tới /api/v1/ai/ask: {"question":"Chẩn đoán vì sao site này lỗi rồi đề xuất cách sửa","lang":"vi","view":{"path":"/sites/b.example.com","label":"Trang site b.example.com"},"trail":[{"path":"/","label":"Bảng điều khiển"},{"path":"/sites/b.example.com","label":"Trang site b.example.com"}],"pointer":{"kind":"site","ref":"b.example.com","label":"Site b.example.com"}}
+[2026-11-19 22:45:46] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/r1.json https://<vm>:8443/api/v1/ai/ask
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 42
+date: Thu, 19 Nov 2026 15:45:46 GMT
+
+-> HTTP 202, 0.008841s
+[2026-11-19 22:45:46] (mã thoát 0)
+{
+  "session_id": "4de04ebb39f4d979",
+  "seq": 1
+}
+  => ĐẠT: ask: 202
+
+>>> LẦN GỌI claude -p THẬT: câu hỏi 1 (phiên 4de04ebb39f4d979), ghi vào bảng của docs/thay-doi/M8.md
+
+[2026-11-19 22:45:46] $ curl -sS -N --cacert <tmp>/cert.pem -b <cookie> https://<vm>:8443/api/v1/ai/sessions/4de04ebb39f4d979/turns/1/events
++0.642s init version=2.1.328 model=claude-sonnet-5-5
++2.054s text (tổng 1 ký tự): …T
++2.127s text (tổng 10 ký tự): …Tôi chạy k
++2.164s text (tổng 19 ký tự): …Tôi chạy kiểm tra s
++2.201s text (tổng 32 ký tự): …Tôi chạy kiểm tra sức khỏe mới n
++2.234s text (tổng 39 ký tự): …Tôi chạy kiểm tra sức khỏe mới nhất của
++2.265s text (tổng 47 ký tự): …Tôi chạy kiểm tra sức khỏe mới nhất của site để
++2.302s text (tổng 58 ký tự): … kiểm tra sức khỏe mới nhất của site để xác nhận k
++2.338s text (tổng 66 ký tự): …a sức khỏe mới nhất của site để xác nhận kết quả đ
++2.369s text (tổng 72 ký tự): …khỏe mới nhất của site để xác nhận kết quả đã lưu.
++2.969s tool_call mcp__tpan__site_health input={"domain":"b.example.com"}
++2.988s tool_call mcp__tpan__stack_status input={}
++4.754s tool_result mcp__tpan__site_health (2000 ký tự)
++4.812s tool_result mcp__tpan__stack_status (2000 ký tự)
++6.785s text (tổng 75 ký tự): …e mới nhất của site để xác nhận kết quả đã lưu.⏎⏎N
++6.805s text (tổng 87 ký tự): …ủa site để xác nhận kết quả đã lưu.⏎⏎Nguyên nhân đ
++6.824s text (tổng 90 ký tự): …site để xác nhận kết quả đã lưu.⏎⏎Nguyên nhân đã r
++6.844s text (tổng 92 ký tự): …te để xác nhận kết quả đã lưu.⏎⏎Nguyên nhân đã rõ,
++6.863s text (tổng 105 ký tự): …n kết quả đã lưu.⏎⏎Nguyên nhân đã rõ, nên tôi đề x
++6.882s text (tổng 110 ký tự): … quả đã lưu.⏎⏎Nguyên nhân đã rõ, nên tôi đề xuất b
++6.901s text (tổng 118 ký tự): …lưu.⏎⏎Nguyên nhân đã rõ, nên tôi đề xuất bản sửa t
++6.92s text (tổng 134 ký tự): …n đã rõ, nên tôi đề xuất bản sửa tự động cho check
++6.94s text (tổng 136 ký tự): …đã rõ, nên tôi đề xuất bản sửa tự động cho check v
++6.959s text (tổng 141 ký tự): …, nên tôi đề xuất bản sửa tự động cho check vhost.
++6.983s tool_call mcp__tpan__propose_health_fix input={"check_id":"web.vhost:b.example.com"}
++7.004s tool_result mcp__tpan__propose_health_fix plan_id=8af70b0619d7e0fc (1995 ký tự)
++12.957s text (tổng 145 ký tự): …n tôi đề xuất bản sửa tự động cho check vhost.⏎⏎**
++12.979s text (tổng 146 ký tự): … tôi đề xuất bản sửa tự động cho check vhost.⏎⏎**N
++13s text (tổng 159 ký tự): …bản sửa tự động cho check vhost.⏎⏎**Nguyên nhân:**
++13.027s text (tổng 161 ký tự): …n sửa tự động cho check vhost.⏎⏎**Nguyên nhân:** v
++13.048s text (tổng 183 ký tự): …k vhost.⏎⏎**Nguyên nhân:** vhost của b.example.com
++13.067s text (tổng 203 ký tự): …hân:** vhost của b.example.com chưa được bật. File
++13.087s text (tổng 205 ký tự): …n:** vhost của b.example.com chưa được bật. File `
++13.107s text (tổng 216 ký tự): …của b.example.com chưa được bật. File `/etc/nginx/
++13.126s text (tổng 236 ký tự): …ưa được bật. File `/etc/nginx/sites-available/tpan
++13.147s text (tổng 254 ký tự): …`/etc/nginx/sites-available/tpan-b.example.com.con
++13.167s text (tổng 262 ký tự): …inx/sites-available/tpan-b.example.com.conf` có và
++13.186s text (tổng 264 ký tự): …x/sites-available/tpan-b.example.com.conf` có và đ
++13.206s text (tổng 278 ký tự): …ble/tpan-b.example.com.conf` có và đúng như tpan đ
++13.226s text (tổng 288 ký tự): ….example.com.conf` có và đúng như tpan đã ghi, như
++13.246s text (tổng 296 ký tự): ….com.conf` có và đúng như tpan đã ghi, nhưng không
++13.265s text (tổng 303 ký tự): …nf` có và đúng như tpan đã ghi, nhưng không có sym
++13.284s text (tổng 310 ký tự): …và đúng như tpan đã ghi, nhưng không có symlink tr
++13.305s text (tổng 324 ký tự): …an đã ghi, nhưng không có symlink trong `/etc/ngin
++13.327s text (tổng 339 ký tự): …g không có symlink trong `/etc/nginx/sites-enabled
++13.348s text (tổng 341 ký tự): …không có symlink trong `/etc/nginx/sites-enabled/`
++13.367s text (tổng 349 ký tự): … symlink trong `/etc/nginx/sites-enabled/` (`stat`
++13.386s text (tổng 356 ký tự): …k trong `/etc/nginx/sites-enabled/` (`stat` trả ex
++13.405s text (tổng 361 ký tự): …ng `/etc/nginx/sites-enabled/` (`stat` trả exit 1,
++13.425s text (tổng 378 ký tự): …tes-enabled/` (`stat` trả exit 1, "no such file").
++13.446s text (tổng 381 ký tự): …-enabled/` (`stat` trả exit 1, "no such file").⏎⏎V
++13.486s text (tổng 398 ký tự): …` trả exit 1, "no such file").⏎⏎Vì vậy nginx không
++13.513s text (tổng 400 ký tự): …trả exit 1, "no such file").⏎⏎Vì vậy nginx không đ
++13.536s text (tổng 412 ký tự): …"no such file").⏎⏎Vì vậy nginx không đọc vhost này
++13.555s text (tổng 423 ký tự): …le").⏎⏎Vì vậy nginx không đọc vhost này. Request t
++13.576s text (tổng 442 ký tự): … không đọc vhost này. Request tới b.example.com rơ
++13.596s text (tổng 461 ký tự): …y. Request tới b.example.com rơi vào site mặc định
++13.615s text (tổng 464 ký tự): …Request tới b.example.com rơi vào site mặc định và
++13.642s text (tổng 478 ký tự): …example.com rơi vào site mặc định và bị đóng kết n
++13.663s text (tổng 483 ký tự): …le.com rơi vào site mặc định và bị đóng kết nối (m
++13.683s text (tổng 497 ký tự): … site mặc định và bị đóng kết nối (mã 444). `curl`
++13.703s text (tổng 500 ký tự): …te mặc định và bị đóng kết nối (mã 444). `curl` bá
++13.723s text (tổng 505 ký tự): …c định và bị đóng kết nối (mã 444). `curl` báo `ex
++13.743s text (tổng 511 ký tự): … và bị đóng kết nối (mã 444). `curl` báo `exit 52,
++13.762s text (tổng 536 ký tự): …44). `curl` báo `exit 52, Empty reply from server`
++13.78s text (tổng 541 ký tự): …`curl` báo `exit 52, Empty reply from server`.⏎⏎**
++13.799s text (tổng 547 ký tự): … báo `exit 52, Empty reply from server`.⏎⏎**Các ph
++13.818s text (tổng 555 ký tự): …it 52, Empty reply from server`.⏎⏎**Các phần còn l
++13.836s text (tổng 559 ký tự): …2, Empty reply from server`.⏎⏎**Các phần còn lại đ
++13.855s text (tổng 562 ký tự): …Empty reply from server`.⏎⏎**Các phần còn lại đều 
++13.873s text (tổng 571 ký tự): …ly from server`.⏎⏎**Các phần còn lại đều ổn:**⏎- n
++13.892s text (tổng 581 ký tự): …rver`.⏎⏎**Các phần còn lại đều ổn:**⏎- nginx, php8
++13.91s text (tổng 592 ký tự): …ác phần còn lại đều ổn:**⏎- nginx, php8.3-fpm và m
++13.929s text (tổng 603 ký tự): … lại đều ổn:**⏎- nginx, php8.3-fpm và mariadb đang
++13.947s text (tổng 614 ký tự): …:**⏎- nginx, php8.3-fpm và mariadb đang chạy.⏎- `n
++13.966s text (tổng 626 ký tự): … php8.3-fpm và mariadb đang chạy.⏎- `nginx -t` hợp
++13.984s text (tổng 636 ký tự): …m và mariadb đang chạy.⏎- `nginx -t` hợp lệ.⏎- Soc
++14.002s text (tổng 644 ký tự): …iadb đang chạy.⏎- `nginx -t` hợp lệ.⏎- Socket PHP,
++14.021s text (tổng 655 ký tự): …hạy.⏎- `nginx -t` hợp lệ.⏎- Socket PHP, checksum W
++14.04s text (tổng 667 ký tự): …x -t` hợp lệ.⏎- Socket PHP, checksum WordPress, qu
++14.058s text (tổng 682 ký tự): … Socket PHP, checksum WordPress, quyền `wp-config.
++14.077s text (tổng 700 ký tự): …sum WordPress, quyền `wp-config.php` và truy cập D
++14.095s text (tổng 707 ký tự): …dPress, quyền `wp-config.php` và truy cập DB đều p
++14.114s text (tổng 711 ký tự): …ss, quyền `wp-config.php` và truy cập DB đều pass.
++14.133s text (tổng 724 ký tự): …-config.php` và truy cập DB đều pass.⏎⏎Hai check đ
++14.151s text (tổng 729 ký tự): …ig.php` và truy cập DB đều pass.⏎⏎Hai check đang f
++14.17s text (tổng 734 ký tự): …p` và truy cập DB đều pass.⏎⏎Hai check đang fail (
++14.188s text (tổng 748 ký tự): … DB đều pass.⏎⏎Hai check đang fail (`web.vhost` và
++14.207s text (tổng 763 ký tự): …Hai check đang fail (`web.vhost` và `http.site`) c
++14.226s text (tổng 772 ký tự): … đang fail (`web.vhost` và `http.site`) cùng một g
++14.245s text (tổng 775 ký tự): …ng fail (`web.vhost` và `http.site`) cùng một gốc.
++14.264s text (tổng 781 ký tự): …l (`web.vhost` và `http.site`) cùng một gốc. Check
++14.282s text (tổng 796 ký tự): …và `http.site`) cùng một gốc. Check `http.site` sẽ
++14.301s text (tổng 798 ký tự): … `http.site`) cùng một gốc. Check `http.site` sẽ h
++14.32s text (tổng 810 ký tự): …) cùng một gốc. Check `http.site` sẽ hết lỗi khi v
++14.338s text (tổng 828 ký tự): …eck `http.site` sẽ hết lỗi khi vhost được bật.⏎⏎**
++14.357s text (tổng 838 ký tự): …site` sẽ hết lỗi khi vhost được bật.⏎⏎**Đề xuất sử
++14.376s text (tổng 845 ký tự): …ẽ hết lỗi khi vhost được bật.⏎⏎**Đề xuất sửa:** tô
++14.394s text (tổng 858 ký tự): … vhost được bật.⏎⏎**Đề xuất sửa:** tôi đã tạo plan
++14.412s text (tổng 870 ký tự): …bật.⏎⏎**Đề xuất sửa:** tôi đã tạo plan [tpan:plan/
++14.43s text (tổng 875 ký tự): …⏎**Đề xuất sửa:** tôi đã tạo plan [tpan:plan/8af70
++14.449s text (tổng 885 ký tự): … sửa:** tôi đã tạo plan [tpan:plan/8af70b0619d7e0f
++14.468s text (tổng 897 ký tự): …đã tạo plan [tpan:plan/8af70b0619d7e0fc](tpan:plan
++14.486s text (tổng 909 ký tự): …[tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d
++14.504s text (tổng 916 ký tự): …lan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc),
++14.523s text (tổng 919 ký tự): …/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc), ch
++14.543s text (tổng 923 ký tự): …70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc), chưa á
++14.565s text (tổng 931 ký tự): …7e0fc](tpan:plan/8af70b0619d7e0fc), chưa áp dụng g
++14.586s text (tổng 934 ký tự): …fc](tpan:plan/8af70b0619d7e0fc), chưa áp dụng gì l
++14.609s text (tổng 954 ký tự): …0619d7e0fc), chưa áp dụng gì lên server. Plan có h
++14.634s text (tổng 965 ký tự): …, chưa áp dụng gì lên server. Plan có hai bước:⏎1.
++14.657s text (tổng 978 ký tự): …g gì lên server. Plan có hai bước:⏎1. Ghi lại file
++14.676s text (tổng 985 ký tự): …n server. Plan có hai bước:⏎1. Ghi lại file vhost.
++14.695s text (tổng 987 ký tự): …server. Plan có hai bước:⏎1. Ghi lại file vhost. N
++14.714s text (tổng 996 ký tự): …lan có hai bước:⏎1. Ghi lại file vhost. Nội dung c
++14.732s text (tổng 1000 ký tự): …có hai bước:⏎1. Ghi lại file vhost. Nội dung cũ và
++14.758s text (tổng 1007 ký tự): …bước:⏎1. Ghi lại file vhost. Nội dung cũ và mới gi
++14.776s text (tổng 1016 ký tự): …Ghi lại file vhost. Nội dung cũ và mới giống nhau.
++14.795s text (tổng 1027 ký tự): …e vhost. Nội dung cũ và mới giống nhau.⏎2. Tạo sym
++14.814s text (tổng 1033 ký tự): …t. Nội dung cũ và mới giống nhau.⏎2. Tạo symlink v
++14.832s text (tổng 1050 ký tự): … mới giống nhau.⏎2. Tạo symlink vào `sites-enabled
++14.851s text (tổng 1054 ký tự): … giống nhau.⏎2. Tạo symlink vào `sites-enabled`, r
++14.87s text (tổng 1059 ký tự): …g nhau.⏎2. Tạo symlink vào `sites-enabled`, rồi ch
++14.889s text (tổng 1071 ký tự): …ạo symlink vào `sites-enabled`, rồi chạy `nginx -t
++14.907s text (tổng 1089 ký tự): …tes-enabled`, rồi chạy `nginx -t` và `systemctl re
++14.926s text (tổng 1101 ký tự): …, rồi chạy `nginx -t` và `systemctl reload nginx`.
++14.944s text (tổng 1110 ký tự): …y `nginx -t` và `systemctl reload nginx`.⏎⏎Plan có
++14.963s text (tổng 1112 ký tự): …`nginx -t` và `systemctl reload nginx`.⏎⏎Plan có c
++14.981s text (tổng 1125 ký tự): … `systemctl reload nginx`.⏎⏎Plan có cảnh báo vì ph
++14.999s text (tổng 1137 ký tự): …reload nginx`.⏎⏎Plan có cảnh báo vì phiên này đã đ
++15.018s text (tổng 1141 ký tự): …ad nginx`.⏎⏎Plan có cảnh báo vì phiên này đã đọc n
++15.037s text (tổng 1156 ký tự): …n có cảnh báo vì phiên này đã đọc nội dung không t
++15.055s text (tổng 1166 ký tự): …báo vì phiên này đã đọc nội dung không tin cậy. Bạ
++15.073s text (tổng 1182 ký tự): … đã đọc nội dung không tin cậy. Bạn nên xem lại pl
++15.092s text (tổng 1190 ký tự): …nội dung không tin cậy. Bạn nên xem lại plan trong
++15.11s text (tổng 1198 ký tự): … không tin cậy. Bạn nên xem lại plan trong panel r
++15.129s text (tổng 1209 ký tự): …cậy. Bạn nên xem lại plan trong panel rồi duyệt, h
++15.147s text (tổng 1215 ký tự): …ạn nên xem lại plan trong panel rồi duyệt, hoặc ch
++15.166s text (tổng 1219 ký tự): …ên xem lại plan trong panel rồi duyệt, hoặc chạy `
++15.185s text (tổng 1233 ký tự): …n trong panel rồi duyệt, hoặc chạy `sudo tpan plan
++15.203s text (tổng 1247 ký tự): …rồi duyệt, hoặc chạy `sudo tpan plan approve 8af70
++15.222s text (tổng 1257 ký tự): … hoặc chạy `sudo tpan plan approve 8af70b0619d7e0f
++15.241s text (tổng 1267 ký tự): … `sudo tpan plan approve 8af70b0619d7e0fc`. Tôi ch
++15.259s text (tổng 1280 ký tự): …lan approve 8af70b0619d7e0fc`. Tôi chưa áp dụng pl
++15.279s text (tổng 1284 ký tự): …approve 8af70b0619d7e0fc`. Tôi chưa áp dụng plan v
++15.297s text (tổng 1287 ký tự): …rove 8af70b0619d7e0fc`. Tôi chưa áp dụng plan vì c
++15.316s text (tổng 1291 ký tự): … 8af70b0619d7e0fc`. Tôi chưa áp dụng plan vì cần b
++15.334s text (tổng 1300 ký tự): …19d7e0fc`. Tôi chưa áp dụng plan vì cần bạn duyệt.
++15.353s text (tổng 1303 ký tự): …7e0fc`. Tôi chưa áp dụng plan vì cần bạn duyệt.⏎⏎S
++15.371s text (tổng 1316 ký tự): …hưa áp dụng plan vì cần bạn duyệt.⏎⏎Sau khi duyệt,
++15.39s text (tổng 1318 ký tự): …a áp dụng plan vì cần bạn duyệt.⏎⏎Sau khi duyệt, n
++15.409s text (tổng 1327 ký tự): … plan vì cần bạn duyệt.⏎⏎Sau khi duyệt, nên chạy l
++15.428s text (tổng 1336 ký tự): …cần bạn duyệt.⏎⏎Sau khi duyệt, nên chạy lại health
++15.447s text (tổng 1346 ký tự): …yệt.⏎⏎Sau khi duyệt, nên chạy lại health check của
++15.466s text (tổng 1365 ký tự): …, nên chạy lại health check của site để xác nhận `
++15.485s text (tổng 1383 ký tự): …lth check của site để xác nhận `http.site` trả 200
++15.504s text (tổng 1384 ký tự): …th check của site để xác nhận `http.site` trả 200.
++15.523s done: Tôi chạy kiểm tra sức khỏe mới nhất của site để xác nhận kết quả đã lưu.
+
+Nguyên nhân đã rõ, nên tôi đề xuất bản sửa tự động cho check vhost.
+
+**Nguyên nhân:** vhost của b.example.com chưa được bật. File `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi, nhưng không có symlink trong `/etc/nginx/sites-enabled/` (`stat` trả exit 1, "no such file").
+
+Vì vậy nginx không đọc vhost này. Request tới b.example.com rơi vào site mặc định và bị đóng kết nối (mã 444). `curl` báo `exit 52, Empty reply from server`.
+
+**Các phần còn lại đều ổn:**
+- nginx, php8.3-fpm và mariadb đang chạy.
+- `nginx -t` hợp lệ.
+- Socket PHP, checksum WordPress, quyền `wp-config.php` và truy cập DB đều pass.
+
+Hai check đang fail (`web.vhost` và `http.site`) cùng một gốc. Check `http.site` sẽ hết lỗi khi vhost được bật.
+
+**Đề xuất sửa:** tôi đã tạo plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc), chưa áp dụng gì lên server. Plan có hai bước:
+1. Ghi lại file vhost. Nội dung cũ và mới giống nhau.
+2. Tạo symlink vào `sites-enabled`, rồi chạy `nginx -t` và `systemctl reload nginx`.
+
+Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy. Bạn nên xem lại plan trong panel rồi duyệt, hoặc chạy `sudo tpan plan approve 8af70b0619d7e0fc`. Tôi chưa áp dụng plan vì cần bạn duyệt.
+
+Sau khi duyệt, nên chạy lại health check của site để xác nhận `http.site` trả 200.
+--- toàn bộ chữ đã hiện dần (sự kiện text cuối):
+Tôi chạy kiểm tra sức khỏe mới nhất của site để xác nhận kết quả đã lưu.
+
+Nguyên nhân đã rõ, nên tôi đề xuất bản sửa tự động cho check vhost.
+
+**Nguyên nhân:** vhost của b.example.com chưa được bật. File `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi, nhưng không có symlink trong `/etc/nginx/sites-enabled/` (`stat` trả exit 1, "no such file").
+
+Vì vậy nginx không đọc vhost này. Request tới b.example.com rơi vào site mặc định và bị đóng kết nối (mã 444). `curl` báo `exit 52, Empty reply from server`.
+
+**Các phần còn lại đều ổn:**
+- nginx, php8.3-fpm và mariadb đang chạy.
+- `nginx -t` hợp lệ.
+- Socket PHP, checksum WordPress, quyền `wp-config.php` và truy cập DB đều pass.
+
+Hai check đang fail (`web.vhost` và `http.site`) cùng một gốc. Check `http.site` sẽ hết lỗi khi vhost được bật.
+
+**Đề xuất sửa:** tôi đã tạo plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc), chưa áp dụng gì lên server. Plan có hai bước:
+1. Ghi lại file vhost. Nội dung cũ và mới giống nhau.
+2. Tạo symlink vào `sites-enabled`, rồi chạy `nginx -t` và `systemctl reload nginx`.
+
+Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy. Bạn nên xem lại plan trong panel rồi duyệt, hoặc chạy `sudo tpan plan approve 8af70b0619d7e0fc`. Tôi chưa áp dụng plan vì cần bạn duyệt.
+
+Sau khi duyệt, nên chạy lại health check của site để xác nhận `http.site` trả 200.
+---
+[2026-11-19 22:46:02] (158 sự kiện, mã thoát 0)
+Thứ tự sự kiện: ["init","text","text","text","text","text","text","text","text","text","tool_call","tool_call","tool_result","tool_result","text","text","text","text","text","text","text","text","text","text","tool_call","tool_result","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","done"]
+  => ĐẠT: câu hỏi 1 kết thúc bằng done
+  => ĐẠT: chữ sau mỗi lần gọi công cụ là đoạn mới (ngăn bằng dòng trống), khi có chữ ở cả hai phía
+  => ĐẠT: chữ hiện dần: 150 sự kiện text, rải trong 13.45s
+
+[2026-11-19 22:46:02] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/plans
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 15:46:02 GMT
+
+-> HTTP 200, 0.003221s
+[2026-11-19 22:46:02] (mã thoát 0)
+[
+  {
+    "id": "8af70b0619d7e0fc",
+    "kind": "health.fix",
+    "target": "b.example.com",
+    "origin": "ai",
+    "status": "pending",
+    "session_id": "4de04ebb39f4d979",
+    "untrusted": true
+  }
+]
+  => ĐẠT: /api/v1/plans có Plan pending, origin ai, của phiên này
+
+[2026-11-19 22:46:02] $ scripts/vm.sh root bash -c 
+echo "## user tp_ (getent passwd | grep tp_)"; getent passwd | grep tp_
+echo "## ls /var/www"; ls /var/www
+echo "## SHOW DATABASES"; mariadb -N -e "SHOW DATABASES"
+echo "## user DB"; mariadb -N -e "SELECT User FROM mysql.user" | sort
+echo "## ls /etc/nginx/sites-enabled"; ls /etc/nginx/sites-enabled
+echo "## sha256sum /etc/nginx/sites-available/*"; sha256sum /etc/nginx/sites-available/*
+echo "## ls /etc/php/8.3/fpm/pool.d"; ls /etc/php/8.3/fpm/pool.d
+echo "## job, site trong tpan.db"; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"jobs:\", c.execute(\"SELECT COUNT(*) FROM jobs\").fetchone()[0], \"sites:\", c.execute(\"SELECT COUNT(*) FROM sites\").fetchone()[0])"
+## user tp_ (getent passwd | grep tp_)
+tp_a_example_com_7653e4:x:999:988::/var/www/a.example.com:/usr/sbin/nologin
+tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
+## ls /var/www
+a.example.com
+b.example.com
+html
+## SHOW DATABASES
+information_schema
+mysql
+performance_schema
+sys
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## user DB
+mariadb.sys
+mysql
+root
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## ls /etc/nginx/sites-enabled
+tpan-a.example.com.conf
+tpan-default.conf
+## sha256sum /etc/nginx/sites-available/*
+ce0901350a021608139b5639cf4ccd7717bef8c3a9e4f79031eb46386b67b03f  /etc/nginx/sites-available/default
+a7abe2d4240304755cc582efd59e97e2136d5396fb46812a86ebcb15c77f823a  /etc/nginx/sites-available/tpan-a.example.com.conf
+d1fd45089297cedac4ab67060774a3ffb1d96669aba80d2ea379fbef787d1adf  /etc/nginx/sites-available/tpan-b.example.com.conf
+bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23  /etc/nginx/sites-available/tpan-default.conf
+## ls /etc/php/8.3/fpm/pool.d
+tpan-a_example_com_7653e4.conf
+tpan-b_example_com_cd59d5.conf
+www.conf
+## job, site trong tpan.db
+jobs: 4 sites: 2
+[2026-11-19 22:46:02] (mã thoát 0)
+  => ĐẠT: MÁY KHÔNG ĐỔI GÌ sau câu hỏi 1 (chưa ai duyệt)
+
+
+######## [2026-11-19 22:46:02] h. chuyển sang trang site a.example.com rồi hỏi tiếp: câu hỏi 2
+
+[2026-11-19 22:46:02] thân gửi tới /api/v1/ai/views: {"path":"/sites/a.example.com","label":"Trang site a.example.com"}
+[2026-11-19 22:46:02] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/view-a.json https://<vm>:8443/api/v1/ai/views
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 15:46:02 GMT
+
+-> HTTP 204, 0.003806s
+[2026-11-19 22:46:02] (mã thoát 0)
+
+[2026-11-19 22:46:02] thân gửi tới /api/v1/ai/ask: {"question":"còn site kia thì sao?","lang":"vi","view":{"path":"/sites/a.example.com","label":"Trang site a.example.com"},"trail":[{"path":"/","label":"Bảng điều khiển"},{"path":"/sites/b.example.com","label":"Trang site b.example.com"},{"path":"/sites/a.example.com","label":"Trang site a.example.com"}],"session_id":"4de04ebb39f4d979"}
+[2026-11-19 22:46:02] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/r2.json https://<vm>:8443/api/v1/ai/ask
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 42
+date: Thu, 19 Nov 2026 15:46:02 GMT
+
+-> HTTP 202, 0.008311s
+[2026-11-19 22:46:02] (mã thoát 0)
+{
+  "session_id": "4de04ebb39f4d979",
+  "seq": 2
+}
+  => ĐẠT: ask cùng phiên: 202, seq 2
+
+>>> LẦN GỌI claude -p THẬT: câu hỏi 2 (phiên 4de04ebb39f4d979), ghi vào bảng của docs/thay-doi/M8.md
+
+[2026-11-19 22:46:02] $ curl -sS -N --cacert <tmp>/cert.pem -b <cookie> https://<vm>:8443/api/v1/ai/sessions/4de04ebb39f4d979/turns/2/events
++0.572s init version=2.1.328 model=claude-sonnet-5-5
++3.022s tool_call mcp__tpan__site_health input={"domain":"a.example.com"}
++4.75s tool_result mcp__tpan__site_health (2018 ký tự)
++9.667s text (tổng 17 ký tự): …**a.example.com h
++9.688s text (tổng 37 ký tự): …**a.example.com hoạt động bình thường
++9.707s text (tổng 53 ký tự): ….example.com hoạt động bình thường.** Tất cả check
++9.729s text (tổng 55 ký tự): …xample.com hoạt động bình thường.** Tất cả check đ
++9.75s text (tổng 63 ký tự): …om hoạt động bình thường.** Tất cả check đều pass:
++9.769s text (tổng 72 ký tự): …ộng bình thường.** Tất cả check đều pass:⏎⏎- **Web
++9.789s text (tổng 85 ký tự): …ng.** Tất cả check đều pass:⏎⏎- **Web:** vhost có,
++9.809s text (tổng 97 ký tự): … check đều pass:⏎⏎- **Web:** vhost có, đúng dòng đ
++9.829s text (tổng 112 ký tự): …:⏎⏎- **Web:** vhost có, đúng dòng đầu của tpan, và
++9.849s text (tổng 114 ký tự): …⏎- **Web:** vhost có, đúng dòng đầu của tpan, và đ
++9.87s text (tổng 132 ký tự): …có, đúng dòng đầu của tpan, và đã được bật. `readl
++9.888s text (tổng 139 ký tự): …g dòng đầu của tpan, và đã được bật. `readlink` tr
++9.908s text (tổng 143 ký tự): …ng đầu của tpan, và đã được bật. `readlink` trỏ về
++9.93s text (tổng 146 ký tự): …đầu của tpan, và đã được bật. `readlink` trỏ về `/
++9.95s text (tổng 157 ký tự): …n, và đã được bật. `readlink` trỏ về `/etc/nginx/s
++9.97s text (tổng 177 ký tự): …readlink` trỏ về `/etc/nginx/sites-available/tpan-
++9.99s text (tổng 195 ký tự): …/etc/nginx/sites-available/tpan-a.example.com.conf
++10.009s text (tổng 205 ký tự): …/sites-available/tpan-a.example.com.conf`.⏎- **PHP
++10.03s text (tổng 217 ký tự): …able/tpan-a.example.com.conf`.⏎- **PHP:** socket `
++10.052s text (tổng 230 ký tự): …xample.com.conf`.⏎- **PHP:** socket `/run/php/tpan
++10.072s text (tổng 257 ký tự): …* socket `/run/php/tpan-a_example_com_7653e4.sock`
++10.092s text (tổng 264 ký tự): …t `/run/php/tpan-a_example_com_7653e4.sock` có, ch
++10.112s text (tổng 267 ký tự): …/run/php/tpan-a_example_com_7653e4.sock` có, chủ `
++10.134s text (tổng 285 ký tự): …ample_com_7653e4.sock` có, chủ `www-data:www-data`
++10.154s text (tổng 298 ký tự): …3e4.sock` có, chủ `www-data:www-data`, quyền 0660.
++10.174s text (tổng 313 ký tự): …hủ `www-data:www-data`, quyền 0660.⏎- **WordPress:
++10.193s text (tổng 330 ký tự): …data`, quyền 0660.⏎- **WordPress:** checksum khớp,
++10.213s text (tổng 346 ký tự): …0.⏎- **WordPress:** checksum khớp, `wp-config.php`
++10.236s text (tổng 360 ký tự): …ss:** checksum khớp, `wp-config.php` quyền 0600 và
++10.256s text (tổng 362 ký tự): …:** checksum khớp, `wp-config.php` quyền 0600 và đ
++10.276s text (tổng 372 ký tự): …um khớp, `wp-config.php` quyền 0600 và đúng chủ.⏎-
++10.296s text (tổng 387 ký tự): …nfig.php` quyền 0600 và đúng chủ.⏎- **DB:** user `
++10.316s text (tổng 413 ký tự): …ng chủ.⏎- **DB:** user `tp_a_example_com_7653e4` đ
++10.336s text (tổng 432 ký tự): …ser `tp_a_example_com_7653e4` đăng nhập được và ch
++10.358s text (tổng 441 ký tự): …_example_com_7653e4` đăng nhập được và chỉ thấy DB
++10.377s text (tổng 467 ký tự): …nhập được và chỉ thấy DB `tp_a_example_com_7653e4`
++10.397s text (tổng 476 ký tự): … và chỉ thấy DB `tp_a_example_com_7653e4`.⏎- **End
++10.418s text (tổng 493 ký tự): …tp_a_example_com_7653e4`.⏎- **End to end:** `curl`
++10.44s text (tổng 506 ký tự): …com_7653e4`.⏎- **End to end:** `curl` trả HTTP 200
++10.46s text (tổng 507 ký tự): …om_7653e4`.⏎- **End to end:** `curl` trả HTTP 200,
++10.48s text (tổng 513 ký tự): …3e4`.⏎- **End to end:** `curl` trả HTTP 200, 69638
++10.5s text (tổng 527 ký tự): …to end:** `curl` trả HTTP 200, 69638 byte, đúng là
++10.519s text (tổng 548 ký tự): …HTTP 200, 69638 byte, đúng là WordPress của site-a
++10.54s text (tổng 559 ký tự): …9638 byte, đúng là WordPress của site-a.⏎- **Cách 
++10.561s text (tổng 564 ký tự): …byte, đúng là WordPress của site-a.⏎- **Cách ly gi
++10.581s text (tổng 580 ký tự): …rdPress của site-a.⏎- **Cách ly giữa hai site:** `
++10.601s text (tổng 607 ký tự): …h ly giữa hai site:** `tp_a_example_com_7653e4` và
++10.62s text (tổng 633 ký tự): …a_example_com_7653e4` và `tp_b_example_com_cd59d5`
++10.641s text (tổng 652 ký tự): …4` và `tp_b_example_com_cd59d5` không đọc được `wp
++10.661s text (tổng 663 ký tự): …_example_com_cd59d5` không đọc được `wp-config.php
++10.681s text (tổng 680 ký tự): …d5` không đọc được `wp-config.php` của nhau.⏎⏎site
++10.7s text (tổng 685 ký tự): …hông đọc được `wp-config.php` của nhau.⏎⏎site-a kh
++10.722s text (tổng 692 ký tự): …c được `wp-config.php` của nhau.⏎⏎site-a khác site
++10.742s text (tổng 695 ký tự): …ược `wp-config.php` của nhau.⏎⏎site-a khác site-b 
++10.762s text (tổng 698 ký tự): … `wp-config.php` của nhau.⏎⏎site-a khác site-b ở đ
++10.782s text (tổng 705 ký tự): …nfig.php` của nhau.⏎⏎site-a khác site-b ở đúng một
++10.802s text (tổng 718 ký tự): … nhau.⏎⏎site-a khác site-b ở đúng một điểm: site-a
++10.822s text (tổng 732 ký tự): … khác site-b ở đúng một điểm: site-a có symlink tr
++10.842s text (tổng 750 ký tự): …g một điểm: site-a có symlink trong `sites-enabled
++10.861s text (tổng 757 ký tự): …iểm: site-a có symlink trong `sites-enabled`, site
++10.882s text (tổng 763 ký tự): …ite-a có symlink trong `sites-enabled`, site-b thì
++10.903s text (tổng 777 ký tự): …nk trong `sites-enabled`, site-b thì không. Plan [
++10.921s text (tổng 788 ký tự): …ites-enabled`, site-b thì không. Plan [tpan:plan/8
++10.941s text (tổng 792 ký tự): …-enabled`, site-b thì không. Plan [tpan:plan/8af70
++10.961s text (tổng 802 ký tự): … site-b thì không. Plan [tpan:plan/8af70b0619d7e0f
++10.982s text (tổng 814 ký tự): …không. Plan [tpan:plan/8af70b0619d7e0fc](tpan:plan
++11.002s text (tổng 826 ký tự): …[tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d
++11.022s text (tổng 834 ký tự): …an/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc) s
++11.042s text (tổng 847 ký tự): …d7e0fc](tpan:plan/8af70b0619d7e0fc) sẽ tạo symlink
++11.062s text (tổng 849 ký tự): …e0fc](tpan:plan/8af70b0619d7e0fc) sẽ tạo symlink đ
++11.082s text (tổng 862 ký tự): …an/8af70b0619d7e0fc) sẽ tạo symlink đó cho site-b.
++11.101s text (tổng 865 ký tự): …8af70b0619d7e0fc) sẽ tạo symlink đó cho site-b. Pl
++11.121s text (tổng 873 ký tự): …19d7e0fc) sẽ tạo symlink đó cho site-b. Plan vẫn đ
++11.141s text (tổng 882 ký tự): … sẽ tạo symlink đó cho site-b. Plan vẫn đang chờ b
++11.161s text (tổng 891 ký tự): …ymlink đó cho site-b. Plan vẫn đang chờ bạn duyệt.
++11.183s text (tổng 894 ký tự): …ink đó cho site-b. Plan vẫn đang chờ bạn duyệt.⏎⏎C
++11.201s text (tổng 911 ký tự): …. Plan vẫn đang chờ bạn duyệt.⏎⏎Cả hai site đều ch
++11.222s text (tổng 915 ký tự): …an vẫn đang chờ bạn duyệt.⏎⏎Cả hai site đều chưa b
++11.243s text (tổng 926 ký tự): … chờ bạn duyệt.⏎⏎Cả hai site đều chưa bật SSL (`ss
++11.263s text (tổng 936 ký tự): …uyệt.⏎⏎Cả hai site đều chưa bật SSL (`ssl: false` 
++11.282s text (tổng 945 ký tự): … hai site đều chưa bật SSL (`ssl: false` ở site-b,
++11.302s text (tổng 950 ký tự): …site đều chưa bật SSL (`ssl: false` ở site-b, và v
++11.322s text (tổng 957 ký tự): …u chưa bật SSL (`ssl: false` ở site-b, và vhost ch
++11.342s text (tổng 966 ký tự): …t SSL (`ssl: false` ở site-b, và vhost chỉ nghe cổ
++11.364s text (tổng 977 ký tự): …: false` ở site-b, và vhost chỉ nghe cổng 80). Tôi
++11.384s text (tổng 984 ký tự): …` ở site-b, và vhost chỉ nghe cổng 80). Tôi chưa k
++11.404s text (tổng 998 ký tự): … vhost chỉ nghe cổng 80). Tôi chưa kiểm tra site-a
++11.424s text (tổng 1004 ký tự): … chỉ nghe cổng 80). Tôi chưa kiểm tra site-a có ch
++11.444s text (tổng 1010 ký tự): …ghe cổng 80). Tôi chưa kiểm tra site-a có chứng ch
++11.464s text (tổng 1013 ký tự): … cổng 80). Tôi chưa kiểm tra site-a có chứng chỉ h
++11.484s text (tổng 1025 ký tự): …ôi chưa kiểm tra site-a có chứng chỉ hay không. Kh
++11.505s text (tổng 1028 ký tự): …chưa kiểm tra site-a có chứng chỉ hay không. Khi c
++11.526s text (tổng 1032 ký tự): … kiểm tra site-a có chứng chỉ hay không. Khi cần H
++11.546s text (tổng 1041 ký tự): … site-a có chứng chỉ hay không. Khi cần HTTPS, tôi
++11.566s text (tổng 1056 ký tự): …g chỉ hay không. Khi cần HTTPS, tôi có thể đề xuất
++11.586s text (tổng 1064 ký tự): …y không. Khi cần HTTPS, tôi có thể đề xuất plan cấ
++11.607s text (tổng 1067 ký tự): …hông. Khi cần HTTPS, tôi có thể đề xuất plan cấp S
++11.625s text (tổng 1076 ký tự): … cần HTTPS, tôi có thể đề xuất plan cấp SSL cho từ
++11.647s text (tổng 1084 ký tự): …PS, tôi có thể đề xuất plan cấp SSL cho từng site.
++11.667s done: **a.example.com hoạt động bình thường.** Tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và đã được bật. `readlink` trỏ về `/etc/nginx/sites-available/tpan-a.example.com.conf`.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và đúng chủ.
+- **DB:** user `tp_a_example_com_7653e4` đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** `curl` trả HTTP 200, 69638 byte, đúng là WordPress của site-a.
+- **Cách ly giữa hai site:** `tp_a_example_com_7653e4` và `tp_b_example_com_cd59d5` không đọc được `wp-config.php` của nhau.
+
+site-a khác site-b ở đúng một điểm: site-a có symlink trong `sites-enabled`, site-b thì không. Plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc) sẽ tạo symlink đó cho site-b. Plan vẫn đang chờ bạn duyệt.
+
+Cả hai site đều chưa bật SSL (`ssl: false` ở site-b, và vhost chỉ nghe cổng 80). Tôi chưa kiểm tra site-a có chứng chỉ hay không. Khi cần HTTPS, tôi có thể đề xuất plan cấp SSL cho từng site.
+--- toàn bộ chữ đã hiện dần (sự kiện text cuối):
+**a.example.com hoạt động bình thường.** Tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và đã được bật. `readlink` trỏ về `/etc/nginx/sites-available/tpan-a.example.com.conf`.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và đúng chủ.
+- **DB:** user `tp_a_example_com_7653e4` đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** `curl` trả HTTP 200, 69638 byte, đúng là WordPress của site-a.
+- **Cách ly giữa hai site:** `tp_a_example_com_7653e4` và `tp_b_example_com_cd59d5` không đọc được `wp-config.php` của nhau.
+
+site-a khác site-b ở đúng một điểm: site-a có symlink trong `sites-enabled`, site-b thì không. Plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc) sẽ tạo symlink đó cho site-b. Plan vẫn đang chờ bạn duyệt.
+
+Cả hai site đều chưa bật SSL (`ssl: false` ở site-b, và vhost chỉ nghe cổng 80). Tôi chưa kiểm tra site-a có chứng chỉ hay không. Khi cần HTTPS, tôi có thể đề xuất plan cấp SSL cho từng site.
+---
+[2026-11-19 22:46:14] (103 sự kiện, mã thoát 0)
+  => ĐẠT: câu hỏi 2 kết thúc bằng done
+
+[2026-11-19 22:46:14] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/ai/sessions/4de04ebb39f4d979
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 15:46:14 GMT
+
+-> HTTP 200, 0.011951s
+[2026-11-19 22:46:14] (mã thoát 0)
+{
+  "turns": [
+    {
+      "seq": 1,
+      "status": "done",
+      "playbook": "site",
+      "chips": [
+        {
+          "key": "view",
+          "content": "Trang site site-b.example (/sites/site-b.example)"
+        },
+        {
+          "key": "pointer",
+          "content": "kind: site\nref: site-b.example\nlabel: Site site-b.example"
+        },
+        {
+          "key": "trail",
+          "content": "Bảng điều khiển (/)\nTrang site site-b.example (/sites/site-b.example)"
+        },
+        {
+          "key": "evidence",
+          "content": "site site-b.example\nstatus: active\nphp: 8.3\nssl: false\ncreated: 2026-11-19T15:45:34Z\nstored check results:\n- [pass] db.access:site-b.example (db): User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_site_b\n- [pass] drift:/etc/nginx/sites-available/tpan-site-b.example.conf (web): File /etc/nginx/sites-available/tpan-site-b.example.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-site-b.example.conf đúng như tpan đã ghi\n- [pass] drift:/etc/php/8.3/fpm/pool.d/tpan-site_b.conf (php): File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf đúng như tpan đã ghi\n- [fail] http.site:site-b.example (e2e): Gọi HTTP vào site trả 200 và đúng là WordPress của site: Web server đóng kết nối không trả gì cho site-b.example\n- [pass] php.socket:site-b.example (php): Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660\n- [fail] web.vhost:site-b.example (web): Vhost của site có, do tpan quản lý và đang được bật: Vhost của site chưa được bật (không có /etc/nginx/sites-enabled/tpan-site-b.example.conf)\n- [pass] wp.checksums:site-b.example (wordpress): Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum\n- [pass] wp.config:site-b.example (wordpress): wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_site_b"
+        },
+        {
+          "key": "machine",
+          "content": "web server: nginx\ndefault php: 8.3\nactive sites: 2\ntpan version: cfb0a61\nui language: vi"
+        }
+      ],
+      "answer": "Tôi chạy kiểm tra sức khỏe mới nhất của site để xác nhận kết quả đã lưu.\n\nNguyên nhân đã rõ, nên tôi đề xuất bản sửa tự động cho check vhost.\n\n**Nguyên nhân:** vhost của b.example.com chưa được bật. File `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi, nhưng không có symlink trong `/etc/nginx/sites-enabled/` (`stat` trả exit 1, \"no such file\").\n\nVì vậy nginx không đọc vhost này. Request tới b.example.com rơi vào site mặc định và bị đóng kết nối (mã 444). `curl` báo `exit 52, Empty reply from server`.\n\n**Các phần còn lại đều ổn:**\n- nginx, php8.3-fpm và mariadb đang chạy.\n- `nginx -t` hợp lệ.\n- Socket PHP, checksum WordPress, quyền `wp-config.php` và truy cập DB đều pass.\n\nHai check đang fail (`web.vhost` và `http.site`) cùng một gốc. Check `http.site` sẽ hết lỗi khi vhost được bật.\n\n**Đề xuất sửa:** tôi đã tạo plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc), chưa áp dụng gì lên server. Plan có hai bước:\n1. Ghi lại file vhost. Nội dung cũ và mới giống nhau.\n2. Tạo symlink vào `sites-enabled`, rồi chạy `nginx -t` và `systemctl reload nginx`.\n\nPlan có cảnh báo vì phiên này đã đọc nội dung không tin cậy. Bạn nên xem lại plan trong panel rồi duyệt, hoặc chạy `sudo tpan plan approve 8af70b0619d7e0fc`. Tôi chưa áp dụng plan vì cần bạn duyệt.\n\nSau khi duyệt, nên chạy lại health check của site để xác nhận `http.site` trả 200."
+    },
+    {
+      "seq": 2,
+      "status": "done",
+      "playbook": null,
+      "chips": [
+        {
+          "key": "view",
+          "content": "Trang site site-a.example (/sites/site-a.example)"
+        },
+        {
+          "key": "trail",
+          "content": "Bảng điều khiển (/)\nTrang site site-b.example (/sites/site-b.example)\nTrang site site-a.example (/sites/site-a.example)"
+        },
+        {
+          "key": "machine",
+          "content": "web server: nginx\ndefault php: 8.3\nactive sites: 2\ntpan version: cfb0a61\nui language: vi"
+        }
+      ],
+      "answer": "**a.example.com hoạt động bình thường.** Tất cả check đều pass:\n\n- **Web:** vhost có, đúng dòng đầu của tpan, và đã được bật. `readlink` trỏ về `/etc/nginx/sites-available/tpan-a.example.com.conf`.\n- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.\n- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và đúng chủ.\n- **DB:** user `tp_a_example_com_7653e4` đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.\n- **End to end:** `curl` trả HTTP 200, 69638 byte, đúng là WordPress của site-a.\n- **Cách ly giữa hai site:** `tp_a_example_com_7653e4` và `tp_b_example_com_cd59d5` không đọc được `wp-config.php` của nhau.\n\nsite-a khác site-b ở đúng một điểm: site-a có symlink trong `sites-enabled`, site-b thì không. Plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc) sẽ tạo symlink đó cho site-b. Plan vẫn đang chờ bạn duyệt.\n\nCả hai site đều chưa bật SSL (`ssl: false` ở site-b, và vhost chỉ nghe cổng 80). Tôi chưa kiểm tra site-a có chứng chỉ hay không. Khi cần HTTPS, tôi có thể đề xuất plan cấp SSL cho từng site."
+    }
+  ],
+  "calls": [
+    {
+      "seq": 1,
+      "tool": "site_health",
+      "plan_id": null
+    },
+    {
+      "seq": 2,
+      "tool": "stack_status",
+      "plan_id": null
+    },
+    {
+      "seq": 3,
+      "tool": "propose_health_fix",
+      "plan_id": "8af70b0619d7e0fc"
+    },
+    {
+      "seq": 4,
+      "tool": "site_health",
+      "plan_id": null
+    }
+  ],
+  "plans": [
+    {
+      "id": "8af70b0619d7e0fc",
+      "kind": "health.fix",
+      "origin": "ai",
+      "status": "pending"
+    }
+  ]
+}
+  => ĐẠT: trang phiên: 2 lượt done, view lượt 1 là trang site b.example.com (bí danh), lượt 2 là trang site a.example.com (bí danh khác)
+  => ĐẠT: lượt 2 có trail 3 mục chứa trang site của lượt 1
+  => ĐẠT: trang phiên có các lần gọi công cụ và Plan
+--- lượt 1 (hiển thị, tên thật):
+Tôi chạy kiểm tra sức khỏe mới nhất của site để xác nhận kết quả đã lưu.
+
+Nguyên nhân đã rõ, nên tôi đề xuất bản sửa tự động cho check vhost.
+
+**Nguyên nhân:** vhost của b.example.com chưa được bật. File `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi, nhưng không có symlink trong `/etc/nginx/sites-enabled/` (`stat` trả exit 1, "no such file").
+
+Vì vậy nginx không đọc vhost này. Request tới b.example.com rơi vào site mặc định và bị đóng kết nối (mã 444). `curl` báo `exit 52, Empty reply from server`.
+
+**Các phần còn lại đều ổn:**
+- nginx, php8.3-fpm và mariadb đang chạy.
+- `nginx -t` hợp lệ.
+- Socket PHP, checksum WordPress, quyền `wp-config.php` và truy cập DB đều pass.
+
+Hai check đang fail (`web.vhost` và `http.site`) cùng một gốc. Check `http.site` sẽ hết lỗi khi vhost được bật.
+
+**Đề xuất sửa:** tôi đã tạo plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc), chưa áp dụng gì lên server. Plan có hai bước:
+1. Ghi lại file vhost. Nội dung cũ và mới giống nhau.
+2. Tạo symlink vào `sites-enabled`, rồi chạy `nginx -t` và `systemctl reload nginx`.
+
+Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy. Bạn nên xem lại plan trong panel rồi duyệt, hoặc chạy `sudo tpan plan approve 8af70b0619d7e0fc`. Tôi chưa áp dụng plan vì cần bạn duyệt.
+
+Sau khi duyệt, nên chạy lại health check của site để xác nhận `http.site` trả 200.
+--- lượt 2 (hiển thị, tên thật):
+**a.example.com hoạt động bình thường.** Tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và đã được bật. `readlink` trỏ về `/etc/nginx/sites-available/tpan-a.example.com.conf`.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và đúng chủ.
+- **DB:** user `tp_a_example_com_7653e4` đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** `curl` trả HTTP 200, 69638 byte, đúng là WordPress của site-a.
+- **Cách ly giữa hai site:** `tp_a_example_com_7653e4` và `tp_b_example_com_cd59d5` không đọc được `wp-config.php` của nhau.
+
+site-a khác site-b ở đúng một điểm: site-a có symlink trong `sites-enabled`, site-b thì không. Plan [tpan:plan/8af70b0619d7e0fc](tpan:plan/8af70b0619d7e0fc) sẽ tạo symlink đó cho site-b. Plan vẫn đang chờ bạn duyệt.
+
+Cả hai site đều chưa bật SSL (`ssl: false` ở site-b, và vhost chỉ nghe cổng 80). Tôi chưa kiểm tra site-a có chứng chỉ hay không. Khi cần HTTPS, tôi có thể đề xuất plan cấp SSL cho từng site.
+
+[2026-11-19 22:46:14] $ kill -INT <pid của tpan brain>; wait
+--- terminal của tpan brain tới lúc này:
+Bộ não: đã nối ubuntu@<vm>, Claude Code 2.1.328, model sonnet
+Mỗi câu hỏi từ panel hiện sau dấu ?, mỗi lần gọi công cụ sau dấu →. Dừng bằng Ctrl+C.
+22:45:46 [4de04ebb39f4d979-1] ? Chẩn đoán vì sao site này lỗi rồi đề xuất cách sửa
+22:45:49 [4de04ebb39f4d979-1] → mcp__tpan__site_health {"domain":"site-b.example"}
+22:45:49 [4de04ebb39f4d979-1] → mcp__tpan__stack_status {}
+22:45:53 [4de04ebb39f4d979-1] → mcp__tpan__propose_health_fix {"check_id":"web.vhost:site-b.example"}
+22:45:59 [4de04ebb39f4d979-1] done
+22:46:02 [4de04ebb39f4d979-2] ? còn site kia thì sao?
+22:46:05 [4de04ebb39f4d979-2] → mcp__tpan__site_health {"domain":"site-a.example"}
+22:46:12 [4de04ebb39f4d979-2] done
+Bộ não: đã ngắt.
+[2026-11-19 22:46:14] (tpan brain thoát mã 0)
+  => ĐẠT: tpan brain thoát 0 sau Ctrl+C
+
+
+######## [2026-11-19 22:46:14] i. rò rỉ: ai_turns và ai_calls
+ai_turns: 2 dòng; ai_calls: 4 dòng
+  => ĐẠT: đối chứng: ai_turns có bí danh site-*.example (tìm đúng chỗ)
+  => ĐẠT: claude real: không có tên miền a.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có tên miền b.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có slug của a.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có slug của b.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có IP máy ảo trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có IP của Mac trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có hostname máy ảo trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có tên máy Mac trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: mật khẩu thứ 1 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 2 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 3 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 4 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 5 không có trong ai_turns và ai_calls
+
+
+######## [2026-11-19 22:46:14] kết quả đo cho mục 16
+- (real) câu hỏi 1: từ lúc gửi ask tới chữ đầu tiên trên SSE 2.054s; tới done 15.523s; 150 sự kiện text; công cụ: ["site_health","stack_status","propose_health_fix"]
+- (real) câu hỏi 2 (--resume): từ lúc gửi ask tới chữ đầu tiên 9.667s; 99 sự kiện text
+
+
+######## [2026-11-19 22:46:14] bí mật, IP, tên máy, tên user Mac có lọt vào chính file log không
+Số bí mật đã gặp: 5; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu nào
+  => ĐẠT: log không chứa IP máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa tên máy Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+  => ĐẠT: log không chứa giá trị cookie nào
+
+
+######## [2026-11-19 22:46:14] TỔNG KẾT: 0 khẳng định không đạt

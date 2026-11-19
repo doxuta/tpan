@@ -14,10 +14,10 @@
 #   B  máy mới khoẻ: không Fail, không lệch giả, đủ phép kiểm của tpan
 #   C  bước 9: sửa tay vhost -> lệch đúng file đó, sự cố; --fix ghi lại; sửa tay
 #      lần nữa rồi nhận bản sửa tay qua API
-#   D  bước 11: scripts/faults/01..05 -> đúng chặng, sự cố; --fix -> đạt, sự cố
-#      đóng; 06 (đầy đĩa) cuối cùng, chỉ restore
+#   D  bước 11: scripts/faults/01..05 và 07 -> đúng chặng, sự cố; --fix -> đạt,
+#      sự cố đóng; 06 (đầy đĩa) cuối cùng, chỉ restore
 #   E  số request và log trực tiếp (SSE), không sót tiến trình tail
-#   F  apache: không lệch giả, 03 trên apache và sửa tự động
+#   F  apache: không lệch giả, 03 và 07 trên apache và sửa tự động
 #
 # Đặt E2E_LOG=<file log> để cuối lần chạy script tự tìm trong chính file log
 # đó: mọi mật khẩu đã gặp, IP máy ảo, IP của Mac, tên user Mac (phải là 0 lần).
@@ -629,6 +629,35 @@ part_d() {
 
   fault 04-wpconfig-perm.sh wordpress "wp.config:$A" "$A" "$B" sym04
   fault 05-db-user-lock.sh db "db.access:$A" "$A" "$B" sym05
+  # 07 trên A: vhost của A là bản sửa tay đã nhận ở phần C, nên sửa tự động
+  # chỉ còn bước symlink (file đã nhận được giữ).
+  fault 07-vhost-disable.sh web "web.vhost:$A" "$A" "$B" sym07
+  section "C/D: bản sửa tay đã nhận của $A sau sửa web.vhost"
+  vroot grep -c 'e2e-m4: sua tay lan hai' "/etc/nginx/sites-available/tpan-$A.conf"
+  ok "bản sửa tay đã nhận của $A còn nguyên sau sửa web.vhost (chỉ symlink được tạo lại)" test "$OUT" = 1
+}
+
+# wait_http <domain> <mã curl>:<mã HTTP>: sau 07 break, gọi lại trang chủ tới
+# khi thấy đúng kết quả (tối đa 10 giây), in mọi lần. Kịch bản reload bằng
+# systemctl, lệnh này trả về khoảng 100 ms trước khi nginx áp dụng; đây là e2e
+# chờ hiện tượng xuất hiện, không phải phép kiểm của tpan.
+wait_http() {
+  vexec bash -c 'for i in $(seq 1 40); do c="$(curl -s -m 5 -o /dev/null -w "%{http_code}" --resolve "$1:80:127.0.0.1" "http://$1/")"; rc=$?; echo "lần $i: HTTP $c, curl mã $rc"; [ "$rc:$c" = "$2" ] && exit 0; sleep 0.25; done; exit 1' _ "$1" "$2"
+}
+
+sym07() {
+  vroot test -L "/etc/nginx/sites-enabled/tpan-$A.conf"
+  if [ "$1" = break ]; then
+    ok "symlink bật vhost của $A không còn" rc_not 0
+    wait_http "$A" 52:000
+    ok "$A rơi vào site mặc định (nginx 444, curl mã 52)" rc_is 0
+    http_in "$B"
+    ok "$B vẫn 200" has '^200$'
+  else
+    ok "symlink bật vhost của $A có lại" rc_is 0
+    http_in "$A"
+    ok "$A trả 200" has '^200$'
+  fi
 }
 
 sym03b() {
@@ -818,6 +847,20 @@ main_apache() {
   ok "không phép kiểm lệch (drift:*) nào khác Pass" no_drift_bad
   ok "có phép kiểm lệch (drift:*)" has_id_prefix drift:
   fault 03-vhost-break.sh web "config.apache:apache2 drift:/etc/apache2/sites-available/tpan-$A.conf" "$A" "" symapache
+  fault 07-vhost-disable.sh web "web.vhost:$A" "$A" "" sym07apache
+}
+
+sym07apache() {
+  vroot test -L "/etc/apache2/sites-enabled/tpan-$A.conf"
+  if [ "$1" = break ]; then
+    ok "symlink bật vhost của $A không còn" rc_not 0
+    wait_http "$A" 0:403
+    ok "$A rơi vào site mặc định của apache (403)" rc_is 0
+  else
+    ok "symlink bật vhost của $A có lại" rc_is 0
+    http_in "$A"
+    ok "$A trả 200" has '^200$'
+  fi
 }
 
 symapache() {

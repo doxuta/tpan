@@ -78,6 +78,10 @@ func TestMCPConfigRejectsBadValues(t *testing.T) {
 		{[]string{"--approval", "client; id"}, "approval_invalid"},
 		{[]string{"--redact", "none"}, "redact_invalid"},
 		{[]string{"--approval", "client", "--redact", "ALL"}, "redact_invalid"},
+		{[]string{"--brain", "local"}, "brain_invalid"},
+		{[]string{"--brain", "BRIDGE"}, "brain_invalid"},
+		{[]string{"--brain", ""}, "brain_invalid"},
+		{[]string{"--approval", "panel", "--brain", "bridge; id"}, "brain_invalid"},
 	} {
 		c := newCLI(t)
 		code, out, _ := c.run(append([]string{"mcp", "config", "--json"}, tc.args...)...)

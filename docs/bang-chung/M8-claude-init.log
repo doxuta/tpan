@@ -1,0 +1,176 @@
+# Lần gọi claude -p thật số 1 (M8, đợt 0, 19/11/2026), Claude Code 2.1.328, máy cá nhân.
+# Lệnh (chạy trong một thư mục tạm rỗng, stdin là "Reply with the single word OK."):
+#   claude -p --output-format stream-json --verbose --include-partial-messages --tools "" \
+#     --strict-mcp-config --mcp-config '{"mcpServers":{}}' --allowedTools mcp__tpan \
+#     --permission-mode dontAsk --permission-prompts none --setting-sources "" \
+#     --disable-slash-commands --max-turns 1 --model sonnet
+# Mã thoát 0, stderr rỗng, 11 dòng stdout, kết quả "OK". Dưới đây là nguyên văn sự
+# kiện init (dòng đầu), chỉ thay thư mục nhà bằng <home> và tên user bằng <user>.
+{
+  "type": "system",
+  "subtype": "init",
+  "cwd": "<home>/.claude/jobs/98c5cf9d/tmp/c1",
+  "session_id": "04e6262f-1f46-40b4-83b4-4fac76106292",
+  "tools": [],
+  "mcp_servers": [],
+  "model": "claude-sonnet-5-5",
+  "permissionMode": "dontAsk",
+  "slash_commands": [],
+  "apiKeySource": "none",
+  "claude_code_version": "2.1.328",
+  "output_style": "default",
+  "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup"
+  ],
+  "skills": [],
+  "plugins": [
+    {
+      "name": "cc-plugin-agents-md",
+      "path": "builtin",
+      "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+      "name": "cc-plugin-telemetry",
+      "path": "builtin",
+      "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+      "name": "cc-plugin-privacy",
+      "path": "builtin",
+      "source": "cc-plugin-privacy@builtin"
+    },
+    {
+      "name": "cc-plugin-plugin-authoring",
+      "path": "builtin",
+      "source": "cc-plugin-plugin-authoring@builtin"
+    },
+    {
+      "name": "cc-plugin-easel",
+      "path": "builtin",
+      "source": "cc-plugin-easel@builtin"
+    }
+  ],
+  "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1",
+    "silent_resend_files_v1"
+  ],
+  "analytics_disabled": false,
+  "product_feedback_disabled": false,
+  "uuid": "6a9f7828-8aaf-4a0c-b3cd-15efc2c4eee5",
+  "memory_paths": {
+    "auto": "<home>/.claude/projects/-Users-<user>--claude-jobs-98c5cf9d-tmp-c1/memory/"
+  },
+  "original_cwd": "<home>/.claude/jobs/98c5cf9d/tmp/c1",
+  "additional_directories": [],
+  "messaging_socket_path": "/tmp/cc-socks/33580.sock",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "per_turn_effort_active": true,
+  "ultrathink_available": false,
+  "ultrathink_typed_raises": false,
+  "view_mode": "default"
+}
+
+# ---------------------------------------------------------------------------
+# Lần gọi số 2 (đợt 0): có MCP server tpan thật qua SSH vào máy ảo tpan-m8 (stack
+# nginx, một site a.example.com, tpan mcp KHÔNG có --session nên là phiên mcp).
+# Thêm --append-system-prompt-file (internal/ai/claudecode/system-prompt.md),
+# --session-id <uuid>, --max-turns 4. Thư mục làm việc rỗng trước và sau lượt
+# (ls -A không in gì). Mã thoát 0, stderr rỗng, 27 dòng.
+# --mcp-config: {"mcpServers":{"tpan":{"command":"ssh","args":["-F","/dev/null","-i","<tmp>/ssh/id",
+#   "-o","UserKnownHostsFile=<tmp>/ssh/kh","-o","BatchMode=yes","ubuntu@<vm>","sudo","-n","tpan","mcp"]}}}
+# stdin: <tpan-context lang="vi">[view] Bảng điều khiển (/)</tpan-context><question>Dùng công cụ tpan liệt kê các site, trả lời một câu ngắn.</question>
+# Các trường của init mà cửa kiểm đọc (nguyên văn):
+{
+  "tools": [
+    "mcp__tpan__apply_plan",
+    "mcp__tpan__get_job",
+    "mcp__tpan__get_plan",
+    "mcp__tpan__list_jobs",
+    "mcp__tpan__list_plans",
+    "mcp__tpan__list_sites",
+    "mcp__tpan__machine",
+    "mcp__tpan__managed_file",
+    "mcp__tpan__propose_site_add",
+    "mcp__tpan__propose_site_remove",
+    "mcp__tpan__propose_site_repair",
+    "mcp__tpan__propose_stack_repair",
+    "mcp__tpan__site_health",
+    "mcp__tpan__stack_status",
+    "mcp__tpan__tail_log"
+  ],
+  "mcp_servers": [
+    {
+      "name": "tpan",
+      "status": "connected",
+      "source": "dynamic"
+    }
+  ],
+  "plugins": [
+    {
+      "name": "cc-plugin-agents-md",
+      "path": "builtin",
+      "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+      "name": "cc-plugin-telemetry",
+      "path": "builtin",
+      "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+      "name": "cc-plugin-privacy",
+      "path": "builtin",
+      "source": "cc-plugin-privacy@builtin"
+    },
+    {
+      "name": "cc-plugin-plugin-authoring",
+      "path": "builtin",
+      "source": "cc-plugin-plugin-authoring@builtin"
+    },
+    {
+      "name": "cc-plugin-easel",
+      "path": "builtin",
+      "source": "cc-plugin-easel@builtin"
+    }
+  ],
+  "skills": [],
+  "slash_commands": [],
+  "model": "claude-sonnet-5-5",
+  "claude_code_version": "2.1.328",
+  "permissionMode": "dontAsk"
+}
+# Các dòng tool_use, tool_result và result (nguyên văn, cắt usage):
+{"type": "tool_use", "id": "toolu_01Xjbjdxmbzmja4QMZJ2L8Zi", "name": "mcp__tpan__list_sites", "input": {}, "caller": {"type": "direct"}}
+{"tool_use_id": "toolu_01Xjbjdxmbzmja4QMZJ2L8Zi", "type": "tool_result", "content": [{"type": "text", "text": "[{\"created\":\"2026-11-19T14:03:23.338893657Z\",\"domain\":\"site-a.example\",\"php_version\":\"8.3\",\"ssl\":false,\"status\":\"active\"}]"}]}
+{"type": "result", "subtype": "success", "is_error": false, "num_turns": 2, "result": "Server hiện có 1 site: `tpan:site/site-a.example` (đang hoạt động, PHP 8.3, chưa có SSL).", "permission_denials": [], "session_id": "dfb813f3-f715-48f1-b56b-cfcc03444391"}
+
+# ---------------------------------------------------------------------------
+# Lần gọi số 3: cùng thư mục làm việc, --resume <uuid của lần 2>, --max-turns 2.
+# stdin: ...<question>Ở câu trước bạn vừa nhắc tới site nào? Trả lời đúng tên, không gọi công cụ.</question>
+# Mã thoát 0; sự kiện init mang session_id trùng uuid của lần 2; thư mục vẫn rỗng.
+{"type": "result", "subtype": "success", "num_turns": 1, "result": "Tôi vừa nhắc tới site `site-a.example`.", "session_id": "dfb813f3-f715-48f1-b56b-cfcc03444391"}
+
+# claude auth status --json trên máy này (chỉ ghi hai trường tpan đọc; các trường
+# khác có email, tổ chức nên không ghi): {"loggedIn": true, "authMethod": "claude.ai"}

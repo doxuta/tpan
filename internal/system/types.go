@@ -139,6 +139,15 @@ type Cmd struct {
 	// OnOutput khác nil thì được gọi cho từng dòng stdout và stderr ngay khi có,
 	// không chờ lệnh xong. Engine dùng nó để đẩy log trực tiếp ra job.
 	OnOutput func(line string)
+	// Dir là thư mục làm việc; rỗng là "/". M8: `claude` của bộ não chạy trong
+	// một thư mục rỗng riêng của phiên (mục 8.2).
+	Dir string
+	// Env là các biến môi trường THÊM vào môi trường cố định (dạng "K=V"; trùng
+	// tên thì Env thắng). Chỉ dùng trên máy của người vận hành (`tpan brain`):
+	// `claude` cần HOME để tự tìm đăng nhập của nó, và PATH để tìm được chính
+	// nó. Có PATH trong Env thì Name cũng được tìm theo PATH đó. Không bao giờ
+	// dùng cho lệnh chạy trên máy chủ.
+	Env []string
 }
 
 // String trả về lệnh dạng người đọc được, dùng để hiển thị và làm bằng chứng.

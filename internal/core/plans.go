@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/doxuta/tpan/internal/engine"
@@ -51,10 +52,15 @@ func (p *Planner) Prepare(ctx context.Context, req PlanRequest) (*Prepared, erro
 		return p.prepareSiteRepair(ctx, req)
 	case PlanStackRepair:
 		return p.prepareStackRepair(ctx)
+	case PlanHealthFix:
+		return p.prepareHealthFix(ctx, req)
+	case PlanSSLIssue:
+		return p.prepareSSLIssue(ctx, req)
 	}
+	kinds := strings.Join([]string{PlanSiteAdd, PlanSiteRemove, PlanSiteRepair, PlanStackRepair, PlanHealthFix, PlanSSLIssue}, ", ")
 	return nil, refuse("plan_kind_invalid", i18n.T(
-		fmt.Sprintf("loại Plan %q không có; chỉ nhận %s, %s, %s, %s", req.Kind, PlanSiteAdd, PlanSiteRemove, PlanSiteRepair, PlanStackRepair),
-		fmt.Sprintf("there is no plan kind %q; only %s, %s, %s, %s", req.Kind, PlanSiteAdd, PlanSiteRemove, PlanSiteRepair, PlanStackRepair)))
+		fmt.Sprintf("loại Plan %q không có; chỉ nhận %s", req.Kind, kinds),
+		fmt.Sprintf("there is no plan kind %q; only %s", req.Kind, kinds)))
 }
 
 // siteAddPrepared bọc một SiteAdd thành Prepared. req là yêu cầu đã chuẩn hoá.
@@ -222,6 +228,77 @@ func (p *Planner) prepareStackRepair(ctx context.Context) (*Prepared, error) {
 	}, nil
 }
 
+// checkNotFound là lời từ chối khi không có kết quả đã lưu của phép kiểm id
+// (cùng mã và lời với POST /api/v1/health/fix).
+func checkNotFound(id string) *RefusedError {
+	return refuse("check_not_found", i18n.T(
+		"Không có kết quả phép kiểm "+id+". Chạy health lại rồi thử.",
+		"No result for check "+id+". Run health again, then retry."))
+}
+
+// prepareHealthFix dựng Plan sửa tự động cho phép kiểm CheckID từ kết quả ĐÃ
+// LƯU của lần health gần nhất, không bao giờ từ kết quả người gọi gửi lên:
+// người gọi (agent) chỉ chọn được phép kiểm nào, không bịa được trạng thái
+// hay đối tượng của nó. Fixes.Prepare còn kiểm lại tên cách sửa khớp ID.
+func (p *Planner) prepareHealthFix(ctx context.Context, req PlanRequest) (*Prepared, error) {
+	if req.CheckID == "" {
+		return nil, refuse("check_not_found", i18n.T(
+			"thiếu id phép kiểm (lấy từ kết quả health của site hoặc stack)",
+			"the check id is missing (take it from the site or stack health results)"))
+	}
+	if p.Checks == nil {
+		return nil, checkNotFound(req.CheckID)
+	}
+	r, ok, err := p.Checks.CheckResultOf(ctx, req.CheckID)
+	if err != nil {
+		return nil, fmt.Errorf("đọc kết quả phép kiểm %s: %w", req.CheckID, err)
+	}
+	if !ok {
+		return nil, checkNotFound(req.CheckID)
+	}
+	f := &Fixes{Sys: p.Sites.Sys, Settings: p.Sites.Settings, Store: p.Sites.Store, Journal: p.Sites.Journal, Files: p.Files}
+	// Stack có thể nil (Planner chỉ dùng cho site); rỗng thì core dùng mã đã ghim.
+	if p.Stack != nil {
+		f.WPCLISHA512 = p.Stack.WPCLISHA512
+	}
+	x, err := f.Prepare(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	return &Prepared{
+		Request: PlanRequest{Kind: PlanHealthFix, CheckID: req.CheckID},
+		Plan:    x.Plan,
+		preview: x.Preview,
+		execute: func(ctx context.Context, onEvent func(engine.Event)) (RunResult, error) {
+			rep, err := x.Execute(ctx, onEvent)
+			return RunResult{Report: rep}, err
+		},
+	}, nil
+}
+
+// prepareSSLIssue dựng Plan xin SSL cho Domain (SSL.PrepareIssue kiểm site và
+// điều kiện đầu như `tpan ssl issue`).
+func (p *Planner) prepareSSLIssue(ctx context.Context, req PlanRequest) (*Prepared, error) {
+	d, err := validate.ParseDomain(req.Domain)
+	if err != nil {
+		return nil, err
+	}
+	s := &SSL{Sys: p.Sites.Sys, Settings: p.Sites.Settings, Store: p.Sites.Store, Journal: p.Sites.Journal}
+	in, err := s.PrepareIssue(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	return &Prepared{
+		Request: PlanRequest{Kind: PlanSSLIssue, Domain: d.String()},
+		Plan:    in.Plan,
+		preview: in.Preview,
+		execute: func(ctx context.Context, onEvent func(engine.Event)) (RunResult, error) {
+			rep, err := in.Execute(ctx, onEvent)
+			return RunResult{Report: rep}, err
+		},
+	}, nil
+}
+
 // newPlanID sinh 16 ký tự hex ngẫu nhiên.
 func newPlanID() (string, error) {
 	b := make([]byte, 8)
@@ -372,9 +449,9 @@ func (p *Planner) Reject(ctx context.Context, id, by string) error {
 	return nil
 }
 
-// AgentConfig đọc cấu hình cổng agent; trống thì mặc định (panel, all).
+// AgentConfig đọc cấu hình cổng agent; trống thì mặc định (panel, all, off).
 func AgentConfig(ctx context.Context, s Settings) (AgentSettings, error) {
-	out := AgentSettings{Approval: ApprovalPanel, Redact: "all"}
+	out := AgentSettings{Approval: ApprovalPanel, Redact: "all", Brain: BrainOff}
 	approval, _, err := s.GetSetting(ctx, SettingMCPApproval)
 	if err != nil {
 		return AgentSettings{}, fmt.Errorf("đọc setting %s: %w", SettingMCPApproval, err)
@@ -396,6 +473,17 @@ func AgentConfig(ctx context.Context, s Settings) (AgentSettings, error) {
 		out.Redact = redact
 	default:
 		return AgentSettings{}, fmt.Errorf("setting %s có giá trị lạ %q (chỉ nhận all hoặc secrets)", SettingAIRedact, redact)
+	}
+	brain, _, err := s.GetSetting(ctx, SettingAIBrain)
+	if err != nil {
+		return AgentSettings{}, fmt.Errorf("đọc setting %s: %w", SettingAIBrain, err)
+	}
+	switch brain {
+	case "":
+	case BrainOff, BrainBridge:
+		out.Brain = brain
+	default:
+		return AgentSettings{}, fmt.Errorf("setting %s có giá trị lạ %q (chỉ nhận off hoặc bridge)", SettingAIBrain, brain)
 	}
 	return out, nil
 }

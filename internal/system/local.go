@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -43,16 +44,10 @@ func NewLocal() *LocalSystem {
 
 // Run chạy cmd bằng argv, không qua shell. Xem System.Run.
 func (s *LocalSystem) Run(ctx context.Context, cmd Cmd) (Result, error) {
-	name, args := runArgv(cmd)
-	bin, err := lookPath(name)
+	c, err := command(ctx, cmd)
 	if err != nil {
-		return Result{ExitCode: -1}, fmt.Errorf("chạy %s: %w", cmd.String(), err)
+		return Result{ExitCode: -1}, err
 	}
-
-	c := exec.CommandContext(ctx, bin, args...)
-	c.Args[0] = name // để ps hiện tên ngắn, như khi gõ tay
-	c.Env = fixedEnv()
-	c.Dir = "/"
 	if len(cmd.Stdin) > 0 {
 		c.Stdin = bytes.NewReader(cmd.Stdin)
 	}
@@ -87,6 +82,93 @@ func (s *LocalSystem) Run(ctx context.Context, cmd Cmd) (Result, error) {
 	return res, fmt.Errorf("chạy %s: %w", cmd.String(), runErr)
 }
 
+// command dựng exec.Cmd cho cmd: argv (bọc runuser nếu AsUser), môi trường cố
+// định cộng cmd.Env, thư mục làm việc.
+func command(ctx context.Context, cmd Cmd) (*exec.Cmd, error) {
+	name, args := runArgv(cmd)
+	env := mergeEnv(fixedEnv(), cmd.Env)
+	bin, err := lookPath(name, envValue(env, "PATH"))
+	if err != nil {
+		return nil, fmt.Errorf("chạy %s: %w", cmd.String(), err)
+	}
+	c := exec.CommandContext(ctx, bin, args...)
+	c.Args[0] = name // để ps hiện tên ngắn, như khi gõ tay
+	c.Env = env
+	c.Dir = cmd.Dir
+	if c.Dir == "" {
+		c.Dir = "/"
+	}
+	return c, nil
+}
+
+// mergeEnv trả base cộng extra; biến trùng tên thì bản trong extra thắng.
+func mergeEnv(base, extra []string) []string {
+	if len(extra) == 0 {
+		return base
+	}
+	out := make([]string, 0, len(base)+len(extra))
+	for _, kv := range base {
+		k, _, _ := strings.Cut(kv, "=")
+		if envValue(extra, k) == "" {
+			out = append(out, kv)
+		}
+	}
+	return append(out, extra...)
+}
+
+// envValue là giá trị của biến key trong env (rỗng khi không có).
+func envValue(env []string, key string) string {
+	for _, kv := range env {
+		if k, v, ok := strings.Cut(kv, "="); ok && k == key {
+			return v
+		}
+	}
+	return ""
+}
+
+// Pipe là một chương trình đang chạy với stdin và stdout nối ống, cho kết nối
+// sống lâu hai chiều (`tpan brain` giữ `ssh <máy> tpan brain-link`). stderr
+// đi thẳng ra stderr của tpan để người vận hành thấy lỗi của ssh.
+type Pipe struct {
+	Stdin  io.WriteCloser
+	Stdout io.ReadCloser
+	cmd    *exec.Cmd
+}
+
+// Wait chờ chương trình thoát. Mã thoát khác 0 là *ExitError.
+func (p *Pipe) Wait() error {
+	err := p.cmd.Wait()
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		return &ExitError{Cmd: strings.Join(p.cmd.Args, " "), Code: ee.ExitCode()}
+	}
+	return err
+}
+
+// StartPipe chạy cmd (argv, không shell, như Run; bỏ qua Stdin và OnOutput)
+// và trả ống stdin, stdout của nó. ctx bị huỷ thì chương trình bị giết. Chỉ
+// dùng ở máy của người vận hành; máy chủ không cần lệnh nào sống lâu kiểu này.
+func StartPipe(ctx context.Context, cmd Cmd) (*Pipe, error) {
+	c, err := command(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	c.Stderr = os.Stderr
+	c.WaitDelay = 5 * time.Second
+	in, err := c.StdinPipe()
+	if err != nil {
+		return nil, fmt.Errorf("chạy %s: %w", cmd.String(), err)
+	}
+	out, err := c.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("chạy %s: %w", cmd.String(), err)
+	}
+	if err := c.Start(); err != nil {
+		return nil, fmt.Errorf("chạy %s: %w", cmd.String(), err)
+	}
+	return &Pipe{Stdin: in, Stdout: out, cmd: c}, nil
+}
+
 // runArgv trả về chương trình và tham số thật sẽ chạy: với AsUser thì bọc
 // trong `runuser -u <user> --`. Dấu "--" chặn việc tên lệnh bị hiểu là cờ của runuser.
 func runArgv(cmd Cmd) (string, []string) {
@@ -96,13 +178,14 @@ func runArgv(cmd Cmd) (string, []string) {
 	return "runuser", append([]string{"-u", cmd.AsUser, "--", cmd.Name}, cmd.Args...)
 }
 
-// lookPath tìm chương trình trong fixedPATH. Không dùng exec.LookPath(name)
-// vì nó đọc PATH của tiến trình tpan, không phải PATH cố định ở trên.
-func lookPath(name string) (string, error) {
+// lookPath tìm chương trình trong path (PATH của môi trường lệnh con, mặc định
+// là fixedPATH). Không dùng exec.LookPath(name) vì nó đọc PATH của tiến trình
+// tpan, không phải PATH của lệnh con.
+func lookPath(name, path string) (string, error) {
 	if strings.Contains(name, "/") {
 		return exec.LookPath(name)
 	}
-	for _, dir := range filepath.SplitList(fixedPATH) {
+	for _, dir := range filepath.SplitList(path) {
 		if p, err := exec.LookPath(filepath.Join(dir, name)); err == nil {
 			return p, nil
 		}

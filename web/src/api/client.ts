@@ -9,7 +9,7 @@
 // errorMessage(err, lang). Gặp 401 (phiên hết hạn) thì chuyển về trang đăng
 // nhập, kèm ?next= để đăng nhập xong quay lại đúng chỗ.
 
-import type { ErrorBody, EventKind, JobEvent, LogEnd, LogFile, LogLine } from "./types";
+import type { AIEvent, ErrorBody, EventKind, JobEvent, LogEnd, LogFile, LogLine } from "./types";
 import { tx, type Lang } from "../i18n";
 import { strings as khung } from "../i18n/khung";
 
@@ -214,5 +214,41 @@ export function subscribeSiteLog(domain: string, file: LogFile, h: SiteLogHandle
     h.onEnd(reason);
   });
   es.onerror = () => h.onError(es.readyState === EventSource.CLOSED);
+  return () => es.close();
+}
+
+/** Hàm nhận sự kiện của một lượt hỏi AI. */
+export type AITurnHandlers = {
+  onEvent: (e: AIEvent) => void;
+  /** "done": đã nhận sự kiện cuối (done, error hoặc refused). "error": luồng hỏng hẳn (401, 404) trước khi tới sự kiện cuối. */
+  onClose: (reason: "done" | "error") => void;
+};
+
+/**
+ * Nghe một lượt hỏi AI (/api/v1/ai/sessions/{id}/turns/{seq}/events). Mỗi sự
+ * kiện tới với "event: ai", data là AIEvent. text và done mang TOÀN BỘ câu trả
+ * lời tới lúc đó nên bên nhận thay chữ cũ bằng chữ mới, không nối thêm. done,
+ * error, refused là sự kiện cuối: đóng luồng, nếu không EventSource nối lại
+ * mãi một lượt đã xong. Trả về hàm huỷ để gọi khi bỏ lượt.
+ */
+export function subscribeAITurn(sessionID: string, seq: number, h: AITurnHandlers): () => void {
+  const es = new EventSource(`/api/v1/ai/sessions/${encodeURIComponent(sessionID)}/turns/${seq}/events`);
+  es.addEventListener("ai", (msg) => {
+    let ev: AIEvent;
+    try {
+      ev = JSON.parse((msg as MessageEvent<string>).data) as AIEvent;
+    } catch {
+      return; // dòng hỏng thì bỏ, sự kiện sau vẫn tới
+    }
+    h.onEvent(ev);
+    if (ev.kind === "done" || ev.kind === "error" || ev.kind === "refused") {
+      es.close();
+      h.onClose("done");
+    }
+  });
+  es.onerror = () => {
+    // CONNECTING: đang tự nối lại, cứ để. CLOSED: trình duyệt bỏ cuộc.
+    if (es.readyState === EventSource.CLOSED) h.onClose("error");
+  };
   return () => es.close();
 }

@@ -22,6 +22,11 @@ claude mcp add --transport stdio tpan -- ssh <user>@<máy> sudo -n tpan mcp
   ```
 
   Dòng này cho `sudo` chạy đúng `tpan mcp`, không cho gì khác. Nhờ vậy tài khoản này không tự chạy được `tpan plan approve`.
+- Dùng thêm AI trong panel (`tpan brain <user>@<máy>` trên máy cá nhân, mục 8.4 của KE-HOACH.md) thì tài khoản đó cần thêm hai lệnh: `tpan brain-link` (ống nối tới panel) và `tpan mcp --session <id>` (claude của bộ não nối vào phiên do panel mở). Trong sudoers, lệnh có ghi tham số chỉ khớp đúng tham số đó, nên phải ghi riêng:
+
+  ```
+  <user> ALL=(root) NOPASSWD: /usr/local/bin/tpan mcp, /usr/local/bin/tpan mcp --session *, /usr/local/bin/tpan brain-link
+  ```
 - `-n` bảo `sudo` đừng hỏi mật khẩu. Nếu nó cần mật khẩu thì lệnh lỗi ngay, đó là đúng. Đừng bao giờ xin người dùng mật khẩu, và đừng tìm cách thay thế.
 - Kiểm: chạy `claude mcp list`, thấy `tpan` ở trạng thái nối được là xong.
 
@@ -43,6 +48,7 @@ Có ba loại. Không có công cụ shell và không có công cụ ghi file.
 | `get_job{id}` | Chi tiết một job |
 | `list_plans{status}` | Các Plan theo trạng thái (`pending`, `applied`, `rejected`) |
 | `get_plan{id}` | Chi tiết một Plan |
+| `current_view{}` | Mục đang mở trên panel và tối đa 10 mục vừa đi qua ("xem giúp cái đang mở trên panel") |
 
 **Lập Plan** (chỉ sinh một Plan ở trạng thái chờ duyệt, chưa đổi gì trên máy):
 
@@ -52,6 +58,8 @@ Có ba loại. Không có công cụ shell và không có công cụ ghi file.
 | `propose_site_remove{domain}` | Đề xuất xoá site |
 | `propose_site_repair{domain}` | Đề xuất sửa các phát hiện lỗi của một site |
 | `propose_stack_repair{}` | Đề xuất sửa tầng dùng chung |
+| `propose_health_fix{check_id}` | Đề xuất sửa tự động một phát hiện của health. `check_id` lấy từ kết quả health đã lưu (lần health gần nhất); không có thì `check_not_found` |
+| `propose_ssl_issue{domain}` | Đề xuất xin chứng chỉ SSL cho một site |
 
 **Chạy Plan**:
 
@@ -61,7 +69,7 @@ Có ba loại. Không có công cụ shell và không có công cụ ghi file.
 
 Ở chế độ mặc định `panel`, `apply_plan` bị từ chối. Người duyệt trên giao diện web hoặc bằng `tpan plan approve <id>`. Bị từ chối thì đừng thử cách khác: báo cho người dùng `plan_id` và nói họ duyệt trên panel.
 
-Công cụ lập Plan trả về bản xem trước và một `plan_id`. Mã từ chối thường gặp: `plan_not_found`, `plan_not_pending` (Plan đã được xử lý rồi), `plan_changed` (máy đã đổi từ lúc lập Plan, cần lập lại), `wp_not_installed`, `stack_not_installed`, `site_not_found`, `site_trashed`. Gặp `plan_changed` thì đọc lại tình trạng rồi lập Plan mới.
+Công cụ lập Plan trả về bản xem trước và một `plan_id`. Mã từ chối thường gặp: `plan_not_found`, `plan_not_pending` (Plan đã được xử lý rồi), `plan_changed` (máy đã đổi từ lúc lập Plan, cần lập lại), `wp_not_installed`, `stack_not_installed`, `site_not_found`, `site_trashed`, `check_not_found`, `no_auto_fix`, `acme_email_missing`, `precondition_failed`. Gặp `plan_changed` thì đọc lại tình trạng rồi lập Plan mới.
 
 ## 3. Luật
 
