@@ -17,7 +17,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -56,9 +55,6 @@ const DefaultSelfURL = "https://github.com/doxuta/tpan/releases/latest/download"
 
 // TpanBin là đường dẫn file chạy của tpan trên máy chủ (mục 5).
 const TpanBin = "/usr/local/bin/tpan"
-
-// errM12Todo đánh dấu thân hàm thợ đợt 2 chưa viết.
-var errM12Todo = errors.New("chưa làm (M12, đợt 2)")
 
 // InstallOptions là lựa chọn nguồn gói lúc cài stack lần đầu (mục 6.11). Zero
 // value là cài toàn bộ từ kho của Ubuntu, đúng như M1. Chạy lại trên máy đã
