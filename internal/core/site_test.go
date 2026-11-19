@@ -44,6 +44,13 @@ type siteSim struct {
 	installed map[string]bool   // WordPress đã cài, theo user của site
 	permalink map[string]string // theo user của site
 	sockets   map[string]bool
+	// Thùng rác (M6): user Linux đã hết hạn (usermod --expiredate 1), user DB
+	// đang bị khoá (ALTER USER ... ACCOUNT LOCK).
+	expired  map[string]bool
+	dbLocked map[string]bool
+	// serveAll: curl --resolve luôn trả 200 kể cả khi link vhost đã gỡ (giả
+	// lập một vhost khác nhận tên miền), để kiểm chứng thùng rác lỗi.
+	serveAll bool
 	// failTar khác 0 thì tar thoát mã này.
 	failTar int
 }
@@ -62,6 +69,8 @@ var (
 	sqlCreateUsr = regexp.MustCompile(`CREATE USER '([a-z0-9_]+)'`)
 	sqlDropDB    = regexp.MustCompile("DROP DATABASE IF EXISTS `([a-z0-9_]+)`")
 	sqlDropUsr   = regexp.MustCompile(`DROP USER IF EXISTS '([a-z0-9_]+)'`)
+	sqlLockState = regexp.MustCompile(`FROM mysql\.global_priv WHERE User='([a-z0-9_]+)'`)
+	sqlLock      = regexp.MustCompile(`ALTER USER '([a-z0-9_]+)'@'localhost' ACCOUNT (LOCK|UNLOCK)`)
 )
 
 func argAfter(args []string, flag string) string {
@@ -90,6 +99,8 @@ func newSiteSim(t *testing.T) *siteSim {
 		installed:  map[string]bool{},
 		permalink:  map[string]string{},
 		sockets:    map[string]bool{},
+		expired:    map[string]bool{},
+		dbLocked:   map[string]bool{},
 	}
 	// Những gì stack đã cài để lại.
 	for _, d := range []string{
@@ -129,6 +140,32 @@ func newSiteSim(t *testing.T) *siteSim {
 			return exit(6, "", "userdel: user '"+name+"' does not exist\n")
 		}
 		delete(m.users, name)
+		delete(m.expired, name)
+		return ok
+	})
+	// chage -l và usermod --expiredate của steps.SiteUserLock (dòng "Account
+	// expires" đúng như Ubuntu 24.04 in).
+	m.Handle([]string{"chage", "-l"}, func(c system.Cmd) system.Result {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		name := c.Args[1]
+		if _, found := m.users[name]; !found {
+			return exit(1, "", "chage: user '"+name+"' does not exist in /etc/passwd\n")
+		}
+		exp := "never"
+		if m.expired[name] {
+			exp = "Jan 02, 1970"
+		}
+		return exit(0, "Last password change\t\t\t\t\t: Nov 19, 2026\nAccount expires\t\t\t\t\t\t: "+exp+"\n", "")
+	})
+	m.Handle([]string{"usermod", "--expiredate"}, func(c system.Cmd) system.Result {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		name := c.Args[len(c.Args)-1]
+		if _, found := m.users[name]; !found {
+			return exit(6, "", "usermod: user '"+name+"' does not exist\n")
+		}
+		m.expired[name] = c.Args[1] == "1"
 		return ok
 	})
 
@@ -136,14 +173,20 @@ func newSiteSim(t *testing.T) *siteSim {
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		sql := string(c.Stdin)
-		if g := sqlStateRE.FindStringSubmatch(sql); g != nil {
-			b := func(v bool) int {
-				if v {
-					return 1
-				}
-				return 0
+		b := func(v bool) int {
+			if v {
+				return 1
 			}
+			return 0
+		}
+		if g := sqlStateRE.FindStringSubmatch(sql); g != nil {
 			return exit(0, fmt.Sprintf("%d\t%d\n", b(m.dbs[g[1]]), b(m.dbUsers[g[1]])), "")
+		}
+		if g := sqlLockState.FindStringSubmatch(sql); g != nil {
+			return exit(0, fmt.Sprintf("%d\t%d\n", b(m.dbUsers[g[1]]), b(m.dbLocked[g[1]])), "")
+		}
+		for _, g := range sqlLock.FindAllStringSubmatch(sql, -1) {
+			m.dbLocked[g[1]] = g[2] == "LOCK"
 		}
 		for _, g := range sqlCreateDB.FindAllStringSubmatch(sql, -1) {
 			m.dbs[g[1]] = true
@@ -153,6 +196,7 @@ func newSiteSim(t *testing.T) *siteSim {
 		}
 		for _, g := range sqlDropUsr.FindAllStringSubmatch(sql, -1) {
 			delete(m.dbUsers, g[1])
+			delete(m.dbLocked, g[1])
 		}
 		for _, g := range sqlDropDB.FindAllStringSubmatch(sql, -1) {
 			delete(m.dbs, g[1])
@@ -161,9 +205,19 @@ func newSiteSim(t *testing.T) *siteSim {
 	})
 
 	m.Handle([]string{"curl"}, func(c system.Cmd) system.Result {
-		if r := argAfter(c.Args, "--resolve"); r != "" { // checks.HTTPSite
+		if r := argAfter(c.Args, "--resolve"); r != "" { // checks.HTTPSite, siteGone
 			dom, _, _ := strings.Cut(r, ":")
+			if !m.served(dom) {
+				// Link vhost đã gỡ (thùng rác): trả 404 như khi không còn file.
+				if slices.Contains(c.Args, "-o") {
+					return exit(0, "404", "")
+				}
+				return exit(0, "<html>404</html>TPAN_HTTP_CODE=404", "")
+			}
 			body := "<html><link rel='stylesheet' href='http://" + dom + "/wp-content/themes/x/style.css'></html>"
+			if slices.Contains(c.Args, "-o") && !slices.Contains(c.Args, "-D") {
+				return exit(0, "200", "")
+			}
 			return exit(0, body+"TPAN_HTTP_CODE=200", "")
 		}
 		if p := argAfter(c.Args, "-o"); p != "" { // WPArchive
@@ -261,6 +315,27 @@ func newSiteSim(t *testing.T) *siteSim {
 		return ok
 	})
 	return m
+}
+
+// served: domain có link vhost đang bật (Nginx hoặc Apache), hoặc serveAll.
+func (m *siteSim) served(dom string) bool {
+	m.mu.Lock()
+	all := m.serveAll
+	m.mu.Unlock()
+	if all {
+		return true
+	}
+	d, err := validate.ParseDomain(dom)
+	if err != nil {
+		return false
+	}
+	l := site.LayoutOf(d)
+	for _, link := range []string{l.NginxLink, l.ApacheLink} {
+		if _, err := m.Stat(link); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // removeUnder xoá mọi thứ bên dưới p (sâu trước), và cả p nếu self.
@@ -894,110 +969,8 @@ func TestSiteVerifyIsolation(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------- rm, list, info, health
-
-func TestSiteRemove(t *testing.T) {
-	const dom = "shop.example.com"
-
-	t.Run("không có site", func(t *testing.T) {
-		se := newSiteEnv(t, Nginx)
-		_, err := se.s.PrepareRemove(ctx, mustDomain(t, dom))
-		if refusedCode(t, err) != "site_not_found" {
-			t.Error("muốn site_not_found")
-		}
-		if len(se.m.Ran()) != 0 {
-			t.Errorf("chạy lệnh: %v", se.m.Ran())
-		}
-	})
-
-	for _, web := range []WebServer{Nginx, Apache} {
-		t.Run(string(web), func(t *testing.T) {
-			se := newSiteEnv(t, web)
-			se.add(t, "blog.example.com")
-			se.add(t, dom)
-			d := mustDomain(t, dom)
-			l := site.LayoutOf(d)
-			conf, link := l.NginxConf, l.NginxLink
-			if web == Apache {
-				conf, link = l.ApacheConf, l.ApacheLink
-			}
-
-			r, err := se.s.PrepareRemove(ctx, d)
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := []string{
-				"absent:" + link,
-				"absent:" + conf,
-				"absent:" + l.PoolConf("8.3"),
-				"mariadb.site-db-absent:" + dom,
-				"remove-tree:" + l.Dir,
-				"remove-tree:" + l.LogDir,
-				"site.user.absent:" + l.User,
-			}
-			if got := stepIDs(r.Plan); !reflect.DeepEqual(got, want) {
-				t.Errorf("thứ tự bước:\n got %v\nwant %v", got, want)
-			}
-			if r.Plan.Kind != "site.rm" || r.Plan.Target != dom || len(r.Plan.Verify) != 0 {
-				t.Errorf("Plan = %s/%s, %d phép kiểm", r.Plan.Kind, r.Plan.Target, len(r.Plan.Verify))
-			}
-			pv, err := r.Preview(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			danger := 0
-			for _, sp := range pv.Steps {
-				if sp.Info.Danger {
-					danger++
-				}
-			}
-			if danger == 0 {
-				t.Error("xoá site mà không bước nào Danger: CLI sẽ không hỏi lại")
-			}
-
-			rep, err := r.Execute(ctx, nil)
-			if err != nil || rep.Job.Status != engine.JobSucceeded {
-				t.Fatalf("%v %s %s", err, rep.Job.Status, rep.Job.Error)
-			}
-			if _, ok, _ := se.sites.Site(ctx, d); ok {
-				t.Error("xoá xong mà Store còn site")
-			}
-			if _, ok, _ := se.sites.Site(ctx, mustDomain(t, "blog.example.com")); !ok {
-				t.Error("xoá nhầm site khác khỏi Store")
-			}
-			if _, found := se.m.users[l.User]; found || se.m.dbs[l.DB] || se.m.dbUsers[l.DB] {
-				t.Error("còn user hoặc DB của site đã xoá")
-			}
-			for _, p := range []string{l.Dir, l.LogDir, conf, link, l.PoolConf("8.3")} {
-				if _, err := se.m.Stat(p); !errors.Is(err, fs.ErrNotExist) {
-					t.Errorf("còn %s", p)
-				}
-			}
-		})
-	}
-
-	t.Run("job hỏng thì giữ dòng trong Store", func(t *testing.T) {
-		se := newSiteEnv(t, Nginx)
-		se.add(t, dom)
-		se.m.Handle([]string{"userdel"}, func(system.Cmd) system.Result {
-			return system.Result{ExitCode: 8, Stderr: "userdel: user is currently used by process 42\n"}
-		})
-		r, err := se.s.PrepareRemove(ctx, mustDomain(t, dom))
-		if err != nil {
-			t.Fatal(err)
-		}
-		rep, err := r.Execute(ctx, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if rep.Job.Status == engine.JobSucceeded {
-			t.Fatal("userdel lỗi mà job thành công")
-		}
-		if se.sites.count() != 1 {
-			t.Error("job hỏng mà xoá dòng trong Store")
-		}
-	})
-}
+// ---------------------------------------------------------------- list, info, health
+// (site rm, restore, purge: trash_test.go)
 
 func TestSiteListInfoHealth(t *testing.T) {
 	const dom = "shop.example.com"

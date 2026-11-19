@@ -87,6 +87,27 @@ const vi = {
   secretCopy: "Chép",
   secretCopyOf: (what: string) => `Chép ${what}`,
   secretDismiss: "Đã lưu, ẩn đi",
+  secretTitleOf: (host: string) => `Lưu tài khoản của ${host} ngay`,
+
+  // ---- job hàng loạt: bảng kết quả từng site ----
+  unitsHeading: "Kết quả từng site",
+  unitsSummary: (ok: number, failed: number, notRun: number) =>
+    `${ok} site xong` + (failed > 0 ? `, ${failed} site lỗi và đã được hoàn tác riêng` : "") + (notRun > 0 ? `, ${notRun} site chưa chạy tới` : "") + ".",
+  unitsEmpty: "Job này chưa có kết quả site nào.",
+  unitColSite: "Site",
+  unitColResult: "Kết quả",
+  unitColStep: "Hỏng ở",
+  unitColWhy: "Vì sao",
+  unitStatus: {
+    succeeded: "xong",
+    rolled_back: "lỗi, đã hoàn tác",
+    undo_failed: "lỗi, hoàn tác cũng lỗi",
+    not_run: "chưa chạy tới",
+  },
+  unitPhase: (phase: string) =>
+    ({ prepare: "Chuẩn bị site", commit: "Reload web server", finish: "Cài WordPress", verify: "Kiểm chứng" })[phase as "prepare" | "commit" | "finish" | "verify"] ?? phase,
+  unitsFailedAll: "Không site nào xong. tpan đã hoàn tác từng site, máy về như trước khi chạy. Xem bảng bên dưới để biết site nào hỏng ở bước nào.",
+  unitsFailedUndo: "Có lần hoàn tác bị lỗi nên máy có thể đang dở dang. Xem bảng bên dưới và phần Hoàn tác, kiểm máy rồi hãy chạy lại.",
 };
 
 export const strings = defineStrings(vi, {
@@ -170,4 +191,27 @@ export const strings = defineStrings(vi, {
   secretCopy: "Copy",
   secretCopyOf: (what) => `Copy ${what}`,
   secretDismiss: "Saved, hide it",
+  secretTitleOf: (host) => `Save the account of ${host} now`,
+
+  unitsHeading: "Result for each site",
+  unitsSummary: (ok, failed, notRun) =>
+    `${ok} ${ok === 1 ? "site" : "sites"} done` +
+    (failed > 0 ? `, ${failed} failed and ${failed === 1 ? "was" : "were"} rolled back on ${failed === 1 ? "its" : "their"} own` : "") +
+    (notRun > 0 ? `, ${notRun} not reached` : "") +
+    ".",
+  unitsEmpty: "This job has no site result yet.",
+  unitColSite: "Site",
+  unitColResult: "Result",
+  unitColStep: "Failed at",
+  unitColWhy: "Why",
+  unitStatus: {
+    succeeded: "done",
+    rolled_back: "failed, rolled back",
+    undo_failed: "failed, rollback failed too",
+    not_run: "not reached",
+  },
+  unitPhase: (phase) =>
+    ({ prepare: "Preparing the site", commit: "Reloading the web server", finish: "Installing WordPress", verify: "Verification" })[phase as "prepare" | "commit" | "finish" | "verify"] ?? phase,
+  unitsFailedAll: "No site finished. tpan rolled back each site, so the machine is as it was before. Read the table below to see which site failed at which step.",
+  unitsFailedUndo: "A rollback failed, so the machine may be half-changed. Read the table below and the Rollback section, and check the machine before running again.",
 });

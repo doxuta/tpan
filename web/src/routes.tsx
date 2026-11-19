@@ -62,6 +62,12 @@ export const screens: ScreenEntry[] = [
     menu: { label: "ssl", group: "chinh" },
   },
   {
+    path: "/trash",
+    load: () => import("./screens/thung-rac").then((m) => m.default),
+    // Mục 10: mục đếm được thì có số; thùng rác đếm site đang nằm trong đó.
+    menu: { label: "trash", group: "chinh", count: (o) => o.sites.filter((r) => r.site.status === "trashed").length || undefined },
+  },
+  {
     path: "/incidents",
     load: () => import("./screens/su-co").then((m) => m.IncidentList),
     menu: {

@@ -26,6 +26,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/system"
@@ -165,6 +166,29 @@ func runTest(ctx context.Context, sys system.System, test *system.Cmd, what stri
 		return withStdout(fmt.Errorf("kiểm cấu hình sau khi %s: %w", what, err), res)
 	}
 	return nil
+}
+
+// waitForTimeout, waitForEvery: trần và nhịp chờ của File.WaitFor. Biến (không
+// phải hằng) để test rút ngắn.
+var (
+	waitForTimeout = 5 * time.Second
+	waitForEvery   = 100 * time.Millisecond
+)
+
+// waitForPath chờ tới khi p có (Stat không lỗi), ctx bị huỷ, hoặc hết
+// waitForTimeout. Không trả lỗi: người gọi để phép kiểm chứng phán.
+func waitForPath(ctx context.Context, sys system.System, p string) {
+	deadline := time.Now().Add(waitForTimeout)
+	for {
+		if _, err := sys.Stat(p); err == nil || time.Now().After(deadline) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(waitForEvery):
+		}
+	}
 }
 
 func runReload(ctx context.Context, sys system.System, reload *system.Cmd, what string) error {

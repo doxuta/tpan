@@ -47,9 +47,16 @@ func Run(ctx context.Context, o RunOptions) error {
 			defer close(done)
 			s.sched.Run(sctx)
 		}()
+		// Bộ hẹn giờ dọn thùng rác (M6, mục 6.4) cũng sống cùng serve.
+		trashDone := make(chan struct{})
+		go func() {
+			defer close(trashDone)
+			s.newTrashTimer().Run(sctx)
+		}()
 		// Dừng rồi chờ vòng kiểm đang dở xong hẳn (ctx đã huỷ nên nó dừng
-		// nhanh) trước khi trả về: người gọi đóng store ngay sau Run.
-		defer func() { cancel(); <-done }()
+		// nhanh) và vòng dọn thùng rác đang dở (nó không dừng giữa chừng, xem
+		// trash_timer.go) trước khi trả về: người gọi đóng store ngay sau Run.
+		defer func() { cancel(); <-done; <-trashDone }()
 	}
 	srv := &http.Server{
 		Addr:              o.Listen,
@@ -98,11 +105,17 @@ func (s *Server) now() time.Time {
 // audit ghi một dòng nhật ký cho request r (mục 11). Lỗi ghi nhật ký chỉ được
 // log ra, không làm hỏng thao tác đã xong. Deps.Store nil (test) thì bỏ qua.
 func (s *Server) audit(r *http.Request, action, target, result, jobID string) {
+	s.auditAs(r.Context(), clientIP(r), action, target, result, jobID)
+}
+
+// auditAs ghi một dòng nhật ký với ip cho sẵn: dùng cho việc tpan serve tự
+// làm, không có request nào (bộ hẹn giờ dọn thùng rác ghi ip là auditIPTimer).
+func (s *Server) auditAs(ctx context.Context, ip, action, target, result, jobID string) {
 	if s.deps.Store == nil {
 		return
 	}
-	err := s.deps.Store.AddAudit(r.Context(), store.AuditEntry{
-		Time: s.now(), IP: clientIP(r), Action: action, Target: target, Result: result, JobID: jobID,
+	err := s.deps.Store.AddAudit(ctx, store.AuditEntry{
+		Time: s.now(), IP: ip, Action: action, Target: target, Result: result, JobID: jobID,
 	})
 	if err != nil {
 		slog.Error("ghi nhật ký", "action", action, "err", err)
@@ -182,6 +195,13 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("POST /api/v1/plans/{id}/approve", auth(s.handlePlanApprove))
 	mux.Handle("POST /api/v1/plans/{id}/reject", auth(s.handlePlanReject))
 	mux.Handle("GET /api/v1/agent", auth(s.handleAgent))
+	// M6: thùng rác và hàng loạt (types_m6.go, api_trash.go).
+	mux.Handle("POST /api/v1/sites/{domain}/restore", auth(s.handleSiteRestore))
+	mux.Handle("GET /api/v1/trash", auth(s.handleTrash))
+	mux.Handle("POST /api/v1/trash/settings", auth(s.handleTrashSettings))
+	mux.Handle("DELETE /api/v1/trash/{domain}", auth(s.handleTrashPurge))
+	mux.Handle("POST /api/v1/apply", auth(s.handleApply))
+	mux.Handle("GET /api/v1/export", auth(s.handleExport))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

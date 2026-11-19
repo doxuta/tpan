@@ -121,6 +121,8 @@ type Site struct {
 	SSL       bool      `json:"ssl"`
 	Created   time.Time `json:"created"`
 	TrashedAt time.Time `json:"trashed_at,omitzero"`
+	// PurgeAt là hạn xoá hẳn khi site ở thùng rác (M6); zero khi không ở đó.
+	PurgeAt time.Time `json:"purge_at,omitzero"`
 }
 
 // Layout trả tên và đường dẫn của site.

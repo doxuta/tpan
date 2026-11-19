@@ -1,7 +1,8 @@
 package core
 
-// Ca sử dụng của site WordPress (mục 6.2, 6.4 "Ở M2", 6.7 của docs/KE-HOACH.md):
-// tạo, chạy lại, xoá hẳn, liệt kê, xem và kiểm sức khoẻ một site.
+// Ca sử dụng của site WordPress (mục 6.2, 6.4, 6.7 của docs/KE-HOACH.md):
+// tạo, chạy lại, đưa vào thùng rác, liệt kê, xem và kiểm sức khoẻ một site.
+// Khôi phục và xoá hẳn (từ thùng rác) nằm ở trash.go.
 //
 // Giống stack.go: Prepare* chỉ đọc (kiểm điều kiện, dựng Plan), Preview gọi
 // engine xem trước, Execute chạy engine rồi mới ghi bảng sites khi job thành
@@ -35,8 +36,8 @@ const (
 	// kiểm của steps.WPInstall, để tiêu đề sai bị từ chối trước khi job chạy
 	// chứ không phải giữa chừng, lúc user và DB đã được tạo).
 	siteTitleMax = 200
-	// Thư mục cha của thư mục site và thư mục log: RemoveTree chỉ xoá bên dưới.
-	siteWWWRoot = "/var/www"
+	// Thư mục cha của thư mục log: RemoveTree chỉ xoá bên dưới. (Thư mục site
+	// chỉ bị xoá hẳn khi đã ở thùng rác, bên dưới site.TrashRoot.)
 	siteLogRoot = "/var/log/tpan/sites"
 )
 
@@ -69,6 +70,15 @@ type Sites struct {
 	// steps.DefaultWordPressVersion/SHA1. Test đặt SHA-1 của một file giả.
 	WPVersion string
 	WPHash    string
+	// Now nil thì dùng time.Now. Test đặt để có TrashedAt, PurgeAt cố định (M6).
+	Now func() time.Time
+}
+
+func (s *Sites) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
 }
 
 func (s *Sites) wordpress() (version, hash string) {
@@ -246,9 +256,9 @@ func (s *Sites) drift(ctx context.Context, l site.Layout) error {
 	case dbUser && !cfg:
 		return refuse("site_drift", i18n.T(
 			"site "+d+" lệch: user DB "+l.DB+" có nhưng "+l.WPConfig+" không có. tpan không biết mật khẩu user DB đang dùng nên không ghi wp-config.php mới. "+
-				"Lấy lại wp-config.php từ backup, hoặc nếu không cần dữ liệu thì xoá hẳn bằng `sudo tpan site rm "+d+"` rồi tạo lại.",
+				"Lấy lại wp-config.php từ backup, hoặc nếu không cần dữ liệu thì xoá hẳn bằng `sudo tpan site rm "+d+"` rồi `sudo tpan trash purge "+d+"`, sau đó tạo lại.",
 			"site "+d+" has drifted: database user "+l.DB+" exists but "+l.WPConfig+" does not. tpan does not know the password the database user has, so it will not write a new wp-config.php. "+
-				"Restore wp-config.php from a backup, or if the data is not needed, delete the site with `sudo tpan site rm "+d+"` and create it again."))
+				"Restore wp-config.php from a backup, or if the data is not needed, delete the site with `sudo tpan site rm "+d+"` then `sudo tpan trash purge "+d+"`, and create it again."))
 	case cfg && !dbUser:
 		return refuse("site_drift", i18n.T(
 			"site "+d+" lệch: "+l.WPConfig+" có nhưng user DB "+l.DB+" không có. Tạo user DB mới sẽ ra mật khẩu khác mật khẩu trong wp-config.php. "+
@@ -548,9 +558,11 @@ func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (Site
 	return res, nil
 }
 
-// ---------------------------------------------------------------- xoá site
+// ---------------------------------------------------------------- đưa vào thùng rác
 
-// SiteRemove là một lần xoá hẳn site (mục 6.4, "Ở M2"), sẵn sàng xem trước hoặc chạy.
+// SiteRemove là một lần đưa site vào thùng rác (mục 6.4), sẵn sàng xem trước
+// hoặc chạy. Tên giữ từ M2 (lúc đó là xoá hẳn) để `site rm`, API và
+// propose_site_remove không phải đổi chỗ gọi.
 type SiteRemove struct {
 	Site   site.Site
 	Layout site.Layout
@@ -559,14 +571,19 @@ type SiteRemove struct {
 	sites *Sites
 }
 
-// PrepareRemove dựng Plan "site.rm": gỡ vhost và pool trước (hoàn tác được),
-// rồi mới xoá DB, file, user (không hoàn tác được). Không có phép kiểm chứng:
-// kiểm chứng Fail sẽ làm engine hoàn tác, mà hoàn tác lúc này chỉ trả lại vhost
-// và pool cho một site đã mất DB và file, tệ hơn là để yên.
+// PrepareRemove dựng Plan "site.rm": đưa site vào thùng rác theo mục 6.4,
+// bước 1-4 (trashSteps). Mọi bước hoàn tác được, nên Plan có kiểm chứng: domain
+// không còn được phục vụ. Kiểm chứng lỗi thì engine trả site về như cũ. Site
+// đã ở thùng rác thì từ chối site_trashed.
 func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemove, error) {
 	st, err := s.find(ctx, d)
 	if err != nil {
 		return nil, err
+	}
+	if st.Status == site.Trashed {
+		return nil, refuse("site_trashed", i18n.T(
+			"site "+d.String()+" đã ở thùng rác; xoá hẳn bằng: sudo tpan trash purge "+d.String(),
+			"site "+d.String()+" is already in the trash; delete it for good with: sudo tpan trash purge "+d.String()))
 	}
 	cfg, err := s.stack(ctx)
 	if err != nil {
@@ -576,29 +593,66 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 		return nil, fmt.Errorf("site %s trong DB không có bản PHP", d)
 	}
 	l := st.Layout()
-	web, err := steps.SiteWebAbsent(l, string(cfg.Web), st.PHPVersion)
+	ss, err := trashSteps(cfg.Web, st.PHPVersion, l)
 	if err != nil {
-		return nil, fmt.Errorf("dựng Plan xoá site %s: %w", d, err)
-	}
-	ss := append(web,
-		&steps.SiteDBAbsent{Layout: l},
-		&steps.RemoveTree{Path: l.Dir, Under: siteWWWRoot},
-		&steps.RemoveTree{Path: l.LogDir, Under: siteLogRoot},
-		&steps.SiteUserAbsent{Layout: l},
-	)
-	if st.SSL {
-		// Xoá chứng chỉ ở CUỐI (mục 6.4): bước nào trước đó lỗi thì engine hoàn
-		// tác trả lại vhost 443, mà vhost đó trỏ tới chứng chỉ; chứng chỉ đã mất
-		// thì kiểm config lúc hoàn tác lỗi theo. Để cuối thì lỗi ở đây chỉ còn
-		// sót chứng chỉ, chạy lại `site rm` dọn nốt.
-		ss = append(ss, &steps.CertbotDelete{Layout: l})
+		return nil, fmt.Errorf("dựng Plan đưa site %s vào thùng rác: %w", d, err)
 	}
 	return &SiteRemove{Site: st, Layout: l, sites: s, Plan: engine.Plan{
 		Kind:   "site.rm",
 		Target: d.String(),
-		Title:  i18n.T("Xoá hẳn site "+d.String(), "Permanently delete site "+d.String()),
+		Title:  i18n.T("Đưa site "+d.String()+" vào thùng rác", "Move site "+d.String()+" to the trash"),
 		Steps:  ss,
+		Verify: []checks.Check{siteGone(cfg.Web, l)},
 	}}, nil
+}
+
+// trashSteps là các bước đưa site vào thùng rác, đúng thứ tự mục 6.4:
+//
+//  1. Gỡ link vhost (kiểm config, reload web) rồi gỡ pool (kiểm, reload PHP):
+//     lấy từ steps.SiteWebAbsent của M2 nhưng BỎ bước gỡ file vhost trong
+//     sites-available, để khôi phục chỉ cần bật lại link. Site có SSL thì link
+//     là của vhost 443, cùng đường dẫn.
+//  2. Khoá user DB; DB giữ nguyên.
+//  3. Khoá user Linux (hạn tài khoản, lý do ở steps.SiteUserLock).
+//  4. Chuyển /var/www/<domain> vào site.TrashDir bằng một lần rename.
+//
+// Dùng chung cho PrepareRemove và unit "đưa vào thùng rác" của job hàng loạt.
+func trashSteps(web WebServer, php string, l site.Layout) ([]engine.Step, error) {
+	webAbsent, err := steps.SiteWebAbsent(l, string(web), php)
+	if err != nil {
+		return nil, err
+	}
+	conf := l.NginxConf
+	if web == Apache {
+		conf = l.ApacheConf
+	}
+	d := l.Domain.String()
+	why := i18n.T(
+		"Web server và PHP-FPM thôi phục vụ "+d+" trước khi thư mục site bị chuyển đi, để khách không thấy lỗi lưng chừng. File vhost trong sites-available được giữ: khôi phục chỉ cần bật lại link. Bước này hoàn tác được.",
+		"The web server and PHP-FPM stop serving "+d+" before the site directory is moved, so visitors never see a half-gone site. The vhost file in sites-available is kept: a restore only re-enables the link. This step can be undone.")
+	var ss []engine.Step
+	for _, st := range webAbsent {
+		a, ok := st.(*steps.Absent)
+		if !ok {
+			return nil, fmt.Errorf("bước gỡ web của %s có kiểu lạ %T", d, st)
+		}
+		if a.Path == conf {
+			continue
+		}
+		a.Why = why
+		ss = append(ss, a)
+	}
+	// Chặn khi SiteWebAbsent đổi cách dựng: thiếu bước gỡ link hay gỡ pool thì
+	// site vẫn được phục vụ từ một thư mục đã chuyển đi.
+	if len(ss) != 2 {
+		return nil, fmt.Errorf("bước gỡ web của %s: cần đúng hai bước (link vhost, pool), có %d", d, len(ss))
+	}
+	return append(ss,
+		&steps.DBUserLock{Layout: l},
+		&steps.SiteUserLock{Layout: l},
+		&steps.MoveTree{From: l.Dir, To: site.TrashDir(l),
+			Title: i18n.T("Chuyển thư mục của "+d+" vào thùng rác", "Move the directory of "+d+" to the trash")},
+	), nil
 }
 
 // Preview là bản xem trước. Chỉ đọc máy.
@@ -606,12 +660,12 @@ func (r *SiteRemove) Preview(ctx context.Context) (engine.Preview, error) {
 	return engine.New(r.sites.Sys, engine.Options{}).Preview(ctx, r.Plan)
 }
 
-// Execute chạy Plan; job thành công thì xoá dòng của site khỏi bảng sites. Job
-// hỏng thì giữ dòng, để chạy lại `tpan site rm` làm nốt phần còn lại.
+// Execute chạy Plan; job thành công thì ghi site là trashed kèm hạn xoá hẳn
+// (markTrashed). Job hỏng thì engine đã trả máy về như cũ, dòng giữ active.
 func (r *SiteRemove) Execute(ctx context.Context, onEvent func(engine.Event)) (engine.Report, error) {
 	s := r.sites
 	if s.Journal == nil {
-		return engine.Report{}, errors.New("xoá site: thiếu Journal, không ghi được lịch sử job")
+		return engine.Report{}, errors.New("đưa site vào thùng rác: thiếu Journal, không ghi được lịch sử job")
 	}
 	rep, err := engine.New(s.Sys, engine.Options{Journal: s.Journal, OnEvent: onEvent}).Execute(ctx, r.Plan)
 	if err != nil {
@@ -620,8 +674,10 @@ func (r *SiteRemove) Execute(ctx context.Context, onEvent func(engine.Event)) (e
 	if rep.Job.Status != engine.JobSucceeded {
 		return rep, nil
 	}
-	if err := s.Store.DeleteSite(ctx, r.Site.Domain); err != nil {
-		return rep, fmt.Errorf("job %s đã xoá site %s khỏi máy nhưng không xoá được dòng trong DB của tpan: %w", rep.Job.ID, r.Site.Domain, err)
+	if err := s.markTrashed(ctx, r.Site); err != nil {
+		// Chạy lại thì mọi bước đã đúng được bỏ qua, chỉ còn ghi DB.
+		return rep, fmt.Errorf("job %s đã đưa site %s vào thùng rác nhưng không ghi được vào DB của tpan: %w. Chạy lại `tpan site rm %s` để ghi nốt",
+			rep.Job.ID, r.Site.Domain, err, r.Site.Domain)
 	}
 	return rep, nil
 }

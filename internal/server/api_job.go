@@ -1,6 +1,8 @@
 package server
 
-// Tạo và xoá site qua API: chạy job ở nền, trả 202 ngay khi có job id.
+// Tạo site và đưa site vào thùng rác qua API: chạy job ở nền, trả 202 ngay
+// khi có job id. Các job khác (SSL, sửa tự động, thùng rác, hàng loạt) dùng
+// chung jobStart ở đây.
 //
 // Vòng đời của một job:
 //  1. handler kiểm đầu vào (validate), giành chỗ "đang có job" (busy; có rồi
@@ -65,6 +67,8 @@ type jobRun struct {
 type jobResult struct {
 	status engine.JobStatus
 	secret *AdminSecret
+	// secrets: mật khẩu của các site vừa tạo trong job hàng loạt (POST /apply).
+	secrets []AdminSecret
 }
 
 type jobFunc func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error)
@@ -104,16 +108,22 @@ func (a *apiState) run(id string) *jobRun {
 	return a.runs[id]
 }
 
+// heldSecret là mật khẩu quản trị đang chờ người dùng lấy: one cho job
+// site.add (JobDetail.Secret), many cho job hàng loạt (JobDetail.Secrets, một
+// dòng mỗi site vừa cài WordPress). Hai trường riêng để giao diện cũ của
+// site.add vẫn đọc đúng chỗ cũ.
+type heldSecret struct {
+	one  *AdminSecret
+	many []AdminSecret
+}
+
 // takeSecret trả mật khẩu của job rồi xoá khỏi bộ nhớ: lần sau không còn.
-func (a *apiState) takeSecret(id string) *AdminSecret {
+func (a *apiState) takeSecret(id string) heldSecret {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	sec, ok := a.secrets[id]
-	if !ok {
-		return nil
-	}
+	sec := a.secrets[id]
 	delete(a.secrets, id)
-	return &sec
+	return sec
 }
 
 // jobBusy trả 409 job_running.
@@ -160,8 +170,8 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, o jobOpts, fn 
 	a.wg.Go(func() {
 		res, err := fn(context.Background(), onEvent)
 		a.mu.Lock()
-		if res.secret != nil && run.id != "" {
-			a.secrets[run.id] = *res.secret
+		if (res.secret != nil || len(res.secrets) > 0) && run.id != "" {
+			a.secrets[run.id] = heldSecret{one: res.secret, many: res.secrets}
 		}
 		delete(a.runs, run.id)
 		a.busy = false
@@ -184,7 +194,9 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, o jobOpts, fn 
 		}
 		if err != nil {
 			slog.Error("job lỗi", "action", action, "target", target, "job", run.id, "err", err)
-			if result == "ok" {
+			// "": job đã bắt đầu mà không có kết quả (POST /apply khi job
+			// hàng loạt không chạy xong).
+			if result == "ok" || result == "" {
 				result = "error"
 			}
 		}
@@ -273,6 +285,10 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- xoá site
 
+// handleSiteDelete: từ M6, xoá một site là đưa nó vào thùng rác (mục 6.4): gỡ
+// vhost và pool, khoá user DB và user Linux, chuyển thư mục vào
+// site.TrashDir; dữ liệu còn nguyên tới hạn xoá hẳn. Vẫn gọi PrepareRemove
+// (core giữ tên cũ). Xoá hẳn đi qua DELETE /trash/{domain} (api_trash.go).
 func (s *Server) handleSiteDelete(w http.ResponseWriter, r *http.Request) {
 	const action = "site.rm"
 	d, err := validate.ParseDomain(r.PathValue("domain"))
@@ -307,9 +323,10 @@ func (s *Server) handleSiteDelete(w http.ResponseWriter, r *http.Request) {
 		s.jobRefused(w, r, action, d.String(), err)
 		return
 	}
-	// Kick "" chứ không phải domain: site đã xoá thì không còn gì để kiểm theo
-	// domain (Runner trả site_not_found). Sự cố cũ của site đóng ("gone") ở lần
-	// chạy đầy đủ kế tiếp.
+	// Kick "" chứ không phải domain: health không kiểm site trong thùng rác
+	// (nó cố ý không còn được phục vụ, kiểm thì chỉ ra sự cố giả), nên kiểm theo
+	// domain không còn gì để làm. Kiểm nhẹ mọi thứ thì thấy ngay web server và
+	// PHP-FPM có còn ổn sau lần reload của job.
 	s.jobStart(w, r, jobOpts{action: action, target: d.String()}, func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error) {
 		rep, err := rm.Execute(ctx, onEvent)
 		return jobResult{status: rep.Job.Status}, err

@@ -202,7 +202,7 @@ var catalog = sync.OnceValue(func() []Tool {
 			"Propose a plan that creates a WordPress site (user, database, PHP pool, vhost, WordPress)."+proposeNote,
 			nil, proposeSiteAdd),
 		newTool("propose_site_remove", KindPlan, false,
-			"Propose a plan that permanently deletes a site: vhost, PHP pool, database, files, logs, Linux user."+proposeNote,
+			"Propose a plan that moves a site to the trash: disables its vhost and PHP pool, locks its database user and Linux user, and moves its files to the trash. Nothing is deleted; the site can be restored until the trash retention runs out, then it is deleted for good."+proposeNote,
 			nil, proposeSiteRemove),
 		newTool("propose_site_repair", KindPlan, false,
 			"Propose a plan that rebuilds a site's configuration and fixes what drifted (the WordPress content is kept)."+proposeNote,

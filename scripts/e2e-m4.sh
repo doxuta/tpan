@@ -731,8 +731,11 @@ part_lock() {
   printf '%s\n(mã thoát %s)\n' "$OUT" "$RC"
   ok "site add $C thoát 0" rc_is 0
   add_dbpw "$C"
+  # Từ M6, `site rm` đưa vào thùng rác; `trash purge` xoá hẳn.
   vroot tpan site rm "$C" --yes
-  ok "xoá $C (dọn lại, để các phần sau chỉ có 2 site)" rc_is 0
+  ok "đưa $C vào thùng rác" rc_is 0
+  vroot tpan trash purge "$C" --yes
+  ok "xoá hẳn $C (dọn lại, để các phần sau chỉ có 2 site)" rc_is 0
   health_json
   ok "sau khi xoá $C: không Fail" no_fail
 }

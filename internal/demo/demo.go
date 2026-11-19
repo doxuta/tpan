@@ -23,6 +23,7 @@ const (
 	siteShop = "shop.example.net" // chưa có SSL, đạt mọi chặng
 	siteWiki = "wiki.example.org" // hỏng ở chặng PHP: socket của pool mất
 	siteFail = "news.example.com" // lần tạo thất bại, đã hoàn tác (không có trong bảng sites)
+	// siteOld (trash.go) đang ở thùng rác.
 
 	// demoEmail là email quản trị của các site mẫu.
 	demoEmail = "admin@example.com"
@@ -112,6 +113,10 @@ func seed(ctx context.Context, m *machine, st *store.Store) error {
 		return err
 	}
 	if err := addRolledBack(ctx, m, s, siteFail, 5*24*time.Hour); err != nil {
+		return err
+	}
+	// Màn Thùng rác: một site tạo từ 30 ngày trước, vào thùng rác 3 ngày trước.
+	if err := seedTrash(ctx, s, 30*24*time.Hour); err != nil {
 		return err
 	}
 	if err := addOK(ctx, s, siteWiki, "Wiki nội bộ", 2*24*time.Hour); err != nil {

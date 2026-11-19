@@ -2,7 +2,11 @@
 // Ba ô: domain, tiêu đề (tuỳ chọn), email quản trị. "Xem trước" gọi
 // POST /api/v1/sites?dry_run=1; có Preview thì nhúng PlanReview, và "chạy"
 // gửi ĐÚNG nội dung đã xem trước (không phải nội dung trong ô lúc bấm).
-// Dán danh sách nhiều site là việc của M6, chưa làm ở đây.
+// M6: có thêm chế độ "Dán danh sách" (DanhSach.tsx, gọi POST /api/v1/apply).
+// Hai chế độ là hai thành phần riêng, chỉ một cái được vẽ tại một lúc: bản xem
+// trước của hai bên đều là PlanReview (cùng id trong trang), nên không vẽ song
+// song. Đổi chế độ là bắt đầu lại; đổi lại là mất chữ đã gõ, chấp nhận vì người
+// dùng hiếm khi đổi giữa chừng.
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -12,11 +16,37 @@ import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, SiteCreate } from "../../api/types";
 import { Button } from "../../components/Button";
 import { ScreenHeader } from "../../components/ScreenHeader";
+import { SegmentButton } from "../../components/SegmentButton";
 import { StatusMark } from "../../components/StatusMark";
 import { useLang, useStrings, tx } from "../../i18n";
 import { strings } from "../../i18n/tao-site";
 import { PlanReview } from "../duyet-plan";
 import { ErrorNote } from "../site/ErrorNote";
+import { DanhSach } from "./DanhSach";
+
+type Mode = "one" | "list";
+
+export default function TaoSite() {
+  const t = useStrings(strings);
+  const [mode, setMode] = useState<Mode>("one");
+  return (
+    <>
+      <ScreenHeader title={t.title} summary={t.summary} />
+      <div className="pt-[22px]">
+        <SegmentButton<Mode>
+          label={t.modeGroup}
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "one", label: t.modeOne },
+            { value: "list", label: t.modeList },
+          ]}
+        />
+      </div>
+      {mode === "one" ? <OneSite /> : <DanhSach />}
+    </>
+  );
+}
 
 type Field = "domain" | "title" | "email";
 
@@ -33,7 +63,7 @@ const fieldOfCode: Record<string, Field> = {
 const inputClass =
   "box-border h-[44px] w-full border border-ink bg-surface px-[10px] text-[14px] text-ink placeholder:text-muted disabled:border-hair disabled:text-muted sm:h-[40px]";
 
-export default function TaoSite() {
+function OneSite() {
   const t = useStrings(strings);
   const { lang } = useLang();
   const qc = useQueryClient();
@@ -144,7 +174,6 @@ export default function TaoSite() {
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
       <form onSubmit={onSubmit} noValidate aria-labelledby="moi" className="max-w-[560px]">
         <h2 id="moi" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
           {t.formHeading}

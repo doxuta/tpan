@@ -433,15 +433,14 @@ func TestSSLExecuteAndRerun(t *testing.T) {
 		t.Errorf("dòng 2 = %+v", rows[1])
 	}
 
-	// Xoá hẳn site có SSL: certbot delete là bước cuối, để hoàn tác các bước
-	// trước không trả lại một vhost 443 trỏ vào chứng chỉ đã mất.
+	// M6: site rm đưa vào thùng rác, chứng chỉ giữ nguyên để khôi phục; certbot
+	// delete chỉ nằm ở xoá hẳn (bước cuối, xem TestSitePurge trong trash_test.go).
 	rm, err := se.s.PrepareRemove(ctx, d)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ids2 := stepIDs(rm.Plan)
-	if i := slices.Index(ids2, "ssl.delete:"+dom); i < 0 || i != len(ids2)-1 {
-		t.Errorf("vị trí certbot delete sai: %v", ids2)
+	if slices.Contains(stepIDs(rm.Plan), "ssl.delete:"+dom) {
+		t.Errorf("Plan thùng rác không được xoá chứng chỉ: %v", stepIDs(rm.Plan))
 	}
 }
 

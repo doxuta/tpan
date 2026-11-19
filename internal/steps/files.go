@@ -33,6 +33,15 @@ type File struct {
 	// Plan đặt câu riêng khi biết file này là gì (pool, vhost của một site).
 	Title i18n.Text
 	Why   i18n.Text
+	// WaitFor khác rỗng: sau khi Reload chạy xong, chờ (tối đa waitForTimeout)
+	// tới khi đường dẫn này có. Dùng cho pool PHP-FPM: `systemctl reload
+	// php8.3-fpm` chỉ gửi USR2 cho tiến trình chính rồi trả về ngay (10 ms),
+	// socket của pool mới có sau đó khoảng 175 ms (đo trên máy ảo, M6). Không
+	// chờ thì phép kiểm chứng php.socket chạy ngay sau đó (khôi phục site từ
+	// thùng rác) thấy "không có socket" và job bị hoàn tác oan. Hết giờ mà
+	// chưa có thì không báo lỗi: kiểm chứng của Plan tự nói socket thiếu.
+	// Reload nil (WithoutReload, pha A của job hàng loạt) thì không chờ.
+	WaitFor string
 
 	prev    saved
 	applied bool
@@ -97,6 +106,9 @@ func (s *File) Apply(ctx context.Context, sys system.System) error {
 		return err
 	}
 	s.prev, s.applied = prev, true
+	if s.Reload != nil && s.WaitFor != "" {
+		waitForPath(ctx, sys, s.WaitFor)
+	}
 	return nil
 }
 

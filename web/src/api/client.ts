@@ -131,6 +131,7 @@ const eventKinds: Record<EventKind, true> = {
   "undo.fail": true,
   check: true,
   "job.done": true,
+  "unit.done": true,
 };
 
 /**
