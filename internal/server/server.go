@@ -86,6 +86,8 @@ type Server struct {
 	// sched là bộ hẹn giờ health; nil khi không chạy bằng Run (test dùng
 	// NewHandler), khi đó kick không làm gì.
 	sched *health.Scheduler
+	// phpNotes đệm ghi chú của GET /api/v1/php (api_m12.go). Zero value dùng được.
+	phpNotes phpNotes
 }
 
 func (s *Server) now() time.Time {
