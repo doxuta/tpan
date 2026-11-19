@@ -77,7 +77,9 @@ const (
 	// EventToolResult: kết quả của công cụ vừa gọi (Text là kết quả rút gọn
 	// tối đa 2000 ký tự; IsError; PlanID khi công cụ lập Plan trả plan_id).
 	EventToolResult EventKind = "tool_result"
-	// EventDone: xong. Text là câu trả lời cuối đầy đủ.
+	// EventDone: xong. Text là trường result của claude, tức CHỈ tin nhắn cuối
+	// (đo ở lần gọi thật #4); câu trả lời đầy đủ là các EventText nối lại, và
+	// Panel dùng phần đó.
 	EventDone EventKind = "done"
 	// EventError: hỏng giữa chừng (claude thoát lỗi, hết giờ, mất kết nối).
 	EventError EventKind = "error"
