@@ -1,0 +1,2757 @@
+
+
+######## [2026-11-19 21:48:44] a. máy sạch, triển khai, stack nginx, tpan setup, site a.example.com và b.example.com
+
+[2026-11-19 21:48:44] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m8  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m8.clean
+[2K[0A[0EStarting tpan-m8  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\ [2K[0A[0E
+[2026-11-19 21:48:58] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-19 21:48:58] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-19 21:48:59] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+Máy ảo: tpan-m8; IP máy ảo: <vm>; IP của Mac trong mạng Multipass: <mac>; tên máy Mac: <mac-host> (đều được che trong log)
+
+[2026-11-19 21:48:59] $ make vm-deploy DATE=2026-11-19T14:48:44Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 6h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 14ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 297 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-m05fWPrE.css                                   26.90 kB │ gzip:   6.64 kB
+dist/assets/OriginTag-BK52YIYu.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-AWK2LXTs.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/Field-vsahcV8m.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/MonoText-BqP2Sc49.js                                  0.67 kB │ gzip:   0.43 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-DhLOcJes.js                                 0.89 kB │ gzip:   0.44 kB
+dist/assets/useMutation-Bn8UXl33.js                               2.32 kB │ gzip:   0.97 kB
+dist/assets/co-so-du-lieu-DcAF4bG3.js                             2.98 kB │ gzip:   1.34 kB
+dist/assets/tao-site-BIzvOjxG.js                                  5.61 kB │ gzip:   2.44 kB
+dist/assets/dang-nhap-D_fwTvAt.js                                 5.82 kB │ gzip:   2.56 kB
+dist/assets/plan-cho-duyet-BN8Np8WD.js                            6.12 kB │ gzip:   2.09 kB
+dist/assets/bao-mat-DV4AH9eO.js                                   9.97 kB │ gzip:   4.07 kB
+dist/assets/ssl-C_pAuZCq.js                                      12.16 kB │ gzip:   4.50 kB
+dist/assets/site-CKkc8CY0.js                                     16.20 kB │ gzip:   5.23 kB
+dist/assets/cai-dat-B_wMjF5u.js                                  18.02 kB │ gzip:   5.64 kB
+dist/assets/phien-ai-bNUDEphC.js                                 18.28 kB │ gzip:   5.87 kB
+dist/assets/lich-su-mC7KXdp9.js                                  21.97 kB │ gzip:   7.23 kB
+dist/assets/su-co-B1PmUO2v.js                                    22.85 kB │ gzip:   7.28 kB
+dist/assets/ErrorNote-B0Ugrg-3.js                                23.90 kB │ gzip:   8.61 kB
+dist/assets/bang-dieu-khien-Clciouyc.js                          25.51 kB │ gzip:   7.80 kB
+dist/assets/ScreenHeader-Bkgn-o4K.js                             40.48 kB │ gzip:  14.54 kB
+dist/assets/hooks-9JzbPC4C.js                                    74.14 kB │ gzip:  24.43 kB
+dist/assets/index-C_3cyNxE.js                                   338.92 kB │ gzip: 106.72 kB
+
+✓ built in 157ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=e03df6e -X github.com/doxuta/tpan/internal/buildinfo.Commit=e03df6e -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T14:48:44Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=e03df6e -X github.com/doxuta/tpan/internal/buildinfo.Commit=e03df6e -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T14:48:44Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan e03df6e (commit e03df6e, build 2026-11-19T14:48:44Z)
+[2026-11-19 21:49:02] (mã thoát 0)
+  => ĐẠT: build và chép tpan vào máy ảo
+
+[2026-11-19 21:49:02] $ go build -o <tmp>/tpan-darwin ./cmd/tpan
+[2026-11-19 21:49:03] (mã thoát 0)
+  => ĐẠT: build tpan cho Mac (chạy tpan brain)
+
+[2026-11-19 21:49:03] $ go build -o <tmp>/fakebin/claude ./scripts/e2e-m8/fakeclaude
+[2026-11-19 21:49:03] (mã thoát 0)
+  => ĐẠT: build claude giả (SDK go-sdk, CommandTransport)
+
+[2026-11-19 21:49:03] cấu hình claude giả: {"mode":"propose","extra_tool":"","think_ms":1000,"delta_ms":150}
+
+[2026-11-19 21:49:03] $ shasum -a 256 bin/tpan-linux-arm64 bin/tpan-linux-amd64
+1cd565c953b180c92dd3c48a55a829c2c27c8d8689e4e4666cd103edb3189a0d  bin/tpan-linux-arm64
+96ae088bf60265c46b3d903fc94378f51446bf97ba6feb055edb4b3c58d9eac0  bin/tpan-linux-amd64
+[2026-11-19 21:49:03] (mã thoát 0)
+
+[2026-11-19 21:49:03] $ git log --oneline -1
+e03df6e server, cmd/tpan: API /api/v1/ai/... (bộ não, xem trước, hỏi, SSE của lượt, phiên AI, chuyển mục), nối Hub và Panel trong tpan serve, bộ não giả cho --demo; check_not_found là 404
+[2026-11-19 21:49:03] (mã thoát 0)
+
+[2026-11-19 21:49:03] $ git status --short
+?? docs/bang-chung/M8-claude.log
+?? docs/bang-chung/M8.log
+?? scripts/e2e-m8.sh
+?? scripts/e2e-m8/
+[2026-11-19 21:49:03] (mã thoát 0)
+
+[2026-11-19 21:49:03] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job 16fd16587569ddec
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+
+Job 16fd16587569ddec: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.1%
+[2026-11-19 21:49:29] (mã thoát 0)
+  => ĐẠT: stack install thoát 0
+
+[2026-11-19 21:49:29] $ scripts/vm.sh exec systemctl is-active nginx php8.3-fpm mariadb
+active
+active
+active
+[2026-11-19 21:49:29] (mã thoát 0)
+  => ĐẠT: 3 dịch vụ active
+
+[2026-11-19 21:49:29] $ scripts/vm.sh root tpan setup --yes
+Bắt đầu job 01b960fc4a9fe240
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 01b960fc4a9fe240: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    0A:8E:FE:00:85:62:D6:04:92:6F:EC:50:DA:39:23:A1:A0:6C:0C:D3:9F:A0:80:BB:AD:54:69:1E:5D:94:D8:06
+Mở: https://<IP của máy>:8443
+[2026-11-19 21:49:29] (mã thoát 0)
+  => ĐẠT: setup thoát 0, nhặt được mật khẩu panel
+
+[2026-11-19 21:49:29] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job d0e5961ca56ae2c4
+- Tạo user Linux tp_a_example_com_7653e4 cho site ...
+  xong
+- Tạo thư mục /var/www/a.example.com ...
+  xong
+- Tạo thư mục /var/www/a.example.com/public ...
+  xong
+- Tạo thư mục /var/www/a.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/a.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_a_example_com_7653e4 và user DB riêng của site a.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/a.example.com/public ...
+  xong
+- Tạo /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Ghi vhost nginx cho a.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf ...
+  xong
+- Cài WordPress cho a.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job d0e5961ca56ae2c4: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://a.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-19 21:49:41] (mã thoát 0)
+  => ĐẠT: site add a.example.com thoát 0
+Đã đọc mật khẩu DB của a.example.com vào danh sách che (32 ký tự).
+
+[2026-11-19 21:49:41] $ scripts/vm.sh exec curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-19 21:49:41] (mã thoát 0)
+  => ĐẠT: a.example.com trả 200
+
+[2026-11-19 21:49:41] $ scripts/vm.sh root tpan site add b.example.com --email admin@example.com --yes
+Bắt đầu job 7e296fb2c716ce5f
+- Tạo user Linux tp_b_example_com_cd59d5 cho site ...
+  xong
+- Tạo thư mục /var/www/b.example.com ...
+  xong
+- Tạo thư mục /var/www/b.example.com/public ...
+  xong
+- Tạo thư mục /var/www/b.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/b.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/b.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_b_example_com_cd59d5 và user DB riêng của site b.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-b_example_com_cd59d5 cho b.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Giải nén WordPress vào /var/www/b.example.com/public ...
+  xong
+- Tạo /var/www/b.example.com/public/wp-config.php ...
+  xong
+- Ghi vhost nginx cho b.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-b.example.com.conf → /etc/nginx/sites-available/tpan-b.example.com.conf ...
+  xong
+- Cài WordPress cho b.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Site b.example.com không đọc được wp-config.php của site a.example.com
+  [đạt] Site a.example.com không đọc được wp-config.php của site b.example.com
+
+Job 7e296fb2c716ce5f: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_b_example_com_cd59d5
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_b_example_com_cd59d5
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của b.example.com
+  [đạt] Site b.example.com không đọc được wp-config.php của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không đọc được wp-config.php của a.example.com
+  [đạt] Site a.example.com không đọc được wp-config.php của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không đọc được wp-config.php của b.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://b.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-19 21:49:46] (mã thoát 0)
+  => ĐẠT: site add b.example.com thoát 0
+Đã đọc mật khẩu DB của b.example.com vào danh sách che (32 ký tự).
+
+[2026-11-19 21:49:46] $ scripts/vm.sh exec curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve b.example.com:80:127.0.0.1 http://b.example.com/
+200
+[2026-11-19 21:49:46] (mã thoát 0)
+  => ĐẠT: b.example.com trả 200
+
+[2026-11-19 21:49:46] $ scripts/vm.sh root hostname
+tpan-m8
+[2026-11-19 21:49:46] (mã thoát 0)
+
+
+######## [2026-11-19 21:49:46] b. khoá ssh dùng một lần (thư mục tạm, không ~/.ssh), scripts/vm.sh ssh-key
+
+[2026-11-19 21:49:46] $ ssh-keygen -q -t ed25519 -N  -C tpan-e2e -f <tmp>/id_e2e
+[2026-11-19 21:49:46] (mã thoát 0)
+  => ĐẠT: sinh khoá ed25519
+
+[2026-11-19 21:49:46] $ scripts/vm.sh ssh-key <tmp>/id_e2e.pub
+Đã thêm khoá vào /home/ubuntu/.ssh/authorized_keys.
+[2026-11-19 21:49:46] (mã thoát 0)
+  => ĐẠT: vm.sh ssh-key thêm khoá
+
+[2026-11-19 21:49:46] $ ssh -F /dev/null -i <tmp>/id_e2e -o IdentitiesOnly=yes -o IdentityAgent=none -o UserKnownHostsFile=<tmp>/known_hosts -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o LogLevel=ERROR -o ConnectTimeout=10 ubuntu@<vm> sudo -n tpan version
+tpan e03df6e (commit e03df6e, build 2026-11-19T14:48:44Z)
+[2026-11-19 21:49:47] (mã thoát 0)
+  => ĐẠT: sudo -n tpan qua ssh không tty: chạy, không hỏi mật khẩu
+
+
+######## [2026-11-19 21:49:47] c. bật bộ não: sudo tpan mcp config --brain bridge, khởi động lại tpan
+
+[2026-11-19 21:49:47] $ scripts/vm.sh root tpan mcp config --brain bridge
+Khởi động lại tpan để áp dụng: sudo systemctl restart tpan
+Chế độ duyệt:    panel (người duyệt trên web hoặc bằng sudo tpan plan approve <id>)
+Mức che:         all (che bí mật và thay domain, IP, email bằng bí danh)
+Bộ não:          bridge (Claude Code trên máy của bạn, nối bằng tpan brain <máy>)
+[2026-11-19 21:49:47] (mã thoát 0)
+  => ĐẠT: mcp config --brain bridge thoát 0
+
+[2026-11-19 21:49:47] $ scripts/vm.sh root tpan mcp config --json
+{
+  "approval": "panel",
+  "redact": "all",
+  "brain": "bridge"
+}
+[2026-11-19 21:49:47] (mã thoát 0)
+  => ĐẠT: ai.brain = bridge
+
+[2026-11-19 21:49:47] $ scripts/vm.sh root systemctl restart tpan
+[2026-11-19 21:49:47] (mã thoát 0)
+  => ĐẠT: restart tpan thoát 0
+
+[2026-11-19 21:49:47] $ scripts/vm.sh root bash -c for i in $(seq 1 20); do [ -S /run/tpan/brain.sock ] && break; sleep 0.5; done; systemctl is-active tpan; stat -c "%A %U:%G %n" /run/tpan /run/tpan/brain.sock
+active
+drwx------ root:root /run/tpan
+srw------- root:root /run/tpan/brain.sock
+[2026-11-19 21:49:47] (mã thoát 0)
+  => ĐẠT: tpan active, /run/tpan/brain.sock là socket 0600 của root
+
+[2026-11-19 21:49:47] $ scripts/vm.sh root bash -c journalctl -u tpan -b --no-pager -o cat | tail -n 20
+Started tpan.service - tpan panel.
+2026/11/19 21:49:29 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=e03df6e
+2026/11/19 21:49:29 INFO health: đang có job, bỏ vòng này full=true domain=""
+Stopping tpan.service - tpan panel...
+tpan.service: Deactivated successfully.
+Stopped tpan.service - tpan panel.
+Started tpan.service - tpan panel.
+2026/11/19 21:49:47 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=e03df6e
+pam_unix(runuser:session): session opened for user tp_a_example_com_7653e4(uid=999) by (uid=0)
+[2026-11-19 21:49:47] (mã thoát 0)
+  => ĐẠT: journal của tpan không có lỗi mở socket bộ não
+
+
+######## [2026-11-19 21:49:47] d. API: đăng nhập panel
+
+[2026-11-19 21:49:47] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login.json https://<vm>:8443/api/v1/login
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+set-cookie: __Host-tpan=<đã che>; Path=/; HttpOnly; Secure; SameSite=Strict
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 14:49:47 GMT
+
+-> HTTP 204, 0.088246s
+[2026-11-19 21:49:47] (mã thoát 0)
+  => ĐẠT: đăng nhập: 204
+
+[2026-11-19 21:49:47] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/ai/brain
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 92
+date: Thu, 19 Nov 2026 14:49:48 GMT
+
+-> HTTP 200, 0.002838s
+[2026-11-19 21:49:48] (mã thoát 0)
+{
+  "mode": "bridge",
+  "connected": false,
+  "connect_command": "tpan brain <user>@tpan-m8"
+}
+  => ĐẠT: GET /ai/brain trước khi nối: mode bridge, chưa nối, có lệnh nối
+
+
+######## [2026-11-19 21:49:48] e. lỗi cố ý ở b.example.com: bỏ symlink bật vhost rồi reload nginx (nginx -t vẫn qua); ghi kết quả health
+
+[2026-11-19 21:49:48] $ scripts/vm.sh root bash -c rm -v /etc/nginx/sites-enabled/tpan-b.example.com.conf && nginx -t && systemctl reload nginx
+removed '/etc/nginx/sites-enabled/tpan-b.example.com.conf'
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+[2026-11-19 21:49:48] (mã thoát 0)
+  => ĐẠT: gỡ symlink, nginx -t qua, reload xong
+
+[2026-11-19 21:49:48] $ scripts/vm.sh exec bash -c for i in $(seq 1 40); do c="$(curl -sS -m 5 -o /dev/null -w "%{http_code}" --resolve "$1:80:127.0.0.1" "http://$1/" 2>&1)"; rc=$?; echo "lần $i: $c (curl mã $rc)"; [ "$rc" = 52 ] && exit 52; sleep 0.25; done; exit "$rc" _ b.example.com
+lần 1: curl: (52) Empty reply from server
+000 (curl mã 52)
+[2026-11-19 21:49:48] (mã thoát 52)
+  => ĐẠT: b.example.com rơi vào site mặc định (curl mã 52)
+
+[2026-11-19 21:49:48] $ scripts/vm.sh exec curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-19 21:49:48] (mã thoát 0)
+  => ĐẠT: a.example.com vẫn 200
+
+[2026-11-19 21:49:48] $ scripts/vm.sh root tpan health
+
+== Máy và stack ==
+[đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.5%
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 82.8% (3.2 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+[đạt] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi
+[đạt] File /etc/systemd/system/tpan.service còn đúng như tpan đã ghi: File /etc/systemd/system/tpan.service đúng như tpan đã ghi
+[đạt] File /etc/tpan/tls/cert.pem còn đúng như tpan đã ghi: File /etc/tpan/tls/cert.pem đúng như tpan đã ghi
+
+16 đạt
+
+== Site a.example.com ==
+[đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+[đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+[đạt] Site a.example.com không đọc được wp-config.php của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không đọc được wp-config.php của b.example.com
+[đạt] Site b.example.com không đọc được wp-config.php của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không đọc được wp-config.php của a.example.com
+[đạt] File /etc/nginx/sites-available/tpan-a.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-a.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf đúng như tpan đã ghi
+
+10 đạt
+
+== Site b.example.com ==
+[lỗi] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site chưa được bật (không có /etc/nginx/sites-enabled/tpan-b.example.com.conf)
+    Nguyên nhân: File vhost có nhưng không có symlink ở sites-enabled nên web server không đọc nó: request tới b.example.com rơi vào site mặc định.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ln -s /etc/nginx/sites-available/tpan-b.example.com.conf /etc/nginx/sites-enabled/tpan-b.example.com.conf
+      sudo nginx -t
+      sudo systemctl reload nginx
+      sudo ls -l /etc/nginx/sites-available/tpan-b.example.com.conf /etc/nginx/sites-enabled/tpan-b.example.com.conf
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_b_example_com_cd59d5
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_b_example_com_cd59d5
+[lỗi] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Web server đóng kết nối không trả gì cho b.example.com
+    Nguyên nhân: Request mang tên b.example.com rơi vào site mặc định (nginx đóng kết nối, mã 444): vhost của site chưa được bật hoặc chưa được nạp.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo grep -Rl b.example.com /etc/nginx/sites-enabled /etc/apache2/sites-enabled
+      sudo tpan site add b.example.com
+      sudo curl -sS --max-time 15 --resolve b.example.com:80:127.0.0.1 -o /dev/null -w '%{http_code}
+' http://b.example.com/
+[đạt] File /etc/nginx/sites-available/tpan-b.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-b.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf đúng như tpan đã ghi
+
+6 đạt, 2 lỗi
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.7 GiB
+[đạt] Chứng chỉ HTTPS của panel còn hạn: Chứng chỉ của panel còn 3652 ngày
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: /etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan có quyền 0700, chủ root:root: /etc/tpan: quyền 0700, chủ root:root đúng
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[đạt] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health vẫn chạy
+
+8 đạt
+[2026-11-19 21:49:52] (mã thoát 1)
+  => ĐẠT: tpan health báo lỗi (mã khác 0) ở b.example.com
+
+
+######## [2026-11-19 21:49:52] f. tpan brain với claude THẬT (--model sonnet --max-turns 4)
+
+[2026-11-19 21:49:52] $ claude --version
+2.1.328 (Claude Code)
+[2026-11-19 21:49:52] (mã thoát 0)
+
+[2026-11-19 21:49:52] $ <tmp>/tpan-darwin brain ubuntu@<vm> --ssh-opt=-F --ssh-opt=/dev/null --ssh-opt=-i --ssh-opt=<tmp>/id_e2e --ssh-opt=-oIdentitiesOnly=yes --ssh-opt=-oIdentityAgent=none --ssh-opt=-oUserKnownHostsFile=<tmp>/known_hosts --ssh-opt=-oGlobalKnownHostsFile=/dev/null --ssh-opt=-oStrictHostKeyChecking=accept-new --ssh-opt=-oLogLevel=ERROR --ssh-opt=-oConnectTimeout=10 --max-turns 4 --model sonnet &
+Bộ não: đã nối ubuntu@<vm>, Claude Code 2.1.328, model sonnet
+Mỗi câu hỏi từ panel hiện sau dấu ?, mỗi lần gọi công cụ sau dấu →. Dừng bằng Ctrl+C.
+  => ĐẠT: tpan brain nối được
+
+[2026-11-19 21:49:53] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/ai/brain
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 270
+date: Thu, 19 Nov 2026 14:49:53 GMT
+
+-> HTTP 200, 0.005784s
+[2026-11-19 21:49:53] (mã thoát 0)
+{
+  "mode": "bridge",
+  "connected": true,
+  "host": "<mac-host>",
+  "claude_version": "2.1.328",
+  "tested_version": "2.1.328",
+  "model": "sonnet",
+  "auth_method": "claude.ai",
+  "since": "2026-11-19T21:49:53.100602853+07:00",
+  "connect_command": "tpan brain <user>@tpan-m8"
+}
+  => ĐẠT: GET /ai/brain: connected, host là tên máy Mac, model sonnet
+
+
+######## [2026-11-19 21:49:53] g. đang ở trang site b.example.com, bấm Chẩn đoán: câu hỏi 1
+
+[2026-11-19 21:49:53] thân gửi tới /api/v1/ai/views: {"path":"/sites/b.example.com","label":"Trang site b.example.com"}
+[2026-11-19 21:49:53] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/view-b.json https://<vm>:8443/api/v1/ai/views
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 14:49:53 GMT
+
+-> HTTP 204, 0.011121s
+[2026-11-19 21:49:53] (mã thoát 0)
+  => ĐẠT: POST /ai/views: 204
+
+[2026-11-19 21:49:53] thân gửi tới /api/v1/ai/preview: {"question":"Chẩn đoán vì sao site này lỗi rồi đề xuất cách sửa","lang":"vi","view":{"path":"/sites/b.example.com","label":"Trang site b.example.com"},"trail":[{"path":"/","label":"Bảng điều khiển"},{"path":"/sites/b.example.com","label":"Trang site b.example.com"}],"pointer":{"kind":"site","ref":"b.example.com","label":"Site b.example.com"}}
+[2026-11-19 21:49:53] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/r1.json https://<vm>:8443/api/v1/ai/preview
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 14:49:53 GMT
+
+-> HTTP 200, 0.018835s
+[2026-11-19 21:49:53] (mã thoát 0)
+{
+  "playbook": "site",
+  "chips": [
+    {
+      "key": "view",
+      "content": "Trang site site-b.example (/sites/site-b.example)"
+    },
+    {
+      "key": "pointer",
+      "content": "kind: site\nref: site-b.example\nlabel: Site site-b.example"
+    },
+    {
+      "key": "trail",
+      "content": "Bảng điều khiển (/)\nTrang site site-b.example (/sites/site-b.example)"
+    },
+    {
+      "key": "evidence",
+      "content": "site site-b.example\nstatus: active\nphp: 8.3\nssl: false\ncreated: 2026-11-19T14:49:46Z\nstored check results:\n- [pass] db.access:site-b.example (db): User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_site_b\n- [pass] drift:/etc/nginx/sites-available/tpan-site-b.example.conf (web): File /etc/nginx/sites-available/tpan-site-b.example.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-site-b.example.conf đúng như tpan đã ghi\n- [pass] drift:/etc/php/8.3/fpm/pool.d/tpan-site_b.conf (php): File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf đúng như tpan đã ghi\n- [fail] http.site:site-b.example (e2e): Gọi HTTP vào site trả 200 và đúng là WordPress của site: Web server đóng kết nối không trả gì cho site-b.example\n- [pass] php.socket:site-b.example (php): Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660\n- [fail] web.vhost:site-b.example (web): Vhost của site có, do tpan quản lý và đang được bật: Vhost của site chưa được bật (không có /etc/nginx/sites-enabled/tpan-site-b.example.conf)\n- [pass] wp.checksums:site-b.example (wordpress): Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum\n- [pass] wp.config:site-b.example (wordpress): wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_site_b"
+    },
+    {
+      "key": "machine",
+      "content": "web server: nginx\ndefault php: 8.3\nactive sites: 2\ntpan version: e03df6e\nui language: vi"
+    }
+  ]
+}
+  => ĐẠT: preview: view, pointer, trail, evidence, machine; bằng chứng có phép kiểm Fail của site
+  => ĐẠT: prompt xem trước không có a.example.com, b.example.com, IP máy ảo, hostname máy ảo
+
+[2026-11-19 21:49:53] $ scripts/vm.sh root bash -c 
+echo "## user tp_ (getent passwd | grep tp_)"; getent passwd | grep tp_
+echo "## ls /var/www"; ls /var/www
+echo "## SHOW DATABASES"; mariadb -N -e "SHOW DATABASES"
+echo "## user DB"; mariadb -N -e "SELECT User FROM mysql.user" | sort
+echo "## ls /etc/nginx/sites-enabled"; ls /etc/nginx/sites-enabled
+echo "## sha256sum /etc/nginx/sites-available/*"; sha256sum /etc/nginx/sites-available/*
+echo "## ls /etc/php/8.3/fpm/pool.d"; ls /etc/php/8.3/fpm/pool.d
+echo "## job, site trong tpan.db"; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"jobs:\", c.execute(\"SELECT COUNT(*) FROM jobs\").fetchone()[0], \"sites:\", c.execute(\"SELECT COUNT(*) FROM sites\").fetchone()[0])"
+## user tp_ (getent passwd | grep tp_)
+tp_a_example_com_7653e4:x:999:988::/var/www/a.example.com:/usr/sbin/nologin
+tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
+## ls /var/www
+a.example.com
+b.example.com
+html
+## SHOW DATABASES
+information_schema
+mysql
+performance_schema
+sys
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## user DB
+mariadb.sys
+mysql
+root
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## ls /etc/nginx/sites-enabled
+tpan-a.example.com.conf
+tpan-default.conf
+## sha256sum /etc/nginx/sites-available/*
+ce0901350a021608139b5639cf4ccd7717bef8c3a9e4f79031eb46386b67b03f  /etc/nginx/sites-available/default
+a7abe2d4240304755cc582efd59e97e2136d5396fb46812a86ebcb15c77f823a  /etc/nginx/sites-available/tpan-a.example.com.conf
+d1fd45089297cedac4ab67060774a3ffb1d96669aba80d2ea379fbef787d1adf  /etc/nginx/sites-available/tpan-b.example.com.conf
+bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23  /etc/nginx/sites-available/tpan-default.conf
+## ls /etc/php/8.3/fpm/pool.d
+tpan-a_example_com_7653e4.conf
+tpan-b_example_com_cd59d5.conf
+www.conf
+## job, site trong tpan.db
+jobs: 4 sites: 2
+[2026-11-19 21:49:53] (mã thoát 0)
+
+[2026-11-19 21:49:53] thân gửi tới /api/v1/ai/ask: {"question":"Chẩn đoán vì sao site này lỗi rồi đề xuất cách sửa","lang":"vi","view":{"path":"/sites/b.example.com","label":"Trang site b.example.com"},"trail":[{"path":"/","label":"Bảng điều khiển"},{"path":"/sites/b.example.com","label":"Trang site b.example.com"}],"pointer":{"kind":"site","ref":"b.example.com","label":"Site b.example.com"}}
+[2026-11-19 21:49:53] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/r1.json https://<vm>:8443/api/v1/ai/ask
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 42
+date: Thu, 19 Nov 2026 14:49:53 GMT
+
+-> HTTP 202, 0.008955s
+[2026-11-19 21:49:53] (mã thoát 0)
+{
+  "session_id": "5c110d976886925e",
+  "seq": 1
+}
+  => ĐẠT: ask: 202
+
+>>> LẦN GỌI claude -p THẬT: câu hỏi 1 (phiên 5c110d976886925e), ghi vào bảng của docs/thay-doi/M8.md
+
+[2026-11-19 21:49:53] $ curl -sS -N --cacert <tmp>/cert.pem -b <cookie> https://<vm>:8443/api/v1/ai/sessions/5c110d976886925e/turns/1/events
++0.766s init version=2.1.328 model=claude-sonnet-5-5
++2.287s text: T
++2.344s text: Tôi ch
++2.393s text: Tôi chạy health check h
++2.43s text: Tôi chạy health check hiện tại để xác n
++2.47s text: Tôi chạy health check hiện tại để xác nhận kết quả đ
++2.503s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.
++2.935s tool_call mcp__tpan__site_health input={"domain":"b.example.com"}
++4.86s tool_result mcp__tpan__site_health (2000 ký tự)
++6.779s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.N
++6.801s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân g
++6.819s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã r
++6.838s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên
++6.856s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan
++6.875s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.
++6.981s tool_call mcp__tpan__propose_health_fix input={"check_id":"web.vhost:b.example.com"}
++7.121s tool_result mcp__tpan__propose_health_fix plan_id=d6e8e959d18ac203 (1995 ký tự)
++12.951s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**
++12.981s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán
++13.004s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
++13.023s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của site-b.
++13.041s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật.
++13.059s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã ch
++13.078s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `
++13.096s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và th
++13.115s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy h
++13.132s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check
++13.151s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check l
++13.167s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cù
++13.185s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một
++13.204s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
++13.221s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost
++13.24s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`
++13.259s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/
++13.278s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/s
++13.298s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-
++13.321s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf
++13.344s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có
++13.362s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và
++13.379s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đ
++13.398s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như
++13.415s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đ
++13.434s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `
++13.455s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `st
++13.474s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx
++13.492s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/
++13.51s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-site-b.
++13.529s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả ex
++13.546s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file
++13.564s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), t
++13.582s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức th
++13.599s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên
++13.616s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp v
++13.634s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost
++13.652s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`
++13.669s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl v
++13.688s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site tr
++13.707s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `
++13.723s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server`
++13.741s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (cur
++13.759s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request
++13.776s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request r
++13.796s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi v
++13.814s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định,
++13.832s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơ
++13.849s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi ngin
++13.867s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối
++13.885s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối b
++13.904s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
++13.926s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các t
++13.952s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều
++13.973s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: soc
++13.991s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, chec
++14.009s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, qu
++14.027s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `
++14.046s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`,
++14.063s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đ
++14.082s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và
++14.098s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và c
++14.116s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô
++14.134s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập gi
++14.151s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tô
++14.169s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log,
++14.187s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health
++14.205s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã ch
++14.223s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên
++14.241s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
++14.259s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất
++14.277s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
++14.294s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tô
++14.312s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đ
++14.33s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d
++14.348s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18
++14.366s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:pl
++14.383s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959
++14.401s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Pl
++14.419s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này
++14.437s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
++14.455s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại
++14.472s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file
++14.49s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost
++14.508s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trù
++14.526s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng b
++14.543s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản h
++14.562s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện t
++14.58s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại n
++14.597s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có
++14.616s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi th
++14.634s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực ch
++14.651s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạ
++14.671s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink v
++14.691s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled
++14.709s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạ
++14.728s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t`
++14.746s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl
++14.764s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
++14.782s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đ
++14.8s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ du
++14.819s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt,
++14.837s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có
++14.855s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi tr
++14.873s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Pl
++14.891s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có c
++14.909s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì ph
++14.927s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này
++14.945s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc n
++14.963s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không t
++14.981s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên
++14.998s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem k
++15.016s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi du
++15.034s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn
++15.052s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt tr
++15.07s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc ch
++15.088s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tp
++15.106s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e
++15.125s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203
++15.151s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi
++15.173s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy
++15.191s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy l
++15.209s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health
++15.227s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của
++15.246s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của site.
++15.263s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của site. H
++15.281s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của site. Hai check l
++15.299s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của site. Hai check lỗi phải ch
++15.316s text: Tôi chạy health check hiện tại để xác nhận kết quả đã lưu.Nguyên nhân gốc đã rõ, nên tôi tạo plan sửa.**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của site. Hai check lỗi phải chuyển sang pass.
++15.334s done: **Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của site. Hai check lỗi phải chuyển sang pass.
+[2026-11-19 21:50:09] (147 sự kiện, mã thoát 0)
+Thứ tự sự kiện: ["init","text","text","text","text","text","text","tool_call","tool_result","text","text","text","text","text","text","tool_call","tool_result","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","text","done"]
+  => ĐẠT: câu hỏi 1 kết thúc bằng done
+  => ĐẠT: chữ hiện dần: 141 sự kiện text, rải trong 13.029s
+
+[2026-11-19 21:50:09] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/plans
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 14:50:09 GMT
+
+-> HTTP 200, 0.003860s
+[2026-11-19 21:50:09] (mã thoát 0)
+[
+  {
+    "id": "d6e8e959d18ac203",
+    "kind": "health.fix",
+    "target": "b.example.com",
+    "origin": "ai",
+    "status": "pending",
+    "session_id": "5c110d976886925e",
+    "untrusted": true
+  }
+]
+  => ĐẠT: /api/v1/plans có Plan pending, origin ai, của phiên này
+
+[2026-11-19 21:50:09] $ scripts/vm.sh root bash -c 
+echo "## user tp_ (getent passwd | grep tp_)"; getent passwd | grep tp_
+echo "## ls /var/www"; ls /var/www
+echo "## SHOW DATABASES"; mariadb -N -e "SHOW DATABASES"
+echo "## user DB"; mariadb -N -e "SELECT User FROM mysql.user" | sort
+echo "## ls /etc/nginx/sites-enabled"; ls /etc/nginx/sites-enabled
+echo "## sha256sum /etc/nginx/sites-available/*"; sha256sum /etc/nginx/sites-available/*
+echo "## ls /etc/php/8.3/fpm/pool.d"; ls /etc/php/8.3/fpm/pool.d
+echo "## job, site trong tpan.db"; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"jobs:\", c.execute(\"SELECT COUNT(*) FROM jobs\").fetchone()[0], \"sites:\", c.execute(\"SELECT COUNT(*) FROM sites\").fetchone()[0])"
+## user tp_ (getent passwd | grep tp_)
+tp_a_example_com_7653e4:x:999:988::/var/www/a.example.com:/usr/sbin/nologin
+tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
+## ls /var/www
+a.example.com
+b.example.com
+html
+## SHOW DATABASES
+information_schema
+mysql
+performance_schema
+sys
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## user DB
+mariadb.sys
+mysql
+root
+tp_a_example_com_7653e4
+tp_b_example_com_cd59d5
+## ls /etc/nginx/sites-enabled
+tpan-a.example.com.conf
+tpan-default.conf
+## sha256sum /etc/nginx/sites-available/*
+ce0901350a021608139b5639cf4ccd7717bef8c3a9e4f79031eb46386b67b03f  /etc/nginx/sites-available/default
+a7abe2d4240304755cc582efd59e97e2136d5396fb46812a86ebcb15c77f823a  /etc/nginx/sites-available/tpan-a.example.com.conf
+d1fd45089297cedac4ab67060774a3ffb1d96669aba80d2ea379fbef787d1adf  /etc/nginx/sites-available/tpan-b.example.com.conf
+bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23  /etc/nginx/sites-available/tpan-default.conf
+## ls /etc/php/8.3/fpm/pool.d
+tpan-a_example_com_7653e4.conf
+tpan-b_example_com_cd59d5.conf
+www.conf
+## job, site trong tpan.db
+jobs: 4 sites: 2
+[2026-11-19 21:50:09] (mã thoát 0)
+  => ĐẠT: MÁY KHÔNG ĐỔI GÌ sau câu hỏi 1 (chưa ai duyệt)
+
+
+######## [2026-11-19 21:50:09] h. chuyển sang trang site a.example.com rồi hỏi tiếp: câu hỏi 2
+
+[2026-11-19 21:50:09] thân gửi tới /api/v1/ai/views: {"path":"/sites/a.example.com","label":"Trang site a.example.com"}
+[2026-11-19 21:50:09] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/view-a.json https://<vm>:8443/api/v1/ai/views
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 14:50:09 GMT
+
+-> HTTP 204, 0.003796s
+[2026-11-19 21:50:09] (mã thoát 0)
+
+[2026-11-19 21:50:09] thân gửi tới /api/v1/ai/ask: {"question":"còn site kia thì sao?","lang":"vi","view":{"path":"/sites/a.example.com","label":"Trang site a.example.com"},"trail":[{"path":"/","label":"Bảng điều khiển"},{"path":"/sites/b.example.com","label":"Trang site b.example.com"},{"path":"/sites/a.example.com","label":"Trang site a.example.com"}],"session_id":"5c110d976886925e"}
+[2026-11-19 21:50:09] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/r2.json https://<vm>:8443/api/v1/ai/ask
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 42
+date: Thu, 19 Nov 2026 14:50:09 GMT
+
+-> HTTP 202, 0.007613s
+[2026-11-19 21:50:09] (mã thoát 0)
+{
+  "session_id": "5c110d976886925e",
+  "seq": 2
+}
+  => ĐẠT: ask cùng phiên: 202, seq 2
+
+>>> LẦN GỌI claude -p THẬT: câu hỏi 2 (phiên 5c110d976886925e), ghi vào bảng của docs/thay-doi/M8.md
+
+[2026-11-19 21:50:09] $ curl -sS -N --cacert <tmp>/cert.pem -b <cookie> https://<vm>:8443/api/v1/ai/sessions/5c110d976886925e/turns/2/events
++0.536s init version=2.1.328 model=claude-sonnet-5-5
++2.69s tool_call mcp__tpan__site_health input={"domain":"a.example.com"}
++4.68s tool_result mcp__tpan__site_health (2018 ký tự)
++8.674s text: **a.example.com đ
++8.693s text: **a.example.com đang kh
++8.713s text: **a.example.com đang khỏe.
++8.733s text: **a.example.com đang khỏe.** Tô
++8.752s text: **a.example.com đang khỏe.** Tôi v
++8.77s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_
++8.789s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health`
++8.808s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check
++8.825s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
++8.845s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web
++8.865s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có
++8.885s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đú
++8.904s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đ
++8.924s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và
++8.945s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` c
++8.964s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink tr
++8.983s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled
++9.002s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã tr
++9.02s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đ
++9.039s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PH
++9.058s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `
++9.076s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan
++9.095s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock`
++9.114s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, ch
++9.131s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `
++9.15s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`
++9.168s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
++9.187s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:
++9.204s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp,
++9.226s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php`
++9.247s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và
++9.266s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_site
++9.285s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **D
++9.302s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đ
++9.322s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được
++9.341s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy
++9.359s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_site_
++9.378s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to
++9.395s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site
++9.414s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả H
++9.433s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đ
++9.451s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của
++9.47s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **
++9.489s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** h
++9.506s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đ
++9.525s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được
++9.542s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php`
++9.56s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Ch
++9.579s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chư
++9.598s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có g
++9.615s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần s
++9.634s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa 
++9.652s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điể
++9.671s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với
++9.688s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site
++9.707s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có
++9.726s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink tr
++9.75s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled
++9.769s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`,
++9.786s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b th
++9.805s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì
++9.823s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì th
++9.842s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu.
++9.859s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi pl
++9.878s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [
++9.897s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18
++9.914s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:
++9.934s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e
++9.951s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được
++9.97s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt,
++9.989s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt, site
++10.006s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt, site-b sẽ gi
++10.025s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt, site-b sẽ giống site
++10.045s text: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt, site-b sẽ giống site-a.
++10.062s done: **a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt, site-b sẽ giống site-a.
+[2026-11-19 21:50:19] (78 sự kiện, mã thoát 0)
+  => ĐẠT: câu hỏi 2 kết thúc bằng done
+
+[2026-11-19 21:50:19] $ curl -sS -m 60 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/ai/sessions/5c110d976886925e
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 14:50:19 GMT
+
+-> HTTP 200, 0.030970s
+[2026-11-19 21:50:19] (mã thoát 0)
+{
+  "turns": [
+    {
+      "seq": 1,
+      "status": "done",
+      "playbook": "site",
+      "chips": [
+        {
+          "key": "view",
+          "content": "Trang site site-b.example (/sites/site-b.example)"
+        },
+        {
+          "key": "pointer",
+          "content": "kind: site\nref: site-b.example\nlabel: Site site-b.example"
+        },
+        {
+          "key": "trail",
+          "content": "Bảng điều khiển (/)\nTrang site site-b.example (/sites/site-b.example)"
+        },
+        {
+          "key": "evidence",
+          "content": "site site-b.example\nstatus: active\nphp: 8.3\nssl: false\ncreated: 2026-11-19T14:49:46Z\nstored check results:\n- [pass] db.access:site-b.example (db): User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_site_b\n- [pass] drift:/etc/nginx/sites-available/tpan-site-b.example.conf (web): File /etc/nginx/sites-available/tpan-site-b.example.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-site-b.example.conf đúng như tpan đã ghi\n- [pass] drift:/etc/php/8.3/fpm/pool.d/tpan-site_b.conf (php): File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-site_b.conf đúng như tpan đã ghi\n- [fail] http.site:site-b.example (e2e): Gọi HTTP vào site trả 200 và đúng là WordPress của site: Web server đóng kết nối không trả gì cho site-b.example\n- [pass] php.socket:site-b.example (php): Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660\n- [fail] web.vhost:site-b.example (web): Vhost của site có, do tpan quản lý và đang được bật: Vhost của site chưa được bật (không có /etc/nginx/sites-enabled/tpan-site-b.example.conf)\n- [pass] wp.checksums:site-b.example (wordpress): Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum\n- [pass] wp.config:site-b.example (wordpress): wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_site_b"
+        },
+        {
+          "key": "machine",
+          "content": "web server: nginx\ndefault php: 8.3\nactive sites: 2\ntpan version: e03df6e\nui language: vi"
+        }
+      ],
+      "answer": "**Chẩn đoán**\n\nVhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:\n\n- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.\n- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.\n\nCác tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.\n\n**Đề xuất sửa**\n\nTôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:\n1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.\n2. Tạo symlink vào `sites-enabled`.\n3. Chạy `nginx -t` rồi `systemctl reload nginx`.\n\nPlan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.\n\nSau khi duyệt, hãy chạy lại health check của site. Hai check lỗi phải chuyển sang pass."
+    },
+    {
+      "seq": 2,
+      "status": "done",
+      "playbook": null,
+      "chips": [
+        {
+          "key": "view",
+          "content": "Trang site site-a.example (/sites/site-a.example)"
+        },
+        {
+          "key": "trail",
+          "content": "Bảng điều khiển (/)\nTrang site site-b.example (/sites/site-b.example)\nTrang site site-a.example (/sites/site-a.example)"
+        },
+        {
+          "key": "machine",
+          "content": "web server: nginx\ndefault php: 8.3\nactive sites: 2\ntpan version: e03df6e\nui language: vi"
+        }
+      ],
+      "answer": "**a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:\n\n- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.\n- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.\n- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.\n- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.\n- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.\n- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.\n\nChưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt, site-b sẽ giống site-a."
+    }
+  ],
+  "calls": [
+    {
+      "seq": 1,
+      "tool": "site_health",
+      "plan_id": null
+    },
+    {
+      "seq": 2,
+      "tool": "propose_health_fix",
+      "plan_id": "d6e8e959d18ac203"
+    },
+    {
+      "seq": 3,
+      "tool": "site_health",
+      "plan_id": null
+    }
+  ],
+  "plans": [
+    {
+      "id": "d6e8e959d18ac203",
+      "kind": "health.fix",
+      "origin": "ai",
+      "status": "pending"
+    }
+  ]
+}
+  => ĐẠT: trang phiên: 2 lượt done, view lượt 1 là trang site b.example.com (bí danh), lượt 2 là trang site a.example.com (bí danh khác)
+  => ĐẠT: lượt 2 có trail 3 mục chứa trang site của lượt 1
+  => ĐẠT: trang phiên có các lần gọi công cụ và Plan
+--- lượt 1 (hiển thị, tên thật):
+**Chẩn đoán**
+
+Vhost của b.example.com chưa được bật. Tôi đã chạy `site_health` và thấy hai check lỗi, cùng một nguyên nhân:
+
+- `web.vhost`: `/etc/nginx/sites-available/tpan-b.example.com.conf` có và đúng như tpan đã ghi. `stat /etc/nginx/sites-enabled/tpan-b.example.com.conf` trả exit 1 (không có file), tức thiếu symlink nên nginx không nạp vhost.
+- `http.site`: curl vào site trả `Empty reply from server` (curl exit 52). Request rơi vào site mặc định, nơi nginx đóng kết nối bằng mã 444.
+
+Các tầng khác đều pass: socket PHP, checksum WordPress, quyền `wp-config.php`, đăng nhập DB và cô lập giữa các site. Tôi chưa xem log, vì health đã chỉ ra nguyên nhân.
+
+**Đề xuất sửa**
+
+Tôi đã tạo plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203). Plan này:
+1. Ghi lại file vhost. Nội dung trùng bản hiện tại nên không có thay đổi thực chất.
+2. Tạo symlink vào `sites-enabled`.
+3. Chạy `nginx -t` rồi `systemctl reload nginx`.
+
+Plan đang chờ duyệt, chưa có gì thay đổi trên server. Plan có cảnh báo vì phiên này đã đọc nội dung không tin cậy, nên bạn nên xem kỹ trước khi duyệt. Bạn có thể duyệt trong panel hoặc chạy `sudo tpan plan approve d6e8e959d18ac203`.
+
+Sau khi duyệt, hãy chạy lại health check của site. Hai check lỗi phải chuyển sang pass.
+--- lượt 2 (hiển thị, tên thật):
+**a.example.com đang khỏe.** Tôi vừa chạy `site_health` và tất cả check đều pass:
+
+- **Web:** vhost có, đúng dòng đầu của tpan, và `readlink` cho thấy symlink trong `sites-enabled` đã trỏ đúng.
+- **PHP:** socket `/run/php/tpan-a_example_com_7653e4.sock` có, chủ `www-data:www-data`, quyền 0660.
+- **WordPress:** checksum khớp, `wp-config.php` quyền 0600 và chủ `tp_a_example_com_7653e4`.
+- **DB:** user đăng nhập được và chỉ thấy DB `tp_a_example_com_7653e4`.
+- **End to end:** curl vào site trả HTTP 200 và đúng là WordPress của site-a.
+- **Cô lập:** hai site không đọc được `wp-config.php` của nhau.
+
+Chưa có gì cần sửa ở site-a. Điểm khác với site-b là site-a có symlink trong `sites-enabled`, còn site-b thì thiếu. Khi plan [d6e8e959d18ac203](tpan:plan/d6e8e959d18ac203) được duyệt, site-b sẽ giống site-a.
+
+[2026-11-19 21:50:19] $ kill -INT <pid của tpan brain>; wait
+--- terminal của tpan brain tới lúc này:
+Bộ não: đã nối ubuntu@<vm>, Claude Code 2.1.328, model sonnet
+Mỗi câu hỏi từ panel hiện sau dấu ?, mỗi lần gọi công cụ sau dấu →. Dừng bằng Ctrl+C.
+21:49:53 [5c110d976886925e-1] ? Chẩn đoán vì sao site này lỗi rồi đề xuất cách sửa
+21:49:56 [5c110d976886925e-1] → mcp__tpan__site_health {"domain":"site-b.example"}
+21:50:00 [5c110d976886925e-1] → mcp__tpan__propose_health_fix {"check_id":"web.vhost:site-b.example"}
+21:50:06 [5c110d976886925e-1] done
+21:50:09 [5c110d976886925e-2] ? còn site kia thì sao?
+21:50:12 [5c110d976886925e-2] → mcp__tpan__site_health {"domain":"site-a.example"}
+21:50:18 [5c110d976886925e-2] done
+Bộ não: đã ngắt.
+[2026-11-19 21:50:19] (tpan brain thoát mã 0)
+  => ĐẠT: tpan brain thoát 0 sau Ctrl+C
+
+
+######## [2026-11-19 21:50:19] i. rò rỉ: ai_turns và ai_calls
+ai_turns: 2 dòng; ai_calls: 3 dòng
+  => ĐẠT: đối chứng: ai_turns có bí danh site-*.example (tìm đúng chỗ)
+  => ĐẠT: claude real: không có tên miền a.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có tên miền b.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có slug của a.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có slug của b.example.com trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có IP máy ảo trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có IP của Mac trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có hostname máy ảo trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: không có tên máy Mac trong ai_turns (0 dòng) và ai_calls (0 dòng)
+  => ĐẠT: claude real: mật khẩu thứ 1 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 2 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 3 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 4 không có trong ai_turns và ai_calls
+  => ĐẠT: claude real: mật khẩu thứ 5 không có trong ai_turns và ai_calls
+
+
+######## [2026-11-19 21:50:20] kết quả đo cho mục 16
+- (real) câu hỏi 1: từ lúc gửi ask tới chữ đầu tiên trên SSE 2.287s; tới done 15.334s; 141 sự kiện text; công cụ: ["site_health","propose_health_fix"]
+- (real) câu hỏi 2 (--resume): từ lúc gửi ask tới chữ đầu tiên 8.674s; 74 sự kiện text
+
+
+######## [2026-11-19 21:50:20] bí mật, IP, tên máy, tên user Mac có lọt vào chính file log không
+Số bí mật đã gặp: 5; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu nào
+  => ĐẠT: log không chứa IP máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa tên máy Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+  => ĐẠT: log không chứa giá trị cookie nào
+
+
+######## [2026-11-19 21:50:20] TỔNG KẾT: 0 khẳng định không đạt
