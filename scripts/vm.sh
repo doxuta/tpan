@@ -6,6 +6,7 @@
 #   scripts/vm.sh deploy    chép bin/tpan-linux-<arch> vào máy ảo
 #   scripts/vm.sh shell     mở shell trong máy ảo
 #   scripts/vm.sh exec ...  chạy một lệnh trong máy ảo
+#   scripts/vm.sh root ...  chạy một lệnh trong máy ảo bằng quyền root
 #   scripts/vm.sh ip        in IP của máy ảo
 #   scripts/vm.sh down      tắt máy ảo
 #
@@ -60,7 +61,8 @@ case "$cmd" in
     ;;
   shell) multipass shell "$VM" ;;
   exec) multipass exec "$VM" -- "$@" ;;
+  root) multipass exec "$VM" -- sudo "$@" ;;
   ip) multipass info "$VM" --format json | jq -r --arg vm "$VM" '.info[$vm].ipv4[0]' ;;
   down) multipass stop "$VM" ;;
-  *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

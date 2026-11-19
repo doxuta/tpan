@@ -605,7 +605,7 @@ M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc �
 
 Thêm `docs/giai-thich/00-go-can-ban.md`: những phần của Go mà tpan dùng (package, struct, interface, error, context, goroutine, embed), mỗi phần minh hoạ bằng mã lấy từ chính repo.
 
-Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "chưa chạy", không viết output theo dự đoán.
+Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "chưa chạy", không viết output theo dự đoán. Log đầy đủ của lần chạy e2e của từng mốc lưu ở `docs/bang-chung/M<n>.log`.
 
 ## 16. Điều chưa chắc, phải kiểm trên máy ảo
 
