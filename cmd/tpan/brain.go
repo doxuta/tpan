@@ -61,8 +61,9 @@ func brainEnv() []string {
 
 func brainCmd(e *env) *cobra.Command {
 	var (
-		model   string
-		sshOpts []string
+		model    string
+		maxTurns int
+		sshOpts  []string
 	)
 	c := &cobra.Command{
 		Use:   "brain <ssh-đích> [--model M] [--ssh-opt OPT ...]",
@@ -89,11 +90,12 @@ công cụ của TPAN qua ssh <máy> sudo -n tpan mcp. Dừng bằng Ctrl+C.`,
 					"--model "+quote(model)+" không hợp lệ (ví dụ sonnet, opus)",
 					"--model "+quote(model)+" is invalid (e.g. sonnet, opus)")})
 			}
-			return runBrain(ctx, e, target, model, sshOpts)
+			return runBrain(ctx, e, target, model, maxTurns, sshOpts)
 		},
 	}
 	fl := c.Flags()
 	fl.StringVar(&model, "model", ai.DefaultModel, "model của Claude cho mọi câu hỏi từ panel")
+	fl.IntVar(&maxTurns, "max-turns", ai.MaxTurns, "số vòng gọi công cụ tối đa của một câu hỏi (chỉ hạ được, trần là 12)")
 	fl.StringArrayVar(&sshOpts, "ssh-opt", nil, "thêm đúng một tham số cho ssh (dùng cho cả kết nối brain-link lẫn MCP), lặp lại được, ví dụ --ssh-opt=-oPort=2222 --ssh-opt=-oIdentityFile=~/.ssh/vm")
 	return c
 }
@@ -107,7 +109,7 @@ func sshArgs(opts []string, target string, remote ...string) []string {
 	return append(args, remote...)
 }
 
-func runBrain(ctx context.Context, e *env, target, model string, sshOpts []string) error {
+func runBrain(ctx context.Context, e *env, target, model string, maxTurns int, sshOpts []string) error {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("tìm thư mục cache của user: %w", err)
@@ -121,6 +123,7 @@ func runBrain(ctx context.Context, e *env, target, model string, sshOpts []strin
 		Claude:   "claude",
 		Env:      env,
 		Model:    model,
+		MaxTurns: maxTurns,
 		MCP:      claudecode.MCPServer{Command: "ssh", Args: sshArgs(sshOpts, target, "sudo", "-n", "tpan", "mcp")},
 		WorkRoot: filepath.Join(cacheDir, "tpan-brain"),
 	}

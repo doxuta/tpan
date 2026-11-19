@@ -100,6 +100,10 @@ func Args(cfg Config, job ai.Job, promptFile string) []string {
 	if model == "" {
 		model = ai.DefaultModel
 	}
+	maxTurns := cfg.MaxTurns
+	if maxTurns <= 0 || maxTurns > ai.MaxTurns {
+		maxTurns = ai.MaxTurns
+	}
 	// Clone: append thẳng vào cfg.MCP.Args có thể ghi đè mảng dùng chung giữa các lượt.
 	mcpArgs := append(slices.Clone(cfg.MCP.Args), "--session", job.SessionID)
 	conf, _ := json.Marshal(struct { // chỉ có chuỗi, Marshal không lỗi được
@@ -115,7 +119,7 @@ func Args(cfg Config, job ai.Job, promptFile string) []string {
 		"--permission-mode", "dontAsk", "--permission-prompts", "none",
 		"--setting-sources", "", "--disable-slash-commands",
 		"--append-system-prompt-file", promptFile,
-		"--max-turns", strconv.Itoa(ai.MaxTurns),
+		"--max-turns", strconv.Itoa(maxTurns),
 		"--model", model,
 	}
 	// Không bao giờ --bare: ở chế độ đó claude bỏ đăng nhập gói Claude, đòi khoá API.

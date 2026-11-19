@@ -32,7 +32,7 @@
 //	//   --tools "" --strict-mcp-config --mcp-config <json> --allowedTools mcp__tpan
 //	//   --permission-mode dontAsk --permission-prompts none
 //	//   --setting-sources "" --disable-slash-commands
-//	//   --append-system-prompt-file <promptFile> --max-turns <ai.MaxTurns>
+//	//   --append-system-prompt-file <promptFile> --max-turns <cfg.MaxTurns, trần ai.MaxTurns>
 //	//   --model <cfg.Model> và --session-id <job.BrainSession> (lượt đầu)
 //	//   hoặc --resume <job.BrainSession> (job.Resume).
 //	// <json> = {"mcpServers":{"tpan":{"command":MCP.Command,"args":MCP.Args+["--session",job.SessionID]}}}
@@ -85,6 +85,9 @@ type Config struct {
 	Env []string
 	// Model rỗng là ai.DefaultModel.
 	Model string
+	// MaxTurns là --max-turns; 0 hoặc lớn hơn ai.MaxTurns thì là ai.MaxTurns
+	// (trần của mục 8.1 nguyên tắc 6, chỉ hạ được, không nâng được).
+	MaxTurns int
 	// MCP là lệnh mở MCP server của tpan, chưa có "--session <id>" (Run thêm
 	// vào cuối). Ví dụ: ssh -o BatchMode=yes ubuntu@<máy> sudo -n tpan mcp.
 	MCP MCPServer

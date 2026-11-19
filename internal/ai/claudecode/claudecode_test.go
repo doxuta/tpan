@@ -519,3 +519,15 @@ func TestAuth(t *testing.T) {
 		t.Fatalf("Auth(output hỏng) = %v", err)
 	}
 }
+
+// --max-turns chỉ hạ được: 0 và số lớn hơn trần đều về ai.MaxTurns.
+func TestArgsMaxTurns(t *testing.T) {
+	job := ai.Job{SessionID: "0123456789abcdef", BrainSession: "11111111-2222-4333-8444-555555555555"}
+	for in, want := range map[int]string{0: "12", 3: "3", 99: "12"} {
+		args := Args(Config{MaxTurns: in, MCP: MCPServer{Command: "tpan"}}, job, "/p")
+		i := slices.Index(args, "--max-turns")
+		if i < 0 || args[i+1] != want {
+			t.Errorf("MaxTurns %d: --max-turns = %v, muốn %s", in, args, want)
+		}
+	}
+}
