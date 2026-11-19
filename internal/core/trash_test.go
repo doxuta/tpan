@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -109,6 +110,7 @@ func TestSiteTrashAndRestore(t *testing.T) {
 				"absent:" + pool,
 				"db.lock:" + dom,
 				"user.lock:" + dom,
+				"absent:" + site.CronFile(l), // M9
 				"dir.move:" + l.Dir,
 			}
 			if got := stepIDs(r.Plan); !reflect.DeepEqual(got, want) {
@@ -161,6 +163,9 @@ func TestSiteTrashAndRestore(t *testing.T) {
 			if _, found := se.m.users[l.User]; !found || !se.exists(l.LogDir) {
 				t.Error("thùng rác xoá mất user hoặc log")
 			}
+			if se.exists(site.CronFile(l)) {
+				t.Error("thùng rác chưa gỡ file cron của site")
+			}
 
 			// Đã ở thùng rác: rm lần nữa và add đều bị từ chối.
 			if _, err := se.s.PrepareRemove(ctx, d); refusedCode(t, err) != "site_trashed" {
@@ -178,6 +183,8 @@ func TestSiteTrashAndRestore(t *testing.T) {
 			want = []string{
 				"dir.move:" + trashDir,
 				"user.unlock:" + dom,
+				"wp.constant:" + dom + ":DISABLE_WP_CRON", // M9
+				"file:" + site.CronFile(l),
 				"db.unlock:" + dom,
 				"file:" + pool,
 				"file:" + conf,
@@ -218,6 +225,9 @@ func TestSiteTrashAndRestore(t *testing.T) {
 			}
 			if se.m.expired[l.User] || se.m.dbLocked[l.DB] {
 				t.Error("khôi phục chưa mở khoá user")
+			}
+			if !se.exists(site.CronFile(l)) {
+				t.Error("khôi phục chưa ghi lại file cron của site")
 			}
 			if _, err := se.s.PrepareRestore(ctx, d); refusedCode(t, err) != "site_not_trashed" {
 				t.Error("khôi phục site active: muốn site_not_trashed")
@@ -332,12 +342,13 @@ func TestSiteTrashRefusals(t *testing.T) {
 	}
 }
 
-// Xoá hẳn: dùng lại Plan xoá hẳn của M2, thư mục site lấy từ thùng rác.
+// Xoá hẳn: tự backup trước (M9), rồi Plan xoá hẳn của M2, thư mục site lấy
+// từ thùng rác.
 func TestSitePurge(t *testing.T) {
 	const dom = "shop.example.com"
-	se := newSiteEnv(t, Nginx)
-	se.add(t, "blog.example.com")
-	se.add(t, dom)
+	be := newBktEnv(t, "blog.example.com", dom)
+	se := be.siteEnv
+	se.s.Backups = be.bs
 	se.trash(t, dom)
 	d := mustDomain(t, dom)
 	l := site.LayoutOf(d)
@@ -347,9 +358,11 @@ func TestSitePurge(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{
+		"backup.create:" + dom,
 		"absent:" + l.NginxLink,
 		"absent:" + l.NginxConf,
 		"absent:" + l.PoolConf("8.3"),
+		"absent:" + site.CronFile(l),
 		"mariadb.site-db-absent:" + dom,
 		"remove-tree:" + site.TrashDir(l),
 		"remove-tree:" + l.LogDir,
@@ -379,6 +392,15 @@ func TestSitePurge(t *testing.T) {
 			t.Errorf("còn %s", p)
 		}
 	}
+	// Bản tự backup: một dòng full, before-purge, của đúng job này, file còn
+	// và có cả mã nguồn lẫn DB của site.
+	list, _ := be.b.List(ctx, dom)
+	if len(list) != 1 || list[0].Kind != BackupFull || list[0].Reason != ReasonBeforePurge || list[0].JobID != rep.Job.ID || !se.exists(list[0].Path) {
+		t.Fatalf("bảng backups sau xoá hẳn = %+v", list)
+	}
+	if data := be.read(t, list[0].Path); !strings.Contains(data, "live "+dom) || !strings.Contains(data, "live-db "+dom) {
+		t.Errorf("bản tự backup thiếu mã nguồn hoặc DB:\n%s", data)
+	}
 
 	// Site có SSL: certbot delete là bước cuối, để hoàn tác các bước trước
 	// không trả lại một vhost 443 trỏ vào chứng chỉ đã mất.
@@ -396,10 +418,9 @@ func TestSitePurge(t *testing.T) {
 
 // PurgeExpired chỉ xoá site đã quá hạn, theo Sites.Now cố định.
 func TestPurgeExpired(t *testing.T) {
-	se := newSiteEnv(t, Nginx)
-	for _, dom := range []string{"a.example.com", "b.example.com", "c.example.com"} {
-		se.add(t, dom)
-	}
+	be := newBktEnv(t, "a.example.com", "b.example.com", "c.example.com")
+	se := be.siteEnv
+	se.s.Backups = be.bs
 	se.fixedNow(trashNow)
 	mustSet(t, se.st, SettingTrashDays, "3")
 	se.trash(t, "b.example.com") // hạn trashNow+3
@@ -451,6 +472,155 @@ func TestPurgeExpired(t *testing.T) {
 	_ = se.sites.DeleteSite(ctx, mustDomain(t, "z.example.com"))
 	if exp, _ := se.s.Expired(ctx, trashNow); len(exp) != 1 || exp[0].Domain.String() != "c.example.com" {
 		t.Errorf("0 ngày: Expired = %+v", exp)
+	}
+}
+
+// M9: đĩa không đủ cho bản tự backup thì từ chối xoá hẳn (không chạy gì), và
+// bộ hẹn giờ (PurgeExpired) ghi lời từ chối rồi để site nằm lại thùng rác.
+func TestSitePurgeDiskLow(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	se := be.siteEnv
+	se.s.Backups = be.bs
+	se.fixedNow(trashNow)
+	mustSet(t, se.st, SettingTrashDays, "0")
+	se.trash(t, dom)
+	se.m.SetDisk("/", system.DiskUsage{Total: 100 << 30, Free: 9 << 30})
+	se.m.ResetRan()
+
+	_, err := se.s.PreparePurge(ctx, mustDomain(t, dom))
+	if refusedCode(t, err) != CodeDiskSpaceLow {
+		t.Fatalf("đĩa gần đầy: %v", err)
+	}
+	if msg := err.(*RefusedError).Message; !strings.Contains(msg.Vi, "Chưa xoá hẳn") || !strings.Contains(msg.En, "every hour") {
+		t.Errorf("lời từ chối không nói site chưa bị xoá: %+v", msg)
+	}
+	res, err := se.s.PurgeExpired(ctx, trashNow, nil)
+	if err != nil || len(res) != 1 || !strings.Contains(res[0].Error, "disk_space_low") && !strings.Contains(res[0].Error, "Chưa xoá hẳn") {
+		t.Fatalf("PurgeExpired = %+v, %v", res, err)
+	}
+	for _, c := range mutatingRan(se.m.Ran()) {
+		t.Errorf("bị từ chối mà vẫn chạy: %s", c)
+	}
+	if se.siteOf(t, dom).Status != site.Trashed || !se.exists(site.TrashDir(site.LayoutOf(mustDomain(t, dom)))) {
+		t.Error("bị từ chối mà site không còn nguyên trong thùng rác")
+	}
+}
+
+// M9: bước sau các bước xoá lỗi (userdel) thì engine hoàn tác, nhưng bản tự
+// backup là bản duy nhất còn lại của site: giữ file và ghi dòng. Chạy lại thì
+// không backup lần nữa (DB, thư mục đã mất) và làm nốt.
+func TestSitePurgeFailKeepsBackup(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	se := be.siteEnv
+	se.s.Backups = be.bs
+	se.trash(t, dom)
+	d := mustDomain(t, dom)
+	l := site.LayoutOf(d)
+
+	var mu sync.Mutex
+	failDel := true
+	se.m.Handle([]string{"userdel"}, func(c system.Cmd) system.Result {
+		mu.Lock()
+		defer mu.Unlock()
+		if failDel {
+			return system.Result{ExitCode: 8, Stderr: "userdel: user " + l.User + " is currently used by process 1\n"}
+		}
+		se.m.mu.Lock()
+		delete(se.m.users, c.Args[len(c.Args)-1])
+		se.m.mu.Unlock()
+		return system.Result{}
+	})
+	p, err := se.s.PreparePurge(ctx, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep, err := p.Execute(ctx, nil)
+	if err != nil || rep.Job.Status == engine.JobSucceeded {
+		t.Fatalf("userdel lỗi mà: %v %s", err, rep.Job.Status)
+	}
+	list, _ := be.b.List(ctx, dom)
+	if len(list) != 1 || list[0].Reason != ReasonBeforePurge || !se.exists(list[0].Path) {
+		t.Fatalf("job hỏng sau khi đã xoá DB: bản tự backup phải được giữ và ghi; bảng = %+v", list)
+	}
+	if se.siteOf(t, dom).Status != site.Trashed {
+		t.Error("job hỏng mà dòng site không còn")
+	}
+
+	mu.Lock()
+	failDel = false
+	mu.Unlock()
+	p, err = se.s.PreparePurge(ctx, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids := stepIDs(p.Plan); slices.Contains(ids, "backup.create:"+dom) {
+		t.Errorf("chạy lại sau khi DB, thư mục đã mất mà vẫn backup: %v", ids)
+	}
+	rep, err = p.Execute(ctx, nil)
+	if err != nil || rep.Job.Status != engine.JobSucceeded {
+		t.Fatalf("chạy lại: %v %s (%s)", err, rep.Job.Status, rep.Job.Error)
+	}
+	if list, _ := be.b.List(ctx, dom); len(list) != 1 {
+		t.Errorf("chạy lại ghi thêm dòng backup: %+v", list)
+	}
+	if _, ok, _ := se.sites.Site(ctx, d); ok {
+		t.Error("chạy lại xong mà Store còn site")
+	}
+}
+
+// M9: lỗi trước mọi bước xoá (gỡ file vhost lỗi) thì dữ liệu gốc còn nguyên:
+// hoàn tác xoá bản tự backup như mọi BackupArchive, không ghi dòng.
+func TestSitePurgeEarlyFailDropsBackup(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	se := be.siteEnv
+	se.s.Backups = be.bs
+	se.trash(t, dom)
+	d := mustDomain(t, dom)
+	l := site.LayoutOf(d)
+	se.m.Fail("remove", l.NginxConf, fs.ErrPermission)
+
+	p, err := se.s.PreparePurge(ctx, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep, err := p.Execute(ctx, nil)
+	if err != nil || rep.Job.Status == engine.JobSucceeded {
+		t.Fatalf("gỡ vhost lỗi mà: %v %s", err, rep.Job.Status)
+	}
+	if list, _ := be.b.List(ctx, dom); len(list) != 0 {
+		t.Errorf("dữ liệu gốc còn nguyên mà vẫn ghi dòng backup: %+v", list)
+	}
+	names, _ := se.m.ReadDir(site.BackupDir(l))
+	for _, n := range names {
+		if strings.HasSuffix(n, ".tar.gz") {
+			t.Errorf("hoàn tác để lại file backup %s", n)
+		}
+	}
+	if !se.m.dbs[l.DB] || !se.exists(site.TrashDir(l)) {
+		t.Error("lỗi sớm mà dữ liệu gốc mất")
+	}
+}
+
+// M9: Sites.Backups nil vẫn backup và vẫn xoá hẳn; lỗi trả về nói file ở đâu.
+func TestSitePurgeNoBackupStore(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	se := be.siteEnv
+	se.trash(t, dom)
+	d := mustDomain(t, dom)
+	p, err := se.s.PreparePurge(ctx, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep, err := p.Execute(ctx, nil)
+	if rep.Job.Status != engine.JobSucceeded || err == nil || !strings.Contains(err.Error(), site.BackupDir(site.LayoutOf(d))) {
+		t.Fatalf("Backups nil: %s, %v; muốn job xong và lỗi nêu đường dẫn file", rep.Job.Status, err)
+	}
+	if _, ok, _ := se.sites.Site(ctx, d); ok {
+		t.Error("Backups nil mà dòng site không được xoá")
 	}
 }
 

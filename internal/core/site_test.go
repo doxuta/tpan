@@ -107,6 +107,7 @@ func newSiteSim(t *testing.T) *siteSim {
 		"/etc/nginx/sites-available", "/etc/nginx/sites-enabled",
 		"/etc/apache2/sites-available", "/etc/apache2/sites-enabled",
 		"/etc/php/8.3/fpm/pool.d", "/var/cache/tpan", "/var/www", "/var/log/tpan/sites", "/run/php",
+		"/etc/cron.d", // gói cron của Ubuntu (M9: file cron của site)
 	} {
 		m.SetDir(d, 0o755, system.Root)
 	}
@@ -271,6 +272,11 @@ func newSiteSim(t *testing.T) *siteSim {
 		case len(c.Args) >= 2 && c.Args[0] == "db" && c.Args[1] == "query":
 			// DB của site cùng tên với user của site (tp_<slug>).
 			return exit(0, "information_schema\n"+u+"\n", "")
+		case len(c.Args) >= 3 && c.Args[0] == "config" && slices.Contains([]string{"get", "set", "delete"}, c.Args[1]):
+			// Hằng trong wp-config.php (steps.WPConstant, M9): ghi thẳng vào
+			// file giả, để hằng đi theo thư mục site (thùng rác, khôi phục) và
+			// hoàn tác thấy được trong ảnh chụp hệ thống file.
+			return m.wpConstant(pub+"/wp-config.php", c.Args[1], c.Args[2], c.Args[3:])
 		}
 		return ok
 	})
@@ -315,6 +321,37 @@ func newSiteSim(t *testing.T) *siteSim {
 		return ok
 	})
 	return m
+}
+
+// wpConstant giả lập `wp config get|set|delete <NAME> [value] --type=constant`
+// trên file cfg: mỗi hằng một dòng "define( 'NAME', value );". Gọi khi đã giữ m.mu.
+func (m *siteSim) wpConstant(cfg, op, name string, rest []string) system.Result {
+	b, err := m.ReadFile(cfg)
+	if err != nil {
+		return system.Result{ExitCode: 1, Stderr: "Error: 'wp-config.php' not found.\n"}
+	}
+	prefix := "define( '" + name + "', "
+	var keep []string
+	val, had := "", false
+	for _, ln := range strings.Split(strings.TrimRight(string(b), "\n"), "\n") {
+		if v, ok := strings.CutPrefix(ln, prefix); ok {
+			val, had = strings.TrimSuffix(v, " );"), true
+			continue
+		}
+		keep = append(keep, ln)
+	}
+	switch op {
+	case "get":
+		if !had {
+			return system.Result{ExitCode: 1, Stderr: "Error: The constant '" + name + "' is not defined in the 'wp-config.php' file.\n"}
+		}
+		return system.Result{Stdout: val + "\n"}
+	case "set":
+		keep = append(keep, prefix+rest[0]+" );")
+	}
+	fi, _ := m.Stat(cfg)
+	m.SetFile(cfg, []byte(strings.Join(keep, "\n")+"\n"), fi.Mode.Perm(), fi.Owner)
+	return system.Result{}
 }
 
 // served: domain có link vhost đang bật (Nginx hoặc Apache), hoặc serveAll.
@@ -574,6 +611,9 @@ func TestSiteAddPlanOrder(t *testing.T) {
 				"wp.archive:7.1.5",
 				"wp.files:shop.example.com",
 				"wp.config:shop.example.com",
+				// M9: cron của site, ngay sau wp-config.php, trước vhost.
+				"wp.constant:shop.example.com:DISABLE_WP_CRON",
+				"file:" + site.CronFile(l),
 			}, tc.tail...)
 			if got := stepIDs(a.Plan); !reflect.DeepEqual(got, want) {
 				t.Errorf("thứ tự bước:\n got %v\nwant %v", got, want)
@@ -593,6 +633,40 @@ func TestSiteAddPlanOrder(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// M9: site tạo trước M9 (chưa có cron) được nâng bằng cách chạy lại Plan tạo
+// site: chỉ hai bước cron Apply, mọi bước khác đã đúng nên bỏ qua.
+func TestSiteAddRerunAddsCron(t *testing.T) {
+	const dom = "shop.example.com"
+	se := newSiteEnv(t, Nginx)
+	se.add(t, dom)
+	l := site.LayoutOf(mustDomain(t, dom))
+	// Như site của M8: không file cron, wp-config.php không có DISABLE_WP_CRON.
+	_ = se.m.Remove(site.CronFile(l))
+	se.m.SetFile(l.WPConfig, []byte("<?php // wp-config giả\n"), 0o600, system.Owner{User: l.User, Group: l.User})
+
+	a, err := se.s.PrepareAdd(ctx, SiteInput{Domain: mustDomain(t, dom)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := a.Execute(ctx, nil)
+	if err != nil || res.Report.Job.Status != engine.JobSucceeded {
+		t.Fatalf("chạy lại: %v %s (%s)", err, res.Report.Job.Status, res.Report.Job.Error)
+	}
+	var applied []string
+	for _, s := range res.Report.Steps {
+		if s.Outcome == "applied" {
+			applied = append(applied, s.ID)
+		}
+	}
+	want := []string{"wp.constant:" + dom + ":DISABLE_WP_CRON", "file:" + site.CronFile(l)}
+	if !reflect.DeepEqual(applied, want) {
+		t.Errorf("bước Apply khi chạy lại = %v; muốn %v", applied, want)
+	}
+	if cfg, _ := se.m.ReadFile(l.WPConfig); !strings.Contains(string(cfg), "define( 'DISABLE_WP_CRON', true );") {
+		t.Errorf("wp-config.php chưa có DISABLE_WP_CRON:\n%s", cfg)
 	}
 }
 

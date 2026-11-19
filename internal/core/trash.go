@@ -23,7 +23,8 @@ package core
 //     RemoveTree{Path: site.TrashDir(l), Under: site.TrashRoot} thay cho
 //     l.Dir. Không có Verify (lý do ở mục 6.4). Từ chối site_not_trashed nếu
 //     site đang active: xoá hẳn chỉ đi qua thùng rác. Job thành công: xoá dòng.
-//     Chưa có "tự backup trước khi xoá hẳn" (mục 6.5): backup là M9.
+//     M9: bước đầu tự backup site (mục 6.5, xem PreparePurge), và cả ba
+//     Plan gỡ hoặc ghi lại file cron của site (mục 6.10).
 
 import (
 	"context"
@@ -213,7 +214,7 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 }
 
 // restoreSteps làm ngược trashSteps: chuyển thư mục về, mở khoá user Linux,
-// mở khoá user DB, ghi lại pool, bật vhost. Pool và vhost dựng y như lúc tạo
+// ghi lại cron của site (M9), mở khoá user DB, ghi lại pool, bật vhost. Pool và vhost dựng y như lúc tạo
 // site (siteVhost chọn bản 443 khi site có SSL): file vhost vẫn nằm trong
 // sites-available nên bước ghi nó tự bỏ qua, chỉ bước bật link chạy.
 func restoreSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) {
@@ -226,14 +227,20 @@ func restoreSteps(web WebServer, php string, st site.Site) ([]engine.Step, error
 	if err != nil {
 		return nil, err
 	}
+	cron, err := siteCronSteps(l)
+	if err != nil {
+		return nil, err
+	}
 	d := l.Domain.String()
 	ss := []engine.Step{
 		&steps.MoveTree{From: site.TrashDir(l), To: l.Dir,
 			Title: i18n.T("Chuyển thư mục của "+d+" ra khỏi thùng rác", "Move the directory of "+d+" out of the trash")},
 		&steps.SiteUserLock{Layout: l, Unlock: true},
-		&steps.DBUserUnlock{Layout: l},
-		pool,
 	}
+	// M9: cron của site sau khi thư mục về chỗ và user được mở khoá:
+	// WPConstant chạy `wp` dưới user của site trên wp-config.php vừa về.
+	ss = append(ss, cron...)
+	ss = append(ss, &steps.DBUserUnlock{Layout: l}, pool)
 	return append(ss, vhost...), nil
 }
 
@@ -268,9 +275,36 @@ type SitePurge struct {
 	Plan   engine.Plan
 
 	sites *Sites
+	// backup là bước tự backup trước khi xoá hẳn (mục 6.5); nil khi bỏ qua
+	// (một lần xoá hẳn trước đã chạy dở, xem PreparePurge).
+	backup *purgeBackup
+}
+
+// purgeIntact: dữ liệu của site trong thùng rác còn đủ, tức thư mục trong
+// thùng rác và DB đều còn. Plan xoá hẳn xoá DB trước thư mục, nên thiếu một
+// trong hai là dấu của một lần xoá hẳn trước đã chạy dở.
+func purgeIntact(ctx context.Context, sys system.System, l site.Layout) (bool, error) {
+	dir, err := pathExists(sys, site.TrashDir(l))
+	if err != nil || !dir {
+		return false, err
+	}
+	db, _, err := steps.SiteDBState(ctx, sys, l)
+	return db, err
 }
 
 // PreparePurge dựng Plan "site.purge". Chỉ đọc.
+//
+// M9 (mục 6.5): bước đầu tiên là tự backup site (thư mục trong thùng rác và
+// DB). Chặn đầy đĩa ở đây, trước khi dựng Plan: không đủ chỗ thì từ chối
+// CodeDiskSpaceLow, tức là KHÔNG xoá hẳn khi chưa backup được. Bộ hẹn giờ dọn
+// thùng rác (PurgeExpired) ghi lời từ chối vào kết quả của site đó, đi tiếp
+// site sau, và thử lại ở lượt mỗi giờ kế tiếp; site cứ nằm trong thùng rác
+// (vẫn khôi phục được) tới khi đĩa được dọn.
+//
+// Dữ liệu không còn đủ (purgeIntact false: lần xoá hẳn trước đã xoá DB hoặc
+// thư mục rồi lỗi ở bước sau) thì bỏ bước backup: không còn gì nguyên vẹn để
+// backup, và bản tự backup của lần trước đã được giữ và ghi (purgeBackup.Undo,
+// Execute). Không bỏ thì chạy lại xoá hẳn không bao giờ xong được.
 func (s *Sites) PreparePurge(ctx context.Context, d validate.Domain) (*SitePurge, error) {
 	st, err := s.findTrashed(ctx, d)
 	if err != nil {
@@ -280,16 +314,73 @@ func (s *Sites) PreparePurge(ctx context.Context, d validate.Domain) (*SitePurge
 	if err != nil {
 		return nil, err
 	}
-	ss, err := purgeSteps(cfg.Web, sitePHP(st, cfg), st)
+	l := st.Layout()
+	php := sitePHP(st, cfg)
+	ss, err := purgeSteps(cfg.Web, php, st)
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan xoá hẳn site %s: %w", d, err)
 	}
-	return &SitePurge{Site: st, Layout: st.Layout(), sites: s, Plan: engine.Plan{
+	intact, err := purgeIntact(ctx, s.Sys, l)
+	if err != nil {
+		return nil, fmt.Errorf("kiểm dữ liệu của site %s trong thùng rác: %w", d, err)
+	}
+	var bk *purgeBackup
+	if intact {
+		dn := d.String()
+		err := (&Backups{Sites: s}).backupSpace(ctx, l, site.TrashDir(l), i18n.T("tự backup "+dn+" trước khi xoá hẳn", "back up "+dn+" before deleting it for good"))
+		var re *RefusedError
+		if errors.As(err, &re) && re.Code == CodeDiskSpaceLow {
+			re.Message = i18n.T(
+				re.Message.Vi+" Chưa xoá hẳn: tpan không xoá site khi chưa backup được. Site vẫn ở thùng rác; bộ hẹn giờ thử lại mỗi giờ.",
+				re.Message.En+" Not deleted: tpan does not delete a site it could not back up. The site stays in the trash; the timer tries again every hour.")
+		}
+		if err != nil {
+			return nil, err
+		}
+		bk = &purgeBackup{BackupArchive: &steps.BackupArchive{Layout: l, Src: site.TrashDir(l), Dir: site.BackupDir(l), PHPVersion: php}}
+		ss = append([]engine.Step{bk}, ss...)
+	}
+	return &SitePurge{Site: st, Layout: l, sites: s, backup: bk, Plan: engine.Plan{
 		Kind:   "site.purge",
 		Target: d.String(),
 		Title:  i18n.T("Xoá hẳn site "+d.String(), "Permanently delete site "+d.String()),
 		Steps:  ss,
 	}}, nil
+}
+
+// purgeBackup là bước tự backup của Plan xoá hẳn. Khác BackupArchive ở Undo:
+// engine hoàn tác ngược mọi bước khi một bước sau lỗi (CertbotDelete đứng
+// cuối và có lúc lỗi), mà các bước xoá DB, thư mục không hoàn tác được. Lúc
+// đó bản backup là bản duy nhất còn lại của site, nên chỉ xoá nó (như
+// BackupArchive.Undo) khi dữ liệu gốc còn nguyên (purgeIntact); không thì giữ
+// file và đánh dấu kept để Execute ghi dòng cho nó.
+type purgeBackup struct {
+	*steps.BackupArchive
+	kept bool
+}
+
+func (p *purgeBackup) Info() engine.StepInfo {
+	info := p.BackupArchive.Info()
+	d := p.Layout.Domain.String()
+	info.Title = i18n.T("Tự backup "+d+" trước khi xoá hẳn, vào "+p.Dir, "Back up "+d+" before deleting it for good, to "+p.Dir)
+	info.Why = i18n.T(
+		"Các bước sau xoá DB và file của site, không lấy lại được. Bản backup này là đường lùi cuối cùng: tpan không bao giờ tự dọn nó. Khi hoàn tác, file chỉ bị xoá nếu dữ liệu gốc còn nguyên.",
+		"The next steps delete the site's database and files for good. This backup is the last way back: tpan never prunes it. On undo, the file is only removed if the original data is still intact.")
+	return info
+}
+
+func (p *purgeBackup) Undo(ctx context.Context, sys system.System) error {
+	intact, err := purgeIntact(ctx, sys, p.Layout)
+	if err != nil {
+		// Không biết dữ liệu gốc còn không: giữ file (hướng an toàn).
+		p.kept = true
+		return fmt.Errorf("giữ bản tự backup %s (không kiểm được dữ liệu gốc của %s: %w)", p.Path, p.Layout.Domain, err)
+	}
+	if intact {
+		return p.BackupArchive.Undo(ctx, sys)
+	}
+	p.kept = true
+	return nil
 }
 
 // purgeSteps là Plan xoá hẳn của M2 (mục 6.4) cho site đã ở thùng rác: gỡ
@@ -304,6 +395,8 @@ func purgeSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) 
 		return nil, err
 	}
 	ss = append(ss,
+		// M9: file cron đã gỡ lúc vào thùng rác; còn (sửa tay) thì gỡ nốt.
+		siteCronAbsent(l),
 		&steps.SiteDBAbsent{Layout: l},
 		&steps.RemoveTree{Path: site.TrashDir(l), Under: site.TrashRoot},
 		&steps.RemoveTree{Path: l.LogDir, Under: siteLogRoot},
@@ -324,18 +417,53 @@ func (p *SitePurge) Preview(ctx context.Context) (engine.Preview, error) {
 	return engine.New(p.sites.Sys, engine.Options{}).Preview(ctx, p.Plan)
 }
 
-// Execute chạy Plan; job thành công thì xoá dòng của site khỏi bảng sites.
-// Job hỏng thì giữ dòng (vẫn trashed) để chạy lại làm nốt.
+// Execute chạy Plan; job thành công thì ghi dòng của bản tự backup (Kind full,
+// ReasonBeforePurge) rồi mới xoá dòng của site khỏi bảng sites. Thứ tự đó để
+// dừng giữa chừng thì bảng backups đã biết bản backup trước khi site biến mất.
+// Job hỏng thì giữ dòng site (vẫn trashed) để chạy lại làm nốt; bản backup
+// được giữ (purgeBackup.kept) thì vẫn ghi dòng cho nó.
+//
+// Không ghi được dòng backup (Sites.Backups nil, store lỗi) thì vẫn xoá dòng
+// site (máy đã xoá hẳn rồi), và trả lỗi nêu đường dẫn file backup để người
+// biết nó ở đâu.
 func (p *SitePurge) Execute(ctx context.Context, onEvent func(engine.Event)) (engine.Report, error) {
 	s := p.sites
 	rep, err := s.runPlan(ctx, "xoá hẳn site", p.Plan, onEvent)
-	if err != nil || rep.Job.Status != engine.JobSucceeded {
+	if err != nil {
 		return rep, err
 	}
-	if err := s.Store.DeleteSite(ctx, p.Site.Domain); err != nil {
-		return rep, fmt.Errorf("job %s đã xoá hẳn site %s khỏi máy nhưng không xoá được dòng trong DB của tpan: %w", rep.Job.ID, p.Site.Domain, err)
+	if rep.Job.Status != engine.JobSucceeded {
+		if p.backup != nil && p.backup.kept {
+			return rep, p.recordBackup(ctx, rep)
+		}
+		return rep, nil
 	}
-	return rep, nil
+	var errs []error
+	if p.backup != nil {
+		errs = append(errs, p.recordBackup(ctx, rep))
+	}
+	if err := s.Store.DeleteSite(ctx, p.Site.Domain); err != nil {
+		errs = append(errs, fmt.Errorf("job %s đã xoá hẳn site %s khỏi máy nhưng không xoá được dòng trong DB của tpan: %w", rep.Job.ID, p.Site.Domain, err))
+	}
+	return rep, errors.Join(errs...)
+}
+
+// recordBackup ghi dòng của bản tự backup trước khi xoá hẳn. Bản này không bao
+// giờ bị dọn (Backups.prune bỏ qua ReasonBeforePurge).
+func (p *SitePurge) recordBackup(ctx context.Context, rep engine.Report) error {
+	s, d := p.sites, p.Site.Domain
+	row, err := archived(p.backup.BackupArchive, d, ReasonBeforePurge, rep.Job.ID)
+	if err != nil {
+		return err
+	}
+	if s.Backups == nil {
+		return fmt.Errorf("job %s: đã tự backup %s vào %s nhưng chưa có bảng backups để ghi dòng; file vẫn còn trên máy", rep.Job.ID, d, row.Path)
+	}
+	row.Created = s.now().UTC()
+	if _, err := s.Backups.AddBackup(ctx, row); err != nil {
+		return fmt.Errorf("job %s: đã tự backup %s vào %s nhưng không ghi được vào bảng backups (file vẫn còn trên máy): %w", rep.Job.ID, d, row.Path, err)
+	}
+	return nil
 }
 
 // PurgeResult là kết quả xoá hẳn một site trong PurgeExpired.

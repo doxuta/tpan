@@ -99,10 +99,16 @@ func TestApplyCreatesInOneJobOneReload(t *testing.T) {
 				if len(u.Finish) != 1 || u.Finish[0].Info().ID != "wp.install:"+u.Target {
 					t.Errorf("unit %s: Finish phải đúng một bước wp.install", u.Target)
 				}
+				cron := false
 				for _, st := range u.Prepare {
 					if _, ok := st.(*steps.WPArchive); ok {
 						t.Errorf("unit %s còn WPArchive ở pha A", u.Target)
 					}
+					cron = cron || st.Info().ID == "wp.constant:"+u.Target+":DISABLE_WP_CRON"
+				}
+				// M9: unit dựng từ addPlan nên có cron của site ở pha A.
+				if !cron {
+					t.Errorf("unit %s thiếu bước DISABLE_WP_CRON ở pha A", u.Target)
 				}
 			}
 
@@ -153,6 +159,9 @@ func TestApplyCreatesInOneJobOneReload(t *testing.T) {
 				saved, ok, _ := se.sites.Site(ctx, mustDomain(t, c.Domain))
 				if !ok || saved.Status != site.Active || saved.PHPVersion != "8.3" || !saved.Created.Equal(applyNow) {
 					t.Errorf("Store %s: ok=%v %+v", c.Domain, ok, saved)
+				}
+				if !se.exists(site.CronFile(site.LayoutOf(mustDomain(t, c.Domain)))) {
+					t.Errorf("site %s tạo trong lô mà không có file cron", c.Domain)
 				}
 			}
 			// 3 site mới: 6 cặp hai chiều.

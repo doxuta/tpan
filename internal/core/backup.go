@@ -407,6 +407,15 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 	}
 	pre := &steps.BackupArchive{Layout: l, Src: l.Dir, Dir: site.BackupDir(l), PHPVersion: php}
 	dn := d.String()
+	aside := rd + "/old-public"
+	setAside := &steps.MoveTree{From: l.Public, To: aside,
+		Title: i18n.T("Cất mã nguồn hiện tại của "+dn+" sang "+aside, "Set the current code of "+dn+" aside in "+aside),
+		Why: i18n.T("Đổi tên, không xoá: kiểm chứng sau khôi phục mà lỗi thì engine chuyển nó về chỗ cũ. Thư mục này chỉ bị xoá khi job đã thành công.",
+			"A rename, not a delete: if the checks after the restore fail, the engine moves it back. The directory is only removed once the job has succeeded.")}
+	moveIn := &afterAside{aside: aside, MoveTree: &steps.MoveTree{From: rd + "/public", To: l.Public,
+		Title: i18n.T("Đưa mã nguồn từ bản backup vào "+l.Public, "Move the code from the backup into "+l.Public),
+		Why: i18n.T("Một lần đổi tên trên cùng phân vùng: site không bao giờ nằm ở trạng thái nửa cũ nửa mới.",
+			"One rename on the same partition: the site is never left half old, half new.")}}
 	plan := engine.Plan{
 		Kind:   "backup.restore",
 		Target: dn,
@@ -414,14 +423,8 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 		Steps: []engine.Step{
 			pre,
 			&steps.BackupExtract{Layout: l, Archive: src.Path, SHA256: src.SHA256, Dir: rd},
-			&steps.MoveTree{From: l.Public, To: rd + "/old-public",
-				Title: i18n.T("Cất mã nguồn hiện tại của "+dn+" sang "+rd+"/old-public", "Set the current code of "+dn+" aside in "+rd+"/old-public"),
-				Why: i18n.T("Đổi tên, không xoá: kiểm chứng sau khôi phục mà lỗi thì engine chuyển nó về chỗ cũ. Thư mục này chỉ bị xoá khi job đã thành công.",
-					"A rename, not a delete: if the checks after the restore fail, the engine moves it back. The directory is only removed once the job has succeeded.")},
-			&steps.MoveTree{From: rd + "/public", To: l.Public,
-				Title: i18n.T("Đưa mã nguồn từ bản backup vào "+l.Public, "Move the code from the backup into "+l.Public),
-				Why: i18n.T("Một lần đổi tên trên cùng phân vùng: site không bao giờ nằm ở trạng thái nửa cũ nửa mới.",
-					"One rename on the same partition: the site is never left half old, half new.")},
+			setAside,
+			moveIn,
 			&steps.MariaDBDump{DB: l.DB, Path: rd + "/db-before.sql"},
 			&steps.DBImport{Layout: l, File: rd + "/db.sql", UndoFile: rd + "/db-before.sql"},
 		},
@@ -455,6 +458,28 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 		}
 		return errors.Join(errs...)
 	}), nil
+}
+
+// afterAside là bước tráo thứ hai của khôi phục (RestoreDir/public → l.Public):
+// chỉ "đã đúng" khi mã nguồn cũ đã nằm ở aside (RestoreDir/old-public). Lúc
+// xem trước, l.Public (đích của nó) đang có sẵn nên Check của MoveTree một mình
+// báo "đã xong, bỏ qua", và người duyệt thấy sai đúng bước quan trọng nhất.
+//
+// Không dùng afterStep{dep: bước cất đi} (oneway.go): sau khi bước này chạy,
+// cả l.Public lẫn old-public đều có, Check của bước cất đi trả lỗi "cả hai
+// đều có", nên lần kiểm lại sau Apply của engine sẽ hỏng. Hỏi thẳng old-public
+// có chưa thì đúng cả lúc xem trước, trước và sau Apply.
+type afterAside struct {
+	*steps.MoveTree
+	aside string
+}
+
+func (a *afterAside) Check(ctx context.Context, sys system.System) (bool, error) {
+	ok, err := pathExists(sys, a.aside)
+	if err != nil || !ok {
+		return false, err
+	}
+	return a.MoveTree.Check(ctx, sys)
 }
 
 // PrepareSettings dựng Plan "backup.settings": ghi hoặc gỡ file cron của lịch

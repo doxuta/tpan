@@ -718,6 +718,11 @@ func TestBackupRestore(t *testing.T) {
 		if sp.CheckError != "" {
 			t.Errorf("xem trước: bước %s lỗi Check: %s", sp.Info.ID, sp.CheckError)
 		}
+		// l.Public (đích của bước tráo thứ hai) có sẵn lúc xem trước; bước
+		// đó vẫn phải hiện là sẽ chạy, không phải "đã xong".
+		if sp.Done {
+			t.Errorf("xem trước: bước %s hiện là đã xong", sp.Info.ID)
+		}
 		danger = danger || sp.Info.Danger
 	}
 	if !danger {

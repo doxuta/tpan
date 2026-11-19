@@ -58,6 +58,7 @@ import (
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/templates"
@@ -557,6 +558,43 @@ func (u *Updates) PrepareAuto(ctx context.Context) (*Planned, error) {
 // mariadbDumpDir là nơi giữ file xuất trước khi nâng dòng (mục 5: /var/lib/tpan/backups).
 const mariadbDumpDir = "/var/lib/tpan/backups"
 
+// requireBackups từ chối CodeBackupRequired khi còn site active không có bản
+// full nào mới hơn BackupFreshFor (M12 + M9). Nâng MariaDB là một chiều: file
+// xuất của Plan chỉ có DB, còn bản full của từng site có cả mã nguồn khớp với
+// DB đó, nên là đường lùi theo từng site. Giờ so theo time.Now: Updates không
+// có Now riêng. Backups nil thì bỏ qua (xem chú thích của trường).
+func (u *Updates) requireBackups(ctx context.Context) error {
+	if u.Backups == nil {
+		return nil
+	}
+	all, err := u.Sites.Sites(ctx)
+	if err != nil {
+		return fmt.Errorf("đọc danh sách site: %w", err)
+	}
+	cutoff := time.Now().Add(-BackupFreshFor)
+	var missing []string
+	for _, st := range all {
+		if st.Status != site.Active {
+			continue
+		}
+		rows, err := u.Backups.Backups(ctx, st.Domain.String())
+		if err != nil {
+			return fmt.Errorf("đọc backup của %s: %w", st.Domain, err)
+		}
+		if !slices.ContainsFunc(rows, func(b Backup) bool { return b.Kind == BackupFull && b.Created.After(cutoff) }) {
+			missing = append(missing, st.Domain.String())
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	list := strings.Join(missing, ", ")
+	h := strconv.Itoa(int(BackupFreshFor.Hours()))
+	return refuse(CodeBackupRequired, i18n.T(
+		"nâng MariaDB là một chiều, mà các site sau chưa có bản backup đầy đủ trong "+h+" giờ qua: "+list+". Backup trước bằng: sudo tpan backup create --all --yes, rồi chạy lại.",
+		"upgrading MariaDB is one-way, and these sites have no full backup from the last "+h+" hours: "+list+". Back them up first with: sudo tpan backup create --all --yes, then run again."))
+}
+
 // PrepareMariaDB dựng Plan "mariadb.upgrade" lên dòng line. Chỉ đọc máy.
 func (u *Updates) PrepareMariaDB(ctx context.Context, line string) (*Planned, error) {
 	// Dòng sai thì từ chối trước khi đọc máy; repoMariaDB giữ lời từ chối
@@ -579,6 +617,9 @@ func (u *Updates) PrepareMariaDB(ctx context.Context, line string) (*Planned, er
 		return nil, refuse("mariadb_not_newer", i18n.T(
 			fmt.Sprintf("MariaDB đang chạy dòng %s; chỉ nâng lên được dòng mới hơn (nhận được %s), không hạ xuống", current, line),
 			fmt.Sprintf("MariaDB is running series %s; it can only move up to a newer series (got %s), never down", current, line)))
+	}
+	if err := u.requireBackups(ctx); err != nil {
+		return nil, err
 	}
 	codename, err := osCodename(u.Sys)
 	if err != nil {

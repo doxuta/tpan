@@ -187,6 +187,12 @@ type Updates struct {
 	// WPCLISHA512 như Stack.WPCLISHA512: rỗng thì bản thật; demo và test đặt
 	// mã của file giả.
 	WPCLISHA512 string
+	// Backups (M9) là bảng backups: nâng MariaDB đòi mỗi site active có bản
+	// full mới hơn BackupFreshFor (PrepareMariaDB). Mọi chỗ dựng Updates có
+	// tpan.db đều đặt nó; nil chỉ khi chưa có tpan.db (CLI --dry-run, khi đó
+	// bảng sites cũng rỗng nên không có site nào để đòi) và trong test của
+	// M12 không bàn tới backup. nil thì bỏ qua kiểm.
+	Backups BackupStore
 }
 
 // SelfUpdate là `tpan self-update` (chỉ CLI).

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/templates"
 )
@@ -503,5 +505,58 @@ func TestPrepareMariaDBRefusals(t *testing.T) {
 	_, err := e.u.PrepareMariaDB(ctx, "11.8")
 	if code := refusedCode(t, err); code != "stack_not_installed" {
 		t.Errorf("chưa cài: mã %q", code)
+	}
+}
+
+// M9: nâng MariaDB đòi mỗi site active có bản full mới hơn BackupFreshFor.
+// Site trong thùng rác, bản sql, bản full cũ không tính.
+func TestPrepareMariaDBRequiresBackup(t *testing.T) {
+	e := newUpdEnv(t)
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "tpan.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	e.u.Backups = st
+	e.f.Handle([]string{"dpkg-query", "-W", "-f", "${Package}\\t${db:Status-Status}\\n"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: "mariadb-server\tinstalled\n"}
+	})
+	for _, d := range []string{"a.example.com", "b.example.com", "c.example.com"} {
+		e.addSite(t, d, site.Active)
+	}
+	e.addSite(t, "old.example.com", site.Trashed)
+	now := time.Now()
+	for _, b := range []Backup{
+		{Domain: "a.example.com", Kind: BackupFull, Reason: ReasonManual, Path: "/x/a.tar.gz", Created: now.Add(-time.Hour)},
+		{Domain: "b.example.com", Kind: BackupSQL, Reason: ReasonManual, Path: "/x/b.sql", Created: now.Add(-time.Hour)},
+		{Domain: "c.example.com", Kind: BackupFull, Reason: ReasonSchedule, Path: "/x/c.tar.gz", Created: now.Add(-BackupFreshFor - time.Hour)},
+	} {
+		if _, err := st.AddBackup(ctx, b); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e.f.ResetRan()
+	_, err = e.u.PrepareMariaDB(ctx, "11.8")
+	if refusedCode(t, err) != CodeBackupRequired {
+		t.Fatalf("thiếu backup: %v", err)
+	}
+	msg := err.(*RefusedError).Message
+	for _, s := range []string{"b.example.com", "c.example.com", "sudo tpan backup create --all --yes"} {
+		if !strings.Contains(msg.Vi, s) || !strings.Contains(msg.En, s) {
+			t.Errorf("lời từ chối thiếu %q: %+v", s, msg)
+		}
+	}
+	for _, s := range []string{"a.example.com", "old.example.com"} {
+		if strings.Contains(msg.Vi, s) {
+			t.Errorf("lời từ chối kể cả %s (đã có bản mới, hoặc ở thùng rác): %s", s, msg.Vi)
+		}
+	}
+	for _, d := range []string{"b.example.com", "c.example.com"} {
+		if _, err := st.AddBackup(ctx, Backup{Domain: d, Kind: BackupFull, Reason: ReasonManual, Path: "/x/" + d + ".tar.gz", Created: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := e.u.PrepareMariaDB(ctx, "11.8"); err != nil {
+		t.Errorf("đủ backup mà vẫn lỗi: %v", err)
 	}
 }
