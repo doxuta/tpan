@@ -55,6 +55,14 @@ func (s *Sites) TrashDays(ctx context.Context) (int, error) { return 0, errTrash
 // trash_days_invalid. Chỉ áp cho site vào thùng rác SAU lần đặt.
 func (s *Sites) SetTrashDays(ctx context.Context, days int) error { return errTrashTODO }
 
+// markTrashed ghi site vào bảng sites ở trạng thái trashed: TrashedAt = now,
+// PurgeAt = now + TrashDays. Dùng chung cho SiteRemove.Execute và cho unit
+// "đưa vào thùng rác" của job hàng loạt (apply.go), để hai đường ghi cùng một
+// cách. st là bản ghi đọc từ store trước khi chạy.
+func (s *Sites) markTrashed(ctx context.Context, st site.Site) error { //nolint:unused // hợp đồng M6: thân và chỗ gọi viết ở đợt 2
+	return errTrashTODO
+}
+
 // Trash trả các site đang ở thùng rác, sắp theo PurgeAt (sắp hết hạn trước).
 func (s *Sites) Trash(ctx context.Context) ([]site.Site, error) { return nil, errTrashTODO }
 
