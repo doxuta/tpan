@@ -14,15 +14,26 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/web"
 )
 
-// Run nghe ở địa chỉ listen cho tới khi ctx bị huỷ, rồi tắt êm
-// (chờ các request đang chạy tối đa 10 giây).
-func Run(ctx context.Context, listen string) error {
+// RunOptions cấu hình Run.
+type RunOptions struct {
+	Listen string
+	// CertFile và KeyFile là chứng chỉ của panel (tpan setup sinh ở
+	// /etc/tpan/tls). Cả hai rỗng thì nghe HTTP thường: chỉ dùng cho
+	// make dev-api và --demo trên máy dev, không bao giờ trên máy chủ.
+	CertFile, KeyFile string
+	Deps              Deps
+}
+
+// Run nghe cho tới khi ctx bị huỷ, rồi tắt êm (chờ các request đang chạy tối
+// đa 10 giây).
+func Run(ctx context.Context, o RunOptions) error {
 	srv := &http.Server{
-		Addr:              listen,
-		Handler:           NewHandler(web.DistFS()),
+		Addr:              o.Listen,
+		Handler:           NewHandler(o.Deps, web.DistFS()),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -33,21 +44,72 @@ func Run(ctx context.Context, listen string) error {
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
-	slog.Info("tpan đang chạy", "listen", listen, "version", buildinfo.Version)
-	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+	slog.Info("tpan đang chạy", "listen", o.Listen, "tls", o.CertFile != "", "demo", o.Deps.Demo, "version", buildinfo.Version)
+	var err error
+	if o.CertFile != "" || o.KeyFile != "" {
+		err = srv.ListenAndServeTLS(o.CertFile, o.KeyFile)
+	} else {
+		err = srv.ListenAndServe()
+	}
+	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
 }
 
+// Server giữ trạng thái của hai phần: đăng nhập (authState, auth.go) và API
+// (apiState, api.go). Mỗi phần tự định nghĩa kiểu trạng thái của mình.
+type Server struct {
+	deps Deps
+	auth *authState
+	api  *apiState
+}
+
+//nolint:unused // auth.go và api.go dùng từ đợt 1 của M3.
+func (s *Server) now() time.Time {
+	if s.deps.Now != nil {
+		return s.deps.Now()
+	}
+	return time.Now()
+}
+
 // NewHandler ghép API và giao diện web vào một handler. Tách riêng để test được
-// mà không cần mở cổng thật.
-func NewHandler(dist fs.FS) http.Handler {
+// mà không cần mở cổng thật. Bảng đường dẫn và ý nghĩa: types.go.
+func NewHandler(d Deps, dist fs.FS) http.Handler {
+	s := &Server{deps: d}
+	s.auth = newAuthState(s)
+	s.api = newAPIState(s)
+
 	mux := http.NewServeMux()
+	// Công khai.
 	mux.HandleFunc("GET /api/v1/health", handleHealth)
+	mux.HandleFunc("POST /api/v1/login", s.handleLogin)
+	mux.HandleFunc("POST /api/v1/logout", s.handleLogout)
+	mux.HandleFunc("GET /api/v1/session", s.handleSession)
+
+	// Cần phiên đăng nhập.
+	auth := s.requireSession
+	mux.Handle("POST /api/v1/account/password", auth(s.handlePasswordChange))
+	mux.Handle("GET /api/v1/account/sessions", auth(s.handleSessions))
+	mux.Handle("DELETE /api/v1/account/sessions/{id}", auth(s.handleSessionDelete))
+
+	mux.Handle("GET /api/v1/overview", auth(s.handleOverview))
+	mux.Handle("GET /api/v1/machine", auth(s.handleMachine))
+	mux.Handle("GET /api/v1/stack", auth(s.handleStack))
+	mux.Handle("GET /api/v1/checks", auth(s.handleChecks))
+	mux.Handle("GET /api/v1/sites", auth(s.handleSites))
+	mux.Handle("POST /api/v1/sites", auth(s.handleSiteCreate))
+	mux.Handle("GET /api/v1/sites/{domain}", auth(s.handleSite))
+	mux.Handle("DELETE /api/v1/sites/{domain}", auth(s.handleSiteDelete))
+	mux.Handle("GET /api/v1/jobs", auth(s.handleJobs))
+	mux.Handle("GET /api/v1/jobs/{id}", auth(s.handleJob))
+	mux.Handle("GET /api/v1/jobs/{id}/events", auth(s.handleJobEvents))
+	mux.Handle("GET /api/v1/databases", auth(s.handleDatabases))
+
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))
-	return mux
+	// secure thêm header bảo mật và chặn CSRF cho mọi request (auth.go).
+	return s.secure(mux)
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -59,7 +121,17 @@ func handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 func handleAPINotFound(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusNotFound, map[string]string{"error": "not_found"})
+	writeError(w, http.StatusNotFound, "not_found", i18n.T("Không có đường dẫn API này.", "No such API path."))
+}
+
+// writeError ghi lỗi theo dạng chung ErrorBody (mục 9).
+func writeError(w http.ResponseWriter, status int, code string, msg i18n.Text) {
+	writeJSON(w, status, ErrorBody{Error: ErrorDetail{Code: code, Message: msg}})
+}
+
+// notImplemented là khung của đợt 0; không còn chỗ nào dùng khi M3 xong.
+func notImplemented(w http.ResponseWriter, _ *http.Request) {
+	writeError(w, http.StatusNotImplemented, "not_implemented", i18n.T("Chưa làm.", "Not implemented yet."))
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

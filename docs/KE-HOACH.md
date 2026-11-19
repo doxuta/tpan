@@ -83,6 +83,7 @@ Hai điểm cần tự kiểm trên máy đang cài aaPanel trước khi nói v�
 | Đẩy tiến độ ra giao diện | Server-Sent Events | Một chiều từ server ra trình duyệt là đủ cho log của job; đơn giản hơn WebSocket. | WebSocket. |
 | Frontend | React 19, TypeScript 7, Vite 8 | Phổ biến nhất; build ra file tĩnh rồi nhúng vào file chạy Go bằng `go:embed`. | Vue (1Panel, aaPanel dùng), Svelte, HTMX. |
 | Dữ liệu phía trình duyệt | TanStack Query | Quản lý gọi API, cache, tải lại. | Tự viết bằng `fetch` + state. |
+| Định tuyến phía trình duyệt | `react-router` (chế độ thư viện) | Nhiều màn có tham số trong đường dẫn (`/sites/:domain`, `/jobs/:id`); nút Back của trình duyệt phải đúng. | Tự viết bằng `history.pushState`: được với vài màn, nhưng phải tự lo khớp tham số và liên kết. |
 | Giao diện | Tailwind CSS 4 + thành phần tự viết; Radix cho hộp thoại, menu | Kiểm soát được từng chi tiết hình thức; Radix lo phần bàn phím và trợ năng. | Bộ thành phần dựng sẵn: nhanh nhưng ra giao diện giống mọi sản phẩm khác. |
 | Chứng chỉ | `certbot certonly --webroot` | certbot chỉ đặt file thử thách, **không sửa config web server**; config do TPAN sinh từ template nên phải là một nguồn duy nhất. Cùng một cách cho cả Nginx và Apache. | `certbot --nginx`: tự sửa config. Thư viện ACME nhúng (lego): bớt một gói cài nhưng khó quan sát hơn. |
 | WordPress | WP-CLI | Cài, cấu hình, kiểm checksum bằng lệnh, không cần trình duyệt. | Tự tải và tự sinh `wp-config.php`. |
@@ -242,7 +243,8 @@ Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và kh�
 
 ```
 /usr/local/bin/tpan                 file chạy
-/etc/tpan/config.toml               địa chỉ nghe, chế độ, phần [ai] (không chứa khoá nào)
+/etc/tpan/config.toml               phần [ai] (M8, không chứa khoá nào). Địa chỉ nghe và chế độ riêng tư nằm trong cờ của `tpan serve`
+                                    ở file unit systemd mà `tpan setup` ghi (M3), nên M3 chưa cần đọc TOML
 /etc/tpan/tls/                      chứng chỉ của chính panel
 /var/lib/tpan/tpan.db               trạng thái
 /var/lib/tpan/acme/                 webroot chung cho thử thách Let's Encrypt
@@ -712,7 +714,7 @@ Nguyên tắc:
 - **Gợi ý** (bản tiếng Anh: Tips): một công tắc trên thanh đầu trang. Bật thì bên cạnh từng bước, từng dòng config, từng phép kiểm có thêm một câu nói vì sao làm vậy. Câu đó viết sẵn trong mã (trường `Why` của Step), không do AI sinh ra. Người mới bật, người quen tắt.
 - Chữ trên giao diện viết như người nói với người: ngắn, dùng từ thường ngày, nói thẳng việc sắp xảy ra. Quy tắc và ví dụ ở mục "Giọng chữ" của `docs/GIAO-DIEN.md`.
 - Dữ liệu kỹ thuật (đường dẫn, lệnh, domain, mã lỗi) dùng chữ mono, bấm là chép.
-- Song ngữ: chuỗi giao diện nằm trong `web/src/i18n/vi.ts` và `en.ts` (cùng một kiểu TypeScript nên thiếu khoá là lỗi biên dịch). Thuật ngữ kỹ thuật giữ nguyên ở cả hai bản: vhost, pool, socket, reload.
+- Song ngữ: chuỗi giao diện nằm trong `web/src/i18n/`, mỗi khu (khung trang, mỗi màn) một file có bản tiếng Việt và bản tiếng Anh cùng một kiểu TypeScript, nên thiếu khoá là lỗi biên dịch. Chia theo khu thay vì một cặp `vi.ts`, `en.ts` để nhiều màn làm song song không sửa chung một file. Cách viết ở đầu `web/src/i18n/index.tsx`. Thuật ngữ kỹ thuật giữ nguyên ở cả hai bản: vhost, pool, socket, reload.
 - Font tự chứa trong file chạy, không gọi CDN (panel phải chạy được trong mạng kín). Font phải có đủ dấu tiếng Việt.
 - Dùng được bằng bàn phím; tương phản đạt WCAG AA ở cả hai chế độ sáng và tối. Lần đầu mở, giao diện theo cài đặt của hệ điều hành; nút Sáng/Tối trên thanh đầu trang đổi ngay và nhớ lựa chọn.
 

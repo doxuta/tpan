@@ -85,7 +85,7 @@ func serveCmd() *cobra.Command {
 		Short: "Chạy giao diện web và API",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return server.Run(cmd.Context(), listen)
+			return server.Run(cmd.Context(), server.RunOptions{Listen: listen})
 		},
 	}
 	c.Flags().StringVar(&listen, "listen", "127.0.0.1:8080", "địa chỉ và cổng để nghe")

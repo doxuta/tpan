@@ -10,7 +10,7 @@ import (
 )
 
 func testHandler() http.Handler {
-	return NewHandler(fstest.MapFS{
+	return NewHandler(Deps{}, fstest.MapFS{
 		"index.html":    {Data: []byte("<html>tpan</html>")},
 		"assets/app.js": {Data: []byte("console.log(1)")},
 	})
@@ -70,7 +70,7 @@ func TestSPA(t *testing.T) {
 
 func TestSPAWithoutBuild(t *testing.T) {
 	rec := httptest.NewRecorder()
-	NewHandler(fstest.MapFS{}).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	NewHandler(Deps{}, fstest.MapFS{}).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("mã trả về = %d, muốn 503 khi chưa build giao diện", rec.Code)
 	}

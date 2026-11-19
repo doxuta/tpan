@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // Khi dev: giao diện chạy ở cổng 5173, mọi request /api được chuyển sang
 // backend Go ở cổng 8080 (make dev-api).
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: { "/api": "http://127.0.0.1:8080" },
