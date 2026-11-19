@@ -492,3 +492,19 @@ func TestWPConfigPerm(t *testing.T) {
 		}
 	})
 }
+
+// Sửa chủ của wp-config.php thì nhóm là www-data như lúc tạo site (thư mục
+// site có setgid www-data), không phải nhóm riêng của user (lỗi M9 phát hiện).
+func TestWPConfigPermGroupIsWebGroup(t *testing.T) {
+	l := webLayout(t)
+	f := wpPermFake(t, l)
+	f.SetFile(l.WPConfig, []byte("<?php\n"), 0o644, system.Root)
+	runOne(t, f, &WPConfigPerm{Layout: l})
+	fi, err := f.Stat(l.WPConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (system.Owner{User: l.User, Group: site.WebGroup}); fi.Owner != want {
+		t.Errorf("chủ = %+v, muốn %+v", fi.Owner, want)
+	}
+}

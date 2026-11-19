@@ -252,7 +252,7 @@ func (s *WPConfigPerm) Info() engine.StepInfo {
 		),
 		// Không khai Files: lúc xem trước engine đọc nội dung file trong Files,
 		// tức là đọc mật khẩu DB ra giao diện (như WPConfig).
-		Commands: []string{"chown " + l.User + ":" + l.User + " " + l.WPConfig, chmod.String()},
+		Commands: []string{"chown " + l.User + ":" + site.WebGroup + " " + l.WPConfig, chmod.String()},
 	}
 }
 
@@ -309,9 +309,10 @@ func (s *WPConfigPerm) Apply(ctx context.Context, sys system.System) error {
 	prevPerm, prevOwner := fi.Mode.Perm(), normOwner(fi.Owner)
 	chowned := false
 	if prevOwner.User != l.User {
-		// Nhóm chính của user site là nhóm cùng tên (useradd --user-group),
-		// đúng như lúc WP-CLI tạo file dưới user đó.
-		if err := sys.Chown(l.WPConfig, system.Owner{User: l.User, Group: l.User}); err != nil {
+		// Nhóm www-data: thư mục site có bit setgid nhóm www-data (mục 5), nên
+		// file WP-CLI tạo dưới user của site mang nhóm đó; khôi phục backup
+		// (M9) cũng đặt như vậy. Quyền 600 nên nhóm không cho ai đọc thêm.
+		if err := sys.Chown(l.WPConfig, system.Owner{User: l.User, Group: site.WebGroup}); err != nil {
 			return fmt.Errorf("đổi chủ %s: %w", l.WPConfig, err)
 		}
 		chowned = true
