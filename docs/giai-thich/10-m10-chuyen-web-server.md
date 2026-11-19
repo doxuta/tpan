@@ -956,7 +956,9 @@ Còn một ca chưa phủ: đổi sang Apache, rồi về nginx, rồi lại san
 
 ### 5.6 Hai bước cùng ID `apache.modules:apache2`
 
-Không phải cách khác mà là chỗ còn sót, thấy khi đọc M10.log để viết file này: bước module cơ bản (`webSteps`) và bước bật `ssl` (`steps.DefaultSSL`) cùng ID, nên output `--verbose` in sai tên bước đầu (2.3) và bảng `job_events` không phân biệt được hai bước. Máy vẫn đúng: engine chạy và hoàn tác theo vị trí của bước, không theo ID, nên cả hai bước chạy và kiểm đúng. Chỉ bảng tên trong `cmd/tpan/print.go` (và `plan.go`) bị ghi đè, và người đọc log sẽ bối rối. Chưa sửa ở M10.
+Không phải cách khác mà là chỗ còn sót, thấy khi đọc M10.log để viết file này: bước module cơ bản (`webSteps`) và bước bật `ssl` (`steps.DefaultSSL`) cùng ID, nên output `--verbose` in sai tên bước đầu (2.3) và bảng `job_events` không phân biệt được hai bước. Máy vẫn đúng: engine chạy và hoàn tác theo vị trí của bước, không theo ID, nên cả hai bước chạy và kiểm đúng. Chỉ bảng tên trong `cmd/tpan/print.go` (và `plan.go`) bị ghi đè, và người đọc log sẽ bối rối.
+
+**Đã sửa sau khi viết mục này** (commit `core: stack switch gộp mod ssl ...`): `newConfig` không thêm bước `ApacheModules` của `DefaultSSL` nữa mà gộp `ssl` vào danh sách `Enable` của bước module cơ bản, nằm trước, nên mod `ssl` vẫn bật trước khi ghi site mặc định 443. `TestSwitchPlanContent` kiểm mọi ID trong Plan là duy nhất (đỏ với mã cũ, xanh với mã mới). E2E chạy lại toàn bộ với mã đã sửa: 279 đạt, 0 không đạt (`docs/bang-chung/M10-sau-sua.log`); bước `web.swap` 65 đến 126 ms, mỗi site không trả lời dài nhất 76 đến 154 ms khi chuyển, cùng cỡ với lần đầu ở mục 2.10. Output ở mục 2.2 và 2.3 là của lần chạy đầu (trước khi sửa).
 
 Một chỗ nhỏ cùng loại: `managed_files` giữ dòng của `.htaccess` sau khi chuyển về nginx (phần C, dòng 8651 tới 8655 của log: `số dòng: 20`, có đủ bốn `.htaccess`), vì `oldWebFiles` chỉ gỡ file của web server. Không hại gì: file vẫn đúng như tpan ghi, và health bỏ qua `.htaccess` khi kiểm lệch (mục 4).
 
