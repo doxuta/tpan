@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: M0 đến M8, M10 và M12 xong ngày 19/11/2026 (lượt A: M4, M5, M7; lượt B: M6, M8, M12; mỗi mốc chạy song song trên nhánh riêng rồi ghép vào `dev` và chạy lại e2e trên `tpan-test`). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Phần cần VPS, tên miền thật hay Claude Code thật ở mục 18. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt kế tiếp là C (M9, M10), rồi M11. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: M0 đến M10 và M12 xong ngày 19 và 20/11/2026 (lượt A: M4, M5, M7; lượt B: M6, M8, M12; lượt C: M9, M10; mỗi mốc chạy song song trên nhánh riêng rồi ghép vào `dev` và chạy lại e2e trên `tpan-test`). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Phần cần VPS, tên miền thật hay Claude Code thật ở mục 18. Đang làm M11 (cài đặt, gói phát hành, README), mốc cuối. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -540,6 +540,45 @@ WordPress mặc định chạy việc định kỳ của nó (đăng bài hẹn 
 - Màn "Cron" liệt kê lịch của mọi site: việc gì, bao lâu một lần, lần chạy gần nhất và kết quả. Lịch backup (mục 6.5) cũng hiện ở đây.
 - Chỉ có các việc TPAN định nghĩa sẵn. Chưa cho gõ lệnh tuỳ ý vào cron: đó là một đường chạy lệnh tự do, để sau.
 
+#### Đã chốt khi làm M9
+
+**Chỗ khác đặc tả.**
+
+- **Nén bằng GNU tar, không bằng thư viện chuẩn của Go** (mục 6.5). `system.System` chỉ có `ReadFile` và `WriteFileAtomic` giữ cả file trong bộ nhớ, và `Run` giữ output tới khi lệnh xong; site vài GB thì không được. GNU tar và gzip là gói Essential của Ubuntu (luôn có, đúng ý "không cần gói ngoài"), đọc cây của site không đi theo symlink, và tpan vẫn chạy nó bằng argv qua `system.Run`. Nâng cấp về sau: thêm API đọc ghi theo luồng vào `System` rồi dùng `archive/tar` + `compress/gzip`.
+- **Cron WordPress chạy qua `tpan cron run <domain>` bằng root** (mục 6.10 chỉ nói "dưới user của site"). Lệnh `wp` vẫn chạy dưới user của site (`runuser`), nhưng tpan đứng giữa để ghi lần chạy gần nhất và kết quả vào `tpan.db` (màn Cron cần) và bỏ qua site không active (root gọi `runuser` bỏ qua hạn tài khoản mà M6 dùng để khoá user của site trong thùng rác). File cron vẫn được gỡ khi đưa vào thùng rác và ghi lại khi khôi phục. Tên file `/etc/cron.d/tpan-<slug>`, không theo domain: cron của Debian bỏ qua file có dấu chấm trong tên.
+- **Bảng `backups` có thêm cột** `kind` (full, sql), `reason`, `wp_version`, `php_version`, `job_id` (mục 4.4 chỉ kể site, đường dẫn, kích thước, sha256, thời điểm). Bản xuất DB của mục 6.9 cũng nằm trong bảng này (kind sql) để nhập chỉ nhận file tpan đã ghi và kiểm sha256.
+- **Lệnh và API mới ngoài mục 9**: `tpan backup settings [--keep N] [--at HH:MM | --off]`, `tpan backup create --all [--scheduled]`, `tpan db import <domain> --id <id>`, `tpan cron run <domain>` (dòng cron gọi). API ở `internal/server/types_m9.go`.
+
+- **Đổi mật khẩu DB dùng `wp config set DB_PASSWORD --prompt --type=constant --quiet`** (mục 16 hỏi `wp config set` có cách nhận giá trị không lộ trên dòng lệnh không). **Đã kiểm trên máy ảo `tpan-m9` (WP-CLI 2.12.0):** `--prompt=value` không chạy (thoát 1, in usage: `--prompt=<danh sách>` chỉ hỏi tham số dạng `--tên=giá trị`, còn `<value>` là tham số theo vị trí). `--prompt` trơn hỏi `<value>` trước, hết stdin thì dừng: thoát 0, stdout rỗng, `wp-config.php` có đúng dòng mới, quyền vẫn 600. Không có `--quiet` thì giá trị bị in lại hai dòng.
+- **Mật khẩu DB cũ đọc bằng `ReadFile`, không bằng lệnh** (Step `DBPassword`, và `wp-config.php` đang chạy được giữ lại khi khôi phục backup trong `BackupExtract`): engine ghi mọi output của `Run` vào log job, nên `cat` hay `wp config get` sẽ đưa mật khẩu vào `job_events`, SSE và MCP. Bù cho việc root đọc file trong thư mục do user của site giữ: đòi file thường (lstat), cỡ nhỏ, và nội dung phải có đúng một dòng `DB_NAME`, `DB_USER` bằng tên DB của site; mật khẩu cũ phải đúng dạng tpan sinh (32 ký tự chữ số).
+- **Nhập DB: `mariadb --database=<db> --abort-source-on-error -e 'source <file>'`**, sau khi xoá và tạo lại DB. **Đã kiểm trên máy ảo:** không có `--abort-source-on-error` thì `source` gặp câu lỗi vẫn thoát 0 và chạy tiếp; có cờ thì thoát 1 nhưng các câu trước chỗ lỗi đã chạy, nên nhập lỗi luôn được nhập lại bản xuất ngay trước đó. Quyền của user DB còn nguyên sau `DROP DATABASE` rồi `CREATE DATABASE` (quyền cấp theo tên).
+- **Danh sách thành viên của bản backup được kiểm bằng `tar -tzvf` trước khi giải nén**, nên mỗi file của site thành một dòng output trong log job của lần khôi phục (đo trên máy ảo: một lần khôi phục WordPress mới cài sinh 4314 sự kiện job, khoảng 524 KB trong `job_events`). Nâng cấp về sau: đọc danh sách mà không đẩy từng dòng vào log.
+- **Đổi mật khẩu DB có một khoảng site trả 500 dưới nửa giây**: giữa `ALTER USER` và `wp config set`, PHP còn dùng mật khẩu cũ. Đo trên máy ảo (curl mỗi 0,1 giây): 2 rồi 3 lần 500 trong 0,2 đến 0,26 giây, đều nằm trong lúc job chạy; sau khi job xong không còn lần 500 nào (không thấy opcache giữ file cũ như lo lúc đầu). Kiểm chứng đầu cuối của `db.passwd` và `db.import` vẫn thử lại tối đa 6 giây (`dbRetry` ở `internal/core/dbops.go`).
+- **Xoá hẳn tự backup trước** (mục 6.5) là bước đầu của Plan `site.purge`, nguồn là thư mục trong thùng rác. Đĩa không đủ chỗ thì từ chối `disk_space_low`: site ở lại thùng rác, bộ hẹn giờ dọn thùng rác thử lại giờ sau. Thư mục trong thùng rác hoặc DB đã mất (dấu của một lần xoá hẳn chạy dở, mà bản backup của lần đó đã được giữ) thì bỏ bước backup, để chạy lại xong được; hệ quả: site có DB bị xoá tay rồi mới xoá hẳn thì không có bản backup. Bản `before-purge` không tính vào số bản giữ và không bao giờ bị dọn.
+- **Nâng MariaDB đòi backup** (M12 + M9): còn site active không có bản full trong 24 giờ thì `tpan mariadb upgrade` bị từ chối `backup_required`, kể cả `--dry-run`; lời từ chối nêu các site đó và lệnh `sudo tpan backup create --all --yes`. Bản xuất toàn bộ của M12 vẫn giữ.
+- **Khôi phục backup vào chính site đó** (mục 6.5): giải nén vào `/var/lib/tpan/restore/<slug>` (root 0700), chuẩn hoá chủ và quyền ở đó, tráo `public` bằng `rename`, nhập DB sau khi xuất bản hiện tại; `wp-config.php` đang chạy được giữ (mật khẩu DB có thể đã đổi sau lúc backup). Thư mục khôi phục còn sót thì từ chối `restore_dir_exists` kèm lệnh dọn. Phải cùng phân vùng với `/var/www` như thùng rác. Site đã xoá hẳn: tạo lại site cùng domain (slug, user, DB trùng tên) rồi khôi phục bản `before-purge`.
+- **Mã từ chối mới**: `disk_space_low`, `backup_required`, `backup_not_found` (404), `backup_corrupt` (sha256 không khớp), `backup_exists` (hai bản xuất DB cùng một giây), `restore_dir_exists`, `site_trashed`, `backup_keep_invalid`, `backup_at_invalid` (400).
+- **Công cụ MCP mới** (danh mục mục 8.1): `list_backups` (đọc; không trả đường dẫn và sha256), `propose_backup_create`, `propose_backup_restore` (lập Plan; khôi phục bắt buộc `backup_id`, Planner ghim id lúc đề xuất nên duyệt muộn vẫn khôi phục đúng bản đã xem). Loại Plan `backup.create`, `backup.restore`.
+- **Tự kiểm TPAN có "tuổi bản sao lưu gần nhất của `tpan.db`"** (việc M4 để lại, mục 6.7): `tpan.backup:db`, Warn khi chưa có bản sao nào hoặc bản mới nhất cũ hơn 48 giờ (lịch backup hằng ngày, cho trễ một ngày). Bản sao bằng `VACUUM INTO` vào `/var/lib/tpan/backups/_tpan/tpan-<giờ UTC>.db` (0600), giữ 3 bản, tạo mỗi lần `tpan backup create --all` (lịch backup gọi lệnh này). Máy chưa bật lịch backup sẽ thấy cảnh báo này (cảnh báo không mở sự cố).
+- **Site tạo trước M9 chưa có cron và `DISABLE_WP_CRON`**: chạy lại `sudo tpan site add <domain>` thêm hai bước đó (các bước khác đã đúng, bỏ qua). Màn Cron chỉ ra lệnh này cho site chưa có file cron.
+- **`tpan cron run` với domain không có trong tpan** trả lỗi `site_not_found` và không ghi dòng nào (dòng cron sai thấy được trong log của cron); site không active thì ghi `skipped`. Mỗi lần chạy `wp` bị cắt sau 4 phút để không chồng lên lượt sau.
+
+**Kết quả kiểm trên máy ảo `tpan-m9` (mục 16 và các điều chưa chắc của mốc)**: bài hẹn giờ được đăng khi không có khách nào (hẹn 01:05:45 giờ máy, đăng ở lần cron 01:10:01; lượt sau hẹn 01:14:59, đăng 01:15:01; access.log giữ nguyên số dòng): độ trễ xấu nhất khoảng 5 phút theo nhịp `*/5`. Cron đọc file mới trong `/etc/cron.d` không cần reload (file ghi khoảng 01:03, lần chạy đầu 01:05:01, journal không có dòng RELOAD). `wp cron event run --due-now` khi không có việc thoát 0 (`Executed a total of 0 cron events.`). Mật khẩu DB mới xuất hiện 0 lần trong `tpan.db`, `-wal`, `-shm`, journal và output lệnh. 10 lần `tpan cron run` song song trong lúc `tpan serve` chạy: cả 10 thoát 0, không có `busy` hay `locked` (serve gần như rảnh lúc đó). Chặn đầy đĩa ở mức 91%: backup và xuất DB đều bị từ chối, không file nào được tạo.
+
+**Phát hiện ngoài M9**: `steps.WPConfigPerm` (sửa tự động của M4, `internal/steps/fix.go`) đặt chủ `wp-config.php` là `tp_<slug>:tp_<slug>`, trong khi file WP-CLI tạo ra trong thư mục setgid mang nhóm `www-data` (cùng lỗi M9 đã sửa ở khôi phục). Quyền 600 nên không ảnh hưởng truy cập, và `checks.WPConfigPerm` chỉ kiểm user nên health không báo; chưa sửa vì ngoài vùng của M9.
+
+**Chưa kiểm.**
+
+- **Giao diện chưa ai nhìn bằng mắt** (thợ giao diện chỉ chạy được typecheck và build): màn Backup (bảng, lọc theo site, khối cài đặt có `<input type="time">`), màn Cron (bảng, khối output, lịch backup), ba việc ở màn Cơ sở dữ liệu (cột "Việc" ba nút, hộp chọn bản xuất để nhập), khối Backup ở trang site. Xem ở sáng, tối, tiếng Anh, 390 px, bằng bàn phím: `make dev-api` + `make dev-web` (demo có sẵn bản full, sql, before-purge và lần chạy cron ok, fail). API phía sau đã chạy thật trên máy ảo (GET backups, GET cron, POST backup `?dry_run=1`); các POST khác của API chỉ có unit test.
+- **e2e M9 chỉ chạy với Nginx**, chưa với Apache (khôi phục và cron không phụ thuộc web server, nhưng chưa có bằng chứng).
+- **Lịch backup chạy thật qua cron lúc 03:30**: mới kiểm nội dung file `/etc/cron.d/tpan-backup` (root 0644, đúng dòng), chưa đợi tới giờ chạy.
+- **GNU tar thoát mã 1** ("file changed as we read it", site đang có người ghi): bước backup chấp nhận mã này, chưa gặp trên máy ảo.
+- **SQLite busy khi `tpan serve` đang ghi nhiều** cùng lúc với `tpan cron run` của nhiều site: chỉ thử lúc serve rảnh.
+- **Đo thời gian `sha256sum` lúc dựng Plan khôi phục với site vài GB** (Planner dựng Plan hai lần: lúc đề xuất và lúc duyệt): chưa đo.
+- **Khôi phục cần chỗ trống cho cây giải nén và bản xuất DB hiện tại** (khoảng gấp đôi cỡ site cộng DB); chặn đầy đĩa lúc khôi phục mới tính bản tự backup trước đó.
+- **Chưa chạy lại e2e của M2, M3, M4, M5, M7, M8** sau M9 (M6 và M12 đã chạy lại, xanh). Đã rà các script đó: không chỗ nào đếm cứng số công cụ MCP, số bước của Plan tạo site hay đòi chặng TPAN đạt hết, nên ba thay đổi có thể chạm tới chúng (thêm ba công cụ MCP, thêm hai bước cron vào Plan tạo site, phép kiểm `tpan.backup:db` cảnh báo trên máy mới) không làm chúng trượt theo cách đọc mã; chưa có bằng chứng chạy.
+- **Giờ trong tên file xuất của `mariadb upgrade` (M12) là giờ máy**, của backup là UTC: chưa thống nhất.
+
 ### 6.11 Phiên bản và cập nhật
 
 Ba thành phần của stack khác nhau về chuyện "nhiều phiên bản":
@@ -971,7 +1010,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M6** ✅ | Hàng loạt (dán danh sách, `apply -f`, `export`), thùng rác, khôi phục, dọn tự động | e2e bước 7; tạo 10 site một lượt chỉ reload một lần |
 | **M7** ✅ | Cổng cho agent: danh mục công cụ, che dữ liệu, `tpan mcp`, hai chế độ duyệt, Plan chờ duyệt, thư mục `agents/`, nút "Chép lệnh cho Claude Code" | e2e bước 12; test che dữ liệu và test log cài câu lệnh đạt; Claude Code trên máy cá nhân liệt kê được site của máy ảo qua SSH, chẩn đoán đúng chặng một lỗi từ `scripts/faults/`, và Plan nó đề xuất sửa được lỗi đó |
 | **M8** ✅ | AI trong panel: `Brain`, `claudecode`, `tpan brain`, kiểm sự kiện `init`, ngăn AI có ngữ cảnh làm việc và bản hướng dẫn theo mục, thanh lệnh, giải thích, chẩn đoán, trang phiên AI | e2e bước 13; với Claude Code thật: hỏi từ panel của máy ảo, chữ hiện dần, Plan đề xuất hiện ở màn duyệt; chuyển mục rồi hỏi tiếp thì ngữ cảnh gửi đi đổi theo, xem được ở trang phiên AI |
-| **M9** | Backup, khôi phục, chặn đầy đĩa, backup theo lịch; cron thật cho WordPress và màn Cron; đổi mật khẩu, xuất và nhập DB | e2e bước 10; backup bị từ chối khi đĩa giả lập gần đầy; một bài hẹn giờ của WordPress được đăng đúng giờ khi không có khách nào vào site |
+| **M9** ✅ | Backup, khôi phục, chặn đầy đĩa, backup theo lịch; cron thật cho WordPress và màn Cron; đổi mật khẩu, xuất và nhập DB | e2e bước 10; backup bị từ chối khi đĩa giả lập gần đầy; một bài hẹn giờ của WordPress được đăng đúng giờ khi không có khách nào vào site |
 | **M10** ✅ | Chuyển LEMP ⇄ LAMP | e2e bước 8; đo được thời gian gián đoạn |
 | **M11** | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), bản phát hành trên GitHub, README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
 | **M12** ✅ | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
@@ -1212,6 +1251,9 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - Gói apache2 bật thêm `apache-htcacheclean.service` (và `ssl-cert.service` khi có site SSL); tpan chỉ disable `apache2`, nên hai unit này vẫn bật cả sau khi chuyển về nginx hay sau hoàn tác. Chúng không nghe cổng nào; chưa xem chúng có làm gì khi apache2 tắt.
   - Dòng `.htaccess` trong `managed_files` không được gỡ khi chuyển về nginx (health bỏ `.htaccess` khi kiểm lệch nên không báo gì; chỉ là dòng thừa).
   - Chuyển một site có chứng chỉ Let's Encrypt thật (máy ảo dùng pebble).
+
+- Kiểm ở M9 (19/11/2026), máy ảo Ubuntu 24.04:
+
 
 ## 17. Nguồn đã tra (19/11/2026)
 
@@ -1469,6 +1511,36 @@ sudo tpan health
 
 Gửi lại output (che tên miền, IP) để ghi vào `docs/bang-chung/`.
 
+### M9
+
+E2E của M9 chạy lại trên `tpan-test` sau khi ghép vào `dev`: 121 khẳng định đạt, 0 không đạt (`docs/bang-chung/M9-ghep.log`).
+
+M9 không cần tên miền thật: mọi bước của cột "Xong khi" đã chạy trọn trên máy ảo. Khi đã cài `tpan` bản M9 trên VPS, chạy các lệnh dưới (thay `<domain>` bằng một site thật của bạn, đừng chép vào repo). Lệnh có thay đổi đều chạy `--dry-run` trước.
+
+1. Kiểm chỗ trống và phân vùng (khôi phục tráo thư mục bằng `rename`, như thùng rác):
+   ```bash
+   df -h /var/www /var/lib/tpan
+   ```
+   Hai dòng phải cùng cột `Filesystem`.
+2. Thêm cron cho site tạo trước M9, rồi xem màn Cron có lần chạy `ok` sau tối đa 5 phút:
+   ```bash
+   sudo tpan site add <domain> --dry-run   # chỉ hai bước cron sẽ chạy
+   sudo tpan site add <domain> --yes
+   ls -l /etc/cron.d/tpan-*
+   sudo tpan cron list
+   ```
+3. Backup và bật lịch hằng ngày:
+   ```bash
+   sudo tpan backup create --all --yes
+   sudo tpan backup list
+   sudo tpan backup settings --keep 3 --at 03:30 --dry-run
+   sudo tpan backup settings --keep 3 --at 03:30 --yes
+   sudo tpan health | grep tpan.backup
+   ```
+4. Hôm sau, xem lịch backup đã chạy: `sudo tpan backup list` có bản `schedule` mới, và `grep tpan /var/log/syslog | grep backup` (hoặc `journalctl -u cron --since yesterday`).
+5. Trước khi nâng MariaDB trên VPS có dữ liệu thật (mục 18, M12): bước 3 phải xong trong 24 giờ trước đó, không thì `tpan mariadb upgrade` từ chối `backup_required`.
+6. Gửi lại output của bước 1, `cron list`, `backup list` (che tên miền, IP) để ghi vào `docs/bang-chung/`.
+
 ## 19. Bảng chia việc đã dùng (từ M4)
 
 Từ M4 mỗi mốc tự lập bảng chia việc theo khuôn ở mục 4 của `agent-dev/CHAY-NHIEU-AGENT.md`; bảng thật đã dùng ghi ở đây khi ghép mốc.
@@ -1603,3 +1675,32 @@ Vì sao chia vậy: core cần thân của ba Step mới để test chạy đư�
 Thay đổi so với bảng lập lúc đầu: phiên chính tự sửa sau đợt 1 hai chỗ nhỏ trong `internal/steps` (`AptInstallNoStart.Check` chưa đạt khi còn sót policy-rc.d của tpan; `ApacheModules` không còn `Danger` khi `NoRestart`), và sau đợt 5 gộp mod `ssl` vào bước bật mod của Apache (hai bước trùng ID, thợ viết phát hiện) rồi tự chạy lại toàn bộ e2e trên máy ảo. Thợ máy ảo sửa thêm `internal/core/trash.go` (ngoài vùng giao, vì nguyên nhân gốc của lỗi permalink sau khôi phục nằm ở Plan khôi phục).
 
 Mục KE-HOACH.md phải đọc: mọi đợt đọc 4.2, 4.3, 5, 6.1, 6.6, 11 và dòng `policy-rc.d` ở mục 16; core đọc thêm 6.2, 6.3 (và "Đã chốt khi làm M5"), 6.7 (và "Đã chốt khi làm M4"), 6.11 (và "Đã chốt khi làm M12"), 9; giao diện đọc 10 và `docs/GIAO-DIEN.md`; máy ảo đọc 12 (bước 8) và 16.
+
+### M9
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Hợp đồng: migration 900 (`backups`, `cron_runs`); đường dẫn backup, khôi phục, cron (`internal/site/backup.go`); kiểu và chữ ký core (`types_m9.go`, file tạm `backup.go`, `dbops.go`, `cron.go`), `PlanRequest.BackupID` và hai loại Plan; kiểu và chú thích hợp đồng của steps (`m9_types.go`, `backup.go`, `db_m9.go`), templates, checks; `MariaDBDump.DB`; kiểu API, đường dẫn, handler 501; kiểu TypeScript; route và mục menu Backup, Cron, hai màn giữ chỗ | các file kể bên | phiên chính | opus | high |
+| 1 | Step backup: `BackupArchive`, `BackupExtract`, `DBImport`, `MariaDBDump` một DB, `SpaceOK`, `MeasureDB`, `MeasureBackup`; nới `MoveTree` cho thư mục khôi phục | `internal/steps/backup.go`, `backup_test.go`, `apt_m12.go` (chỉ `MariaDBDump`), `trash.go` (chỉ `MoveTree`) | `tho-loi` | opus | high |
+| 1 | Step DB: `DBPassword`, `WPConstant`; kiểm trên máy ảo `tpan-m9` hai lệnh chưa chắc (`wp config set ... --prompt`, `mariadb -e "source ..."`) | `internal/steps/db_m9.go`, `db_m9_test.go`, máy ảo (chỉ thợ này trong đợt) | `tho-loi` | opus | high |
+| 1 | Store (`backups`, `cron_runs`, `VACUUM INTO`), template cron (`SiteCron`, `BackupCron`), phép kiểm `tpan.backup:db` | `internal/store/backup.go` và test, `internal/templates/m9.go`, `files/*cron*.tmpl`, `testdata/`, `internal/checks/m9.go` và test | `tho-phu` | sonnet | high |
+| 1 | Màn Backup | `web/src/screens/backup/`, `web/src/i18n/backup.ts` | `tho-giao-dien` | sonnet | high |
+| 2 | Core backup (tạo, tạo hết, khôi phục, cài đặt lịch, sao tpan.db, dọn bản cũ, chặn đầy đĩa); CLI `backup` | `internal/core/backup.go` và test, `cmd/tpan/backup.go` và test | `tho-loi` | opus | high |
+| 2 | Core DB (đổi mật khẩu, xuất, nhập) và cron (`List`, `Run`, `siteCronSteps`, `siteCronAbsent`); CLI `db`, `cron` | `internal/core/dbops.go`, `cron.go` và test, `cmd/tpan/db.go`, `cron.go` và test | `tho-loi` | opus | high |
+| 2 | Màn Cron | `web/src/screens/cron/`, `web/src/i18n/cron.ts` | `tho-giao-dien` | sonnet | high |
+| 2 | Thao tác ở màn Cơ sở dữ liệu (đổi mật khẩu, xuất, nhập) và khối Backup ở trang site | `web/src/screens/co-so-du-lieu/`, `web/src/i18n/co-so-du-lieu.ts`, `web/src/screens/site/` (khối backup, file mới), `web/src/i18n/site.ts` | `tho-giao-dien` | sonnet | high |
+| 3 | Ghép vào luồng cũ: cron trong Plan tạo site, thùng rác, khôi phục, xoá hẳn; tự backup trước xoá hẳn; nâng MariaDB đòi backup; Planner hai loại Plan mới; công cụ MCP `list_backups`, `propose_backup_create`, `propose_backup_restore`; nối phép kiểm `tpan.backup:db` vào health | `internal/core/site.go`, `trash.go`, `updates.go`, `plans.go` và test; `internal/tools/` (file mới `m9.go` và một dòng mỗi công cụ ở `catalog.go`); `internal/health/collect.go` | `tho-loi` | opus | high |
+| 3 | API M9 và dữ liệu demo | `internal/server/api_m9.go` và test, `internal/demo/m9.go` và test, chỗ dựng `Planner` trong server và CLI (`Backups`) | `tho-loi` | opus | high |
+| 4 | Chạy thật trên máy ảo `tpan-m9`: e2e bước 10, backup bị từ chối khi đĩa gần đầy, bài hẹn giờ được đăng đúng giờ không có khách, đổi mật khẩu, xuất, nhập DB, tự backup trước xoá hẳn, nâng MariaDB đòi backup, phép kiểm `tpan.backup:db` | máy ảo, `scripts/e2e-m9.sh`, `docs/bang-chung/M9.log` | `tho-may-ao` | opus | high |
+| 5 | Giải thích | `docs/giai-thich/09-m9-backup-va-cron.md` | `tho-viet` | opus | medium |
+
+Mục KE-HOACH.md phải đọc: mọi thợ đọc 4.2, 4.3, 5, 11, 14 và file hợp đồng của phần mình; steps và core đọc thêm 6.2, 6.4 (cả "Đã chốt khi làm M6"), 6.5, 6.9, 6.10; core đọc thêm 6.7, 6.11 (cả "Đã chốt khi làm M12"), 8.1, 9; giao diện đọc 10 và `docs/GIAO-DIEN.md`.
+
+Thay đổi so với bảng lập lúc đầu:
+
+- Phiên chính tự làm thêm hai việc dùng chung: dời kiểu `Backup`, `CronRun` sang gói lá `internal/site` (store không import được core vì test của core import store; core giữ bí danh), và viết `cmd/tpan/m9.go` (`openBackups`, `openCron`) trước đợt 2 để hai thợ CLI không sửa chung file.
+- Thợ ghép đợt 3 sửa thêm ngoài vùng ghi trong bảng: `internal/core/types_m12.go` (trường `Updates.Backups`), `internal/server/api.go`, `api_m12.go`, `api_plans.go`, `internal/demo/demo.go`, `cmd/tpan/site.go`, `plan.go`, `update.go` (chỉ đặt `Backups` ở chỗ dựng `Sites`, `Updates`, `Planner`). Thợ API thêm các mã lỗi M9 vào bảng `apiErrorStatus` ở `internal/server/api.go`.
+- Thợ máy ảo sửa `internal/steps/backup.go` (nhóm của `wp-config.php` sau khôi phục, lỗi thấy ở lượt e2e đầu) và `scripts/e2e-m12.sh` (backup trước khi nâng MariaDB, vì từ M9 cả `--dry-run` cũng bị từ chối khi chưa backup).
+- Phiên chính sửa câu nhắc của `tpan trash purge` (`cmd/tpan/trash.go`): xoá hẳn giờ có bản backup trước, không còn là "không lấy lại được".
+
+Ghép đợt 3 cần cả hai thợ đợt 2 xong (Plan tạo site gọi `siteCronSteps`, xoá hẳn gọi `PrepareCreate`), nên ghép nằm riêng ở đợt 3 thay vì để thợ đợt 2 sửa `site.go`, `trash.go` song song.
