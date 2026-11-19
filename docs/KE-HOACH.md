@@ -96,7 +96,7 @@ Gói hệ điều hành trên Ubuntu 24.04 (dùng tên gói không kèm số phi
 
 - Chung: `mariadb-server`, `php-fpm`, `php-cli`, `php-mysql`, `php-curl`, `php-gd`, `php-mbstring`, `php-xml`, `php-zip`, `php-intl`, `certbot`, `curl`.
 - LEMP thêm `nginx`. LAMP thêm `apache2`.
-- **Không bao giờ** cài gói `php` hay `libapache2-mod-php`: chúng kéo theo mod_php và buộc Apache về MPM prefork.
+- **Không bao giờ** cài gói `php`, `php<bản>` (ví dụ `php8.3`) hay bất kỳ gói `libapache2-mod-php*` nào: chúng kéo theo mod_php và buộc Apache về MPM prefork. Gói `php8.3` của Ubuntu 24.04 ghi `libapache2-mod-php8.3` là lựa chọn đầu trong Depends, nên apt sẽ chọn mod_php. `steps.AptInstall` từ chối các tên này.
 
 ## 4. Kiến trúc
 
@@ -854,6 +854,9 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 - Kho gói của MariaDB và cách chọn dòng: https://mariadb.com/docs/server/server-management/install-and-upgrade-mariadb/mariadb-package-repository-setup-and-usage
 - Chính sách bảo trì các dòng MariaDB: https://mariadb.org/about/#maintenance-policy
 - Yêu cầu máy chủ của WordPress theo từng phiên bản: https://make.wordpress.org/hosting/handbook/compatibility/
+- Phụ thuộc của gói `php8.3` trên Ubuntu 24.04: https://packages.ubuntu.com/noble/php8.3
+- Các câu SQL của `mysql_secure_installation` (MariaDB 10.11), dùng cho bước bảo vệ MariaDB: https://github.com/MariaDB/server/blob/10.11/scripts/mysql_secure_installation.sh
+- Bản phát hành và file sha512 của WP-CLI: https://github.com/wp-cli/wp-cli/releases
 - SDK Go chính thức của MCP: https://github.com/modelcontextprotocol/go-sdk
 - Thêm MCP server vào Claude Code: https://code.claude.com/docs/en/mcp
 - Thêm MCP server vào Codex: https://developers.openai.com/codex/mcp
