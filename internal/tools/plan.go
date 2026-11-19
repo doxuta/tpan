@@ -79,6 +79,16 @@ func proposeStackRepair(ctx context.Context, c *call, _ noArgs, _ validate.Domai
 	return propose(ctx, c, core.PlanRequest{Kind: core.PlanStackRepair})
 }
 
+func proposeHealthFix(ctx context.Context, c *call, in checkIDIn, _ validate.Domain) (any, error) {
+	// Chỉ id đi tiếp: Planner đọc kết quả đã lưu của phép kiểm đó, nên agent
+	// không bịa được trạng thái hay đối tượng cần sửa.
+	return propose(ctx, c, core.PlanRequest{Kind: core.PlanHealthFix, CheckID: in.CheckID})
+}
+
+func proposeSSLIssue(ctx context.Context, c *call, _ domainIn, d validate.Domain) (any, error) {
+	return propose(ctx, c, core.PlanRequest{Kind: core.PlanSSLIssue, Domain: d.String()})
+}
+
 // applyOut là kết quả apply_plan. Dựng từng trường, không trả nguyên
 // core.RunResult: RunResult mang mật khẩu quản trị WordPress.
 type applyOut struct {

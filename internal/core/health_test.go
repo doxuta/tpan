@@ -37,6 +37,8 @@ func TestAutoFixName(t *testing.T) {
 		{"config.nginx:nginx", checks.Fail, FixWebRewrite},
 		{"config.apache:apache2", checks.Fail, FixWebRewrite},
 		{"config.nginx:nginx", checks.Warn, ""},
+		{"web.vhost:shop.example.com", checks.Fail, FixWebRewrite},
+		{"web.vhost:shop.example.com", checks.Pass, ""},
 		{"wp.config:shop.example.com", checks.Fail, FixWPConfigPerm},
 		{"db.access:shop.example.com", checks.Fail, FixDBUnlock},
 		{"disk.usage:/", checks.Fail, ""},
@@ -419,6 +421,80 @@ func TestFixWebRewriteKeepsAccepted(t *testing.T) {
 	if !slices.Contains(stepIDsOf(x), "file:"+blog.NginxConf) {
 		t.Errorf("Files nil mà vẫn bỏ bước: %v", stepIDsOf(x))
 	}
+}
+
+// web.vhost: symlink ở sites-enabled bị xoá (vhost chưa bật) thì sửa tự động
+// dựng lại symlink của riêng site đó, và chính phép kiểm web.vhost đạt sau khi
+// sửa. Vhost hỏng của site KHÁC không được đụng tới (không ghi lại vhost của
+// mọi site như web.rewrite cho config.nginx).
+func TestFixWebVhost(t *testing.T) {
+	for _, web := range []WebServer{Nginx, Apache} {
+		t.Run(string(web), func(t *testing.T) {
+			e := newFixEnv(t, web, "blog.example.com", fixDom)
+			l := site.LayoutOf(mustDomain(t, fixDom))
+			blog := site.LayoutOf(mustDomain(t, "blog.example.com"))
+			conf, link, blogConf := l.NginxConf, l.NginxLink, blog.NginxConf
+			if web == Apache {
+				conf, link, blogConf = l.ApacheConf, l.ApacheLink, blog.ApacheConf
+			}
+			id := "web.vhost:" + fixDom
+			if err := e.m.Remove(link); err != nil {
+				t.Fatal(err)
+			}
+			r := e.recheck(t, fixDom, id)
+			if r.Status != checks.Fail {
+				t.Fatalf("xoá symlink mà %s = %s", id, r.Status)
+			}
+			if got := AutoFixName(r); got != FixWebRewrite {
+				t.Fatalf("AutoFixName = %q", got)
+			}
+			blogOrig, _ := e.m.ReadFile(blogConf)
+			e.m.SetFile(blogConf, []byte("# vhost site khác, sửa tay\n"), 0o644, system.Root)
+
+			x := e.fix(t, r)
+			if want := []string{"file:" + conf, "symlink:" + link}; !slices.Equal(stepIDsOf(x), want) {
+				t.Errorf("bước:\n got %v\nwant %v", stepIDsOf(x), want)
+			}
+			if x.Plan.Target != fixDom {
+				t.Errorf("target %s", x.Plan.Target)
+			}
+			var verify []string
+			for _, vr := range checks.RunAll(ctx, e.m, x.Plan.Verify) {
+				verify = append(verify, vr.ID)
+			}
+			if !slices.Contains(verify, id) {
+				t.Errorf("Verify thiếu %s: %v", id, verify)
+			}
+			if got := e.recheck(t, fixDom, id); got.Status != checks.Pass {
+				t.Errorf("sau khi sửa %s = %s (%s)", id, got.Status, got.Summary.Vi)
+			}
+			if target, err := e.m.Readlink(link); err != nil || target != conf {
+				t.Errorf("symlink %s → %q (%v); muốn %s", link, target, err, conf)
+			}
+			if got, _ := e.m.ReadFile(blogConf); string(got) == string(blogOrig) {
+				t.Error("sửa web.vhost của một site mà ghi lại vhost của site khác")
+			}
+		})
+	}
+
+	t.Run("từ chối", func(t *testing.T) {
+		e := newFixEnv(t, Nginx, fixDom)
+		trashed := mustDomain(t, "old.example.com")
+		e.sites.sites[trashed.String()] = site.Site{Domain: trashed, Status: site.Trashed, PHPVersion: "8.3"}
+		for _, tc := range []struct{ obj, code string }{
+			{"none.example.com", "site_not_found"},
+			{trashed.String(), "no_auto_fix"},
+			{"SHOP.example.com", "no_auto_fix"},
+		} {
+			_, err := e.f.Prepare(ctx, checks.Result{ID: "web.vhost:" + tc.obj, Status: checks.Fail})
+			if got := refusedCode(t, err); got != tc.code {
+				t.Errorf("web.vhost:%s: code %s, muốn %s", tc.obj, got, tc.code)
+			}
+		}
+		if _, err := e.f.Prepare(ctx, checks.Result{ID: "web.vhost:a.com; rm -rf /", Status: checks.Fail}); err == nil {
+			t.Error("domain tấn công: muốn lỗi")
+		}
+	})
 }
 
 func TestFixRefusals(t *testing.T) {

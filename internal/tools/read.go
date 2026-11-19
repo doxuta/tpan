@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -311,6 +312,60 @@ func getJob(ctx context.Context, c *call, in idIn, _ validate.Domain) (any, erro
 		}
 	}
 	return jobOut{Job: j, Events: evs}, nil
+}
+
+// ---------------------------------------------------------------- panel
+
+// maxRecentViews: current_view trả mục đang mở cộng tối đa chừng này mục vừa
+// đi qua (mục 8.4: "10 lần chuyển mục gần nhất").
+const maxRecentViews = 10
+
+// viewRow là một lần chuyển mục trên panel. Đường dẫn và nhãn chứa domain;
+// Call che chúng như mọi kết quả khác.
+type viewRow struct {
+	Path  string    `json:"path"`
+	Label string    `json:"label"`
+	Time  time.Time `json:"time"`
+}
+
+type currentViewOut struct {
+	// Current nil khi panel chưa báo mục nào.
+	Current *viewRow  `json:"current"`
+	Recent  []viewRow `json:"recent"`
+	Note    string    `json:"note,omitempty"`
+}
+
+// currentView đọc các lần chuyển mục giao diện đã báo (store.AIViews, mới
+// trước): dòng đầu là mục đang mở, các dòng sau là đường vừa đi. Đường dẫn và
+// nhãn do giao diện của người đã đăng nhập gửi, không phải người lạ: không
+// bọc untrusted.
+func currentView(ctx context.Context, c *call, _ noArgs, _ validate.Domain) (any, error) {
+	vs, err := c.s.st.d.Store.AIViews(ctx, maxRecentViews+1)
+	if err != nil {
+		return nil, fmt.Errorf("đọc các mục vừa mở trên panel: %w", err)
+	}
+	out := currentViewOut{Recent: []viewRow{}}
+	if len(vs) == 0 {
+		out.Note = "The panel has not reported any screen yet (no one has opened the tpan web panel since it started recording)."
+		return out, nil
+	}
+	vs = vs[:min(len(vs), maxRecentViews+1)]
+	row := func(v store.AIView) viewRow {
+		// Đường dẫn trình duyệt báo có thể mã hoá %xx (domain có dấu gõ thẳng
+		// trên thanh địa chỉ): giải mã trước để bộ che nhận ra domain. Giải mã
+		// lỗi thì giữ nguyên.
+		p := v.Path
+		if u, err := url.PathUnescape(p); err == nil {
+			p = u
+		}
+		return viewRow{Path: p, Label: v.Label, Time: v.Time}
+	}
+	cur := row(vs[0])
+	out.Current = &cur
+	for _, v := range vs[1:] {
+		out.Recent = append(out.Recent, row(v))
+	}
+	return out, nil
 }
 
 // ---------------------------------------------------------------- Plan

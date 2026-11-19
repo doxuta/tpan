@@ -73,6 +73,9 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 			Verify: []checks.Check{checks.Drift(obj, hex.EncodeToString(sum[:]), checks.DriftStage(obj))},
 		}, nil
 	case FixWebRewrite:
+		if kind == "web.vhost" {
+			return f.vhostRewrite(ctx, cfg, r.ID, obj)
+		}
 		return f.webRewrite(ctx, cfg, r.ID, kind)
 	case FixWPConfigPerm:
 		st, err := f.activeSite(ctx, r.ID, obj)
@@ -339,6 +342,40 @@ func (f *Fixes) webRewrite(ctx context.Context, cfg StackConfig, id, kind string
 		Title:  i18n.T("Ghi lại các file cấu hình "+unit+" của tpan", "Rewrite tpan's "+unit+" configuration files"),
 		Steps:  ss,
 		Verify: []checks.Check{verify},
+	}, nil
+}
+
+// vhostRewrite sửa phép kiểm web.vhost của MỘT site (file vhost mất, bị thay,
+// hoặc symlink ở sites-enabled bị xoá): ghi lại file vhost và symlink của
+// riêng site đó. Không ghi lại vhost của mọi site như webRewrite: một vhost
+// hỏng của site khác làm `nginx -t` của bước này lỗi và cả job hoàn tác, dù
+// site được sửa không liên quan. Web server lấy từ stack (ID web.vhost không
+// mang tên web server). Verify có VhostEnabled (đúng phép kiểm đã báo lỗi) và
+// phép kiểm cú pháp của web server: bật lại một vhost là nạp nó vào cấu hình.
+func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj string) (engine.Plan, error) {
+	st, err := f.activeSite(ctx, id, obj)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	ss, err := siteVhost(st, string(cfg.Web))
+	if err != nil {
+		return engine.Plan{}, fmt.Errorf("dựng lại vhost của %s: %w", obj, err)
+	}
+	// File vhost người dùng đã nhận bản sửa tay làm chuẩn thì giữ; bước
+	// symlink vẫn chạy nên vhost vẫn được bật lại.
+	if ss, err = f.dropAccepted(ctx, ss); err != nil {
+		return engine.Plan{}, err
+	}
+	l := st.Layout()
+	config := checks.NginxConfig()
+	if cfg.Web == Apache {
+		config = checks.ApacheConfig()
+	}
+	return engine.Plan{
+		Target: obj,
+		Title:  i18n.T("Ghi lại và bật lại vhost của "+obj, "Rewrite and re-enable the vhost of "+obj),
+		Steps:  ss,
+		Verify: []checks.Check{checks.VhostEnabled(string(cfg.Web), l), config},
 	}, nil
 }
 

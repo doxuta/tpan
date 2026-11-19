@@ -2,6 +2,7 @@ package tools
 
 import (
 	"encoding/json"
+	"net/url"
 	"reflect"
 	"slices"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -85,6 +87,27 @@ func TestCatalogRedactsEverything(t *testing.T) {
 	do("propose_site_add", `{"domain":"`+a+`","email":"not-an-email"}`, false)
 	do("propose_site_repair", `{"domain":"`+a+`"}`, true)
 	do("propose_stack_repair", `{}`, true)
+	e.recordFail(t, domA, "web.vhost:"+mustDomain(t, domA).String())
+	do("propose_health_fix", `{"check_id":"web.vhost:`+a+`"}`, true)
+	do("propose_health_fix", `{"check_id":"web.vhost:nothere.example.org"}`, false)
+	// Chưa đặt email Let's Encrypt: bị từ chối, nhưng lời từ chối vẫn phải đã che.
+	do("propose_ssl_issue", `{"domain":"`+a+`"}`, false)
+	// current_view: đường dẫn và nhãn chứa domain ở mọi dạng giao diện có thể
+	// báo (punycode, %xx của dạng có dấu, dạng có dấu) và tên máy.
+	pu := mustDomain(t, domU).String()
+	for _, v := range []store.AIView{
+		{Path: "/sites/" + pu, Label: "Site " + pu},
+		{Path: "/sites/" + url.PathEscape(domU), Label: "Site " + domU},
+		{Path: "/stack", Label: "Stack " + hostname},
+	} {
+		if err := e.st.AddAIView(ctx, v); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cv := do("current_view", `{}`, true)
+	if strings.Contains(strings.ToLower(string(cv)), "%c3") {
+		t.Errorf("current_view còn domain có dấu dạng %%xx: %s", cv)
+	}
 	rm := do("propose_site_remove", `{"domain":"`+u+`"}`, true)
 	rmID := field[string](t, rm, "plan_id")
 	do("list_plans", `{"status":"pending"}`, true)
@@ -188,8 +211,8 @@ func TestPromptInjectionInLog(t *testing.T) {
 // 3. Danh mục đóng.
 func TestCatalogClosed(t *testing.T) {
 	want := []string{
-		"apply_plan", "get_job", "get_plan", "list_jobs", "list_plans", "list_sites", "machine", "managed_file",
-		"propose_site_add", "propose_site_remove", "propose_site_repair", "propose_stack_repair",
+		"apply_plan", "current_view", "get_job", "get_plan", "list_jobs", "list_plans", "list_sites", "machine", "managed_file",
+		"propose_health_fix", "propose_site_add", "propose_site_remove", "propose_site_repair", "propose_ssl_issue", "propose_stack_repair",
 		"site_health", "stack_status", "tail_log",
 	}
 	var got []string
