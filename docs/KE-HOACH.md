@@ -344,7 +344,7 @@ Giới hạn của Let's Encrypt cần nhớ: 50 chứng chỉ cho mỗi tên mi
 
 ### 6.4 Xoá, thùng rác, khôi phục
 
-Ở M2 chưa có thùng rác: `tpan site rm` xoá hẳn (như "Xoá hẳn" dưới đây, trừ `certbot delete` vì chưa có SSL), có hỏi lại và có `--dry-run`. Thứ tự: gỡ vhost và pool trước (hoàn tác được), rồi mới xoá DB, file, user (không hoàn tác được). M6 đổi `site rm` thành đưa vào thùng rác và dùng lại Plan này cho `trash purge`.
+Ở M2 chưa có thùng rác: `tpan site rm` xoá hẳn (như "Xoá hẳn" dưới đây, trừ `certbot delete` vì chưa có SSL), có hỏi lại và có `--dry-run`. Thứ tự: gỡ vhost và pool trước (hoàn tác được), rồi mới xoá DB, file, user (không hoàn tác được). M6 đổi `site rm` thành đưa vào thùng rác và dùng lại Plan này cho `trash purge`. Plan xoá không có bước kiểm chứng: kiểm chứng lỗi thì engine hoàn tác, tức là trả lại vhost và pool cho một site đã mất DB và file, tệ hơn để yên.
 
 Xoá một site là đưa vào thùng rác, không mất dữ liệu:
 
@@ -657,7 +657,7 @@ tpan admin passwd                  đặt lại mật khẩu quản trị khi qu
 tpan stack install --web nginx|apache
 tpan stack status
 tpan stack switch --to nginx|apache
-tpan site add <domain> [--title T] [--email E] [--ssl]
+tpan site add <domain> --email E [--title T] [--ssl]
 tpan site list | info <domain> | rm <domain> | restore <domain>
 tpan ssl issue <domain>
 tpan apply -f sites.yaml [--prune]
@@ -729,7 +729,7 @@ Panel chạy bằng quyền root nên lỗi ở panel là lỗi chiếm máy. N�
 - **CSRF**: kiểm `Sec-Fetch-Site` và `Origin` cho mọi request có thay đổi (Go có sẵn `http.CrossOriginProtection`; đọc tài liệu của đúng phiên bản Go đang dùng trước khi áp dụng).
 - **TLS**: panel nghe HTTPS ở cổng 8443 với chứng chỉ tự ký sinh lúc `setup` (in fingerprint để đối chiếu). Có chế độ riêng tư: chỉ nghe `127.0.0.1`, vào bằng `ssh -L 8443:127.0.0.1:8443 <máy>`.
 - **Header**: `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff`, `frame-ancestors 'none'`.
-- **Bí mật**: không ghi mật khẩu vào log, DB hay repo. Mật khẩu quản trị WordPress hiện một lần trong kết quả job rồi bỏ.
+- **Bí mật**: không ghi mật khẩu vào log, DB hay repo. Mật khẩu quản trị WordPress hiện một lần trong kết quả job rồi bỏ. Với `tpan site add --json`, mật khẩu đó nằm trong trường `admin_password` đúng một lần (khi WordPress vừa được cài), vì script tạo site không có đường nào khác để lấy; bản xem trước, log sự kiện và báo cáo job luôn hiện `••••`. Engine che thêm mọi dòng stdin mà lệnh lỡ in lại trong output.
 - **Nhật ký**: mọi thao tác có thay đổi ghi vào `audit` (thời điểm, IP, thao tác, kết quả).
 - **AI và MCP**: theo bảy nguyên tắc ở mục 8.1. Máy chủ không giữ khoá hay đăng nhập AI nào. MCP chỉ chạy qua stdio; không có cổng MCP nào mở ra mạng. Socket nội bộ `/run/tpan/brain.sock` có quyền 600, chỉ root dùng được.
 
