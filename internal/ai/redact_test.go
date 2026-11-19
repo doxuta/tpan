@@ -206,6 +206,80 @@ func TestFilenamesKept(t *testing.T) {
 	}
 }
 
+// Mã của tpan có dấu chấm (loại job, sự kiện, phép kiểm, khoá cấu hình) không
+// phải domain: che chúng thì AI mất nghĩa. Có cả mã mà chữ thứ hai tình cờ là
+// đuôi tên miền thật (fail, repair, site, secure, free, run, group, events).
+func TestCodesKept(t *testing.T) {
+	r, _, _ := newLearned(t)
+	for _, in := range []string{
+		"site.add", "site.rm", "site.repair", "stack.install", "stack.repair",
+		"job.start", "job.done", "step.done", "step.fail", "undo.fail", "login.fail",
+		"nginx.vhost", "web.vhost", "db.secure:mariadb", "mariadb.secure:localhost",
+		"ports.free:80,443", "test.run", "listen.group = www-data", "pm.max_children = 5",
+		"mysql.global_priv", "performance_schema.events", "session.save_path",
+		"php8.3-fpm.service", "/run/php/php8.3-fpm.sock", "wp-config.php",
+		"fmt.Errorf", "os.Open", "errors.New",
+	} {
+		if out := r.String(in); out != in {
+			t.Errorf("String(%q) = %q, muốn giữ nguyên", in, out)
+		}
+	}
+}
+
+// Mã có domain ở sau: chỉ phần domain bị đổi, và đổi ra đúng bí danh của site.
+func TestCodeWithDomain(t *testing.T) {
+	r, _, uni := newLearned(t)
+	uniUnicode, err := idna.Lookup.ToUnicode(uni.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct{ in, want string }{
+		{"vhost.enabled:" + shopDomain, "vhost.enabled:site-a.example"},
+		{"nginx.vhost:" + shopDomain, "nginx.vhost:site-a.example"},
+		{"http.site:" + shopDomain, "http.site:site-a.example"},
+		// File vhost mang cùng bí danh với site; tiền tố tpan- và đuôi .conf giữ.
+		{"/etc/nginx/sites-available/tpan-" + shopDomain + ".conf", "/etc/nginx/sites-available/tpan-site-a.example.conf"},
+		{"/etc/apache2/sites-enabled/tpan-" + uniUnicode + ".conf", "/etc/apache2/sites-enabled/tpan-site-b.example.conf"},
+		{"https://www." + shopDomain + "/", "https://www.site-a.example/"},
+	}
+	for _, c := range cases {
+		out := r.String(c.in)
+		if out != c.want {
+			t.Errorf("String(%q) = %q, muốn %q", c.in, out, c.want)
+		}
+		if c.in == c.want || strings.Contains(c.in, uniUnicode) {
+			continue // dạng Unicode đổi ngược về punycode, không so được
+		}
+		if back := r.Unalias(out); back != c.in {
+			t.Errorf("Unalias(%q) = %q, muốn %q", out, back, c.in)
+		}
+	}
+}
+
+// Domain lạ thật vẫn bị che, kể cả đuôi mới (.app), đuôi có luật ký tự đại
+// diện (.ck), domain có dấu đuôi vn, và domain hai nhãn có đuôi trùng chữ của
+// mã tpan (foo.site) khi nhãn đầu không phải nhóm mã.
+func TestStrangeDomainsHidden(t *testing.T) {
+	r, _, _ := newLearned(t)
+	for _, d := range []string{
+		"another-example.org", "nhà-hàng.example.vn", "thực-đơn.vn", "foo.app",
+		"shop.co.ck", "myshop.site", "my.test.run", "EXAMPLE.NET",
+	} {
+		in := "Referer: https://" + d + "/page"
+		out := r.String(in)
+		assertAbsent(t, out, d)
+		if !strings.Contains(out, ".example/page") {
+			t.Errorf("String(%q) = %q, thiếu bí danh", in, out)
+		}
+	}
+	// Domain đã Learn luôn bị che dù đuôi không phải đuôi thật.
+	r2 := NewRedactor(LevelAll, nil)
+	r2.Learn([]validate.Domain{mustDomain(t, "noi-bo.lan")}, "")
+	if got := r2.String("tpan-noi-bo.lan.conf noi-bo.lan"); got != "tpan-site-a.example.conf site-a.example" {
+		t.Errorf("domain đã Learn đuôi lạ: %q", got)
+	}
+}
+
 func TestUnaliasRoundTrip(t *testing.T) {
 	r, shop, uni := newLearned(t)
 	// Không bí mật, không chữ hoa, domain có dấu viết dạng punycode: khi đó

@@ -25,9 +25,9 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"unicode"
 
 	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
 
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -355,8 +355,18 @@ var fileExts = toSet("php phtml conf cnf ini log sock socket sql json service ti
 	"gz tgz bz2 xz zst zip tar bak tmp pid lock db sqlite png jpg jpeg gif svg webp ico " +
 	"woff woff2 ttf map env so old orig swp csv list sources rules out err journal")
 
-// domain đổi một chuỗi trông như domain thành bí danh. Đuôi file được tách ra
-// và giữ lại: other.example.org.conf → site-c.example.conf.
+// domain đổi một chuỗi trông như domain thành bí danh. Regex chỉ bắt hình
+// dạng "chữ.chữ", nên chuỗi tới đây có thể là domain, tên file (wp-config.php),
+// hay mã của chính tpan (site.add, step.done, nginx.vhost). Thứ tự xét:
+//
+//  1. Tách đuôi file ra và giữ lại: other.example.org.conf → site-c.example.conf.
+//  2. Phần còn lại kết thúc bằng một domain đã Learn thì thay đúng phần đó
+//     bằng bí danh của site, giữ tiền tố: tpan-shop.example.com.conf →
+//     tpan-site-a.example.conf. Regex chọn chỗ khớp bắt đầu sớm nhất, nên nó
+//     bắt cả "tpan-shop.example.com.conf" từ chữ t chứ không bắt nhóm tên đã
+//     Learn; không có bước này file vhost mang bí danh khác bí danh của site.
+//     Bước này đứng trước bước 3: domain đã Learn luôn bị che dù đuôi gì.
+//  3. Còn lại chỉ che khi nhãn cuối là đuôi tên miền thật (isDomain).
 func (st *redactState) domain(m string) string {
 	base, ext := m, ""
 	for {
@@ -370,35 +380,89 @@ func (st *redactState) domain(m string) string {
 		ext = base[i:] + ext
 		base = base[:i]
 	}
-	if !looksLikeTLD(base[strings.LastIndexByte(base, '.')+1:]) {
-		return m // fmt.Errorf, php8.3-fpm.sock: không phải domain
+	if prefix, a, ok := st.learnedTail(base); ok {
+		return prefix + a + ext
 	}
 	key, err := idna.Lookup.ToASCII(base)
 	if err != nil {
-		key = strings.ToLower(base) // không chuẩn hoá được thì vẫn che, không trả nguyên
+		key = strings.ToLower(base) // không chuẩn hoá được thì vẫn xét, không bỏ qua
 	}
 	if _, isAlias := st.toReal[key]; isAlias {
+		return m
+	}
+	if !isDomain(base, key) {
 		return m
 	}
 	return st.alias(kindDomain, key) + ext
 }
 
-// looksLikeTLD: punycode, hoặc toàn chữ, ít nhất hai ký tự, cùng một kiểu hoa
-// thường. Chữ hoa thường lẫn lộn (Errorf, Marshal) là tên hàm trong thông báo
-// lỗi chứ không phải đuôi tên miền.
-func looksLikeTLD(t string) bool {
-	if strings.HasPrefix(strings.ToLower(t), "xn--") {
-		return true
-	}
-	n := 0
-	for _, c := range t {
-		if !unicode.IsLetter(c) && !unicode.IsMark(c) {
-			return false
+// learnedTail tìm tên đã Learn (domain, hostname) nằm ở cuối base, ngay sau
+// đầu chuỗi, dấu chấm hay gạch nối. Trả phần đứng trước nó và bí danh của nó.
+// Tên dài nhất thắng: Learn cả example.com lẫn shop.example.com thì
+// www.shop.example.com ra www.<bí danh của shop>.
+//
+// Cái giá: một domain lạ như my-shop.example.com hiện ra là my-site-a.example,
+// lộ tiền tố "my-". Đổi lại file tpan-<domain>.conf, pool, thư mục con
+// (www.<domain>) đều nối được với đúng site.
+func (st *redactState) learnedTail(base string) (prefix, alias string, ok bool) {
+	best := -1
+	for name, key := range st.learned {
+		if !strings.Contains(name, ".") || len(name) <= best {
+			continue // slug không có dấu chấm, regex domain không bắt nó tới đây
 		}
-		n++
+		n := len(base) - len(name)
+		if n < 0 || !strings.EqualFold(base[n:], name) {
+			continue
+		}
+		if n > 0 && base[n-1] != '.' && base[n-1] != '-' {
+			continue // myshop.example.com không phải shop.example.com
+		}
+		if a, found := st.toAlias[key]; found {
+			best, prefix, alias, ok = len(name), base[:n], a, true
+		}
 	}
-	return n >= 2 && (t == strings.ToLower(t) || t == strings.ToUpper(t))
+	return prefix, alias, ok
 }
+
+// isDomain: chuỗi base (key là dạng punycode viết thường của nó) là domain khi
+// nhãn cuối là đuôi tên miền do ICANN quản lý, xét bằng danh sách Public
+// Suffix (com, vn, org, xn--p1ai...). Nhờ vậy mã của tpan như site.add,
+// job.start, nginx.vhost giữ nguyên: add, start, vhost không phải đuôi thật.
+//
+// Hai ngoại lệ:
+//   - Nhãn cuối viết hoa thường lẫn lộn (fmt.Errorf, os.Open) là tên hàm Go
+//     trong thông báo lỗi, dù "open" là một đuôi thật.
+//   - Chuỗi đúng hai nhãn mà nhãn đầu là tên nhóm mã của tpan (codeSpaces):
+//     step.fail, site.repair, http.site, db.secure, listen.group. Các chữ
+//     fail, repair, site, secure, group tình cờ cũng là đuôi tên miền thật.
+func isDomain(base, key string) bool {
+	t := base[strings.LastIndexByte(base, '.')+1:]
+	if t != strings.ToLower(t) && t != strings.ToUpper(t) {
+		return false
+	}
+	// Chỉ dựa vào icann, không so phần đuôi trả về với key: với đuôi có luật
+	// ký tự đại diện (*.ck) hàm trả cả "x.ck" làm đuôi.
+	if _, icann := publicsuffix.PublicSuffix(key); !icann {
+		return false
+	}
+	first, rest, _ := strings.Cut(key, ".")
+	return strings.Contains(rest, ".") || !codeSpaces[first]
+}
+
+// codeSpaces: nhãn đầu của mã tpan (loại job, loại sự kiện, mã phép kiểm,
+// hành động trong nhật ký) và của khoá cấu hình hay gặp (listen.group của
+// php-fpm, mysql.global_priv). Chỉ cần những nhóm có mã mà chữ thứ hai trùng
+// một đuôi tên miền thật; thêm nhóm khác cũng vô hại.
+// Danh sách lấy từ mọi chuỗi "a.b" trong mã tpan (grep internal, cmd) cộng
+// khoá cấu hình của php-fpm, MySQL (performance_schema.events,
+// session.save_path: regex dừng ở dấu _, nên chỉ thấy schema.events,
+// session.save). Thêm nhóm mã mới mà chữ thứ hai là đuôi thật thì thêm vào đây.
+// Giá phải trả: domain lạ đúng hai nhãn có nhãn đầu trùng (site.com, test.run,
+// php.net) không bị che. Đó gần như toàn là trang công khai, không lộ gì về
+// máy chủ; domain của site luôn được Learn nên vẫn che.
+var codeSpaces = toSet("account admin ai apache apt check config db disk http job listen login " +
+	"mariadb mcp mysql nginx os packages panel php plan pm port ports schema service session " +
+	"site stack step test undo web wp wpcli")
 
 func (st *redactState) email(m string) string {
 	at := strings.LastIndexByte(m, '@')
