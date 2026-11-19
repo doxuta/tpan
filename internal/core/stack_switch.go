@@ -92,6 +92,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
@@ -333,7 +334,22 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 		if err != nil {
 			return nil, err
 		}
-		ss = append(ss, ssl...)
+		// Bước bật mod ssl của DefaultSSL có cùng ID "apache.modules:apache2"
+		// với bước bật mod của stack (ID phải duy nhất trong Plan: tiến độ CLI
+		// và job_events gọi bước theo ID). Gộp ssl vào bước của stack, nằm
+		// trước, nên vẫn bật trước khi ghi site mặc định 443.
+		for _, st := range ssl {
+			if m, ok := st.(*steps.ApacheModules); ok {
+				i := slices.IndexFunc(ss, func(x engine.Step) bool { _, ok := x.(*steps.ApacheModules); return ok })
+				if i < 0 {
+					return nil, errors.New("dựng bước Apache: thiếu bước bật mod của stack để gộp mod ssl")
+				}
+				base := ss[i].(*steps.ApacheModules)
+				base.Enable = append(slices.Clone(base.Enable), m.Enable...)
+				continue
+			}
+			ss = append(ss, st)
+		}
 	}
 	for _, st := range active {
 		v, err := siteVhost(st, cfg)

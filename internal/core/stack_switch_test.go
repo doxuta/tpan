@@ -734,6 +734,16 @@ func TestSwitchPlanContent(t *testing.T) {
 	if err != nil || len(pv.Steps) != len(p.Plan.Steps) {
 		t.Fatalf("Preview: %v", err)
 	}
+	// ID phải duy nhất trong Plan (engine.StepInfo): mod ssl của DefaultSSL
+	// từng trùng ID với bước bật mod của stack.
+	seen := map[string]bool{}
+	for _, s := range p.Plan.Steps {
+		id := s.Info().ID
+		if seen[id] {
+			t.Errorf("ID bước %q xuất hiện hai lần", id)
+		}
+		seen[id] = true
+	}
 	if !mapsEqual(before, e.Snapshot()) {
 		t.Error("Prepare hoặc Preview làm đổi hệ thống file")
 	}
