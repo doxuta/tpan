@@ -79,6 +79,7 @@ Hai điểm cần tự kiểm trên máy đang cài aaPanel trước khi nói v�
 | CLI | `spf13/cobra` | Chuẩn phổ biến của CLI viết bằng Go (kubectl, docker, gh); có sẵn help và gợi ý lệnh. | Gói `flag` chuẩn: đủ dùng cho khung hiện tại, nhưng lệnh con lồng nhau phải tự viết. |
 | HTTP | `net/http` chuẩn | Từ Go 1.22 router chuẩn đã hỗ trợ `GET /api/v1/sites/{domain}`. Không cần framework. | chi, gin, echo. |
 | Lưu trạng thái | SQLite qua `modernc.org/sqlite` | Một file, không cần dịch vụ DB riêng cho panel. Bản này viết thuần Go nên giữ được `CGO_ENABLED=0` (file chạy tĩnh, build chéo dễ). | `mattn/go-sqlite3`: cần CGO. Dùng luôn MariaDB: panel sẽ chết theo MariaDB. |
+| Tên miền có dấu | `golang.org/x/net/idna` | Đổi tên miền có dấu sang punycode và kiểm theo đúng chuẩn IDNA; thư viện chuẩn không có. Gói `x/` do chính nhóm Go duy trì. | Tự viết bảng chuyển: dễ sai ở các trường hợp biên. |
 | Đẩy tiến độ ra giao diện | Server-Sent Events | Một chiều từ server ra trình duyệt là đủ cho log của job; đơn giản hơn WebSocket. | WebSocket. |
 | Frontend | React 19, TypeScript 7, Vite 8 | Phổ biến nhất; build ra file tĩnh rồi nhúng vào file chạy Go bằng `go:embed`. | Vue (1Panel, aaPanel dùng), Svelte, HTMX. |
 | Dữ liệu phía trình duyệt | TanStack Query | Quản lý gọi API, cache, tải lại. | Tự viết bằng `fetch` + state. |
@@ -206,10 +207,13 @@ type System interface {
     WriteFileAtomic(path string, data []byte, perm fs.FileMode, owner Owner) error
     Remove(path string) error
     Rename(oldPath, newPath string) error
-    Stat(path string) (FileInfo, error)
-    // ... MkdirAll, Symlink, Chown, StatFS (dung lượng đĩa)
+    Stat(path string) (FileInfo, error) // không đi theo symlink (như lstat)
+    // ... MkdirAll, Symlink, Readlink, ReadDir, Chown, Chmod, StatFS (dung lượng đĩa)
+    Lock(ctx context.Context) (unlock func(), err error) // khoá toàn cục giữa các tiến trình tpan
 }
 ```
+
+Bản đầy đủ, kèm quy ước lỗi, nằm ở `internal/system/types.go`. Hai điểm chốt lúc viết hợp đồng M1: `Run` trả `*ExitError` khi mã thoát khác 0 (kèm `Result` đầy đủ để làm bằng chứng); đường dẫn không tồn tại luôn cho lỗi thoả `errors.Is(err, fs.ErrNotExist)` ở cả `LocalSystem` lẫn `FakeSystem`. Khoá toàn cục là `flock` trên `/run/tpan/tpan.lock`, vì CLI và `tpan serve` là hai tiến trình khác nhau.
 
 - `Run` nhận tên chương trình và mảng tham số, gọi `exec.CommandContext`. Không có hàm nào nhận một chuỗi lệnh shell. Biến môi trường cố định: `LC_ALL=C`, `DEBIAN_FRONTEND=noninteractive`.
 - `Cmd` có trường `Stdin` (để đưa mật khẩu và câu SQL vào qua stdin, không để lộ trên dòng lệnh) và `AsUser` (chạy dưới user của site bằng `runuser -u`).
