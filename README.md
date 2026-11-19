@@ -4,7 +4,7 @@ Panel tự động hoá máy chủ web: cài LEMP hoặc LAMP lên một VPS Ubu
 
 *A small server panel that installs LEMP or LAMP and runs many WordPress sites on one Ubuntu VPS. Work in progress.*
 
-**Trạng thái: đang dựng.** Hiện mới có khung dự án (mốc M0): build được, chạy được `tpan version` và `tpan serve` với một trang tạm. Các chức năng mô tả ở trên chưa có. Thiết kế và các mốc nằm ở [docs/KE-HOACH.md](docs/KE-HOACH.md).
+**Trạng thái: đang dựng.** Hiện mới có khung dự án (mốc M0): build được, chạy được `tpan version` và `tpan serve` với một trang tạm. Các chức năng mô tả ở trên chưa có. Thiết kế và các mốc nằm ở [docs/KE-HOACH.md](docs/KE-HOACH.md); hình thức giao diện nằm ở [docs/GIAO-DIEN.md](docs/GIAO-DIEN.md), kèm các trang mẫu trong `docs/mau-giao-dien/`.
 
 ## Cần có để phát triển
 
