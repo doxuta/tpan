@@ -10,11 +10,14 @@ import { Link } from "react-router";
 import type { Overview } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { ClaudeCommand } from "../../components/ClaudeCommand";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
+import { strings as agent } from "../../i18n/agent";
 import { strings } from "../../i18n/bang-dieu-khien";
 import { strings as khung } from "../../i18n/khung";
+import { PendingPlans } from "../plan-cho-duyet/PendingPlans";
 import { checksWith, type Entry } from "./model";
 
 function Block({ title, count, children }: { title: string; count: number; children: ReactNode }) {
@@ -48,6 +51,7 @@ function Where({ domain, size }: { domain: string | null; size: 13 | 15 }) {
 function Incident({ e }: { e: Entry }) {
   const t = useStrings(strings);
   const kt = useStrings(khung);
+  const at = useStrings(agent);
   const { lang } = useLang();
   const [manual, setManual] = useState(false);
   const reasonId = useId();
@@ -85,6 +89,7 @@ function Incident({ e }: { e: Entry }) {
       <p id={reasonId} className="mt-[8px] mb-0 text-[12px] text-muted">
         {t.fixesReason}
       </p>
+      <ClaudeCommand prompt={at.diagnoseCheck(tx(c.title, lang), e.domain ?? at.thisMachine)} />
       {manual && (
         <div className="mt-[12px]">
           <EvidenceBlock label={t.manualLabel} text={lines.map((l) => `$ ${l}`).join("\n")} />
@@ -155,10 +160,7 @@ export function Side({ o }: { o: Overview }) {
           </div>
         )}
       </Block>
-      {/* M3 chưa có Plan nào chờ duyệt (Plan do AI hay agent đề xuất đến từ M8). */}
-      <Block title={t.pendingTitle} count={0}>
-        <None />
-      </Block>
+      <PendingPlans />
     </aside>
   );
 }

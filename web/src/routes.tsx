@@ -75,6 +75,8 @@ export const screens: ScreenEntry[] = [
     menu: { label: "jobs", group: "may" },
   },
   { path: "/jobs/:id", load: () => import("./screens/lich-su").then((m) => m.JobDetail) },
+  { path: "/plans", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanList) },
+  { path: "/plans/:id", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanDetail) },
   {
     path: "/settings",
     load: () => import("./screens/cai-dat").then((m) => m.default),

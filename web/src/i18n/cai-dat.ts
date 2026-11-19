@@ -43,7 +43,6 @@ const vi = {
   themeSystemNow: (dark: boolean) => `Đang theo hệ điều hành, hiện là ${dark ? "tối" : "sáng"}.`,
 
   // AI và MCP
-  aiHeading: "AI và MCP",
   aiLater: "Có ở bản sau: nối bộ não AI và cho agent khác nối vào qua MCP.",
 };
 
@@ -84,6 +83,5 @@ export const strings = defineStrings(vi, {
   themeSystem: "Follow the system",
   themeSystemNow: (dark) => `Following the system, currently ${dark ? "dark" : "light"}.`,
 
-  aiHeading: "AI and MCP",
   aiLater: "Coming in a later version: connect an AI brain and let other agents connect through MCP.",
 });
