@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: M0 đến M8 và M12 xong ngày 19/11/2026 (lượt A: M4, M5, M7; lượt B: M6, M8, M12; mỗi mốc chạy song song trên nhánh riêng rồi ghép vào `dev` và chạy lại e2e trên `tpan-test`). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Phần cần VPS, tên miền thật hay Claude Code thật ở mục 18. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt kế tiếp là C (M9, M10), rồi M11. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: M0 đến M8, M10 và M12 xong ngày 19/11/2026 (lượt A: M4, M5, M7; lượt B: M6, M8, M12; mỗi mốc chạy song song trên nhánh riêng rồi ghép vào `dev` và chạy lại e2e trên `tpan-test`). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Phần cần VPS, tên miền thật hay Claude Code thật ở mục 18. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt kế tiếp là C (M9, M10), rồi M11. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -434,6 +434,23 @@ Làm được vì PHP luôn chạy trong PHP-FPM; Nginx và Apache chỉ là l�
 5. Có site nào hỏng: dừng cái mới, bật lại cái cũ, báo lỗi (hoàn tác). Tất cả đúng: `disable` cái cũ, cập nhật `settings`.
 
 Thời gian gián đoạn là khoảng giữa bước 3 và lúc web server mới nhận request, cần đo trên máy ảo và ghi con số vào tài liệu giải thích.
+
+#### Đã chốt khi làm M10
+
+**Chỗ khác đặc tả.**
+
+- **Plan `stack.switch` có thêm bước so với mục 6.6.** Thứ tự thật: `apt-get update`; cài gói web server mới dưới `policy-rc.d` (exit 101) rồi `systemctl disable --now` nó (`steps.AptInstallNoStart`, mục 16: policy-rc.d không chặn `enable`); ghi cấu hình web server mới mà không start, restart hay reload nó (site mặc định 80, site mặc định 443 khi có site SSL, vhost của mọi site active theo `core.siteVhost`, `.htaccess` khi chuyển sang Apache, logrotate); dừng cũ, chạy mới (`steps.WebSwap`); kiểm HTTP từng site, hai lần đạt liên tiếp; `enable` mới, `disable` cũ; gỡ file tpan của web server cũ. Lỗi ở bất kỳ bước nào thì engine hoàn tác ngược: web server cũ chạy lại với đúng file cũ, web server mới tắt và không bật khi khởi động.
+- **Gỡ file của web server cũ** (mục 6.6 không nói): vhost của mọi site (kể cả site trong thùng rác), site mặc định 80 và 443, `conf.d/tpan.conf` của nginx.org. Gói cũ vẫn giữ (chỉ dừng và disable). Lý do: health kiểm lệch mọi dòng `managed_files`; để file của web server không chạy thì lần chuyển ngược lại bước ghi file "đã đúng" bị bỏ qua và không được ghi nhận lại.
+- **Phép kiểm lệch nhận file mới làm chuẩn**: sau khi job thành công, `managed_files` được ghi sha256 của MỌI file của web server mới (kể cả file đúng sẵn nên bước bị bỏ qua) và bỏ dòng của mọi file web server cũ.
+- **`.htaccess` khi chuyển sang Apache chỉ ghi khi chưa có**: site tạo trên nginx không có file này, thiếu nó thì mọi permalink `/%postname%/` là 404 trên Apache. Có rồi thì giữ (WordPress tự ghi lại đoạn của nó).
+- **Nguồn nginx lúc chuyển về nginx đọc từ máy, không từ settings**: chuyển sang Apache ghi `stack.web_source = ubuntu` (nguồn nginx.org chỉ hợp với nginx), nhưng kho nginx.org và gói của nó vẫn trên máy; có kho đó thì nguồn là nginx.org (stable hoặc mainline theo kho), và Plan thêm user `nginx` vào nhóm `www-data` (không restart; nhóm có hiệu lực khi nginx khởi động ở bước đổi). Chưa cho chọn nguồn nginx.org lúc chuyển từ Apache sang (chỉ chọn được lúc `stack install`).
+- **Điều kiện đầu mới**: mọi site active phải đang trả lời đúng (http, hoặc https khi có SSL) trên web server cũ, không thì từ chối `precondition_failed` kèm kết quả của site đó. Mã từ chối mới: `stack_not_installed`, `stack_same_web`.
+- **Kiểm chứng chỉ gồm phần web** (dịch vụ, cú pháp, site mặc định, vhost bật và HTTP từng site), không cả bộ phép kiểm của site; health đầy đủ chạy ngay sau job (CLI và API), như `update.apply` của M12.
+- **Chạy lại sau một lần hỏng giữa chừng**: job xong mà không ghi được settings thì `tpan stack switch --to <mới>` chạy lại: web server mới đã chạy và bật nên bước cài không disable nó, các bước khác đã đúng được bỏ qua, chỉ còn ghi settings.
+- **`ApacheModules` có trường `NoRestart`** (và khi đó không còn `Danger`): Plan chuyển web server bật mod của Apache trong lúc apache2 đang tắt.
+- **API mới** (mục 9): `POST /api/v1/stack/switch[?dry_run=1]`, thân `{"to": "nginx"|"apache"}` (`internal/server/types_m10.go`). Câu từ chối `stack_switch_required` của `stack install` bỏ đuôi "(chưa có ở bản này)".
+
+- **Khôi phục site trên Apache ghi `.htaccess` khi thiếu** (thấy ở e2e, phần B): site vào thùng rác lúc còn chạy nginx, khôi phục sau khi đã chuyển sang Apache thì trang chủ 200 mà permalink 404, vì `stack switch` chỉ ghi `.htaccess` cho site active và Plan khôi phục không ghi file này. Plan `site.restore` trên Apache giờ thêm bước ghi `.htaccess` (chỉ khi chưa có) ngay sau bước chuyển thư mục về.
 
 ### 6.7 Health: tự kiểm và sửa
 
@@ -955,7 +972,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M7** ✅ | Cổng cho agent: danh mục công cụ, che dữ liệu, `tpan mcp`, hai chế độ duyệt, Plan chờ duyệt, thư mục `agents/`, nút "Chép lệnh cho Claude Code" | e2e bước 12; test che dữ liệu và test log cài câu lệnh đạt; Claude Code trên máy cá nhân liệt kê được site của máy ảo qua SSH, chẩn đoán đúng chặng một lỗi từ `scripts/faults/`, và Plan nó đề xuất sửa được lỗi đó |
 | **M8** ✅ | AI trong panel: `Brain`, `claudecode`, `tpan brain`, kiểm sự kiện `init`, ngăn AI có ngữ cảnh làm việc và bản hướng dẫn theo mục, thanh lệnh, giải thích, chẩn đoán, trang phiên AI | e2e bước 13; với Claude Code thật: hỏi từ panel của máy ảo, chữ hiện dần, Plan đề xuất hiện ở màn duyệt; chuyển mục rồi hỏi tiếp thì ngữ cảnh gửi đi đổi theo, xem được ở trang phiên AI |
 | **M9** | Backup, khôi phục, chặn đầy đĩa, backup theo lịch; cron thật cho WordPress và màn Cron; đổi mật khẩu, xuất và nhập DB | e2e bước 10; backup bị từ chối khi đĩa giả lập gần đầy; một bài hẹn giờ của WordPress được đăng đúng giờ khi không có khách nào vào site |
-| **M10** | Chuyển LEMP ⇄ LAMP | e2e bước 8; đo được thời gian gián đoạn |
+| **M10** ✅ | Chuyển LEMP ⇄ LAMP | e2e bước 8; đo được thời gian gián đoạn |
 | **M11** | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), bản phát hành trên GitHub, README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
 | **M12** ✅ | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
 
@@ -1172,6 +1189,29 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - Bước chờ socket chỉ áp cho `php.use`. Ghi lại pool của site đang chạy bản khác mặc định qua `health --fix` có thể gặp đúng độ trễ trên.
   - Menu "Cập nhật" chưa có số bản cập nhật đang chờ (mục 10): `/overview` không chạy `apt-get -s` vì đã chậm sẵn.
   - `docs/giai-thich/01-m1-cai-stack.md` còn câu "nguồn khác chưa hỗ trợ ở bản này"; `docs/KE-HOACH.md` mục 5 ghi socket `/run/php/tpan-<slug>.sock` và mục 16 (M2) ghi `/etc/nginx/fastcgi.conf`: phiên điều phối sửa khi gộp.
+
+- Kiểm ở M10 (19/11/2026), máy ảo Ubuntu 24.04:
+  Kiểm trên máy ảo `tpan-m10` (Ubuntu 24.04, arm64) ngày 20/11/2026, `scripts/e2e-m10.sh all` từ máy sạch: 279 khẳng định đạt, 0 không đạt (`docs/bang-chung/M10.log`). Sau khi sửa hai bước trùng ID (gộp mod `ssl` vào bước bật mod của Apache), chạy lại toàn bộ với mã đã commit: 279 đạt, 0 không đạt (`docs/bang-chung/M10-sau-sua.log`); lần chạy lại đo được bước `web.swap` 65 đến 126 ms, khoảng không trả lời dài nhất của mỗi site 76 đến 154 ms khi chuyển, 117 đến 192 ms khi hoàn tác.
+
+  - **policy-rc.d và gói apache2** (dòng đầu mục 16, nay kiểm qua chính đường cài của tpan): postinst bị chặn (`policy-rc.d returned 101, not running 'start apache2.service'`, `invoke-rc.d: policy-rc.d denied execution of start`); postinst vẫn tạo link bật khi khởi động, `systemctl disable --now` gỡ được. Journal có đúng một lần `Started apache2`, ở +84 ms sau khi bước `web.swap` bắt đầu.
+  - **nginx của Ubuntu cài mới dưới policy-rc.d** (máy cài LAMP trước rồi chuyển sang nginx, phần G): giống apache2. Cài lại gói nginx (gói giữ unit là `nginx-common`, postinst gọi `restart`): policy-rc.d chặn được.
+  - **nginx của nginx.org**: tpan chưa bao giờ cài mới gói này dưới policy-rc.d (chuyển từ Apache sang chỉ dùng được nginx.org khi gói và kho đã có sẵn trên máy). Thử cài lại tay trong máy ảo (đồ nghề): `invoke-rc.d: policy-rc.d denied execution of start`, nginx vẫn inactive.
+  - **Unit sau `disable --now`**: inactive và disabled ở mọi lần, kể cả sau hai lần hoàn tác.
+  - **Gói của web server đang tắt được vá mà không có policy-rc.d** (như unattended-upgrades vá apache2 trên máy chạy nginx): postinst in `... is a disabled or a static unit not running, not starting it`; unit vẫn tắt, web server đang chạy không bị ảnh hưởng.
+  - **Kiểm cú pháp khi dịch vụ tắt**: `nginx -t` (nginx tắt, Apache giữ cổng 80 và 443) và `apachectl configtest` (apache2 tắt, nginx giữ cổng) đều thoát 0.
+  - **`--dry-run` trên máy chưa có apache2**: thoát 0, máy không đổi gì; hai bước (bật/tắt mod, bật mod `ssl`) hiện "chưa kiểm được lúc xem trước" vì chưa có `a2query`. Bản xem trước vẫn đủ.
+  - **Thời gian gián đoạn** (vòng lặp curl trong máy ảo, mỗi request một kết nối mới, nghỉ 20 ms; mốc 0 là đầu bước `web.swap`): bước `web.swap` mất 67 đến 100 ms; mỗi site mất 1 đến 3 request (curl 7, kết nối bị từ chối), khoảng không trả lời dài nhất 76 đến 165 ms, ở cả http và https, cả hai chiều, cả nguồn nginx.org. Hoàn tác sau khi đã đổi (một site hỏng chỉ trên Apache): mỗi site lành gián đoạn thêm 185 đến 227 ms lúc quay về; site hỏng trả 500 khoảng 6 giây (bước kiểm giữa chừng thử 5 lần trước khi hoàn tác).
+  - **Khởi động lại máy sau khi chuyển** (hai chiều): chỉ web server đang dùng chạy, mọi site 200, health đạt.
+  - **Phép kiểm lệch sau khi chuyển**: `managed_files` khớp với đĩa, không còn dòng nào của web server cũ; `tpan health` 0 Fail, `tpan health --fix --dry-run` không có gì để ghi lại; sửa tay một vhost mới thì health báo đúng một `drift:` của file đó.
+
+  **Chưa kiểm ở M10.**
+
+  - API `POST /api/v1/stack/switch` và khối "Đổi web server" ở màn Stack chưa chạy trên máy ảo (e2e đi qua CLI); API có unit test, giao diện chỉ qua typecheck và build. Chưa ai nhìn khối mới bằng mắt (sáng, tối, tiếng Anh, 390 px, bàn phím): `make dev-api` + `make dev-web`. Máy demo có một site hỏng sẵn (wiki.example.org, chặng PHP) nên bấm "Đổi web server" ngay sẽ bị từ chối `precondition_failed`; sửa site đó trước ("Sửa" ở màn Sự cố) rồi mới chuyển được.
+  - Bản amd64 chỉ build, chưa chạy.
+  - Hoàn tác khi lỗi ở bước bật/tắt dịch vụ hay bước gỡ file cũ (sau bước kiểm HTTP), và nhánh "chạy lại khi job xong mà không ghi được settings": chỉ có unit test (`internal/core/stack_switch_test.go`).
+  - Gói apache2 bật thêm `apache-htcacheclean.service` (và `ssl-cert.service` khi có site SSL); tpan chỉ disable `apache2`, nên hai unit này vẫn bật cả sau khi chuyển về nginx hay sau hoàn tác. Chúng không nghe cổng nào; chưa xem chúng có làm gì khi apache2 tắt.
+  - Dòng `.htaccess` trong `managed_files` không được gỡ khi chuyển về nginx (health bỏ `.htaccess` khi kiểm lệch nên không báo gì; chỉ là dòng thừa).
+  - Chuyển một site có chứng chỉ Let's Encrypt thật (máy ảo dùng pebble).
 
 ## 17. Nguồn đã tra (19/11/2026)
 
@@ -1410,6 +1450,25 @@ Không nâng MariaDB trên VPS có dữ liệu thật khi chưa backup (M9). `tp
 
 Gửi lại output của `stack install --yes`, `ps`, `health`, `update --check`, `time php-fpm8.4 -t` (che tên miền, IP) để ghi vào `docs/bang-chung/`.
 
+### M10
+
+E2E của M10 chạy lại trên `tpan-test` sau khi ghép vào `dev`: 273 khẳng định đạt, 0 không đạt (`docs/bang-chung/M10-ghep.log`). Gián đoạn mỗi lần chuyển web server: mỗi site không trả lời lâu nhất 76 đến 165 ms.
+
+Mọi bước "Xong khi" của M10 đã chạy trên máy ảo. Trên VPS (amd64, có thể có chứng chỉ staging thật) chỉ làm khi đã cài `tpan` bản M10 và có ít nhất một site; thay `<domain>` bằng site thật, không chép tên miền vào repo. Đổi web server làm mọi site ngừng trả lời khoảng 0,1 đến 0,2 giây.
+
+```bash
+sudo tpan stack switch --to apache --dry-run     # chỉ xem, không đổi gì
+sudo tpan stack switch --to apache --yes
+curl -sI https://<domain>/ | head -1             # 200
+sudo tpan health
+systemctl is-active apache2 nginx; systemctl is-enabled apache2 nginx
+sudo reboot                                      # rồi vào lại máy: chỉ apache2 chạy, site 200
+sudo tpan stack switch --to nginx --yes
+sudo tpan health
+```
+
+Gửi lại output (che tên miền, IP) để ghi vào `docs/bang-chung/`.
+
 ## 19. Bảng chia việc đã dùng (từ M4)
 
 Từ M4 mỗi mốc tự lập bảng chia việc theo khuôn ở mục 4 của `agent-dev/CHAY-NHIEU-AGENT.md`; bảng thật đã dùng ghi ở đây khi ghép mốc.
@@ -1526,3 +1585,21 @@ Server API để riêng đợt 3 (một thợ) vì nó gọi thẳng `ai.Panel` 
 Thay đổi so với bảng lập lúc đầu: API và demo lúc đầu nằm ở đợt 2, nhưng test của nó cần thân hàm core mà hai thợ core cùng đợt đang viết, nên dời sang đợt 3 riêng. Phiên chính tự viết thêm hai thứ dùng chung trước đợt 2 để hai thợ core không sửa chung file: `internal/core/repos.go` (ba kho apt, vân tay khoá) và `cmd/tpan/planned.go` (nhịp xem trước, hỏi lại, chạy, audit của lệnh CLI).
 
 Mục KE-HOACH.md phải đọc: đợt 1 và 2 đọc 3, 4.2, 4.3, 5, 6.1, 6.11, 11 và file hợp đồng của phần mình; core đọc thêm 6.2, 6.7, 9; giao diện đọc 10 và `docs/GIAO-DIEN.md`.
+
+### M10
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Hợp đồng: chú thích hợp đồng của ba Step mới và trường `ApacheModules.NoRestart`; `core.Switch` và chữ ký `Prepare` (thân tạm), mã từ chối; dây nối CLI `tpan stack switch` và API `POST /api/v1/stack/switch`; kiểu TypeScript | `internal/steps/m10_types.go`, `internal/core/stack_switch.go` (tạm), `cmd/tpan/stack_switch.go`, `cmd/tpan/stack.go` (một dòng), `internal/server/types_m10.go`, `api_m10.go`, `server.go` (một dòng), `web/src/api/types.ts` | phiên chính | opus | high |
+| 1 | Step: `AptInstallNoStart` (policy-rc.d, cài gói, disable unit mới), `WebSwap` (dừng cũ, chạy mới), `ServiceDisable`; `ApacheModules.NoRestart` | `internal/steps/switch_m10.go`, `switch_m10_test.go`, `internal/steps/apache.go` (trường mới) | `tho-loi` | opus | high |
+| 1 | Khối "Đổi web server" ở màn Stack: xem trước, chạy, sang trang job | `web/src/screens/stack/Switch.tsx`, `web/src/screens/stack/index.tsx`, `web/src/i18n/stack.ts` | `tho-giao-dien` | sonnet | high |
+| 2 | Core: Plan `stack.switch` (điều kiện đầu, bước web của web server mới không reload, đổi dịch vụ, kiểm giữa chừng, gỡ file cũ), nguồn nginx.org đọc từ máy, ghi settings, nhận file mới làm chuẩn; tách bước web của `installPlan`; test core, CLI, API | `internal/core/stack_switch.go`, `stack_switch_test.go`, `stack.go`, `stack_sources.go`; `cmd/tpan/stack_switch_test.go`; `internal/server/api_m10_test.go` | `tho-loi` | opus | high |
+| 3 | Máy demo: chuyển web server chạy được trong `tpan serve --demo` | `internal/demo/m10.go`, `m10_test.go`, một dòng đăng ký trong `internal/demo/machine.go` | `tho-phu` | sonnet | high |
+| 4 | Chạy thật trên máy ảo `tpan-m10`: e2e bước 8 hai chiều, site SSL, site PHP bản khác, site trong thùng rác, hoàn tác khi lỗi, nguồn nginx.org, đo gián đoạn | máy ảo, `scripts/e2e-m10.sh`, `docs/bang-chung/M10.log` | `tho-may-ao` | opus | high |
+| 5 | Giải thích | `docs/giai-thich/10-m10-chuyen-web-server.md` | `tho-viet` | opus | medium |
+
+Vì sao chia vậy: core cần thân của ba Step mới để test chạy được trên FakeSystem (bài học M12: API và demo đợi core), nên Step ở đợt 1, core ở đợt 2, demo ở đợt 3. Giao diện chỉ cần hợp đồng API của đợt 0 nên chạy song song với Step. API và CLI chỉ là dây nối mỏng (gọi `core.Switch`, `planJob`, `runPlanned`) nên phiên chính viết luôn ở đợt 0; test của chúng thuộc thợ core.
+
+Thay đổi so với bảng lập lúc đầu: phiên chính tự sửa sau đợt 1 hai chỗ nhỏ trong `internal/steps` (`AptInstallNoStart.Check` chưa đạt khi còn sót policy-rc.d của tpan; `ApacheModules` không còn `Danger` khi `NoRestart`), và sau đợt 5 gộp mod `ssl` vào bước bật mod của Apache (hai bước trùng ID, thợ viết phát hiện) rồi tự chạy lại toàn bộ e2e trên máy ảo. Thợ máy ảo sửa thêm `internal/core/trash.go` (ngoài vùng giao, vì nguyên nhân gốc của lỗi permalink sau khôi phục nằm ở Plan khôi phục).
+
+Mục KE-HOACH.md phải đọc: mọi đợt đọc 4.2, 4.3, 5, 6.1, 6.6, 11 và dòng `policy-rc.d` ở mục 16; core đọc thêm 6.2, 6.3 (và "Đã chốt khi làm M5"), 6.7 (và "Đã chốt khi làm M4"), 6.11 (và "Đã chốt khi làm M12"), 9; giao diện đọc 10 và `docs/GIAO-DIEN.md`; máy ảo đọc 12 (bước 8) và 16.
