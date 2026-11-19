@@ -29,6 +29,8 @@ import (
 	"github.com/doxuta/tpan/internal/system"
 )
 
+func init() { register(setupCmd) }
+
 const (
 	setupConfDir  = "/etc/tpan"
 	setupTLSDir   = "/etc/tpan/tls"

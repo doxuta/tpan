@@ -12,6 +12,8 @@ import (
 	"github.com/doxuta/tpan/internal/validate"
 )
 
+func init() { register(stackCmd, healthCmd) }
+
 func stackCmd(e *env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "stack",

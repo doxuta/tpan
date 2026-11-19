@@ -12,6 +12,8 @@ import (
 	"github.com/doxuta/tpan/internal/store"
 )
 
+func init() { register(adminCmd) }
+
 func adminCmd(e *env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "admin",

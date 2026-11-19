@@ -66,8 +66,9 @@ func newRoot(e *env) *cobra.Command {
 	_ = pf.MarkHidden("db")
 	pf.StringVar(&e.lang, "lang", "vi", "ngôn ngữ của output: vi hoặc en")
 
-	root.AddCommand(versionCmd(e), serveCmd(e), stackCmd(e), siteCmd(e), healthCmd(e))
-	root.AddCommand(setupCmd(e), adminCmd(e))
+	for _, mk := range commands {
+		root.AddCommand(mk(e))
+	}
 	return root
 }
 
@@ -228,3 +229,13 @@ func cliAudit(ctx context.Context, e *env, w any, action, target string, job eng
 		printf(e.stderr, "tpan: %v\n", err)
 	}
 }
+
+// commands là các nhóm lệnh con. Mỗi file trong cmd/tpan tự thêm nhóm của mình
+// bằng init() { register(...) }, để các mốc làm song song (mục 6 của
+// agent-dev/CHAY-NHIEU-AGENT.md) chỉ thêm file, không cùng sửa một dòng ở đây.
+// Cobra tự xếp lệnh theo tên khi in help, nên thứ tự đăng ký không quan trọng.
+var commands []func(*env) *cobra.Command
+
+func register(mk ...func(*env) *cobra.Command) { commands = append(commands, mk...) }
+
+func init() { register(versionCmd, serveCmd) }

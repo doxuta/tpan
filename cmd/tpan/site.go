@@ -13,6 +13,8 @@ import (
 	"github.com/doxuta/tpan/internal/validate"
 )
 
+func init() { register(siteCmd) }
+
 func siteCmd(e *env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "site",
