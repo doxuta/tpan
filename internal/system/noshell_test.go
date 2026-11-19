@@ -56,7 +56,10 @@ func TestNoShell(t *testing.T) {
 				t.Errorf("%s:%d: gọi shell %q; chạy lệnh bằng argv qua system.System (mục 11)", rel, line, src[loc[0]:loc[1]])
 			}
 		}
-		if strings.HasPrefix(p, allowedExec) {
+		// scripts/ là đồ nghề test chạy trên máy dev (ví dụ client MCP thử của
+		// e2e M7 mở `ssh` làm server), không nằm trong file chạy tpan; vẫn phải
+		// qua mẫu cấm shell ở trên, chỉ được import os/exec.
+		if strings.HasPrefix(p, allowedExec) || strings.HasPrefix(rel, "scripts"+string(filepath.Separator)) {
 			return nil
 		}
 		f, err := parser.ParseFile(token.NewFileSet(), p, src, parser.ImportsOnly)
