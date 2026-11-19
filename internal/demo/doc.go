@@ -25,4 +25,8 @@
 //   - ctx của New phải sống suốt tiến trình: nó giữ goroutine làm số liệu CPU
 //     nhúc nhích (hai lần đọc /proc/stat cách nhau ngắn phải thấy chênh lệch).
 //   - Mật khẩu quản trị panel không do gói này đặt.
+//   - Từ M4, máy giả trả lời `tail` cho log của site (logs.go): access.log
+//     giả với giờ trong một giờ gần nhất (số request, 5xx ở site hỏng), error.log
+//     và php-error.log vài dòng; `tail -F` trả ngay chứ không chạy mãi, để log
+//     trực tiếp trên giao diện demo kết thúc bằng sự kiện "end" thay vì treo.
 package demo
