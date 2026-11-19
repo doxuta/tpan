@@ -2,7 +2,8 @@
 //
 // Ba chỗ dễ sai, nên ghi rõ:
 //
-//  1. Mật khẩu quản trị WordPress (JobDetail.secret) chỉ có ở MỘT lần GET, và
+//  1. Mật khẩu quản trị WordPress (JobDetail.secret, hoặc JobDetail.secrets của
+//     job hàng loạt, mỗi site một cái) chỉ có ở MỘT lần GET, và
 //     chỉ khi job đã xong (internal/server/api.go, handleJob). Vì vậy:
 //       - queryFn lấy secret ra khỏi kết quả trước khi TanStack Query cất vào
 //         cache, để cache không bao giờ giữ mật khẩu;
@@ -23,11 +24,16 @@ import type { AdminSecret, JobDetail, JobEvent } from "../../api/types";
 
 // ---- secret: giữ trong bộ nhớ, ngoài cache ----
 
-const secrets = new Map<string, AdminSecret>();
+// Một job site.add có một tài khoản (JobDetail.secret); một job hàng loạt có một
+// tài khoản mỗi site (JobDetail.secrets). Cả hai gộp thành một danh sách; mảng
+// trong Map chỉ đổi khi gán lại, nên useSyncExternalStore thấy cùng tham chiếu
+// giữa hai lần vẽ.
+const secrets = new Map<string, AdminSecret[]>();
+const noSecrets: AdminSecret[] = [];
 const listeners = new Set<() => void>();
 
-function setSecret(id: string, s: AdminSecret | undefined) {
-  if (s) secrets.set(id, s);
+function setSecrets(id: string, list: AdminSecret[]) {
+  if (list.length > 0) secrets.set(id, list);
   else secrets.delete(id);
   for (const l of listeners) l();
 }
@@ -39,18 +45,19 @@ function subscribeSecrets(l: () => void) {
   };
 }
 
-export function useAdminSecret(id: string): { secret: AdminSecret | undefined; dismiss: () => void } {
-  const secret = useSyncExternalStore(
+/** dismiss(i) ẩn tài khoản thứ i (theo thứ tự đang hiện); mỗi khối tự ẩn, vì từng cái là một mật khẩu phải lưu. */
+export function useAdminSecret(id: string): { secrets: AdminSecret[]; dismiss: (index: number) => void } {
+  const list = useSyncExternalStore(
     subscribeSecrets,
-    () => secrets.get(id),
-    () => undefined,
+    () => secrets.get(id) ?? noSecrets,
+    () => noSecrets,
   );
-  return { secret, dismiss: () => setSecret(id, undefined) };
+  return { secrets: list, dismiss: (index) => setSecrets(id, list.filter((_, i) => i !== index)) };
 }
 
 // ---- job ----
 
-type JobBase = Omit<JobDetail, "secret">;
+type JobBase = Omit<JobDetail, "secret" | "secrets">;
 
 export type StreamState = "idle" | "live" | "lost";
 
@@ -65,7 +72,8 @@ export function useJob(id: string) {
     queryKey: key,
     queryFn: async (): Promise<JobBase> => {
       const d = await get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
-      if (d.secret) setSecret(id, d.secret);
+      const list = [...(d.secret ? [d.secret] : []), ...(d.secrets ?? [])];
+      if (list.length > 0) setSecrets(id, list);
       return { job: d.job, events: d.events };
     },
     // Tiến độ đi qua SSE, không đọc lại theo thời gian hay khi chuyển tab: mỗi lần GET

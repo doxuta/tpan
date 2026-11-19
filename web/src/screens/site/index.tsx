@@ -1,7 +1,8 @@
 // Màn Site (mục 10 của KE-HOACH.md, mục 7 của docs/GIAO-DIEN.md):
 //   /sites         danh sách site, bảng kẻ mảnh như "Lịch sử máy"
 //   /sites/:domain một site: tuyến đường đi request, phép kiểm kèm bằng chứng,
-//                  tên và đường dẫn, kiểm lại, xoá site (qua bản xem trước)
+//                  tên và đường dẫn, kiểm lại, đưa site vào thùng rác (qua bản
+//                  xem trước; M6: DELETE không còn xoá hẳn, xoá hẳn ở màn Thùng rác)
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -324,30 +325,51 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
         </dl>
       </section>
 
-      <section aria-labelledby="xoa-site">
-        <h2 id="xoa-site" className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
-          {t.deleteHeading}
-        </h2>
-        <p className="m-0 text-muted">{t.deleteHint}</p>
-        <div className="pt-[12px]">
-          <Button onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending}>
-            {dry.isPending ? t.deletePreviewing : t.delete}
-          </Button>
-        </div>
-        {dry.isError && (
+      {info.site.status === "trashed" ? (
+        // Site đã trong thùng rác: không còn gì để "đưa vào" nữa, việc tiếp theo ở màn Thùng rác.
+        <section aria-labelledby="xoa-site">
+          <h2 id="xoa-site" className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
+            {t.trashedHeading}
+          </h2>
+          <p className="m-0 text-muted">{t.trashedHint}</p>
           <div className="pt-[12px]">
-            <ErrorNote error={dry.error} heading={t.deleteFailed} />
+            <Link to="/trash" className={buttonClass("primary")}>
+              {t.trashedLink}
+            </Link>
           </div>
-        )}
-        {preview && (
-          <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
-            <PlanReview preview={preview} onRun={() => run.mutate()} running={run.isPending} error={run.error} onCancel={() => {
-                setPreview(null);
-                run.reset();
-              }} />
+        </section>
+      ) : (
+        <section aria-labelledby="xoa-site">
+          <h2 id="xoa-site" className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
+            {t.deleteHeading}
+          </h2>
+          <p className="m-0 text-muted">
+            {t.deleteHintLead}
+            <Link to="/trash">{t.trashLink}</Link>
+            {t.deleteHintTail}
+          </p>
+          <div className="pt-[12px]">
+            <Button onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending}>
+              {dry.isPending ? t.deletePreviewing : t.delete}
+            </Button>
           </div>
-        )}
-      </section>
+          {dry.isError && (
+            <div className="pt-[12px]">
+              <ErrorNote error={dry.error} heading={t.deleteFailed} />
+            </div>
+          )}
+          {preview && (
+            <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
+              {/* Câu hỏi lại của việc này: đưa vào thùng rác không mất dữ liệu, nói rõ để người dùng bấm chạy mà yên tâm. */}
+              <p className="m-0 pt-[26px] font-medium">{t.deleteAsk(domain)}</p>
+              <PlanReview preview={preview} onRun={() => run.mutate()} running={run.isPending} error={run.error} onCancel={() => {
+                  setPreview(null);
+                  run.reset();
+                }} />
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 }

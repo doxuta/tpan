@@ -1,9 +1,10 @@
-// Tài khoản quản trị WordPress, hiện MỘT lần (JobDetail.secret). Nổi rõ bằng
+// Tài khoản quản trị WordPress, hiện MỘT lần (JobDetail.secret, hoặc một phần
+// tử của JobDetail.secrets với job hàng loạt: mỗi site một khối). Nổi rõ bằng
 // viền 2 px màu --ink; mật khẩu không vào localStorage hay cache của TanStack
 // Query (xem useJob.ts). Mất mật khẩu này là mất tài khoản quản trị, nên khối
 // chỉ biến mất khi người dùng tự bấm "Đã lưu, ẩn đi".
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { AdminSecret } from "../../api/types";
 import { Button } from "../../components/Button";
 import { useCopy } from "../../components/useCopy";
@@ -11,20 +12,40 @@ import { useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/lich-su";
 
-export function SecretBox({ secret, onDismiss }: { secret: AdminSecret; onDismiss: () => void }) {
+type Props = {
+  secret: AdminSecret;
+  onDismiss: () => void;
+  /** Job hàng loạt có nhiều khối: tiêu đề nói tài khoản của site nào. */
+  many?: boolean;
+  /** Đưa khối này vào tầm mắt và cho trình đọc màn hình nhảy tới; chỉ khối đầu làm việc đó. */
+  focus?: boolean;
+};
+
+/** Phần máy chủ của địa chỉ để làm tiêu đề; địa chỉ lạ thì dùng nguyên chuỗi. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host || url;
+  } catch {
+    return url;
+  }
+}
+
+export function SecretBox({ secret, onDismiss, many = false, focus = true }: Props) {
   const t = useStrings(strings);
   const ref = useRef<HTMLElement>(null);
+  const headingId = useId();
   // Mật khẩu về khi job vừa xong, lúc người dùng đang ở cuối log: đưa khối này
   // vào tầm mắt và cho trình đọc màn hình nhảy tới, kẻo họ không thấy mà rời trang.
   useEffect(() => {
+    if (!focus) return;
     ref.current?.scrollIntoView({ block: "start" });
     ref.current?.focus({ preventScroll: true });
-  }, []);
+  }, [focus]);
   return (
-    <section ref={ref} tabIndex={-1} aria-labelledby="secret-heading" className="mt-[26px] border-2 border-ink bg-surface p-[18px] outline-offset-4">
+    <section ref={ref} tabIndex={-1} aria-labelledby={headingId} className="mt-[26px] border-2 border-ink bg-surface p-[18px] outline-offset-4">
       <div className="font-mono text-[11px] tracking-[0.08em] text-muted">{t.secretLabel}</div>
-      <h2 id="secret-heading" className="m-0 mt-[4px] text-[16px] font-semibold">
-        {t.secretTitle}
+      <h2 id={headingId} className="m-0 mt-[4px] text-[16px] font-semibold [overflow-wrap:anywhere]">
+        {many ? t.secretTitleOf(hostOf(secret.url)) : t.secretTitle}
       </h2>
       <p className="mt-[6px] mb-0">{t.secretBody}</p>
       <dl className="m-0 mt-[14px]">

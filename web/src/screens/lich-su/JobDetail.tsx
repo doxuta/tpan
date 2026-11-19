@@ -17,6 +17,7 @@ import { strings } from "../../i18n/lich-su";
 import { formatClock, formatDateTime, formatDuration } from "./format";
 import { buildView, elapsedMs, type Block, type JobView } from "./jobModel";
 import { SecretBox } from "./SecretBox";
+import { UnitTable } from "./UnitTable";
 import { useAdminSecret, useJob } from "./useJob";
 
 type T = (typeof strings)["vi"];
@@ -32,7 +33,7 @@ export function JobDetail() {
   const { lang } = useLang();
   const { id = "" } = useParams();
   const { query, job, events, running, stream, reconnect } = useJob(id);
-  const { secret, dismiss } = useAdminSecret(id);
+  const { secrets, dismiss } = useAdminSecret(id);
   const view = useMemo(() => buildView(events), [events]);
   const now = useNow(running);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -66,6 +67,8 @@ export function JobDetail() {
   const ms = end ? elapsedMs(job.started, end) : null;
   const failed = status === "rolled_back" || status === "undo_failed";
   const lastStep = view.steps.at(-1);
+  // Job hàng loạt: có sự kiện unit.done. Bảng từng site hiện thêm, các phần còn lại giữ nguyên.
+  const batch = view.units.length > 0;
 
   const blockKeys = [...view.steps.map((_, i) => `s${i}`), ...view.undo.map((_, i) => `u${i}`)];
   const isOpen = (key: string, b: Block<string>) => open[key] ?? (b.state === "running" || b.state === "failed");
@@ -87,7 +90,9 @@ export function JobDetail() {
         {announce}
       </p>
 
-      {secret && <SecretBox secret={secret} onDismiss={dismiss} />}
+      {secrets.map((s, i) => (
+        <SecretBox key={s.url} secret={s} many={secrets.length > 1} focus={i === 0} onDismiss={() => dismiss(i)} />
+      ))}
 
       <dl className="m-0 mt-[26px] grid grid-cols-2 gap-x-[16px] gap-y-[12px] border-t border-hair pt-[14px] sm:flex sm:flex-wrap sm:gap-x-[32px]">
         <Fact label={t.fieldStatus}>{statusText}</Fact>
@@ -121,15 +126,18 @@ export function JobDetail() {
 
       {failed && (
         <div className="mt-[14px]">
-          <p className="m-0 font-medium">{failureText(t, view, status, failedStepOf(view))}</p>
-          {/* Bước hỏng đã mang đúng thông báo này trong khối của nó; chỉ hiện ở đây khi không có bước nào để chỉ tới. */}
-          {job.error && !failedStepOf(view) && (
+          <p className="m-0 font-medium">{batch ? (status === "undo_failed" ? t.unitsFailedUndo : t.unitsFailedAll) : failureText(t, view, status, failedStepOf(view))}</p>
+          {/* Bước hỏng đã mang đúng thông báo này trong khối của nó; chỉ hiện ở đây khi không có bước nào để chỉ tới.
+              Job hàng loạt thì luôn hiện: lỗi của lần reload hoàn tác cuối chỉ nằm ở đây, không thuộc site nào. */}
+          {job.error && (batch || !failedStepOf(view)) && (
             <div className="mt-[10px]">
               <EvidenceBlock text={job.error} label={t.errorLabel} />
             </div>
           )}
         </div>
       )}
+
+      {batch && <UnitTable units={view.units} />}
 
       <section aria-labelledby="steps-heading" className="pt-[26px]">
         <div className="flex flex-wrap items-baseline justify-between gap-[12px]">

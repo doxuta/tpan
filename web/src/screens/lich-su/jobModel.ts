@@ -5,7 +5,7 @@
 // chạy với lần hoàn tác của cùng một bước. Mỗi step.start và mỗi undo.start mở
 // một khối mới; command/output gắn vào khối đang mở.
 
-import type { CheckResult, JobEvent } from "../../api/types";
+import type { CheckResult, JobEvent, UnitResult, UnitStatus } from "../../api/types";
 
 export type StepState = "running" | "skipped" | "done" | "failed";
 export type UndoState = "running" | "done" | "failed";
@@ -24,6 +24,8 @@ export type JobView = {
   steps: Block<StepState>[];
   undo: Block<UndoState>[];
   checks: CheckResult[];
+  /** Kết quả từng site của job hàng loạt (sự kiện unit.done); rỗng với job thường. */
+  units: UnitResult[];
   /** Message của job.done (JobStatus) khi đã có. */
   doneStatus?: string;
   doneTime?: string;
@@ -33,7 +35,7 @@ export type JobView = {
 };
 
 export function buildView(events: JobEvent[]): JobView {
-  const v: JobView = { steps: [], undo: [], checks: [], failedIndex: -1, lastSeq: 0 };
+  const v: JobView = { steps: [], undo: [], checks: [], units: [], failedIndex: -1, lastSeq: 0 };
   // Khối bước và khối hoàn tác đang mở; command/output gắn vào khối mở gần nhất.
   let step: Block<StepState> | null = null;
   let undo: Block<UndoState> | null = null;
@@ -79,6 +81,14 @@ export function buildView(events: JobEvent[]): JobView {
       case "check":
         if (e.check) v.checks.push(e.check);
         break;
+      case "unit.done": {
+        const u = parseUnit(e.message);
+        if (!u) break; // JSON hỏng thì bỏ riêng dòng này, không làm hỏng cả trang
+        const at = v.units.findIndex((x) => x.target === u.target);
+        if (at >= 0) v.units[at] = u;
+        else v.units.push(u);
+        break;
+      }
       case "job.done":
         v.doneStatus = e.message;
         v.doneTime = e.time;
@@ -88,6 +98,24 @@ export function buildView(events: JobEvent[]): JobView {
     }
   }
   return v;
+}
+
+const unitStatuses: readonly string[] = ["succeeded", "rolled_back", "undo_failed", "not_run"];
+
+/** message của unit.done là JSON của UnitResult; sai hình dạng thì null. */
+export function parseUnit(message: string | undefined): UnitResult | null {
+  if (!message) return null;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(message);
+  } catch {
+    return null;
+  }
+  if (typeof raw !== "object" || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.target !== "string" || o.target === "" || typeof o.status !== "string" || !unitStatuses.includes(o.status)) return null;
+  const str = (x: unknown) => (typeof x === "string" && x !== "" ? x : undefined);
+  return { target: o.target, status: o.status as UnitStatus, phase: str(o.phase), step_id: str(o.step_id), error: str(o.error) };
 }
 
 /** Số mili giây giữa hai mốc RFC 3339; không đọc được thì null. */
