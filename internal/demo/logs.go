@@ -87,7 +87,7 @@ func seedOf(s string) uint32 {
 
 // poolDown: socket của pool không có, request PHP sẽ ra 502.
 func (m *machine) poolDown(l site.Layout) bool {
-	_, err := m.Stat(l.SocketFor(phpVer))
+	_, err := m.Stat(m.vhostSocket(l))
 	return err != nil
 }
 
