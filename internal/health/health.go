@@ -116,8 +116,8 @@ func (r Report) HasFail() bool {
 // domain nếu path thuộc thư mục hay file của site đó, không thì "", và phép
 // kiểm của tpan với store.TargetTPAN), chạy (checks.RunAll), điền
 // Result.AutoFix bằng core.AutoFixName, rồi Store.RecordResults theo từng
-// target. Lần chạy nhẹ (Full false) bỏ các phép kiểm có ID bắt đầu bằng
-// "wp.checksums:". Lỗi đọc store hay settings thì trả lỗi; phép kiểm không chạy
+// target. Lần chạy nhẹ (Full false) bỏ các phép kiểm đánh dấu checks.Heavy
+// (wp.checksums) trước khi chạy. Lỗi đọc store hay settings thì trả lỗi; phép kiểm không chạy
 // được thì đã là Unknown trong Result, không phải lỗi.
 func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 	now := r.clock()
@@ -149,7 +149,7 @@ func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 			}
 		}
 		for _, res := range checks.RunAll(ctx, r.Sys, cs) {
-			if seen[res.ID] || (!o.Full && isHeavy(res.ID)) {
+			if seen[res.ID] {
 				continue
 			}
 			seen[res.ID] = true

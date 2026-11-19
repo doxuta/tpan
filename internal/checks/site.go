@@ -253,8 +253,10 @@ func PoolSocket(l site.Layout) Check {
 				i18n.T("Không có socket "+l.Socket, "The socket "+l.Socket+" is missing"),
 				i18n.T("Pool PHP-FPM của site chưa chạy (file pool chưa có, chưa được nạp, hoặc PHP-FPM đang dừng). Web server không có chỗ chuyển request PHP tới: lỗi 502.",
 					"The site's PHP-FPM pool is not running (the pool file is missing or not loaded, or PHP-FPM is stopped). The web server has nowhere to send PHP requests: error 502."),
+				// restart chứ không reload: socket bị xoá thì reload không tạo lại
+				// (PHP-FPM giữ socket cũ qua lần reload; đo trên máy ảo ở M4).
 				[]string{"ls -l " + poolGlob, line("systemctl", "status", phpUnits, "--no-pager"), line("tpan", "site", "add", dom),
-					line("systemctl", "reload", phpUnits), recheck}, ev)
+					line("systemctl", "restart", phpUnits), recheck}, ev)
 		}
 		if info.Mode&fs.ModeSocket == 0 {
 			return b.bad(Fail,

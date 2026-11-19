@@ -111,7 +111,7 @@ func (h *healthRun) run(ctx context.Context) (health.Report, error) {
 }
 
 // healthExit: lỗi (Fail) hoặc stack chưa cài là mã 1, vì không có gì để
-// khẳng định là khoẻ. Cảnh báo (kể cả lệch) không làm mã 1: máy vẫn chạy được.
+// khẳng định là khoẻ. Cảnh báo không làm mã 1: máy vẫn chạy được.
 func healthExit(rep health.Report) error {
 	if !rep.Installed || rep.HasFail() {
 		return &exitCode{1}
@@ -381,7 +381,7 @@ func printHealthReport(e *env, rep health.Report) {
 		printHealth(e, core.Health{Installed: true, Results: g.Results})
 	}
 
-	// Lệch là cảnh báo nên dễ bị lẫn giữa hàng chục dòng đạt: nhắc lại đúng
+	// Lệch dễ bị lẫn giữa hàng chục dòng đạt: nhắc lại đúng
 	// đường dẫn file để người đọc biết mở file nào (e2e bước 9).
 	var drifted []string
 	for _, g := range rep.Groups {

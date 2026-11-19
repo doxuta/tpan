@@ -28,9 +28,6 @@ func (r *Runner) clock() func() time.Time {
 	return time.Now
 }
 
-// isHeavy: phép kiểm chỉ chạy ở lần đầy đủ (mục 6.7: "mỗi giờ cho phép kiểm
-// nặng"). wp.checksums tải danh sách checksum từ wordpress.org cho từng site.
-func isHeavy(id string) bool { return strings.HasPrefix(id, "wp.checksums:") }
 
 // collect gom phép kiểm theo đối tượng: máy và stack (""), từng site active,
 // lệch file (gắn vào site sở hữu file), rồi chính tpan. installed cho biết
