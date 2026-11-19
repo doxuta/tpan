@@ -154,11 +154,6 @@ func writeError(w http.ResponseWriter, status int, code string, msg i18n.Text) {
 	writeJSON(w, status, ErrorBody{Error: ErrorDetail{Code: code, Message: msg}})
 }
 
-// notImplemented là khung của đợt 0; không còn chỗ nào dùng khi M3 xong.
-func notImplemented(w http.ResponseWriter, _ *http.Request) {
-	writeError(w, http.StatusNotImplemented, "not_implemented", i18n.T("Chưa làm.", "Not implemented yet."))
-}
-
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)

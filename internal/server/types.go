@@ -16,11 +16,14 @@ package server
 //
 // Quy ước chung:
 //   - JSON, UTF-8. Thời gian dạng RFC 3339 (time.Time mặc định của Go).
-//   - Lỗi luôn có dạng ErrorBody với mã HTTP phù hợp: 400 đầu vào sai, 401
-//     chưa đăng nhập, 403 bị CSRF chặn, 404 không có, 409 đang có job khác /
-//     máy lệch (core.RefusedError), 423 IP đang bị khoá, 429 quá nhiều lần thử,
-//     500 lỗi khác. core.RefusedError đổi thành ErrorBody với Code của nó và
-//     kèm Checks nếu có.
+//   - Lỗi luôn có dạng ErrorBody với mã HTTP phù hợp: 400 đầu vào sai
+//     (bad_request, domain_invalid, email_invalid, title_invalid,
+//     password_too_short, limit_invalid, after_invalid), 401 chưa đăng nhập
+//     (unauthorized, wrong_password), 403 bị CSRF chặn (csrf), 404 không có
+//     (not_found, site_not_found, job_not_found, session_not_found), 409 đang có
+//     job khác (job_running) hoặc core.RefusedError khác (kèm Checks), 423 IP
+//     đang bị khoá (login_locked, có Retry-After), 503 chưa chạy tpan setup
+//     (not_set_up), 500 lỗi khác (internal).
 //   - Endpoint có thay đổi nhận ?dry_run=1 và trả engine.Preview; chạy thật
 //     thì trả 202 JobStarted, tiến độ lấy ở /api/v1/jobs/{id}/events (SSE).
 //   - []byte trong engine.FileChange (old, new) ra JSON dạng base64 (mặc định
@@ -82,6 +85,12 @@ type Deps struct {
 	Hostname string
 	// Now nil thì dùng time.Now (test đặt để có thời điểm cố định).
 	Now func() time.Time
+	// WPHash và WPCLISHA512 rỗng thì core dùng mã đã ghim của bản thật
+	// (steps.DefaultWordPressSHA1, steps.DefaultWPCLISHA512). Chế độ --demo đặt
+	// mã của file giả (demo.Hashes), không thì tạo site trên máy giả hỏng ở
+	// bước kiểm checksum.
+	WPHash      string
+	WPCLISHA512 string
 }
 
 // ErrorBody là dạng lỗi duy nhất của API (mục 9).
