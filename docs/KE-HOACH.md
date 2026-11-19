@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: M0 đến M5 và M7 xong ngày 19/11/2026 (lượt A gồm M4, M5, M7 chạy song song rồi ghép vào `dev`; M5 và M7 xong phần máy ảo, phần cần VPS hay Claude Code thật ở mục 18). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt kế tiếp là B (M6, M8, M12). Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: M0 đến M7 xong ngày 19/11/2026 (lượt A gồm M4, M5, M7 chạy song song rồi ghép vào `dev`; M5 và M7 xong phần máy ảo, phần cần VPS hay Claude Code thật ở mục 18). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt B (M6, M8, M12) đang ghép; M6 đã vào `dev` (e2e trên `tpan-test` sau ghép: 160 đạt, 0 không đạt, `docs/bang-chung/M6-ghep.log`). Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -378,6 +378,42 @@ Xoá một site là đưa vào thùng rác, không mất dữ liệu:
 Khôi phục: làm ngược lại rồi chạy bước kiểm chứng của 6.2. Từ chối nếu domain đã được tạo lại.
 
 Xoá hẳn (bấm tay hoặc hết hạn): xoá DB và user DB, xoá file, `userdel`, `certbot delete`. Việc dọn thùng rác hết hạn do một bộ hẹn giờ trong `tpan serve` chạy mỗi giờ; cũng gọi tay được bằng `tpan trash purge --expired`.
+
+#### Đã chốt khi làm M6
+
+**Chỗ thực tế khác đặc tả.**
+
+- **Thư viện mới** (mục 3): `go.yaml.in/yaml/v3` v3.0.6 để đọc `sites.yaml` (thư viện chuẩn của Go không có YAML). Đây là nhánh được nhóm YAML của Go duy trì tiếp `gopkg.in/yaml.v3` (bản cũ không còn được duy trì); `go.sum` đã có nó ở dạng gián tiếp.
+- **Job hàng loạt nằm ở `engine.ExecuteBatch`** (file mới `internal/engine/batch.go`), không phải một Plan thường: Plan thường hoàn tác cả job khi một bước lỗi, và mỗi file vhost, pool tự reload. Mục 7 cần hoàn tác riêng từng site và reload một lần.
+- **Khác phân vùng thì từ chối, chưa "chép rồi xoá"** (mục 6.4 bước 4): `steps.MoveTree` chỉ dùng `rename`; gặp `EXDEV` thì báo lỗi nói rõ hai phân vùng. Máy ảo cùng phân vùng; VPS cần đo (`df`, mục "Việc chủ dự án tự làm trên VPS"). Nâng cấp về sau: chép bằng `cp -a` rồi xoá, có hoàn tác.
+- **Id thùng rác là slug**: `/var/lib/tpan/trash/<slug>` (mục 5 ghi `<id>`). Slug suy được từ domain và duy nhất; một domain chỉ có một dòng trong bảng `sites`.
+- **Hạn xoá hẳn lưu ở cột mới `sites.purge_at`** (migration 600); số ngày giữ ở `settings` khoá `trash.days` (mục 4.4 đã nói `settings` giữ "số ngày giữ thùng rác"), đặt bằng lệnh mới `tpan trash settings --days N` (mục 9 chưa có).
+
+- **Khoá user Linux bằng hạn tài khoản, không bằng `usermod -L`** (mục 6.4 bước 3). Đã kiểm trên máy ảo `tpan-m6`: user của site tạo bằng `useradd` không mật khẩu nên shadow là `!` và `passwd -S` báo `L` từ đầu; `usermod -L` thoát 0 mà không đổi gì đọc được, `usermod -U` in "unlocking the user's password would result in a passwordless account" và vẫn thoát 0. Thay bằng `usermod --expiredate 1` (khoá) và `usermod --expiredate ''` (mở), đọc bằng `chage -l` ("Account expires: never" là chưa khoá). `runuser -u` từ root vẫn chạy với user hết hạn (root bỏ qua kiểm tài khoản), nên WP-CLI của tpan không bị ảnh hưởng; cron và đăng nhập qua PAM bị chặn.
+- **Job hàng loạt (engine.ExecuteBatch)**: `Job.Error` liệt kê các site lỗi kể cả khi job `succeeded` (một phần lô thành công); Commit lỗi thì mọi site còn sống thành `rolled_back` với pha `commit`.
+
+- **Phép kiểm chứng mới `http.gone:<domain>`** (core, chặng e2e) cho Plan đưa vào thùng rác: `curl --resolve <d>:80:127.0.0.1` trả 404, hoặc site mặc định (nginx 444, curl mã thoát 52; apache 403). `checks.HTTPDefault` của M1 gọi IP không kèm tên miền nên không dùng lại được.
+- **Thùng rác giữ file vhost** trong `sites-available`, chỉ gỡ link ở `sites-enabled` (mục 6.4 bước 1 nói "gỡ symlink vhost"); khôi phục chỉ bật lại link. Pool thì gỡ hẳn và ghi lại từ template khi khôi phục.
+- **Khoá user DB coi "user không có" là đạt**: không thì site lệch kiểu `wp-config.php` có mà user DB mất (mục 6.2, "Chạy lại") không vào được thùng rác, mà xoá hẳn chỉ đi qua thùng rác. Khôi phục site như vậy thì bước mở khoá báo lỗi (site vẫn lệch).
+- **Xoá hẳn chỉ cho site trong thùng rác** (`site_not_trashed`). Chưa có "tự backup trước khi xoá hẳn" (mục 6.5): backup là M9.
+- **Site trong thùng rác không có hạn (`purge_at` rỗng) không bao giờ bị dọn tự động**: xoá dữ liệu khi không biết hạn là đoán.
+- **CLI mới** (mục 9 chưa có): `tpan site restore <domain>` (mục 9 có, nay chạy được), `tpan trash list`, `tpan trash purge <domain> | --expired`, `tpan trash settings [--days N]`, `tpan apply -f <file|-> [--prune]`, `tpan export [--json]`. `-f -` đọc stdin và bắt buộc `--yes` hoặc `--dry-run`. Mã từ chối mới: `args_invalid`, `apply_empty`, `prune_empty` (prune với danh sách rỗng bị từ chối: không cho một file rỗng đưa mọi site vào thùng rác), `domain_duplicate`, `nothing_to_do` (API, khi không có gì để làm), `site_not_trashed`, `trash_days_invalid`.
+- **API mới** (mục 9): như đầu `internal/server/types_m6.go`. `DELETE /api/v1/sites/{domain}` giờ là đưa vào thùng rác. `POST /api/v1/apply?dry_run=1` trả 200 kể cả khi không có gì để làm (để giao diện hiện lý do từng dòng); chạy thật thì 409 `nothing_to_do`.
+- **Bộ hẹn giờ dọn thùng rác** chạy lần đầu 3 phút sau khi `tpan serve` khởi động, rồi mỗi giờ; bỏ vòng khi đang có job (trong tiến trình hoặc khoá toàn cục bị CLI giữ). Nhật ký ghi IP là `timer`, thao tác `trash.purge_expired`.
+- **Job hàng loạt**: `Kind` là `apply`, `Target` là "N site". Pha D (SSL) là các job `site.ssl` riêng chạy sau, mỗi site một job; mật khẩu quản trị của job hàng loạt chỉ đọc được (một lần, `JobDetail.secrets`) sau khi pha D xong. Kiểm cô lập lúc tạo bỏ qua các site anh em cùng lô (chúng có thể đang dở); cô lập giữa site mới cùng lô kiểm sau job, không hoàn tác gì.
+- **`trash purge --expired` hỏi lại một lần cho cả lô.**
+- **Thùng rác và hàng loạt khác mục 7 ở "khôi phục hàng loạt"**: chưa có (mục 9 không có lệnh cho nó); xoá hàng loạt là `apply --prune`.
+- **Pool PHP-FPM: chờ socket sau reload** (`steps.File.WaitFor`, tối đa 5 giây): `systemctl reload php8.3-fpm` trả về trước khi PHP-FPM tạo socket của pool mới (đo trên máy ảo: reload trả về sau 0,011 giây, socket có sau 0,175 giây), làm kiểm chứng của `site restore` lỗi oan và hoàn tác. Lúc tạo site lỗi này bị che vì bước cài WordPress chạy lâu trước kiểm chứng. Bước reload một lần của job hàng loạt (`ConfigReload`) chưa chờ: hiện chưa lỗi vì pha C cài WordPress trước khi kiểm.
+- **`http.gone` thử lại tới 5 giây** (mỗi 200 ms): ngay sau `systemctl reload nginx`, request vẫn được trả lời theo cấu hình cũ trong khoảng 0,17 giây (đo trên máy ảo: 0,012 giây sau reload còn 301, 0,168 giây sau là mã 52). Site có SSL vì vậy không vào được thùng rác (cấu hình cũ trả 301, không phải 404) ở lần chạy đầu của hồi quy e2e M5. Đây là "quan sát còn mở" của M7 ở mục 8.3; các phép kiểm khác chạy ngay sau reload (ví dụ https lúc khôi phục) chưa được bọc, hiện đạt nhờ có bước chậm chạy trước.
+- **Kiểm thử đã đổi nghĩa**: `site rm` của e2e M2, M4, M5 giờ đưa vào thùng rác; chỗ nào cần xoá hẳn thì thêm `tpan trash purge <d> --yes` (đợt 3 sửa các script đó).
+
+**Chưa kiểm ở M6.**
+
+- **Giao diện chưa ai nhìn bằng mắt** (thợ giao diện chỉ chạy được typecheck và build): màn Thùng rác (bảng, cột "Xoá hẳn lúc", khối số ngày giữ, xem trước khôi phục và xoá hẳn với dòng cảnh báo), Tạo site ở chế độ "Dán danh sách" (bảng việc từng dòng, xem trước, công tắc SSL), trang job hàng loạt (bảng kết quả từng site, nhiều khối tài khoản quản trị), nút "Đưa vào thùng rác" ở trang site. Xem ở sáng, tối, tiếng Anh, 390 px, bằng bàn phím: `make dev-api` + `make dev-web` (chế độ demo có sẵn một site trong thùng rác). API phía sau đã chạy thật trong e2e (bước k).
+- **Bộ hẹn giờ dọn thùng rác trong `tpan serve` thật** (vòng đầu sau 3 phút, rồi mỗi giờ): chỉ có unit test; e2e dùng `tpan trash purge --expired`.
+- **Một site lỗi giữa lô trên máy thật** (pha A, pha C, hoặc lỗi ở pha B làm hoàn tác cả lô) và **pha D (SSL) của `apply`**: chỉ có unit test.
+- **Bước reload một lần của job hàng loạt (`ConfigReload`) chưa chờ socket PHP-FPM** như bước ghi pool của site đơn; hiện đạt nhờ pha C cài WordPress vài giây trước kiểm chứng.
+- **Chưa chạy lại e2e M3 và M4** sau khi thêm `trash purge` vào chúng (M2 và M5 đã chạy lại, xem trên).
 
 ### 6.5 Backup và khôi phục
 
@@ -839,7 +875,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M3** ✅ | `tpan setup`, API, đăng nhập, SSE; giao diện theo `docs/GIAO-DIEN.md`, sáng và tối: menu chính, bảng điều khiển với bản đồ tuyến và số liệu máy, màn cơ sở dữ liệu (chỉ xem), đổi mật khẩu quản trị và `tpan admin passwd` để đặt lại khi quên, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
 | **M4** ✅ | Health đầy đủ: chạy định kỳ, sự cố, sửa tự động và sửa tay, tự kiểm TPAN, phát hiện lệch, log trực tiếp, số request và lỗi 5xx theo site, `scripts/faults/` | e2e bước 9 và 11 |
 | **M5** ✅ | SSL (staging), trang bảo mật, ufw, fail2ban | chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt |
-| **M6** | Hàng loạt (dán danh sách, `apply -f`, `export`), thùng rác, khôi phục, dọn tự động | e2e bước 7; tạo 10 site một lượt chỉ reload một lần |
+| **M6** ✅ | Hàng loạt (dán danh sách, `apply -f`, `export`), thùng rác, khôi phục, dọn tự động | e2e bước 7; tạo 10 site một lượt chỉ reload một lần |
 | **M7** ✅ | Cổng cho agent: danh mục công cụ, che dữ liệu, `tpan mcp`, hai chế độ duyệt, Plan chờ duyệt, thư mục `agents/`, nút "Chép lệnh cho Claude Code" | e2e bước 12; test che dữ liệu và test log cài câu lệnh đạt; Claude Code trên máy cá nhân liệt kê được site của máy ảo qua SSH, chẩn đoán đúng chặng một lỗi từ `scripts/faults/`, và Plan nó đề xuất sửa được lỗi đó |
 | **M8** | AI trong panel: `Brain`, `claudecode`, `tpan brain`, kiểm sự kiện `init`, ngăn AI có ngữ cảnh làm việc và bản hướng dẫn theo mục, thanh lệnh, giải thích, chẩn đoán, trang phiên AI | e2e bước 13; với Claude Code thật: hỏi từ panel của máy ảo, chữ hiện dần, Plan đề xuất hiện ở màn duyệt; chuyển mục rồi hỏi tiếp thì ngữ cảnh gửi đi đổi theo, xem được ở trang phiên AI |
 | **M9** | Backup, khôi phục, chặn đầy đĩa, backup theo lịch; cron thật cho WordPress và màn Cron; đổi mật khẩu, xuất và nhập DB | e2e bước 10; backup bị từ chối khi đĩa giả lập gần đầy; một bài hẹn giờ của WordPress được đăng đúng giờ khi không có khách nào vào site |
@@ -973,6 +1009,19 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - **Trang bảo mật trên máy ảo sạch** (trước khi bật gì): ufw tắt (cảnh báo), fail2ban chưa cài (cảnh báo), `PermitRootLogin without-password` (đạt), `PasswordAuthentication no` (đạt), không có swap (cảnh báo), 45 gói bảo mật chờ cập nhật (cảnh báo), panel nghe `*:8443` (cảnh báo).
   - **Chứng chỉ của pebble có hạn 5 năm** (1825 ngày), không phải 90 ngày như Let's Encrypt; số ngày còn lại trong log không đại diện cho chứng chỉ thật.
 
+- Kiểm ở M6 (19/11/2026), máy ảo Ubuntu 24.04:
+  Log: `docs/bang-chung/M6.log` (`scripts/e2e-m6.sh`, nginx rồi apache, mỗi lượt từ máy sạch: 167 khẳng định đạt, 0 không đạt). Hồi quy e2e M2 lượt nginx sau khi đổi `site rm`: `docs/bang-chung/M6-hoi-quy-m2.log` (182 đạt, 0 không đạt). Hồi quy e2e M5 (`all`: nginx, bảo mật, apache) có thêm bước site SSL vào thùng rác rồi khôi phục: `docs/bang-chung/M6-hoi-quy-m5.log` (256 đạt, 0 không đạt). Chưa chạy lại e2e M3 và M4 (chỉ thêm `trash purge` sau `site rm`).
+  - **Chứng chỉ khi site vào thùng rác**: giữ nguyên (cùng serial), https không còn trả 200 (nginx từ chối bắt tay, curl mã 35; apache 403); khôi phục dùng lại đúng chứng chỉ đó. Chỉ xoá hẳn mới chạy `certbot delete`.
+
+  - **`rename` giữa `/var/www` và `/var/lib`** (dòng đã có ở mục 16): máy ảo cùng một phân vùng (`df` in hai dòng `/dev/sda1 ... /`), đưa vào thùng rác 0,1 giây. Phía VPS chưa đo: xem dưới.
+  - **Tạo 10 site một lượt**: một job 28,9 giây (các lần chạy trước 27,8 và 30,8 giây); trong sự kiện của job có đúng một `systemctl reload nginx` và một `systemctl reload php8.3-fpm`, không restart nào; journalctl của mỗi dịch vụ có đúng một dòng `Reloaded` trong khoảng thời gian job. Apache: 3 site 12,5 giây (lần trước 11,1), `apache2` reload một lần. `useradd` chạy tuần tự (`steps.Serial`) không gặp "cannot lock /etc/passwd".
+  - **Quyền trong thùng rác**: `/var/lib/tpan/trash` là `700 root:root`; thư mục site giữ nguyên `2750 tp_<slug>:www-data` khi nằm trong đó.
+  - **Khoá user bằng hạn tài khoản**: `chage -l` báo `never` → `Jan 02, 1970` khi ở thùng rác → `never` sau khôi phục; `runuser -u tp_<slug> -- id -un` từ root vẫn thoát 0.
+  - **Khoá user DB**: `mysql.global_priv`, khoá `account_locked` là `NULL` khi user chưa từng bị khoá (không phải `0` như M4 ghi sau khi mở khoá), `1` khi khoá, `0` sau khi mở.
+  - **Site trong thùng rác**: nginx trả 444 (curl mã 52), apache 403. Ngay sau reload, worker cũ của nginx còn trả 404 trong khoảnh khắc (cùng quan sát với M7); phép kiểm `http.gone` nhận cả 404 nên vẫn đạt.
+  - **Health** sau rm, restore, prune: không Fail, không lệch, không sự cố; site trong thùng rác chỉ còn phép kiểm lệch cho file vhost được giữ, và nó đạt.
+  - **`multipass exec` treo khi output qua pipe lớn** (khoảng 60 KB trở lên: `tpan health --json`, `apply --dry-run` 10 site): quay 100% CPU trên Mac. Ghi output vào file trong máy ảo rồi mới đọc thì không treo; `e2e-m6.sh` làm vậy. Đây là lỗi của công cụ test, không phải của tpan.
+
 ## 17. Nguồn đã tra (19/11/2026)
 
 - Giới hạn của Let's Encrypt: https://letsencrypt.org/docs/rate-limits/
@@ -1102,6 +1151,33 @@ Chuẩn bị: một tên miền (hoặc tên miền con) bạn quản lý, có b
 
 Chỉ tắt staging (`sudo tpan ssl settings --staging=false`) cho buổi demo, và khi đó chỉ xin vài chứng chỉ (mục 6.3).
 
+### M6
+
+M6 không cần tên miền thật: mọi bước của cột "Xong khi" chạy trọn trên máy ảo. Khi triển khai trên VPS (amd64), chạy các lệnh dưới, mỗi lệnh có `--dry-run` để xem trước.
+
+1. Thùng rác dùng `rename`, chỉ tức thì khi `/var/www` và `/var/lib/tpan` cùng một phân vùng; khác phân vùng thì tpan từ chối (chưa có chép rồi xoá). Kiểm trước:
+   ```bash
+   df /var/www /var/lib
+   ```
+   Hai dòng phải cùng cột `Filesystem`. Khác nhau thì báo lại trước khi dùng `site rm`.
+2. Thử thùng rác với một site thử (không phải site có dữ liệu thật), ví dụ `thu.example.com` là site bạn vừa tạo bằng `tpan site add`:
+   ```bash
+   sudo tpan site rm thu.example.com --dry-run
+   sudo tpan site rm thu.example.com --yes
+   sudo tpan trash list
+   curl -sI http://thu.example.com/ | head -1      # không còn là WordPress
+   sudo tpan site restore thu.example.com --yes
+   curl -sI http://thu.example.com/ | head -1      # 200 hoặc 301 (nếu có SSL)
+   ```
+3. Hàng loạt: ghi một file `sites.yaml` theo mẫu ở mục 7 với vài tên miền thử của bạn, rồi:
+   ```bash
+   sudo tpan apply -f sites.yaml --dry-run
+   sudo tpan apply -f sites.yaml --yes
+   sudo journalctl -u nginx --since "-5 min" | grep -c Reloaded   # chờ: 1
+   sudo tpan export
+   ```
+4. Gửi lại output của bước 1 và số ở bước 3 (che IP và tên miền thật) để ghi vào `docs/bang-chung/`.
+
 ## 19. Bảng chia việc đã dùng (từ M4)
 
 Từ M4 mỗi mốc tự lập bảng chia việc theo khuôn ở mục 4 của `agent-dev/CHAY-NHIEU-AGENT.md`; bảng thật đã dùng ghi ở đây khi ghép mốc.
@@ -1158,3 +1234,23 @@ Mục phải đọc: đợt 1 và 2 đọc mục 4.2, 4.4, 8.1, 8.3, 11; thêm 6
 | 4 | Giải thích | `docs/giai-thich/05-m5-ssl-va-bao-mat.md` | `tho-viet` | opus | medium |
 
 Dữ liệu demo lúc đầu định là phần thứ tư của đợt 1, nhưng nó phải trả lời đúng từng lệnh mà phép kiểm của đợt 1 chạy, nên dời sang đợt 2 và giao cho thợ API. Mục phải đọc: đợt 1 đọc mục 3, 5, 6.3, 6.8, 11 của KE-HOACH.md và file hợp đồng của gói mình; đợt 2 đọc thêm 6.4, 6.7, 9, 10.
+
+### M6
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Hợp đồng: thư viện YAML; migration 600 (`purge_at`); `site.TrashDir`, `Site.PurgeAt`; store đọc ghi `purge_at`; chữ ký engine (job hàng loạt), steps (thùng rác, reload một lần), core (thùng rác, apply, sites.yaml); kiểu và đường dẫn API (stub 501); kiểu TypeScript; route và mục menu Thùng rác, màn giữ chỗ | `go.mod`, `go.sum`, `internal/store/migrations/600_trash.sql`, `internal/store/sites.go`, `internal/site/`, `internal/engine/batch.go`, `internal/steps/trash.go`, `internal/steps/batch.go`, `internal/core/trash.go`, `internal/core/apply.go`, `internal/core/sitesfile.go`, `internal/core/site.go` (trường `Now`), `internal/server/types_m6.go`, `internal/server/types.go` (`Secrets`), `internal/server/server.go` (khối route), `internal/server/api_trash.go`, `web/src/api/types.ts`, `web/src/routes.tsx`, `web/src/i18n/khung.ts`, `web/src/screens/thung-rac/`, `web/src/i18n/thung-rac.ts` | phiên chính | opus | high |
+| 1 | Engine: `PreviewBatch`, `ExecuteBatch` (pha Pre, A song song tối đa 3, B một lần, C song song + Verify, hoàn tác riêng từng unit, chạy lại Commit sau hoàn tác ở pha C, sự kiện `unit.done`) và test | `internal/engine/batch.go`, `internal/engine/batch_test.go` | `tho-loi` | opus | high |
+| 1 | Steps: `DBUserLock`, `SiteUserLock`, `MoveTree`, `ConfigReload`, `WebReload`, `PHPReload`, `WithoutReload`, `Serial` và test | `internal/steps/trash.go`, `internal/steps/trash_test.go`, `internal/steps/batch.go`, `internal/steps/batch_test.go` | `tho-loi` | opus | high |
+| 1 | sites.yaml: `ParseSitesFile`, `Marshal`, `Resolve`, `Export` và test | `internal/core/sitesfile.go`, `internal/core/sitesfile_test.go` | `tho-phu` | sonnet | high |
+| 1 | Màn Thùng rác: bảng site trong thùng rác (domain, ngày xoá, hạn xoá hẳn), khôi phục và xoá hẳn qua xem trước, đặt số ngày giữ | `web/src/screens/thung-rac/`, `web/src/i18n/thung-rac.ts` | `tho-giao-dien` | sonnet | high |
+| 1b | Sửa `SiteUserLock` khoá bằng hạn tài khoản (`usermod --expiredate`) sau khi máy ảo cho thấy `usermod -L/-U` không đổi gì với user không mật khẩu | `internal/steps/trash.go`, `internal/steps/trash_test.go` | `tho-loi` | opus | high |
+| 2 | Core thùng rác: `site rm` thành đưa vào thùng rác, khôi phục, xoá hẳn (dùng lại Plan xoá hẳn của M2), hết hạn, số ngày giữ; health không báo lệch cho site trong thùng rác; mô tả `propose_site_remove`; CLI `site rm`, `site restore`, `trash list|purge|settings` | `internal/core/site.go`, `internal/core/trash.go`, `internal/core/trash_test.go`, `internal/core/site_test.go`, `internal/tools/` (chỉ mô tả công cụ xoá), `cmd/tpan/site.go`, `cmd/tpan/trash.go` và test | `tho-loi` | opus | high |
+| 2 | Core hàng loạt: `PrepareApply`, `Preview`, `Execute` (Batch tạo và đưa vào thùng rác, pha D SSL, cô lập trong lô); CLI `apply -f [--prune]`, `export` | `internal/core/apply.go`, `internal/core/apply_test.go`, `cmd/tpan/apply.go` và test | `tho-loi` | opus | high |
+| 2 | API: thùng rác, khôi phục, xoá hẳn, apply, export, nhiều mật khẩu một job, bộ hẹn giờ dọn thùng rác mỗi giờ trong `tpan serve`; dữ liệu demo | `internal/server/` (trừ `types*.go`), `internal/demo/`, `cmd/tpan/root.go` (chỉ phần serve) | `tho-loi` | opus | high |
+| 2 | Giao diện: Tạo site có chế độ dán danh sách (xem trước từng site, chạy, bảng kết quả từng site từ sự kiện `unit.done`, nhiều mật khẩu); nút xoá ở trang site đổi thành "Đưa vào thùng rác" | `web/src/screens/tao-site/`, `web/src/i18n/tao-site.ts`, `web/src/screens/lich-su/`, `web/src/i18n/lich-su.ts`, `web/src/screens/site/`, `web/src/i18n/site.ts` | `tho-giao-dien` | sonnet | high |
+| 3 | Chạy thật: `scripts/e2e-m6.sh` từ máy sạch: e2e bước 7 (thùng rác, khôi phục, xoá hẳn, hết hạn), apply 10 site đếm reload, chạy lại apply, export, prune; hồi quy ngắn site add/rm của M2 | máy ảo trong `.tpan-vm`, `scripts/e2e-m6.sh`, `scripts/e2e-m2.sh`, `e2e-m3.sh`, `e2e-m4.sh`, `docs/bang-chung/M6.log`, `M6-hoi-quy-m2.log`; sửa lỗi gốc (chờ socket sau reload) ở `internal/steps/files.go`, `common.go`, `site_web.go`, `files_wait_test.go` | `tho-may-ao` | opus | high |
+| 3b | Hồi quy e2e M5 với site có SSL vào thùng rác, khôi phục, xoá hẳn; chạy lại e2e M6 trên mã cuối | máy ảo, `scripts/e2e-m5.sh`, `docs/bang-chung/M6-hoi-quy-m5.log`, `docs/bang-chung/M6.log`; sửa lỗi gốc (`http.gone` thử lại) ở `internal/core/trash.go`, `trash_test.go` | `tho-may-ao` (cùng thợ đợt 3) | opus | high |
+| 4 | Giải thích | `docs/giai-thich/06-m6-hang-loat-va-thung-rac.md` | `tho-viet` | opus | medium |
+
+Mục KE-HOACH.md phải đọc: đợt 1 và 2 đọc 4.2, 4.4, 5, 6.2, 6.4, 7, 11; thêm 6.3 cho phần SSL của apply, 6.7 cho health; phần API và CLI thêm 9; phần giao diện thêm 10 và `docs/GIAO-DIEN.md`.
