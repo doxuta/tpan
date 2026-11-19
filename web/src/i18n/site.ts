@@ -1,15 +1,148 @@
-// Chuỗi của Màn Site: danh sách site và trang một site. Giọng chữ: mục 8 của docs/GIAO-DIEN.md.
+// Chuỗi của màn Site: danh sách site và trang một site. Giọng chữ: mục 8 của docs/GIAO-DIEN.md.
+// Màn Tạo site dùng lại CheckItem của màn này nên cũng đọc nhãn "nguyên nhân", "sửa tay" ở đây.
 
 import { defineStrings } from "./index";
 
 const vi = {
+  // ---- danh sách /sites ----
   listTitle: "Site",
   listSummary: "Các site WordPress trên máy này.",
+  create: "Tạo site",
+  count: (n: number) => `${n} site`,
+  listCaption: "Danh sách site",
+  colDomain: "Domain",
+  colStatus: "Trạng thái",
+  colPhp: "PHP",
+  colCreated: "Ngày tạo",
+  statusLink: (domain: string, status: string) => `${domain}: ${status}, xem bằng chứng`,
+  emptyLead: "Chưa có site nào. ",
+  emptyLink: "Tạo site đầu tiên",
+
+  // ---- trang một site /sites/:domain ----
   detailSummary: "Đường đi request của site này và bằng chứng của từng chặng.",
+  trashed: "trong thùng rác",
+  recheck: "Kiểm lại",
+  rechecking: "Đang kiểm…",
+  updatedAt: (time: string) => `Cập nhật lúc ${time}`,
+  recheckFailed: "Chưa kiểm lại được. Bấm Kiểm lại lần nữa; vẫn lỗi thì xem log của tpan.",
+
+  routeHeading: "Đường đi request",
+  routeLabel: (domain: string) => `Đường đi request của ${domain}`,
+  routeHint: "Bấm một ga để xem bằng chứng của chặng đó.",
+  failedAt: (stage: string, summary: string) => `Hỏng ở ${stage}: ${summary}`,
+  stages: {
+    dns: "DNS",
+    tls: "TLS",
+    web: "Web server",
+    php: "Pool PHP",
+    wordpress: "WordPress",
+    db: "DB",
+    e2e: "Request thật",
+    machine: "Máy",
+    tpan: "TPAN",
+  },
+
+  checksHeading: "Phép kiểm",
+  noChecksInStage: "Chưa có phép kiểm nào cho chặng này, nên chưa nói được nó đạt hay hỏng.",
+  noStack: "Stack chưa cài nên chưa có phép kiểm nào. Cài stack trước, rồi bấm Kiểm lại.",
+  noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
+  cause: "NGUYÊN NHÂN",
+  manualFix: "SỬA TAY",
+  manualFixHint: "Chạy trên máy chủ, từng dòng một. Dòng cuối kiểm lại.",
+
+  layoutHeading: "Tên và đường dẫn",
+  layoutHint: "Bấm vào một giá trị để chép.",
+  layout: {
+    user: "User hệ thống",
+    db: "Cơ sở dữ liệu và user DB",
+    dir: "Thư mục site",
+    public: "Thư mục gốc của web",
+    pool: "Pool PHP",
+    socket: "Socket PHP",
+    vhost: "Vhost",
+    wpConfig: "wp-config.php",
+    logDir: "Thư mục log",
+    phpErrorLog: "Log lỗi PHP",
+  },
+  vhostNoStack: "chưa có, stack chưa cài",
+
+  deleteHeading: "Xoá site",
+  deleteHint: "Bạn sẽ thấy từng bước trước khi máy đổi. Chưa có gì bị xoá cho tới khi bạn duyệt.",
+  delete: "Xoá site",
+  deletePreviewing: "Đang dựng bản xem trước…",
+  deleteFailed: "Chưa dựng được bản xem trước xoá site.",
+
+  siteMissing: (domain: string) => `Không có site ${domain} trên máy này. Domain có thể gõ sai, hoặc site đã bị xoá. Xem danh sách site rồi chọn lại.`,
+  backToList: "Về danh sách site",
 };
 
 export const strings = defineStrings(vi, {
   listTitle: "Sites",
   listSummary: "The WordPress sites on this machine.",
+  create: "Create a site",
+  count: (n) => `${n} ${n === 1 ? "site" : "sites"}`,
+  listCaption: "List of sites",
+  colDomain: "Domain",
+  colStatus: "Status",
+  colPhp: "PHP",
+  colCreated: "Created",
+  statusLink: (domain, status) => `${domain}: ${status}, see the evidence`,
+  emptyLead: "No sites yet. ",
+  emptyLink: "Create your first site",
+
   detailSummary: "The request path of this site and the evidence for each stage.",
+  trashed: "in the trash",
+  recheck: "Check again",
+  rechecking: "Checking…",
+  updatedAt: (time) => `Updated at ${time}`,
+  recheckFailed: "Could not check again. Press Check again once more; if it still fails, look at the tpan log.",
+
+  routeHeading: "Request path",
+  routeLabel: (domain) => `Request path of ${domain}`,
+  routeHint: "Press a station to see the evidence for that stage.",
+  failedAt: (stage, summary) => `Broken at ${stage}: ${summary}`,
+  stages: {
+    dns: "DNS",
+    tls: "TLS",
+    web: "Web server",
+    php: "PHP pool",
+    wordpress: "WordPress",
+    db: "DB",
+    e2e: "Real request",
+    machine: "Machine",
+    tpan: "TPAN",
+  },
+
+  checksHeading: "Checks",
+  noChecksInStage: "No check covers this stage yet, so it cannot say whether it passes or fails.",
+  noStack: "The stack is not installed, so there are no checks yet. Install the stack, then press Check again.",
+  noEvidence: "This check did not record any command.",
+  cause: "CAUSE",
+  manualFix: "FIX BY HAND",
+  manualFixHint: "Run on the server, one line at a time. The last line checks again.",
+
+  layoutHeading: "Names and paths",
+  layoutHint: "Press a value to copy it.",
+  layout: {
+    user: "System user",
+    db: "Database and DB user",
+    dir: "Site directory",
+    public: "Web root",
+    pool: "PHP pool",
+    socket: "PHP socket",
+    vhost: "Vhost",
+    wpConfig: "wp-config.php",
+    logDir: "Log directory",
+    phpErrorLog: "PHP error log",
+  },
+  vhostNoStack: "none yet, the stack is not installed",
+
+  deleteHeading: "Delete site",
+  deleteHint: "You will see every step before the machine changes. Nothing is deleted until you approve it.",
+  delete: "Delete site",
+  deletePreviewing: "Building the preview…",
+  deleteFailed: "Could not build the delete preview.",
+
+  siteMissing: (domain) => `There is no site ${domain} on this machine. The domain may be mistyped, or the site was deleted. Open the site list and pick again.`,
+  backToList: "Back to the site list",
 });

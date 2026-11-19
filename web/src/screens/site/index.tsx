@@ -1,20 +1,345 @@
-// Màn khung của đợt 1 (nền giao diện): chỉ có tên màn và dòng tóm tắt.
-// Thợ của màn này thay hẳn nội dung, giữ tên export mà web/src/routes.tsx dùng.
+// Màn Site (mục 10 của KE-HOACH.md, mục 7 của docs/GIAO-DIEN.md):
+//   /sites         danh sách site, bảng kẻ mảnh như "Lịch sử máy"
+//   /sites/:domain một site: tuyến đường đi request, phép kiểm kèm bằng chứng,
+//                  tên và đường dẫn, kiểm lại, xoá site (qua bản xem trước)
 
-import { useParams } from "react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { ApiError, del, errorMessage, get } from "../../api/client";
+import { queryKeys, useOverview } from "../../api/queries";
+import type { JobStarted, Preview, SiteInfo, Stage } from "../../api/types";
+import { Button, buttonClass } from "../../components/Button";
+import { MonoText } from "../../components/MonoText";
 import { ScreenHeader } from "../../components/ScreenHeader";
-import { useStrings } from "../../i18n";
+import { StatusMark } from "../../components/StatusMark";
+import { TableList } from "../../components/TableList";
+import { Tag } from "../../components/Tag";
+import { tx, useLang, useStrings } from "../../i18n";
+import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/site";
+import { PlanReview } from "../duyet-plan";
+import { CheckItem } from "./CheckItem";
+import { ErrorNote } from "./ErrorNote";
+import { formatDate, formatTime } from "./format";
+import { Legend, RouteMap, stageGroupId } from "./RouteMap";
+import { checksOfStage, routeStages, stageOrder, worstStatus } from "./route";
+
+const sitePath = (domain: string) => `/api/v1/sites/${encodeURIComponent(domain)}`;
+const siteKey = (domain: string) => ["site", domain] as const;
+
+const linkClass = "font-mono text-[13px] text-ink no-underline hover:text-ink hover:underline";
 
 /** /sites: danh sách site. */
 export function SiteList() {
   const t = useStrings(strings);
-  return <ScreenHeader title={t.listTitle} summary={t.listSummary} />;
+  const k = useStrings(khung);
+  const { lang } = useLang();
+  const overview = useOverview();
+
+  // Trạng thái chung của site lấy từ phép kiểm trong overview (cùng truy vấn với menu, không gọi thêm).
+  const rows = (overview.data?.sites ?? [])
+    .filter((r) => r.site.status === "active")
+    .sort((a, b) => a.site.domain.localeCompare(b.site.domain));
+
+  return (
+    <>
+      <ScreenHeader title={t.listTitle} summary={t.listSummary} />
+      <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
+        <h2 className="m-0 text-[16px] font-semibold">{overview.data ? t.count(rows.length) : t.listCaption}</h2>
+        <Link to="/sites/new" className={buttonClass("primary")}>
+          {t.create}
+        </Link>
+      </div>
+      {overview.isPending && <p className="m-0 text-muted">{k.loading}</p>}
+      {overview.isError && (
+        <div>
+          <p className="mt-0 mb-[12px]">{errorMessage(overview.error, lang)}</p>
+          <Button onClick={() => void overview.refetch()}>{k.retry}</Button>
+        </div>
+      )}
+      {overview.data && (
+        <TableList
+          caption={t.listCaption}
+          rows={rows}
+          rowKey={(r) => r.site.domain}
+          empty={
+            <>
+              {t.emptyLead}
+              <Link to="/sites/new">{t.emptyLink}</Link>
+            </>
+          }
+          columns={[
+            {
+              header: t.colDomain,
+              className: "min-w-[210px]",
+              cell: (r) => (
+                <Link to={`/sites/${encodeURIComponent(r.site.domain)}`} className={`${linkClass} whitespace-nowrap`}>
+                  {r.site.domain}
+                </Link>
+              ),
+            },
+            {
+              header: t.colStatus,
+              className: "w-[170px]",
+              cell: (r) => {
+                const status = worstStatus(r.checks);
+                return (
+                  <Link
+                    to={`/sites/${encodeURIComponent(r.site.domain)}`}
+                    aria-label={t.statusLink(r.site.domain, k.status[status])}
+                    className="inline-flex items-center gap-[8px] text-ink no-underline hover:text-ink hover:underline"
+                  >
+                    <span className="flex h-[20px] w-[20px] items-center justify-center">
+                      <StatusMark status={status} />
+                    </span>
+                    {k.status[status]}
+                  </Link>
+                );
+              },
+            },
+            { header: t.colPhp, className: "w-[80px] font-mono text-[13px]", cell: (r) => r.site.php_version },
+            { header: t.colCreated, className: "w-[130px] whitespace-nowrap tabular-nums", cell: (r) => formatDate(r.site.created, lang) },
+          ]}
+        />
+      )}
+    </>
+  );
 }
 
 /** /sites/:domain: một site. */
 export function SiteDetail() {
   const t = useStrings(strings);
+  const k = useStrings(khung);
+  const { lang } = useLang();
   const { domain = "" } = useParams();
-  return <ScreenHeader title={<span className="font-mono">{domain}</span>} summary={t.detailSummary} />;
+  const q = useQuery({ queryKey: siteKey(domain), queryFn: () => get<SiteInfo>(sitePath(domain)) });
+  const title = <span className="font-mono [overflow-wrap:anywhere]">{domain}</span>;
+
+  if (q.isPending) {
+    return (
+      <>
+        <ScreenHeader title={title} />
+        <p className="mt-[16px] mb-0 text-muted">{k.loading}</p>
+      </>
+    );
+  }
+  if (q.isError) {
+    const missing = q.error instanceof ApiError && q.error.code === "site_not_found";
+    return (
+      <>
+        <ScreenHeader title={title} />
+        <div className="pt-[16px]">
+          <p className="mt-0 mb-[12px]">{missing ? t.siteMissing(domain) : errorMessage(q.error, lang)}</p>
+          {missing ? (
+            <Link to="/sites" className={buttonClass("secondary")}>
+              {t.backToList}
+            </Link>
+          ) : (
+            <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+          )}
+        </div>
+      </>
+    );
+  }
+  return <SiteView key={domain} domain={domain} info={q.data} updatedAt={q.dataUpdatedAt} />;
+}
+
+function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo; updatedAt: number }) {
+  const t = useStrings(strings);
+  const k = useStrings(khung);
+  const { lang } = useLang();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const checks = info.checks;
+
+  // ---- ga và phép kiểm ----
+  const [selected, setSelected] = useState<Stage | null>(null);
+  // Phép kiểm lỗi mở sẵn: người vào trang một site hỏng cần thấy bằng chứng ngay.
+  const [open, setOpen] = useState<Set<string>>(() => new Set(checks.filter((c) => c.status === "fail").map((c) => c.id)));
+
+  const select = (stage: Stage) => {
+    const ids = checksOfStage(checks, stage).map((c) => c.id);
+    const close = selected === stage && ids.length > 0 && ids.every((id) => open.has(id));
+    setSelected(stage);
+    setOpen((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (close) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+    // Đưa người dùng (và trình đọc màn hình) tới nhóm phép kiểm của ga vừa bấm.
+    (document.getElementById(stageGroupId(stage)) ?? document.getElementById("phep-kiem"))?.focus();
+  };
+  const toggle = (id: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+
+  const groups = stageOrder.filter((s) => (routeStages as readonly Stage[]).includes(s) || s === "e2e" || checksOfStage(checks, s).length > 0);
+  const noStack = info.web === "" && checks.length === 0;
+  // Dòng "Hỏng ở ..." lấy ga hỏng đầu tiên; nếu sáu ga đều ổn mà phép gọi HTTP thật hỏng thì nói về nó.
+  const firstFail = [...routeStages, "e2e" as const].map((s) => ({ s, c: checksOfStage(checks, s).find((c) => c.status === "fail") })).find((x) => x.c);
+
+  // ---- kiểm lại ----
+  const recheck = useMutation({
+    mutationFn: () => get<SiteInfo>(`${sitePath(domain)}?refresh=1`),
+    onSuccess: (data) => {
+      qc.setQueryData(siteKey(domain), data);
+      void qc.invalidateQueries({ queryKey: queryKeys.overview });
+    },
+  });
+
+  // ---- xoá site: xem trước (dry_run), duyệt, rồi chạy thật ----
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const dry = useMutation({
+    mutationFn: () => del<Preview>(`${sitePath(domain)}?dry_run=1`),
+    onSuccess: setPreview,
+  });
+  const run = useMutation({
+    mutationFn: () => del<JobStarted>(sitePath(domain)),
+    onSuccess: (job) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.overview });
+      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+    },
+  });
+  useEffect(() => {
+    if (preview) {
+      previewRef.current?.scrollIntoView({ block: "start" });
+      previewRef.current?.focus();
+    }
+  }, [preview]);
+
+  const vhost = info.web === "nginx" ? info.layout.nginx_conf : info.web === "apache" ? info.layout.apache_conf : "";
+  const l = info.layout;
+  const layoutRows: Array<[string, string]> = [
+    [t.layout.user, l.user],
+    [t.layout.db, l.db],
+    [t.layout.dir, l.dir],
+    [t.layout.public, l.public],
+    [t.layout.pool, l.pool],
+    [t.layout.socket, l.socket],
+    [t.layout.vhost, vhost],
+    [t.layout.wpConfig, l.wp_config],
+    [t.layout.logDir, l.log_dir],
+    [t.layout.phpErrorLog, l.php_error_log],
+  ];
+
+  return (
+    <>
+      <ScreenHeader title={<span className="font-mono [overflow-wrap:anywhere]">{domain}</span>} summary={t.detailSummary} />
+      <div className="flex flex-wrap gap-[6px] pt-[14px]">
+        {info.web && <Tag>{info.web}</Tag>}
+        <Tag>{k.php(info.site.php_version)}</Tag>
+        {info.site.status === "trashed" && <Tag>{t.trashed}</Tag>}
+      </div>
+
+      <section aria-labelledby="tuyen">
+        <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
+          <h2 id="tuyen" className="m-0 text-[16px] font-semibold">
+            {t.routeHeading}
+          </h2>
+          <Legend />
+        </div>
+        <RouteMap domain={domain} checks={checks} selected={selected} onSelect={select} />
+        {firstFail?.c && (
+          <p className="mt-[10px] mb-0 text-[13px] font-medium text-fail-text">{t.failedAt(t.stages[firstFail.s], tx(firstFail.c.summary, lang))}</p>
+        )}
+        <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px] pt-[12px]">
+          <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
+            {recheck.isPending ? t.rechecking : t.recheck}
+          </Button>
+          <span aria-live="polite" className="text-[13px] text-muted">
+            {t.updatedAt(formatTime(updatedAt, lang))}
+          </span>
+          <span className="text-[13px] text-muted">{t.routeHint}</span>
+        </div>
+        {recheck.isError && (
+          <div className="pt-[12px]">
+            <ErrorNote error={recheck.error} heading={t.recheckFailed} />
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="phep-kiem">
+        <h2 id="phep-kiem" tabIndex={-1} className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
+          {t.checksHeading}
+        </h2>
+        {noStack ? (
+          <p className="m-0 border-t border-hair pt-[10px] text-muted">{t.noStack}</p>
+        ) : (
+          groups.map((stage) => {
+            const list = checksOfStage(checks, stage);
+            return (
+              <div key={stage} className="border-t border-hair pt-[12px]">
+                <h3 id={stageGroupId(stage)} tabIndex={-1} className="m-0 flex items-center gap-[8px] font-mono text-[11px] font-normal tracking-[0.08em] text-muted uppercase">
+                  <span className="flex h-[20px] w-[20px] items-center justify-center">
+                    <StatusMark status={worstStatus(list)} />
+                  </span>
+                  {t.stages[stage]}
+                  <span className="sr-only">: {k.status[worstStatus(list)]}</span>
+                </h3>
+                {list.length === 0 ? (
+                  <p className="mt-[6px] mb-[12px] pl-[28px] text-muted">{t.noChecksInStage}</p>
+                ) : (
+                  <ul className="m-0 mt-[2px] list-none p-0">
+                    {list.map((c) => (
+                      <CheckItem key={c.id} check={c} open={open.has(c.id)} onToggle={() => toggle(c.id)} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })
+        )}
+      </section>
+
+      <section aria-labelledby="ten-duong-dan">
+        <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[6px] pt-[26px] pb-[10px]">
+          <h2 id="ten-duong-dan" className="m-0 text-[16px] font-semibold">
+            {t.layoutHeading}
+          </h2>
+          <span className="text-[13px] text-muted">{t.layoutHint}</span>
+        </div>
+        <dl className="m-0">
+          {layoutRows.map(([label, value]) => (
+            <div key={label} className="flex flex-wrap gap-x-[16px] border-t border-hair py-[8px]">
+              <dt className="flex-[0_0_220px] text-muted">{label}</dt>
+              <dd className="m-0 min-w-0 flex-[1_1_240px]">{value ? <MonoText>{value}</MonoText> : <span className="text-muted">{t.vhostNoStack}</span>}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section aria-labelledby="xoa-site">
+        <h2 id="xoa-site" className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
+          {t.deleteHeading}
+        </h2>
+        <p className="m-0 text-muted">{t.deleteHint}</p>
+        <div className="pt-[12px]">
+          <Button onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending}>
+            {dry.isPending ? t.deletePreviewing : t.delete}
+          </Button>
+        </div>
+        {dry.isError && (
+          <div className="pt-[12px]">
+            <ErrorNote error={dry.error} heading={t.deleteFailed} />
+          </div>
+        )}
+        {preview && (
+          <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
+            <PlanReview preview={preview} onRun={() => run.mutate()} running={run.isPending} error={run.error} onCancel={() => {
+                setPreview(null);
+                run.reset();
+              }} />
+          </div>
+        )}
+      </section>
+    </>
+  );
 }
