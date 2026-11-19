@@ -2,7 +2,7 @@
 // dựng ra các tuyến (mỗi site một tuyến sáu ga), danh sách sự cố, cảnh báo, và
 // các hàm định dạng số, byte, giờ. Tách riêng để component chỉ còn việc vẽ.
 
-import type { CheckResult, Overview, SiteRow, Stage, Status } from "../../api/types";
+import type { CheckResult, Overview, SiteRow, Stage, Status, Traffic } from "../../api/types";
 import type { Lang } from "../../i18n";
 
 /** Sáu ga trên một tuyến, theo thứ tự đường đi của request (mục 1 của GIAO-DIEN.md). */
@@ -27,6 +27,8 @@ export type Route = {
   http: { code: string | null; status: Status; items: Item[] };
   /** Chặng hỏng đầu tiên trên tuyến này, để viết dòng "Hỏng ở ..." dưới hàng. */
   broken: { stage: Stage; item: Item } | null;
+  /** Request và 5xx một giờ qua của site; không có khi server chưa đọc được. */
+  traffic?: Traffic;
 };
 
 // Xấu nhất thắng. "Chưa kiểm được" xếp trên "đạt" vì một phép kiểm chưa chạy
@@ -71,15 +73,20 @@ export function buildRoute(row: SiteRow, shared: CheckResult[]): Route {
   if (!broken && http.status === "fail") {
     broken = { stage: "e2e", item: httpItems.find((i) => i.check.status === "fail")! };
   }
-  return { domain: row.site.domain, cells, http, broken };
+  return { domain: row.site.domain, cells, http, broken, traffic: row.traffic };
 }
 
 export type Entry = { check: CheckResult; /** null: phép kiểm của cả máy. */ domain: string | null };
 
-/** Mọi phép kiểm có trạng thái này, phép kiểm của máy trước rồi tới từng site (khớp con số ở menu "Sự cố"). */
+/**
+ * Mọi phép kiểm có trạng thái này: của máy, rồi của chính tpan (cũng domain
+ * null, nhận ra bằng check.stage "tpan"), rồi của từng site. Dùng cho khối
+ * "Cảnh báo"; khối "Sự cố đang mở" đọc thẳng o.incidents.
+ */
 export function checksWith(o: Overview, status: Status): Entry[] {
   return [
     ...o.stack_checks.map((check) => ({ check, domain: null })),
+    ...o.tpan_checks.map((check) => ({ check, domain: null })),
     ...o.sites.flatMap((r) => r.checks.map((check) => ({ check, domain: r.site.domain }))),
   ].filter((e) => e.check.status === status);
 }

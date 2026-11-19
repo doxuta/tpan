@@ -6,8 +6,14 @@ import { defineStrings } from "./index";
 const vi = {
   title: "Bảng điều khiển",
   summary: "Đường đi request của từng site, sự cố đang mở và số liệu máy.",
-  summaryLine: (sites: number, time: string, fails: number, warns: number) =>
-    `${sites} site · kiểm lúc ${time} · ` + (fails + warns === 0 ? "không có lỗi hay cảnh báo" : `${fails} lỗi, ${warns} cảnh báo`),
+  // checked: giờ health chạy đầy đủ gần nhất; null khi chưa chạy lần nào.
+  summaryLine: (sites: number, checked: string | null, incidents: number, warns: number) =>
+    checked === null
+      ? `${sites} site · chưa kiểm lần nào`
+      : `${sites} site · kiểm lúc ${checked} · ` + (incidents + warns === 0 ? "không có sự cố hay cảnh báo" : `${incidents} sự cố, ${warns} cảnh báo`),
+  recheck: "Kiểm lại",
+  rechecking: "Đang kiểm…",
+  recheckFailed: "Chưa kiểm lại được.",
   loadFailed: "Chưa tải được dữ liệu của Bảng điều khiển.",
   retry: "Thử lại",
 
@@ -40,6 +46,9 @@ const vi = {
   httpLabel: (domain: string, code: string | null) => `${domain} · HTTP ${code ?? "chưa có mã"}`,
   httpNone: "chưa có mã",
   failLine: (stage: string, summary: string, shared: boolean) => `Hỏng ở ${stage}: ${summary}` + (shared ? " · lỗi của tầng dùng chung" : ""),
+  // Dòng số request dưới tên site. short vừa cột 180 px (≥ là "ít nhất"), full cho trình đọc màn hình và tooltip.
+  trafficShort: (requests: string, errors: string, partial: boolean) => `${partial ? "≥ " : ""}${requests} req · ${errors} 5xx`,
+  trafficFull: (requests: string, errors: string, partial: boolean) => `${partial ? "Ít nhất " : ""}${requests} request, ${errors} lỗi 5xx trong 1 giờ qua`,
 
   // Bằng chứng của một ga
   panelTitle: (domain: string, stage: string) => `${domain} · ${stage}`,
@@ -62,6 +71,11 @@ const vi = {
   swapNoneSub: "nên tạo để tránh hết RAM đột ngột",
   machineErrors: "Chưa đọc được:",
 
+  // Tự kiểm của tpan
+  tpanTitle: "TPAN tự kiểm",
+  tpanEmpty: "Chưa có kết quả tự kiểm. Bấm Kiểm lại.",
+  noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
+
   // Lịch sử máy
   historyTitle: "Lịch sử máy",
   historyEmpty: "Chưa có việc nào. Việc đầu tiên sẽ hiện ở đây.",
@@ -81,12 +95,9 @@ const vi = {
   pendingTitle: "Chờ bạn duyệt",
   none: "Không có",
   sharedIncident: "Cả máy",
-  incidentMeta: (where: string, stage: string, title: string) => `${where} · chặng hỏng: ${stage} · ${title}`,
-  autoFix: "Sửa tự động",
-  manualFix: "Sửa tay",
-  askAi: "Hỏi AI",
-  fixesReason: "Sửa tự động và Hỏi AI chưa có trong bản này. Sửa tay dùng được ngay.",
-  manualLabel: "SỬA TAY",
+  incidentMeta: (where: string, stage: string, title: string, since: string) => `${where} · chặng hỏng: ${stage} · ${title} · từ ${since}`,
+  openIncident: "Xem bằng chứng và cách sửa",
+  allIncidents: "Xem mọi sự cố",
   showEvidence: "Xem bằng chứng",
   hideEvidence: "Ẩn bằng chứng",
 };
@@ -94,9 +105,14 @@ const vi = {
 export const strings = defineStrings(vi, {
   title: "Dashboard",
   summary: "The request path of every site, open incidents and machine metrics.",
-  summaryLine: (sites, time, fails, warns) =>
-    `${sites} ${sites === 1 ? "site" : "sites"} · checked at ${time} · ` +
-    (fails + warns === 0 ? "no failures or warnings" : `${fails} failed, ${warns} ${warns === 1 ? "warning" : "warnings"}`),
+  summaryLine: (sites, checked, incidents, warns) =>
+    checked === null
+      ? `${sites} ${sites === 1 ? "site" : "sites"} · never checked`
+      : `${sites} ${sites === 1 ? "site" : "sites"} · checked at ${checked} · ` +
+        (incidents + warns === 0 ? "no incidents or warnings" : `${incidents} ${incidents === 1 ? "incident" : "incidents"}, ${warns} ${warns === 1 ? "warning" : "warnings"}`),
+  recheck: "Check again",
+  rechecking: "Checking…",
+  recheckFailed: "Could not check again.",
   loadFailed: "Could not load the dashboard data.",
   retry: "Try again",
 
@@ -127,6 +143,8 @@ export const strings = defineStrings(vi, {
   httpLabel: (domain, code) => `${domain} · HTTP ${code ?? "no code"}`,
   httpNone: "no code",
   failLine: (stage, summary, shared) => `Failed at ${stage}: ${summary}` + (shared ? " · shared-layer failure" : ""),
+  trafficShort: (requests, errors, partial) => `${partial ? "≥ " : ""}${requests} req · ${errors} 5xx`,
+  trafficFull: (requests, errors, partial) => `${partial ? "At least " : ""}${requests} requests, ${errors} 5xx errors in the last hour`,
 
   panelTitle: (domain, stage) => `${domain} · ${stage}`,
   panelClose: "Close evidence",
@@ -147,6 +165,10 @@ export const strings = defineStrings(vi, {
   swapNoneSub: "create one so RAM running out is not sudden",
   machineErrors: "Could not read:",
 
+  tpanTitle: "TPAN self-check",
+  tpanEmpty: "No self-check results yet. Press Check again.",
+  noEvidence: "This check did not record any command.",
+
   historyTitle: "Machine history",
   historyEmpty: "No jobs yet. The first one will show up here.",
   historyAll: "See all history",
@@ -164,12 +186,9 @@ export const strings = defineStrings(vi, {
   pendingTitle: "Waiting for your approval",
   none: "None",
   sharedIncident: "Whole machine",
-  incidentMeta: (where, stage, title) => `${where} · failed stage: ${stage} · ${title}`,
-  autoFix: "Fix automatically",
-  manualFix: "Fix by hand",
-  askAi: "Ask AI",
-  fixesReason: "Fix automatically and Ask AI are not in this version yet. Fix by hand works now.",
-  manualLabel: "FIX BY HAND",
+  incidentMeta: (where, stage, title, since) => `${where} · failed stage: ${stage} · ${title} · since ${since}`,
+  openIncident: "See evidence and fixes",
+  allIncidents: "See all incidents",
   showEvidence: "Show evidence",
   hideEvidence: "Hide evidence",
 });

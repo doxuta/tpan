@@ -35,20 +35,25 @@ export function useOverview(enabled = true) {
   });
 }
 
-/** Mọi phép kiểm trong overview: của stack và của từng site. */
+/** Mọi phép kiểm trong overview: của stack, của chính tpan và của từng site. */
 export function allChecks(o: Overview): CheckResult[] {
-  return [...o.stack_checks, ...o.sites.flatMap((s) => s.checks)];
+  return [...o.stack_checks, ...o.tpan_checks, ...o.sites.flatMap((s) => s.checks)];
 }
 
 /**
- * Tình trạng cả máy cho logo: có lỗi là "fail", có cảnh báo là "warn", còn lại
- * "pass". Chưa có phép kiểm nào đạt (chưa kiểm, hoặc chỉ toàn "chưa kiểm
- * được") thì null: logo một màu, vì không khẳng định điều chưa có bằng chứng. M3 chưa có sự cố
- * riêng (mốc sau), nên lỗi tính từ phép kiểm Fail.
+ * Tình trạng cả máy cho logo: có sự cố đang mở là "fail", không có mà có phép
+ * kiểm cảnh báo là "warn", còn lại "pass". Chưa có phép kiểm nào đạt (chưa
+ * kiểm, hoặc chỉ toàn "chưa kiểm được") thì null: logo một màu, vì không
+ * khẳng định điều chưa có bằng chứng.
+ *
+ * Sự cố mở khi phép kiểm chuyển sang lỗi (mục 6.7), nên bình thường phép kiểm
+ * lỗi nào cũng đã có sự cố. Ta vẫn tính cả phép kiểm lỗi chưa có sự cố (vừa
+ * chạy xong, sự cố chưa kịp ghi): logo không được báo "đạt" trong khi một phép
+ * kiểm đang đỏ.
  */
 export function machineStatus(o: Overview): Status | null {
   const all = allChecks(o);
-  if (all.some((c) => c.status === "fail")) return "fail";
+  if (o.incidents.length > 0 || all.some((c) => c.status === "fail")) return "fail";
   if (all.some((c) => c.status === "warn")) return "warn";
   return all.some((c) => c.status === "pass") ? "pass" : null;
 }
