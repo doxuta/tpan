@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: mốc M0 (khung dự án) đã xong ngày 19/11/2026. Các mốc sau chưa bắt đầu.
+Trạng thái: mốc M0 (khung dự án) đã xong ngày 19/11/2026. Các mốc sau chưa bắt đầu. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. tpan là gì
 
@@ -20,7 +20,7 @@ tpan là **một file chạy duy nhất** (`tpan`) gồm bốn mặt cùng dùng
 - Giao diện web (nhúng sẵn trong file chạy), song ngữ Việt và Anh.
 - MCP server (`tpan mcp`): để Claude Code, Codex hoặc agent khác dùng tpan qua đúng các thao tác trên.
 
-Phần AI là tuỳ chọn và tắt mặc định. Không bật AI thì mọi chức năng khác vẫn đầy đủ; không có tính năng nào chỉ làm được bằng AI.
+Phần AI là tuỳ chọn và tắt mặc định. Không bật AI thì mọi chức năng khác vẫn đầy đủ; không có tính năng nào chỉ làm được bằng AI. Bộ não AI là Claude Code chạy trên máy của người vận hành; máy chủ không giữ khoá hay đăng nhập AI nào (mục 8).
 
 ### Ngoài phạm vi
 
@@ -42,7 +42,7 @@ Panel kiểu aaPanel là "hộp đen": bấm nút, panel chạy lệnh bằng qu
 | Tạo, xoá từng site một; xoá là mất | **Hàng loạt** (dán danh sách hoặc file `sites.yaml`) và **thùng rác**: xoá là chuyển vào thùng rác, khôi phục được trong 7 ngày. |
 | Backup có thể làm đầy đĩa và kéo sập cả máy | **Chặn trước**: ước lượng dung lượng, thiếu chỗ thì từ chối backup. Log của từng site có logrotate, cấu hình logrotate được kiểm bằng `logrotate -d` trước khi ghi. |
 | Panel là một tiến trình root mở cổng ra internet | Không ghép chuỗi lệnh shell, mọi đầu vào có kiểu và được kiểm, đăng nhập có giới hạn số lần, có chế độ chỉ nghe ở `127.0.0.1` và vào qua SSH tunnel (mục 11). |
-| AI trong panel thường là ô chat được quyền chạy lệnh | AI của tpan **không có tay**: nó chỉ đọc qua các công cụ có giới hạn và chỉ được *đề xuất* một Plan. Người duyệt trên bản xem trước rồi engine mới chạy, có hoàn tác và kiểm chứng như mọi thao tác khác. Dữ liệu được che trước khi gửi cho AI và hiện ra để người dùng xem (mục 8). |
+| AI trong panel thường là ô chat được quyền chạy lệnh, khoá AI nằm ngay trên máy chủ | AI của tpan **không có tay**: nó chỉ đọc qua các công cụ có giới hạn và chỉ được *đề xuất* một Plan. Người duyệt trên bản xem trước rồi engine mới chạy, có hoàn tác và kiểm chứng như mọi thao tác khác. Dữ liệu được che trước khi gửi cho AI và hiện ra để người dùng xem. **Bộ não ở máy người vận hành**: máy chủ không giữ khoá hay đăng nhập AI nào (mục 8). |
 
 Hai điểm cần tự kiểm trên máy đang cài aaPanel trước khi nói với người khác, vì mới dựa trên tài liệu và diễn đàn:
 
@@ -63,7 +63,7 @@ Hai điểm cần tự kiểm trên máy đang cài aaPanel trước khi nói v�
 | Giao diện | Tailwind CSS 4 + thành phần tự viết; Radix cho hộp thoại, menu | Kiểm soát được từng chi tiết hình thức; Radix lo phần bàn phím và trợ năng. | Bộ thành phần dựng sẵn: nhanh nhưng ra giao diện giống mọi sản phẩm khác. |
 | Chứng chỉ | `certbot certonly --webroot` | certbot chỉ đặt file thử thách, **không sửa config web server**; config do tpan sinh từ template nên phải là một nguồn duy nhất. Cùng một cách cho cả Nginx và Apache. | `certbot --nginx`: tự sửa config. Thư viện ACME nhúng (lego): bớt một gói cài nhưng khó quan sát hơn. |
 | WordPress | WP-CLI | Cài, cấu hình, kiểm checksum bằng lệnh, không cần trình duyệt. | Tự tải và tự sinh `wp-config.php`. |
-| AI | Giao diện `Provider` với hai bản: Anthropic API và API kiểu OpenAI | Không khoá vào một nhà cung cấp. Bản thứ hai trỏ được vào model chạy tại chỗ, dùng cho nơi không được gửi dữ liệu ra ngoài. Dùng SDK chính thức. | Gắn cứng một nhà cung cấp. Gọi CLI của agent ngay trên máy chủ: phải để thông tin đăng nhập AI trên máy chủ và trao shell cho AI. |
+| AI | Bộ não là **Claude Code của người vận hành**, chạy không giao diện (`claude -p`) trên máy của họ và chỉ được nạp công cụ MCP của tpan. Trong mã: giao diện `Brain` với hai bản `claudecode` và `fake` | Dùng luôn gói Claude người vận hành đang có, không cần khoá API. Vòng lặp gọi công cụ do Claude Code lo, tpan không viết lại. Một bộ công cụ MCP phục vụ cả AI trong panel lẫn agent bên ngoài. Máy chủ không giữ thông tin đăng nhập AI. | Tự gọi API của nhà cung cấp bằng khoá riêng (Anthropic, hoặc API kiểu OpenAI để trỏ vào model chạy tại chỗ): tốn tiền theo lượt, phải để khoá trên máy chủ, phải tự viết vòng lặp gọi công cụ; để ngỏ cho sau qua giao diện `Brain`. Chạy `claude` ngay trên máy chủ: phải để đăng nhập Claude trên máy chủ. |
 | MCP | SDK Go chính thức `modelcontextprotocol/go-sdk`, transport stdio | Chạy qua SSH (`ssh <máy> tpan mcp`) nên không mở thêm cổng và không cần khoá AI trên máy chủ; xác thực chính là SSH. | Transport HTTP: phải mở cổng và tự lo xác thực. |
 | Máy ảo test | Multipass, Ubuntu 24.04 | Giống hệ điều hành của VPS đích; có snapshot để quay về máy sạch trong vài giây. | Docker: không có systemd thật, không giống VPS. |
 
@@ -78,9 +78,14 @@ Gói hệ điều hành trên Ubuntu 24.04 (dùng tên gói không kèm số phi
 ## 4. Kiến trúc
 
 ```
- CLI      API HTTP ◄── Giao diện web      AI trong panel     MCP ◄── Claude Code, Codex
-  │          │                                 │              │
-  │          │                                 └──────┬───────┘
+                                           máy của người vận hành
+                                  ┌───────────────────────────────────────┐
+                                  │ Claude Code, Codex (gõ trực tiếp)     │
+                                  │ tpan brain (AI trong panel)           │
+                                  └───────────────────┬───────────────────┘
+                                                      │ SSH, stdio
+ CLI      API HTTP ◄── Giao diện web                 MCP
+  │          │                                        │
   │          │                                        ▼
   │          │                         tools: danh mục công cụ có kiểu
   │          │                         (loại "đọc" và loại "lập Plan")
@@ -119,14 +124,17 @@ internal/
   health/            chạy phép kiểm định kỳ, sự cố, cách sửa
   monitor/           đọc /proc, trạng thái dịch vụ, log
   tools/             danh mục công cụ có kiểu cho AI và MCP
-  ai/                Provider, vòng lặp gọi công cụ, che dữ liệu, phiên hỏi đáp
+  ai/                phiên hỏi đáp, che dữ liệu, giao diện Brain
+  ai/claudecode/     dựng lệnh claude -p, đọc luồng stream-json, kiểm sự kiện init
+  ai/playbooks/      bản hướng dẫn cho AI theo từng mục của giao diện
+  ai/bridge/         nối bộ não ở máy người vận hành với panel (tpan brain)
   mcp/               MCP server (stdio)
   validate/          kiểu Domain, Slug, Email và hàm kiểm
 web/                 giao diện React; web/embed.go nhúng web/dist
 scripts/vm.sh        quản lý máy ảo test
 scripts/faults/      kịch bản gây lỗi có chủ ý trên máy ảo
 agents/              hướng dẫn cho agent: skill cho Claude Code, AGENTS.md cho Codex
-docs/                tài liệu này và docs/giai-thich/
+docs/                tài liệu này, GIAO-DIEN.md, mau-giao-dien/, giai-thich/, bang-chung/
 ```
 
 ### 4.2 Engine: Step và Plan
@@ -198,7 +206,7 @@ type System interface {
 | `backups` | site, đường dẫn file, kích thước, sha256, thời điểm |
 | `plans` | Plan chờ duyệt: nội dung, nguồn gốc (người, AI, MCP), ai duyệt, lúc nào |
 | `check_results`, `incidents` | kết quả gần nhất của từng phép kiểm trên từng đối tượng; sự cố mở khi một phép kiểm chuyển sang lỗi, đóng khi nó đạt lại |
-| `ai_sessions` | phiên hỏi AI: câu hỏi, các lần gọi công cụ, dữ liệu đã gửi (bản đã che), Plan được đề xuất |
+| `ai_sessions` | phiên AI: lối vào (trong panel hay agent nối trực tiếp), câu hỏi nếu có, ngữ cảnh và đường đã đi, các lần gọi công cụ, dữ liệu đã trả về (bản đã che), Plan được đề xuất |
 | `sessions`, `audit` | phiên đăng nhập (chỉ lưu hash của token), nhật ký ai làm gì lúc nào |
 
 Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và không lưu mật khẩu quản trị WordPress (chỉ hiện một lần lúc tạo).
@@ -207,13 +215,14 @@ Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và kh�
 
 ```
 /usr/local/bin/tpan                 file chạy
-/etc/tpan/config.toml               địa chỉ nghe, chế độ
+/etc/tpan/config.toml               địa chỉ nghe, chế độ, phần [ai] (không chứa khoá nào)
 /etc/tpan/tls/                      chứng chỉ của chính panel
 /var/lib/tpan/tpan.db               trạng thái
 /var/lib/tpan/acme/                 webroot chung cho thử thách Let's Encrypt
 /var/lib/tpan/trash/<id>/           thùng rác
 /var/lib/tpan/backups/<domain>/     backup
 /var/cache/tpan/                    WordPress và WP-CLI đã tải (kèm checksum)
+/run/tpan/brain.sock                socket nội bộ cho tpan brain (quyền 600, chỉ root)
 
 /var/www/<domain>/public/           mã nguồn site (document root)
 /var/www/<domain>/tmp/              upload tạm, session PHP của riêng site
@@ -298,7 +307,7 @@ Template vhost của cả hai web server đều có: chặn file ẩn (trừ `.w
 4. Hook gia hạn: `/etc/letsencrypt/renewal-hooks/deploy/tpan` gọi `tpan internal reload-web` (reload đúng web server đang dùng).
 5. Kiểm chứng: `https://<domain>/` trả 200, chứng chỉ khớp tên miền, còn bao nhiêu ngày; `certbot renew --dry-run`.
 
-Giới hạn của Let's Encrypt cần nhớ: 50 chứng chỉ cho mỗi tên miền đăng ký trong 7 ngày (tính chung cho mọi tên miền con và mọi người dùng tên miền đó), 5 chứng chỉ cho cùng một bộ tên trong 7 ngày, 300 đơn mới cho một tài khoản trong 3 giờ. **Trong lúc phát triển luôn bật staging.** Chỉ tắt staging cho buổi demo.
+Giới hạn của Let's Encrypt cần nhớ: 50 chứng chỉ cho mỗi tên miền đăng ký trong 7 ngày (tính chung cho mọi tên miền con và mọi người dùng tên miền đó), 5 chứng chỉ cho cùng một bộ tên trong 7 ngày, 300 đơn mới cho một tài khoản trong 3 giờ. **Trong lúc phát triển luôn bật staging.** Chỉ tắt staging cho buổi demo, và khi đó chỉ xin vài chứng chỉ: hạn mức 50 là của chung mọi người dùng cùng tên miền gốc, dùng hết thì người khác cũng không xin được.
 
 ### 6.4 Xoá, thùng rác, khôi phục
 
@@ -362,7 +371,7 @@ Mỗi phép kiểm không đạt đưa ra tối đa ba cách sửa:
 
 1. **Sửa tự động**: một Plan dựng từ các Step có sẵn (ví dụ ghi lại vhost từ template, khởi động lại pool). Vẫn qua xem trước, xác nhận và kiểm chứng.
 2. **Sửa tay**: các lệnh cụ thể để người vận hành tự gõ, kèm cách kiểm lại. Cách này luôn có, kể cả khi không có cách sửa tự động.
-3. **Hỏi AI** (khi đã bật AI): gửi phát hiện và bằng chứng đã che cho AI để chẩn đoán (mục 8).
+3. **Hỏi AI** (khi đã bật AI): gửi phát hiện và bằng chứng đã che cho bộ não để chẩn đoán. Bộ não chưa nối thì nút này đưa ra câu lệnh để dán vào Claude Code (mục 8.3 và 8.4).
 
 File bị sửa tay: hiện diff giữa bản đang có và bản tpan sẽ sinh, cho chọn ghi lại bản của tpan hoặc nhận bản sửa tay làm chuẩn mới.
 
@@ -411,7 +420,7 @@ Site nào lỗi thì hoàn tác riêng site đó, các site khác đi tiếp. K�
 ### 8.1 Nguyên tắc
 
 1. **AI không có tay.** AI không chạy lệnh và không ghi file. Nó chỉ gọi được các *công cụ* trong `internal/tools`, gồm hai loại:
-   - công cụ **đọc**: danh sách site, kết quả health, số liệu máy, đuôi log, nội dung file do tpan quản lý;
+   - công cụ **đọc**: danh sách site, kết quả health, số liệu máy, đuôi log, nội dung file do tpan quản lý, mục đang mở trên panel;
    - công cụ **lập Plan**: tạo site, xoá site, xin SSL, sửa một phát hiện của health. Gọi công cụ loại này chỉ sinh ra một Plan ở trạng thái chờ duyệt.
 
    Plan chờ duyệt hiện lên đúng màn xem trước của mọi thao tác khác, có nhãn "AI đề xuất". Người bấm duyệt thì engine mới chạy.
@@ -419,28 +428,71 @@ Site nào lỗi thì hoàn tác riêng site đó, các site khác đi tiếp. K�
 3. **Thấy được AI thấy gì.** Mỗi lần hỏi, giao diện hiện đúng dữ liệu sẽ gửi đi (bản đã che) trước khi gửi, và hiện từng lần AI gọi công cụ cùng kết quả.
 4. **Che dữ liệu trước khi gửi.** Mật khẩu, khoá, salt bị loại hẳn. IP, email, tên miền được thay bằng bí danh ổn định trong phiên (`site-a.example`, `203.0.113.7`); tpan giữ bảng đối chiếu tại chỗ và đổi ngược lại khi hiển thị câu trả lời. Mức che chỉnh được; mặc định là che hết.
 5. **Thứ AI đọc được là dữ liệu, không phải mệnh lệnh.** Log truy cập chứa chuỗi do người lạ gửi tới (URL, User-Agent), nên kẻ xấu có thể cài vào đó câu lệnh nhắm tới AI. Nghiên cứu năm 2026 cho thấy các biện pháp chống ở tầng prompt chỉ giảm chứ không loại được kiểu tấn công này, nên lớp chặn chính của tpan là nguyên tắc 1 và 2: dù AI bị dẫn dắt, việc tệ nhất nó làm được là đề xuất một Plan mà người sẽ đọc trước khi duyệt. Thêm vào đó, nội dung không tin cậy được bọc trong thẻ đánh dấu, và Plan nào được đề xuất sau khi AI đã đọc log sẽ mang cảnh báo trên màn xem trước.
-6. **Tuỳ chọn và có giới hạn.** Tắt mặc định. Có trần số token mỗi ngày, tối đa 8 vòng gọi công cụ mỗi phiên, có thời gian chờ. Mọi phiên được ghi vào nhật ký.
+6. **Tuỳ chọn và có giới hạn.** Tắt mặc định. Mỗi phiên tối đa 12 lượt, có thời gian chờ, có trần số phiên mỗi ngày. Mọi phiên được ghi vào nhật ký.
+7. **Bộ não ở máy người vận hành, không ở máy chủ.** Máy chủ không giữ khoá hay đăng nhập AI nào. tpan không bao giờ nhận, lưu hay chuyển tiếp thông tin đăng nhập Claude: không có ô nào để dán token, không đọc `~/.claude` hay Keychain. Người vận hành tự đăng nhập Claude Code trên máy của họ theo cách của Anthropic; tpan chỉ gọi lệnh `claude` nguyên bản đã đăng nhập sẵn.
 
-### 8.2 AI trong panel
+### 8.2 Bộ não: Claude Code của người vận hành
 
-Một lõi (`internal/ai`), nhiều lối vào:
+Quyết định ngày 19/11/2026: tpan không gọi API của nhà cung cấp AI nào và không cần khoá API. Bộ não là **Claude Code** (lệnh `claude`) mà người vận hành đã cài và đăng nhập trên máy cá nhân bằng gói Claude của chính họ. Vòng lặp "hỏi model, model gọi công cụ, nhận kết quả, hỏi tiếp" do Claude Code lo; tpan chỉ cung cấp công cụ qua MCP (mục 8.3) và hiển thị kết quả.
 
-| Lối vào | Làm gì |
+Có hai lối dùng bộ não, cùng đi qua một bộ công cụ:
+
+| Lối | Người vận hành làm gì | Bộ não chạy thế nào | Hợp với |
+|---|---|---|---|
+| **Trực tiếp** | gõ trong Claude Code (hoặc Codex) ở terminal máy cá nhân | phiên Claude Code bình thường, đã thêm MCP server `tpan` (mục 8.3) | việc dài, nhiều bước, hỏi đáp tự do |
+| **Trong panel** | bấm "Hỏi AI", "Giải thích", "Chẩn đoán" hoặc gõ vào `⌘K` trên giao diện web | `tpan brain` trên máy cá nhân nhận câu hỏi từ panel rồi chạy `claude -p` (mục 8.4) | hỏi ngay tại chỗ đang nhìn, có sẵn ngữ cảnh |
+
+Trong mã, bộ não nằm sau một giao diện nhỏ:
+
+```go
+// Brain trả lời một lượt hỏi và phát sự kiện ra dần: chữ, lần gọi công cụ, kết quả cuối.
+type Brain interface {
+    Run(ctx context.Context, job Job) (<-chan Event, error)
+}
+```
+
+Có hai bản: `claudecode` (thật) và `fake` (phát lại kịch bản soạn sẵn, dùng cho test và cho chế độ `--demo` trên máy không có Claude Code). Muốn thêm bộ não khác về sau (API có khoá, model chạy tại chỗ, `codex exec`) thì viết thêm một bản của giao diện này.
+
+**Lệnh gọi bộ não.** `claudecode` chạy `claude` trong một thư mục tạm rỗng và đưa câu hỏi vào qua stdin. Mỗi cờ có một lý do:
+
+| Cờ | Vì sao |
 |---|---|
-| Thanh lệnh `⌘K` | Gõ tên lệnh thì mở đúng form; gõ một câu thì AI chuyển thành Plan. Ví dụ: "tạo 3 site cho a.example, b.example, c.example, có SSL". |
-| "Giải thích" trên mọi lỗi | Bước job lỗi, phép kiểm không đạt, một dòng log: AI giải thích bằng ngôn ngữ đang dùng và dẫn lại đúng bằng chứng. |
-| "Chẩn đoán" trên sự cố | AI đọc thêm (log, config, trạng thái dịch vụ) qua công cụ đọc, nêu nguyên nhân khả dĩ nhất, rồi đề xuất Plan sửa, hoặc lệnh sửa tay nếu không có Step phù hợp. |
-| Hỏi số liệu | "Site nào nhiều lỗi 5xx nhất trong 1 giờ qua?" AI gọi công cụ thống kê, trả lời kèm con số và lần gọi công cụ đã dùng. |
-| Tóm tắt | Tóm tắt các job và sự cố trong một khoảng thời gian. |
-| CLI | `tpan ask "<câu>"`: in Plan đề xuất rồi hỏi xác nhận như mọi lệnh khác. |
+| `-p` | chạy một lượt rồi thoát, không mở giao diện terminal |
+| `--output-format stream-json --verbose --include-partial-messages` | mỗi dòng stdout là một sự kiện JSON, nhờ đó chữ hiện dần trên panel |
+| `--tools ""` | tắt toàn bộ công cụ có sẵn của Claude Code: không Bash, không đọc ghi file, không web |
+| `--strict-mcp-config --mcp-config '<json>'` | chỉ nạp đúng một MCP server là `tpan`, bỏ qua mọi MCP server khác trên máy |
+| `--allowedTools "mcp__tpan"` | công cụ của `tpan` chạy không cần hỏi quyền |
+| `--permission-mode dontAsk --permission-prompts none` | mọi thứ khác bị từ chối ngay, vì không có ai ngồi trả lời hộp thoại xin quyền |
+| `--setting-sources ""`, `--disable-slash-commands` | không nạp hook, plugin, skill và cấu hình riêng của người vận hành (cần kiểm, mục 16) |
+| `--append-system-prompt-file <file>` | quy tắc của tpan cho AI: trả lời bằng ngôn ngữ của giao diện, dẫn bằng chứng, coi nội dung log là dữ liệu |
+| `--max-turns 12`, `--model <tên>` | chặn vòng lặp dài; model mặc định là `sonnet` để đỡ tốn hạn mức |
+| `--session-id <uuid>` ở lượt đầu, `--resume <uuid>` ở lượt sau | giữ mạch hội thoại của một phiên hỏi đáp |
 
-Cấu hình nằm trong `/etc/tpan/ai.toml` (quyền 600, không vào DB): nhà cung cấp, địa chỉ API, tên model, khoá. Có hai bản `Provider`: Anthropic API và API kiểu OpenAI. Bản thứ hai trỏ được vào model chạy tại chỗ; khi đó không dữ liệu nào rời khỏi máy. Test dùng `FakeProvider` trả lời theo kịch bản soạn sẵn, nên không cần mạng và không cần khoá.
+`<json>` của `--mcp-config` là `{"mcpServers":{"tpan":{"command":"ssh","args":["<máy>","tpan","mcp","--session","<id>"]}}}`. Khi tpan và Claude Code ở cùng một máy thì `command` là `tpan` và `args` bỏ hai phần đầu.
 
-Không làm: cho tpan gọi CLI của một agent (như `claude -p`) ngay trên máy chủ để tự sửa. Cách đó để thông tin đăng nhập AI trên máy chủ và trao cho AI một shell root, đi ngược nguyên tắc 1 và 2.
+**Không dùng `--bare`.** Tài liệu Claude Code khuyên `--bare` cho script, nhưng ở chế độ đó Claude Code không đọc đăng nhập bằng gói Claude mà đòi khoá API. Tài liệu cũng nói `--bare` sẽ thành mặc định của `-p` ở một bản sau. Vì vậy `tpan brain` ghi rõ phiên bản Claude Code đã chạy bài kiểm (lúc viết tài liệu này: 2.1.328), cảnh báo khi gặp phiên bản khác, và mỗi lần nâng Claude Code phải chạy lại bài kiểm ở mục 12.
 
-### 8.3 MCP: để agent bên ngoài dùng tpan
+**Kiểm cửa rồi mới tin.** Sự kiện đầu tiên của luồng (`system`, `init`) liệt kê công cụ, MCP server và plugin mà phiên đó thật sự nạp. `claudecode` đọc sự kiện này và **dừng ngay** nếu có thứ gì ngoài mong đợi: một công cụ không bắt đầu bằng `mcp__tpan__`, một MCP server khác, một plugin. Ngoại lệ là những công cụ không tắt được của chính Claude Code (tài liệu nêu `EndConversation`, chỉ để kết thúc hội thoại); danh sách ngoại lệ lấy từ sự kiện `init` thật ghi lại ở bài kiểm (mục 16), không viết theo phỏng đoán. Khi dừng, không câu trả lời nào được hiện, chỉ có thông báo nêu đúng thứ thừa. Đây là lớp bảo đảm cho nguyên tắc 1 và 2: nó không dựa vào việc các cờ ở trên có tác dụng đúng như tài liệu, và vẫn đúng khi Claude Code đổi hành vi ở bản mới.
 
-`tpan mcp` chạy một MCP server qua stdio, đưa ra đúng danh mục công cụ ở 8.1. Kết nối đi qua SSH, nên không mở thêm cổng nào và không có khoá AI nào nằm trên máy chủ; AI chạy ở máy của người vận hành.
+**Hạn mức và điều khoản** (tra ngày 19/11/2026; kiểm lại ở hai trang ghi trong mục 17 trước khi dựa vào):
+
+- Theo trang trợ giúp của Anthropic, `claude -p` khi đăng nhập bằng gói Claude vẫn tính vào hạn mức của gói, tức là chung với lúc dùng Claude Code để viết code. Chính sách này đã đổi qua lại trong năm 2026.
+- Trang điều khoản của Claude Code nói: đăng nhập bằng gói Claude là để dùng Claude Code và ứng dụng của Anthropic theo cách thông thường; người làm sản phẩm không được nhận, lưu hay chuyển tiếp đăng nhập Claude của người dùng, và làm sản phẩm cho người khác dùng thì phải dùng khoá API. Trang đó cũng nói người dùng vẫn được đăng nhập gói của mình vào bản Claude Code nguyên gốc. Nguyên tắc 7 bám đúng ranh giới này: mỗi người dùng bộ não của chính mình, trên máy của chính mình, và tpan không chạm vào đăng nhập.
+- Nếu sau này đưa tpan cho người khác dùng thì đọc lại trang điều khoản trước.
+
+**Bộ não đặt ở đâu.** Khoá `brain` trong phần `[ai]` của `config.toml` nhận ba giá trị:
+
+| Giá trị | Nghĩa | Dùng khi |
+|---|---|---|
+| `off` (mặc định) | không có AI | |
+| `bridge` | bộ não ở máy người vận hành, nối vào bằng `tpan brain <máy>` | tpan chạy trên VPS |
+| `local` | tpan tự gọi `claude` trên chính máy đang chạy tpan | tpan và Claude Code cùng ở máy cá nhân, ví dụ `tpan serve --demo` lúc làm giao diện |
+
+Không dùng `local` trên VPS: muốn vậy phải để đăng nhập Claude trên máy chủ, trái nguyên tắc 7.
+
+### 8.3 MCP: cổng chung cho mọi agent
+
+`tpan mcp` chạy một MCP server qua stdio, đưa ra đúng danh mục công cụ ở 8.1. Kết nối đi qua SSH, nên không mở thêm cổng nào; xác thực chính là SSH. Người chạy lệnh phải có quyền root trên máy chủ.
 
 ```bash
 # Claude Code, chạy trên máy cá nhân
@@ -450,12 +502,67 @@ claude mcp add --transport stdio tpan -- ssh <máy> tpan mcp
 codex mcp add tpan -- ssh <máy> tpan mcp
 ```
 
+Mỗi lần `tpan mcp` chạy là một phiên trong `ai_sessions`: mọi lần gọi công cụ và dữ liệu đã trả về (bản đã che) được ghi lại ở phía máy chủ, không dựa vào lời kể của agent. `--session <id>` gắn phiên đó với một câu hỏi gửi từ panel (mục 8.4).
+
 Công cụ lập Plan trả về bản xem trước và một `plan_id`. Plan đó được chạy theo một trong hai chế độ duyệt, đặt trong config:
 
 - `panel` (mặc định): agent không tự chạy được. Người duyệt trên giao diện web hoặc bằng `tpan plan approve <id>`.
-- `client`: tin vào bước hỏi quyền của chính agent; `apply_plan(plan_id)` chạy ngay.
+- `client`: tin vào bước hỏi quyền của chính agent; `apply_plan(plan_id)` chạy ngay. Chỉ có ở lối trực tiếp; phiên đi từ panel luôn là `panel`.
 
 Thư mục `agents/` trong repo có hướng dẫn cho agent: một skill cho Claude Code (`agents/skills/tpan/SKILL.md`) và `AGENTS.md` cho Codex, mô tả các quy trình như "chẩn đoán site trả 502" theo đúng thứ tự chặng ở mục 6.7.
+
+**Nút chuyển sang Claude Code.** Ngay khi có MCP, mọi chỗ có "Hỏi AI" trên giao diện đều có thêm "Chép lệnh cho Claude Code": một câu lệnh soạn sẵn, ví dụ `claude "Dùng công cụ tpan chẩn đoán sự cố #12 rồi đề xuất cách sửa"`. Dán vào terminal máy cá nhân là Claude Code làm việc qua MCP; Plan nó đề xuất hiện trên panel chờ duyệt. Cách này không cần `tpan brain`, và là đường lùi khi bộ não chưa nối.
+
+### 8.4 AI trong panel
+
+Một câu hỏi đi một vòng như sau:
+
+```
+trình duyệt ──► tpan (VPS) ──► tpan brain (máy cá nhân) ──► claude -p ──► Anthropic
+                    ▲                                           │
+                    └─────────── tpan mcp, qua SSH ◄────────────┘
+                        (đọc dữ liệu đã che, đề xuất Plan)
+```
+
+1. Người vận hành chạy `tpan brain <máy>` trong một terminal trên máy cá nhân. Lệnh này kiểm `claude --version` và `claude auth status` (chưa đăng nhập thì dừng; đăng nhập bằng khoá API thì cảnh báo vì mỗi lượt hỏi sẽ tính tiền API), rồi mở `ssh <máy> tpan brain-link` và giữ kết nối đó. Panel hiện "Bộ não: đã nối" kèm tên máy, phiên bản Claude Code và model.
+2. Trên panel, người dùng bấm "Hỏi AI". Giao diện hiện đúng nội dung sẽ gửi (câu hỏi và bằng chứng đã che); người dùng bấm gửi.
+3. tpan đẩy câu hỏi xuống `tpan brain` qua kết nối ở bước 1. `tpan brain` chạy `claude -p` như mục 8.2. Terminal đang chạy `tpan brain` in ra từng câu hỏi và từng lần gọi công cụ, để người vận hành thấy bộ não của mình đang được dùng vào việc gì.
+4. Claude Code gọi công cụ của tpan qua `ssh <máy> tpan mcp --session <id>`. Công cụ đọc trả dữ liệu đã che; công cụ lập Plan tạo một Plan chờ duyệt.
+5. Các sự kiện (chữ hiện dần, lần gọi công cụ) chạy ngược về tpan rồi ra trình duyệt qua SSE. tpan đổi bí danh về tên thật ngay trước khi hiển thị.
+6. Plan được đề xuất hiện ở màn duyệt với nhãn "AI đề xuất". Người duyệt thì engine mới chạy.
+
+**Ngữ cảnh làm việc.** AI trả lời tốt khi biết người dùng đang đứng ở mục nào và vừa đi qua những mục nào. Vì vậy mỗi câu hỏi mang theo một khối ngữ cảnh do giao diện dựng sẵn; người dùng không phải kể lại.
+
+| Phần | Ví dụ | Lấy từ đâu |
+|---|---|---|
+| Đang ở mục nào | Tổng quan; trang site `xuongmoc.example`; Sự cố #41; màn duyệt Plan #12 | đường dẫn của màn đang mở |
+| Đang chỉ vào cái gì | chặng Pool PHP của site đó; bước 3 của job #128; một dòng log | thứ người dùng vừa bấm "Hỏi AI" trên đó |
+| Vừa đi qua những đâu | Tổng quan → trang site → Tổng quan | 10 lần chuyển mục gần nhất của phiên đăng nhập |
+| Bằng chứng đi kèm | kết quả phép kiểm và output của nó | đối tượng đang chỉ vào |
+| Bối cảnh máy | LEMP hay LAMP, phiên bản, số site, ngôn ngữ giao diện | bảng `settings` |
+
+- Khối ngữ cảnh hiện thành các nhãn ở đầu ngăn AI. Người dùng bỏ được từng nhãn trước khi gửi. Đây cũng là cách làm đúng nguyên tắc 3.
+- **Ngăn AI đi theo người dùng.** Ngăn nằm bên phải và giữ nguyên khi chuyển mục; cuộc trò chuyện không mất. Sang mục khác thì nhãn "Đang ở" đổi theo, và câu hỏi kế tiếp mang vị trí mới cùng đường vừa đi. Nhờ vậy mở một site khác rồi hỏi "còn site này thì sao?" vẫn được hiểu đúng.
+- **Mỗi mục có một bản hướng dẫn riêng cho AI.** `internal/ai/playbooks/` có một file cho mỗi mục (tổng quan, site, sự cố, duyệt Plan, SSL, stack, thùng rác, bảo mật, job): mục này có dữ liệu gì, nên đọc gì trước, chẩn đoán theo thứ tự nào, Plan nào hợp lệ ở đây. Bản của mục đang mở được gửi kèm câu hỏi đầu tiên ở mục đó. Nó không nằm trong system prompt, vì Claude Code giữ nguyên system prompt suốt một phiên.
+- **AI chỉ đường được.** Trong câu trả lời AI có thể đưa liên kết tới một mục, dạng `tpan:site/<domain>/log` hoặc `tpan:incident/41`. Giao diện chỉ biến liên kết thành nút khi nó trỏ tới một màn có thật. Bấm nút thì chuyển tới đó và ngăn AI đi theo. AI không tự chuyển màn của người dùng.
+- Ngữ cảnh đi qua bước che dữ liệu như mọi thứ khác: AI thấy bí danh, người dùng thấy tên thật.
+- Lối trực tiếp cũng có ngữ cảnh. Giao diện báo cho tpan mỗi lần người dùng chuyển mục; công cụ đọc `current_view` trả về mục đang mở trên panel và đường vừa đi. Nhờ đó trong Claude Code chỉ cần gõ "xem giúp cái đang mở trên panel".
+
+`tpan brain-link` chỉ là ống nối: nó chuyển stdin và stdout sang socket nội bộ `/run/tpan/brain.sock` (quyền 600, chỉ root). Cùng lúc chỉ nhận một bộ não; bộ não thứ hai nối vào thì bị từ chối kèm thông báo máy nào đang nối.
+
+Các lối vào trên giao diện dùng chung một lõi (`internal/ai`):
+
+| Lối vào | Làm gì |
+|---|---|
+| Thanh lệnh `⌘K` | Gõ tên lệnh thì mở đúng form; gõ một câu thì AI chuyển thành Plan. Ví dụ: "tạo 3 site cho a.example, b.example, c.example, có SSL". |
+| "Giải thích" trên mọi lỗi | Bước job lỗi, phép kiểm không đạt, một dòng log: AI giải thích bằng ngôn ngữ đang dùng và dẫn lại đúng bằng chứng. |
+| "Chẩn đoán" trên sự cố | AI đọc thêm (log, config, trạng thái dịch vụ) qua công cụ đọc, nêu nguyên nhân khả dĩ nhất, rồi đề xuất Plan sửa, hoặc lệnh sửa tay nếu không có Step phù hợp. |
+| Hỏi số liệu | "Site nào nhiều lỗi 5xx nhất trong 1 giờ qua?" AI gọi công cụ thống kê, trả lời kèm con số và lần gọi công cụ đã dùng. |
+| Tóm tắt | Tóm tắt các job và sự cố trong một khoảng thời gian. |
+
+Khi bộ não chưa nối, các nút trên không biến mất: chúng hiện cách nối (`tpan brain <máy>`) và nút "Chép lệnh cho Claude Code" ở mục 8.3. Thanh `⌘K` vẫn tìm và mở lệnh như thường.
+
+Không có lệnh `tpan ask`: hỏi bằng dòng lệnh chính là gõ trong Claude Code đã thêm MCP server `tpan`.
 
 ## 9. CLI và API
 
@@ -474,8 +581,8 @@ tpan trash list | purge [--expired | <domain>]
 tpan backup create|list|restore <domain>
 tpan health [<domain>] [--fix]
 tpan plan list | show <id> | approve <id> | reject <id>
-tpan ask "<câu hỏi hoặc yêu cầu>"
-tpan mcp                           chạy MCP server qua stdio
+tpan mcp [--session ID]            chạy MCP server qua stdio (gọi qua SSH từ máy cá nhân)
+tpan brain <máy> [--model M]       chạy trên máy cá nhân: nối Claude Code vào panel của <máy>
 tpan version
 ```
 
@@ -487,34 +594,35 @@ API dưới `/api/v1`, JSON. Mỗi lệnh ở trên có một endpoint tương �
 
 Bốn ý định hình giao diện:
 
-1. **Ma trận sức khoẻ là màn chính.** Hàng là site, cột là các chặng của đường đi request (DNS, TLS, web, pool, WordPress, DB). Mỗi ô là kết quả phép kiểm của chặng đó. Lỗi ở tầng dùng chung (ví dụ PHP-FPM chết) hiện thành một **cột**; lỗi của riêng một site hiện thành một **ô**. Nhìn hình dạng vùng lỗi là biết loại sự cố trước khi đọc chữ nào.
-2. **Màu chỉ dành cho bất thường.** Khi mọi thứ ổn, màn hình gần như một màu; màu chỉ xuất hiện ở chỗ cần chú ý. Đây là nguyên tắc của giao diện phòng điều khiển công nghiệp (ISA-101). Trạng thái luôn có thêm hình dạng hoặc chữ, không chỉ dựa vào màu.
+1. **Bản đồ tuyến là màn chính.** Mỗi site là một tuyến chạy ngang; mỗi chặng của đường đi request (DNS, TLS, web server, pool PHP, WordPress, DB) là một ga trên tuyến. Các tuyến xếp chồng nên ga cùng loại thẳng cột với nhau. Tuyến liền nét tới ga cuối cùng còn đạt và đứt nét từ ga hỏng trở đi: nhìn là biết request đi được tới đâu. Lỗi ở tầng dùng chung (ví dụ PHP-FPM chết) hiện thành một **cột** ga đỏ; lỗi của riêng một site hiện thành một ga. Nhìn hình dạng vùng lỗi là biết loại sự cố trước khi đọc chữ nào.
+2. **Trạng thái có cả hình lẫn màu.** Đạt là chấm tròn xanh lá, cảnh báo là hình thoi vàng, lỗi là ô vuông đỏ có dấu ×, chưa kiểm được là vòng rỗng xám. Bốn hình khác nhau nên người mù màu và bản in đen trắng vẫn đọc được. Màu chỉ dùng cho trạng thái; nút, khung và chữ đều đen trắng, nên chỗ nào có màu thì chỗ đó đang nói về tình trạng của máy.
 3. **Thay đổi máy chủ được duyệt như duyệt pull request.** Bản xem trước của một Plan trình bày như một PR: tóm tắt, phạm vi ảnh hưởng (dịch vụ nào reload, bao nhiêu site dùng chung), file thay đổi dạng diff, lệnh sẽ chạy. Lịch sử job đọc như `git log` của cái máy: ai đổi gì, lúc nào, bằng chứng, và nút hoàn tác.
 4. **Trạng thái nào cũng mở ra được bằng chứng.** Bấm vào bất kỳ dấu trạng thái nào là thấy lệnh đã chạy và output thật. Giao diện không khẳng định điều gì mà nó không chỉ ra được căn cứ.
 
 Màn hình:
 
 1. **Đăng nhập.**
-2. **Tổng quan**: ma trận sức khoẻ; sự cố đang mở; CPU, RAM, đĩa kèm đường 1 giờ gần nhất; dịch vụ; chứng chỉ sắp hết hạn; Plan đang chờ duyệt.
+2. **Tổng quan**: bản đồ tuyến; sự cố đang mở; cảnh báo (ví dụ chứng chỉ sắp hết hạn); Plan đang chờ duyệt; số liệu máy (CPU, RAM, đĩa, swap, mỗi số một thanh có vạch ngưỡng); lịch sử máy.
 3. **Site**: đường đi request của site đó vẽ theo chiều ngang, mỗi chặng bấm được; bên dưới là bằng chứng, log trực tiếp, backup, thao tác.
 4. **Tạo site**: một site hoặc dán danh sách → bản xem trước → chạy.
 5. **Duyệt Plan**: màn xem trước dùng chung cho mọi thao tác, kể cả Plan do AI hoặc agent đề xuất (có nhãn nguồn gốc).
 6. **Lịch sử**: các job theo thời gian; trang một job có từng bước, output chạy trực tiếp, bằng chứng; khi lỗi thì thấy các bước hoàn tác chạy ngược.
 7. **Sự cố**: đang mở và đã đóng; mỗi sự cố có bằng chứng và ba cách sửa.
-8. **Thùng rác**, **Stack** (kèm nút chuyển LEMP ⇄ LAMP), **Bảo mật**, **Cài đặt** (AI, MCP, ngôn ngữ).
+8. **Thùng rác**, **Stack** (kèm nút chuyển LEMP ⇄ LAMP), **Bảo mật**, **Cài đặt** (AI và tình trạng bộ não, MCP, ngôn ngữ, sáng hoặc tối).
 9. **Thanh lệnh `⌘K`**: mở được từ mọi màn, dùng hoàn toàn bằng bàn phím.
-10. **Phiên AI**: câu hỏi, dữ liệu đã gửi (bản đã che), từng lần gọi công cụ, câu trả lời, Plan đề xuất.
+10. **Ngăn AI**: mở được từ mọi màn, nằm bên phải, đi theo khi chuyển mục; trên cùng là ngữ cảnh sẽ gửi kèm (mục 8.4). Trang **Phiên AI** liệt kê các phiên; mỗi phiên có câu hỏi, ngữ cảnh và đường đã đi, dữ liệu đã gửi (bản đã che), từng lần gọi công cụ, câu trả lời, Plan đề xuất. Phiên của agent nối trực tiếp qua MCP cũng nằm ở đây.
 
 Nguyên tắc:
 
 - Thao tác nào cũng đi qua ba chặng: nhập → xem trước → chạy và xem bằng chứng. Không có nút nào thay đổi máy ngay lập tức.
-- **Chế độ học**: một công tắc bật phần "vì sao" bên cạnh từng bước, từng dòng config, từng phép kiểm. Người mới bật, người quen tắt.
+- **Gợi ý** (bản tiếng Anh: Tips): một công tắc trên thanh đầu trang. Bật thì bên cạnh từng bước, từng dòng config, từng phép kiểm có thêm một câu nói vì sao làm vậy. Câu đó viết sẵn trong mã (trường `Why` của Step), không do AI sinh ra. Người mới bật, người quen tắt.
+- Chữ trên giao diện viết như người nói với người: ngắn, dùng từ thường ngày, nói thẳng việc sắp xảy ra. Quy tắc và ví dụ ở mục "Giọng chữ" của `docs/GIAO-DIEN.md`.
 - Dữ liệu kỹ thuật (đường dẫn, lệnh, domain, mã lỗi) dùng chữ mono, bấm là chép.
 - Song ngữ: chuỗi giao diện nằm trong `web/src/i18n/vi.ts` và `en.ts` (cùng một kiểu TypeScript nên thiếu khoá là lỗi biên dịch). Thuật ngữ kỹ thuật giữ nguyên ở cả hai bản: vhost, pool, socket, reload.
 - Font tự chứa trong file chạy, không gọi CDN (panel phải chạy được trong mạng kín). Font phải có đủ dấu tiếng Việt.
-- Dùng được bằng bàn phím; tương phản đạt WCAG AA; có chế độ sáng và tối.
+- Dùng được bằng bàn phím; tương phản đạt WCAG AA ở cả hai chế độ sáng và tối. Lần đầu mở, giao diện theo cài đặt của hệ điều hành; nút Sáng/Tối trên thanh đầu trang đổi ngay và nhớ lựa chọn.
 
-Hướng hình thức chốt sau khi chọn bản mẫu; ghi vào `docs/GIAO-DIEN.md`.
+Hướng hình thức đã chốt ngày 19/11/2026: bản "Tuyến". Màu, chữ, thành phần và cách đổi sáng tối nằm ở `docs/GIAO-DIEN.md`; hai trang mẫu mở được bằng trình duyệt nằm ở `docs/mau-giao-dien/`. Làm giao diện thì theo hai thứ đó, không tự chọn màu hay font khác.
 
 ## 11. Bảo mật của chính tpan
 
@@ -529,7 +637,7 @@ Panel chạy bằng quyền root nên lỗi ở panel là lỗi chiếm máy. N�
 - **Header**: `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff`, `frame-ancestors 'none'`.
 - **Bí mật**: không ghi mật khẩu vào log, DB hay repo. Mật khẩu quản trị WordPress hiện một lần trong kết quả job rồi bỏ.
 - **Nhật ký**: mọi thao tác có thay đổi ghi vào `audit` (thời điểm, IP, thao tác, kết quả).
-- **AI và MCP**: theo sáu nguyên tắc ở mục 8.1. Khoá API nằm trong `/etc/tpan/ai.toml` quyền 600, không vào DB, log hay repo. MCP chỉ chạy qua stdio; không có cổng MCP nào mở ra mạng.
+- **AI và MCP**: theo bảy nguyên tắc ở mục 8.1. Máy chủ không giữ khoá hay đăng nhập AI nào. MCP chỉ chạy qua stdio; không có cổng MCP nào mở ra mạng. Socket nội bộ `/run/tpan/brain.sock` có quyền 600, chỉ root dùng được.
 
 Để sau (không làm trong đợt này): tách đặc quyền, tức tiến trình web chạy dưới user thường và chỉ nói chuyện với một tiến trình root nhỏ qua Unix socket với danh sách thao tác cố định. Ranh giới `System` ở mục 4.3 được vẽ sẵn để làm việc này không phải viết lại lõi.
 
@@ -537,7 +645,7 @@ Panel chạy bằng quyền root nên lỗi ở panel là lỗi chiếm máy. N�
 
 | Tầng | Chạy ở đâu | Kiểm gì |
 |---|---|---|
-| Unit | Mac, `make test` | kiểm đầu vào (kèm các chuỗi cố tình chèn lệnh), sinh slug, template so với file mẫu (golden), engine với `FakeSystem`: bỏ qua bước đã đúng, hoàn tác đúng thứ tự, lỗi khi hoàn tác; che dữ liệu (không lọt mật khẩu, IP, email, tên miền thật); danh mục công cụ (AI không gọi được gì ngoài danh mục); log có cài câu lệnh, chạy với `FakeProvider`: máy không đổi gì khi chưa có người duyệt |
+| Unit | Mac, `make test` | kiểm đầu vào (kèm các chuỗi cố tình chèn lệnh), sinh slug, template so với file mẫu (golden), engine với `FakeSystem`: bỏ qua bước đã đúng, hoàn tác đúng thứ tự, lỗi khi hoàn tác; che dữ liệu (không lọt mật khẩu, IP, email, tên miền thật); danh mục công cụ (AI không gọi được gì ngoài danh mục); log có cài câu lệnh, chạy với bộ não `fake`: máy không đổi gì khi chưa có người duyệt; `claudecode` chạy với một lệnh `claude` giả: đọc đúng luồng sự kiện, và từ chối phiên khi sự kiện `init` khai thừa một công cụ |
 | Tích hợp | máy ảo `tpan-test`, `make e2e` | kịch bản đầy đủ trên Ubuntu 24.04 sạch (dưới đây) |
 | Tay | trình duyệt | giao diện, hai ngôn ngữ, bàn phím |
 
@@ -555,6 +663,7 @@ Kịch bản `make e2e` (bắt đầu bằng `scripts/vm.sh reset`):
 10. Backup site 1, sửa nội dung, restore → nội dung về như lúc backup.
 11. Chạy lần lượt các kịch bản trong `scripts/faults/` → health báo lỗi ở đúng chặng; sửa tự động đưa về đạt.
 12. Nối một MCP client thử vào `tpan mcp`: liệt kê được công cụ; công cụ lập Plan trả `plan_id` và máy **không** đổi gì khi chưa duyệt.
+13. Chạy `tpan brain` với một lệnh `claude` giả: câu hỏi gửi từ API của panel đi hết một vòng, Plan đề xuất nằm ở trạng thái chờ duyệt, máy **không** đổi gì. Cho `claude` giả khai thêm công cụ `Bash` ở sự kiện `init`: phiên bị từ chối.
 
 Thứ tự bắt buộc: unit test xanh → e2e xanh trên máy ảo → mới chạy trên VPS. **Không chạy thử lần đầu trên VPS.**
 
@@ -567,17 +676,17 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M0** ✅ | Khung: repo, build chéo, nhúng giao diện, CI, máy ảo test | `make check` xanh; `tpan version` chạy trong máy ảo |
 | **M1** | `validate`, `system`, `engine`, `store`, `checks`; `tpan stack install` cho cả Nginx và Apache; `--dry-run`; `tpan health` cho stack | e2e bước 1 cho cả hai web server; chạy lại không đổi gì |
 | **M2** | `tpan site add/list/info/rm` với cô lập đầy đủ và hoàn tác; phép kiểm theo đường đi request | e2e bước 2 đến 6 |
-| **M3** | `tpan setup`, API, đăng nhập, SSE; giao diện theo bản mẫu đã chọn: tổng quan với ma trận sức khoẻ và số liệu máy, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
+| **M3** | `tpan setup`, API, đăng nhập, SSE; giao diện theo `docs/GIAO-DIEN.md`, sáng và tối: tổng quan với bản đồ tuyến và số liệu máy, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
 | **M4** | Health đầy đủ: chạy định kỳ, sự cố, sửa tự động và sửa tay, tự kiểm tpan, phát hiện lệch, log trực tiếp, số request và lỗi 5xx theo site, `scripts/faults/` | e2e bước 9 và 11 |
 | **M5** | SSL (staging), trang bảo mật, ufw, fail2ban | chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt |
 | **M6** | Hàng loạt (dán danh sách, `apply -f`, `export`), thùng rác, khôi phục, dọn tự động | e2e bước 7; tạo 10 site một lượt chỉ reload một lần |
-| **M7** | AI trong panel: `Provider`, che dữ liệu, danh mục công cụ, Plan chờ duyệt, thanh lệnh, giải thích, chẩn đoán, `tpan ask` | với `FakeProvider`: test che dữ liệu và test log cài câu lệnh đạt. Với provider thật trên máy ảo: một lỗi từ `scripts/faults/` được chẩn đoán đúng chặng và Plan đề xuất sửa được nó |
-| **M8** | `tpan mcp`, hai chế độ duyệt, thư mục `agents/` | e2e bước 12; Claude Code trên máy cá nhân liệt kê được site của máy ảo qua SSH |
+| **M7** | Cổng cho agent: danh mục công cụ, che dữ liệu, `tpan mcp`, hai chế độ duyệt, Plan chờ duyệt, thư mục `agents/`, nút "Chép lệnh cho Claude Code" | e2e bước 12; test che dữ liệu và test log cài câu lệnh đạt; Claude Code trên máy cá nhân liệt kê được site của máy ảo qua SSH, chẩn đoán đúng chặng một lỗi từ `scripts/faults/`, và Plan nó đề xuất sửa được lỗi đó |
+| **M8** | AI trong panel: `Brain`, `claudecode`, `tpan brain`, kiểm sự kiện `init`, ngăn AI có ngữ cảnh làm việc và bản hướng dẫn theo mục, thanh lệnh, giải thích, chẩn đoán, trang phiên AI | e2e bước 13; với Claude Code thật: hỏi từ panel của máy ảo, chữ hiện dần, Plan đề xuất hiện ở màn duyệt; chuyển mục rồi hỏi tiếp thì ngữ cảnh gửi đi đổi theo, xem được ở trang phiên AI |
 | **M9** | Backup, khôi phục, chặn đầy đĩa | e2e bước 10; backup bị từ chối khi đĩa giả lập gần đầy |
 | **M10** | Chuyển LEMP ⇄ LAMP | e2e bước 8; đo được thời gian gián đoạn |
-| **M11** | `install.sh`, bản phát hành trên GitHub, README có ảnh, rà hai ngôn ngữ | cài từ một lệnh lên máy ảo sạch rồi tạo được site |
+| **M11** | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), bản phát hành trên GitHub, README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
 
-M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần danh mục công cụ của M7), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc; không làm dở nhiều mốc cùng lúc.
+M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc; không làm dở nhiều mốc cùng lúc.
 
 Để sau: tách đặc quyền, clone site sang staging, đọc trạng thái pool PHP-FPM qua FastCGI, backup theo lịch, nhiều phiên bản PHP, quản lý nhiều máy.
 
@@ -591,6 +700,7 @@ M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc �
 - Không có mật khẩu, IP thật, tên miền nội bộ, tên công ty hay tên người trong repo. Ví dụ dùng `example.com`.
 - Lệnh nguy hiểm (xoá, dừng dịch vụ, đổi SSH, tường lửa) phải có `Danger: true` và giao diện phải hỏi lại.
 - Mọi thứ chạy trên máy ảo trước. Lệnh trên VPS do người chịu trách nhiệm tự gõ sau khi đã thấy nó chạy đúng trên máy ảo.
+- Repo để riêng tư (private) từ ngày 19/11/2026. Người review xem bằng cách được mời làm collaborator, hoặc chủ dự án mở công khai trước buổi review.
 
 ## 15. Tài liệu giải thích
 
@@ -616,9 +726,17 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 - 80 MB cho một worker PHP của WordPress có sát thực tế không.
 - `rename` giữa `/var/www` và `/var/lib` có cùng phân vùng trên VPS đích không (`df /var/www /var/lib`).
 - Máy ảo test là arm64, VPS là amd64: gói cài giống nhau, nhưng phải chạy lại e2e trên VPS ở lần triển khai đầu.
-- API của SDK MCP Go và SDK của các nhà cung cấp AI: đọc tài liệu của đúng phiên bản thêm vào, không viết theo trí nhớ.
+- API của SDK MCP Go: đọc tài liệu của đúng phiên bản thêm vào, không viết theo trí nhớ.
 - Che dữ liệu có làm AI chẩn đoán kém đi không: đo bằng các kịch bản trong `scripts/faults/`, có che và không che.
 - Quy định của nơi triển khai về việc gửi dữ liệu máy chủ cho AI bên ngoài: phải được đồng ý trước khi bật AI trên máy có dữ liệu thật.
+- Claude Code chạy không giao diện: phải thử trên máy cá nhân trước khi viết `claudecode`, và ghi nguyên văn sự kiện `init` của từng lần thử vào `docs/bang-chung/`:
+  - `--setting-sources ""` có được chấp nhận không. Nếu không thì giữa `--safe-mode` và `--restricted`, cờ nào vừa bỏ được hook, plugin, skill, CLAUDE.md và bộ nhớ riêng của người dùng, vừa giữ đăng nhập bằng gói Claude, vừa vẫn nạp MCP server từ `--mcp-config`.
+  - Với `--tools ""` và một MCP server, danh sách công cụ trong sự kiện `init` còn những gì ngoài công cụ của `tpan`. Danh sách ngoại lệ ở bước kiểm cửa (mục 8.2) lấy từ kết quả này.
+  - `claude auth status` in ra gì trên máy đã đăng nhập bằng gói Claude (trường `authMethod`).
+  - Một lượt `claude -p` có MCP qua SSH mất bao lâu từ lúc gọi tới chữ đầu tiên. Nếu chậm vì mỗi lượt mở thêm kết nối SSH thì bật `ControlMaster` trong cấu hình SSH của máy cá nhân.
+  - Khi một bản Claude Code mới đặt `--bare` làm mặc định cho `-p`: có cờ nào tắt được không. Nếu không, `tpan brain` ghim phiên bản và báo rõ.
+- Hạn mức của gói Claude khi dùng `claude -p` và điều khoản dùng đăng nhập gói (mục 8.2): đã đổi vài lần trong năm 2026, kiểm lại ở hai trang ghi trong mục 17 trước buổi demo.
+- SSH từ máy cá nhân vào máy ảo Multipass (cần cho `tpan mcp` và `tpan brain` lúc test): thêm khoá công khai của máy cá nhân vào máy ảo bằng một lệnh con mới của `scripts/vm.sh`.
 
 ## 17. Nguồn đã tra (19/11/2026)
 
@@ -638,4 +756,8 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 - Thêm MCP server vào Codex: https://developers.openai.com/codex/mcp
 - Cài câu lệnh vào log để dẫn dắt AI agent: https://www.eye.security/blog/log-poisoning-openclaw-ai-agent-injection-risk
 - Đo hiệu quả các biện pháp chống tấn công qua log: https://www.alphaxiv.org/abs/2605.24421
-- Giao diện phòng điều khiển, màu chỉ cho bất thường (ISA-101): https://control.com/technical-articles/going-gray/
+- Chạy Claude Code không giao diện (`claude -p`, `--bare`, luồng stream-json): https://code.claude.com/docs/en/headless
+- Các cờ dòng lệnh của Claude Code: https://code.claude.com/docs/en/cli-reference
+- Đăng nhập Claude Code và thứ tự ưu tiên giữa các cách đăng nhập: https://code.claude.com/docs/en/authentication
+- Điều khoản dùng đăng nhập gói Claude: https://code.claude.com/docs/en/legal-and-compliance
+- Hạn mức của gói Claude với `claude -p`: https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan
