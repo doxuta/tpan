@@ -1,0 +1,29 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Site mặc định của Apache: hứng mọi request không khớp ServerName của site nào.
+# Apache lấy VirtualHost ĐẦU TIÊN (theo thứ tự nạp file, tức theo tên file) làm
+# mặc định cho cổng đó, nên file này phải có tên sắp xếp trước mọi vhost của site.
+# Bản này chỉ nghe cổng 80; cổng 443 sẽ thêm ở mốc SSL.
+<VirtualHost *:80>
+    # Có ServerName để Apache không cảnh báo thiếu tên. ".invalid" là đuôi dành
+    # riêng, không bao giờ trùng một domain thật.
+    ServerName tpan-default.invalid
+
+    # certbot --webroot ghi file thử thách vào /var/lib/tpan/acme/.well-known/acme-challenge/.
+    DocumentRoot "/var/lib/tpan/acme"
+
+    # Mặc định chặn hết: mọi đường dẫn khác trả 403.
+    # Options None: không bật Indexes (không liệt kê thư mục), không theo symlink.
+    # AllowOverride None: không đọc .htaccess trong thư mục này.
+    <Directory "/var/lib/tpan/acme">
+        Options None
+        AllowOverride None
+        Require all denied
+    </Directory>
+
+    # Riêng thư mục thử thách được mở. Apache gộp các khối Directory từ đường dẫn
+    # ngắn tới dài nên khối dài hơn này thắng khối chặn ở trên.
+    <Directory "/var/lib/tpan/acme/.well-known/acme-challenge">
+        Require all granted
+    </Directory>
+</VirtualHost>

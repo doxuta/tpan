@@ -1,0 +1,28 @@
+{{.Header}}
+#
+# Site mặc định của Nginx: hứng mọi request không khớp server_name của site nào.
+# Không có nó, Nginx sẽ lấy site đầu tiên theo thứ tự tên file làm mặc định, và
+# khách gõ IP hoặc một domain lạ trỏ về máy sẽ thấy nội dung của site đó.
+# Bản này chỉ nghe cổng 80; cổng 443 sẽ thêm ở mốc SSL.
+server {
+    # default_server: server này nhận request khi không có server_name nào khớp.
+    # Dòng [::] cho IPv6; thiếu nó thì request tới địa chỉ IPv6 rơi vào site thật.
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    # "_" không phải domain thật, chỉ là tên không ai dùng.
+    server_name _;
+
+    # certbot --webroot ghi file thử thách vào {{.AcmeRoot}}/.well-known/acme-challenge/.
+    # Let's Encrypt gọi vào đây bằng domain của site, nhưng khi site chưa có
+    # (hoặc domain mới trỏ về mà chưa có vhost) thì request cũng rơi vào server này.
+    location /.well-known/acme-challenge/ {
+        root {{.AcmeRoot}};
+    }
+
+    # 444 là mã riêng của Nginx: đóng kết nối ngay, không trả gì, nên bot quét IP
+    # không biết máy này chạy web gì.
+    location / {
+        return 444;
+    }
+}

@@ -1,0 +1,53 @@
+{{.Header}}
+#
+# Xoay vòng log của các site do tpan quản lý: /var/log/tpan/sites/<domain>/*.log
+# Giữ 14 bản theo ngày, nén lại, để log không ăn hết đĩa.
+#
+# Không dùng chỉ thị su: thư mục log của mỗi site thuộc root:root, quyền 0755
+# (mục 5), nên logrotate chạy bằng root không phải đổi tên file trong một thư
+# mục do user của site kiểm soát. Nếu thư mục thuộc user của site, user đó có
+# thể đặt symlink để lừa root ghi đè file khác.
+
+# access.log và error.log do {{if eq .Web "nginx"}}Nginx{{else}}Apache{{end}} ghi: xoay xong phải báo cho nó mở lại
+# file mới, không thì nó cứ ghi vào file cũ đã đổi tên.
+/var/log/tpan/sites/*/access.log /var/log/tpan/sites/*/error.log {
+    daily
+    rotate 14
+    # Site mới chưa có log, hoặc log rỗng: bỏ qua thay vì báo lỗi hay tạo bản rỗng.
+    missingok
+    notifempty
+    compress
+    # Chưa nén bản vừa xoay: web server có thể còn ghi dở vào nó cho tới khi
+    # mở lại file; nén ở lần xoay sau.
+    delaycompress
+    # Tạo file mới cùng chủ và quyền với file cũ.
+    create
+    # Một lần postrotate cho tất cả site, không phải mỗi site một lần.
+    sharedscripts
+    postrotate
+{{- if eq .Web "nginx"}}
+        # Giống file logrotate của gói nginx: init script gửi tín hiệu USR1 để
+        # Nginx mở lại file log, không ngắt kết nối đang chạy.
+        invoke-rc.d nginx rotate >/dev/null 2>&1
+{{- else}}
+        # Giống file logrotate của gói apache2: reload êm (graceful), kết nối
+        # đang chạy được làm nốt. Chỉ reload khi Apache đang chạy.
+        if pgrep -f ^/usr/sbin/apache2 >/dev/null; then
+            invoke-rc.d apache2 reload 2>&1 | logger -t apache2.logrotate
+        fi
+{{- end}}
+    endscript
+}
+
+# php-error.log do PHP-FPM ghi, dưới user của site. copytruncate: chép nội dung
+# sang file mới rồi cắt file gốc về 0, nên PHP-FPM không cần biết gì và không
+# cần reload. Đổi lại có thể mất vài dòng ghi đúng lúc cắt; log lỗi PHP chấp
+# nhận được. File gốc giữ nguyên chủ (user của site) nên PHP vẫn ghi được.
+/var/log/tpan/sites/*/php-error.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    copytruncate
+}

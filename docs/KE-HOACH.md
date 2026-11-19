@@ -252,7 +252,9 @@ Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và kh�
 
 /var/www/<domain>/public/           mã nguồn site (document root)
 /var/www/<domain>/tmp/              upload tạm, session PHP của riêng site
-/var/log/tpan/sites/<domain>/       access.log, error.log, php-error.log
+/var/log/tpan/sites/<domain>/       access.log, error.log, php-error.log (thư mục thuộc root:root, 0755,
+                                    để logrotate không phải đổi tên file trong thư mục do user của site
+                                    kiểm soát; php-error.log thuộc user của site để PHP ghi được)
 
 /etc/nginx/sites-available/tpan-<domain>.conf    (+ symlink ở sites-enabled)
 /etc/apache2/sites-available/tpan-<domain>.conf  (+ symlink ở sites-enabled)
@@ -260,7 +262,7 @@ Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và kh�
 /etc/logrotate.d/tpan-sites
 ```
 
-Mọi file TPAN sinh ra đều có tiền tố `tpan-` và dòng đầu `# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.`
+Mọi file TPAN sinh ra đều có tiền tố `tpan-` (trừ site mặc định của Apache, `000-tpan-default.conf`, lý do ở mục 6.1) và dòng đầu `# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.`
 
 ### Cô lập từng site
 
@@ -292,7 +294,7 @@ Mỗi luồng dưới đây là một Plan. Liệt kê theo đúng thứ tự b�
 4. Dò phiên bản PHP đã cài (đọc `/etc/php/*/fpm`), lưu vào `settings`.
 5. Web server:
    - Nginx: gỡ site `default` của distro, ghi `tpan-default.conf`.
-   - Apache: `a2dismod mpm_prefork`, bật `mpm_event proxy_fcgi setenvif rewrite ssl headers http2`, gỡ `000-default`, ghi `tpan-default.conf`.
+   - Apache: `a2dismod mpm_prefork`, bật `mpm_event proxy_fcgi setenvif rewrite ssl headers http2`, gỡ `000-default`, ghi `000-tpan-default.conf`. Tên file này là ngoại lệ duy nhất của luật tiền tố `tpan-`: Apache coi vhost được nạp **đầu tiên** (theo thứ tự tên file trong `sites-enabled`) là site mặc định, nên nếu đặt `tpan-default.conf` thì site `tpan-abc.com.conf` sẽ xếp trước và hứng mọi request lạ. Nginx không bị vì dùng `default_server`.
    - `tpan-default` là site hứng mọi request không khớp domain nào: trả 444 (Nginx) hoặc 403 (Apache), chỉ phục vụ `/.well-known/acme-challenge/` từ `/var/lib/tpan/acme/`.
 6. Tải WP-CLI vào `/usr/local/bin/wp`, kiểm sha512.
 7. Ghi `/etc/logrotate.d/tpan-sites`, kiểm bằng `logrotate -d`.
