@@ -57,7 +57,9 @@ case "$cmd" in
     [ -f "$bin" ] || { echo "Chưa có $bin. Chạy: make build-linux" >&2; exit 1; }
     multipass transfer "$bin" "$VM:/tmp/tpan"
     multipass exec "$VM" -- sudo install -m 0755 /tmp/tpan /usr/local/bin/tpan
-    multipass exec "$VM" -- tpan version
+    # </dev/null: chạy không có terminal (agent, script nền) thì multipass exec
+    # chờ stdin mãi và lệnh treo.
+    multipass exec "$VM" -- tpan version </dev/null
     ;;
   shell) multipass shell "$VM" ;;
   exec) multipass exec "$VM" -- "$@" ;;

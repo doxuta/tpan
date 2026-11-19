@@ -5291,3 +5291,14 @@ trên không chứng minh gì. Đã sửa khoá trong script. Kiểm lại tay t
   tpan setup --yes: mọi bước "đã đúng, bỏ qua", "Mật khẩu quản trị đã có từ trước, giữ nguyên."
   sha256 của hash sau:                      8bfd58f2dc2c0a30
   => ĐẠT: chạy lại setup không đổi hash mật khẩu quản trị
+
+
+######## [2026-11-19 17:35] Dòng lệnh ghi audit (commit a9bfc79), kiểm trên máy ảo (phiên chính)
+$ make vm-deploy   →   tpan c090709 (commit c090709, build 2026-11-19T10:12:52Z)
+$ sudo tpan site add d.example.com --email admin@example.com --yes
+Job 8f97218eb51e6531: thành công
+$ SELECT ip, action, target, result, length(job_id) FROM audit WHERE ip = 'cli' ORDER BY id DESC LIMIT 3
+('cli', 'site.add', 'd.example.com', 'ok', 16)
+('cli', 'setup', '0.0.0.0:8443', 'ok', 16)
+('cli', 'setup', '0.0.0.0:8443', 'ok', 16)
+  => ĐẠT: lệnh gõ ở dòng lệnh có dòng audit với IP "cli" và mã job
