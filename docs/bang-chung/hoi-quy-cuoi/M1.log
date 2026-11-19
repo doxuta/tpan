@@ -1,0 +1,3026 @@
+Hồi quy cuối: scripts/e2e-m1.sh all trên tpan-test, bản 31b21c7, nhánh hoi-quy-cuoi.
+Bắt đầu: 2026-11-20 02:49:25 (giờ máy Mac)
+
+
+
+######## [2026-11-20 02:49:25] nginx (a): máy sạch, triển khai tpan
+
+[2026-11-20 02:49:25] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-test  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-test.clean
+[2K[0A[0EStarting tpan-test  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ [2K[0A[0E
+[2026-11-20 02:49:38] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-20 02:49:38] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-20 02:49:39] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+
+[2026-11-20 02:49:39] $ scripts/vm.sh exec bash -c dpkg -l | wc -l; dpkg -l | grep -c "^ii"
+668
+663
+[2026-11-20 02:49:39] (mã thoát 0)
+
+[2026-11-20 02:49:39] $ make vm-deploy DATE=2026-11-19T19:49:25Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 11h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 10ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 332 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-BQkOncIF.css                                   27.26 kB │ gzip:   6.71 kB
+dist/assets/OriginTag-oEtuz3Ep.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-Dw-kWVTj.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/Field-DnkTn54k.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/MonoText-DlGU9Q_S.js                                  0.67 kB │ gzip:   0.43 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-CGvj8VHS.js                                 0.89 kB │ gzip:   0.44 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/useMutation-ConnMiPZ.js                               2.32 kB │ gzip:   0.97 kB
+dist/assets/bao-mat-DEAThMkc.js                                   4.16 kB │ gzip:   1.81 kB
+dist/assets/dang-nhap-CCDwAMZo.js                                 5.82 kB │ gzip:   2.57 kB
+dist/assets/CheckRow-Buz5iMXm.js                                  6.02 kB │ gzip:   2.63 kB
+dist/assets/plan-cho-duyet-BVEZxswb.js                            6.12 kB │ gzip:   2.09 kB
+dist/assets/model-CyCzzw_z.js                                     6.78 kB │ gzip:   2.70 kB
+dist/assets/thung-rac-Cqgy9hEg.js                                 9.08 kB │ gzip:   3.57 kB
+dist/assets/backup-CEIENE__.js                                    9.79 kB │ gzip:   3.17 kB
+dist/assets/ssl-BpT34eSy.js                                      12.17 kB │ gzip:   4.50 kB
+dist/assets/cron-DU14RIGy.js                                     12.22 kB │ gzip:   4.65 kB
+dist/assets/co-so-du-lieu-CoBXHml1.js                            12.57 kB │ gzip:   4.55 kB
+dist/assets/tao-site-406WRwq8.js                                 14.51 kB │ gzip:   4.81 kB
+dist/assets/cap-nhat-CFFWOxU8.js                                 15.45 kB │ gzip:   5.08 kB
+dist/assets/stack-DnQiCkgz.js                                    18.01 kB │ gzip:   5.59 kB
+dist/assets/cai-dat-B_3E7dFh.js                                  18.01 kB │ gzip:   5.64 kB
+dist/assets/phien-ai-TYZS3bfv.js                                 18.27 kB │ gzip:   5.87 kB
+dist/assets/su-co-CTOq4BTZ.js                                    22.87 kB │ gzip:   7.28 kB
+dist/assets/site-ChZOC5H7.js                                     23.77 kB │ gzip:   6.87 kB
+dist/assets/bang-dieu-khien-DqC-9Wfd.js                          25.51 kB │ gzip:   7.80 kB
+dist/assets/lich-su-BKmB5838.js                                  26.38 kB │ gzip:   8.50 kB
+dist/assets/ErrorNote-B_JyXH3Z.js                                28.85 kB │ gzip:  10.12 kB
+dist/assets/ScreenHeader-B5TtQn9K.js                             40.66 kB │ gzip:  14.61 kB
+dist/assets/hooks-Dcr5kuzL.js                                    74.14 kB │ gzip:  24.43 kB
+dist/assets/index-CZPmYzuM.js                                   340.04 kB │ gzip: 107.09 kB
+
+✓ built in 148ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Commit=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:49:25Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Commit=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:49:25Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan 31b21c7 (commit 31b21c7, build 2026-11-19T19:49:25Z)
+[2026-11-20 02:49:43] (mã thoát 0)
+  => ĐẠT: build và chép tpan vào máy ảo
+
+[2026-11-20 02:49:43] $ shasum -a 256 bin/tpan-linux-arm64 bin/tpan-linux-amd64
+8494c20187ebaa94231c7637a2a9d6edd84fc6ac5c6354ee3292bf761d20a46b  bin/tpan-linux-arm64
+1d8faf32c40e410cdeed1d22a1db95d6b9731ed9b10490cf41737015f22b2eab  bin/tpan-linux-amd64
+[2026-11-20 02:49:43] (mã thoát 0)
+
+[2026-11-20 02:49:43] $ git log --oneline -1
+31b21c7 giải thích: mốc M11 cài đặt và phát hành; kế hoạch: đóng mốc M11 và cả 13 mốc, việc chủ dự án tự làm, bảng chia việc M11; install.sh, setup: sửa hai chú thích cũ
+[2026-11-20 02:49:43] (mã thoát 0)
+
+[2026-11-20 02:49:43] $ git status --short
+[2026-11-20 02:49:43] (mã thoát 0)
+
+[2026-11-20 02:49:43] $ git diff --stat
+[2026-11-20 02:49:43] (mã thoát 0)
+
+[2026-11-20 02:49:43] $ scripts/vm.sh exec tpan version
+tpan 31b21c7 (commit 31b21c7, build 2026-11-19T19:49:25Z)
+[2026-11-20 02:49:43] (mã thoát 0)
+  => ĐẠT: tpan version chạy được
+
+
+######## [2026-11-20 02:49:43] nginx (b): --dry-run in kế hoạch, không đổi gì
+
+[2026-11-20 02:49:43] $ scripts/vm.sh root tpan stack install --web nginx --dry-run
+Kế hoạch: Cài stack LEMP (Nginx)
+15 bước sẽ chạy, 1 bước đã đúng sẽ bỏ qua, 2 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Làm mới danh sách gói (apt-get update)  (apt.update:lists)
+    Vì sao: apt chỉ cài được bản gói mà nó biết. Máy mới tạo thường có danh sách gói cũ hoặc trống, nên bỏ bước này thì bước cài gói báo không tìm thấy gói hoặc cài bản cũ còn lỗ hổng.
+    $ apt-get update
+    Ghi chú hoàn tác: apt-get update chỉ làm mới danh sách gói, không cài hay gỡ gì, nên không có gì để hoàn tác.
+ 2. [sẽ chạy] Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx  (apt.install:mariadb-server,php-fpm,php-cli,php-mysql,php-curl,php-gd,php-mbstring,php-xml,php-zip,php-intl,certbot,curl,nginx)
+    Vì sao: Đây là phần mềm chạy site: web server, PHP-FPM, MariaDB, certbot. Thiếu gói nào thì mọi bước cấu hình nó phía sau đều lỗi vì chưa có file hay dịch vụ để cấu hình.
+    $ apt-get install -y mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx
+    Ghi chú hoàn tác: Gói đã cài không được gỡ khi hoàn tác: gỡ gói có thể kéo theo gỡ gói khác đang dùng chung thư viện. Gói thừa không làm hỏng gì; muốn gỡ thì dùng apt-get remove bằng tay.
+ 3. [sẽ chạy] Chạy và bật mariadb khi khởi động  (service:mariadb)
+    Vì sao: Gói đã cài nhưng dịch vụ không chạy thì site không trả lời. Không bật khi khởi động thì sau lần khởi động lại máy, mọi site chết cho tới khi có người vào bật tay.
+    $ systemctl enable --now mariadb
+ 4. [sẽ chạy] Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf  (file:/etc/mysql/mariadb.conf.d/99-tpan.cnf)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Dịch vụ đọc cấu hình từ file này. Thiếu nó hoặc sai nội dung thì dịch vụ chạy theo cấu hình khác với cấu hình tpan đã kiểm. tpan kiểm cú pháp trước khi nạp, sai thì trả file cũ về.
+    $ systemctl restart mariadb
+    tạo /etc/mysql/mariadb.conf.d/99-tpan.cnf
+ 5. [sẽ chạy] Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test  (mariadb.secure:localhost)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: User ẩn danh cho bất kỳ ai trên máy vào MariaDB không cần mật khẩu; DB test thì ai cũng ghi được. root dùng unix_socket nghĩa là chỉ root của máy vào được root của DB, không có mật khẩu nào để đoán hay để lộ.
+    $ mariadb -N -B
+    Ghi chú hoàn tác: Không hoàn tác: không có lý do gì để tạo lại user ẩn danh hay DB test, cả hai đều là lỗ hổng.
+    (chưa kiểm được lúc xem trước: đọc trạng thái bảo mật của MariaDB: chạy mariadb -N -B: exec: "mariadb": executable file not found in $PATH)
+ 6. [sẽ chạy] Dò bản PHP-FPM đã cài  (php.detect:/etc/php)
+    Vì sao: Tên dịch vụ, socket và thư mục pool của PHP-FPM đều chứa số phiên bản (php8.3-fpm, /etc/php/8.3/fpm/pool.d). Không biết bản đang cài thì tpan ghi pool vào sai chỗ và site trả lỗi 502.
+    Ghi chú hoàn tác: Bước này chỉ đọc máy, không thay đổi gì nên không có gì để hoàn tác.
+ 7. [sẽ chạy] Thay pool www của php<bản>-fpm bằng pool tpan-idle  (php.idle:<bản>)
+    Vì sao: Gói php<bản>-fpm tự tạo pool www chạy sẵn 2 tiến trình dưới user www-data dù không site nào dùng: tốn RAM, và là một cửa chạy PHP không thuộc site nào. Không gỡ được nó mà để trống, vì PHP-FPM từ chối chạy khi không có pool nào; pool tpan-idle giữ chỗ, chỉ root nói chuyện được với nó và không có tiến trình nào chạy sẵn.
+    $ php-fpm<bản> -t
+    $ systemctl reload php<bản>-fpm
+    (chưa kiểm được lúc xem trước: pool tpan-idle: chưa biết bản PHP (DetectPHP phải chạy trước bước này))
+ 8. [sẽ chạy] Tạo thư mục /var/lib/tpan  (dir:/var/lib/tpan)
+    Vì sao: Các bước sau ghi file vào thư mục này. Thiếu thư mục thì chúng lỗi; sai quyền hay sai chủ thì hoặc dịch vụ không đọc được, hoặc người không nên đọc lại đọc được.
+ 9. [sẽ chạy] Tạo thư mục /var/lib/tpan/acme  (dir:/var/lib/tpan/acme)
+    Vì sao: Các bước sau ghi file vào thư mục này. Thiếu thư mục thì chúng lỗi; sai quyền hay sai chủ thì hoặc dịch vụ không đọc được, hoặc người không nên đọc lại đọc được.
+10. [đã đúng, bỏ qua] Gỡ /etc/nginx/sites-enabled/default  (absent:/etc/nginx/sites-enabled/default)
+11. [sẽ chạy] Ghi /etc/nginx/sites-available/tpan-default.conf  (file:/etc/nginx/sites-available/tpan-default.conf)
+    Vì sao: Dịch vụ đọc cấu hình từ file này. Thiếu nó hoặc sai nội dung thì dịch vụ chạy theo cấu hình khác với cấu hình tpan đã kiểm. tpan kiểm cú pháp trước khi nạp, sai thì trả file cũ về.
+    $ nginx -t
+    $ systemctl reload nginx
+    tạo /etc/nginx/sites-available/tpan-default.conf
+12. [sẽ chạy] Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf  (symlink:/etc/nginx/sites-enabled/tpan-default.conf)
+    Vì sao: Web server chỉ nạp các file nằm trong sites-enabled. File ở sites-available mà không có link này thì site coi như tắt: request đi vào site khác hoặc bị từ chối.
+    $ nginx -t
+    $ systemctl reload nginx
+13. [sẽ chạy] Chạy và bật nginx khi khởi động  (service:nginx)
+    Vì sao: Gói đã cài nhưng dịch vụ không chạy thì site không trả lời. Không bật khi khởi động thì sau lần khởi động lại máy, mọi site chết cho tới khi có người vào bật tay.
+    $ systemctl enable --now nginx
+14. [sẽ chạy] Tạo thư mục /var/cache/tpan  (dir:/var/cache/tpan)
+    Vì sao: Các bước sau ghi file vào thư mục này. Thiếu thư mục thì chúng lỗi; sai quyền hay sai chủ thì hoặc dịch vụ không đọc được, hoặc người không nên đọc lại đọc được.
+15. [sẽ chạy] Cài WP-CLI 2.12.0 vào /usr/local/bin/wp  (wpcli:/usr/local/bin/wp)
+    Vì sao: tpan cài, cấu hình và kiểm WordPress bằng WP-CLI. Thiếu nó thì không tạo được site. sha512 được kiểm trước khi đặt vào máy: file tải về bị sửa giữa đường thì không bao giờ được chạy bằng quyền root.
+    $ curl -fsSL -o /var/cache/tpan/wp-cli-2.12.0.phar https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+16. [sẽ chạy] Ghi /etc/logrotate.d/tpan-sites  (file:/etc/logrotate.d/tpan-sites)
+    Vì sao: Dịch vụ đọc cấu hình từ file này. Thiếu nó hoặc sai nội dung thì dịch vụ chạy theo cấu hình khác với cấu hình tpan đã kiểm. tpan kiểm cú pháp trước khi nạp, sai thì trả file cũ về.
+    $ logrotate -d /etc/logrotate.d/tpan-sites
+    tạo /etc/logrotate.d/tpan-sites
+[2026-11-20 02:49:43] (mã thoát 0)
+  => ĐẠT: dry-run thoát 0
+  => ĐẠT: dry-run in kế hoạch
+
+[2026-11-20 02:49:43] $ scripts/vm.sh exec dpkg -l nginx
+dpkg-query: no packages found matching nginx
+[2026-11-20 02:49:43] (mã thoát 1)
+  => ĐẠT: dpkg -l nginx: vẫn chưa có gói
+
+[2026-11-20 02:49:44] $ scripts/vm.sh exec bash -c for p in /var/lib/tpan /var/lib/tpan/tpan.db /etc/tpan /var/cache/tpan /run/tpan; do if [ -e "$p" ]; then echo "CÓ $p"; else echo "không có $p"; fi; done
+không có /var/lib/tpan
+không có /var/lib/tpan/tpan.db
+không có /etc/tpan
+không có /var/cache/tpan
+không có /run/tpan
+[2026-11-20 02:49:44] (mã thoát 0)
+  => ĐẠT: không có /var/lib/tpan, tpan.db, /etc/tpan, /var/cache/tpan, /run/tpan
+
+
+######## [2026-11-20 02:49:44] nginx (c): cài thật lần một
+
+[2026-11-20 02:49:44] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job 443518d5bcc54ab2
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 443518d5bcc54ab2: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-20 02:50:14] (mã thoát 0)
+  => ĐẠT: cài thoát 0
+  => ĐẠT: job thành công
+  => ĐẠT: không phép kiểm nào lỗi hoặc chưa rõ
+
+Bản PHP dò được trong /etc/php: 8.3
+
+
+######## [2026-11-20 02:50:14] nginx (d): kiểm độc lập với tpan
+
+[2026-11-20 02:50:14] $ scripts/vm.sh exec systemctl is-active nginx
+active
+[2026-11-20 02:50:14] (mã thoát 0)
+  => ĐẠT: nginx active
+
+[2026-11-20 02:50:14] $ scripts/vm.sh exec systemctl is-enabled nginx
+enabled
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: nginx enabled
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec systemctl is-active php8.3-fpm
+active
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: php8.3-fpm active
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec systemctl is-enabled php8.3-fpm
+enabled
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: php8.3-fpm enabled
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec systemctl is-active mariadb
+active
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: mariadb active
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec systemctl is-enabled mariadb
+enabled
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: mariadb enabled
+
+[2026-11-20 02:50:15] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                                                            
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*    users:(("mariadbd",pid=13612,fd=23))                                              
+LISTEN 0      4096      127.0.0.54:53        0.0.0.0:*    users:(("systemd-resolve",pid=480,fd=17))                                         
+LISTEN 0      4096         0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=843,fd=3),("systemd",pid=1,fd=199))                            
+LISTEN 0      511          0.0.0.0:80        0.0.0.0:*    users:(("nginx",pid=13709,fd=5),("nginx",pid=13708,fd=5),("nginx",pid=10142,fd=5))
+LISTEN 0      4096   127.0.0.53%lo:53        0.0.0.0:*    users:(("systemd-resolve",pid=480,fd=15))                                         
+LISTEN 0      4096            [::]:22           [::]:*    users:(("sshd",pid=843,fd=4),("systemd",pid=1,fd=200))                            
+LISTEN 0      511             [::]:80           [::]:*    users:(("nginx",pid=13709,fd=6),("nginx",pid=13708,fd=6),("nginx",pid=10142,fd=6))
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: có 127.0.0.1:3306
+  => ĐẠT: 3306 không nghe ở địa chỉ nào khác
+  => ĐẠT: có cổng 80
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec curl -sS -m 5 -o /dev/null -w %{http_code}\n http://127.0.0.1/
+curl: (52) Empty reply from server
+000
+[2026-11-20 02:50:15] (mã thoát 52)
+  => ĐẠT: curl 127.0.0.1 (trong máy ảo): nginx đóng kết nối, curl mã 52
+
+[2026-11-20 02:50:15] $ curl -sS -m 5 -o /dev/null -w %{http_code}\n http://<vm>/
+curl: (52) Empty reply from server
+000
+[2026-11-20 02:50:15] (mã thoát 52)
+  => ĐẠT: curl IP máy ảo từ Mac: nginx đóng kết nối, curl mã 52
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec ls -la /etc/nginx/sites-enabled/
+total 8
+drwxr-xr-x 2 root root 4096 Nov 20 02:50 .
+drwxr-xr-x 8 root root 4096 Nov 20 02:50 ..
+lrwxrwxrwx 1 root root   44 Nov 20 02:50 tpan-default.conf -> /etc/nginx/sites-available/tpan-default.conf
+[2026-11-20 02:50:15] (mã thoát 0)
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec test -e /etc/nginx/sites-enabled/default
+[2026-11-20 02:50:15] (mã thoát 1)
+  => ĐẠT: không còn sites-enabled/default
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec test -L /etc/nginx/sites-enabled/tpan-default.conf
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: có sites-enabled/tpan-default.conf (symlink)
+
+[2026-11-20 02:50:15] $ scripts/vm.sh root nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: nginx -t
+
+[2026-11-20 02:50:15] $ scripts/vm.sh root ss -tlnH
+LISTEN 0      80         127.0.0.1:3306 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:22   0.0.0.0:*
+LISTEN 0      511          0.0.0.0:80   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:22      [::]:*
+LISTEN 0      511             [::]:80      [::]:*
+[2026-11-20 02:50:15] (mã thoát 0)
+  => ĐẠT: không ai nghe cổng 443
+
+[2026-11-20 02:50:15] $ scripts/vm.sh exec curl -sS -m 5 -o /dev/null -w %{http_code}\n http://127.0.0.1:443/
+curl: (7) Failed to connect to 127.0.0.1 port 443 after 0 ms: Couldn't connect to server
+000
+[2026-11-20 02:50:16] (mã thoát 7)
+  => ĐẠT: curl http://127.0.0.1:443/ không kết nối được (curl mã 7)
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root logrotate -d /etc/logrotate.d/tpan-sites
+warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file /etc/logrotate.d/tpan-sites
+Reading state from file: /var/lib/logrotate/status
+Allocating hash table for state file, size 64 entries
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+
+Handling 2 logs
+
+rotating pattern: /var/log/tpan/sites/*/access.log /var/log/tpan/sites/*/error.log  after 1 days (14 rotations)
+empty log files are not rotated, old logs are removed
+considering log /var/log/tpan/sites/*/access.log
+Creating new state
+considering log /var/log/tpan/sites/*/error.log
+Creating new state
+not running postrotate script, since no logs were rotated
+
+rotating pattern: /var/log/tpan/sites/*/php-error.log  after 1 days (14 rotations)
+empty log files are not rotated, old logs are removed
+considering log /var/log/tpan/sites/*/php-error.log
+Creating new state
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: logrotate -d thoát 0
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root wp --info --allow-root
+OS:	Linux 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:39:52 UTC 2026 aarch64
+Shell:	/bin/bash
+PHP binary:	/usr/bin/php8.3
+PHP version:	8.3.6
+php.ini used:	/etc/php/8.3/cli/php.ini
+MySQL binary:	/usr/bin/mariadb
+MySQL version:	mariadb  Ver 15.1 Distrib 10.11.14-MariaDB, for debian-linux-gnu (aarch64) using  EditLine wrapper
+SQL modes:	STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+WP-CLI root dir:	phar://wp-cli.phar/vendor/wp-cli/wp-cli
+WP-CLI vendor dir:	phar://wp-cli.phar/vendor
+WP_CLI phar path:	phar:///usr/local/bin/wp
+WP-CLI packages dir:	
+WP-CLI cache dir:	/root/.wp-cli/cache
+WP-CLI global config:	
+WP-CLI project config:	
+WP-CLI version:	2.12.0
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: wp --info
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root stat -c %a %U:%G %n /var/lib/tpan /var/lib/tpan/acme /var/lib/tpan/tpan.db
+755 root:root /var/lib/tpan
+755 root:root /var/lib/tpan/acme
+600 root:root /var/lib/tpan/tpan.db
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: /var/lib/tpan 755 root:root
+  => ĐẠT: /var/lib/tpan/acme 755 root:root
+  => ĐẠT: /var/lib/tpan/tpan.db 600 root:root
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root bash -c mkdir -p /var/lib/tpan/acme/.well-known/acme-challenge && echo tpan-e2e-acme-ok > /var/lib/tpan/acme/.well-known/acme-challenge/tpan-e2e && ls -la /var/lib/tpan/acme/.well-known/acme-challenge/
+total 12
+drwxr-xr-x 2 root root 4096 Nov 20 02:50 .
+drwxr-xr-x 3 root root 4096 Nov 20 02:50 ..
+-rw-r--r-- 1 root root   17 Nov 20 02:50 tpan-e2e
+[2026-11-20 02:50:16] (mã thoát 0)
+
+[2026-11-20 02:50:16] $ scripts/vm.sh exec curl -sS -m 5 -w \n%{http_code}\n -H Host: la.example http://127.0.0.1/.well-known/acme-challenge/tpan-e2e
+tpan-e2e-acme-ok
+
+200
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: ACME với Host lạ: 200 và đúng nội dung
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root rm -r /var/lib/tpan/acme/.well-known
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: xoá file thử ACME
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root mariadb -e SELECT User, Host, JSON_VALUE(Priv, '$.plugin') AS plugin, JSON_EXTRACT(Priv, '$.auth_or') AS auth_or FROM mysql.global_priv ORDER BY User, Host
+User	Host	plugin	auth_or
+mariadb.sys	localhost	mysql_native_password	NULL
+mysql	localhost	mysql_native_password	[{}, {"plugin": "unix_socket"}]
+root	localhost	mysql_native_password	[{}, {"plugin": "unix_socket"}]
+[2026-11-20 02:50:16] (mã thoát 0)
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root mariadb -N -B -e SELECT COUNT(*) FROM mysql.global_priv WHERE User=''
+0
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: đếm user ẩn danh = 0
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root mariadb -e SHOW DATABASES
+Database
+information_schema
+mysql
+performance_schema
+sys
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: không có DB test
+
+[2026-11-20 02:50:16] $ scripts/vm.sh root mariadb -e SHOW GRANTS FOR root@localhost
+Grants for root@localhost
+GRANT ALL PRIVILEGES ON *.* TO `root`@`localhost` IDENTIFIED VIA mysql_native_password USING 'invalid' OR unix_socket WITH GRANT OPTION
+GRANT PROXY ON ''@'%' TO 'root'@'localhost' WITH GRANT OPTION
+[2026-11-20 02:50:16] (mã thoát 0)
+  => ĐẠT: root@localhost dùng unix_socket
+
+
+######## [2026-11-20 02:50:16] nginx (e): chạy lại lần hai, không được đổi gì
+
+[2026-11-20 02:50:17] Ảnh chụp trước lần chạy lại:
+74e91892a9e591cde6d65c3e8e7e5fb2  /etc/nginx/fastcgi.conf
+ed054bf064ade22488fcccc49174327d  /etc/nginx/fastcgi_params
+3e338aca6a53a5420fc791b5ef86f64c  /etc/nginx/koi-utf
+bfa0b80381fed2b1dfcf617b0ba204ec  /etc/nginx/koi-win
+96fd3f507b3a4fe666fcb0bb0042f428  /etc/nginx/mime.types
+e5398edc0b51497dba606859fb13a86e  /etc/nginx/nginx.conf
+2612ba3438c3b7855ea7779a879e6aef  /etc/nginx/proxy_params
+df8c71e25e0356ffc539742f08fddfff  /etc/nginx/scgi_params
+f1f26aef86f90a484f3a2f46ccc46ff6  /etc/nginx/sites-available/default
+3f28a729f445f44427c5e40ec2cf0066  /etc/nginx/sites-available/tpan-default.conf
+828e5bd1f3de7b3ef0e6856598b2a8c0  /etc/nginx/snippets/fastcgi-php.conf
+0a8bff8a55d8ec9d002e1b8460d2d64f  /etc/nginx/snippets/snakeoil.conf
+88ac833ee8ea60904a8b3063fde791de  /etc/nginx/uwsgi_params
+0f39cbfca77d4f3bb5d33f009a514c71  /etc/nginx/win-utf
+/etc/nginx/sites-enabled/tpan-default.conf -> /etc/nginx/sites-available/tpan-default.conf
+c763554beba3b432ebf19c71e69ada46  /etc/apache2/conf-available/php8.3-fpm.conf
+61e0993270966cc6bc96b46c01ade21f  /etc/mysql/conf.d/mysql.cnf
+20890decb4486ce539753193908fb356  /etc/mysql/conf.d/mysqldump.cnf
+c08358d02a853b1dda4bcc4a56f5f798  /etc/mysql/debian-start
+df477b524b3adfdcc5f765ebfa17a6e7  /etc/mysql/debian.cnf
+f78499dd07dccc3238cc15dd937b87bb  /etc/mysql/mariadb.cnf
+a8028d231dad4d2658bfd8b0db11f85e  /etc/mysql/mariadb.conf.d/50-client.cnf
+2e0e48974b270cb20c2b66aa71f6cd92  /etc/mysql/mariadb.conf.d/50-mysql-clients.cnf
+ae130218a23989c3a504c95831610b4b  /etc/mysql/mariadb.conf.d/50-mysqld_safe.cnf
+70a88ac2d5d3483d48c220af7211177d  /etc/mysql/mariadb.conf.d/50-server.cnf
+e2f4b79114ba923199ead4b7e94eee70  /etc/mysql/mariadb.conf.d/60-galera.cnf
+481d40067658e047b257ae1349352360  /etc/mysql/mariadb.conf.d/99-tpan.cnf
+6c0ab650087968bec0b0070644a32750  /etc/mysql/mariadb.conf.d/provider_bzip2.cnf
+5dc12c9891064bc1e8a2667e1f13507f  /etc/mysql/mariadb.conf.d/provider_lz4.cnf
+69ea1a502df249cf2257fa231827ab0a  /etc/mysql/mariadb.conf.d/provider_lzma.cnf
+4753866a6c3ac054a75c87782b450b5b  /etc/mysql/mariadb.conf.d/provider_lzo.cnf
+97735326f1364fa9e7bd76893334fce0  /etc/mysql/mariadb.conf.d/provider_snappy.cnf
+cfe2bc1819d5e200eca8ca6912f714af  /etc/mysql/my.cnf.fallback
+/etc/mysql/my.cnf -> /etc/alternatives/my.cnf
+726c33e11795235b71f7367d79eb8744  /etc/php/8.3/cli/php.ini
+696fcb228ad0e29f57cdd2082eb41fac  /etc/php/8.3/fpm/php-fpm.conf
+75451050d77c02f5b29da8360395a9dd  /etc/php/8.3/fpm/php.ini
+b7036e16ece7cb9016ff45451e56123d  /etc/php/8.3/fpm/pool.d/tpan-idle.conf
+0877786daf8479dd91be0f89f223a102  /etc/php/8.3/mods-available/calendar.ini
+72def1d4663c5350713006af725f21ae  /etc/php/8.3/mods-available/ctype.ini
+0278905f22bb2770ddee828403d70cfd  /etc/php/8.3/mods-available/curl.ini
+e88bd9b3d32d3ce6ae86ce23758b7fb3  /etc/php/8.3/mods-available/dom.ini
+7b3bf6064e6bd1749e5f1a3dd56592b3  /etc/php/8.3/mods-available/exif.ini
+40c77aebbb04a3e8891ea3575eda55a5  /etc/php/8.3/mods-available/ffi.ini
+3eb68bf4e22faed68c673430081b1a08  /etc/php/8.3/mods-available/fileinfo.ini
+b245857286d2cff077355dd82086c950  /etc/php/8.3/mods-available/ftp.ini
+dcba6b3c7745411277aa243c2920ae70  /etc/php/8.3/mods-available/gd.ini
+7dfbed71c04bbd15100e719b20b7c764  /etc/php/8.3/mods-available/gettext.ini
+f875ac0ca30dea610b2adc421b9e997e  /etc/php/8.3/mods-available/iconv.ini
+66dd72756634f83008541a4d4bce2342  /etc/php/8.3/mods-available/intl.ini
+4036a043c18d96704cf2913442c2b3c9  /etc/php/8.3/mods-available/mbstring.ini
+9fc5024c5f48ebba786c6076588ed371  /etc/php/8.3/mods-available/mysqli.ini
+bb19fb6e35f9ad94140f6836ff8347a0  /etc/php/8.3/mods-available/mysqlnd.ini
+5454a910708937435d02de816081a39c  /etc/php/8.3/mods-available/opcache.ini
+2bcf2cd02149a7b3118f9a8ed7cfe1b3  /etc/php/8.3/mods-available/pdo.ini
+67fd74d7914a24c90ad92e0eb8b0890a  /etc/php/8.3/mods-available/pdo_mysql.ini
+9dafa1a822dd003107e1686818a191fd  /etc/php/8.3/mods-available/phar.ini
+0f55f144c06b074b7c0a498928001452  /etc/php/8.3/mods-available/posix.ini
+04d2378963688a881deb69b0441f2a80  /etc/php/8.3/mods-available/readline.ini
+894f4d6c5c36f658499b941a02bbc9a7  /etc/php/8.3/mods-available/shmop.ini
+d59ce88cfda1c4161044ca85d33f9293  /etc/php/8.3/mods-available/simplexml.ini
+5c9f4598aa9e02021783e540fc023c66  /etc/php/8.3/mods-available/sockets.ini
+0ac70c35787ea579baefc56e36ea9c47  /etc/php/8.3/mods-available/sysvmsg.ini
+a4c2616a57351dc93cb36e1f41c63926  /etc/php/8.3/mods-available/sysvsem.ini
+46bf0b73759bfdd7fcf431ea42d03c2f  /etc/php/8.3/mods-available/sysvshm.ini
+cb36a25e9c9d2c975cb49bbb56f16465  /etc/php/8.3/mods-available/tokenizer.ini
+148d7029bf667c8b3eeb4a2180431062  /etc/php/8.3/mods-available/xml.ini
+ce6be61dbe2d23cbb9fbe76e76131997  /etc/php/8.3/mods-available/xmlreader.ini
+0850b6a32fea855c178b1bceb6572d0b  /etc/php/8.3/mods-available/xmlwriter.ini
+74ea439610ac4f9c28abbfbc8cd4cbf3  /etc/php/8.3/mods-available/xsl.ini
+c46baba51984fb09217d9c7fab433e89  /etc/php/8.3/mods-available/zip.ini
+/etc/php/8.3/cli/conf.d/10-mysqlnd.ini -> /etc/php/8.3/mods-available/mysqlnd.ini
+/etc/php/8.3/cli/conf.d/10-opcache.ini -> /etc/php/8.3/mods-available/opcache.ini
+/etc/php/8.3/cli/conf.d/10-pdo.ini -> /etc/php/8.3/mods-available/pdo.ini
+/etc/php/8.3/cli/conf.d/15-xml.ini -> /etc/php/8.3/mods-available/xml.ini
+/etc/php/8.3/cli/conf.d/20-calendar.ini -> /etc/php/8.3/mods-available/calendar.ini
+/etc/php/8.3/cli/conf.d/20-ctype.ini -> /etc/php/8.3/mods-available/ctype.ini
+/etc/php/8.3/cli/conf.d/20-curl.ini -> /etc/php/8.3/mods-available/curl.ini
+/etc/php/8.3/cli/conf.d/20-dom.ini -> /etc/php/8.3/mods-available/dom.ini
+/etc/php/8.3/cli/conf.d/20-exif.ini -> /etc/php/8.3/mods-available/exif.ini
+/etc/php/8.3/cli/conf.d/20-ffi.ini -> /etc/php/8.3/mods-available/ffi.ini
+/etc/php/8.3/cli/conf.d/20-fileinfo.ini -> /etc/php/8.3/mods-available/fileinfo.ini
+/etc/php/8.3/cli/conf.d/20-ftp.ini -> /etc/php/8.3/mods-available/ftp.ini
+/etc/php/8.3/cli/conf.d/20-gd.ini -> /etc/php/8.3/mods-available/gd.ini
+/etc/php/8.3/cli/conf.d/20-gettext.ini -> /etc/php/8.3/mods-available/gettext.ini
+/etc/php/8.3/cli/conf.d/20-iconv.ini -> /etc/php/8.3/mods-available/iconv.ini
+/etc/php/8.3/cli/conf.d/20-intl.ini -> /etc/php/8.3/mods-available/intl.ini
+/etc/php/8.3/cli/conf.d/20-mbstring.ini -> /etc/php/8.3/mods-available/mbstring.ini
+/etc/php/8.3/cli/conf.d/20-mysqli.ini -> /etc/php/8.3/mods-available/mysqli.ini
+/etc/php/8.3/cli/conf.d/20-pdo_mysql.ini -> /etc/php/8.3/mods-available/pdo_mysql.ini
+/etc/php/8.3/cli/conf.d/20-phar.ini -> /etc/php/8.3/mods-available/phar.ini
+/etc/php/8.3/cli/conf.d/20-posix.ini -> /etc/php/8.3/mods-available/posix.ini
+/etc/php/8.3/cli/conf.d/20-readline.ini -> /etc/php/8.3/mods-available/readline.ini
+/etc/php/8.3/cli/conf.d/20-shmop.ini -> /etc/php/8.3/mods-available/shmop.ini
+/etc/php/8.3/cli/conf.d/20-simplexml.ini -> /etc/php/8.3/mods-available/simplexml.ini
+/etc/php/8.3/cli/conf.d/20-sockets.ini -> /etc/php/8.3/mods-available/sockets.ini
+/etc/php/8.3/cli/conf.d/20-sysvmsg.ini -> /etc/php/8.3/mods-available/sysvmsg.ini
+/etc/php/8.3/cli/conf.d/20-sysvsem.ini -> /etc/php/8.3/mods-available/sysvsem.ini
+/etc/php/8.3/cli/conf.d/20-sysvshm.ini -> /etc/php/8.3/mods-available/sysvshm.ini
+/etc/php/8.3/cli/conf.d/20-tokenizer.ini -> /etc/php/8.3/mods-available/tokenizer.ini
+/etc/php/8.3/cli/conf.d/20-xmlreader.ini -> /etc/php/8.3/mods-available/xmlreader.ini
+/etc/php/8.3/cli/conf.d/20-xmlwriter.ini -> /etc/php/8.3/mods-available/xmlwriter.ini
+/etc/php/8.3/cli/conf.d/20-xsl.ini -> /etc/php/8.3/mods-available/xsl.ini
+/etc/php/8.3/cli/conf.d/20-zip.ini -> /etc/php/8.3/mods-available/zip.ini
+/etc/php/8.3/fpm/conf.d/10-mysqlnd.ini -> /etc/php/8.3/mods-available/mysqlnd.ini
+/etc/php/8.3/fpm/conf.d/10-opcache.ini -> /etc/php/8.3/mods-available/opcache.ini
+/etc/php/8.3/fpm/conf.d/10-pdo.ini -> /etc/php/8.3/mods-available/pdo.ini
+/etc/php/8.3/fpm/conf.d/15-xml.ini -> /etc/php/8.3/mods-available/xml.ini
+/etc/php/8.3/fpm/conf.d/20-calendar.ini -> /etc/php/8.3/mods-available/calendar.ini
+/etc/php/8.3/fpm/conf.d/20-ctype.ini -> /etc/php/8.3/mods-available/ctype.ini
+/etc/php/8.3/fpm/conf.d/20-curl.ini -> /etc/php/8.3/mods-available/curl.ini
+/etc/php/8.3/fpm/conf.d/20-dom.ini -> /etc/php/8.3/mods-available/dom.ini
+/etc/php/8.3/fpm/conf.d/20-exif.ini -> /etc/php/8.3/mods-available/exif.ini
+/etc/php/8.3/fpm/conf.d/20-ffi.ini -> /etc/php/8.3/mods-available/ffi.ini
+/etc/php/8.3/fpm/conf.d/20-fileinfo.ini -> /etc/php/8.3/mods-available/fileinfo.ini
+/etc/php/8.3/fpm/conf.d/20-ftp.ini -> /etc/php/8.3/mods-available/ftp.ini
+/etc/php/8.3/fpm/conf.d/20-gd.ini -> /etc/php/8.3/mods-available/gd.ini
+/etc/php/8.3/fpm/conf.d/20-gettext.ini -> /etc/php/8.3/mods-available/gettext.ini
+/etc/php/8.3/fpm/conf.d/20-iconv.ini -> /etc/php/8.3/mods-available/iconv.ini
+/etc/php/8.3/fpm/conf.d/20-intl.ini -> /etc/php/8.3/mods-available/intl.ini
+/etc/php/8.3/fpm/conf.d/20-mbstring.ini -> /etc/php/8.3/mods-available/mbstring.ini
+/etc/php/8.3/fpm/conf.d/20-mysqli.ini -> /etc/php/8.3/mods-available/mysqli.ini
+/etc/php/8.3/fpm/conf.d/20-pdo_mysql.ini -> /etc/php/8.3/mods-available/pdo_mysql.ini
+/etc/php/8.3/fpm/conf.d/20-phar.ini -> /etc/php/8.3/mods-available/phar.ini
+/etc/php/8.3/fpm/conf.d/20-posix.ini -> /etc/php/8.3/mods-available/posix.ini
+/etc/php/8.3/fpm/conf.d/20-readline.ini -> /etc/php/8.3/mods-available/readline.ini
+/etc/php/8.3/fpm/conf.d/20-shmop.ini -> /etc/php/8.3/mods-available/shmop.ini
+/etc/php/8.3/fpm/conf.d/20-simplexml.ini -> /etc/php/8.3/mods-available/simplexml.ini
+/etc/php/8.3/fpm/conf.d/20-sockets.ini -> /etc/php/8.3/mods-available/sockets.ini
+/etc/php/8.3/fpm/conf.d/20-sysvmsg.ini -> /etc/php/8.3/mods-available/sysvmsg.ini
+/etc/php/8.3/fpm/conf.d/20-sysvsem.ini -> /etc/php/8.3/mods-available/sysvsem.ini
+/etc/php/8.3/fpm/conf.d/20-sysvshm.ini -> /etc/php/8.3/mods-available/sysvshm.ini
+/etc/php/8.3/fpm/conf.d/20-tokenizer.ini -> /etc/php/8.3/mods-available/tokenizer.ini
+/etc/php/8.3/fpm/conf.d/20-xmlreader.ini -> /etc/php/8.3/mods-available/xmlreader.ini
+/etc/php/8.3/fpm/conf.d/20-xmlwriter.ini -> /etc/php/8.3/mods-available/xmlwriter.ini
+/etc/php/8.3/fpm/conf.d/20-xsl.ini -> /etc/php/8.3/mods-available/xsl.ini
+/etc/php/8.3/fpm/conf.d/20-zip.ini -> /etc/php/8.3/mods-available/zip.ini
+5fe0af6ce1505fefdc158d9e5dbf6286  /etc/logrotate.d/alternatives
+fa54dab59ef899b48d5455c976008df4  /etc/logrotate.d/apport
+179f2ed4f85cbaca12fa3d69c2a4a1c3  /etc/logrotate.d/apt
+0f1e42d11052c238718996029ffb809b  /etc/logrotate.d/bootlog
+55631862595faf6432786dc335eb3f44  /etc/logrotate.d/btmp
+a815a66a333f2637c00055fcd44b02d4  /etc/logrotate.d/certbot
+1136c49642289d614837572cac18d9f6  /etc/logrotate.d/cloud-init
+9e25c8505966b5829785f34a548ae11f  /etc/logrotate.d/dpkg
+9694f545cc2483ce09930879b2fb9aa6  /etc/logrotate.d/mariadb
+b29112f9480a70fa7de2729ff39923e2  /etc/logrotate.d/nginx
+d2accdb1b12c3ac02239c433153fdb79  /etc/logrotate.d/php8.3-fpm
+3f26282ac0106961634fe4efb9edc3f4  /etc/logrotate.d/rsyslog
+9a13afba3357abe270fd4c144a139bf1  /etc/logrotate.d/tpan-sites
+852ec664fd0f1ecb26e726f5e801e9fd  /etc/logrotate.d/ubuntu-pro-client
+969308e0ddfb74505f0da47b49ada218  /etc/logrotate.d/ufw
+e45049ee847f069a99e3e6ec39155d4a  /etc/logrotate.d/unattended-upgrades
+46cd7ecb1810441bd450987a976f5540  /etc/logrotate.d/wtmp
+a592bbf68fc5143bfad5800cb4947253  /usr/local/bin/wp
+755 root:root /var/lib/tpan
+755 root:root /var/lib/tpan/acme
+755 root:root /var/cache/tpan
+MainPID=10142 ExecMainStartTimestamp=Fri 2026-11-20 02:50:06 +07 Id=nginx.service ActiveState=active UnitFileState=enabled 
+MainPID=0 ExecMainStartTimestamp= Id=apache2.service ActiveState=inactive UnitFileState= 
+MainPID=13397 ExecMainStartTimestamp=Fri 2026-11-20 02:50:10 +07 Id=php8.3-fpm.service ActiveState=active UnitFileState=enabled 
+MainPID=13612 ExecMainStartTimestamp=Fri 2026-11-20 02:50:13 +07 Id=mariadb.service ActiveState=active UnitFileState=enabled 
+con của web server:
+10142 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+13708 nginx: worker process
+13709 nginx: worker process
+
+[2026-11-20 02:50:17] $ scripts/vm.sh root tpan stack install --web nginx --yes --verbose
+Bắt đầu job 937ba7120ac87f2a
+- Làm mới danh sách gói (apt-get update) ...
+    $ dpkg-query --show '--showformat=${Package}\t${Status}\n' mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx
+    | certbot	install ok installed
+    | curl	install ok installed
+    | mariadb-server	install ok installed
+    | nginx	install ok installed
+    | php-cli	install ok installed
+    | php-curl	install ok installed
+    | php-fpm	install ok installed
+    | php-gd	install ok installed
+    | php-intl	install ok installed
+    | php-mbstring	install ok installed
+    | php-mysql	install ok installed
+    | php-xml	install ok installed
+    | php-zip	install ok installed
+  đã đúng, bỏ qua
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+    $ dpkg-query --show '--showformat=${Package}\t${Status}\n' mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx
+    | certbot	install ok installed
+    | curl	install ok installed
+    | mariadb-server	install ok installed
+    | nginx	install ok installed
+    | php-cli	install ok installed
+    | php-curl	install ok installed
+    | php-fpm	install ok installed
+    | php-gd	install ok installed
+    | php-intl	install ok installed
+    | php-mbstring	install ok installed
+    | php-mysql	install ok installed
+    | php-xml	install ok installed
+    | php-zip	install ok installed
+  đã đúng, bỏ qua
+- Chạy và bật mariadb khi khởi động ...
+    $ systemctl is-active mariadb
+    | active
+    $ systemctl is-enabled mariadb
+    | enabled
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  đã đúng, bỏ qua
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+    $ mariadb -N -B
+    | 1	0	0
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php8.3-fpm bằng pool tpan-idle ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  đã đúng, bỏ qua
+- Gỡ /etc/nginx/sites-enabled/default ...
+  đã đúng, bỏ qua
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  đã đúng, bỏ qua
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  đã đúng, bỏ qua
+- Chạy và bật nginx khi khởi động ...
+    $ systemctl is-active nginx
+    | active
+    $ systemctl is-enabled nginx
+    | enabled
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  đã đúng, bỏ qua
+- Ghi /etc/logrotate.d/tpan-sites ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 937ba7120ac87f2a: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.1%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-20 02:50:17] (mã thoát 0)
+  => ĐẠT: chạy lại thoát 0
+  => ĐẠT: job thành công
+  => ĐẠT: không bước nào chạy (không có dòng "xong")
+
+Số bước: 16, số bước bỏ qua: 16
+  => ĐẠT: mọi bước đều bỏ qua
+
+Các lệnh tpan đã chạy trong lần hai (dòng "$"), gom và đếm:
+   2 dpkg-query --show '--showformat=${Package}\t${Status}\n' mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx
+   1 mariadb -N -B
+   1 systemctl is-active mariadb
+   1 systemctl is-active nginx
+   1 systemctl is-enabled mariadb
+   1 systemctl is-enabled nginx
+  => ĐẠT: chỉ có lệnh đọc (dpkg-query, systemctl is-*, mariadb -N -B đọc trạng thái, a2query -m)
+
+[2026-11-20 02:50:17] $ diff /var/folders/3x/kjdh5x9n36n_tzxmyxhtvd940000gn/T/tmp.OZhBe6VgYp/before /var/folders/3x/kjdh5x9n36n_tzxmyxhtvd940000gn/T/tmp.OZhBe6VgYp/after
+[2026-11-20 02:50:17] (mã thoát 0)
+  => ĐẠT: máy không đổi (md5, symlink, quyền, PID)
+
+
+######## [2026-11-20 02:50:17] nginx (f): status và health
+
+[2026-11-20 02:50:17] $ scripts/vm.sh root tpan stack status
+Web server:  nginx (nguồn ubuntu)
+PHP:         8.3 (nguồn ubuntu)
+MariaDB:     nguồn ubuntu
+Đã cài:      rồi
+Dịch vụ:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[2026-11-20 02:50:17] (mã thoát 0)
+  => ĐẠT: stack status thoát 0
+
+[2026-11-20 02:50:17] $ scripts/vm.sh root tpan health
+
+== Máy và stack ==
+[đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.1%
+[đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 89.1% (3.4 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+[đạt] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi
+
+15 đạt
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.9 GiB
+[chưa rõ] Chứng chỉ HTTPS của panel còn hạn: Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[chưa rõ] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: Chưa kiểm được: không có /etc/tpan/tls/key.pem
+[chưa rõ] /etc/tpan có quyền 0700, chủ root:root: Chưa kiểm được: không có /etc/tpan
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[cảnh báo] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health chưa chạy lần nào
+    Nguyên nhân: `tpan serve` có đang chạy không? Bộ hẹn giờ nằm trong tiến trình đó; nó tắt thì không ai kiểm máy định kỳ và sự cố mới không được phát hiện.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo journalctl -u tpan -n 50 --no-pager
+      sudo systemctl status tpan
+[cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+    Nguyên nhân: Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan backup create --all --yes
+      sudo tpan backup settings --at 03:30
+      sudo ls /var/lib/tpan/backups/_tpan
+
+4 đạt, 2 cảnh báo, 3 chưa rõ
+[2026-11-20 02:50:17] (mã thoát 0)
+  => ĐẠT: health thoát 0
+
+[2026-11-20 02:50:17] $ scripts/vm.sh root tpan health --json
+{
+  "started": "2026-11-20T02:50:17.760335345+07:00",
+  "finished": "2026-11-20T02:50:17.800956604+07:00",
+  "installed": true,
+  "groups": [
+    {
+      "target": "",
+      "results": [
+        {
+          "id": "service.active:nginx",
+          "stage": "web",
+          "title": {
+            "vi": "Dịch vụ nginx đang chạy và tự bật cùng máy",
+            "en": "Service nginx is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "nginx đang chạy và tự bật khi khởi động máy",
+            "en": "nginx is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active nginx",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled nginx",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "service.active:php8.3-fpm",
+          "stage": "php",
+          "title": {
+            "vi": "Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy",
+            "en": "Service php8.3-fpm is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "php8.3-fpm đang chạy và tự bật khi khởi động máy",
+            "en": "php8.3-fpm is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active php8.3-fpm",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled php8.3-fpm",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "service.active:mariadb",
+          "stage": "db",
+          "title": {
+            "vi": "Dịch vụ mariadb đang chạy và tự bật cùng máy",
+            "en": "Service mariadb is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "mariadb đang chạy và tự bật khi khởi động máy",
+            "en": "mariadb is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active mariadb",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled mariadb",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "config.nginx:nginx",
+          "stage": "web",
+          "title": {
+            "vi": "Cấu hình nginx hợp lệ",
+            "en": "nginx configuration is valid"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cấu hình nginx hợp lệ",
+            "en": "nginx configuration is valid"
+          },
+          "evidence": [
+            {
+              "command": "nginx -t",
+              "exit_code": 0,
+              "output": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful"
+            }
+          ]
+        },
+        {
+          "id": "config.phpfpm:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "Cấu hình PHP-FPM 8.3 hợp lệ",
+            "en": "PHP-FPM 8.3 configuration is valid"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cấu hình PHP-FPM 8.3 hợp lệ",
+            "en": "PHP-FPM 8.3 configuration is valid"
+          },
+          "evidence": [
+            {
+              "command": "php-fpm8.3 -t",
+              "exit_code": 0,
+              "output": "[20-Nov-2026 02:50:17] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful"
+            }
+          ]
+        },
+        {
+          "id": "port.localonly:3306",
+          "stage": "db",
+          "title": {
+            "vi": "Cổng 3306 chỉ nghe ở 127.0.0.1",
+            "en": "Port 3306 listens on 127.0.0.1 only"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cổng 3306 chỉ nghe ở 127.0.0.1",
+            "en": "Port 3306 listens only on 127.0.0.1"
+          },
+          "evidence": [
+            {
+              "command": "ss -tlnH",
+              "exit_code": 0,
+              "output": "LISTEN 0      80         127.0.0.1:3306 0.0.0.0:*\nLISTEN 0      4096      127.0.0.54:53   0.0.0.0:*\nLISTEN 0      4096         0.0.0.0:22   0.0.0.0:*\nLISTEN 0      511          0.0.0.0:80   0.0.0.0:*\nLISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*\nLISTEN 0      4096            [::]:22      [::]:*\nLISTEN 0      511             [::]:80      [::]:*"
+            }
+          ]
+        },
+        {
+          "id": "http.default:nginx",
+          "stage": "web",
+          "title": {
+            "vi": "Site mặc định của nginx đóng kết nối request lạ",
+            "en": "The nginx default site drops unknown requests"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "nginx đóng kết nối request lạ như mong đợi (mã 444)",
+            "en": "nginx drops unknown requests as expected (code 444)"
+          },
+          "evidence": [
+            {
+              "command": "curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1/",
+              "exit_code": 52,
+              "output": "000\ncurl: (52) Empty reply from server"
+            }
+          ]
+        },
+        {
+          "id": "db.secure:mariadb",
+          "stage": "db",
+          "title": {
+            "vi": "MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test",
+            "en": "MariaDB is safe: root uses unix_socket, no anonymous users, no test database"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test",
+            "en": "MariaDB is safe: root uses unix_socket, no anonymous users, no test database"
+          },
+          "evidence": [
+            {
+              "command": "mariadb -N -B",
+              "exit_code": 0,
+              "output": "root_socket\t1\nanonymous\t0\ntest_db\t0"
+            }
+          ]
+        },
+        {
+          "id": "wpcli.binary:wp",
+          "stage": "machine",
+          "title": {
+            "vi": "WP-CLI có sẵn, đúng quyền và đúng mã sha512",
+            "en": "WP-CLI is present, with the right mode and sha512"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "WP-CLI có sẵn, quyền 0755, sha512 khớp",
+            "en": "WP-CLI is present, mode 0755, sha512 matches"
+          },
+          "evidence": [
+            {
+              "command": "stat /usr/local/bin/wp (tpan)",
+              "exit_code": 0,
+              "output": "mode 0755, 7142777 byte, chủ root:root"
+            },
+            {
+              "command": "sha512sum /usr/local/bin/wp (tpan)",
+              "exit_code": 0,
+              "output": "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  /usr/local/bin/wp\nmong đợi / expected: be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832"
+            }
+          ]
+        },
+        {
+          "id": "disk.usage:/",
+          "stage": "machine",
+          "title": {
+            "vi": "Ổ đĩa chứa / còn chỗ trống",
+            "en": "The disk holding / has free space"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Ổ đĩa chứa / đã dùng 13.1%",
+            "en": "The disk holding / is 13.1% used"
+          },
+          "evidence": [
+            {
+              "command": "statfs / (tpan)",
+              "exit_code": 0,
+              "output": "total=19682557952 free=17097400320 used=13.1%"
+            }
+          ]
+        },
+        {
+          "id": "php.www_pool:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "PHP-FPM 8.3 không còn pool www thừa",
+            "en": "PHP-FPM 8.3 has no leftover www pool"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Không có pool www; pool giữ chỗ tpan-idle có mặt",
+            "en": "No www pool; the tpan-idle placeholder pool is present"
+          },
+          "evidence": [
+            {
+              "command": "ls /etc/php/8.3/fpm/pool.d (tpan)",
+              "exit_code": 0,
+              "output": "tpan-idle.conf"
+            }
+          ]
+        },
+        {
+          "id": "memory:ram",
+          "stage": "machine",
+          "title": {
+            "vi": "RAM và swap còn đủ dùng",
+            "en": "RAM and swap are not running out"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "RAM còn dùng được 89.1% (3.4 GiB trên 3.8 GiB); máy không có swap",
+            "en": "RAM available is 89.1% (3.4 GiB of 3.8 GiB); the machine has no swap"
+          },
+          "evidence": [
+            {
+              "command": "cat /proc/meminfo (tpan)",
+              "exit_code": 0,
+              "output": "MemTotal: 3995156 kB\nMemAvailable: 3558452 kB\nSwapTotal: 0 kB\nSwapFree: 0 kB"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/logrotate.d/tpan-sites",
+          "stage": "machine",
+          "title": {
+            "vi": "File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi",
+            "en": "File /etc/logrotate.d/tpan-sites is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi",
+            "en": "File /etc/logrotate.d/tpan-sites is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/logrotate.d/tpan-sites (tpan)",
+              "exit_code": 0,
+              "output": "f8426b3035469c9127a198ca0aa6c719b2f08d76f54c17f1565de6ea9adaff4c  /etc/logrotate.d/tpan-sites\nmong đợi / expected: f8426b3035469c9127a198ca0aa6c719b2f08d76f54c17f1565de6ea9adaff4c"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf",
+          "stage": "machine",
+          "title": {
+            "vi": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi",
+            "en": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi",
+            "en": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/mysql/mariadb.conf.d/99-tpan.cnf (tpan)",
+              "exit_code": 0,
+              "output": "942439bd7a72e7f65d6c230d556557b7b97db1d64160379d2956ed3a4b0956b1  /etc/mysql/mariadb.conf.d/99-tpan.cnf\nmong đợi / expected: 942439bd7a72e7f65d6c230d556557b7b97db1d64160379d2956ed3a4b0956b1"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/nginx/sites-available/tpan-default.conf",
+          "stage": "web",
+          "title": {
+            "vi": "File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi",
+            "en": "File /etc/nginx/sites-available/tpan-default.conf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi",
+            "en": "File /etc/nginx/sites-available/tpan-default.conf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/nginx/sites-available/tpan-default.conf (tpan)",
+              "exit_code": 0,
+              "output": "bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23  /etc/nginx/sites-available/tpan-default.conf\nmong đợi / expected: bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "tpan",
+      "results": [
+        {
+          "id": "tpan.db:integrity",
+          "stage": "tpan",
+          "title": {
+            "vi": "Cơ sở dữ liệu của tpan toàn vẹn",
+            "en": "tpan's own database is intact"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "PRAGMA integrity_check trả ok",
+            "en": "PRAGMA integrity_check returned ok"
+          },
+          "evidence": [
+            {
+              "command": "PRAGMA integrity_check (tpan)",
+              "exit_code": 0,
+              "output": "ok"
+            }
+          ]
+        },
+        {
+          "id": "disk.free:/var/lib/tpan",
+          "stage": "tpan",
+          "title": {
+            "vi": "Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống",
+            "en": "The disk holding /var/lib/tpan has at least 200 MiB free"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Ổ đĩa chứa /var/lib/tpan còn trống 15.9 GiB",
+            "en": "The disk holding /var/lib/tpan has 15.9 GiB free"
+          },
+          "evidence": [
+            {
+              "command": "statfs /var/lib/tpan (tpan)",
+              "exit_code": 0,
+              "output": "total=19682557952 free=17097383936 min=209715200"
+            }
+          ]
+        },
+        {
+          "id": "tpan.cert:/etc/tpan/tls/cert.pem",
+          "stage": "tpan",
+          "title": {
+            "vi": "Chứng chỉ HTTPS của panel còn hạn",
+            "en": "The panel's HTTPS certificate is not expiring"
+          },
+          "status": "unknown",
+          "summary": {
+            "vi": "Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)",
+            "en": "Could not check: /etc/tpan/tls/cert.pem is missing (tpan setup has not run, or this is --demo mode)"
+          },
+          "evidence": [
+            {
+              "command": "parse /etc/tpan/tls/cert.pem (tpan)",
+              "exit_code": 1,
+              "output": "không có file / no such file"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/var/lib/tpan/tpan.db",
+          "stage": "tpan",
+          "title": {
+            "vi": "/var/lib/tpan/tpan.db có quyền 0600, chủ root:root",
+            "en": "/var/lib/tpan/tpan.db has mode 0600, owner root:root"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "/var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng",
+            "en": "/var/lib/tpan/tpan.db: mode 0600, owner root:root are correct"
+          },
+          "evidence": [
+            {
+              "command": "stat /var/lib/tpan/tpan.db (tpan)",
+              "exit_code": 0,
+              "output": "mode 0600, chủ root:root"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/etc/tpan/tls/key.pem",
+          "stage": "tpan",
+          "title": {
+            "vi": "/etc/tpan/tls/key.pem có quyền 0600, chủ root:root",
+            "en": "/etc/tpan/tls/key.pem has mode 0600, owner root:root"
+          },
+          "status": "unknown",
+          "summary": {
+            "vi": "Chưa kiểm được: không có /etc/tpan/tls/key.pem",
+            "en": "Could not check: /etc/tpan/tls/key.pem does not exist"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/tpan/tls/key.pem (tpan)",
+              "exit_code": 1,
+              "output": "không có file / no such file"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/etc/tpan",
+          "stage": "tpan",
+          "title": {
+            "vi": "/etc/tpan có quyền 0700, chủ root:root",
+            "en": "/etc/tpan has mode 0700, owner root:root"
+          },
+          "status": "unknown",
+          "summary": {
+            "vi": "Chưa kiểm được: không có /etc/tpan",
+            "en": "Could not check: /etc/tpan does not exist"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/tpan (tpan)",
+              "exit_code": 1,
+              "output": "không có file / no such file"
+            }
+          ]
+        },
+        {
+          "id": "tpan.jobs:stuck",
+          "stage": "tpan",
+          "title": {
+            "vi": "Không có job nào bị treo",
+            "en": "No job is stuck"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Không có job nào chạy quá lâu",
+            "en": "No job has been running for too long"
+          },
+          "evidence": [
+            {
+              "command": "jobs still running (tpan)",
+              "exit_code": 0,
+              "output": "không có / none"
+            }
+          ]
+        },
+        {
+          "id": "tpan.scheduler:health",
+          "stage": "tpan",
+          "title": {
+            "vi": "Bộ hẹn giờ health của tpan còn chạy",
+            "en": "tpan's health scheduler is still running"
+          },
+          "status": "warn",
+          "summary": {
+            "vi": "Bộ hẹn giờ health chưa chạy lần nào",
+            "en": "The health scheduler has never run"
+          },
+          "evidence": [
+            {
+              "command": "last health run (tpan)",
+              "exit_code": 1,
+              "output": "chưa bao giờ / never"
+            }
+          ],
+          "cause": {
+            "vi": "`tpan serve` có đang chạy không? Bộ hẹn giờ nằm trong tiến trình đó; nó tắt thì không ai kiểm máy định kỳ và sự cố mới không được phát hiện.",
+            "en": "Is `tpan serve` running? The scheduler lives in that process; if it is down nobody checks the machine periodically and new incidents go unnoticed."
+          },
+          "manual_fix": [
+            "journalctl -u tpan -n 50 --no-pager",
+            "systemctl status tpan"
+          ]
+        },
+        {
+          "id": "tpan.backup:db",
+          "stage": "tpan",
+          "title": {
+            "vi": "tpan.db có bản sao lưu gần đây",
+            "en": "tpan.db has a recent backup"
+          },
+          "status": "warn",
+          "summary": {
+            "vi": "chưa có bản sao lưu tpan.db nào",
+            "en": "there is no backup of tpan.db yet"
+          },
+          "evidence": [
+            {
+              "command": "ls /var/lib/tpan/backups/_tpan (tpan)",
+              "exit_code": 1,
+              "output": ""
+            }
+          ],
+          "cause": {
+            "vi": "Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.",
+            "en": "Nobody has copied tpan.db yet. If this file is damaged or lost, tpan forgets every site, the history and the backups it has. Make one now and turn on the daily schedule so nobody has to remember."
+          },
+          "manual_fix": [
+            "sudo tpan backup create --all --yes",
+            "sudo tpan backup settings --at 03:30",
+            "ls /var/lib/tpan/backups/_tpan"
+          ]
+        }
+      ]
+    }
+  ],
+  "changes": {
+    "opened": null,
+    "closed": null
+  }
+}
+[2026-11-20 02:50:17] (mã thoát 0)
+  => ĐẠT: health --json thoát 0
+  => ĐẠT: health --json có installed: true
+
+
+######## [2026-11-20 02:50:17] nginx (g): cài apache trên máy đang là nginx phải bị từ chối
+
+[2026-11-20 02:50:17] $ scripts/vm.sh root tpan stack install --web apache --yes
+Từ chối: máy này đã được tpan cài với nginx; muốn đổi sang apache thì dùng `tpan stack switch --to apache`
+[2026-11-20 02:50:17] (mã thoát 1)
+  => ĐẠT: bị từ chối (mã thoát khác 0)
+  => ĐẠT: lý do: phải dùng stack switch
+
+[2026-11-20 02:50:17] $ scripts/vm.sh exec dpkg -l apache2
+dpkg-query: no packages found matching apache2
+[2026-11-20 02:50:18] (mã thoát 1)
+  => ĐẠT: apache2 không được cài
+
+[2026-11-20 02:50:18] $ diff /var/folders/3x/kjdh5x9n36n_tzxmyxhtvd940000gn/T/tmp.OZhBe6VgYp/before-g /var/folders/3x/kjdh5x9n36n_tzxmyxhtvd940000gn/T/tmp.OZhBe6VgYp/after-g
+[2026-11-20 02:50:18] (mã thoát 0)
+  => ĐẠT: máy không đổi
+
+
+######## [2026-11-20 02:50:18] apache (a): máy sạch, triển khai tpan
+
+[2026-11-20 02:50:18] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-test  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-test.clean
+[2K[0A[0EStarting tpan-test  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
+[2026-11-20 02:50:30] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-20 02:50:30] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-20 02:50:31] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+
+[2026-11-20 02:50:31] $ scripts/vm.sh exec bash -c dpkg -l | wc -l; dpkg -l | grep -c "^ii"
+668
+663
+[2026-11-20 02:50:31] (mã thoát 0)
+
+[2026-11-20 02:50:31] $ make vm-deploy DATE=2026-11-19T19:49:25Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 11h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 11ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 332 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-BQkOncIF.css                                   27.26 kB │ gzip:   6.71 kB
+dist/assets/OriginTag-oEtuz3Ep.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-Dw-kWVTj.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/Field-DnkTn54k.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/MonoText-DlGU9Q_S.js                                  0.67 kB │ gzip:   0.43 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-CGvj8VHS.js                                 0.89 kB │ gzip:   0.44 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/useMutation-ConnMiPZ.js                               2.32 kB │ gzip:   0.97 kB
+dist/assets/bao-mat-DEAThMkc.js                                   4.16 kB │ gzip:   1.81 kB
+dist/assets/dang-nhap-CCDwAMZo.js                                 5.82 kB │ gzip:   2.57 kB
+dist/assets/CheckRow-Buz5iMXm.js                                  6.02 kB │ gzip:   2.63 kB
+dist/assets/plan-cho-duyet-BVEZxswb.js                            6.12 kB │ gzip:   2.09 kB
+dist/assets/model-CyCzzw_z.js                                     6.78 kB │ gzip:   2.70 kB
+dist/assets/thung-rac-Cqgy9hEg.js                                 9.08 kB │ gzip:   3.57 kB
+dist/assets/backup-CEIENE__.js                                    9.79 kB │ gzip:   3.17 kB
+dist/assets/ssl-BpT34eSy.js                                      12.17 kB │ gzip:   4.50 kB
+dist/assets/cron-DU14RIGy.js                                     12.22 kB │ gzip:   4.65 kB
+dist/assets/co-so-du-lieu-CoBXHml1.js                            12.57 kB │ gzip:   4.55 kB
+dist/assets/tao-site-406WRwq8.js                                 14.51 kB │ gzip:   4.81 kB
+dist/assets/cap-nhat-CFFWOxU8.js                                 15.45 kB │ gzip:   5.08 kB
+dist/assets/stack-DnQiCkgz.js                                    18.01 kB │ gzip:   5.59 kB
+dist/assets/cai-dat-B_3E7dFh.js                                  18.01 kB │ gzip:   5.64 kB
+dist/assets/phien-ai-TYZS3bfv.js                                 18.27 kB │ gzip:   5.87 kB
+dist/assets/su-co-CTOq4BTZ.js                                    22.87 kB │ gzip:   7.28 kB
+dist/assets/site-ChZOC5H7.js                                     23.77 kB │ gzip:   6.87 kB
+dist/assets/bang-dieu-khien-DqC-9Wfd.js                          25.51 kB │ gzip:   7.80 kB
+dist/assets/lich-su-BKmB5838.js                                  26.38 kB │ gzip:   8.50 kB
+dist/assets/ErrorNote-B_JyXH3Z.js                                28.85 kB │ gzip:  10.12 kB
+dist/assets/ScreenHeader-B5TtQn9K.js                             40.66 kB │ gzip:  14.61 kB
+dist/assets/hooks-Dcr5kuzL.js                                    74.14 kB │ gzip:  24.43 kB
+dist/assets/index-CZPmYzuM.js                                   340.04 kB │ gzip: 107.09 kB
+
+✓ built in 156ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Commit=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:49:25Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Commit=31b21c7 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T19:49:25Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan 31b21c7 (commit 31b21c7, build 2026-11-19T19:49:25Z)
+[2026-11-20 02:50:32] (mã thoát 0)
+  => ĐẠT: build và chép tpan vào máy ảo
+
+[2026-11-20 02:50:32] $ shasum -a 256 bin/tpan-linux-arm64 bin/tpan-linux-amd64
+8494c20187ebaa94231c7637a2a9d6edd84fc6ac5c6354ee3292bf761d20a46b  bin/tpan-linux-arm64
+1d8faf32c40e410cdeed1d22a1db95d6b9731ed9b10490cf41737015f22b2eab  bin/tpan-linux-amd64
+[2026-11-20 02:50:33] (mã thoát 0)
+
+[2026-11-20 02:50:33] $ git log --oneline -1
+31b21c7 giải thích: mốc M11 cài đặt và phát hành; kế hoạch: đóng mốc M11 và cả 13 mốc, việc chủ dự án tự làm, bảng chia việc M11; install.sh, setup: sửa hai chú thích cũ
+[2026-11-20 02:50:33] (mã thoát 0)
+
+[2026-11-20 02:50:33] $ git status --short
+[2026-11-20 02:50:33] (mã thoát 0)
+
+[2026-11-20 02:50:33] $ git diff --stat
+[2026-11-20 02:50:33] (mã thoát 0)
+
+[2026-11-20 02:50:33] $ scripts/vm.sh exec tpan version
+tpan 31b21c7 (commit 31b21c7, build 2026-11-19T19:49:25Z)
+[2026-11-20 02:50:33] (mã thoát 0)
+  => ĐẠT: tpan version chạy được
+
+
+######## [2026-11-20 02:50:33] apache (b): --dry-run in kế hoạch, không đổi gì
+
+[2026-11-20 02:50:33] $ scripts/vm.sh root tpan stack install --web apache --dry-run
+Kế hoạch: Cài stack LAMP (Apache)
+16 bước sẽ chạy, 1 bước đã đúng sẽ bỏ qua, 3 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Làm mới danh sách gói (apt-get update)  (apt.update:lists)
+    Vì sao: apt chỉ cài được bản gói mà nó biết. Máy mới tạo thường có danh sách gói cũ hoặc trống, nên bỏ bước này thì bước cài gói báo không tìm thấy gói hoặc cài bản cũ còn lỗ hổng.
+    $ apt-get update
+    Ghi chú hoàn tác: apt-get update chỉ làm mới danh sách gói, không cài hay gỡ gì, nên không có gì để hoàn tác.
+ 2. [sẽ chạy] Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2  (apt.install:mariadb-server,php-fpm,php-cli,php-mysql,php-curl,php-gd,php-mbstring,php-xml,php-zip,php-intl,certbot,curl,apache2)
+    Vì sao: Đây là phần mềm chạy site: web server, PHP-FPM, MariaDB, certbot. Thiếu gói nào thì mọi bước cấu hình nó phía sau đều lỗi vì chưa có file hay dịch vụ để cấu hình.
+    $ apt-get install -y mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2
+    Ghi chú hoàn tác: Gói đã cài không được gỡ khi hoàn tác: gỡ gói có thể kéo theo gỡ gói khác đang dùng chung thư viện. Gói thừa không làm hỏng gì; muốn gỡ thì dùng apt-get remove bằng tay.
+ 3. [sẽ chạy] Chạy và bật mariadb khi khởi động  (service:mariadb)
+    Vì sao: Gói đã cài nhưng dịch vụ không chạy thì site không trả lời. Không bật khi khởi động thì sau lần khởi động lại máy, mọi site chết cho tới khi có người vào bật tay.
+    $ systemctl enable --now mariadb
+ 4. [sẽ chạy] Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf  (file:/etc/mysql/mariadb.conf.d/99-tpan.cnf)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Dịch vụ đọc cấu hình từ file này. Thiếu nó hoặc sai nội dung thì dịch vụ chạy theo cấu hình khác với cấu hình tpan đã kiểm. tpan kiểm cú pháp trước khi nạp, sai thì trả file cũ về.
+    $ systemctl restart mariadb
+    tạo /etc/mysql/mariadb.conf.d/99-tpan.cnf
+ 5. [sẽ chạy] Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test  (mariadb.secure:localhost)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: User ẩn danh cho bất kỳ ai trên máy vào MariaDB không cần mật khẩu; DB test thì ai cũng ghi được. root dùng unix_socket nghĩa là chỉ root của máy vào được root của DB, không có mật khẩu nào để đoán hay để lộ.
+    $ mariadb -N -B
+    Ghi chú hoàn tác: Không hoàn tác: không có lý do gì để tạo lại user ẩn danh hay DB test, cả hai đều là lỗ hổng.
+    (chưa kiểm được lúc xem trước: đọc trạng thái bảo mật của MariaDB: chạy mariadb -N -B: exec: "mariadb": executable file not found in $PATH)
+ 6. [sẽ chạy] Dò bản PHP-FPM đã cài  (php.detect:/etc/php)
+    Vì sao: Tên dịch vụ, socket và thư mục pool của PHP-FPM đều chứa số phiên bản (php8.3-fpm, /etc/php/8.3/fpm/pool.d). Không biết bản đang cài thì tpan ghi pool vào sai chỗ và site trả lỗi 502.
+    Ghi chú hoàn tác: Bước này chỉ đọc máy, không thay đổi gì nên không có gì để hoàn tác.
+ 7. [sẽ chạy] Thay pool www của php<bản>-fpm bằng pool tpan-idle  (php.idle:<bản>)
+    Vì sao: Gói php<bản>-fpm tự tạo pool www chạy sẵn 2 tiến trình dưới user www-data dù không site nào dùng: tốn RAM, và là một cửa chạy PHP không thuộc site nào. Không gỡ được nó mà để trống, vì PHP-FPM từ chối chạy khi không có pool nào; pool tpan-idle giữ chỗ, chỉ root nói chuyện được với nó và không có tiến trình nào chạy sẵn.
+    $ php-fpm<bản> -t
+    $ systemctl reload php<bản>-fpm
+    (chưa kiểm được lúc xem trước: pool tpan-idle: chưa biết bản PHP (DetectPHP phải chạy trước bước này))
+ 8. [sẽ chạy] Tạo thư mục /var/lib/tpan  (dir:/var/lib/tpan)
+    Vì sao: Các bước sau ghi file vào thư mục này. Thiếu thư mục thì chúng lỗi; sai quyền hay sai chủ thì hoặc dịch vụ không đọc được, hoặc người không nên đọc lại đọc được.
+ 9. [sẽ chạy] Tạo thư mục /var/lib/tpan/acme  (dir:/var/lib/tpan/acme)
+    Vì sao: Các bước sau ghi file vào thư mục này. Thiếu thư mục thì chúng lỗi; sai quyền hay sai chủ thì hoặc dịch vụ không đọc được, hoặc người không nên đọc lại đọc được.
+10. [sẽ chạy] Module Apache: bật mpm_event proxy_fcgi setenvif rewrite headers http2; tắt mpm_prefork  (apache.modules:apache2)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Thiếu proxy_fcgi thì Apache không chuyển được request sang PHP-FPM và trả mã nguồn PHP hoặc lỗi 500. Còn mpm_prefork thì mỗi kết nối chiếm một tiến trình, máy nhỏ hết RAM khi đông khách; mpm_event và http2 phục vụ nhiều kết nối hơn với cùng RAM. Thiếu rewrite thì đường dẫn đẹp của WordPress trả 404.
+    $ a2dismod -q mpm_prefork
+    $ a2enmod -q mpm_event proxy_fcgi setenvif rewrite headers http2
+    $ apachectl configtest
+    $ systemctl restart apache2
+    (chưa kiểm được lúc xem trước: hỏi a2query module mpm_prefork: chạy a2query -m mpm_prefork: exec: "a2query": executable file not found in $PATH)
+11. [đã đúng, bỏ qua] Gỡ /etc/apache2/sites-enabled/000-default.conf  (absent:/etc/apache2/sites-enabled/000-default.conf)
+12. [sẽ chạy] Ghi /etc/apache2/sites-available/000-tpan-default.conf  (file:/etc/apache2/sites-available/000-tpan-default.conf)
+    Vì sao: Dịch vụ đọc cấu hình từ file này. Thiếu nó hoặc sai nội dung thì dịch vụ chạy theo cấu hình khác với cấu hình tpan đã kiểm. tpan kiểm cú pháp trước khi nạp, sai thì trả file cũ về.
+    $ apachectl configtest
+    $ systemctl reload apache2
+    tạo /etc/apache2/sites-available/000-tpan-default.conf
+13. [sẽ chạy] Bật /etc/apache2/sites-enabled/000-tpan-default.conf → /etc/apache2/sites-available/000-tpan-default.conf  (symlink:/etc/apache2/sites-enabled/000-tpan-default.conf)
+    Vì sao: Web server chỉ nạp các file nằm trong sites-enabled. File ở sites-available mà không có link này thì site coi như tắt: request đi vào site khác hoặc bị từ chối.
+    $ apachectl configtest
+    $ systemctl reload apache2
+14. [sẽ chạy] Chạy và bật apache2 khi khởi động  (service:apache2)
+    Vì sao: Gói đã cài nhưng dịch vụ không chạy thì site không trả lời. Không bật khi khởi động thì sau lần khởi động lại máy, mọi site chết cho tới khi có người vào bật tay.
+    $ systemctl enable --now apache2
+15. [sẽ chạy] Tạo thư mục /var/cache/tpan  (dir:/var/cache/tpan)
+    Vì sao: Các bước sau ghi file vào thư mục này. Thiếu thư mục thì chúng lỗi; sai quyền hay sai chủ thì hoặc dịch vụ không đọc được, hoặc người không nên đọc lại đọc được.
+16. [sẽ chạy] Cài WP-CLI 2.12.0 vào /usr/local/bin/wp  (wpcli:/usr/local/bin/wp)
+    Vì sao: tpan cài, cấu hình và kiểm WordPress bằng WP-CLI. Thiếu nó thì không tạo được site. sha512 được kiểm trước khi đặt vào máy: file tải về bị sửa giữa đường thì không bao giờ được chạy bằng quyền root.
+    $ curl -fsSL -o /var/cache/tpan/wp-cli-2.12.0.phar https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+17. [sẽ chạy] Ghi /etc/logrotate.d/tpan-sites  (file:/etc/logrotate.d/tpan-sites)
+    Vì sao: Dịch vụ đọc cấu hình từ file này. Thiếu nó hoặc sai nội dung thì dịch vụ chạy theo cấu hình khác với cấu hình tpan đã kiểm. tpan kiểm cú pháp trước khi nạp, sai thì trả file cũ về.
+    $ logrotate -d /etc/logrotate.d/tpan-sites
+    tạo /etc/logrotate.d/tpan-sites
+[2026-11-20 02:50:33] (mã thoát 0)
+  => ĐẠT: dry-run thoát 0
+  => ĐẠT: dry-run in kế hoạch
+
+[2026-11-20 02:50:33] $ scripts/vm.sh exec dpkg -l apache2
+dpkg-query: no packages found matching apache2
+[2026-11-20 02:50:33] (mã thoát 1)
+  => ĐẠT: dpkg -l apache2: vẫn chưa có gói
+
+[2026-11-20 02:50:33] $ scripts/vm.sh exec bash -c for p in /var/lib/tpan /var/lib/tpan/tpan.db /etc/tpan /var/cache/tpan /run/tpan; do if [ -e "$p" ]; then echo "CÓ $p"; else echo "không có $p"; fi; done
+không có /var/lib/tpan
+không có /var/lib/tpan/tpan.db
+không có /etc/tpan
+không có /var/cache/tpan
+không có /run/tpan
+[2026-11-20 02:50:33] (mã thoát 0)
+  => ĐẠT: không có /var/lib/tpan, tpan.db, /etc/tpan, /var/cache/tpan, /run/tpan
+
+
+######## [2026-11-20 02:50:33] apache (c): cài thật lần một
+
+[2026-11-20 02:50:33] $ scripts/vm.sh root tpan stack install --web apache --yes
+Bắt đầu job 138815e5c54625a6
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2 ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Module Apache: bật mpm_event proxy_fcgi setenvif rewrite headers http2; tắt mpm_prefork ...
+  xong
+- Gỡ /etc/apache2/sites-enabled/000-default.conf ...
+  xong
+- Ghi /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Bật /etc/apache2/sites-enabled/000-tpan-default.conf → /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Chạy và bật apache2 khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 138815e5c54625a6: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: cài thoát 0
+  => ĐẠT: job thành công
+  => ĐẠT: không phép kiểm nào lỗi hoặc chưa rõ
+
+Bản PHP dò được trong /etc/php: 8.3
+
+
+######## [2026-11-20 02:51:05] apache (d): kiểm độc lập với tpan
+
+[2026-11-20 02:51:05] $ scripts/vm.sh exec systemctl is-active apache2
+active
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: apache2 active
+
+[2026-11-20 02:51:05] $ scripts/vm.sh exec systemctl is-enabled apache2
+enabled
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: apache2 enabled
+
+[2026-11-20 02:51:05] $ scripts/vm.sh exec systemctl is-active php8.3-fpm
+active
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: php8.3-fpm active
+
+[2026-11-20 02:51:05] $ scripts/vm.sh exec systemctl is-enabled php8.3-fpm
+enabled
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: php8.3-fpm enabled
+
+[2026-11-20 02:51:05] $ scripts/vm.sh exec systemctl is-active mariadb
+active
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: mariadb active
+
+[2026-11-20 02:51:05] $ scripts/vm.sh exec systemctl is-enabled mariadb
+enabled
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: mariadb enabled
+
+[2026-11-20 02:51:05] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                                
+LISTEN 0      4096   127.0.0.53%lo:53        0.0.0.0:*    users:(("systemd-resolve",pid=484,fd=15))             
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*    users:(("mariadbd",pid=14217,fd=23))                  
+LISTEN 0      4096      127.0.0.54:53        0.0.0.0:*    users:(("systemd-resolve",pid=484,fd=17))             
+LISTEN 0      4096         0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=867,fd=3),("systemd",pid=1,fd=191))
+LISTEN 0      4096            [::]:22           [::]:*    users:(("sshd",pid=867,fd=4),("systemd",pid=1,fd=204))
+LISTEN 0      511                *:80              *:*    users:(("apache2",pid=14779,fd=4),("apache2",pid=14778,fd=4),("apache2",pid=14397,fd=4))
+[2026-11-20 02:51:05] (mã thoát 0)
+  => ĐẠT: có 127.0.0.1:3306
+  => ĐẠT: 3306 không nghe ở địa chỉ nào khác
+  => ĐẠT: có cổng 80
+
+[2026-11-20 02:51:06] $ scripts/vm.sh exec curl -sS -m 5 -o /dev/null -w %{http_code}\n http://127.0.0.1/
+403
+[2026-11-20 02:51:06] (mã thoát 0)
+  => ĐẠT: curl 127.0.0.1 (trong máy ảo): 403
+
+[2026-11-20 02:51:06] $ curl -sS -m 5 -o /dev/null -w %{http_code}\n http://<vm>/
+403
+[2026-11-20 02:51:06] (mã thoát 0)
+  => ĐẠT: curl IP máy ảo từ Mac: 403
+
+[2026-11-20 02:51:06] $ scripts/vm.sh exec ls -la /etc/apache2/sites-enabled/
+total 8
+drwxr-xr-x 2 root root 4096 Nov 20 02:51 .
+drwxr-xr-x 8 root root 4096 Nov 20 02:50 ..
+lrwxrwxrwx 1 root root   50 Nov 20 02:51 000-tpan-default.conf -> /etc/apache2/sites-available/000-tpan-default.conf
+[2026-11-20 02:51:06] (mã thoát 0)
+
+[2026-11-20 02:51:06] $ scripts/vm.sh exec test -e /etc/apache2/sites-enabled/000-default.conf
+[2026-11-20 02:51:06] (mã thoát 1)
+  => ĐẠT: không còn sites-enabled/000-default.conf
+
+[2026-11-20 02:51:06] $ scripts/vm.sh exec test -L /etc/apache2/sites-enabled/000-tpan-default.conf
+[2026-11-20 02:51:06] (mã thoát 0)
+  => ĐẠT: có sites-enabled/000-tpan-default.conf (symlink)
+
+[2026-11-20 02:51:06] $ scripts/vm.sh root apachectl -M
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Loaded Modules:
+ core_module (static)
+ so_module (static)
+ watchdog_module (static)
+ http_module (static)
+ log_config_module (static)
+ logio_module (static)
+ version_module (static)
+ unixd_module (static)
+ access_compat_module (shared)
+ alias_module (shared)
+ auth_basic_module (shared)
+ authn_core_module (shared)
+ authn_file_module (shared)
+ authz_core_module (shared)
+ authz_host_module (shared)
+ authz_user_module (shared)
+ autoindex_module (shared)
+ deflate_module (shared)
+ dir_module (shared)
+ env_module (shared)
+ filter_module (shared)
+ headers_module (shared)
+ http2_module (shared)
+ mime_module (shared)
+ mpm_event_module (shared)
+ negotiation_module (shared)
+ proxy_module (shared)
+ proxy_fcgi_module (shared)
+ reqtimeout_module (shared)
+ rewrite_module (shared)
+ setenvif_module (shared)
+ status_module (shared)
+[2026-11-20 02:51:06] (mã thoát 0)
+  => ĐẠT: apachectl -M thoát 0
+  => ĐẠT: có mpm_event
+  => ĐẠT: có proxy_fcgi
+  => ĐẠT: không có mpm_prefork
+  => ĐẠT: không có mod php
+  => ĐẠT: không có ssl_module
+
+[2026-11-20 02:51:06] $ scripts/vm.sh root apachectl configtest
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+[2026-11-20 02:51:06] (mã thoát 0)
+  => ĐẠT: apachectl configtest
+
+[2026-11-20 02:51:06] $ scripts/vm.sh root apachectl -S
+VirtualHost configuration:
+*:80                   tpan-default.invalid (/etc/apache2/sites-enabled/000-tpan-default.conf:7)
+ServerRoot: "/etc/apache2"
+Main DocumentRoot: "/var/www/html"
+Main ErrorLog: "/var/log/apache2/error.log"
+Mutex default: dir="/var/run/apache2/" mechanism=default 
+Mutex watchdog-callback: using_defaults
+Mutex rewrite-map: using_defaults
+Mutex proxy: using_defaults
+PidFile: "/var/run/apache2/apache2.pid"
+Define: DUMP_VHOSTS
+Define: DUMP_RUN_CFG
+User: name="www-data" id=33
+Group: name="www-data" id=33
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+[2026-11-20 02:51:06] (mã thoát 0)
+
+[2026-11-20 02:51:06] $ scripts/vm.sh root ss -tlnH
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      80         127.0.0.1:3306 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:22   0.0.0.0:*
+LISTEN 0      4096            [::]:22      [::]:*
+LISTEN 0      511                *:80         *:*
+[2026-11-20 02:51:06] (mã thoát 0)
+  => ĐẠT: không ai nghe cổng 443
+
+[2026-11-20 02:51:06] $ scripts/vm.sh exec curl -sS -m 5 -o /dev/null -w %{http_code}\n http://127.0.0.1:443/
+curl: (7) Failed to connect to 127.0.0.1 port 443 after 0 ms: Couldn't connect to server
+000
+[2026-11-20 02:51:06] (mã thoát 7)
+  => ĐẠT: curl http://127.0.0.1:443/ không kết nối được (curl mã 7)
+
+[2026-11-20 02:51:06] $ scripts/vm.sh root logrotate -d /etc/logrotate.d/tpan-sites
+warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file /etc/logrotate.d/tpan-sites
+Reading state from file: /var/lib/logrotate/status
+Allocating hash table for state file, size 64 entries
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+
+Handling 2 logs
+
+rotating pattern: /var/log/tpan/sites/*/access.log /var/log/tpan/sites/*/error.log  after 1 days (14 rotations)
+empty log files are not rotated, old logs are removed
+considering log /var/log/tpan/sites/*/access.log
+Creating new state
+considering log /var/log/tpan/sites/*/error.log
+Creating new state
+not running postrotate script, since no logs were rotated
+
+rotating pattern: /var/log/tpan/sites/*/php-error.log  after 1 days (14 rotations)
+empty log files are not rotated, old logs are removed
+considering log /var/log/tpan/sites/*/php-error.log
+Creating new state
+[2026-11-20 02:51:06] (mã thoát 0)
+  => ĐẠT: logrotate -d thoát 0
+
+[2026-11-20 02:51:06] $ scripts/vm.sh root wp --info --allow-root
+OS:	Linux 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:39:52 UTC 2026 aarch64
+Shell:	/bin/bash
+PHP binary:	/usr/bin/php8.3
+PHP version:	8.3.6
+php.ini used:	/etc/php/8.3/cli/php.ini
+MySQL binary:	/usr/bin/mariadb
+MySQL version:	mariadb  Ver 15.1 Distrib 10.11.14-MariaDB, for debian-linux-gnu (aarch64) using  EditLine wrapper
+SQL modes:	STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+WP-CLI root dir:	phar://wp-cli.phar/vendor/wp-cli/wp-cli
+WP-CLI vendor dir:	phar://wp-cli.phar/vendor
+WP_CLI phar path:	phar:///usr/local/bin/wp
+WP-CLI packages dir:	
+WP-CLI cache dir:	/root/.wp-cli/cache
+WP-CLI global config:	
+WP-CLI project config:	
+WP-CLI version:	2.12.0
+[2026-11-20 02:51:07] (mã thoát 0)
+  => ĐẠT: wp --info
+
+[2026-11-20 02:51:07] $ scripts/vm.sh root stat -c %a %U:%G %n /var/lib/tpan /var/lib/tpan/acme /var/lib/tpan/tpan.db
+755 root:root /var/lib/tpan
+755 root:root /var/lib/tpan/acme
+600 root:root /var/lib/tpan/tpan.db
+[2026-11-20 02:51:07] (mã thoát 0)
+  => ĐẠT: /var/lib/tpan 755 root:root
+  => ĐẠT: /var/lib/tpan/acme 755 root:root
+  => ĐẠT: /var/lib/tpan/tpan.db 600 root:root
+
+[2026-11-20 02:51:07] $ scripts/vm.sh root bash -c mkdir -p /var/lib/tpan/acme/.well-known/acme-challenge && echo tpan-e2e-acme-ok > /var/lib/tpan/acme/.well-known/acme-challenge/tpan-e2e && ls -la /var/lib/tpan/acme/.well-known/acme-challenge/
+total 12
+drwxr-xr-x 2 root root 4096 Nov 20 02:51 .
+drwxr-xr-x 3 root root 4096 Nov 20 02:51 ..
+-rw-r--r-- 1 root root   17 Nov 20 02:51 tpan-e2e
+[2026-11-20 02:51:07] (mã thoát 0)
+
+[2026-11-20 02:51:07] $ scripts/vm.sh exec curl -sS -m 5 -w \n%{http_code}\n -H Host: la.example http://127.0.0.1/.well-known/acme-challenge/tpan-e2e
+tpan-e2e-acme-ok
+
+200
+[2026-11-20 02:51:07] (mã thoát 0)
+  => ĐẠT: ACME với Host lạ: 200 và đúng nội dung
+
+[2026-11-20 02:51:07] $ scripts/vm.sh root rm -r /var/lib/tpan/acme/.well-known
+[2026-11-20 02:51:07] (mã thoát 0)
+  => ĐẠT: xoá file thử ACME
+
+[2026-11-20 02:51:07] $ scripts/vm.sh root mariadb -e SELECT User, Host, JSON_VALUE(Priv, '$.plugin') AS plugin, JSON_EXTRACT(Priv, '$.auth_or') AS auth_or FROM mysql.global_priv ORDER BY User, Host
+User	Host	plugin	auth_or
+mariadb.sys	localhost	mysql_native_password	NULL
+mysql	localhost	mysql_native_password	[{}, {"plugin": "unix_socket"}]
+root	localhost	mysql_native_password	[{}, {"plugin": "unix_socket"}]
+[2026-11-20 02:51:07] (mã thoát 0)
+
+[2026-11-20 02:51:07] $ scripts/vm.sh root mariadb -N -B -e SELECT COUNT(*) FROM mysql.global_priv WHERE User=''
+0
+[2026-11-20 02:51:07] (mã thoát 0)
+  => ĐẠT: đếm user ẩn danh = 0
+
+[2026-11-20 02:51:07] $ scripts/vm.sh root mariadb -e SHOW DATABASES
+Database
+information_schema
+mysql
+performance_schema
+sys
+[2026-11-20 02:51:07] (mã thoát 0)
+  => ĐẠT: không có DB test
+
+[2026-11-20 02:51:07] $ scripts/vm.sh root mariadb -e SHOW GRANTS FOR root@localhost
+Grants for root@localhost
+GRANT ALL PRIVILEGES ON *.* TO `root`@`localhost` IDENTIFIED VIA mysql_native_password USING 'invalid' OR unix_socket WITH GRANT OPTION
+GRANT PROXY ON ''@'%' TO 'root'@'localhost' WITH GRANT OPTION
+[2026-11-20 02:51:07] (mã thoát 0)
+  => ĐẠT: root@localhost dùng unix_socket
+
+
+######## [2026-11-20 02:51:07] apache (e): chạy lại lần hai, không được đổi gì
+
+[2026-11-20 02:51:08] Ảnh chụp trước lần chạy lại:
+354c9e6d2b88a0a3e0548f853840674c  /etc/apache2/apache2.conf
+e6fbb8adf631932851d6cc522c1e48d7  /etc/apache2/conf-available/charset.conf
+f542d267bfce7815f9453eb1476e5f73  /etc/apache2/conf-available/localized-error-pages.conf
+2cad303fc4221d6b0068a8b37597b9fb  /etc/apache2/conf-available/other-vhosts-access-log.conf
+c763554beba3b432ebf19c71e69ada46  /etc/apache2/conf-available/php8.3-fpm.conf
+332668933023a463046fa90d9b057193  /etc/apache2/conf-available/security.conf
+c146ad61e8853896938a5d30d7aa6c89  /etc/apache2/conf-available/serve-cgi-bin.conf
+e4431a53c868ae0dfcde68564f3ce6a7  /etc/apache2/envvars
+a6d370833a02f53db6a0a30800704994  /etc/apache2/magic
+f7f77b3eb4005749b583ff14b49f8bf1  /etc/apache2/mods-available/access_compat.load
+aa7020bed65647b011cfb36e8567aa99  /etc/apache2/mods-available/actions.conf
+95dcfd2efdd41666de5f31dd72e01e41  /etc/apache2/mods-available/actions.load
+a1632bd99783ef6ca8a47a6005d04d56  /etc/apache2/mods-available/alias.conf
+7742296502ce1d2f970cc87322d8ffba  /etc/apache2/mods-available/alias.load
+b377b96eb4dddd88f9428d9cc2fd87ea  /etc/apache2/mods-available/allowmethods.load
+d1003c9fa12b4d3ed35ea3827a689492  /etc/apache2/mods-available/asis.load
+a92c34a3ce5e67e2ecbd272155ebe072  /etc/apache2/mods-available/auth_basic.load
+f29d047cd59013e2fa6724d677c7970b  /etc/apache2/mods-available/auth_digest.load
+731420a769dd8ad537d68bfdbdd6a506  /etc/apache2/mods-available/auth_form.load
+03cbe85c698911a3d3235b4855726481  /etc/apache2/mods-available/authn_anon.load
+c6420ed74b0095f8408aba3e11db4907  /etc/apache2/mods-available/authn_core.load
+86e21a672a4f245715a788f9873174ed  /etc/apache2/mods-available/authn_dbd.load
+4e37546871dbcba8550a0d781f6fbfa8  /etc/apache2/mods-available/authn_dbm.load
+ecdeeab8cfec4a9dd0c065a4d6948c31  /etc/apache2/mods-available/authn_file.load
+260e21e1eb5caa7bcabe8a2fae11445f  /etc/apache2/mods-available/authn_socache.load
+b12a39427b0b3a8d2ffb03cfc029da18  /etc/apache2/mods-available/authnz_fcgi.load
+d65845f053d08b82da239c73c9094c35  /etc/apache2/mods-available/authnz_ldap.load
+90ad8f57655bcd98b7b07864736ab954  /etc/apache2/mods-available/authz_core.load
+c746b8c3bf3fca950ca41fcd553328b4  /etc/apache2/mods-available/authz_dbd.load
+8cd42e62d8ca0701f9aad080ec968493  /etc/apache2/mods-available/authz_dbm.load
+97a3e14926ce7bf5f2d2a7b93ece648d  /etc/apache2/mods-available/authz_groupfile.load
+f529587409471e3feb62256bccaf538a  /etc/apache2/mods-available/authz_host.load
+9ed1ea15654bb594453438154b642539  /etc/apache2/mods-available/authz_owner.load
+bcf988f105564ec1e14b78df56a01cd8  /etc/apache2/mods-available/authz_user.load
+958f2742a80ae30f95507fb84e9eb018  /etc/apache2/mods-available/autoindex.conf
+b9f9d364f1b4c96c45b6db353180aa15  /etc/apache2/mods-available/autoindex.load
+da4d337dd726ab27221b06d92c998e36  /etc/apache2/mods-available/brotli.load
+ae1e21b4fd2c2e8236ec641cae9814bd  /etc/apache2/mods-available/buffer.load
+ea99aba14e9aa25c27653b9958239a6e  /etc/apache2/mods-available/cache.load
+0b2be6d48bbad8b4e32eef623e3670bc  /etc/apache2/mods-available/cache_disk.conf
+56ebd9819aa70a7ff8ac04e4922049f2  /etc/apache2/mods-available/cache_disk.load
+4b548216cee2e910e9059e426f81e60c  /etc/apache2/mods-available/cache_socache.load
+2c2d9adcb273f934304e7dfb5775f7b9  /etc/apache2/mods-available/cern_meta.load
+32a1c48f0e29feb415c9460378728d82  /etc/apache2/mods-available/cgi.load
+d7410fcd5d57c404144ed32e2d5c551f  /etc/apache2/mods-available/cgid.conf
+c3ee2eac02c248b5a39fb1a7afee4cb9  /etc/apache2/mods-available/cgid.load
+1585fcd1b631c2e9b166e170cb162c54  /etc/apache2/mods-available/charset_lite.load
+b6cc5b9e815f551335596cd1e25ffc34  /etc/apache2/mods-available/data.load
+2ee48948add72e6b8682d041acbcab7f  /etc/apache2/mods-available/dav.load
+9d5c750538bf58538c558b907ca924f1  /etc/apache2/mods-available/dav_fs.conf
+17f662fd023dbaaab9d89f9a11ae58c1  /etc/apache2/mods-available/dav_fs.load
+faad09687e64ebb9670aa0b8095d6642  /etc/apache2/mods-available/dav_lock.load
+f03fe275174a5ed97b0f5f5726ccea60  /etc/apache2/mods-available/dbd.load
+2f28f35168069262fb1055abab5848fe  /etc/apache2/mods-available/deflate.conf
+6a7a23153796456ee919abdf728fd972  /etc/apache2/mods-available/deflate.load
+dbc3535a9e5dfd799cf16b5c0d58f137  /etc/apache2/mods-available/dialup.load
+4dbfa06e481b9a2e874247fc8c157c3b  /etc/apache2/mods-available/dir.conf
+397aadae1b8b18e3a7a233cf7c297f99  /etc/apache2/mods-available/dir.load
+8231c51ef692e0766625ece087484fe4  /etc/apache2/mods-available/dump_io.load
+226a145f19c43d9f921c35eacfd61cb2  /etc/apache2/mods-available/echo.load
+3e8963a7df7c047be50a552d80a4f853  /etc/apache2/mods-available/env.load
+dac64edc06fe538c2edd7b3f1f3b03f1  /etc/apache2/mods-available/expires.load
+d3c4acfca1322274a9a8504e8cef27e9  /etc/apache2/mods-available/ext_filter.load
+f097659127628ec6f9c6a558d0baf566  /etc/apache2/mods-available/file_cache.load
+8df0170e37a8925238860657d6c60fe5  /etc/apache2/mods-available/filter.load
+ba7d09162b65d09397bd58be33138e4d  /etc/apache2/mods-available/headers.load
+b78970d35346bfe5eb5817d228cb209c  /etc/apache2/mods-available/heartbeat.load
+b4da13d1c05a7dd1bdeb272300c1fc83  /etc/apache2/mods-available/heartmonitor.load
+5bc6b4b533d920c8b677f3bb37734a0f  /etc/apache2/mods-available/http2.conf
+e18e0c7e38196e7d7580ecedaaa72e3b  /etc/apache2/mods-available/http2.load
+51ba623a8a2bd71c512f847d02e0934f  /etc/apache2/mods-available/ident.load
+51d5109d8bc2bafc17af03beace4d8a4  /etc/apache2/mods-available/imagemap.load
+9cf2fa9ceb6571b5fab4603daad44c83  /etc/apache2/mods-available/include.load
+1fd47a9adf023a925301c58490417cf9  /etc/apache2/mods-available/info.conf
+c1faffe40b8bed9f2b817b9dc0503bb6  /etc/apache2/mods-available/info.load
+094b7c1d424cc4a1dee6f77d301e1888  /etc/apache2/mods-available/lbmethod_bybusyness.load
+f33d55ab5bbf907340426e31f99f6701  /etc/apache2/mods-available/lbmethod_byrequests.load
+e656d80b48c020b7d77ece23368e04f1  /etc/apache2/mods-available/lbmethod_bytraffic.load
+944703ff299a25cf068de7f6a2374465  /etc/apache2/mods-available/lbmethod_heartbeat.load
+f1c3882b24335ef261a90696e060813e  /etc/apache2/mods-available/ldap.conf
+735ac5f246738e11a53f6c515b8dfc48  /etc/apache2/mods-available/ldap.load
+d062328e5987fa686615394768339abe  /etc/apache2/mods-available/log_debug.load
+7177e2427eb7c78f1ab10c034a809793  /etc/apache2/mods-available/log_forensic.load
+5e445ce688a49e0a1fcfcaa414fe21f9  /etc/apache2/mods-available/lua.load
+40e0509b4b2d307cdfe4de75fa89dc91  /etc/apache2/mods-available/macro.load
+4fa08b541b4bac4a4849e6fd6d69c973  /etc/apache2/mods-available/md.load
+5e9b0033f29b5bf2d9e736f7719ef1f9  /etc/apache2/mods-available/mime.conf
+9c858dc2ad2825dc3f862ecba90cf6ec  /etc/apache2/mods-available/mime.load
+b0b89da0f5d38b6c7177113018fc475d  /etc/apache2/mods-available/mime_magic.conf
+ab5c69aa0c91f11157e9bfc4972f8cce  /etc/apache2/mods-available/mime_magic.load
+157cee0c8592d9e8bbffcd33abac3e2a  /etc/apache2/mods-available/mpm_event.conf
+08816d280ebbd94b8c5961fc6f7168b5  /etc/apache2/mods-available/mpm_event.load
+2c7263c7cd86af07dcedf627d0ad2ade  /etc/apache2/mods-available/mpm_prefork.conf
+9bcdffe5055526e0929ecd49ee311c9e  /etc/apache2/mods-available/mpm_prefork.load
+b57019603bf38326fcb7f9c0785a3c34  /etc/apache2/mods-available/mpm_worker.conf
+0c6640977f0f046a55fdaf76eb54adef  /etc/apache2/mods-available/mpm_worker.load
+b023fc6578d5b64059df4dfe689cb779  /etc/apache2/mods-available/negotiation.conf
+fd7bf44d833446a35f0199d7cbcc9793  /etc/apache2/mods-available/negotiation.load
+a3c7629e7a55080e9c2f4ff1c70a98b2  /etc/apache2/mods-available/proxy.conf
+3d3719c88d01152e817f74fc2fd6ce9e  /etc/apache2/mods-available/proxy.load
+e058e03c1d4f9e4d8e2c439ed75cc501  /etc/apache2/mods-available/proxy_ajp.load
+8a37d3a532dbb4866d4dd58162812f85  /etc/apache2/mods-available/proxy_balancer.conf
+9c6e6ff2195159c8af97f7673e8d2ada  /etc/apache2/mods-available/proxy_balancer.load
+6bc4b5de977f70a0b6ae98ab04383c0c  /etc/apache2/mods-available/proxy_connect.load
+f2ad6e7e80d2750cdca5986657e7835e  /etc/apache2/mods-available/proxy_express.load
+09cbda44eecbf1cbab48b30045217e3c  /etc/apache2/mods-available/proxy_fcgi.load
+9e5584db5f748a2fb71b582a255a976e  /etc/apache2/mods-available/proxy_fdpass.load
+12809c2f356d9c05dbdc887375a6bf1b  /etc/apache2/mods-available/proxy_ftp.conf
+c05db1b229a7957f0032c0d79ed7e3c9  /etc/apache2/mods-available/proxy_ftp.load
+92898c1ef9124193fa5d9e13408e0372  /etc/apache2/mods-available/proxy_hcheck.load
+6012bbc4155b99642dba050df6c9028f  /etc/apache2/mods-available/proxy_html.conf
+dac7646a0a7242de76f788b4da14390b  /etc/apache2/mods-available/proxy_html.load
+161b514c355c6daa95f11371fb9c184c  /etc/apache2/mods-available/proxy_http.load
+8a2cdbe25537eb8cb9007e351274f852  /etc/apache2/mods-available/proxy_http2.load
+cb11d685e60db26bbdad456263bf63b7  /etc/apache2/mods-available/proxy_scgi.load
+37493bab0af283fd186d2797a9f5f95b  /etc/apache2/mods-available/proxy_uwsgi.load
+d2e5c21b886333f1662fe74591260d5d  /etc/apache2/mods-available/proxy_wstunnel.load
+fb40aa030d5458dd99a0c9d1141bcde4  /etc/apache2/mods-available/ratelimit.load
+306c71fae73733506db9099d106ba642  /etc/apache2/mods-available/reflector.load
+81a6511c79ab338aef51a6c185152231  /etc/apache2/mods-available/remoteip.load
+30ef0f5bd709e44eeee85e9f847000c0  /etc/apache2/mods-available/reqtimeout.conf
+7fd814775dc3f3c9e6753ef874978f96  /etc/apache2/mods-available/reqtimeout.load
+36c1b324cd545e3e29b50b5e2a8357e8  /etc/apache2/mods-available/request.load
+55e18fb7df64c8f390904b972637c17d  /etc/apache2/mods-available/rewrite.load
+8ba3c7ff4243e6a45b6e3c372fc0de1b  /etc/apache2/mods-available/sed.load
+b552f1e184865c597ae397876fb3a0a6  /etc/apache2/mods-available/session.load
+89aff7a7f8b4347965d4cf6ea3c5beb9  /etc/apache2/mods-available/session_cookie.load
+066002be7d8c6c381553dbded41db1b6  /etc/apache2/mods-available/session_crypto.load
+cf86e56f8ee26f5dccc39c2f690d7f79  /etc/apache2/mods-available/session_dbd.load
+86ccdba3939ec2deb3443acaff2c1988  /etc/apache2/mods-available/setenvif.conf
+6f670fad5b6f6b14fa72c9cd3058469b  /etc/apache2/mods-available/setenvif.load
+fd33fcd86c77d4d5044ad904e7f38360  /etc/apache2/mods-available/slotmem_plain.load
+127df94eaf6987ad67b964f01eec3251  /etc/apache2/mods-available/slotmem_shm.load
+9f11810517a6bf2eba31b336ebbfad70  /etc/apache2/mods-available/socache_dbm.load
+c0101bc50501b12e7c8c74014560404b  /etc/apache2/mods-available/socache_memcache.load
+5c6ee35e3b89ea7ffdb19a2b344ada94  /etc/apache2/mods-available/socache_redis.load
+9efb84889b8e1683ce104033bf30973d  /etc/apache2/mods-available/socache_shmcb.load
+095570b0cb18ebdfc357a2241c6932ea  /etc/apache2/mods-available/speling.load
+e0240208bf5bd725c1f192c2d1abb76e  /etc/apache2/mods-available/ssl.conf
+8cc37c9d0db67f76c2871ed1d38c07b3  /etc/apache2/mods-available/ssl.load
+a2068bd13eadd9b0b9168d94e21c37b6  /etc/apache2/mods-available/status.conf
+00976ea5115f286bbc21357581d0b65e  /etc/apache2/mods-available/status.load
+50e63dc17612e22484a88f537e8aec8e  /etc/apache2/mods-available/substitute.load
+335169c85f4afc14524846789d46af06  /etc/apache2/mods-available/suexec.load
+6c13959015fb35276572070b44e63380  /etc/apache2/mods-available/unique_id.load
+202509138f19284efb527eff4cfb042a  /etc/apache2/mods-available/userdir.conf
+c034025405561ea48fbcb67fd1998f4d  /etc/apache2/mods-available/userdir.load
+8400042dd4374fad5eedf33ffb3c68f0  /etc/apache2/mods-available/usertrack.load
+fdd42d34966c329cdee2435dfe72ee24  /etc/apache2/mods-available/vhost_alias.load
+1f7ab653ed3601bd265871cdf252a224  /etc/apache2/mods-available/xml2enc.load
+e0eadfd8b9250d90d5c3004171eb78f6  /etc/apache2/ports.conf
+45ed6a20d7ff26b62d873585bc1b42ca  /etc/apache2/sites-available/000-default.conf
+60f107a19a62f1b5fea5ae64766e6530  /etc/apache2/sites-available/000-tpan-default.conf
+58d23841f0ea37f6c3c1f1c7bda9c6d7  /etc/apache2/sites-available/default-ssl.conf
+/etc/apache2/conf-enabled/charset.conf -> ../conf-available/charset.conf
+/etc/apache2/conf-enabled/localized-error-pages.conf -> ../conf-available/localized-error-pages.conf
+/etc/apache2/conf-enabled/other-vhosts-access-log.conf -> ../conf-available/other-vhosts-access-log.conf
+/etc/apache2/conf-enabled/security.conf -> ../conf-available/security.conf
+/etc/apache2/conf-enabled/serve-cgi-bin.conf -> ../conf-available/serve-cgi-bin.conf
+/etc/apache2/mods-enabled/access_compat.load -> ../mods-available/access_compat.load
+/etc/apache2/mods-enabled/alias.conf -> ../mods-available/alias.conf
+/etc/apache2/mods-enabled/alias.load -> ../mods-available/alias.load
+/etc/apache2/mods-enabled/auth_basic.load -> ../mods-available/auth_basic.load
+/etc/apache2/mods-enabled/authn_core.load -> ../mods-available/authn_core.load
+/etc/apache2/mods-enabled/authn_file.load -> ../mods-available/authn_file.load
+/etc/apache2/mods-enabled/authz_core.load -> ../mods-available/authz_core.load
+/etc/apache2/mods-enabled/authz_host.load -> ../mods-available/authz_host.load
+/etc/apache2/mods-enabled/authz_user.load -> ../mods-available/authz_user.load
+/etc/apache2/mods-enabled/autoindex.conf -> ../mods-available/autoindex.conf
+/etc/apache2/mods-enabled/autoindex.load -> ../mods-available/autoindex.load
+/etc/apache2/mods-enabled/deflate.conf -> ../mods-available/deflate.conf
+/etc/apache2/mods-enabled/deflate.load -> ../mods-available/deflate.load
+/etc/apache2/mods-enabled/dir.conf -> ../mods-available/dir.conf
+/etc/apache2/mods-enabled/dir.load -> ../mods-available/dir.load
+/etc/apache2/mods-enabled/env.load -> ../mods-available/env.load
+/etc/apache2/mods-enabled/filter.load -> ../mods-available/filter.load
+/etc/apache2/mods-enabled/headers.load -> ../mods-available/headers.load
+/etc/apache2/mods-enabled/http2.conf -> ../mods-available/http2.conf
+/etc/apache2/mods-enabled/http2.load -> ../mods-available/http2.load
+/etc/apache2/mods-enabled/mime.conf -> ../mods-available/mime.conf
+/etc/apache2/mods-enabled/mime.load -> ../mods-available/mime.load
+/etc/apache2/mods-enabled/mpm_event.conf -> ../mods-available/mpm_event.conf
+/etc/apache2/mods-enabled/mpm_event.load -> ../mods-available/mpm_event.load
+/etc/apache2/mods-enabled/negotiation.conf -> ../mods-available/negotiation.conf
+/etc/apache2/mods-enabled/negotiation.load -> ../mods-available/negotiation.load
+/etc/apache2/mods-enabled/proxy.conf -> ../mods-available/proxy.conf
+/etc/apache2/mods-enabled/proxy.load -> ../mods-available/proxy.load
+/etc/apache2/mods-enabled/proxy_fcgi.load -> ../mods-available/proxy_fcgi.load
+/etc/apache2/mods-enabled/reqtimeout.conf -> ../mods-available/reqtimeout.conf
+/etc/apache2/mods-enabled/reqtimeout.load -> ../mods-available/reqtimeout.load
+/etc/apache2/mods-enabled/rewrite.load -> ../mods-available/rewrite.load
+/etc/apache2/mods-enabled/setenvif.conf -> ../mods-available/setenvif.conf
+/etc/apache2/mods-enabled/setenvif.load -> ../mods-available/setenvif.load
+/etc/apache2/mods-enabled/status.conf -> ../mods-available/status.conf
+/etc/apache2/mods-enabled/status.load -> ../mods-available/status.load
+/etc/apache2/sites-enabled/000-tpan-default.conf -> /etc/apache2/sites-available/000-tpan-default.conf
+61e0993270966cc6bc96b46c01ade21f  /etc/mysql/conf.d/mysql.cnf
+20890decb4486ce539753193908fb356  /etc/mysql/conf.d/mysqldump.cnf
+c08358d02a853b1dda4bcc4a56f5f798  /etc/mysql/debian-start
+df477b524b3adfdcc5f765ebfa17a6e7  /etc/mysql/debian.cnf
+f78499dd07dccc3238cc15dd937b87bb  /etc/mysql/mariadb.cnf
+a8028d231dad4d2658bfd8b0db11f85e  /etc/mysql/mariadb.conf.d/50-client.cnf
+2e0e48974b270cb20c2b66aa71f6cd92  /etc/mysql/mariadb.conf.d/50-mysql-clients.cnf
+ae130218a23989c3a504c95831610b4b  /etc/mysql/mariadb.conf.d/50-mysqld_safe.cnf
+70a88ac2d5d3483d48c220af7211177d  /etc/mysql/mariadb.conf.d/50-server.cnf
+e2f4b79114ba923199ead4b7e94eee70  /etc/mysql/mariadb.conf.d/60-galera.cnf
+481d40067658e047b257ae1349352360  /etc/mysql/mariadb.conf.d/99-tpan.cnf
+6c0ab650087968bec0b0070644a32750  /etc/mysql/mariadb.conf.d/provider_bzip2.cnf
+5dc12c9891064bc1e8a2667e1f13507f  /etc/mysql/mariadb.conf.d/provider_lz4.cnf
+69ea1a502df249cf2257fa231827ab0a  /etc/mysql/mariadb.conf.d/provider_lzma.cnf
+4753866a6c3ac054a75c87782b450b5b  /etc/mysql/mariadb.conf.d/provider_lzo.cnf
+97735326f1364fa9e7bd76893334fce0  /etc/mysql/mariadb.conf.d/provider_snappy.cnf
+cfe2bc1819d5e200eca8ca6912f714af  /etc/mysql/my.cnf.fallback
+/etc/mysql/my.cnf -> /etc/alternatives/my.cnf
+726c33e11795235b71f7367d79eb8744  /etc/php/8.3/cli/php.ini
+696fcb228ad0e29f57cdd2082eb41fac  /etc/php/8.3/fpm/php-fpm.conf
+75451050d77c02f5b29da8360395a9dd  /etc/php/8.3/fpm/php.ini
+b7036e16ece7cb9016ff45451e56123d  /etc/php/8.3/fpm/pool.d/tpan-idle.conf
+0877786daf8479dd91be0f89f223a102  /etc/php/8.3/mods-available/calendar.ini
+72def1d4663c5350713006af725f21ae  /etc/php/8.3/mods-available/ctype.ini
+0278905f22bb2770ddee828403d70cfd  /etc/php/8.3/mods-available/curl.ini
+e88bd9b3d32d3ce6ae86ce23758b7fb3  /etc/php/8.3/mods-available/dom.ini
+7b3bf6064e6bd1749e5f1a3dd56592b3  /etc/php/8.3/mods-available/exif.ini
+40c77aebbb04a3e8891ea3575eda55a5  /etc/php/8.3/mods-available/ffi.ini
+3eb68bf4e22faed68c673430081b1a08  /etc/php/8.3/mods-available/fileinfo.ini
+b245857286d2cff077355dd82086c950  /etc/php/8.3/mods-available/ftp.ini
+dcba6b3c7745411277aa243c2920ae70  /etc/php/8.3/mods-available/gd.ini
+7dfbed71c04bbd15100e719b20b7c764  /etc/php/8.3/mods-available/gettext.ini
+f875ac0ca30dea610b2adc421b9e997e  /etc/php/8.3/mods-available/iconv.ini
+66dd72756634f83008541a4d4bce2342  /etc/php/8.3/mods-available/intl.ini
+4036a043c18d96704cf2913442c2b3c9  /etc/php/8.3/mods-available/mbstring.ini
+9fc5024c5f48ebba786c6076588ed371  /etc/php/8.3/mods-available/mysqli.ini
+bb19fb6e35f9ad94140f6836ff8347a0  /etc/php/8.3/mods-available/mysqlnd.ini
+5454a910708937435d02de816081a39c  /etc/php/8.3/mods-available/opcache.ini
+2bcf2cd02149a7b3118f9a8ed7cfe1b3  /etc/php/8.3/mods-available/pdo.ini
+67fd74d7914a24c90ad92e0eb8b0890a  /etc/php/8.3/mods-available/pdo_mysql.ini
+9dafa1a822dd003107e1686818a191fd  /etc/php/8.3/mods-available/phar.ini
+0f55f144c06b074b7c0a498928001452  /etc/php/8.3/mods-available/posix.ini
+04d2378963688a881deb69b0441f2a80  /etc/php/8.3/mods-available/readline.ini
+894f4d6c5c36f658499b941a02bbc9a7  /etc/php/8.3/mods-available/shmop.ini
+d59ce88cfda1c4161044ca85d33f9293  /etc/php/8.3/mods-available/simplexml.ini
+5c9f4598aa9e02021783e540fc023c66  /etc/php/8.3/mods-available/sockets.ini
+0ac70c35787ea579baefc56e36ea9c47  /etc/php/8.3/mods-available/sysvmsg.ini
+a4c2616a57351dc93cb36e1f41c63926  /etc/php/8.3/mods-available/sysvsem.ini
+46bf0b73759bfdd7fcf431ea42d03c2f  /etc/php/8.3/mods-available/sysvshm.ini
+cb36a25e9c9d2c975cb49bbb56f16465  /etc/php/8.3/mods-available/tokenizer.ini
+148d7029bf667c8b3eeb4a2180431062  /etc/php/8.3/mods-available/xml.ini
+ce6be61dbe2d23cbb9fbe76e76131997  /etc/php/8.3/mods-available/xmlreader.ini
+0850b6a32fea855c178b1bceb6572d0b  /etc/php/8.3/mods-available/xmlwriter.ini
+74ea439610ac4f9c28abbfbc8cd4cbf3  /etc/php/8.3/mods-available/xsl.ini
+c46baba51984fb09217d9c7fab433e89  /etc/php/8.3/mods-available/zip.ini
+/etc/php/8.3/cli/conf.d/10-mysqlnd.ini -> /etc/php/8.3/mods-available/mysqlnd.ini
+/etc/php/8.3/cli/conf.d/10-opcache.ini -> /etc/php/8.3/mods-available/opcache.ini
+/etc/php/8.3/cli/conf.d/10-pdo.ini -> /etc/php/8.3/mods-available/pdo.ini
+/etc/php/8.3/cli/conf.d/15-xml.ini -> /etc/php/8.3/mods-available/xml.ini
+/etc/php/8.3/cli/conf.d/20-calendar.ini -> /etc/php/8.3/mods-available/calendar.ini
+/etc/php/8.3/cli/conf.d/20-ctype.ini -> /etc/php/8.3/mods-available/ctype.ini
+/etc/php/8.3/cli/conf.d/20-curl.ini -> /etc/php/8.3/mods-available/curl.ini
+/etc/php/8.3/cli/conf.d/20-dom.ini -> /etc/php/8.3/mods-available/dom.ini
+/etc/php/8.3/cli/conf.d/20-exif.ini -> /etc/php/8.3/mods-available/exif.ini
+/etc/php/8.3/cli/conf.d/20-ffi.ini -> /etc/php/8.3/mods-available/ffi.ini
+/etc/php/8.3/cli/conf.d/20-fileinfo.ini -> /etc/php/8.3/mods-available/fileinfo.ini
+/etc/php/8.3/cli/conf.d/20-ftp.ini -> /etc/php/8.3/mods-available/ftp.ini
+/etc/php/8.3/cli/conf.d/20-gd.ini -> /etc/php/8.3/mods-available/gd.ini
+/etc/php/8.3/cli/conf.d/20-gettext.ini -> /etc/php/8.3/mods-available/gettext.ini
+/etc/php/8.3/cli/conf.d/20-iconv.ini -> /etc/php/8.3/mods-available/iconv.ini
+/etc/php/8.3/cli/conf.d/20-intl.ini -> /etc/php/8.3/mods-available/intl.ini
+/etc/php/8.3/cli/conf.d/20-mbstring.ini -> /etc/php/8.3/mods-available/mbstring.ini
+/etc/php/8.3/cli/conf.d/20-mysqli.ini -> /etc/php/8.3/mods-available/mysqli.ini
+/etc/php/8.3/cli/conf.d/20-pdo_mysql.ini -> /etc/php/8.3/mods-available/pdo_mysql.ini
+/etc/php/8.3/cli/conf.d/20-phar.ini -> /etc/php/8.3/mods-available/phar.ini
+/etc/php/8.3/cli/conf.d/20-posix.ini -> /etc/php/8.3/mods-available/posix.ini
+/etc/php/8.3/cli/conf.d/20-readline.ini -> /etc/php/8.3/mods-available/readline.ini
+/etc/php/8.3/cli/conf.d/20-shmop.ini -> /etc/php/8.3/mods-available/shmop.ini
+/etc/php/8.3/cli/conf.d/20-simplexml.ini -> /etc/php/8.3/mods-available/simplexml.ini
+/etc/php/8.3/cli/conf.d/20-sockets.ini -> /etc/php/8.3/mods-available/sockets.ini
+/etc/php/8.3/cli/conf.d/20-sysvmsg.ini -> /etc/php/8.3/mods-available/sysvmsg.ini
+/etc/php/8.3/cli/conf.d/20-sysvsem.ini -> /etc/php/8.3/mods-available/sysvsem.ini
+/etc/php/8.3/cli/conf.d/20-sysvshm.ini -> /etc/php/8.3/mods-available/sysvshm.ini
+/etc/php/8.3/cli/conf.d/20-tokenizer.ini -> /etc/php/8.3/mods-available/tokenizer.ini
+/etc/php/8.3/cli/conf.d/20-xmlreader.ini -> /etc/php/8.3/mods-available/xmlreader.ini
+/etc/php/8.3/cli/conf.d/20-xmlwriter.ini -> /etc/php/8.3/mods-available/xmlwriter.ini
+/etc/php/8.3/cli/conf.d/20-xsl.ini -> /etc/php/8.3/mods-available/xsl.ini
+/etc/php/8.3/cli/conf.d/20-zip.ini -> /etc/php/8.3/mods-available/zip.ini
+/etc/php/8.3/fpm/conf.d/10-mysqlnd.ini -> /etc/php/8.3/mods-available/mysqlnd.ini
+/etc/php/8.3/fpm/conf.d/10-opcache.ini -> /etc/php/8.3/mods-available/opcache.ini
+/etc/php/8.3/fpm/conf.d/10-pdo.ini -> /etc/php/8.3/mods-available/pdo.ini
+/etc/php/8.3/fpm/conf.d/15-xml.ini -> /etc/php/8.3/mods-available/xml.ini
+/etc/php/8.3/fpm/conf.d/20-calendar.ini -> /etc/php/8.3/mods-available/calendar.ini
+/etc/php/8.3/fpm/conf.d/20-ctype.ini -> /etc/php/8.3/mods-available/ctype.ini
+/etc/php/8.3/fpm/conf.d/20-curl.ini -> /etc/php/8.3/mods-available/curl.ini
+/etc/php/8.3/fpm/conf.d/20-dom.ini -> /etc/php/8.3/mods-available/dom.ini
+/etc/php/8.3/fpm/conf.d/20-exif.ini -> /etc/php/8.3/mods-available/exif.ini
+/etc/php/8.3/fpm/conf.d/20-ffi.ini -> /etc/php/8.3/mods-available/ffi.ini
+/etc/php/8.3/fpm/conf.d/20-fileinfo.ini -> /etc/php/8.3/mods-available/fileinfo.ini
+/etc/php/8.3/fpm/conf.d/20-ftp.ini -> /etc/php/8.3/mods-available/ftp.ini
+/etc/php/8.3/fpm/conf.d/20-gd.ini -> /etc/php/8.3/mods-available/gd.ini
+/etc/php/8.3/fpm/conf.d/20-gettext.ini -> /etc/php/8.3/mods-available/gettext.ini
+/etc/php/8.3/fpm/conf.d/20-iconv.ini -> /etc/php/8.3/mods-available/iconv.ini
+/etc/php/8.3/fpm/conf.d/20-intl.ini -> /etc/php/8.3/mods-available/intl.ini
+/etc/php/8.3/fpm/conf.d/20-mbstring.ini -> /etc/php/8.3/mods-available/mbstring.ini
+/etc/php/8.3/fpm/conf.d/20-mysqli.ini -> /etc/php/8.3/mods-available/mysqli.ini
+/etc/php/8.3/fpm/conf.d/20-pdo_mysql.ini -> /etc/php/8.3/mods-available/pdo_mysql.ini
+/etc/php/8.3/fpm/conf.d/20-phar.ini -> /etc/php/8.3/mods-available/phar.ini
+/etc/php/8.3/fpm/conf.d/20-posix.ini -> /etc/php/8.3/mods-available/posix.ini
+/etc/php/8.3/fpm/conf.d/20-readline.ini -> /etc/php/8.3/mods-available/readline.ini
+/etc/php/8.3/fpm/conf.d/20-shmop.ini -> /etc/php/8.3/mods-available/shmop.ini
+/etc/php/8.3/fpm/conf.d/20-simplexml.ini -> /etc/php/8.3/mods-available/simplexml.ini
+/etc/php/8.3/fpm/conf.d/20-sockets.ini -> /etc/php/8.3/mods-available/sockets.ini
+/etc/php/8.3/fpm/conf.d/20-sysvmsg.ini -> /etc/php/8.3/mods-available/sysvmsg.ini
+/etc/php/8.3/fpm/conf.d/20-sysvsem.ini -> /etc/php/8.3/mods-available/sysvsem.ini
+/etc/php/8.3/fpm/conf.d/20-sysvshm.ini -> /etc/php/8.3/mods-available/sysvshm.ini
+/etc/php/8.3/fpm/conf.d/20-tokenizer.ini -> /etc/php/8.3/mods-available/tokenizer.ini
+/etc/php/8.3/fpm/conf.d/20-xmlreader.ini -> /etc/php/8.3/mods-available/xmlreader.ini
+/etc/php/8.3/fpm/conf.d/20-xmlwriter.ini -> /etc/php/8.3/mods-available/xmlwriter.ini
+/etc/php/8.3/fpm/conf.d/20-xsl.ini -> /etc/php/8.3/mods-available/xsl.ini
+/etc/php/8.3/fpm/conf.d/20-zip.ini -> /etc/php/8.3/mods-available/zip.ini
+5fe0af6ce1505fefdc158d9e5dbf6286  /etc/logrotate.d/alternatives
+a38d9e980faebcda9a1998fd0f90b69e  /etc/logrotate.d/apache2
+fa54dab59ef899b48d5455c976008df4  /etc/logrotate.d/apport
+179f2ed4f85cbaca12fa3d69c2a4a1c3  /etc/logrotate.d/apt
+0f1e42d11052c238718996029ffb809b  /etc/logrotate.d/bootlog
+55631862595faf6432786dc335eb3f44  /etc/logrotate.d/btmp
+a815a66a333f2637c00055fcd44b02d4  /etc/logrotate.d/certbot
+1136c49642289d614837572cac18d9f6  /etc/logrotate.d/cloud-init
+9e25c8505966b5829785f34a548ae11f  /etc/logrotate.d/dpkg
+9694f545cc2483ce09930879b2fb9aa6  /etc/logrotate.d/mariadb
+d2accdb1b12c3ac02239c433153fdb79  /etc/logrotate.d/php8.3-fpm
+3f26282ac0106961634fe4efb9edc3f4  /etc/logrotate.d/rsyslog
+49866e9f4cc99e35bedaf93a45dc0333  /etc/logrotate.d/tpan-sites
+852ec664fd0f1ecb26e726f5e801e9fd  /etc/logrotate.d/ubuntu-pro-client
+969308e0ddfb74505f0da47b49ada218  /etc/logrotate.d/ufw
+e45049ee847f069a99e3e6ec39155d4a  /etc/logrotate.d/unattended-upgrades
+46cd7ecb1810441bd450987a976f5540  /etc/logrotate.d/wtmp
+a592bbf68fc5143bfad5800cb4947253  /usr/local/bin/wp
+755 root:root /var/lib/tpan
+755 root:root /var/lib/tpan/acme
+755 root:root /var/cache/tpan
+MainPID=0 ExecMainStartTimestamp= Id=nginx.service ActiveState=inactive UnitFileState= 
+MainPID=14397 ExecMainStartTimestamp=Fri 2026-11-20 02:51:04 +07 Id=apache2.service ActiveState=active UnitFileState=enabled 
+MainPID=13997 ExecMainStartTimestamp=Fri 2026-11-20 02:51:00 +07 Id=php8.3-fpm.service ActiveState=active UnitFileState=enabled 
+MainPID=14217 ExecMainStartTimestamp=Fri 2026-11-20 02:51:03 +07 Id=mariadb.service ActiveState=active UnitFileState=enabled 
+con của web server:
+14397 /usr/sbin/apache2 -k start
+14778 /usr/sbin/apache2 -k start
+14779 /usr/sbin/apache2 -k start
+
+[2026-11-20 02:51:08] $ scripts/vm.sh root tpan stack install --web apache --yes --verbose
+Bắt đầu job 2b8372ed54d03657
+- Làm mới danh sách gói (apt-get update) ...
+    $ dpkg-query --show '--showformat=${Package}\t${Status}\n' mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2
+    | apache2	install ok installed
+    | certbot	install ok installed
+    | curl	install ok installed
+    | mariadb-server	install ok installed
+    | php-cli	install ok installed
+    | php-curl	install ok installed
+    | php-fpm	install ok installed
+    | php-gd	install ok installed
+    | php-intl	install ok installed
+    | php-mbstring	install ok installed
+    | php-mysql	install ok installed
+    | php-xml	install ok installed
+    | php-zip	install ok installed
+  đã đúng, bỏ qua
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2 ...
+    $ dpkg-query --show '--showformat=${Package}\t${Status}\n' mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2
+    | apache2	install ok installed
+    | certbot	install ok installed
+    | curl	install ok installed
+    | mariadb-server	install ok installed
+    | php-cli	install ok installed
+    | php-curl	install ok installed
+    | php-fpm	install ok installed
+    | php-gd	install ok installed
+    | php-intl	install ok installed
+    | php-mbstring	install ok installed
+    | php-mysql	install ok installed
+    | php-xml	install ok installed
+    | php-zip	install ok installed
+  đã đúng, bỏ qua
+- Chạy và bật mariadb khi khởi động ...
+    $ systemctl is-active mariadb
+    | active
+    $ systemctl is-enabled mariadb
+    | enabled
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  đã đúng, bỏ qua
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+    $ mariadb -N -B
+    | 1	0	0
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php8.3-fpm bằng pool tpan-idle ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  đã đúng, bỏ qua
+- Module Apache: bật mpm_event proxy_fcgi setenvif rewrite headers http2; tắt mpm_prefork ...
+    $ a2query -m mpm_prefork
+    | No module matches mpm_prefork
+    $ a2query -m mpm_event
+    | mpm_event (enabled by maintainer script)
+    $ a2query -m proxy_fcgi
+    | proxy_fcgi (enabled by site administrator)
+    $ a2query -m setenvif
+    | setenvif (enabled by maintainer script)
+    $ a2query -m rewrite
+    | rewrite (enabled by site administrator)
+    $ a2query -m headers
+    | headers (enabled by site administrator)
+    $ a2query -m http2
+    | http2 (enabled by site administrator)
+  đã đúng, bỏ qua
+- Gỡ /etc/apache2/sites-enabled/000-default.conf ...
+  đã đúng, bỏ qua
+- Ghi /etc/apache2/sites-available/000-tpan-default.conf ...
+  đã đúng, bỏ qua
+- Bật /etc/apache2/sites-enabled/000-tpan-default.conf → /etc/apache2/sites-available/000-tpan-default.conf ...
+  đã đúng, bỏ qua
+- Chạy và bật apache2 khi khởi động ...
+    $ systemctl is-active apache2
+    | active
+    $ systemctl is-enabled apache2
+    | enabled
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  đã đúng, bỏ qua
+- Ghi /etc/logrotate.d/tpan-sites ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 2b8372ed54d03657: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-20 02:51:08] (mã thoát 0)
+  => ĐẠT: chạy lại thoát 0
+  => ĐẠT: job thành công
+  => ĐẠT: không bước nào chạy (không có dòng "xong")
+
+Số bước: 17, số bước bỏ qua: 17
+  => ĐẠT: mọi bước đều bỏ qua
+
+Các lệnh tpan đã chạy trong lần hai (dòng "$"), gom và đếm:
+   1 a2query -m headers
+   1 a2query -m http2
+   1 a2query -m mpm_event
+   1 a2query -m mpm_prefork
+   1 a2query -m proxy_fcgi
+   1 a2query -m rewrite
+   1 a2query -m setenvif
+   2 dpkg-query --show '--showformat=${Package}\t${Status}\n' mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2
+   1 mariadb -N -B
+   1 systemctl is-active apache2
+   1 systemctl is-active mariadb
+   1 systemctl is-enabled apache2
+   1 systemctl is-enabled mariadb
+  => ĐẠT: chỉ có lệnh đọc (dpkg-query, systemctl is-*, mariadb -N -B đọc trạng thái, a2query -m)
+
+[2026-11-20 02:51:08] $ diff /var/folders/3x/kjdh5x9n36n_tzxmyxhtvd940000gn/T/tmp.WspaGYuz4S/before /var/folders/3x/kjdh5x9n36n_tzxmyxhtvd940000gn/T/tmp.WspaGYuz4S/after
+[2026-11-20 02:51:08] (mã thoát 0)
+  => ĐẠT: máy không đổi (md5, symlink, quyền, PID)
+
+
+######## [2026-11-20 02:51:08] apache (f): status và health
+
+[2026-11-20 02:51:08] $ scripts/vm.sh root tpan stack status
+Web server:  apache (nguồn ubuntu)
+PHP:         8.3 (nguồn ubuntu)
+MariaDB:     nguồn ubuntu
+Đã cài:      rồi
+Dịch vụ:
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[2026-11-20 02:51:08] (mã thoát 0)
+  => ĐẠT: stack status thoát 0
+
+[2026-11-20 02:51:08] $ scripts/vm.sh root tpan health
+
+== Máy và stack ==
+[đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+[đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 88.9% (3.4 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/apache2/sites-available/000-tpan-default.conf còn đúng như tpan đã ghi: File /etc/apache2/sites-available/000-tpan-default.conf đúng như tpan đã ghi
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+
+15 đạt
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.9 GiB
+[chưa rõ] Chứng chỉ HTTPS của panel còn hạn: Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[chưa rõ] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: Chưa kiểm được: không có /etc/tpan/tls/key.pem
+[chưa rõ] /etc/tpan có quyền 0700, chủ root:root: Chưa kiểm được: không có /etc/tpan
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[cảnh báo] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health chưa chạy lần nào
+    Nguyên nhân: `tpan serve` có đang chạy không? Bộ hẹn giờ nằm trong tiến trình đó; nó tắt thì không ai kiểm máy định kỳ và sự cố mới không được phát hiện.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo journalctl -u tpan -n 50 --no-pager
+      sudo systemctl status tpan
+[cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+    Nguyên nhân: Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan backup create --all --yes
+      sudo tpan backup settings --at 03:30
+      sudo ls /var/lib/tpan/backups/_tpan
+
+4 đạt, 2 cảnh báo, 3 chưa rõ
+[2026-11-20 02:51:08] (mã thoát 0)
+  => ĐẠT: health thoát 0
+
+[2026-11-20 02:51:08] $ scripts/vm.sh root tpan health --json
+{
+  "started": "2026-11-20T02:51:08.917278351+07:00",
+  "finished": "2026-11-20T02:51:09.013593913+07:00",
+  "installed": true,
+  "groups": [
+    {
+      "target": "",
+      "results": [
+        {
+          "id": "service.active:apache2",
+          "stage": "web",
+          "title": {
+            "vi": "Dịch vụ apache2 đang chạy và tự bật cùng máy",
+            "en": "Service apache2 is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "apache2 đang chạy và tự bật khi khởi động máy",
+            "en": "apache2 is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active apache2",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled apache2",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "service.active:php8.3-fpm",
+          "stage": "php",
+          "title": {
+            "vi": "Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy",
+            "en": "Service php8.3-fpm is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "php8.3-fpm đang chạy và tự bật khi khởi động máy",
+            "en": "php8.3-fpm is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active php8.3-fpm",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled php8.3-fpm",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "service.active:mariadb",
+          "stage": "db",
+          "title": {
+            "vi": "Dịch vụ mariadb đang chạy và tự bật cùng máy",
+            "en": "Service mariadb is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "mariadb đang chạy và tự bật khi khởi động máy",
+            "en": "mariadb is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active mariadb",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled mariadb",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "config.apache:apache2",
+          "stage": "web",
+          "title": {
+            "vi": "Cấu hình Apache hợp lệ",
+            "en": "Apache configuration is valid"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cấu hình Apache hợp lệ",
+            "en": "Apache configuration is valid"
+          },
+          "evidence": [
+            {
+              "command": "apachectl configtest",
+              "exit_code": 0,
+              "output": "AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message\nSyntax OK"
+            }
+          ]
+        },
+        {
+          "id": "config.phpfpm:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "Cấu hình PHP-FPM 8.3 hợp lệ",
+            "en": "PHP-FPM 8.3 configuration is valid"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cấu hình PHP-FPM 8.3 hợp lệ",
+            "en": "PHP-FPM 8.3 configuration is valid"
+          },
+          "evidence": [
+            {
+              "command": "php-fpm8.3 -t",
+              "exit_code": 0,
+              "output": "[20-Nov-2026 02:51:08] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful"
+            }
+          ]
+        },
+        {
+          "id": "port.localonly:3306",
+          "stage": "db",
+          "title": {
+            "vi": "Cổng 3306 chỉ nghe ở 127.0.0.1",
+            "en": "Port 3306 listens on 127.0.0.1 only"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cổng 3306 chỉ nghe ở 127.0.0.1",
+            "en": "Port 3306 listens only on 127.0.0.1"
+          },
+          "evidence": [
+            {
+              "command": "ss -tlnH",
+              "exit_code": 0,
+              "output": "LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*\nLISTEN 0      80         127.0.0.1:3306 0.0.0.0:*\nLISTEN 0      4096      127.0.0.54:53   0.0.0.0:*\nLISTEN 0      4096         0.0.0.0:22   0.0.0.0:*\nLISTEN 0      4096            [::]:22      [::]:*\nLISTEN 0      511                *:80         *:*"
+            }
+          ]
+        },
+        {
+          "id": "http.default:apache",
+          "stage": "web",
+          "title": {
+            "vi": "Site mặc định của Apache trả 403 cho request lạ",
+            "en": "The Apache default site answers 403 to unknown requests"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Apache trả 403 cho request lạ như mong đợi",
+            "en": "Apache answers 403 to unknown requests as expected"
+          },
+          "evidence": [
+            {
+              "command": "curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1/",
+              "exit_code": 0,
+              "output": "403"
+            }
+          ]
+        },
+        {
+          "id": "db.secure:mariadb",
+          "stage": "db",
+          "title": {
+            "vi": "MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test",
+            "en": "MariaDB is safe: root uses unix_socket, no anonymous users, no test database"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test",
+            "en": "MariaDB is safe: root uses unix_socket, no anonymous users, no test database"
+          },
+          "evidence": [
+            {
+              "command": "mariadb -N -B",
+              "exit_code": 0,
+              "output": "root_socket\t1\nanonymous\t0\ntest_db\t0"
+            }
+          ]
+        },
+        {
+          "id": "wpcli.binary:wp",
+          "stage": "machine",
+          "title": {
+            "vi": "WP-CLI có sẵn, đúng quyền và đúng mã sha512",
+            "en": "WP-CLI is present, with the right mode and sha512"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "WP-CLI có sẵn, quyền 0755, sha512 khớp",
+            "en": "WP-CLI is present, mode 0755, sha512 matches"
+          },
+          "evidence": [
+            {
+              "command": "stat /usr/local/bin/wp (tpan)",
+              "exit_code": 0,
+              "output": "mode 0755, 7142777 byte, chủ root:root"
+            },
+            {
+              "command": "sha512sum /usr/local/bin/wp (tpan)",
+              "exit_code": 0,
+              "output": "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  /usr/local/bin/wp\nmong đợi / expected: be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832"
+            }
+          ]
+        },
+        {
+          "id": "disk.usage:/",
+          "stage": "machine",
+          "title": {
+            "vi": "Ổ đĩa chứa / còn chỗ trống",
+            "en": "The disk holding / has free space"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Ổ đĩa chứa / đã dùng 13.2%",
+            "en": "The disk holding / is 13.2% used"
+          },
+          "evidence": [
+            {
+              "command": "statfs / (tpan)",
+              "exit_code": 0,
+              "output": "total=19682557952 free=17079918592 used=13.2%"
+            }
+          ]
+        },
+        {
+          "id": "php.www_pool:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "PHP-FPM 8.3 không còn pool www thừa",
+            "en": "PHP-FPM 8.3 has no leftover www pool"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Không có pool www; pool giữ chỗ tpan-idle có mặt",
+            "en": "No www pool; the tpan-idle placeholder pool is present"
+          },
+          "evidence": [
+            {
+              "command": "ls /etc/php/8.3/fpm/pool.d (tpan)",
+              "exit_code": 0,
+              "output": "tpan-idle.conf"
+            }
+          ]
+        },
+        {
+          "id": "memory:ram",
+          "stage": "machine",
+          "title": {
+            "vi": "RAM và swap còn đủ dùng",
+            "en": "RAM and swap are not running out"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "RAM còn dùng được 88.9% (3.4 GiB trên 3.8 GiB); máy không có swap",
+            "en": "RAM available is 88.9% (3.4 GiB of 3.8 GiB); the machine has no swap"
+          },
+          "evidence": [
+            {
+              "command": "cat /proc/meminfo (tpan)",
+              "exit_code": 0,
+              "output": "MemTotal: 3995156 kB\nMemAvailable: 3553444 kB\nSwapTotal: 0 kB\nSwapFree: 0 kB"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/apache2/sites-available/000-tpan-default.conf",
+          "stage": "web",
+          "title": {
+            "vi": "File /etc/apache2/sites-available/000-tpan-default.conf còn đúng như tpan đã ghi",
+            "en": "File /etc/apache2/sites-available/000-tpan-default.conf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/apache2/sites-available/000-tpan-default.conf đúng như tpan đã ghi",
+            "en": "File /etc/apache2/sites-available/000-tpan-default.conf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/apache2/sites-available/000-tpan-default.conf (tpan)",
+              "exit_code": 0,
+              "output": "704d1fd1ce7c1e6798e1e66ce80d428049580dbb6b723ea8edd74219c16181c5  /etc/apache2/sites-available/000-tpan-default.conf\nmong đợi / expected: 704d1fd1ce7c1e6798e1e66ce80d428049580dbb6b723ea8edd74219c16181c5"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/logrotate.d/tpan-sites",
+          "stage": "machine",
+          "title": {
+            "vi": "File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi",
+            "en": "File /etc/logrotate.d/tpan-sites is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi",
+            "en": "File /etc/logrotate.d/tpan-sites is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/logrotate.d/tpan-sites (tpan)",
+              "exit_code": 0,
+              "output": "f99aa19a30929162ecccf05a1127020eaba4e21cc9a5f97c149616b630bbbd56  /etc/logrotate.d/tpan-sites\nmong đợi / expected: f99aa19a30929162ecccf05a1127020eaba4e21cc9a5f97c149616b630bbbd56"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf",
+          "stage": "machine",
+          "title": {
+            "vi": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi",
+            "en": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi",
+            "en": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/mysql/mariadb.conf.d/99-tpan.cnf (tpan)",
+              "exit_code": 0,
+              "output": "942439bd7a72e7f65d6c230d556557b7b97db1d64160379d2956ed3a4b0956b1  /etc/mysql/mariadb.conf.d/99-tpan.cnf\nmong đợi / expected: 942439bd7a72e7f65d6c230d556557b7b97db1d64160379d2956ed3a4b0956b1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "tpan",
+      "results": [
+        {
+          "id": "tpan.db:integrity",
+          "stage": "tpan",
+          "title": {
+            "vi": "Cơ sở dữ liệu của tpan toàn vẹn",
+            "en": "tpan's own database is intact"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "PRAGMA integrity_check trả ok",
+            "en": "PRAGMA integrity_check returned ok"
+          },
+          "evidence": [
+            {
+              "command": "PRAGMA integrity_check (tpan)",
+              "exit_code": 0,
+              "output": "ok"
+            }
+          ]
+        },
+        {
+          "id": "disk.free:/var/lib/tpan",
+          "stage": "tpan",
+          "title": {
+            "vi": "Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống",
+            "en": "The disk holding /var/lib/tpan has at least 200 MiB free"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Ổ đĩa chứa /var/lib/tpan còn trống 15.9 GiB",
+            "en": "The disk holding /var/lib/tpan has 15.9 GiB free"
+          },
+          "evidence": [
+            {
+              "command": "statfs /var/lib/tpan (tpan)",
+              "exit_code": 0,
+              "output": "total=19682557952 free=17079902208 min=209715200"
+            }
+          ]
+        },
+        {
+          "id": "tpan.cert:/etc/tpan/tls/cert.pem",
+          "stage": "tpan",
+          "title": {
+            "vi": "Chứng chỉ HTTPS của panel còn hạn",
+            "en": "The panel's HTTPS certificate is not expiring"
+          },
+          "status": "unknown",
+          "summary": {
+            "vi": "Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)",
+            "en": "Could not check: /etc/tpan/tls/cert.pem is missing (tpan setup has not run, or this is --demo mode)"
+          },
+          "evidence": [
+            {
+              "command": "parse /etc/tpan/tls/cert.pem (tpan)",
+              "exit_code": 1,
+              "output": "không có file / no such file"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/var/lib/tpan/tpan.db",
+          "stage": "tpan",
+          "title": {
+            "vi": "/var/lib/tpan/tpan.db có quyền 0600, chủ root:root",
+            "en": "/var/lib/tpan/tpan.db has mode 0600, owner root:root"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "/var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng",
+            "en": "/var/lib/tpan/tpan.db: mode 0600, owner root:root are correct"
+          },
+          "evidence": [
+            {
+              "command": "stat /var/lib/tpan/tpan.db (tpan)",
+              "exit_code": 0,
+              "output": "mode 0600, chủ root:root"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/etc/tpan/tls/key.pem",
+          "stage": "tpan",
+          "title": {
+            "vi": "/etc/tpan/tls/key.pem có quyền 0600, chủ root:root",
+            "en": "/etc/tpan/tls/key.pem has mode 0600, owner root:root"
+          },
+          "status": "unknown",
+          "summary": {
+            "vi": "Chưa kiểm được: không có /etc/tpan/tls/key.pem",
+            "en": "Could not check: /etc/tpan/tls/key.pem does not exist"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/tpan/tls/key.pem (tpan)",
+              "exit_code": 1,
+              "output": "không có file / no such file"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/etc/tpan",
+          "stage": "tpan",
+          "title": {
+            "vi": "/etc/tpan có quyền 0700, chủ root:root",
+            "en": "/etc/tpan has mode 0700, owner root:root"
+          },
+          "status": "unknown",
+          "summary": {
+            "vi": "Chưa kiểm được: không có /etc/tpan",
+            "en": "Could not check: /etc/tpan does not exist"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/tpan (tpan)",
+              "exit_code": 1,
+              "output": "không có file / no such file"
+            }
+          ]
+        },
+        {
+          "id": "tpan.jobs:stuck",
+          "stage": "tpan",
+          "title": {
+            "vi": "Không có job nào bị treo",
+            "en": "No job is stuck"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Không có job nào chạy quá lâu",
+            "en": "No job has been running for too long"
+          },
+          "evidence": [
+            {
+              "command": "jobs still running (tpan)",
+              "exit_code": 0,
+              "output": "không có / none"
+            }
+          ]
+        },
+        {
+          "id": "tpan.scheduler:health",
+          "stage": "tpan",
+          "title": {
+            "vi": "Bộ hẹn giờ health của tpan còn chạy",
+            "en": "tpan's health scheduler is still running"
+          },
+          "status": "warn",
+          "summary": {
+            "vi": "Bộ hẹn giờ health chưa chạy lần nào",
+            "en": "The health scheduler has never run"
+          },
+          "evidence": [
+            {
+              "command": "last health run (tpan)",
+              "exit_code": 1,
+              "output": "chưa bao giờ / never"
+            }
+          ],
+          "cause": {
+            "vi": "`tpan serve` có đang chạy không? Bộ hẹn giờ nằm trong tiến trình đó; nó tắt thì không ai kiểm máy định kỳ và sự cố mới không được phát hiện.",
+            "en": "Is `tpan serve` running? The scheduler lives in that process; if it is down nobody checks the machine periodically and new incidents go unnoticed."
+          },
+          "manual_fix": [
+            "journalctl -u tpan -n 50 --no-pager",
+            "systemctl status tpan"
+          ]
+        },
+        {
+          "id": "tpan.backup:db",
+          "stage": "tpan",
+          "title": {
+            "vi": "tpan.db có bản sao lưu gần đây",
+            "en": "tpan.db has a recent backup"
+          },
+          "status": "warn",
+          "summary": {
+            "vi": "chưa có bản sao lưu tpan.db nào",
+            "en": "there is no backup of tpan.db yet"
+          },
+          "evidence": [
+            {
+              "command": "ls /var/lib/tpan/backups/_tpan (tpan)",
+              "exit_code": 1,
+              "output": ""
+            }
+          ],
+          "cause": {
+            "vi": "Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.",
+            "en": "Nobody has copied tpan.db yet. If this file is damaged or lost, tpan forgets every site, the history and the backups it has. Make one now and turn on the daily schedule so nobody has to remember."
+          },
+          "manual_fix": [
+            "sudo tpan backup create --all --yes",
+            "sudo tpan backup settings --at 03:30",
+            "ls /var/lib/tpan/backups/_tpan"
+          ]
+        }
+      ]
+    }
+  ],
+  "changes": {
+    "opened": null,
+    "closed": null
+  }
+}
+[2026-11-20 02:51:09] (mã thoát 0)
+  => ĐẠT: health --json thoát 0
+  => ĐẠT: health --json có installed: true
+
+
+######## [2026-11-20 02:51:09] TỔNG KẾT: 0 khẳng định không đạt
+
+exit 0; thời gian 1 phút 44 giây
