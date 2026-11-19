@@ -66,7 +66,7 @@ func brainCmd(e *env) *cobra.Command {
 		sshOpts  []string
 	)
 	c := &cobra.Command{
-		Use:   "brain <ssh-đích> [--model M] [--ssh-opt OPT ...]",
+		Use:   "brain <ssh-đích> [--model M] [--max-turns N] [--ssh-opt OPT ...]",
 		Short: "Chạy trên máy cá nhân: nối Claude Code của bạn vào panel của <máy> (AI trong panel)",
 		Long: `Chạy trên máy cá nhân (không cần root). tpan brain kiểm claude --version và
 claude auth status, rồi giữ kết nối ssh <máy> sudo -n tpan brain-link. Mỗi câu
