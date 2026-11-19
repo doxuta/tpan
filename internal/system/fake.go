@@ -56,7 +56,7 @@ func (f *FakeSystem) SetFile(p string, data []byte, perm fs.FileMode, owner Owne
 	defer f.mu.Unlock()
 	p = clean(p)
 	f.mkParents(p)
-	f.entries[p] = &FakeEntry{Mode: perm.Perm(), Owner: normOwner(owner), Data: string(data)}
+	f.entries[p] = &FakeEntry{Mode: keepMode(perm), Owner: normOwner(owner), Data: string(data)}
 }
 
 // SetDir đặt sẵn một thư mục, tự tạo các thư mục cha.
@@ -65,7 +65,7 @@ func (f *FakeSystem) SetDir(p string, perm fs.FileMode, owner Owner) {
 	defer f.mu.Unlock()
 	p = clean(p)
 	f.mkParents(p)
-	f.entries[p] = &FakeEntry{Mode: fs.ModeDir | perm.Perm(), Owner: normOwner(owner)}
+	f.entries[p] = &FakeEntry{Mode: fs.ModeDir | keepMode(perm), Owner: normOwner(owner)}
 }
 
 // SetSymlink đặt sẵn một symlink, tự tạo các thư mục cha.
@@ -199,7 +199,7 @@ func (f *FakeSystem) WriteFileAtomic(p string, data []byte, perm fs.FileMode, ow
 	if e, ok := f.entries[target]; ok && e.Mode.IsDir() {
 		return &fs.PathError{Op: "rename", Path: p, Err: syscall.EISDIR}
 	}
-	f.entries[target] = &FakeEntry{Mode: perm.Perm(), Owner: normOwner(owner), Data: string(data)}
+	f.entries[target] = &FakeEntry{Mode: keepMode(perm), Owner: normOwner(owner), Data: string(data)}
 	return nil
 }
 
@@ -232,7 +232,7 @@ func (f *FakeSystem) MkdirAll(p string, perm fs.FileMode, owner Owner) error {
 		}
 	}
 	for _, m := range missing {
-		f.entries[m] = &FakeEntry{Mode: fs.ModeDir | perm.Perm(), Owner: normOwner(owner)}
+		f.entries[m] = &FakeEntry{Mode: fs.ModeDir | keepMode(perm), Owner: normOwner(owner)}
 	}
 	return nil
 }
@@ -398,7 +398,7 @@ func (f *FakeSystem) Chmod(p string, perm fs.FileMode) error {
 	if err != nil {
 		return err
 	}
-	e.Mode = e.Mode.Type() | perm.Perm()
+	e.Mode = e.Mode.Type() | keepMode(perm)
 	return nil
 }
 
@@ -532,4 +532,11 @@ func unwrapPathErr(err error) error {
 		return pe.Err
 	}
 	return err
+}
+
+// keepMode giữ 9 bit quyền cùng setuid, setgid, sticky, như hệ thống file thật.
+// Thư mục site dùng setgid (2750, mục 5) để file mới sinh ra mang nhóm www-data;
+// bỏ bit này thì test không phân biệt được 2750 với 0750.
+func keepMode(perm fs.FileMode) fs.FileMode {
+	return perm & (fs.ModePerm | fs.ModeSetuid | fs.ModeSetgid | fs.ModeSticky)
 }

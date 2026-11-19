@@ -100,6 +100,16 @@ func checkPerm(perm fs.FileMode) error {
 	return nil
 }
 
+// checkDirPerm như checkPerm nhưng nhận thêm setgid: thư mục site là 2750
+// (mục 5), để file PHP tạo ra (ảnh tải lên) mang nhóm www-data và web server
+// đọc được. setuid và sticky trên thư mục vẫn chưa có chỗ dùng nên vẫn từ chối.
+func checkDirPerm(perm fs.FileMode) error {
+	return checkPerm(perm &^ fs.ModeSetgid)
+}
+
+// dirMode là phần quyền của thư mục mà Dir so và giữ: 9 bit thường cùng setgid.
+func dirMode(m fs.FileMode) fs.FileMode { return m & (fs.ModePerm | fs.ModeSetgid) }
+
 // normOwner hiểu Owner rỗng là root:root, đúng như system hiểu nó. Không chuẩn
 // hoá thì File{Owner: {}} so với Stat (trả "root") sẽ không bao giờ khớp.
 func normOwner(o system.Owner) system.Owner {

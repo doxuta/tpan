@@ -78,6 +78,15 @@ func TestLifecycle(t *testing.T) {
 			step:  func() engine.Step { return &Dir{Path: "/var/cache/tpan", Perm: 0o755} },
 		},
 		{
+			// Thư mục site (mục 5): 0750 có sẵn phải được nâng lên 2750, và
+			// Undo phải trả lại đúng 0750 chứ không phải 2750.
+			name:  "Dir setgid có sẵn thiếu bit setgid",
+			setup: func(m *machine) { m.SetDir("/var/www/example.com", 0o750, system.Root) },
+			step: func() engine.Step {
+				return &Dir{Path: "/var/www/example.com", Perm: fs.ModeSetgid | 0o750, Owner: system.Owner{User: "tp_example_com_abc123", Group: "www-data"}}
+			},
+		},
+		{
 			name:  "File mới",
 			setup: func(m *machine) { m.SetDir("/etc/nginx/sites-available", 0o755, system.Root) },
 			step: func() engine.Step {
@@ -558,7 +567,7 @@ func TestBadParams(t *testing.T) {
 		&AptInstall{Packages: []string{"php8.3"}},
 		&AptInstall{Packages: []string{"libapache2-mod-php8.3"}},
 		&ApacheModules{Enable: []string{"rewrite"}, Disable: []string{"rewrite"}},
-		&Dir{Path: "/x", Perm: fs.ModeSetgid | 0o750},
+		&Dir{Path: "/x", Perm: fs.ModeSetuid | 0o750},
 		&File{Path: "/x", Perm: fs.ModeSetuid | 0o755},
 		&WPCLI{Version: "2.12", SHA512: strings.Repeat("a", 128)},
 		&WPCLI{Version: "2.12.0; id", SHA512: strings.Repeat("a", 128)},

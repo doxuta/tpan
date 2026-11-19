@@ -310,7 +310,7 @@ func (s *Dir) validate() error {
 	if err := checkPath("đường dẫn thư mục", s.Path); err != nil {
 		return err
 	}
-	return checkPerm(s.Perm)
+	return checkDirPerm(s.Perm)
 }
 
 func (s *Dir) Check(_ context.Context, sys system.System) (bool, error) {
@@ -329,7 +329,7 @@ func (s *Dir) Check(_ context.Context, sys system.System) (bool, error) {
 		// thứ tpan không định đụng tới.
 		return false, fmt.Errorf("%s đã có và không phải thư mục", s.Path)
 	}
-	return fi.Mode.Perm() == s.Perm && normOwner(fi.Owner) == normOwner(s.Owner), nil
+	return dirMode(fi.Mode) == s.Perm && normOwner(fi.Owner) == normOwner(s.Owner), nil
 }
 
 func (s *Dir) Apply(_ context.Context, sys system.System) error {
@@ -343,7 +343,7 @@ func (s *Dir) Apply(_ context.Context, sys system.System) error {
 		return fmt.Errorf("tạo thư mục %s: đã có và không phải thư mục", s.Path)
 	case err == nil:
 		// Có sẵn: chỉ sửa quyền và chủ, nhớ giá trị cũ để Undo.
-		s.prevPerm, s.prevOwner, s.created = fi.Mode.Perm(), normOwner(fi.Owner), nil
+		s.prevPerm, s.prevOwner, s.created = dirMode(fi.Mode), normOwner(fi.Owner), nil
 		if err := setPermOwner(sys, s.Path, s.Perm, owner); err != nil {
 			if rerr := setPermOwner(sys, s.Path, s.prevPerm, s.prevOwner); rerr != nil {
 				return errors.Join(err, rerr)
