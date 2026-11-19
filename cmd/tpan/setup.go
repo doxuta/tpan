@@ -87,7 +87,9 @@ func setupCmd(e *env) *cobra.Command {
 
 			// Mở DB sau khi người dùng đã đồng ý (huỷ thì không để lại file DB),
 			// và trước khi chạy Plan để job setup được ghi vào lịch sử.
-			// store.Open tự tạo /var/lib/tpan với 0700, đúng như bước Dir.
+			// store.Open tự tạo /var/lib/tpan với 0700 trên máy mới; bước Dir của
+			// Plan sau đó đặt lại 0755 (core.StateDirPerm) để www-data tới được
+			// thư mục ACME.
 			st, err := openStore(ctx, e)
 			if err != nil {
 				return err

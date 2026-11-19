@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: M0 đến M10 và M12 xong ngày 19 và 20/11/2026 (lượt A: M4, M5, M7; lượt B: M6, M8, M12; lượt C: M9, M10; mỗi mốc chạy song song trên nhánh riêng rồi ghép vào `dev` và chạy lại e2e trên `tpan-test`). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Phần cần VPS, tên miền thật hay Claude Code thật ở mục 18. Đang làm M11 (cài đặt, gói phát hành, README), mốc cuối. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: **cả 13 mốc M0 đến M12 xong phần chạy trên máy ảo** ngày 19 và 20/11/2026 (M1 đến M3 làm nối tiếp; từ M4 chạy song song theo ba lượt A: M4, M5, M7; B: M6, M8, M12; C: M9, M10; mỗi mốc trên nhánh riêng, ghép vào `dev` rồi chạy lại e2e trên `tpan-test`; M11 làm cuối). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Việc còn lại chỉ chủ dự án làm được (VPS, tên miền thật, Claude Code thật trên máy cá nhân, đăng bản phát hành, xem giao diện bằng mắt) nằm ở mục 18. Cùng ngày 19/11 đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -1012,7 +1012,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M8** ✅ | AI trong panel: `Brain`, `claudecode`, `tpan brain`, kiểm sự kiện `init`, ngăn AI có ngữ cảnh làm việc và bản hướng dẫn theo mục, thanh lệnh, giải thích, chẩn đoán, trang phiên AI | e2e bước 13; với Claude Code thật: hỏi từ panel của máy ảo, chữ hiện dần, Plan đề xuất hiện ở màn duyệt; chuyển mục rồi hỏi tiếp thì ngữ cảnh gửi đi đổi theo, xem được ở trang phiên AI |
 | **M9** ✅ | Backup, khôi phục, chặn đầy đĩa, backup theo lịch; cron thật cho WordPress và màn Cron; đổi mật khẩu, xuất và nhập DB | e2e bước 10; backup bị từ chối khi đĩa giả lập gần đầy; một bài hẹn giờ của WordPress được đăng đúng giờ khi không có khách nào vào site |
 | **M10** ✅ | Chuyển LEMP ⇄ LAMP | e2e bước 8; đo được thời gian gián đoạn |
-| **M11** | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), bản phát hành trên GitHub, README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
+| **M11** ✅ | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), gói phát hành tạo tại máy bằng `make release` (đăng lên GitHub là việc của chủ dự án khi mở repo, mục 18), README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
 | **M12** ✅ | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
 
 M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7, và M12 cần health của M4), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc. M1 đến M3 làm nối tiếp; từ M4 các mốc chạy song song theo lượt, mỗi mốc một worktree, một nhánh `moc/M<n>`, một máy ảo, rồi được ghép vào `dev` (mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`). Migration của mốc `n` đánh số từ `n*100` đến `n*100+99`; bảng `schema_migrations` ghi từng bản đã áp, nên ghép mốc không theo thứ tự số vẫn không sót bản nào.
@@ -1541,6 +1541,14 @@ M9 không cần tên miền thật: mọi bước của cột "Xong khi" đã ch
 5. Trước khi nâng MariaDB trên VPS có dữ liệu thật (mục 18, M12): bước 3 phải xong trong 24 giờ trước đó, không thì `tpan mariadb upgrade` từ chối `backup_required`.
 6. Gửi lại output của bước 1, `cron list`, `backup list` (che tên miền, IP) để ghi vào `docs/bang-chung/`.
 
+### M11
+
+E2E của M11 trên `tpan-test` từ máy sạch, bản `52c14c3`: 127 khẳng định đạt, 0 không đạt (`docs/bang-chung/M11.log`): cài bằng một lệnh từ gói, tạo site, chạy lại không đổi gì, gói hỏng thì dừng ở kiểm sha256, cài qua `curl | sudo bash -s -- --from` từ máy chủ HTTP trên loopback, `self-update` rồi `--rollback`. Phần còn lại:
+
+- Đăng bản phát hành lên GitHub và mở repo công khai (chưa làm theo lệnh của chủ dự án: không tạo release, không đổi repo sang công khai khi chưa được bảo). Khi đã quyết: `make release`, tạo release trên GitHub với tag phiên bản, đính kèm đủ bốn file trong `dist/release/<bản>/`; sau đó `curl -fsSL https://github.com/<chủ repo>/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx` chạy được.
+- Chạy `install.sh` trên một VPS amd64 sạch (máy ảo test là arm64).
+- Bật lịch backup sau khi cài: `sudo tpan backup settings --keep 5 --at 03:30` (máy mới cảnh báo `tpan.backup:db` cho tới khi có bản sao lưu).
+
 ## 19. Bảng chia việc đã dùng (từ M4)
 
 Từ M4 mỗi mốc tự lập bảng chia việc theo khuôn ở mục 4 của `agent-dev/CHAY-NHIEU-AGENT.md`; bảng thật đã dùng ghi ở đây khi ghép mốc.
@@ -1704,3 +1712,17 @@ Thay đổi so với bảng lập lúc đầu:
 - Phiên chính sửa câu nhắc của `tpan trash purge` (`cmd/tpan/trash.go`): xoá hẳn giờ có bản backup trước, không còn là "không lấy lại được".
 
 Ghép đợt 3 cần cả hai thợ đợt 2 xong (Plan tạo site gọi `siteCronSteps`, xoá hẳn gọi `PrepareCreate`), nên ghép nằm riêng ở đợt 3 thay vì để thợ đợt 2 sửa `site.go`, `trash.go` song song.
+
+### M11
+
+Phiên điều phối tự làm M11 trong `~/tpan` (TU-CHAY.md, bước 8).
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Hợp đồng: định dạng gói (khớp `tpan self-update`), cờ của `install.sh`, `make release`, chỗ để ảnh | (trong lời giao việc) | phiên chính | opus | high |
+| 1 | `scripts/install.sh`, test của nó, `make release` | `scripts/install.sh`, `scripts/install_test.sh`, `Makefile`, `.gitignore` | `tho-loi` | opus | high |
+| 1 | Công cụ chụp ảnh giao diện demo qua Chrome DevTools Protocol và bộ ảnh | `scripts/anh-readme/`, `docs/anh/` | `tho-phu` | sonnet | high |
+| 1 | Rà chữ hai ngôn ngữ, bảng thuật ngữ | `web/src/i18n/`, `docs/GIAO-DIEN.md` | `tho-giao-dien` | sonnet | high |
+| 2 | README có ảnh | `README.md` | `tho-viet` | opus | medium |
+| 2 | E2E cài bằng một lệnh trên `tpan-test` (và sửa lỗi gốc quyền `/var/lib/tpan`) | `scripts/e2e-m11.sh`, `docs/bang-chung/M11.log`, `cmd/tpan/setup.go`, `internal/core/stack.go` | `tho-may-ao` | opus | high |
+| 3 | Giải thích | `docs/giai-thich/11-m11-cai-dat-va-phat-hanh.md` | `tho-viet` | opus | medium |

@@ -366,8 +366,10 @@ main() {
     changed=1
     say "$(t "Đã đặt $BIN_DST" "Installed $BIN_DST")"
   fi
-  # tpan setup chỉ khởi động lại dịch vụ khi file unit đổi; file chạy đổi mà
-  # dịch vụ đang chạy thì tiến trình cũ vẫn chạy bản cũ.
+  # tpan setup không khởi động lại dịch vụ đang chạy (bước Service coi "đang
+  # chạy và đã bật" là đã đúng; file unit đổi thì nó chỉ daemon-reload và
+  # nhắc). Nên file chạy đổi mà dịch vụ đang chạy thì phải tự restart ở đây,
+  # không thì tiến trình cũ vẫn chạy bản cũ.
   if [ "$changed" -eq 1 ] && systemctl is-active --quiet tpan 2>/dev/null; then
     say "$(t 'Dịch vụ tpan đang chạy bản cũ, khởi động lại' 'The tpan service runs the old build, restarting it')"
     systemctl restart tpan
