@@ -9,6 +9,7 @@ import (
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/validate"
 )
 
 func stackCmd(e *env) *cobra.Command {
@@ -168,10 +169,17 @@ func stackStatusCmd(e *env) *cobra.Command {
 func healthCmd(e *env) *cobra.Command {
 	var asJSON bool
 	c := &cobra.Command{
-		Use:   "health",
-		Short: "Chạy các phép kiểm của stack (mã thoát 1 khi có lỗi)",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		Use:   "health [<domain>]",
+		Short: "Chạy các phép kiểm của stack, hoặc của một site khi có domain (mã thoát 1 khi có lỗi)",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var d validate.Domain
+			if len(args) == 1 {
+				var err error
+				if d, err = parseDomainArg(args[0]); err != nil {
+					return fail(e, asJSON, err)
+				}
+			}
 			if err := requireRoot(e, cmd); err != nil {
 				return fail(e, asJSON, err)
 			}
@@ -180,10 +188,14 @@ func healthCmd(e *env) *cobra.Command {
 				return err
 			}
 			defer closeStore(st)
-			s := &core.Stack{Sys: e.sys, Settings: st}
-			h, err := s.Health(cmd.Context())
+			var h core.Health
+			if d.IsZero() {
+				h, err = (&core.Stack{Sys: e.sys, Settings: st}).Health(cmd.Context())
+			} else {
+				h, err = (&core.Sites{Sys: e.sys, Settings: st, Store: st}).Health(cmd.Context(), d)
+			}
 			if err != nil {
-				return err
+				return fail(e, asJSON, err)
 			}
 			if asJSON {
 				if err := writeJSON(e.stdout, h); err != nil {

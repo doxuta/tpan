@@ -10,6 +10,7 @@ import (
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 )
 
 // Các hàm in cho người đọc. Output cho script là --json, nên ở đây ưu tiên dễ
@@ -284,4 +285,68 @@ func printHealth(e *env, h core.Health) {
 		}
 	}
 	printf(w, "\n%s\n", strings.Join(parts, ", "))
+}
+
+// printAdminPassword in mật khẩu quản trị WordPress đúng một lần, và chỉ khi
+// lần chạy này thật sự cài WordPress (chạy lại thì mật khẩu mới không được dùng).
+func printAdminPassword(e *env, res core.SiteAddResult) {
+	if !res.WPInstalled {
+		return
+	}
+	w := e.stdout
+	d := res.Site.Domain.String()
+	printf(w, "\n%s\n", e.tr("Tài khoản quản trị WordPress:", "WordPress admin account:"))
+	printf(w, "  %-14s http://%s/wp-admin/\n", e.tr("Đăng nhập:", "Log in:"), d)
+	printf(w, "  %-14s %s\n", e.tr("Tên:", "User:"), res.AdminUser)
+	printf(w, "  %-14s %s\n", e.tr("Mật khẩu:", "Password:"), res.AdminPassword.Reveal())
+	printf(w, "%s\n", e.tr(
+		"Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.",
+		"Save it now: tpan does not keep this password and will not show it again."))
+}
+
+func printSiteList(e *env, list []site.Site) {
+	w := e.stdout
+	if len(list) == 0 {
+		printf(w, "%s\n", e.tr(
+			"Chưa có site nào. Tạo bằng: sudo tpan site add <domain> --email <email>",
+			"No sites yet. Create one with: sudo tpan site add <domain> --email <email>"))
+		return
+	}
+	printf(w, "%-40s %-8s %-5s %-4s %s\n", "DOMAIN", e.tr("TRẠNG THÁI", "STATUS"), "PHP", "SSL", e.tr("TẠO LÚC", "CREATED"))
+	for _, s := range list {
+		ssl := e.tr("không", "no")
+		if s.SSL {
+			ssl = e.tr("có", "yes")
+		}
+		printf(w, "%-40s %-8s %-5s %-4s %s\n", s.Domain, s.Status, s.PHPVersion, ssl, s.Created.Local().Format("2006-01-02 15:04"))
+	}
+}
+
+func printSiteInfo(e *env, info core.SiteInfo) {
+	w, l := e.stdout, info.Layout
+	row := func(k, v string) { printf(w, "%-16s %s\n", k, v) }
+	row("Domain:", info.Site.Domain.String())
+	row(e.tr("Trạng thái:", "Status:"), string(info.Site.Status))
+	row("PHP:", info.Site.PHPVersion)
+	row(e.tr("Tạo lúc:", "Created:"), info.Site.Created.Local().Format("2006-01-02 15:04"))
+	row(e.tr("User Linux:", "Linux user:"), l.User)
+	row(e.tr("DB, user DB:", "DB, DB user:"), l.DB)
+	row(e.tr("Thư mục:", "Directory:"), l.Dir)
+	row("Document root:", l.Public)
+	row("Log:", l.LogDir)
+	row("Pool PHP-FPM:", l.Pool+" ("+l.Socket+")")
+	switch info.Web {
+	case core.Nginx:
+		row("Vhost:", l.NginxConf)
+	case core.Apache:
+		row("Vhost:", l.ApacheConf)
+	}
+	if info.Web == "" {
+		printf(w, "\n%s\n", e.tr("Stack chưa cài nên không có gì để kiểm.", "The stack is not installed, so there is nothing to check."))
+		return
+	}
+	printf(w, "\n%s\n", e.tr("Kiểm tra:", "Checks:"))
+	for _, r := range info.Checks {
+		printResult(w, e.lang, r, "  ")
+	}
 }

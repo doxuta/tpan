@@ -62,7 +62,7 @@ func newRoot(e *env) *cobra.Command {
 	_ = pf.MarkHidden("db")
 	pf.StringVar(&e.lang, "lang", "vi", "ngôn ngữ của output: vi hoặc en")
 
-	root.AddCommand(versionCmd(e), serveCmd(), stackCmd(e), healthCmd(e))
+	root.AddCommand(versionCmd(e), serveCmd(), stackCmd(e), siteCmd(e), healthCmd(e))
 	return root
 }
 
