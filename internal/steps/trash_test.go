@@ -137,13 +137,27 @@ func TestDBUserLock(t *testing.T) {
 
 // =============================================================== SiteUserLock
 
-// userLockFake: getent, passwd -S, usermod -L/-U có trạng thái. status là cột 2
-// của passwd -S ("L", "NP", "P"); user không có trong map thì getent trả mã 2.
+// Giá trị sau "Account expires" của chage -l, đúng như đã thấy trên Ubuntu 24.04.
+const (
+	expNever  = "never"
+	expLocked = "Jan 02, 1970"
+)
+
+// userLockFake: getent, chage -l, usermod --expiredate có trạng thái. status là
+// giá trị của dòng "Account expires"; user không có trong map thì getent trả mã 2.
 type userLockFake struct {
 	*system.FakeSystem
 	mu     sync.Mutex
 	status map[string]string
 	home   string
+}
+
+func chageOut(exp string) string {
+	return "Last password change\t\t\t\t\t: Nov 19, 2026\n" +
+		"Password expires\t\t\t\t\t: never\n" +
+		"Password inactive\t\t\t\t\t: never\n" +
+		"Account expires\t\t\t\t\t\t: " + exp + "\n" +
+		"Minimum number of days between password change\t\t: 0\n"
 }
 
 func newUserLockFake(l site.Layout, status string) *userLockFake {
@@ -160,25 +174,31 @@ func newUserLockFake(l site.Layout, status string) *userLockFake {
 		}
 		return system.Result{Stdout: name + ":x:998:998::" + f.home + ":/usr/sbin/nologin\n"}
 	})
-	f.Handle([]string{"passwd", "-S"}, func(c system.Cmd) system.Result {
+	f.Handle([]string{"chage", "-l"}, func(c system.Cmd) system.Result {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		st, ok := f.status[c.Args[1]]
 		if !ok {
-			return system.Result{ExitCode: 1, Stderr: "passwd: user '" + c.Args[1] + "' does not exist\n"}
+			return system.Result{ExitCode: 1, Stderr: "chage: user '" + c.Args[1] + "' does not exist in /etc/passwd\n"}
 		}
-		return system.Result{Stdout: c.Args[1] + " " + st + " 11/19/2026 0 99999 7 -1\n"}
+		return system.Result{Stdout: chageOut(st)}
 	})
-	f.Handle([]string{"usermod"}, func(c system.Cmd) system.Result {
+	f.Handle([]string{"usermod", "--expiredate"}, func(c system.Cmd) system.Result {
 		f.mu.Lock()
 		defer f.mu.Unlock()
-		if _, ok := f.status[c.Args[1]]; !ok {
-			return system.Result{ExitCode: 6, Stderr: "usermod: user '" + c.Args[1] + "' does not exist\n"}
+		if len(c.Args) != 3 {
+			return system.Result{ExitCode: 2, Stderr: "usermod: bad argv\n"}
 		}
-		if c.Args[0] == "-L" {
-			f.status[c.Args[1]] = "L"
-		} else {
-			f.status[c.Args[1]] = "NP"
+		if _, ok := f.status[c.Args[2]]; !ok {
+			return system.Result{ExitCode: 6, Stderr: "usermod: user '" + c.Args[2] + "' does not exist\n"}
+		}
+		switch c.Args[1] {
+		case "1":
+			f.status[c.Args[2]] = expLocked
+		case "":
+			f.status[c.Args[2]] = expNever
+		default:
+			return system.Result{ExitCode: 2, Stderr: "usermod: unexpected date " + c.Args[1] + "\n"}
 		}
 		return system.Result{}
 	})
@@ -207,7 +227,7 @@ func TestSiteUserLock(t *testing.T) {
 	for _, tc := range []struct {
 		unlock         bool
 		before, target string
-	}{{false, "NP", "L"}, {true, "L", "NP"}} {
+	}{{false, expNever, expLocked}, {true, expLocked, expNever}} {
 		t.Run("Unlock="+map[bool]string{false: "false", true: "true"}[tc.unlock], func(t *testing.T) {
 			t.Run("Apply thì Check true, Undo trả về", func(t *testing.T) {
 				f := newUserLockFake(l, tc.before)
@@ -261,26 +281,39 @@ func TestSiteUserLock(t *testing.T) {
 	})
 
 	t.Run("user trùng tên không phải của tpan thì không đụng", func(t *testing.T) {
-		f := newUserLockFake(l, "P")
+		f := newUserLockFake(l, expNever)
 		f.home = "/home/" + l.User
 		if err := (&SiteUserLock{Layout: l}).Apply(ctx, f); err == nil || f.ranUsermod() {
 			t.Errorf("err = %v, lệnh %v", err, ranStrings(f.Ran()))
 		}
 	})
 
-	t.Run("passwd -S trả dòng lạ là lỗi", func(t *testing.T) {
-		for _, out := range []string{"", "tp_other L\n", l.User + " X 1/1/2026\n", l.User + "\n"} {
-			f := newUserLockFake(l, "NP")
-			f.Handle([]string{"passwd", "-S"}, func(system.Cmd) system.Result { return system.Result{Stdout: out} })
+	t.Run("chage -l trả dòng lạ là lỗi", func(t *testing.T) {
+		for _, out := range []string{
+			"",
+			"Password expires\t: never\n",
+			"Account expires\n",
+			"Account expires\t\t: \n",
+			"Tài khoản hết hạn\t: không bao giờ\n",
+		} {
+			f := newUserLockFake(l, expNever)
+			f.Handle([]string{"chage", "-l"}, func(system.Cmd) system.Result { return system.Result{Stdout: out} })
 			if _, err := (&SiteUserLock{Layout: l}).Check(ctx, f); err == nil {
 				t.Errorf("%q: muốn lỗi", out)
 			}
 		}
 	})
 
+	t.Run("hạn do người khác đặt cũng coi là đã khoá", func(t *testing.T) {
+		f := newUserLockFake(l, "Dec 31, 2030")
+		if done, err := (&SiteUserLock{Layout: l}).Check(ctx, f); err != nil || !done {
+			t.Errorf("Check = %v, %v", done, err)
+		}
+	})
+
 	t.Run("lệnh lỗi thì trả lỗi có ngữ cảnh", func(t *testing.T) {
-		f := newUserLockFake(l, "NP")
-		f.Handle([]string{"usermod"}, func(system.Cmd) system.Result {
+		f := newUserLockFake(l, expNever)
+		f.Handle([]string{"usermod", "--expiredate"}, func(system.Cmd) system.Result {
 			return system.Result{ExitCode: 10, Stderr: "usermod: cannot lock /etc/passwd; try again later.\n"}
 		})
 		err := (&SiteUserLock{Layout: l}).Apply(ctx, f)
@@ -288,8 +321,8 @@ func TestSiteUserLock(t *testing.T) {
 		if !errors.As(err, &ee) || !strings.Contains(err.Error(), "khoá user "+l.User) {
 			t.Errorf("err = %v", err)
 		}
-		f = newUserLockFake(l, "NP")
-		f.Handle([]string{"passwd", "-S"}, func(system.Cmd) system.Result { return system.Result{ExitCode: 3} })
+		f = newUserLockFake(l, expNever)
+		f.Handle([]string{"chage", "-l"}, func(system.Cmd) system.Result { return system.Result{ExitCode: 3} })
 		if _, err := (&SiteUserLock{Layout: l}).Check(ctx, f); err == nil || !strings.Contains(err.Error(), "trạng thái khoá") {
 			t.Errorf("Check err = %v", err)
 		}
@@ -303,7 +336,7 @@ func TestSiteUserLock(t *testing.T) {
 		dir := l
 		dir.Dir = "/etc"
 		for _, lay := range []site.Layout{{}, root, opt, dir} {
-			f := newUserLockFake(lay, "NP")
+			f := newUserLockFake(lay, expNever)
 			s := &SiteUserLock{Layout: lay}
 			if _, err := s.Check(ctx, f); err == nil {
 				t.Errorf("Check %q: muốn lỗi", lay.User)
@@ -329,7 +362,8 @@ func TestSiteUserLock(t *testing.T) {
 				t.Errorf("Info = %+v", in)
 			}
 		}
-		if lock.Commands[1] != "usermod -L "+l.User || unlock.Commands[1] != "usermod -U "+l.User {
+		if lock.Commands[0] != "chage -l "+l.User ||
+		lock.Commands[1] != "usermod --expiredate 1 "+l.User || unlock.Commands[1] != "usermod --expiredate '' "+l.User {
 			t.Errorf("lệnh %v, %v", lock.Commands, unlock.Commands)
 		}
 	})

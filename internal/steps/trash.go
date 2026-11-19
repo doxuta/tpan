@@ -9,7 +9,8 @@ package steps
 //     dùng lại Absent của M1, KHÔNG gỡ file vhost trong sites-available (khôi
 //     phục chỉ cần bật lại link).
 //  2. DBUserLock: ALTER USER ... ACCOUNT LOCK; DB giữ nguyên.
-//  3. SiteUserLock: usermod -L.
+//  3. SiteUserLock: usermod --expiredate 1 (cho tài khoản hết hạn; đặc tả ghi
+//     usermod -L, lý do đổi ở chú thích của SiteUserLock).
 //  4. MoveTree{From: l.Dir, To: site.TrashDir(l)}: rename.
 //
 // Khôi phục làm ngược lại: MoveTree{From: TrashDir, To: l.Dir}, SiteUserUnlock,
@@ -19,8 +20,8 @@ package steps
 // checkPath cho mọi đường dẫn. SQL qua stdin của mariadb như site_db.go.
 //
 // Tài liệu đã tra (Ubuntu 24.04, shadow 4.13):
-//   - https://manpages.ubuntu.com/manpages/noble/man8/usermod.8.html (-L, -U)
-//   - https://manpages.ubuntu.com/manpages/noble/man1/passwd.1.html (-S: L, NP, P)
+//   - https://manpages.ubuntu.com/manpages/noble/man8/usermod.8.html (--expiredate)
+//   - https://manpages.ubuntu.com/manpages/noble/man1/chage.1.html (-l)
 //   - rename(2): khác phân vùng thì trả EXDEV, không bao giờ chép.
 
 import (
@@ -127,12 +128,28 @@ func (s *DBUserLock) Undo(ctx context.Context, sys system.System) error {
 
 // =============================================================== SiteUserLock
 
-// SiteUserLock khoá (Unlock=false) hoặc mở khoá (Unlock=true) mật khẩu của
-// user Linux của site: usermod -L | -U l.User. User của site không có mật khẩu
-// và không có shell (mục 5); khoá là lớp thứ hai, để `passwd -S` cho thấy rõ
-// user đang ở thùng rác. Check đọc `passwd -S l.User` (cột 2: "L" là khoá,
-// "NP"/"P" là không). User không có thì lỗi. Undo: làm ngược lại nếu chính
-// Apply đã đổi. ID: "user.lock:<domain>" hoặc "user.unlock:<domain>".
+// SiteUserLock khoá (Unlock=false) hoặc mở khoá (Unlock=true) user Linux của
+// site bằng hạn tài khoản: khoá là `usermod --expiredate 1 l.User` (hết hạn từ
+// ngày 2/1/1970), mở là `usermod --expiredate "" l.User` (đối số rỗng: không
+// hạn). Check đọc `chage -l l.User` (LC_ALL=C do system.Run cố định), lấy dòng
+// "Account expires", phần sau dấu ":" đầu tiên: "never" là chưa khoá, giá trị
+// khác là đã khoá. User không có thì lỗi. Undo: làm ngược lại nếu chính Apply
+// đã đổi. ID: "user.lock:<domain>" hoặc "user.unlock:<domain>".
+//
+// Đặc tả mục 6.4 ghi `usermod -L`; đổi sang hạn tài khoản vì đã kiểm trên máy
+// ảo Ubuntu 24.04 (shadow 4.13) thấy -L/-U không đổi được trạng thái đọc được:
+//   - User của site tạo bằng useradd không -p nên shadow là "!"; `passwd -S`
+//     báo "L" ngay từ đầu.
+//   - `usermod -L` thoát 0 mà `passwd -S` vẫn "L".
+//   - `usermod -U` in "usermod: unlocking the user's password would result in
+//     a passwordless account." và vẫn thoát 0, `passwd -S` vẫn "L".
+//
+// Hạn tài khoản thì đổi được và đọc lại được: `chage -l` có dòng
+// "Account expires\t\t\t\t\t\t: never"; sau `usermod --expiredate 1` (thoát 0)
+// thành ": Jan 02, 1970"; sau `usermod --expiredate ""` (thoát 0) về ": never".
+// `runuser -u` chạy từ root vẫn chạy được với user hết hạn (root bỏ qua kiểm
+// tài khoản), nên PHP và WP-CLI do tpan gọi không bị ảnh hưởng; cron và đăng
+// nhập qua PAM thì bị chặn.
 type SiteUserLock struct {
 	Layout site.Layout
 	Unlock bool
@@ -141,17 +158,18 @@ type SiteUserLock struct {
 	changed bool
 }
 
-func trashPasswdStatus(name string) system.Cmd {
-	return system.Cmd{Name: "passwd", Args: []string{"-S", name}}
+func trashChage(name string) system.Cmd {
+	return system.Cmd{Name: "chage", Args: []string{"-l", name}}
 }
 
-// trashUsermod: lock=true là usermod -L, false là usermod -U.
+// trashUsermod: lock=true là usermod --expiredate 1, false là
+// usermod --expiredate "" (phần tử argv rỗng, không phải chuỗi có dấu nháy).
 func trashUsermod(name string, lock bool) system.Cmd {
-	flag := "-U"
+	date := ""
 	if lock {
-		flag = "-L"
+		date = "1"
 	}
-	return system.Cmd{Name: "usermod", Args: []string{flag, name}}
+	return system.Cmd{Name: "usermod", Args: []string{"--expiredate", date, name}}
 }
 
 func (s *SiteUserLock) Info() engine.StepInfo {
@@ -162,26 +180,26 @@ func (s *SiteUserLock) Info() engine.StepInfo {
 			ID:    "user.unlock:" + d,
 			Title: i18n.T("Mở khoá user Linux "+u+" của "+d, "Unlock Linux user "+u+" of "+d),
 			Why: i18n.T(
-				"Site được lấy ra khỏi thùng rác thì user của nó phải về như lúc tạo site. Để khoá thì `passwd -S` vẫn báo user đang ở thùng rác, người đọc máy sẽ hiểu sai trạng thái site.",
-				"When the site comes back from the trash its user must return to how it was when the site was created. If it stays locked, `passwd -S` still reports it as trashed and anyone reading the machine gets the site's state wrong.",
+				"Site được lấy ra khỏi thùng rác thì user của nó phải về như lúc tạo site: bỏ hạn tài khoản. Để hết hạn thì cron của site không chạy (WordPress không đăng bài hẹn giờ, không gửi mail định kỳ), và `chage -l` vẫn cho thấy user như đang ở thùng rác.",
+				"When the site comes back from the trash its user must return to how it was when the site was created: the account expiry is removed. If it stays expired, the site's cron jobs do not run (WordPress stops publishing scheduled posts and sending periodic mail), and `chage -l` still shows the user as trashed.",
 			),
-			Commands: []string{trashPasswdStatus(u).String(), trashUsermod(u, false).String()},
+			Commands: []string{trashChage(u).String(), trashUsermod(u, false).String()},
 		}
 	}
 	return engine.StepInfo{
 		ID:    "user.lock:" + d,
 		Title: i18n.T("Khoá user Linux "+u+" của "+d, "Lock Linux user "+u+" of "+d),
 		Why: i18n.T(
-			"User của site vốn không có mật khẩu và không có shell; khoá thêm là lớp chặn thứ hai cho một site đã xoá, và `passwd -S` cho thấy rõ user này đang ở thùng rác. Bước này không làm gián đoạn gì và hoàn tác được.",
-			"The site's user already has no password and no shell; locking it is a second barrier for a deleted site, and `passwd -S` shows clearly that this user is in the trash. This step interrupts nothing and can be undone.",
+			"User của site vốn không có mật khẩu và không có shell; cho tài khoản hết hạn là lớp chặn thứ hai cho một site đã xoá: cron của nó thôi chạy, không đăng nhập được qua PAM, và `chage -l` cho thấy rõ user này đang ở thùng rác. Bước này không đổi file hay mật khẩu nào và hoàn tác được.",
+			"The site's user already has no password and no shell; expiring the account is a second barrier for a deleted site: its cron jobs stop, it cannot log in through PAM, and `chage -l` shows clearly that this user is in the trash. This step changes no file or password and can be undone.",
 		),
-		Commands: []string{trashPasswdStatus(u).String(), trashUsermod(u, true).String()},
+		Commands: []string{trashChage(u).String(), trashUsermod(u, true).String()},
 	}
 }
 
 // locked trả user có đang bị khoá không. Kiểm Layout, hỏi getent để chắc user
 // có và là của tpan (không khoá nhầm một user trùng tên do người khác tạo), rồi
-// đọc cột 2 của `passwd -S`.
+// đọc dòng "Account expires" của `chage -l`.
 func (s *SiteUserLock) locked(ctx context.Context, sys system.System) (bool, error) {
 	l := s.Layout
 	if err := webCheckLayout(l); err != nil {
@@ -200,22 +218,24 @@ func (s *SiteUserLock) locked(ctx context.Context, sys system.System) (bool, err
 	if err := userOurs(l, e); err != nil {
 		return false, err
 	}
-	res, err := sys.Run(ctx, trashPasswdStatus(l.User))
+	res, err := sys.Run(ctx, trashChage(l.User))
 	if err != nil {
 		return false, withStdout(fmt.Errorf("đọc trạng thái khoá của user %s: %w", l.User, err), res)
 	}
-	// Dạng: "<tên> <L|NP|P> <ngày đổi> <min> <max> <warn> <inactive>".
-	f := strings.Fields(res.Stdout)
-	if len(f) < 2 || f[0] != l.User {
-		return false, fmt.Errorf("đọc trạng thái khoá của user %s: passwd -S trả dòng lạ %q", l.User, res.Stdout)
+	// Dòng cần: "Account expires\t\t\t\t\t\t: never" hoặc ": Jan 02, 1970".
+	for _, line := range strings.Split(res.Stdout, "\n") {
+		if !strings.HasPrefix(line, "Account expires") {
+			continue
+		}
+		_, v, ok := strings.Cut(line, ":")
+		v = strings.TrimSpace(v)
+		if !ok || v == "" {
+			return false, fmt.Errorf("đọc trạng thái khoá của user %s: chage -l trả dòng lạ %q", l.User, line)
+		}
+		// Ngày khác "never" (kể cả hạn do người khác đặt) đều coi là đã khoá.
+		return v != "never", nil
 	}
-	switch f[1] {
-	case "L":
-		return true, nil
-	case "NP", "P":
-		return false, nil
-	}
-	return false, fmt.Errorf("đọc trạng thái khoá của user %s: trạng thái lạ %q (chỉ biết L, NP, P)", l.User, f[1])
+	return false, fmt.Errorf("đọc trạng thái khoá của user %s: chage -l không có dòng \"Account expires\": %q", l.User, res.Stdout)
 }
 
 func (s *SiteUserLock) Check(ctx context.Context, sys system.System) (bool, error) {
