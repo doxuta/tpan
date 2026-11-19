@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"slices"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/checks"
+	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
 )
@@ -97,7 +99,12 @@ func newUpdEnv(t *testing.T) *updEnv {
 	f.SetFile("/etc/os-release", []byte("ID=ubuntu\nVERSION_ID=\"24.04\"\nVERSION_CODENAME=noble\n"), 0o644, system.Root)
 	f.SetDir("/etc/php/8.3/fpm", 0o755, system.Root)
 	f.SetDir("/etc/php/8.4/fpm", 0o755, system.Root)
+	f.SetFile("/usr/sbin/php-fpm8.3", []byte("ELF"), 0o755, system.Root)
+	f.SetFile("/usr/sbin/php-fpm8.4", []byte("ELF"), 0o755, system.Root)
 	f.SetDir("/etc/php/8.2", 0o755, system.Root) // chỉ còn cli: không phải bản FPM
+	// 8.1 đã gỡ bằng `tpan php remove`: apt-get remove giữ file cấu hình nên
+	// thư mục fpm còn, nhưng php-fpm8.1 không còn (thấy trên máy ảo M12 với 8.4).
+	f.SetDir("/etc/php/8.1/fpm/pool.d", 0o755, system.Root)
 	f.Handle([]string{"apt-get", "-s", "-o", "Debug::NoLocking=1", "dist-upgrade"}, func(system.Cmd) system.Result {
 		return system.Result{Stdout: aptSimOut}
 	})
@@ -257,6 +264,9 @@ func TestPrepareApply(t *testing.T) {
 		if strings.Contains(id, "example.com") {
 			t.Errorf("kiểm chứng không được có phép kiểm site: %s", id)
 		}
+		if id == "config.phpfpm:8.1" || id == "config.phpfpm:8.2" {
+			t.Errorf("kiểm chứng có %s dù bản đó không còn php-fpm", id)
+		}
 	}
 }
 
@@ -411,6 +421,50 @@ func TestPrepareMariaDB(t *testing.T) {
 		t.Error("bước thêm kho phải nói vì sao không hoàn tác")
 	}
 }
+
+// Lỗi thấy trên máy ảo M12: lúc xem trước, kho MariaDB chưa có nên apt không
+// thấy gì để nâng (`apt-get -s install --only-upgrade` không có dòng Inst), và
+// bản xem trước in bước nâng gói là "đã đúng, bỏ qua". Bước đó phải hiện là
+// sẽ chạy chừng nào bước thêm kho còn chưa xong.
+func TestPrepareMariaDBPreviewShowsUpgrade(t *testing.T) {
+	e := newUpdEnv(t)
+	e.f.Handle([]string{"dpkg-query", "-W", "-f", "${Package}\\t${db:Status-Status}\\n"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: "mariadb-server\tinstalled\nmariadb-client\tinstalled\n"}
+	})
+	// Kho Ubuntu không có gì mới cho mariadb: mô phỏng không có dòng Inst.
+	e.f.Handle([]string{"apt-get", "-s", "install", "--only-upgrade"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: "0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\n"}
+	})
+	p, err := e.u.PrepareMariaDB(ctx, "11.8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pv, err := p.Preview(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, s := range pv.Steps {
+		if strings.HasPrefix(s.Info.ID, "apt.upgrade:") {
+			found = true
+			if s.Done {
+				t.Errorf("xem trước: bước %s là đã đúng, muốn sẽ chạy", s.Info.ID)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("không có bước apt.upgrade: %v", stepIDs(p.Plan))
+	}
+	// Khi kho đã xong (Check đúng), afterStep trả về đúng Check của bước gốc.
+	a := &afterStep{Step: p.Plan.Steps[3].(*afterStep).Step, dep: doneStep{}}
+	if done, err := a.Check(ctx, e.f); err != nil || !done {
+		t.Errorf("dep xong, không gì để nâng: Check = %v, %v; muốn true", done, err)
+	}
+}
+
+type doneStep struct{ engine.Step }
+
+func (doneStep) Check(context.Context, system.System) (bool, error) { return true, nil }
 
 func TestPrepareMariaDBRefusals(t *testing.T) {
 	for _, tc := range []struct{ line, code string }{

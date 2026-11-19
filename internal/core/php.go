@@ -242,12 +242,29 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 		http = checks.HTTPSSite(l)
 	}
 	dom := d.String()
-	ss := []engine.Step{pool}
+	// Kiểm socket trước khi sửa vhost (mục 6.11 ý 3). `systemctl reload
+	// php<bản>-fpm` chỉ gửi USR2 rồi trả về ngay; socket của pool mới chỉ có
+	// khi master đã nạp lại xong. Trên máy ảo M12, php-fpm8.4 của kho sury mất
+	// khoảng 2 giây mỗi lần khởi động (chờ một truy vấn DNS ra ngoài), nên
+	// thiếu bước này thì nginx trỏ vào socket chưa có: 502 suốt 2 giây.
+	ss := []engine.Step{pool, &midCheck{
+		id:    "php.use.socket:" + dom,
+		check: checks.PoolSocket(l, version),
+		tries: socketTries,
+		title: i18n.T("Chờ socket "+l.SocketFor(version)+" của PHP "+version, "Wait for socket "+l.SocketFor(version)+" of PHP "+version),
+		why: i18n.T(
+			"PHP-FPM nạp lại pool trong nền, sau khi lệnh reload đã trả về. Vhost chỉ được trỏ sang socket mới khi socket đó đã có, đúng chủ và quyền; không có thì job dừng ở đây, gỡ pool mới, site vẫn chạy PHP "+old+".",
+			"PHP-FPM reloads its pools in the background, after the reload command has returned. The vhost only points to the new socket once it exists with the right owner and mode; otherwise the job stops here, removes the new pool, and the site keeps running PHP "+old+"."),
+	}}
 	ss = append(ss, vhost...)
 	ss = append(ss,
 		&midCheck{
 			id:    "php.use.check:" + dom,
 			check: http,
+			// Hai lần đạt liên tiếp, cách nhau midCheckWait: `systemctl reload
+			// nginx` cũng trả về trước khi worker mới nhận việc, nên lần gọi
+			// đầu có thể do worker cũ (còn trỏ socket cũ) trả lời.
+			need:  2,
 			title: i18n.T("Kiểm "+dom+" trả 200 qua PHP "+version, "Check that "+dom+" answers 200 through PHP "+version),
 			why: i18n.T(
 				"Pool cũ chỉ được gỡ khi site đã chạy được trên bản mới. Site không trả 200 thì job dừng ở đây và hoàn tác: vhost về socket cũ, pool mới bị gỡ, site vẫn chạy PHP "+old+".",
@@ -603,12 +620,21 @@ var (
 	midCheckWait  = time.Second
 )
 
+// socketTries: trần riêng cho bước chờ socket của pool mới. php-fpm của kho
+// sury chờ một truy vấn DNS lúc khởi động (timeout của resolver là 5 giây), nên
+// trên máy chặn DNS ra ngoài lần nạp lại có thể chậm hơn nhiều so với 2 giây
+// đo được trên máy ảo.
+const socketTries = 20
+
 // midCheck là một phép kiểm chạy như một bước của Plan: không đạt thì bước lỗi
 // và engine hoàn tác các bước trước. Không đổi gì trên máy.
 type midCheck struct {
 	id         string
 	check      checks.Check
 	title, why i18n.Text
+	// tries: số lần thử tối đa, 0 là midCheckTries. need: số lần đạt liên
+	// tiếp mới tính là đạt, 0 là 1.
+	tries, need int
 
 	passed bool
 }
@@ -631,7 +657,8 @@ func (s *midCheck) Check(context.Context, system.System) (bool, error) { return 
 // được đi tiếp tới bước gỡ pool cũ.
 func (s *midCheck) Apply(ctx context.Context, sys system.System) error {
 	var r checks.Result
-	for i := range midCheckTries {
+	tries, need, streak := cmp.Or(s.tries, midCheckTries), max(s.need, 1), 0
+	for i := range tries {
 		if i > 0 {
 			select {
 			case <-ctx.Done():
@@ -639,12 +666,19 @@ func (s *midCheck) Apply(ctx context.Context, sys system.System) error {
 			case <-time.After(midCheckWait):
 			}
 		}
-		if r = s.check.Run(ctx, sys); r.Status == checks.Pass || r.Status == checks.Warn {
+		if r = s.check.Run(ctx, sys); r.Status != checks.Pass && r.Status != checks.Warn {
+			streak = 0
+			continue
+		}
+		if streak++; streak >= need {
 			s.passed = true
 			return nil
 		}
 	}
-	err := fmt.Errorf("%s (%s) sau %d lần thử: %s", r.ID, r.Status, midCheckTries, r.Summary.Vi)
+	if streak > 0 {
+		return fmt.Errorf("%s: lần thử cuối đạt nhưng chưa đủ %d lần đạt liên tiếp sau %d lần thử", r.ID, need, tries)
+	}
+	err := fmt.Errorf("%s (%s) sau %d lần thử: %s", r.ID, r.Status, tries, r.Summary.Vi)
 	if len(r.Evidence) > 0 {
 		err = fmt.Errorf("%w; bằng chứng: %s", err, r.Evidence[len(r.Evidence)-1].Output)
 	}

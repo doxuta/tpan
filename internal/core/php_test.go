@@ -328,6 +328,7 @@ func TestPHPUsePlanOrder(t *testing.T) {
 	}
 	want := []string{
 		"file:" + lay.PoolConf("8.4"),
+		"php.use.socket:" + useDom,
 		"file:" + lay.NginxConf,
 		"symlink:" + lay.NginxLink,
 		"php.use.check:" + useDom,
@@ -340,7 +341,7 @@ func TestPHPUsePlanOrder(t *testing.T) {
 		t.Errorf("Kind/Target = %s/%s", pl.Plan.Kind, pl.Plan.Target)
 	}
 	// Vhost mới trỏ socket của 8.4.
-	vh := pl.Plan.Steps[1].(*steps.File)
+	vh := pl.Plan.Steps[2].(*steps.File)
 	if !strings.Contains(string(vh.Content), lay.SocketFor("8.4")) {
 		t.Errorf("vhost mới không trỏ %s", lay.SocketFor("8.4"))
 	}
@@ -500,6 +501,96 @@ func TestPHPRemove(t *testing.T) {
 	if _, err := pe.p.PrepareRemove(ctx, "8.4"); refusedCode(t, err) != "php_not_installed" {
 		t.Error("không gói nào: muốn php_not_installed")
 	}
+}
+
+// Lỗi thấy trên máy ảo M12: `systemctl reload php8.4-fpm` trả về trước khi
+// socket của pool mới có (php-fpm8.4 của sury mất ~2 giây để nạp lại), nginx
+// đã trỏ sang socket chưa có và trả 502. Socket không xuất hiện thì job phải
+// dừng TRƯỚC khi đụng vhost: vhost giữ nguyên, nginx không bị reload, pool mới
+// bị gỡ, site vẫn ở 8.3.
+func TestPHPUseWaitsForSocketBeforeVhost(t *testing.T) {
+	pe := newUseEnv(t)
+	d := mustDomain(t, useDom)
+	lay := site.LayoutOf(d)
+	vhostBefore, _ := pe.m.ReadFile(lay.NginxConf)
+	// Reload của 8.4 không tạo socket nào (như lúc master đang nạp lại).
+	pe.m.Handle([]string{"systemctl", "reload", "php8.4-fpm"}, func(system.Cmd) system.Result { return system.Result{} })
+	pe.m.ResetRan()
+
+	pl, err := pe.p.PrepareUse(ctx, d, "8.4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep, err := pl.Execute(ctx, nil)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if rep.Job.Status != engine.JobRolledBack {
+		t.Fatalf("job %s; muốn rolled_back", rep.Job.Status)
+	}
+	outcomes := map[string]string{}
+	for _, s := range rep.Steps {
+		outcomes[s.ID] = s.Outcome
+	}
+	if outcomes["php.use.socket:"+useDom] != "failed" || outcomes["file:"+lay.NginxConf] != "not_run" {
+		t.Errorf("outcome: %v", outcomes)
+	}
+	for _, c := range pe.m.Ran() {
+		if c.String() == "systemctl reload nginx" {
+			t.Error("nginx bị reload dù socket mới chưa có")
+		}
+	}
+	if vh, _ := pe.m.ReadFile(lay.NginxConf); string(vh) != string(vhostBefore) {
+		t.Error("vhost bị đổi dù socket mới chưa có")
+	}
+	if _, err := pe.m.Stat(lay.PoolConf("8.4")); err == nil {
+		t.Error("pool 8.4 còn sau hoàn tác")
+	}
+	if _, err := pe.m.Stat(lay.PoolConf("8.3")); err != nil {
+		t.Errorf("pool 8.3 mất: %v", err)
+	}
+}
+
+// Phép kiểm HTTP giữa chừng cần hai lần đạt liên tiếp: lần đầu có thể do
+// worker nginx cũ (còn trỏ socket cũ) trả lời ngay sau `systemctl reload nginx`.
+func TestMidCheckNeedsConsecutivePasses(t *testing.T) {
+	midCheckWait = 0
+	t.Cleanup(func() { midCheckWait = time.Second })
+	P, F := checks.Pass, checks.Fail
+	for _, tc := range []struct {
+		seq   []checks.Status
+		ok    bool
+		calls int
+	}{
+		{[]checks.Status{P, P}, true, 2},
+		{[]checks.Status{P, F, P, P}, true, 4},
+		{[]checks.Status{P, F, F, F, P}, false, 5},
+		{[]checks.Status{F, F, F, F, F}, false, 5},
+	} {
+		sc := &seqCheck{seq: tc.seq}
+		s := &midCheck{id: "x", check: sc, need: 2}
+		err := s.Apply(ctx, system.NewFake())
+		if (err == nil) != tc.ok || sc.calls != tc.calls {
+			t.Errorf("%v: err = %v, %d lần gọi; muốn ok=%v, %d lần", tc.seq, err, sc.calls, tc.ok, tc.calls)
+		}
+	}
+	// tries riêng: bước chờ socket thử tới socketTries lần.
+	sc := &seqCheck{seq: []checks.Status{F}}
+	if err := (&midCheck{id: "x", check: sc, tries: socketTries}).Apply(ctx, system.NewFake()); err == nil || sc.calls != socketTries {
+		t.Errorf("tries=%d: err = %v, %d lần gọi", socketTries, err, sc.calls)
+	}
+}
+
+// seqCheck trả lần lượt các trạng thái trong seq (hết thì lặp lại cái cuối).
+type seqCheck struct {
+	seq   []checks.Status
+	calls int
+}
+
+func (s *seqCheck) Run(context.Context, system.System) checks.Result {
+	st := s.seq[min(s.calls, len(s.seq)-1)]
+	s.calls++
+	return checks.Result{ID: "test", Status: st}
 }
 
 func TestMidCheckUnknownIsNotPass(t *testing.T) {

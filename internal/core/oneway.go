@@ -30,6 +30,23 @@ func (k *keepOnUndo) Info() engine.StepInfo {
 
 func (k *keepOnUndo) Undo(context.Context, system.System) error { return nil }
 
+// afterStep: bước chỉ được coi là đã đúng khi bước dep (đứng trước nó trong
+// Plan) cũng đã đúng. Dùng cho bước mà Check đọc trạng thái do dep tạo ra.
+// Thấy trên máy ảo M12: `tpan mariadb upgrade --dry-run` in bước nâng gói là
+// "đã đúng, bỏ qua", vì lúc xem trước apt chưa biết kho MariaDB mới nên
+// `apt-get -s install --only-upgrade` không có gì để nâng.
+type afterStep struct {
+	engine.Step
+	dep engine.Step
+}
+
+func (a *afterStep) Check(ctx context.Context, sys system.System) (bool, error) {
+	if ok, err := a.dep.Check(ctx, sys); err != nil || !ok {
+		return false, err
+	}
+	return a.Step.Check(ctx, sys)
+}
+
 // settingsStep ghi các cặp khoá, giá trị vào settings như một bước của Plan.
 // Check: mọi khoá đã có đúng giá trị. Không hoàn tác (xem đầu file).
 type settingsStep struct {

@@ -17,8 +17,8 @@ import (
 
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/steps"
-	"github.com/doxuta/tpan/internal/templates"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/templates"
 )
 
 // Tên kho (steps.AptRepo.Name): file của kho là tpan-<tên>.sources, tpan-<tên>.gpg.

@@ -47,7 +47,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"regexp"
 	"slices"
 	"strconv"
@@ -193,7 +192,7 @@ func (u *Updates) refreshLists(ctx context.Context) error {
 		return fmt.Errorf("chờ khoá toàn cục để làm mới danh sách gói: %w", err)
 	}
 	defer unlock()
-	if _, err := u.Sys.Run(ctx, aptUpdateCmd); err != nil {
+	if _, err := steps.RunAptUpdate(ctx, u.Sys, aptUpdateCmd); err != nil {
 		return fmt.Errorf("làm mới danh sách gói: %w", err)
 	}
 	return nil
@@ -371,7 +370,7 @@ func (s *aptRefresh) Info() engine.StepInfo {
 func (s *aptRefresh) Check(context.Context, system.System) (bool, error) { return s.done, nil }
 
 func (s *aptRefresh) Apply(ctx context.Context, sys system.System) error {
-	if _, err := sys.Run(ctx, aptUpdateCmd); err != nil {
+	if _, err := steps.RunAptUpdate(ctx, sys, aptUpdateCmd); err != nil {
 		return fmt.Errorf("làm mới danh sách gói: %w", err)
 	}
 	s.done = true
@@ -421,31 +420,6 @@ func restartsFor(pkgs []string) []engine.Step {
 	return ss
 }
 
-// fpmVersions là các bản PHP-FPM đang cài (có /etc/php/<bản>/fpm).
-func (u *Updates) fpmVersions() ([]string, error) {
-	names, err := u.Sys.ReadDir("/etc/php")
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("đọc /etc/php: %w", err)
-	}
-	var out []string
-	for _, v := range names {
-		if !phpVersionRE.MatchString(v) {
-			continue
-		}
-		ok, err := pathExists(u.Sys, "/etc/php/"+v+"/fpm")
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			out = append(out, v)
-		}
-	}
-	return out, nil
-}
-
 // verifyAll là kiểm chứng sau khi đổi gói: phép kiểm của stack và `php-fpm<bản>
 // -t` của mọi bản PHP khác bản mặc định. Không có phép kiểm của từng site: một
 // site hỏng từ trước không được làm job "lỗi" (gói đã nâng không hạ về được);
@@ -457,7 +431,11 @@ func (u *Updates) verifyAll(ctx context.Context, cfg StackConfig) ([]checks.Chec
 	}
 	_, sha := (&Stack{WPCLISHA512: u.WPCLISHA512}).wpcli()
 	cs := stackChecks(cfg.Web, func() string { return cfg.PHPVersion }, sha)
-	vers, err := u.fpmVersions()
+	// phpInstalled, không chỉ thư mục /etc/php/<bản>/fpm: `tpan php remove`
+	// giữ file cấu hình nên thư mục còn sau khi gỡ gói. Thấy trên máy ảo M12:
+	// sau khi gỡ 8.4, kiểm chứng của update.apply và mariadb.upgrade có dòng
+	// "[chưa rõ] Cấu hình PHP-FPM 8.4" vì php-fpm8.4 không còn.
+	vers, err := phpInstalled(u.Sys)
 	if err != nil {
 		return nil, err
 	}
@@ -607,7 +585,7 @@ func (u *Updates) PrepareMariaDB(ctx context.Context, line string) (*Planned, er
 			&keepOnUndo{Step: repo, why: i18n.T(
 				"Không gỡ kho khi hoàn tác: nếu gói đã kịp nâng thì máy cần kho này để nhận bản vá của dòng "+line+"; gỡ thì apt không còn biết gói đang chạy từ đâu ra.",
 				"The repository is not removed on undo: if the packages were already upgraded the machine needs it for series "+line+" patches; removing it leaves apt not knowing where the running packages come from.")},
-			&steps.AptUpgrade{Packages: pkgs},
+			&afterStep{Step: &steps.AptUpgrade{Packages: pkgs}, dep: repo},
 			&settingsStep{s: u.Settings, kv: [][2]string{{SettingDBSource, string(SourceMariaDB)}, {SettingDBLine, line}},
 				title: i18n.T("Ghi nguồn MariaDB mới vào settings (mariadb.org, dòng "+line+")", "Record the new MariaDB source in settings (mariadb.org, series "+line+")"),
 				why: i18n.T("tpan đọc settings để biết máy đang dùng kho nào; ghi ngay sau khi nâng gói để dù bước sau lỗi, tpan vẫn nói đúng dòng đang chạy.",
