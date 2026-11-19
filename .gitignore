@@ -1,0 +1,17 @@
+# Kết quả build
+/bin/
+/web/dist/*
+!/web/dist/.gitkeep
+
+# Thư viện tải về
+/web/node_modules/
+
+# Dữ liệu chạy thử, file tạm
+*.db
+*.db-shm
+*.db-wal
+*.log
+/tmp/
+.DS_Store
+.env
+.env.*
