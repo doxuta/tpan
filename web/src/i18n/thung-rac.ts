@@ -1,16 +1,88 @@
 // Chuỗi của màn Thùng rác (mục 6.4 của KE-HOACH.md). Giọng chữ: mục 8 của
-// docs/GIAO-DIEN.md. Hợp đồng M6 đợt 0: chỉ có tiêu đề; thợ giao diện thêm phần còn lại.
+// docs/GIAO-DIEN.md.
 
 import { defineStrings } from "./index";
 
 const vi = {
   title: "Thùng rác",
   summary: "Site đã xoá nằm ở đây, khôi phục được cho tới hạn xoá hẳn.",
+
+  // Số ngày giữ
+  retentionHeading: "Số ngày giữ",
+  retentionLabel: "Giữ site đã xoá trong (ngày)",
+  retentionHint: "Từ 0 đến 365. Số mới chỉ áp cho site xoá sau lúc đổi; site đã nằm trong thùng rác giữ nguyên hạn cũ. Đặt 0 thì site xoá về sau hết hạn ngay và bị dọn ở lượt dọn kế tiếp (mỗi giờ một lần).",
+  retentionInvalid: "Nhập số nguyên từ 0 đến 365.",
+  retentionCurrent: (n: number) => (n === 1 ? "Đang giữ 1 ngày." : `Đang giữ ${n} ngày.`),
+  save: "Lưu",
+  saving: "Đang lưu…",
+  saved: "Đã lưu. Áp cho site xoá từ giờ.",
+  saveFailed: "Chưa lưu được số ngày giữ",
+
+  // Bảng
+  listHeading: "Site trong thùng rác",
+  tableName: "Site trong thùng rác",
+  colDomain: "Domain",
+  colTrashed: "Xoá lúc",
+  colPurge: "Xoá hẳn lúc",
+  colAction: "Việc",
+  daysLeft: (n: number) => `còn ${n} ngày`,
+  today: "hôm nay",
+  overdue: "quá hạn, sắp dọn",
+  noDue: "chưa có hạn",
+  restore: "Khôi phục",
+  purge: "Xoá hẳn",
+  restoreFor: (d: string) => `Khôi phục ${d}`,
+  purgeFor: (d: string) => `Xoá hẳn ${d}`,
+  previewing: "Đang dựng bản xem trước…",
+  emptyLead: "Thùng rác trống. Site bạn xoá sẽ nằm ở đây cho tới hạn xoá hẳn. Muốn xoá một site, mở ",
+  emptyLink: "trang Site",
+  emptyTail: ", chọn site rồi bấm xoá.",
+
+  // Xem trước và lỗi
+  restoreErrorHeading: (d: string) => `Chưa dựng được bản xem trước khôi phục ${d}`,
+  purgeErrorHeading: (d: string) => `Chưa dựng được bản xem trước xoá hẳn ${d}`,
+  checksHeading: "Điều kiện chưa đạt",
+  purgeWarning: (d: string) => `Xoá hẳn ${d} làm mất cơ sở dữ liệu và toàn bộ file của site. Không hoàn tác được. Muốn giữ lại thì bấm Quay lại và chọn Khôi phục.`,
 };
 
 const en: typeof vi = {
   title: "Trash",
   summary: "Deleted sites stay here and can be restored until they are permanently deleted.",
+
+  retentionHeading: "Retention",
+  retentionLabel: "Keep deleted sites for (days)",
+  retentionHint:
+    "From 0 to 365. The new number applies only to sites deleted after the change; sites already in the trash keep their old deadline. With 0, sites deleted from then on expire at once and are cleared on the next sweep (once an hour).",
+  retentionInvalid: "Enter a whole number from 0 to 365.",
+  retentionCurrent: (n) => (n === 1 ? "Currently keeping 1 day." : `Currently keeping ${n} days.`),
+  save: "Save",
+  saving: "Saving…",
+  saved: "Saved. It applies to sites deleted from now on.",
+  saveFailed: "Could not save the retention",
+
+  listHeading: "Sites in the trash",
+  tableName: "Sites in the trash",
+  colDomain: "Domain",
+  colTrashed: "Deleted at",
+  colPurge: "Permanent deletion",
+  colAction: "Action",
+  daysLeft: (n) => (n === 1 ? "1 day left" : `${n} days left`),
+  today: "today",
+  overdue: "overdue, clearing soon",
+  noDue: "no deadline",
+  restore: "Restore",
+  purge: "Delete permanently",
+  restoreFor: (d) => `Restore ${d}`,
+  purgeFor: (d) => `Permanently delete ${d}`,
+  previewing: "Building the preview…",
+  emptyLead: "The trash is empty. A site you delete will wait here until its permanent deletion. To delete a site, open the ",
+  emptyLink: "Sites page",
+  emptyTail: ", pick the site and press delete.",
+
+  restoreErrorHeading: (d) => `Could not build the restore preview for ${d}`,
+  purgeErrorHeading: (d) => `Could not build the permanent deletion preview for ${d}`,
+  checksHeading: "Conditions not met",
+  purgeWarning: (d) => `Permanently deleting ${d} destroys the database and every file of the site. It cannot be undone. To keep the site, press Go back and choose Restore.`,
 };
 
 export const strings = defineStrings(vi, en);
