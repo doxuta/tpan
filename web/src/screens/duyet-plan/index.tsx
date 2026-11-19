@@ -9,7 +9,20 @@ import type { Preview } from "../../api/types";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/duyet-plan";
 
-export function PlanReview({ preview }: { preview: Preview }) {
+// Chữ ký đã chốt cho đợt 2 (màn Tạo site và Site dùng song song với màn này):
+export type PlanReviewProps = {
+  preview: Preview;
+  /** Gửi lệnh chạy thật (POST/DELETE không có dry_run). Màn gọi lo chuyển sang /jobs/:id. */
+  onRun: () => void;
+  /** Đang gửi lệnh chạy: nút chạy bị khoá. */
+  running?: boolean;
+  /** Lỗi của lần gửi lệnh chạy (ApiError hoặc lỗi khác), hiện ngay dưới nút. */
+  error?: unknown;
+  /** Quay lại bước nhập. Không có thì không hiện nút. */
+  onCancel?: () => void;
+};
+
+export function PlanReview({ preview }: PlanReviewProps) {
   const t = useStrings(strings);
   const { lang } = useLang();
   return (
