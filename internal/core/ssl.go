@@ -316,8 +316,11 @@ func sslPlan(web, php string, l site.Layout, email validate.Email, cfg SSLConfig
 	verify := checks.SiteChecksSSL(web, php, l)
 	verify = append(verify,
 		checks.Service("certbot.timer", checks.StageTLS),
-		// Chỉ server tuỳ chỉnh: với Let's Encrypt, certbot đọc máy chủ từ file
-		// renewal của chứng chỉ, đúng cái gia hạn tự động sẽ dùng.
+		// Chỉ server tuỳ chỉnh: không có --server thì certbot --dry-run luôn
+		// dùng máy chủ staging của Let's Encrypt (kể cả khi chứng chỉ là bản
+		// thật), không đọc file renewal; đó là cách thử gia hạn không tốn hạn
+		// mức. Server tuỳ chỉnh (pebble trong e2e) thì phải nói rõ, không
+		// certbot đi ra Let's Encrypt (thấy trên máy ảo, docs/thay-doi/M5.md).
 		checks.CertRenewDryRun(l, cfg.Server),
 	)
 	return engine.Plan{
