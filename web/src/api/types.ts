@@ -341,3 +341,6 @@ export type LogFile = "access" | "error" | "php";
 
 /** data của một sự kiện "line". Dòng log là chữ không tin cậy: chỉ hiện như chữ thường. */
 export type LogLine = { line: string };
+
+/** data của sự kiện "end": tail đã thoát; đóng EventSource, không tự nối lại. */
+export type LogEnd = { error: string };

@@ -71,7 +71,14 @@ package server
 //
 // Dòng log là dữ liệu không tin cậy (khách lạ gửi URL, User-Agent): giao diện
 // hiện nó như chữ thường, không bao giờ như HTML. Luồng tự đóng sau
-// LogStreamMax; trình duyệt (EventSource) tự nối lại.
+// LogStreamMax; trình duyệt (EventSource) tự nối lại. Khi tail tự thoát (lỗi,
+// hoặc máy giả của --demo) server gửi một sự kiện cuối rồi đóng:
+//
+//	event: end
+//	data: {"error": "<lý do, rỗng nếu không lỗi>"}
+//
+// Giao diện nhận "end" thì đóng EventSource (không tự nối lại), hiện lý do
+// và nút "Nối lại".
 //
 // SSE (/api/v1/jobs/{id}/events): mỗi sự kiện là
 //
