@@ -83,7 +83,7 @@ Hai điểm cần tự kiểm trên máy đang cài aaPanel trước khi nói v�
 | Đẩy tiến độ ra giao diện | Server-Sent Events | Một chiều từ server ra trình duyệt là đủ cho log của job; đơn giản hơn WebSocket. | WebSocket. |
 | Frontend | React 19, TypeScript 7, Vite 8 | Phổ biến nhất; build ra file tĩnh rồi nhúng vào file chạy Go bằng `go:embed`. | Vue (1Panel, aaPanel dùng), Svelte, HTMX. |
 | Dữ liệu phía trình duyệt | TanStack Query | Quản lý gọi API, cache, tải lại. | Tự viết bằng `fetch` + state. |
-| Định tuyến phía trình duyệt | `react-router` (chế độ thư viện) | Nhiều màn có tham số trong đường dẫn (`/sites/:domain`, `/jobs/:id`); nút Back của trình duyệt phải đúng. | Tự viết bằng `history.pushState`: được với vài màn, nhưng phải tự lo khớp tham số và liên kết. |
+| Định tuyến phía trình duyệt | `react-router`, chế độ "data mode" (`createBrowserRouter`), không dùng phần framework | Nhiều màn có tham số trong đường dẫn (`/sites/:domain`, `/jobs/:id`); nút Back của trình duyệt phải đúng. | Tự viết bằng `history.pushState`: được với vài màn, nhưng phải tự lo khớp tham số và liên kết. |
 | Giao diện | Tailwind CSS 4 + thành phần tự viết; Radix cho hộp thoại, menu | Kiểm soát được từng chi tiết hình thức; Radix lo phần bàn phím và trợ năng. | Bộ thành phần dựng sẵn: nhanh nhưng ra giao diện giống mọi sản phẩm khác. |
 | Chứng chỉ | `certbot certonly --webroot` | certbot chỉ đặt file thử thách, **không sửa config web server**; config do TPAN sinh từ template nên phải là một nguồn duy nhất. Cùng một cách cho cả Nginx và Apache. | `certbot --nginx`: tự sửa config. Thư viện ACME nhúng (lego): bớt một gói cài nhưng khó quan sát hơn. |
 | WordPress | WP-CLI | Cài, cấu hình, kiểm checksum bằng lệnh, không cần trình duyệt. | Tự tải và tự sinh `wp-config.php`. |
@@ -854,6 +854,14 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - PHP của site ghi được `php-error.log` (thuộc user của site, 640) dù file nằm ngoài `open_basedir`, vì `error_log` do PHP-FPM mở chứ không qua kiểm `open_basedir`.
   - `runuser` với thư mục làm việc `/` (đặt cố định trong `LocalSystem.Run`): `wp`, `tar`, `find`, `chmod` chạy bình thường dưới user của site.
   - Còn mở: pool `www` của gói `php-fpm` vẫn chạy (2 worker dưới `www-data`, khoảng 16 MB mỗi cái) dù không vhost nào dùng. Gỡ nó là việc của stack (mục 6.1); để sau, cùng lúc với M12 (nhiều bản PHP). WordPress 7.1.5 in cảnh báo `Undefined array key "HTTP_HOST"` mỗi lần `wp core is-installed`, chỉ làm log job dài thêm.
+
+- Kiểm ở M3 (19/11/2026), máy ảo Ubuntu 24.04:
+  - Khoá toàn cục giữa CLI và panel: trong lúc `tpan site add` ở CLI giữ `/run/tpan/tpan.lock`, POST tạo site qua API trả 409 `job_running` sau khoảng 2 giây, không tạo job, không có "database is locked"; xem trước và đọc tổng quan vẫn chạy.
+  - Câu SQL của màn Cơ sở dữ liệu: cột `SUM` có kiểu DECIMAL nhưng 0 chữ số thập phân, `mariadb -N -B` in số nguyên, đọc đúng.
+  - CPU đo bằng hai lần đọc `/proc/stat` cách 200 ms: 0% khi máy rỗi, 100% khi chạy `yes` trên mọi nhân. Đo song song với phép kiểm thì thấy chính tpan (6 đến 28%), nên `/overview` đo trước rồi mới kiểm.
+  - `/overview` lần đầu với 2 site (bộ nhớ đệm rỗng) mất khoảng 2,3 giây, lần sau khoảng 0,3 giây; phép kiểm stack chưa đệm. M4 thay bằng health định kỳ.
+  - Trình duyệt dựng sẵn từ chối chứng chỉ tự ký của panel và không có cách bỏ qua; phần "tạo site từ trình duyệt" chạy qua một bản `tpan serve` HTTP trên loopback của máy ảo cộng bộ chuyển cổng chỉ dành cho kịch bản test (`scripts/e2e-m3.sh http-up`, `http-down`). Người dùng thật vào bằng HTTPS và tự so fingerprint mà `tpan setup` in ra.
+  - CSP chặn đúng một thứ: thẻ `<style>` Radix Dialog chèn khi mở hộp thoại (một dòng ở console mỗi lần mở); khoá cuộn vẫn chạy nhờ luật trong `styles.css`.
 
 ## 17. Nguồn đã tra (19/11/2026)
 

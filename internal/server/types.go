@@ -10,9 +10,8 @@ package server
 //   - phần API: api.go (và file mới tên api_*.go, sse.go): site, stack, job,
 //     SSE, máy, cơ sở dữ liệu. Cài đặt các hàm có chú thích "api".
 //
-// Ở đợt 0, auth.go và api.go chỉ là khung trả 501 để biên dịch được; mỗi thợ
-// thay hẳn file của mình. Không ai sửa server.go hay types.go: thiếu đường dẫn
-// hay kiểu thì báo phiên chính.
+// Thêm đường dẫn: khai báo ở bảng trên và ở NewHandler (server.go), viết
+// handler ở file của phần tương ứng.
 //
 // Quy ước chung:
 //   - JSON, UTF-8. Thời gian dạng RFC 3339 (time.Time mặc định của Go).
