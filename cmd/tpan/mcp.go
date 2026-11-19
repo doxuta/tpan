@@ -1,10 +1,11 @@
 package main
 
 // Lệnh `tpan mcp` (mục 8.3 của docs/KE-HOACH.md): chạy MCP server qua stdio
-// cho agent nối bằng SSH, và `tpan mcp config` để xem, đổi chế độ duyệt và mức
-// che dữ liệu. Hai setting này chỉ đổi được ở đây, bằng root trên máy chủ: bật
-// chế độ client là cho agent tự chạy Plan nó đề xuất, không được để một phiên
-// web hay chính agent tự bật.
+// cho agent nối bằng SSH, và `tpan mcp config` để xem, đổi chế độ duyệt, mức
+// che dữ liệu và bộ não của AI trong panel (M8). Ba setting này chỉ đổi được ở
+// đây, bằng root trên máy chủ: bật chế độ client là cho agent tự chạy Plan nó
+// đề xuất, bật bộ não là mở socket cho tpan brain-link; không được để một
+// phiên web hay chính agent tự bật.
 
 import (
 	"fmt"
@@ -28,16 +29,17 @@ func mcpCmd(e *env) *cobra.Command {
 
 func mcpConfigCmd(e *env) *cobra.Command {
 	var (
-		approval, redact string
-		asJSON           bool
+		approval, redact, brain string
+		asJSON                  bool
 	)
 	c := &cobra.Command{
-		Use:   "config [--approval panel|client] [--redact all|secrets]",
-		Short: "Xem hoặc đổi chế độ duyệt Plan và mức che dữ liệu của cổng agent",
+		Use:   "config [--approval panel|client] [--redact all|secrets] [--brain off|bridge]",
+		Short: "Xem hoặc đổi chế độ duyệt Plan, mức che dữ liệu và bộ não AI của panel",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 			setApproval, setRedact := cmd.Flags().Changed("approval"), cmd.Flags().Changed("redact")
+			setBrain := cmd.Flags().Changed("brain")
 			// Kiểm giá trị trước mọi việc khác: sai thì không mở DB, không ghi gì.
 			if setApproval {
 				switch core.ApprovalMode(approval) {
@@ -52,6 +54,11 @@ func mcpConfigCmd(e *env) *cobra.Command {
 				return fail(e, asJSON, &core.RefusedError{Code: "redact_invalid", Message: i18n.T(
 					"--redact chỉ nhận all hoặc secrets (nhận được "+quote(redact)+")",
 					"--redact accepts only all or secrets (got "+quote(redact)+")")})
+			}
+			if setBrain && brain != core.BrainOff && brain != core.BrainBridge {
+				return fail(e, asJSON, &core.RefusedError{Code: "brain_invalid", Message: i18n.T(
+					"--brain chỉ nhận off hoặc bridge (nhận được "+quote(brain)+")",
+					"--brain accepts only off or bridge (got "+quote(brain)+")")})
 			}
 			if err := requireRoot(e, cmd); err != nil {
 				return fail(e, asJSON, err)
@@ -74,6 +81,12 @@ func mcpConfigCmd(e *env) *cobra.Command {
 					return err
 				}
 				changed = append(changed, "redact="+redact)
+			}
+			if setBrain {
+				if err := st.SetSetting(ctx, core.SettingAIBrain, brain); err != nil {
+					return err
+				}
+				changed = append(changed, "brain="+brain)
 			}
 			if len(changed) > 0 {
 				auditNoJob(ctx, e, st, "mcp.config", strings.Join(changed, " "))
@@ -102,6 +115,7 @@ func mcpConfigCmd(e *env) *cobra.Command {
 	fl := c.Flags()
 	fl.StringVar(&approval, "approval", "", "panel: người duyệt Plan trên web hoặc bằng tpan plan approve; client: agent tự chạy Plan nó đề xuất")
 	fl.StringVar(&redact, "redact", "", "all: che bí mật và thay domain, IP, email bằng bí danh; secrets: chỉ che bí mật")
+	fl.StringVar(&brain, "brain", "", "off: panel không có AI; bridge: bộ não là Claude Code trên máy của bạn, nối bằng tpan brain <máy>")
 	fl.BoolVar(&asJSON, "json", false, "in kết quả dạng JSON")
 	return c
 }
@@ -117,6 +131,11 @@ func printAgentConfig(e *env, cfg core.AgentSettings) {
 	}
 	printf(e.stdout, "%-16s %s (%s)\n", e.tr("Chế độ duyệt:", "Approval:"), cfg.Approval, approval)
 	printf(e.stdout, "%-16s %s (%s)\n", e.tr("Mức che:", "Redaction:"), cfg.Redact, redact)
+	brain := e.tr("panel không có AI; bật bằng sudo tpan mcp config --brain bridge", "the panel has no AI; turn it on with sudo tpan mcp config --brain bridge")
+	if cfg.Brain == core.BrainBridge {
+		brain = e.tr("Claude Code trên máy của bạn, nối bằng tpan brain <máy>", "Claude Code on your machine, connected with tpan brain <host>")
+	}
+	printf(e.stdout, "%-16s %s (%s)\n", e.tr("Bộ não:", "Brain:"), cfg.Brain, brain)
 }
 
 // mcpServeCmd chạy MCP server trên stdin/stdout. Agent gọi nó qua SSH (`ssh
