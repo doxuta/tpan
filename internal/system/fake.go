@@ -68,6 +68,16 @@ func (f *FakeSystem) SetDir(p string, perm fs.FileMode, owner Owner) {
 	f.entries[p] = &FakeEntry{Mode: fs.ModeDir | keepMode(perm), Owner: normOwner(owner)}
 }
 
+// SetSocket đặt sẵn một Unix socket (ví dụ socket của pool PHP-FPM mà
+// systemctl reload tạo ra), tự tạo các thư mục cha. Stat trả Mode có fs.ModeSocket.
+func (f *FakeSystem) SetSocket(p string, perm fs.FileMode, owner Owner) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p = clean(p)
+	f.mkParents(p)
+	f.entries[p] = &FakeEntry{Mode: fs.ModeSocket | keepMode(perm), Owner: normOwner(owner)}
+}
+
 // SetSymlink đặt sẵn một symlink, tự tạo các thư mục cha.
 func (f *FakeSystem) SetSymlink(target, link string) {
 	f.mu.Lock()

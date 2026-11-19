@@ -25,6 +25,8 @@
 //	func (f *FakeSystem) SetFile(path string, data []byte, perm fs.FileMode, owner Owner)
 //	// SetDir đặt sẵn một thư mục, tự tạo các thư mục cha.
 //	func (f *FakeSystem) SetDir(path string, perm fs.FileMode, owner Owner)
+//	// SetSocket đặt sẵn một Unix socket (Stat trả Mode có fs.ModeSocket).
+//	func (f *FakeSystem) SetSocket(path string, perm fs.FileMode, owner Owner)
 //	// SetSymlink đặt sẵn một symlink.
 //	func (f *FakeSystem) SetSymlink(target, link string)
 //	// Handle đăng ký cách trả lời cho các lệnh có argv bắt đầu bằng prefix

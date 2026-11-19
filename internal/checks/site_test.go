@@ -24,22 +24,6 @@ func siteLayout(t *testing.T, domain string) site.Layout {
 	return site.LayoutOf(d)
 }
 
-// socketFS bọc FakeSystem để Stat trả thêm bit socket cho các đường dẫn đã đánh
-// dấu. FakeSystem.SetFile cố ý chỉ giữ bit quyền và setuid/setgid/sticky (không
-// có cách tạo socket), còn LocalSystem.Stat (os.Lstat) thì trả fs.ModeSocket thật.
-type socketFS struct {
-	*system.FakeSystem
-	sockets map[string]bool
-}
-
-func (s socketFS) Stat(p string) (system.FileInfo, error) {
-	info, err := s.FakeSystem.Stat(p)
-	if err == nil && s.sockets[p] {
-		info.Mode = info.Mode&^fs.ModeType | fs.ModeSocket
-	}
-	return info, err
-}
-
 var wwwData = system.Owner{User: "www-data", Group: "www-data"}
 
 // ---- VhostEnabled ----
@@ -158,10 +142,10 @@ func TestVhostEnabledUnknown(t *testing.T) {
 
 // ---- PoolSocket ----
 
-func socketFixture(l site.Layout, owner system.Owner, mode fs.FileMode) socketFS {
+func socketFixture(l site.Layout, owner system.Owner, mode fs.FileMode) *system.FakeSystem {
 	f := system.NewFake()
-	f.SetFile(l.Socket, nil, mode, owner)
-	return socketFS{FakeSystem: f, sockets: map[string]bool{l.Socket: true}}
+	f.SetSocket(l.Socket, mode, owner)
+	return f
 }
 
 func TestPoolSocketPass(t *testing.T) {
@@ -169,7 +153,7 @@ func TestPoolSocketPass(t *testing.T) {
 	s := socketFixture(l, wwwData, 0o660)
 	r := PoolSocket(l).Run(bg(), s)
 	assertShape(t, r, "php.socket:shop.example.com", StagePHP, Pass)
-	assertNoCmd(t, s.FakeSystem)
+	assertNoCmd(t, s)
 }
 
 func TestPoolSocketFail(t *testing.T) {
