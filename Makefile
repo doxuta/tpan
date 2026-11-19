@@ -35,8 +35,8 @@ lint: ## go vet + golangci-lint
 check: lint test ## Chạy hết kiểm tra trước khi commit
 	cd web && pnpm typecheck
 
-dev-api: ## Chạy backend chế độ demo (máy giả) ở 127.0.0.1:8080; mở thêm một terminal cho dev-web
-	go run ./cmd/tpan serve --demo --listen 127.0.0.1:8080
+dev-api: ## Chạy backend chế độ demo (máy giả) ở 127.0.0.1:18080; mở thêm một terminal cho dev-web
+	go run ./cmd/tpan serve --demo --listen 127.0.0.1:18080
 
 dev-web: ## Chạy giao diện ở localhost:5173, tự nạp lại khi sửa code
 	cd web && pnpm dev
