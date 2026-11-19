@@ -847,7 +847,7 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 
 - Kiểm thêm ở M2 (19/11/2026), máy ảo Ubuntu 24.04:
   - `getent passwd <user>` thoát mã 2 khi không có user. `userdel` thoát mã 8 khi user còn tiến trình; `site rm` gỡ pool và reload PHP-FPM trước `userdel` nên lần thử xoá ngay sau một request vẫn xong. Mới thử một lần; request dài hơn có thể làm `userdel` gặp mã 8, khi đó tpan báo chạy lại.
-  - `GRANT ... ON \`tp\_..\`.*`: MariaDB 10.11 hiểu `\_` là dấu gạch dưới thật (không phải ký tự đại diện), `SHOW GRANTS` hiện đúng như vậy và user vẫn dùng được DB. Đọc bằng `mariadb -N -B` thì client in mỗi `\` thành `\\`; cần `-r` để thấy nguyên văn.
+  - ``GRANT ... ON `tp\_...`.*``: MariaDB 10.11 hiểu `\_` là dấu gạch dưới thật (không phải ký tự đại diện), `SHOW GRANTS` hiện đúng như vậy và user vẫn dùng được DB. Đọc bằng `mariadb -N -B` thì client in mỗi `\` thành `\\`; cần `-r` để thấy nguyên văn.
   - `php-fpm8.3 -t` nhận dòng đầu `; # Do tpan quản lý...` của file pool. `/etc/nginx/fastcgi.conf` có sẵn trong gói nginx của Ubuntu.
   - PHP của site ghi được `php-error.log` (thuộc user của site, 640) dù file nằm ngoài `open_basedir`, vì `error_log` do PHP-FPM mở chứ không qua kiểm `open_basedir`.
   - `runuser` với thư mục làm việc `/` (đặt cố định trong `LocalSystem.Run`): `wp`, `tar`, `find`, `chmod` chạy bình thường dưới user của site.
