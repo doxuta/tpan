@@ -1,9 +1,7 @@
 package core
 
-// Hợp đồng M6, đợt 0: thao tác hàng loạt (mục 7 của docs/KE-HOACH.md):
-// `tpan apply -f sites.yaml [--prune]`, `tpan export`, và "dán danh sách" trên
-// màn Tạo site. Kiểu và chữ ký ở đây; thân viết ở đợt 1 (file sites.yaml) và
-// đợt 2 (Apply).
+// Thao tác hàng loạt (mục 7 của docs/KE-HOACH.md): `tpan apply -f sites.yaml
+// [--prune]`, `tpan export`, và "dán danh sách" trên màn Tạo site.
 //
 // Apply đưa máy về đúng danh sách: site thiếu thì tạo, site đã có (active) thì
 // bỏ qua (không chạy lại Plan), site ngoài danh sách thì vào thùng rác khi
@@ -27,20 +25,32 @@ package core
 //
 // Job hàng loạt thành công: mỗi unit tạo site succeeded được SaveSite (active),
 // mỗi unit thùng rác succeeded được đánh dấu trashed như PrepareRemove.
+//
+// Unit tạo site được dựng bằng chính PrepareAdd (cùng điều kiện đầu, cùng lời
+// từ chối, cùng addPlan) rồi tách ra pha: bỏ WPArchive (lên Pre) và bước cài
+// WordPress (xuống pha C). Unit thùng rác dùng nguyên Plan của PrepareRemove.
+// Nhờ vậy tạo một site và tạo mười site không thể lệch nhau về các bước.
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
+	"sync"
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/validate"
 )
 
 // ---------------------------------------------------------------- apply
 
-var errApplyTODO = errors.New("core: thao tác hàng loạt chưa viết (M6 đợt 2)")
+// applyParallel: mục 7, "song song, tối đa 3 site một lúc".
+const applyParallel = 3
 
 // ApplyAction là việc Apply sẽ làm với một domain.
 type ApplyAction string
@@ -76,6 +86,28 @@ type Apply struct {
 	Batch engine.Batch
 
 	sites *Sites
+	// units song song với Batch.Units (cùng chỉ số): nhờ đó kết quả
+	// rep.Units[k] tìm lại được site nào, tạo hay đưa vào thùng rác.
+	units []applyUnit
+}
+
+// applyUnit là phần core cần nhớ của một unit để làm việc sau job.
+type applyUnit struct {
+	add   *SiteAdd    // unit tạo site; nil với unit thùng rác
+	rm    *SiteRemove // unit thùng rác; nil với unit tạo site
+	ssl   bool
+	email validate.Email
+}
+
+// refusedItem đổi lời từ chối của một dòng thành ApplyItem; lỗi khác (đọc DB
+// hỏng...) trả lại để người gọi dừng cả lô.
+func refusedItem(item ApplyItem, err error) (ApplyItem, error) {
+	var re *RefusedError
+	if !errors.As(err, &re) {
+		return item, err
+	}
+	item.Action, item.Code, item.Reason = ApplyRefused, re.Code, re.Message
+	return item, nil
 }
 
 // PrepareApply làm phần chỉ đọc: stack đã cài, phân loại từng domain (Create,
@@ -83,7 +115,213 @@ type Apply struct {
 // *RefusedError) chỉ khi không dựng được gì: stack chưa cài, đầu vào rỗng.
 // Dòng nào không làm được thì thành ApplyRefused, các dòng khác vẫn đi.
 func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error) {
-	return nil, errApplyTODO
+	if len(in.Sites) == 0 {
+		if in.Prune {
+			// Một file rỗng (gõ nhầm, file bị cắt cụt) cộng --prune sẽ đưa MỌI
+			// site vào thùng rác. Không ai muốn điều đó qua một file rỗng.
+			return nil, refuse("prune_empty", i18n.T(
+				"danh sách site rỗng mà có --prune: làm vậy sẽ đưa mọi site vào thùng rác. Từ chối cả lô; muốn xoá site thì dùng: sudo tpan site rm <domain>",
+				"the site list is empty and --prune is set: that would move every site to the trash. Refusing the whole batch; to remove sites use: sudo tpan site rm <domain>"))
+		}
+		return nil, refuse("apply_empty", i18n.T(
+			"danh sách site rỗng: không có gì để áp",
+			"the site list is empty: there is nothing to apply"))
+	}
+	cfg, err := s.stack(ctx)
+	if err != nil {
+		return nil, err
+	}
+	all, err := s.Store.Sites(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("đọc danh sách site: %w", err)
+	}
+	stored := make(map[validate.Domain]site.Site, len(all))
+	for _, st := range all {
+		stored[st.Domain] = st
+	}
+
+	a := &Apply{sites: s}
+	var creates []applyUnit
+	listed := make(map[validate.Domain]bool, len(in.Sites))
+	for _, as := range in.Sites {
+		d := as.Input.Domain
+		item := ApplyItem{Domain: d.String()}
+		var err error
+		switch st, found := stored[d]; {
+		case d.IsZero():
+			item, err = refusedItem(item, refuse(validate.CodeDomainInvalid, i18n.T("thiếu domain", "the domain is missing")))
+		case listed[d]:
+			// Resolve đã chặn trùng; API có thể gửi thẳng ApplyInput. Hai unit
+			// cùng Target thì engine từ chối cả job, nên chặn từng dòng ở đây.
+			item, err = refusedItem(item, refuse("domain_duplicate", i18n.T(
+				"domain "+d.String()+" có hai lần trong danh sách",
+				"domain "+d.String()+" is listed twice")))
+		case found && st.Status == site.Active:
+			// Mục 7: site đã có thì bỏ qua, không chạy lại Plan (sửa lệch là
+			// việc của `tpan site add` hay health --fix).
+			item.Action = ApplySkip
+		default:
+			// Chưa có, hoặc có mà không active (thùng rác): PrepareAdd kiểm
+			// đúng như `tpan site add` (email, tiêu đề, site_trashed, thứ của
+			// domain đã có trên máy) và dựng Plan.
+			var add *SiteAdd
+			add, err = s.PrepareAdd(ctx, as.Input)
+			if err != nil {
+				item, err = refusedItem(item, err)
+				break
+			}
+			item.Action, item.SSL = ApplyCreate, as.SSL
+			creates = append(creates, applyUnit{add: add, ssl: as.SSL, email: as.Input.Email})
+		}
+		if err != nil {
+			return nil, fmt.Errorf("chuẩn bị %s: %w", d, err)
+		}
+		listed[d] = true
+		a.Items = append(a.Items, item)
+	}
+
+	var trashes []applyUnit
+	trashed := map[validate.Domain]bool{}
+	if in.Prune {
+		for _, st := range all {
+			if st.Status != site.Active || listed[st.Domain] {
+				continue
+			}
+			item := ApplyItem{Domain: st.Domain.String(), Action: ApplyTrash}
+			rm, err := s.PrepareRemove(ctx, st.Domain)
+			if err != nil {
+				if item, err = refusedItem(item, err); err != nil {
+					return nil, fmt.Errorf("chuẩn bị đưa %s vào thùng rác: %w", st.Domain, err)
+				}
+			} else {
+				trashes = append(trashes, applyUnit{rm: rm})
+				trashed[st.Domain] = true
+			}
+			a.Items = append(a.Items, item)
+		}
+	}
+
+	a.units = slices.Concat(creates, trashes)
+	if len(a.units) == 0 {
+		return a, nil
+	}
+	if a.Batch, err = s.applyBatch(cfg, all, trashed, a.units); err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+// applyBatch dựng engine.Batch cho các unit (đã theo đúng thứ tự: tạo theo
+// thứ tự danh sách, rồi thùng rác theo domain).
+func (s *Sites) applyBatch(cfg StackConfig, all []site.Site, trashed map[validate.Domain]bool, units []applyUnit) (engine.Batch, error) {
+	// Một mutex cho cả lô: useradd/usermod khoá /etc/passwd, và `nginx -t`
+	// kiểm cả config nên file dở của site này làm site kia lỗi oan.
+	mu := &sync.Mutex{}
+
+	// Kiểm cô lập của site mới với các site đang chạy, trừ site lô này đưa vào
+	// thùng rác: thư mục và user của chúng đang được chuyển và khoá song song,
+	// kiểm vào lúc đó có thể Fail và hoàn tác oan một site mới lành.
+	var others []site.Layout
+	for _, st := range all {
+		if st.Status == site.Active && !trashed[st.Domain] {
+			others = append(others, st.Layout())
+		}
+	}
+
+	b := engine.Batch{Kind: "apply", Parallel: applyParallel}
+	php := map[string]bool{}
+	creates, trashes := 0, 0
+	for _, u := range units {
+		switch {
+		case u.add != nil:
+			creates++
+			add := u.add
+			php[add.Site.PHPVersion] = true
+			var prep []engine.Step
+			for _, st := range add.Plan.Steps {
+				// WPArchive lên Pre (một lần cho cả lô: trùng StepID giữa các
+				// unit thì engine từ chối); cài WordPress xuống pha C, sau khi
+				// web server đã nạp vhost ở pha B.
+				if _, ok := st.(*steps.WPArchive); ok || st == engine.Step(add.install) {
+					continue
+				}
+				prep = append(prep, st)
+			}
+			l := add.Layout
+			b.Units = append(b.Units, engine.Unit{
+				Target:  l.Domain.String(),
+				Prepare: applySerial(mu, prep),
+				Finish:  []engine.Step{add.install},
+				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, l, others, add.Site.SSL),
+			})
+		default:
+			trashes++
+			rm := u.rm
+			php[rm.Site.PHPVersion] = true
+			b.Units = append(b.Units, engine.Unit{
+				Target:  rm.Site.Domain.String(),
+				Prepare: applySerial(mu, rm.Plan.Steps),
+				Verify:  rm.Plan.Verify,
+			})
+		}
+	}
+	if creates > 0 {
+		version, hash := s.wordpress()
+		b.Pre = []engine.Step{&steps.WPArchive{Version: version, Hash: hash}}
+	}
+
+	// Pha B: mỗi bản PHP một lần (sắp xếp để thứ tự ổn định giữa các lần
+	// chạy), rồi web server. Pool trước vhost như Plan một site: web server
+	// nạp vhost mới thì socket của pool đã có.
+	versions := make([]string, 0, len(php))
+	for v := range php {
+		versions = append(versions, v)
+	}
+	slices.Sort(versions)
+	for _, v := range versions {
+		r, err := steps.PHPReload(v)
+		if err != nil {
+			return engine.Batch{}, fmt.Errorf("dựng job hàng loạt: %w", err)
+		}
+		b.Commit = append(b.Commit, r)
+	}
+	web, err := steps.WebReload(string(cfg.Web))
+	if err != nil {
+		return engine.Batch{}, fmt.Errorf("dựng job hàng loạt: %w", err)
+	}
+	b.Commit = append(b.Commit, web)
+
+	b.Target = fmt.Sprintf("%d site", len(units))
+	b.Title = i18n.T(
+		fmt.Sprintf("Áp danh sách site: tạo %d, đưa vào thùng rác %d", creates, trashes),
+		fmt.Sprintf("Apply the site list: create %d, move %d to the trash", creates, trashes))
+	return b, nil
+}
+
+// applySerial bỏ Reload của các bước ghi file (pha B reload một lần cho cả
+// lô) rồi bọc Serial các bước không được chạy cùng lúc với unit khác: đổi
+// user Linux, và mọi bước có Test (pool, vhost, link, gỡ link). Phải xét kiểu
+// trước khi bọc: bước đã bọc không còn là *steps.File.
+func applySerial(mu *sync.Mutex, ss []engine.Step) []engine.Step {
+	out := make([]engine.Step, 0, len(ss))
+	for _, st := range steps.WithoutReload(ss) {
+		serial := false
+		switch st := st.(type) {
+		case *steps.SiteUser, *steps.SiteUserAbsent, *steps.SiteUserLock:
+			serial = true
+		case *steps.File:
+			serial = st.Test != nil
+		case *steps.Symlink:
+			serial = st.Test != nil
+		case *steps.Absent:
+			serial = st.Test != nil
+		}
+		if serial {
+			st = steps.Serial(mu, st)
+		}
+		out = append(out, st)
+	}
+	return out
 }
 
 // Empty: không có gì để tạo hay xoá (mọi dòng Skip hoặc Refused). Execute khi
@@ -99,8 +337,16 @@ type ApplyPreview struct {
 
 // Preview chỉ đọc máy.
 func (a *Apply) Preview(ctx context.Context) (ApplyPreview, error) {
-	_ = a.sites
-	return ApplyPreview{}, errApplyTODO
+	out := ApplyPreview{Items: a.Items}
+	if a.Empty() {
+		return out, nil
+	}
+	pv, err := engine.New(a.sites.Sys, engine.Options{}).PreviewBatch(ctx, a.Batch)
+	if err != nil {
+		return out, err
+	}
+	out.Preview = &pv
+	return out, nil
 }
 
 // ApplySiteResult là kết quả của một site được tạo trong lô.
@@ -112,6 +358,10 @@ type ApplySiteResult struct {
 	// AdminPassword chỉ có khi WPInstalled; JSON luôn "••••" (system.Secret),
 	// người gọi tự Reveal đúng một lần, như SiteAddResult.
 	AdminPassword system.Secret `json:"admin_password"`
+	// SSLError là lời từ chối của pha D cho site này (DNS chưa trỏ về máy,
+	// chưa có email cho Let's Encrypt...): job SSL không chạy, site vẫn được
+	// tạo. Job SSL đã chạy (thành hay hỏng) thì nằm ở ApplyResult.SSL.
+	SSLError *RefusedError `json:"ssl_error,omitempty"`
 }
 
 // ApplyResult là kết quả của Apply.Execute.
@@ -133,5 +383,128 @@ type ApplyResult struct {
 // riêng). error chỉ khác nil khi không chạy được hoặc không ghi được bảng
 // sites; kể cả khi đó ApplyResult vẫn mang mật khẩu quản trị đã có.
 func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyResult, error) {
-	return ApplyResult{}, errApplyTODO
+	s := a.sites
+	res := ApplyResult{Items: a.Items, Created: []ApplySiteResult{}}
+	if a.Empty() {
+		return res, nil
+	}
+	if s.Journal == nil {
+		return res, errors.New("áp danh sách site: thiếu Journal, không ghi được lịch sử job")
+	}
+	rep, err := engine.New(s.Sys, engine.Options{Journal: s.Journal, OnEvent: onEvent}).ExecuteBatch(ctx, a.Batch)
+	if rep.Job.ID == "" {
+		// Job chưa được tạo (khoá, Journal, Batch sai): máy chưa đổi gì.
+		return res, fmt.Errorf("chạy job hàng loạt: %w", err)
+	}
+	res.Report = &rep
+	var errs []error
+	if err != nil {
+		// Job đã chạy nhưng Journal hỏng giữa chừng: vẫn đi tiếp để ghi bảng
+		// sites và trả mật khẩu của các site đã thành.
+		errs = append(errs, fmt.Errorf("job hàng loạt %s: %w", rep.Job.ID, err))
+	}
+
+	type fresh struct {
+		k int // chỉ số trong Created
+		u applyUnit
+	}
+	var made []fresh
+	for k, u := range a.units {
+		status := engine.UnitNotRun
+		if k < len(rep.Units) {
+			status = rep.Units[k].Status
+		}
+		if u.add == nil {
+			if status != engine.UnitSucceeded {
+				continue
+			}
+			if err := s.markTrashed(ctx, u.rm.Site); err != nil {
+				errs = append(errs, fmt.Errorf("job %s đã đưa site %s vào thùng rác nhưng không ghi được vào DB của tpan: %w. Chạy lại `tpan site rm %s` để ghi nốt",
+					rep.Job.ID, u.rm.Site.Domain, err, u.rm.Site.Domain))
+			}
+			continue
+		}
+		r := ApplySiteResult{Domain: u.add.Site.Domain.String(), Status: status}
+		if status == engine.UnitSucceeded {
+			// Chỉ unit succeeded: unit bị hoàn tác ở pha C có thể đã chạy
+			// `wp core install` (ran = true) nhưng WordPress đó đã bị gỡ.
+			if u.add.install.ran {
+				r.WPInstalled, r.AdminUser, r.AdminPassword = true, u.add.AdminUser, u.add.adminPassword
+			}
+			rec := u.add.Site
+			rec.Created = s.now().UTC()
+			if err := s.Store.SaveSite(ctx, rec); err != nil {
+				errs = append(errs, fmt.Errorf("job %s xong nhưng không ghi được site %s vào DB của tpan: %w. Máy đã có site mà tpan chưa ghi nhận, nên `tpan site add %s` sẽ bị từ chối là site không do tpan quản lý",
+					rep.Job.ID, rec.Domain, err, rec.Domain))
+			} else {
+				made = append(made, fresh{k: len(res.Created), u: u})
+			}
+		}
+		res.Created = append(res.Created, r)
+	}
+
+	// Cô lập trong lô: mỗi cặp site mới, hai chiều. Chỉ báo, không hoàn tác.
+	var iso []checks.Check
+	for _, x := range made {
+		for _, y := range made {
+			if x.k != y.k {
+				iso = append(iso, checks.Isolated(x.u.add.Layout, y.u.add.Layout))
+			}
+		}
+	}
+	if len(iso) > 0 {
+		res.Isolation = checks.RunAll(ctx, s.Sys, iso)
+	}
+
+	// Pha D: SSL lần lượt, mỗi site một job, chỉ site vừa tạo và đã ghi vào
+	// bảng sites (PrepareIssue đọc site từ đó).
+	for _, x := range made {
+		if !x.u.ssl {
+			continue
+		}
+		rep, re, err := s.applySSL(ctx, x.u, onEvent)
+		if rep != nil {
+			res.SSL = append(res.SSL, *rep)
+		}
+		res.Created[x.k].SSLError = re
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return res, errors.Join(errs...)
+}
+
+// applySSL chạy Plan SSL cho một site vừa tạo, như `tpan site add --ssl`:
+// ssl.email chưa đặt thì dùng email quản trị của site và ghi lại. Trả báo cáo
+// khi job đã chạy; lời từ chối khi không chạy (re); err cho lỗi khác.
+func (s *Sites) applySSL(ctx context.Context, u applyUnit, onEvent func(engine.Event)) (*engine.Report, *RefusedError, error) {
+	d := u.add.Site.Domain
+	ssl := &SSL{Sys: s.Sys, Settings: s.Settings, Store: s.Store, Journal: s.Journal}
+	var re *RefusedError
+	cfg, err := ssl.Config(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("SSL cho %s: %w", d, err)
+	}
+	if cfg.Email == "" && !u.email.IsZero() {
+		if _, err := ssl.SetConfig(ctx, SSLSettingsInput{Email: &u.email}); errors.As(err, &re) {
+			return nil, re, nil
+		} else if err != nil {
+			return nil, nil, fmt.Errorf("SSL cho %s: %w", d, err)
+		}
+	}
+	iss, err := ssl.PrepareIssue(ctx, d)
+	if errors.As(err, &re) {
+		return nil, re, nil
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("SSL cho %s: %w", d, err)
+	}
+	rep, err := iss.Execute(ctx, onEvent)
+	if rep.Job.ID == "" {
+		return nil, nil, fmt.Errorf("SSL cho %s: %w", d, err)
+	}
+	if err != nil {
+		return &rep, nil, fmt.Errorf("SSL cho %s: %w", d, err)
+	}
+	return &rep, nil, nil
 }
