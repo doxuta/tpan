@@ -1,0 +1,154 @@
+// Đọc một job: lần đầu GET /api/v1/jobs/{id}, rồi nghe SSE để có log trực tiếp.
+//
+// Ba chỗ dễ sai, nên ghi rõ:
+//
+//  1. Mật khẩu quản trị WordPress (JobDetail.secret) chỉ có ở MỘT lần GET, và
+//     chỉ khi job đã xong (internal/server/api.go, handleJob). Vì vậy:
+//       - queryFn lấy secret ra khỏi kết quả trước khi TanStack Query cất vào
+//         cache, để cache không bao giờ giữ mật khẩu;
+//       - secret nằm trong một biến của module (không localStorage), giữ tới khi
+//         người dùng bấm "Đã lưu, ẩn đi" hoặc tải lại trang. Giữ ở module chứ
+//         không ở state của component để lỡ bấm sang mục khác rồi quay lại thì
+//         chưa mất mật khẩu (mất nó là mất tài khoản quản trị);
+//       - lần GET sau (nếu có) không có secret thì không được đè lên cái đã giữ.
+//  2. Luồng SSE mở với after = seq cuối đã có, và vẫn bỏ sự kiện có seq đã
+//     nhận (phòng EventSource nối lại phát trùng).
+//  3. Job đang chạy thì GET đầu chưa có secret. Khi job.done tới phải GET lại:
+//     bản đó mang secret, thời điểm kết thúc và lỗi.
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { get, subscribeJobEvents } from "../../api/client";
+import type { AdminSecret, JobDetail, JobEvent } from "../../api/types";
+
+// ---- secret: giữ trong bộ nhớ, ngoài cache ----
+
+const secrets = new Map<string, AdminSecret>();
+const listeners = new Set<() => void>();
+
+function setSecret(id: string, s: AdminSecret | undefined) {
+  if (s) secrets.set(id, s);
+  else secrets.delete(id);
+  for (const l of listeners) l();
+}
+
+function subscribeSecrets(l: () => void) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+
+export function useAdminSecret(id: string): { secret: AdminSecret | undefined; dismiss: () => void } {
+  const secret = useSyncExternalStore(
+    subscribeSecrets,
+    () => secrets.get(id),
+    () => undefined,
+  );
+  return { secret, dismiss: () => setSecret(id, undefined) };
+}
+
+// ---- job ----
+
+type JobBase = Omit<JobDetail, "secret">;
+
+export type StreamState = "idle" | "live" | "lost";
+
+/** Chờ gom sự kiện trước khi vẽ: apt in hàng nghìn dòng, vẽ từng dòng sẽ giật. */
+const flushMs = 100;
+
+export function useJob(id: string) {
+  const qc = useQueryClient();
+  const key = useMemo(() => ["job", id] as const, [id]);
+
+  const query = useQuery({
+    queryKey: key,
+    queryFn: async (): Promise<JobBase> => {
+      const d = await get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
+      if (d.secret) setSecret(id, d.secret);
+      return { job: d.job, events: d.events };
+    },
+    // Tiến độ đi qua SSE, không đọc lại theo thời gian hay khi chuyển tab: mỗi lần GET
+    // sau job xong có thể là lần cuối còn mật khẩu để lấy.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const data = query.data;
+
+  const lastSeq = useRef(0);
+  const [live, setLive] = useState<JobEvent[]>([]);
+  const [stream, setStream] = useState<StreamState>("idle");
+  const [attempt, setAttempt] = useState(0);
+  const [finished, setFinished] = useState(false);
+
+  // Đổi sang job khác (cùng component, đổi :id) thì bỏ sự kiện của job cũ.
+  useEffect(() => {
+    setLive([]);
+    setFinished(false);
+    setStream("idle");
+    lastSeq.current = 0;
+  }, [id]);
+
+  const running = data !== undefined && data.job.status === "running" && !finished;
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const refetch = query.refetch;
+
+  useEffect(() => {
+    if (!running) return;
+    lastSeq.current = Math.max(lastSeq.current, dataRef.current?.events.at(-1)?.seq ?? 0);
+    let buf: JobEvent[] = [];
+    let timer: number | undefined;
+    const flush = () => {
+      timer = undefined;
+      const batch = buf;
+      buf = [];
+      if (batch.length > 0) setLive((prev) => prev.concat(batch));
+    };
+    setStream("live");
+    const stop = subscribeJobEvents(
+      id,
+      (e) => {
+        if (e.seq <= lastSeq.current) return;
+        lastSeq.current = e.seq;
+        buf.push(e);
+        timer ??= window.setTimeout(flush, flushMs);
+      },
+      (reason) => {
+        window.clearTimeout(timer);
+        flush();
+        if (reason === "done") {
+          setFinished(true);
+          setStream("idle");
+          void refetch(); // bản này mang secret, thời điểm kết thúc và lỗi
+        } else {
+          setStream("lost");
+        }
+      },
+      lastSeq.current,
+    );
+    return () => {
+      stop();
+      window.clearTimeout(timer);
+    };
+  }, [id, running, attempt, refetch]);
+
+  const events = useMemo(() => {
+    const base = data?.events ?? [];
+    if (live.length === 0) return base;
+    const last = base.at(-1)?.seq ?? 0;
+    return base.concat(live.filter((e) => e.seq > last));
+  }, [data, live]);
+
+  const reconnect = useCallback(() => {
+    // Kiểm lại trạng thái thật trước: job có thể đã xong trong lúc mất kết nối.
+    setStream("idle");
+    void qc.refetchQueries({ queryKey: key }).then(() => {
+      setFinished(false);
+      setAttempt((n) => n + 1);
+    });
+  }, [qc, key]);
+
+  return { query, job: data?.job, events, running, stream, reconnect };
+}

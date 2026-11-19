@@ -1,13 +1,22 @@
 // Bản xem trước của một Plan, trình bày như một pull request (mục 7 của
-// docs/GIAO-DIEN.md). Không có route riêng: màn Tạo site và thao tác Xoá site
-// nhúng component này với Preview lấy từ ?dry_run=1.
-//
-// Khung của đợt 1: chỉ có tiêu đề và dòng tóm tắt. Thợ của màn này thay hẳn
-// nội dung, giữ tên export PlanReview.
+// docs/GIAO-DIEN.md, ý 3 của mục 10 trong KE-HOACH.md): tóm tắt, phạm vi ảnh
+// hưởng, từng bước với lệnh sẽ chạy và file thay đổi dạng diff, rồi nút chạy.
+// Không có route riêng: màn Tạo site và thao tác Xoá site nhúng component này
+// với Preview lấy từ ?dry_run=1.
 
-import type { Preview } from "../../api/types";
+import { useMemo, useState, type ReactNode } from "react";
+import { errorMessage } from "../../api/client";
+import type { FileChange, Preview, StepPreview } from "../../api/types";
+import { Button } from "../../components/Button";
+import { Dialog } from "../../components/Dialog";
+import { EvidenceBlock } from "../../components/EvidenceBlock";
+import { MonoText } from "../../components/MonoText";
+import { StatusMark } from "../../components/StatusMark";
+import { Tag } from "../../components/Tag";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/duyet-plan";
+import { useTips } from "../../tips";
+import { diffFile } from "./diff";
 
 // Chữ ký đã chốt cho đợt 2 (màn Tạo site và Site dùng song song với màn này):
 export type PlanReviewProps = {
@@ -22,15 +31,222 @@ export type PlanReviewProps = {
   onCancel?: () => void;
 };
 
-export function PlanReview({ preview }: PlanReviewProps) {
+const labelClass = "font-mono text-[11px] tracking-[0.08em] text-muted";
+
+export function PlanReview({ preview, onRun, running = false, error, onCancel }: PlanReviewProps) {
   const t = useStrings(strings);
   const { lang } = useLang();
+  const { tips } = useTips();
+  const [confirming, setConfirming] = useState(false);
+
+  const toRun = preview.steps.filter((s) => !s.done);
+  const skipped = preview.steps.length - toRun.length;
+  const dangerous = toRun.filter((s) => s.info.danger);
+  const fileCount = toRun.reduce((n, s) => n + (s.info.files?.length ?? 0), 0);
+  const reloads = reloadServices(toRun);
+
+  // Có bước nguy hiểm thì hỏi lại một lần ("Chạy 11 bước này?"); không thì chạy luôn.
+  const press = () => (dangerous.length > 0 ? setConfirming(true) : onRun());
+
   return (
-    <section className="pt-[26px]">
-      <h2 className="m-0 text-[16px] font-semibold">
+    <section aria-labelledby="plan-heading" className="pt-[26px]">
+      <h2 id="plan-heading" className="m-0 text-[16px] font-semibold">
         {t.heading}: {tx(preview.title, lang)}
       </h2>
       <p className="mt-[6px] mb-0 text-muted">{t.summary}</p>
+
+      <div className="mt-[18px] border-t border-hair pt-[14px]">
+        <h3 className={`m-0 font-normal ${labelClass}`}>{t.summaryLabel}</h3>
+        <dl className="m-0 mt-[8px] grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:flex sm:flex-wrap sm:gap-x-[40px]">
+          <Metric label={t.stepsToRun} value={t.stepsUnit(toRun.length)} />
+          <Metric label={t.stepsToSkip} value={t.stepsUnit(skipped)} sub={skipped > 0 ? t.skipNote : undefined} />
+          <Metric label={t.filesChanged} value={t.filesUnit(fileCount)} />
+          {preview.target && (
+            <div>
+              <dt className={labelClass}>{t.targetLabel}</dt>
+              <dd className="m-0 mt-[8px]">
+                <MonoText>{preview.target}</MonoText>
+              </dd>
+            </div>
+          )}
+        </dl>
+      </div>
+
+      <div className="mt-[18px] border-t border-hair pt-[14px]">
+        <h3 className={`m-0 font-normal ${labelClass}`}>{t.scopeLabel}</h3>
+        <div className="mt-[8px] flex flex-wrap items-center gap-x-[8px] gap-y-[6px]">
+          {reloads.length > 0 ? (
+            <>
+              <span>{t.scopeReload}</span>
+              {reloads.map((u) => (
+                <Tag key={u}>{u}</Tag>
+              ))}
+            </>
+          ) : (
+            <span>{t.scopeNoReload}</span>
+          )}
+        </div>
+        <p className="mt-[6px] mb-0">{dangerous.length > 0 ? t.scopeDanger(dangerous.length) : t.scopeNoDanger}</p>
+      </div>
+
+      <div className="mt-[18px] border-t border-hair pt-[14px]">
+        <h3 className={`m-0 font-normal ${labelClass}`}>{t.stepsLabel}</h3>
+        <ol className="m-0 mt-[8px] list-none p-0">
+          {preview.steps.map((s, i) => (
+            <StepItem key={`${i}-${s.info.id}`} n={i + 1} step={s} tips={tips} />
+          ))}
+        </ol>
+      </div>
+
+      <div className="mt-[22px] border-t border-hair pt-[18px]">
+        <div className="flex flex-wrap gap-[8px]">
+          <Button variant="primary" onClick={press} disabled={running || toRun.length === 0}>
+            {running ? t.running : t.run(toRun.length)}
+          </Button>
+          {onCancel && (
+            <Button onClick={onCancel} disabled={running}>
+              {t.back}
+            </Button>
+          )}
+        </div>
+        {toRun.length === 0 && <p className="mt-[10px] mb-0 text-muted">{t.nothingToRun}</p>}
+        {error != null && (
+          <p role="alert" className="mt-[10px] mb-0 flex items-start gap-[10px]">
+            <span className="mt-[2px] inline-flex w-[20px] flex-none justify-center">
+              <StatusMark status="fail" />
+            </span>
+            <span>{errorMessage(error, lang)}</span>
+          </p>
+        )}
+      </div>
+
+      <Dialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t.confirmTitle(toRun.length)}
+        description={t.confirmBody(dangerous.length)}
+        confirmLabel={t.confirmRun(toRun.length)}
+        busy={running}
+        onConfirm={() => {
+          setConfirming(false);
+          onRun();
+        }}
+      >
+        <ul className="m-0 list-none p-0">
+          {dangerous.map((s) => (
+            <li key={s.info.id} className="border-t border-hair py-[6px] first:border-t-0">
+              {tx(s.info.title, lang)}
+            </li>
+          ))}
+        </ul>
+      </Dialog>
     </section>
   );
+}
+
+function Metric({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div>
+      <dt className={labelClass}>{label}</dt>
+      <dd className="m-0 mt-[4px] text-[24px] leading-[1.2] font-medium tabular-nums">{value}</dd>
+      {sub && <dd className="m-0 text-[12px] text-muted">{sub}</dd>}
+    </div>
+  );
+}
+
+function StepItem({ n, step, tips }: { n: number; step: StepPreview; tips: boolean }) {
+  const t = useStrings(strings);
+  const { lang } = useLang();
+  const { info, done } = step;
+  const files = info.files ?? [];
+  const why = tx(info.why, lang);
+  const noUndo = tx(info.no_undo, lang);
+  return (
+    <li className={`border-t border-hair py-[14px] ${done ? "text-muted" : ""}`}>
+      <div className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[4px]">
+        <span className="font-mono text-[12px] text-muted">{t.stepNumber(n)}</span>
+        <h4 className={`m-0 min-w-0 flex-[1_1_240px] text-[14px] font-semibold ${done ? "text-muted" : ""}`}>{tx(info.title, lang)}</h4>
+        {info.danger && !done && <Tag>{t.danger}</Tag>}
+        {done && <span className="text-[13px]">{t.willSkip}</span>}
+      </div>
+      {tips && why && <p className="mt-[6px] mb-0 text-muted">{why}</p>}
+      {/* Bước đã đúng sẽ bị bỏ qua: không có lệnh hay file nào chạy, nên không liệt kê. */}
+      {!done && (
+        <div className="mt-[8px] flex flex-col gap-[10px]">
+          {noUndo && <p className="m-0 text-muted">{t.noUndo(noUndo)}</p>}
+          {step.check_error && <p className="m-0 text-muted">{t.checkError(step.check_error)}</p>}
+          {(info.commands?.length ?? 0) > 0 && <EvidenceBlock text={(info.commands ?? []).map((c) => `$ ${c}`).join("\n")} label={t.commandsLabel} />}
+          {files.length > 0 && (
+            <div>
+              <div className={`mb-[6px] ${labelClass}`}>{t.filesLabel}</div>
+              {files.map((f) => (
+                <FileDiffView key={f.path} file={f} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+/**
+ * Một file thay đổi dạng diff. Chỉ đen trắng: dòng thêm có dấu "+" và đậm, dòng
+ * bớt có dấu "−" và màu --muted, nên đọc được cả khi in đen trắng. File dài thì
+ * gập lại, bấm tiêu đề để mở (<details> có sẵn bàn phím).
+ */
+function FileDiffView({ file }: { file: FileChange }) {
+  const t = useStrings(strings);
+  const d = useMemo(() => diffFile(file), [file]);
+  const kind = file.delete ? t.fileDelete : !file.old_exists ? t.fileNew : t.fileEdit;
+  const size = d.binary ? 0 : d.added + d.removed;
+  // File mới toàn dòng thêm: đậm cả file thì khó đọc, dấu "+" đã đủ. Đậm chỉ để dòng thêm nổi lên giữa dòng giữ nguyên.
+  const boldAdds = !d.binary && d.lines.some((l) => l.kind !== "add");
+  let body: ReactNode;
+  if (d.binary) body = <Note>{t.fileBinary}</Note>;
+  else if (!d.changed) body = <Note>{file.old_exists ? t.fileUnchanged : t.fileEmptyNew}</Note>;
+  else
+    body = (
+      <div role="group" aria-label={t.diffOf(file.path)} className="bg-pre py-[8px] font-mono text-[12px] leading-[1.55]">
+        {d.lines.map((l, i) =>
+          l.kind === "gap" ? (
+            <div key={i} className="px-[12px] text-muted">
+              {t.gap(l.count)}
+            </div>
+          ) : (
+            <div key={i} className={`flex gap-[8px] px-[12px] ${l.kind === "add" && boldAdds ? "font-semibold" : l.kind === "del" ? "text-muted" : ""}`}>
+              <span className="w-[1ch] flex-none">{l.kind === "add" ? "+" : l.kind === "del" ? "−" : " "}</span>
+              <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{l.text || " "}</span>
+            </div>
+          ),
+        )}
+      </div>
+    );
+  return (
+    <details open={!d.binary && d.changed && size <= 80} className="mt-[8px] border border-hair first:mt-0">
+      <summary className="cursor-pointer px-[12px] py-[8px]">
+        <span className="mr-[12px] font-mono text-[12px] [overflow-wrap:anywhere]">{file.path}</span>
+        <span className="mr-[12px] text-[12px] text-muted">{kind}</span>
+        {!d.binary && d.changed && <span className="font-mono text-[12px] text-muted">{t.diffStat(d.added, d.removed)}</span>}
+      </summary>
+      {body}
+    </details>
+  );
+}
+
+function Note({ children }: { children: ReactNode }) {
+  return <p className="m-0 px-[12px] py-[8px] text-muted">{children}</p>;
+}
+
+/** Dịch vụ sẽ reload, suy từ lệnh "systemctl reload <unit>" của các bước sẽ chạy. */
+function reloadServices(steps: StepPreview[]): string[] {
+  const units = new Set<string>();
+  for (const s of steps) {
+    for (const c of s.info.commands ?? []) {
+      const tok = c.split(/\s+/);
+      const unit = tok[tok.indexOf("reload") + 1]?.replace(/^'|'$/g, "");
+      if (tok.includes("reload") && unit && !unit.startsWith("-")) units.add(unit);
+    }
+  }
+  return [...units];
 }
