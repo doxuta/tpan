@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/templates"
@@ -80,8 +81,13 @@ func SitePool(l site.Layout, phpVersion string) (engine.Step, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước pool PHP-FPM: %w", err)
 	}
+	d := l.Domain.String()
 	return &File{Path: l.PoolConf(phpVersion), Content: conf, Perm: 0o644, Owner: system.Root,
-		Test: test, Reload: reload}, nil
+		Test: test, Reload: reload,
+		Title: i18n.T("Ghi pool PHP-FPM "+l.Pool+" cho "+d, "Write PHP-FPM pool "+l.Pool+" for "+d),
+		Why: i18n.T(
+			"Pool riêng cho PHP của site chạy dưới user "+l.User+", chỉ mở được file trong "+l.Dir+". Thiếu nó thì web server không có chỗ chuyển file .php tới (502); dùng chung pool thì một site bị chiếm đọc được file của site khác.",
+			"A dedicated pool runs the site's PHP as "+l.User+" and only lets it open files under "+l.Dir+". Without it the web server has nowhere to send .php files (502); with a shared pool a compromised site can read the other sites' files.")}, nil
 }
 
 // SiteVhost ghi vhost vào sites-available rồi bật bằng symlink ở
@@ -100,8 +106,13 @@ func SiteVhost(l site.Layout, web, acmeRoot string) ([]engine.Step, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost %s: %w", web, err)
 	}
+	d := l.Domain.String()
 	return []engine.Step{
-		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload},
+		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload,
+			Title: i18n.T("Ghi vhost "+web+" cho "+d, "Write "+web+" vhost for "+d),
+			Why: i18n.T(
+				"Vhost nói cho "+web+" biết request tới "+d+" lấy file ở đâu và chuyển .php cho pool nào. Thiếu nó thì request rơi vào site mặc định của tpan (444 hoặc 403).",
+				"The vhost tells "+web+" where to find files for "+d+" and which pool gets its .php requests. Without it requests fall into tpan's default site (444 or 403).")},
 		&Symlink{Target: v.conf, Link: v.link, Test: v.test, Reload: v.reload},
 	}, nil
 }
@@ -133,9 +144,16 @@ func SiteWebAbsent(l site.Layout, web, phpVersion string) ([]engine.Step, error)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước gỡ web của site: %w", err)
 	}
+	d := l.Domain.String()
+	why := i18n.T(
+		"Gỡ cấu hình web của "+d+" trước khi xoá dữ liệu: web server và PHP-FPM thôi phục vụ site, tiến trình PHP của user "+l.User+" thoát để xoá được user. Bước này hoàn tác được.",
+		"Remove "+d+"'s web configuration before deleting data: the web server and PHP-FPM stop serving the site and the PHP processes of "+l.User+" exit so the user can be deleted. This step can be undone.")
 	return []engine.Step{
-		&Absent{Path: v.link, Test: v.test, Reload: v.reload},
-		&Absent{Path: v.conf, Test: v.test, Reload: v.reload},
-		&Absent{Path: l.PoolConf(phpVersion), Test: ptest, Reload: preload},
+		&Absent{Path: v.link, Test: v.test, Reload: v.reload, Danger: true, Why: why,
+			Title: i18n.T("Tắt vhost của "+d, "Disable the vhost of "+d)},
+		&Absent{Path: v.conf, Test: v.test, Reload: v.reload, Danger: true, Why: why,
+			Title: i18n.T("Gỡ file vhost của "+d, "Remove the vhost file of "+d)},
+		&Absent{Path: l.PoolConf(phpVersion), Test: ptest, Reload: preload, Danger: true, Why: why,
+			Title: i18n.T("Gỡ pool PHP-FPM "+l.Pool, "Remove PHP-FPM pool "+l.Pool)},
 	}, nil
 }

@@ -91,8 +91,9 @@ func checkNames(what string, re *regexp.Regexp, names []string) error {
 	return nil
 }
 
-// checkPerm chỉ nhận 9 bit quyền thường. setgid/setuid/sticky chưa dùng ở M1,
-// và FakeSystem không giữ các bit đó, nên nhận vào là Check không bao giờ đạt.
+// checkPerm chỉ nhận 9 bit quyền thường: file config không cần setuid, setgid
+// hay sticky, và bit setuid trên một file do root ghi là lỗ hổng. Thư mục được
+// thêm setgid qua checkDirPerm.
 func checkPerm(perm fs.FileMode) error {
 	if perm&^fs.ModePerm != 0 {
 		return fmt.Errorf("quyền %v có bit đặc biệt (setgid, setuid, sticky) chưa được hỗ trợ", perm)

@@ -29,6 +29,10 @@ type File struct {
 	Test    *system.Cmd // nil: không có lệnh kiểm cú pháp
 	Reload  *system.Cmd // nil: không cần nạp lại dịch vụ
 	Danger  bool
+	// Title và Why rỗng thì dùng câu chung cho mọi file config. Người dựng
+	// Plan đặt câu riêng khi biết file này là gì (pool, vhost của một site).
+	Title i18n.Text
+	Why   i18n.Text
 
 	prev    saved
 	applied bool
@@ -37,11 +41,11 @@ type File struct {
 func (s *File) Info() engine.StepInfo {
 	return engine.StepInfo{
 		ID:    "file:" + s.Path,
-		Title: i18n.T("Ghi "+s.Path, "Write "+s.Path),
-		Why: i18n.T(
+		Title: orText(s.Title, i18n.T("Ghi "+s.Path, "Write "+s.Path)),
+		Why: orText(s.Why, i18n.T(
 			"Dịch vụ đọc cấu hình từ file này. Thiếu nó hoặc sai nội dung thì dịch vụ chạy theo cấu hình khác với cấu hình tpan đã kiểm. tpan kiểm cú pháp trước khi nạp, sai thì trả file cũ về.",
 			"The service reads its configuration from this file. If it is missing or wrong, the service runs with a configuration tpan has not checked. tpan checks the syntax before reloading and puts the old file back if the check fails.",
-		),
+		)),
 		Commands: cmdStrings(s.Test, s.Reload),
 		Files:    []engine.FileChange{{Path: s.Path, New: s.Content}},
 		Danger:   s.Danger,
@@ -204,12 +208,19 @@ func (s *Symlink) Undo(ctx context.Context, sys system.System) error {
 // ===================================================================== Absent
 
 // Absent đảm bảo một file hoặc symlink không còn. Dùng để gỡ site mặc định của
-// distro (sites-enabled/default của Nginx, 000-default.conf của Apache).
-// Undo trả lại đúng như cũ, nên không có dữ liệu nào mất hẳn.
+// distro (sites-enabled/default của Nginx, 000-default.conf của Apache) và gỡ
+// vhost, pool của một site. Undo trả lại đúng như cũ, nên không có dữ liệu nào
+// mất hẳn.
 type Absent struct {
 	Path   string
 	Test   *system.Cmd
 	Reload *system.Cmd
+	// Danger: gỡ file này làm một dịch vụ ngừng phục vụ (vhost của site).
+	Danger bool
+	// Title và Why rỗng thì dùng câu nói về site mặc định của distro (cách
+	// dùng ở M1).
+	Title i18n.Text
+	Why   i18n.Text
 
 	prev    saved
 	applied bool
@@ -218,14 +229,23 @@ type Absent struct {
 func (s *Absent) Info() engine.StepInfo {
 	return engine.StepInfo{
 		ID:    "absent:" + s.Path,
-		Title: i18n.T("Gỡ "+s.Path, "Remove "+s.Path),
-		Why: i18n.T(
+		Title: orText(s.Title, i18n.T("Gỡ "+s.Path, "Remove "+s.Path)),
+		Why: orText(s.Why, i18n.T(
 			"Site mặc định của distro hứng mọi request không khớp tên miền nào và trả trang chào của nó. Để lại thì site mặc định của tpan (trả 444 hoặc 403) không bao giờ được dùng, và người lạ thấy trang mặc định.",
 			"The distribution's default site catches every request that matches no domain and shows its welcome page. If it stays, tpan's default site (which returns 444 or 403) is never used and strangers see the welcome page.",
-		),
+		)),
 		Commands: cmdStrings(s.Test, s.Reload),
 		Files:    []engine.FileChange{{Path: s.Path, Delete: true}},
+		Danger:   s.Danger,
 	}
+}
+
+// orText trả t, hoặc def khi t rỗng.
+func orText(t, def i18n.Text) i18n.Text {
+	if t.IsZero() {
+		return def
+	}
+	return t
 }
 
 func (s *Absent) Check(_ context.Context, sys system.System) (bool, error) {
