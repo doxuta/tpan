@@ -18,9 +18,9 @@ func init() { register(siteCmd) }
 func siteCmd(e *env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "site",
-		Short: "Tạo, xem và xoá site WordPress",
+		Short: "Tạo, xem, đưa vào thùng rác và khôi phục site WordPress",
 	}
-	c.AddCommand(siteAddCmd(e), siteListCmd(e), siteInfoCmd(e), siteRmCmd(e))
+	c.AddCommand(siteAddCmd(e), siteListCmd(e), siteInfoCmd(e), siteRmCmd(e), siteRestoreCmd(e))
 	return c
 }
 
@@ -62,6 +62,15 @@ func openSites(ctx context.Context, e *env, dryRun bool) (*core.Sites, func(), e
 // planRun là phần chung của site add và site rm: xem trước, hỏi lại, rồi chạy.
 type planRun struct {
 	dryRun, yes, asJSON, verbose bool
+	// note in ngay dưới bản xem trước (không in khi --json), để người dùng biết
+	// hệ quả trước khi gật đầu: vào thùng rác thì lấy lại được, xoá hẳn thì không.
+	note i18n.Text
+}
+
+func (f *planRun) printNote(e *env) {
+	if !f.note.IsZero() {
+		printf(e.stdout, "%s\n\n", f.note.In(e.lang))
+	}
 }
 
 func (f *planRun) flags(c *cobra.Command) {
@@ -75,18 +84,28 @@ func (f *planRun) flags(c *cobra.Command) {
 // previewOrConfirm in bản xem trước khi --dry-run (xong là dừng) hoặc khi phải
 // hỏi lại; trả proceed=true khi được chạy tiếp.
 func (f *planRun) previewOrConfirm(e *env, preview func() (engine.Preview, error)) (proceed bool, err error) {
+	return f.showOrConfirm(e, func() (any, func(), error) {
+		pv, err := preview()
+		return pv, func() { printPreview(e, pv) }, err
+	})
+}
+
+// showOrConfirm là previewOrConfirm cho bản xem trước bất kỳ (trash purge
+// --expired có nhiều Plan): show trả thứ in ra khi --json và hàm in cho người.
+func (f *planRun) showOrConfirm(e *env, show func() (asJSON any, human func(), err error)) (proceed bool, err error) {
 	if !f.dryRun && f.yes {
 		return true, nil
 	}
-	pv, err := preview()
+	v, human, err := show()
 	if err != nil {
 		return false, err
 	}
 	if f.dryRun {
 		if f.asJSON {
-			return false, writeJSON(e.stdout, pv)
+			return false, writeJSON(e.stdout, v)
 		}
-		printPreview(e, pv)
+		human()
+		f.printNote(e)
 		return false, nil
 	}
 	// Không có --yes: phải có người trả lời câu hỏi.
@@ -95,7 +114,8 @@ func (f *planRun) previewOrConfirm(e *env, preview func() (engine.Preview, error
 			"không hỏi xác nhận được (không có terminal hoặc đang dùng --json); xem trước bằng --dry-run rồi chạy lại với --yes",
 			"cannot ask for confirmation (no terminal, or --json is set); preview with --dry-run, then run again with --yes")})
 	}
-	printPreview(e, pv)
+	human()
+	f.printNote(e)
 	if !confirm(e) {
 		printf(e.stdout, "%s\n", e.tr("Đã huỷ, không thay đổi gì.", "Cancelled, nothing changed."))
 		return false, &exitCode{1}
@@ -299,56 +319,120 @@ func siteInfoCmd(e *env) *cobra.Command {
 	return c
 }
 
+// siteJob là một thao tác một-Plan trên site đã có (site rm, site restore,
+// trash purge <domain>), dựng xong và sẵn sàng xem trước hoặc chạy.
+type siteJob struct {
+	plan    engine.Plan
+	preview func(context.Context) (engine.Preview, error)
+	execute func(context.Context, func(engine.Event)) (engine.Report, error)
+}
+
+// runSiteJob là phần chung của các lệnh đó: kiểm domain, đòi root (trừ
+// --dry-run), mở DB, dựng Plan, xem trước hoặc hỏi lại, chạy, ghi audit
+// (action), in báo cáo. after (có thể nil) in thêm một dòng khi job thành công.
+func runSiteJob(cmd *cobra.Command, e *env, f *planRun, arg, action string,
+	prepare func(context.Context, *core.Sites, validate.Domain) (siteJob, error),
+	after func(context.Context, *core.Sites, validate.Domain)) error {
+	ctx := cmd.Context()
+	d, err := parseDomainArg(arg)
+	if err != nil {
+		return fail(e, f.asJSON, err)
+	}
+	if !f.dryRun {
+		if err := requireRoot(e, cmd); err != nil {
+			return fail(e, f.asJSON, err)
+		}
+	}
+	s, done, err := openSites(ctx, e, f.dryRun)
+	if err != nil {
+		return err
+	}
+	defer done()
+
+	j, err := prepare(ctx, s, d)
+	if err != nil {
+		return fail(e, f.asJSON, err)
+	}
+	if ok, err := f.previewOrConfirm(e, func() (engine.Preview, error) { return j.preview(ctx) }); !ok {
+		return err
+	}
+
+	rep, err := j.execute(ctx, f.progress(e, j.plan).onEvent)
+	cliAudit(ctx, e, s.Store, action, d.String(), rep.Job)
+	if err != nil && rep.Job.ID == "" {
+		return err
+	}
+	if f.asJSON {
+		if werr := writeJSON(e.stdout, rep); werr != nil {
+			return werr
+		}
+	} else {
+		printReport(e, rep)
+	}
+	if err != nil {
+		return err
+	}
+	if rep.Job.Status != engine.JobSucceeded {
+		return &exitCode{1}
+	}
+	if after != nil && !f.asJSON {
+		after(ctx, s, d)
+	}
+	return nil
+}
+
 func siteRmCmd(e *env) *cobra.Command {
 	var f planRun
 	c := &cobra.Command{
 		Use:   "rm <domain>",
-		Short: "Xoá hẳn một site: vhost, pool, DB, file, user (không lấy lại được)",
+		Short: "Đưa một site vào thùng rác: tắt vhost và pool, khoá user, chuyển thư mục (khôi phục được bằng tpan site restore)",
+		Long: "Đưa site vào thùng rác (không mất dữ liệu): tắt vhost và pool PHP, khoá user DB và user Linux,\n" +
+			"chuyển thư mục site vào " + site.TrashRoot + ". Site nằm đó số ngày giữ của thùng rác\n" +
+			"(xem bằng tpan trash settings) rồi mới bị xoá hẳn. Khôi phục bằng tpan site restore <domain>.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			f.note = i18n.T(
+				"Site sẽ vào thùng rác, chưa mất dữ liệu: khôi phục bằng `sudo tpan site restore "+args[0]+"` cho tới khi hết hạn giữ, rồi nó bị xoá hẳn.",
+				"The site goes to the trash and no data is lost yet: restore it with `sudo tpan site restore "+args[0]+"` until the retention runs out, then it is deleted for good.")
+			return runSiteJob(cmd, e, &f, args[0], "site.rm",
+				func(ctx context.Context, s *core.Sites, d validate.Domain) (siteJob, error) {
+					rm, err := s.PrepareRemove(ctx, d)
+					if err != nil {
+						return siteJob{}, err
+					}
+					return siteJob{plan: rm.Plan, preview: rm.Preview, execute: rm.Execute}, nil
+				},
+				func(ctx context.Context, s *core.Sites, d validate.Domain) {
+					st, ok, err := s.Store.Site(ctx, d)
+					if err != nil || !ok {
+						return
+					}
+					when := st.PurgeAt.Local().Format("2006-01-02 15:04")
+					printf(e.stdout, "%s\n", e.tr(
+						"Site "+d.String()+" đã vào thùng rác; xoá hẳn lúc "+when+". Khôi phục: sudo tpan site restore "+d.String(),
+						"Site "+d.String()+" is in the trash; it will be deleted for good at "+when+". Restore: sudo tpan site restore "+d.String()))
+				})
+		},
+	}
+	f.flags(c)
+	return c
+}
+
+func siteRestoreCmd(e *env) *cobra.Command {
+	var f planRun
+	c := &cobra.Command{
+		Use:   "restore <domain>",
+		Short: "Khôi phục một site từ thùng rác rồi chạy lại các phép kiểm của site",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
-			d, err := parseDomainArg(args[0])
-			if err != nil {
-				return fail(e, f.asJSON, err)
-			}
-			if !f.dryRun {
-				if err := requireRoot(e, cmd); err != nil {
-					return fail(e, f.asJSON, err)
-				}
-			}
-			s, done, err := openSites(ctx, e, f.dryRun)
-			if err != nil {
-				return err
-			}
-			defer done()
-
-			rm, err := s.PrepareRemove(ctx, d)
-			if err != nil {
-				return fail(e, f.asJSON, err)
-			}
-			if ok, err := f.previewOrConfirm(e, func() (engine.Preview, error) { return rm.Preview(ctx) }); !ok {
-				return err
-			}
-
-			rep, err := rm.Execute(ctx, f.progress(e, rm.Plan).onEvent)
-			cliAudit(ctx, e, s.Store, "site.rm", d.String(), rep.Job)
-			if err != nil && rep.Job.ID == "" {
-				return err
-			}
-			if f.asJSON {
-				if werr := writeJSON(e.stdout, rep); werr != nil {
-					return werr
-				}
-			} else {
-				printReport(e, rep)
-			}
-			if err != nil {
-				return err
-			}
-			if rep.Job.Status != engine.JobSucceeded {
-				return &exitCode{1}
-			}
-			return nil
+			return runSiteJob(cmd, e, &f, args[0], "site.restore",
+				func(ctx context.Context, s *core.Sites, d validate.Domain) (siteJob, error) {
+					r, err := s.PrepareRestore(ctx, d)
+					if err != nil {
+						return siteJob{}, err
+					}
+					return siteJob{plan: r.Plan, preview: r.Preview, execute: r.Execute}, nil
+				}, nil)
 		},
 	}
 	f.flags(c)

@@ -660,8 +660,10 @@ func TestSiteRemovePlanFlow(t *testing.T) {
 	if err != nil || res.Report.Job.Status != engine.JobSucceeded {
 		t.Fatalf("xoá: %v, %s", err, res.Report.Job.Status)
 	}
-	if pe.sites.count() != 0 {
-		t.Error("xoá xong mà bảng sites còn site")
+	// M6: site.rm là đưa vào thùng rác, dòng còn ở trạng thái trashed.
+	st, ok, _ := pe.sites.Site(ctx, mustDomain(t, "shop.example.com"))
+	if !ok || st.Status != site.Trashed {
+		t.Errorf("sau site.rm, bảng sites = %+v (có %v); muốn trashed", st, ok)
 	}
 }
 
