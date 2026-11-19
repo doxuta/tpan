@@ -1,0 +1,9 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+Explanation: tpan ghim kho ngoài để apt không tự thay các gói Ubuntu đang chạy bằng bản của kho đó; chỉ các gói nêu rõ dưới đây mới lấy từ kho ngoài.
+Package: *
+Pin: origin packages.sury.org
+Pin-Priority: 100
+
+Package: php-common php8.4*
+Pin: origin packages.sury.org
+Pin-Priority: 500

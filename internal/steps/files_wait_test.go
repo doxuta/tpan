@@ -26,18 +26,18 @@ func TestSitePoolWaitsForSocket(t *testing.T) {
 		// Socket có sau lần reload, ở một goroutine khác, như tiến trình thật.
 		go func() {
 			time.Sleep(50 * time.Millisecond)
-			m.SetSocket(l.Socket, 0o660, wwwSock)
+			m.SetSocket(l.SocketFor("8.3"), 0o660, wwwSock)
 		}()
 		return system.Result{}
 	})
 	p := webStepOK(t)(SitePool(l, "8.3")).(*File)
-	if p.WaitFor != l.Socket {
-		t.Fatalf("WaitFor = %q, muốn %q", p.WaitFor, l.Socket)
+	if p.WaitFor != l.SocketFor("8.3") {
+		t.Fatalf("WaitFor = %q, muốn %q", p.WaitFor, l.SocketFor("8.3"))
 	}
 	if err := p.Apply(context.Background(), m); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.Stat(l.Socket); err != nil {
+	if _, err := m.Stat(l.SocketFor("8.3")); err != nil {
 		t.Fatalf("Apply trả về trước khi socket có: %v", err)
 	}
 }

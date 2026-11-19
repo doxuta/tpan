@@ -78,7 +78,11 @@ server {
         # Chỉ chuyển cho PHP file .php có thật. Không có dòng này thì
         # /uploads/anh.jpg/x.php có thể khiến PHP chạy anh.jpg như mã.
         try_files $uri =404;
-        include fastcgi.conf;
-        fastcgi_pass unix:/run/php/tpan-example_com_a379a6.sock;
+        # fastcgi.conf của Ubuntu chính là fastcgi_params cộng dòng SCRIPT_FILENAME
+        # này. Gói nginx của nginx.org không có fastcgi.conf, nên ghi rõ cả hai để
+        # vhost chạy được với cả hai gói.
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/tpan-example_com_a379a6-8.3.sock;
     }
 }

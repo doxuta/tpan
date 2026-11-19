@@ -396,7 +396,7 @@ sym01() {
 }
 sym02() {
   local sock
-  sock="/run/php/tpan-$(slug_of "$A").sock"
+  sock="/run/php/tpan-$(slug_of "$A")-8.3.sock"
   if [ "$1" = break ]; then
     vroot test -S "$sock"
     ok "socket của $A không còn" rc_not 0
@@ -602,7 +602,7 @@ part_d() {
 
   section "mục 16 ý 1: socket pool bị xoá: reload có tạo lại không, restart có không (đo, không phải sửa)"
   local sock
-  sock="/run/php/tpan-$(slug_of "$A").sock"
+  sock="/run/php/tpan-$(slug_of "$A")-8.3.sock"
   vroot rm -f "$sock"
   vroot test -S "$sock"
   printf '(test -S sau khi xoá: mã %s)\n' "$RC"

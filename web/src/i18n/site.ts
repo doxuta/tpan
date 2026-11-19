@@ -90,6 +90,20 @@ const vi = {
   },
   vhostNoStack: "chưa có, stack chưa cài",
 
+  // ---- khối PHP ----
+  phpHeading: "PHP",
+  phpVersion: "Bản PHP đang dùng",
+  phpSocket: "Socket",
+  phpChoose: "Đổi sang bản",
+  phpNone: "Máy chưa cài bản PHP nào khác để đổi sang. Cài thêm ở màn Stack.",
+  phpChange: "Đổi bản PHP",
+  phpPreviewing: "Đang dựng bản xem trước…",
+  phpHint:
+    "Đổi không gián đoạn: pool mới chạy song song với pool cũ, TPAN kiểm site trả 200 rồi mới gỡ pool cũ. Lỗi ở bước nào thì site ở lại bản cũ. Bấm là xem trước, chưa có gì đổi.",
+  phpFailed: (version: string) => `Chưa dựng được bản xem trước đổi sang PHP ${version}`,
+  phpChecksHeading: "Điều kiện chưa đạt",
+  phpLoadFailed: "Chưa đọc được danh sách bản PHP.",
+
   deleteHeading: "Đưa vào thùng rác",
   deleteHintLead: "Site không bị xoá mất: dữ liệu giữ nguyên và khôi phục được trong số ngày giữ đặt ở màn ",
   trashLink: "Thùng rác",
@@ -198,6 +212,19 @@ export const strings = defineStrings(vi, {
     phpErrorLog: "PHP error log",
   },
   vhostNoStack: "none yet, the stack is not installed",
+
+  phpHeading: "PHP",
+  phpVersion: "PHP version in use",
+  phpSocket: "Socket",
+  phpChoose: "Change to version",
+  phpNone: "No other PHP version is installed to switch to. Install one on the Stack page.",
+  phpChange: "Change PHP version",
+  phpPreviewing: "Building the preview…",
+  phpHint:
+    "The change causes no downtime: the new pool runs alongside the old one, TPAN checks the site answers 200, and only then removes the old pool. If any step fails, the site stays on the old version. Pressing it shows a preview; nothing changes yet.",
+  phpFailed: (version) => `Could not build the preview to switch to PHP ${version}`,
+  phpChecksHeading: "Conditions not met",
+  phpLoadFailed: "Could not read the list of PHP versions.",
 
   deleteHeading: "Move to trash",
   deleteHintLead: "The site is not lost: its data stays and can be restored within the retention days set on the ",

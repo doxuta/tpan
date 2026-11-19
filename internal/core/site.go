@@ -470,7 +470,7 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 	if ssl {
 		vhostOf = steps.SiteVhostSSL
 	}
-	vhost, err := vhostOf(l, string(web), acmeRoot)
+	vhost, err := vhostOf(l, string(web), php, acmeRoot)
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
@@ -693,6 +693,8 @@ func (s *Sites) List(ctx context.Context) ([]site.Site, error) {
 type SiteInfo struct {
 	Site   site.Site   `json:"site"`
 	Layout site.Layout `json:"layout"`
+	// Socket là socket của pool site đang dùng (theo bản PHP của site, M12).
+	Socket string `json:"socket"`
 	// Web là web server của stack; rỗng khi stack chưa cài (khi đó Checks rỗng).
 	Web    WebServer       `json:"web"`
 	Checks []checks.Result `json:"checks"`
@@ -704,7 +706,11 @@ func (s *Sites) Info(ctx context.Context, d validate.Domain) (SiteInfo, error) {
 	if err != nil {
 		return SiteInfo{}, err
 	}
-	return SiteInfo{Site: st, Layout: st.Layout(), Web: h.Config.Web, Checks: h.Results}, nil
+	php := st.PHPVersion
+	if php == "" {
+		php = h.Config.PHPVersion
+	}
+	return SiteInfo{Site: st, Layout: st.Layout(), Socket: st.Layout().SocketFor(php), Web: h.Config.Web, Checks: h.Results}, nil
 }
 
 // Health chạy bộ phép kiểm của một site (mục 6.7): đường đi của request và cô

@@ -65,10 +65,10 @@ package steps
 //	}
 //
 //	// SiteVhostSSL giống SiteVhost (site_web.go) nhưng nội dung là
-//	// templates.SiteVhost(l, web, acmeRoot, true): ghi file vhost (Test, Reload
+//	// templates.SiteVhost(l, web, phpVersion, acmeRoot, true): ghi file vhost (Test, Reload
 //	// như SiteVhost) rồi Symlink bật nó. Ghi đè vhost cổng 80 đang có; File của
 //	// M1 giữ bản cũ nên Undo trả lại được.
-//	func SiteVhostSSL(l site.Layout, web, acmeRoot string) ([]engine.Step, error)
+//	func SiteVhostSSL(l site.Layout, web, phpVersion, acmeRoot string) ([]engine.Step, error)
 //
 //	// DefaultSSL trả các bước của site mặc định cổng 443 cho web:
 //	//   nginx:  File tpan-default-ssl.conf (templates.NginxDefaultSSL) + Symlink,

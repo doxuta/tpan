@@ -144,14 +144,14 @@ func TestVhostEnabledUnknown(t *testing.T) {
 
 func socketFixture(l site.Layout, owner system.Owner, mode fs.FileMode) *system.FakeSystem {
 	f := system.NewFake()
-	f.SetSocket(l.Socket, mode, owner)
+	f.SetSocket(l.SocketFor("8.3"), mode, owner)
 	return f
 }
 
 func TestPoolSocketPass(t *testing.T) {
 	l := siteLayout(t, "shop.example.com")
 	s := socketFixture(l, wwwData, 0o660)
-	r := PoolSocket(l).Run(bg(), s)
+	r := PoolSocket(l, "8.3").Run(bg(), s)
 	assertShape(t, r, "php.socket:shop.example.com", StagePHP, Pass)
 	assertNoCmd(t, s)
 }
@@ -159,9 +159,9 @@ func TestPoolSocketPass(t *testing.T) {
 func TestPoolSocketFail(t *testing.T) {
 	l := siteLayout(t, "shop.example.com")
 	run := func(s system.System) Result {
-		r := PoolSocket(l).Run(bg(), s)
+		r := PoolSocket(l, "8.3").Run(bg(), s)
 		assertShape(t, r, "php.socket:shop.example.com", StagePHP, Fail)
-		if lastFix(r) != "ls -l "+l.Socket {
+		if lastFix(r) != "ls -l "+l.SocketFor("8.3") {
 			t.Errorf("ManualFix cuối = %q", lastFix(r))
 		}
 		return r
@@ -177,7 +177,7 @@ func TestPoolSocketFail(t *testing.T) {
 	})
 	t.Run("file thường chứ không phải socket", func(t *testing.T) {
 		f := system.NewFake()
-		f.SetFile(l.Socket, nil, 0o660, wwwData)
+		f.SetFile(l.SocketFor("8.3"), nil, 0o660, wwwData)
 		r := run(f)
 		if !strings.Contains(r.Summary.Vi, "không phải socket") {
 			t.Errorf("Summary = %q", r.Summary.Vi)
@@ -206,8 +206,8 @@ func TestPoolSocketFail(t *testing.T) {
 func TestPoolSocketUnknown(t *testing.T) {
 	l := siteLayout(t, "shop.example.com")
 	l.Pool = "tpan-x; rm -rf /"
-	assertShape(t, PoolSocket(l).Run(bg(), system.NewFake()), "php.socket:shop.example.com", StagePHP, Unknown)
-	assertShape(t, PoolSocket(site.Layout{}).Run(bg(), system.NewFake()), "php.socket:", StagePHP, Unknown)
+	assertShape(t, PoolSocket(l, "8.3").Run(bg(), system.NewFake()), "php.socket:shop.example.com", StagePHP, Unknown)
+	assertShape(t, PoolSocket(site.Layout{}, "8.3").Run(bg(), system.NewFake()), "php.socket:", StagePHP, Unknown)
 }
 
 // ---- WPChecksums ----
@@ -586,8 +586,8 @@ func TestHTTPSiteCases(t *testing.T) {
 		{"domain đứng cuối câu", 0, httpOut(`wp-content Chào mừng tới shop.example.com.`, "200"), "", Pass, "200", nil},
 		{"domain kèm cổng", 0, httpOut(`wp-content http://shop.example.com:80/`, "200"), "", Pass, "200", nil},
 		{"200 là WordPress của site khác", 0, httpOut(`<link href="http://khac.example.net/wp-content/x.css">`, "200"), "", Fail, "shop.example.com", nil},
-		{"502", 0, httpOut("<html>502 Bad Gateway</html>", "502"), "", Fail, "502", []string{"ls -l " + l.Socket}},
-		{"504", 0, httpOut("", "504"), "", Fail, "504", []string{"ls -l " + l.Socket}},
+		{"502", 0, httpOut("<html>502 Bad Gateway</html>", "502"), "", Fail, "502", []string{"ls -l /run/php"}},
+		{"504", 0, httpOut("", "504"), "", Fail, "504", []string{"ls -l /run/php"}},
 		{"500", 0, httpOut("Error establishing a database connection", "500"), "", Fail, "500", []string{"tail -n 20 " + l.PHPErrorLog}},
 		{"301 chuyển hướng", 0, httpOut("", "301"), "", Fail, "301", nil},
 		{"404", 0, httpOut("not found", "404"), "", Fail, "404", nil},

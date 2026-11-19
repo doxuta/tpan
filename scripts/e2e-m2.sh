@@ -196,7 +196,7 @@ getent passwd "$u" >/dev/null && echo "CÒN user Linux $u" || echo "không có u
 getent group "$u" >/dev/null && echo "CÒN nhóm $u" || echo "không có nhóm $u"
 mariadb -N -B -e "SHOW DATABASES" | grep -qx "$u" && echo "CÒN DB $u" || echo "không có DB $u"
 mariadb -N -B -e "SELECT User FROM mysql.user" | grep -qx "$u" && echo "CÒN user DB $u" || echo "không có user DB $u"
-for p in "/var/www/$d" "/var/log/tpan/sites/$d" "/etc/php/$php/fpm/pool.d/tpan-$slug.conf" "/run/php/tpan-$slug.sock" "/etc/$web/sites-enabled/tpan-$d.conf"; do
+for p in "/var/www/$d" "/var/log/tpan/sites/$d" "/etc/php/$php/fpm/pool.d/tpan-$slug.conf" "/run/php/tpan-$slug-$php.sock" "/etc/$web/sites-enabled/tpan-$d.conf"; do
   if [ -e "$p" ] || [ -L "$p" ]; then echo "CÒN $p"; else echo "không có $p"; fi
 done
 p="/etc/$web/sites-available/tpan-$d.conf"
@@ -310,7 +310,7 @@ check_isolation() {
     ok "$u đọc được wp-config.php của chính mình" rc_is 0
     vroot runuser -u www-data -- test -r "/var/www/$d/public/wp-config.php"
     ok "www-data không đọc được wp-config.php của $d" rc_is 1
-    vroot stat -c '%a %U:%G %n' "/var/www/$d" "/var/www/$d/public" "/var/www/$d/tmp" "/var/www/$d/public/wp-config.php" "/var/www/$d/public/index.php" "/var/log/tpan/sites/$d" "/var/log/tpan/sites/$d/php-error.log" "/run/php/tpan-$(slug_of "$d").sock"
+    vroot stat -c '%a %U:%G %n' "/var/www/$d" "/var/www/$d/public" "/var/www/$d/tmp" "/var/www/$d/public/wp-config.php" "/var/www/$d/public/index.php" "/var/log/tpan/sites/$d" "/var/log/tpan/sites/$d/php-error.log" "/run/php/tpan-$(slug_of "$d")-8.3.sock"
     ok "thư mục site 2750 $u:www-data" hasF "2750 $u:www-data /var/www/$d"
     ok "wp-config.php 600 $u" has "^600 $u:"
     ok "socket 660 www-data:www-data" hasF "660 www-data:www-data /run/php/tpan-"

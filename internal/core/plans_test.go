@@ -427,9 +427,9 @@ func TestSiteRepairFixesVhost(t *testing.T) {
 			pe := newPlanEnv(t, web)
 			pe.add(t, "shop.example.com")
 			l := pe.layout(t, "shop.example.com")
-			conf, want := l.NginxConf, func() ([]byte, error) { return templates.NginxSite(l, acmeRoot) }
+			conf, want := l.NginxConf, func() ([]byte, error) { return templates.NginxSite(l, "8.3", acmeRoot) }
 			if web == Apache {
-				conf, want = l.ApacheConf, func() ([]byte, error) { return templates.ApacheSite(l, acmeRoot) }
+				conf, want = l.ApacheConf, func() ([]byte, error) { return templates.ApacheSite(l, "8.3", acmeRoot) }
 			}
 			tmpl, err := want()
 			if err != nil {

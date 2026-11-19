@@ -111,7 +111,7 @@ func newFixEnv(t *testing.T, web WebServer, doms ...string) *fixEnv {
 		names, _ := m.ReadDir("/etc/php/8.3/fpm/pool.d")
 		for _, n := range names {
 			if pool, ok := strings.CutSuffix(n, ".conf"); ok {
-				m.SetSocket("/run/php/"+pool+".sock", 0o660, system.Owner{User: "www-data", Group: "www-data"})
+				m.SetSocket("/run/php/"+pool+"-8.3.sock", 0o660, system.Owner{User: "www-data", Group: "www-data"})
 			}
 		}
 		return system.Result{}
@@ -249,7 +249,7 @@ func TestFixDBUnlock(t *testing.T) {
 func TestFixPHPRestart(t *testing.T) {
 	e := newFixEnv(t, Nginx, fixDom)
 	l := site.LayoutOf(mustDomain(t, fixDom))
-	if err := e.m.Remove(l.Socket); err != nil {
+	if err := e.m.Remove(l.SocketFor("8.3")); err != nil {
 		t.Fatal(err)
 	}
 	r := e.recheck(t, fixDom, "php.socket:"+fixDom)

@@ -42,8 +42,9 @@ type siteData struct {
 }
 
 // SitePool sinh file pool PHP-FPM của site: /etc/php/<ver>/fpm/pool.d/tpan-<slug>.conf.
-func SitePool(l site.Layout) ([]byte, error) {
-	d, err := siteDataOf(l)
+// php là bản PHP của pool ("8.3"): socket mang số bản (site.Layout.SocketFor).
+func SitePool(l site.Layout, php string) ([]byte, error) {
+	d, err := siteDataOf(l, php)
 	if err != nil {
 		return nil, fmt.Errorf("sinh pool PHP-FPM: %w", err)
 	}
@@ -51,18 +52,19 @@ func SitePool(l site.Layout) ([]byte, error) {
 	return siteRender("site-pool.conf.tmpl", d)
 }
 
-// NginxSite sinh vhost Nginx của site. acmeRoot là webroot chung của Let's Encrypt.
-func NginxSite(l site.Layout, acmeRoot string) ([]byte, error) {
-	d, err := siteVhostData(l, acmeRoot)
+// NginxSite sinh vhost Nginx của site. php là bản PHP site đang dùng (chọn
+// socket); acmeRoot là webroot chung của Let's Encrypt.
+func NginxSite(l site.Layout, php, acmeRoot string) ([]byte, error) {
+	d, err := siteVhostData(l, php, acmeRoot)
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost nginx: %w", err)
 	}
 	return siteRender("site-nginx.conf.tmpl", d)
 }
 
-// ApacheSite sinh vhost Apache của site. acmeRoot là webroot chung của Let's Encrypt.
-func ApacheSite(l site.Layout, acmeRoot string) ([]byte, error) {
-	d, err := siteVhostData(l, acmeRoot)
+// ApacheSite sinh vhost Apache của site. php và acmeRoot như NginxSite.
+func ApacheSite(l site.Layout, php, acmeRoot string) ([]byte, error) {
+	d, err := siteVhostData(l, php, acmeRoot)
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost apache: %w", err)
 	}
@@ -79,8 +81,8 @@ func WPHtaccess() []byte {
 	return out
 }
 
-func siteVhostData(l site.Layout, acmeRoot string) (siteData, error) {
-	d, err := siteDataOf(l)
+func siteVhostData(l site.Layout, php, acmeRoot string) (siteData, error) {
+	d, err := siteDataOf(l, php)
 	if err != nil {
 		return siteData{}, err
 	}
@@ -95,7 +97,7 @@ func siteVhostData(l site.Layout, acmeRoot string) (siteData, error) {
 // siteDataOf kiểm Layout rồi chép các trường cần dùng. Kiểm hai lớp: Layout
 // phải đúng là LayoutOf(Domain), và mọi tên, đường dẫn vẫn qua danh sách ký tự
 // cho phép (lớp chặn cuối, phòng khi quy tắc của LayoutOf đổi về sau).
-func siteDataOf(l site.Layout) (siteData, error) {
+func siteDataOf(l site.Layout, php string) (siteData, error) {
 	if l.Domain.IsZero() {
 		return siteData{}, fmt.Errorf("%w: Layout zero (chưa có domain)", ErrParam)
 	}
@@ -107,7 +109,10 @@ func siteDataOf(l site.Layout) (siteData, error) {
 			return siteData{}, fmt.Errorf("%w: tên %q có ký tự không cho phép", ErrParam, n)
 		}
 	}
-	for _, p := range []string{l.Dir, l.Public, l.Tmp, l.LogDir, l.PHPErrorLog, l.Socket} {
+	if !phpVersion.MatchString(php) {
+		return siteData{}, fmt.Errorf("%w: bản PHP %q không hợp lệ (dạng 8.3)", ErrParam, php)
+	}
+	for _, p := range []string{l.Dir, l.Public, l.Tmp, l.LogDir, l.PHPErrorLog, l.SocketFor(php)} {
 		if err := siteCheckPath(p); err != nil {
 			return siteData{}, err
 		}
@@ -122,7 +127,7 @@ func siteDataOf(l site.Layout) (siteData, error) {
 		Tmp:         l.Tmp,
 		LogDir:      l.LogDir,
 		PHPErrorLog: l.PHPErrorLog,
-		Socket:      l.Socket,
+		Socket:      l.SocketFor(php),
 	}, nil
 }
 

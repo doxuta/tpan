@@ -224,11 +224,18 @@ func VhostEnabled(web string, l site.Layout) Check {
 
 // PoolSocket kiểm socket của pool: tồn tại, là socket, chủ www-data:www-data,
 // quyền 0660. Web server nói chuyện với PHP qua socket này; chủ hay quyền sai
-// thì web server nhận "permission denied" và trả 502.
-func PoolSocket(l site.Layout) Check {
+// thì web server nhận "permission denied" và trả 502. php là bản PHP site đang
+// dùng: socket mang số bản (site.Layout.SocketFor).
+func PoolSocket(l site.Layout, php string) Check {
 	b := siteBase("php.socket", StagePHP, l,
 		i18n.T("Socket của pool PHP có, đúng chủ và đúng quyền", "The PHP pool socket exists, with the right owner and mode"))
-	if g := siteGuard(b, l, false, l.Socket); g != nil {
+	sock := l.SocketFor(php)
+	if !phpVersionRE.MatchString(php) {
+		return checkFunc(func(context.Context, system.System) Result {
+			return b.unknown(i18n.T("bản PHP không hợp lệ (\""+php+"\")", "the PHP version is not valid (\""+php+"\")"))
+		})
+	}
+	if g := siteGuard(b, l, false, sock); g != nil {
 		return g
 	}
 	if !sitePoolRE.MatchString(l.Pool) {
@@ -240,17 +247,17 @@ func PoolSocket(l site.Layout) Check {
 	// Dấu * để shell mở rộng ra mọi bản PHP; không qua line() vì line() đặt nó trong nháy.
 	poolGlob := "/etc/php/*/fpm/pool.d/" + l.Pool + ".conf"
 	phpUnits := "php*-fpm.service" // systemctl tự mở rộng mẫu này, nên để line() đặt trong nháy là đúng
-	recheck := line("ls", "-l", l.Socket)
+	recheck := line("ls", "-l", sock)
 	const wantMode = fs.FileMode(0o660)
 
 	return checkFunc(func(ctx context.Context, sys system.System) Result {
-		info, ev, missing, err := siteStat(sys, l.Socket)
+		info, ev, missing, err := siteStat(sys, sock)
 		if err != nil {
-			return siteStatUnknown(b, l.Socket, err, ev)
+			return siteStatUnknown(b, sock, err, ev)
 		}
 		if missing {
 			return b.bad(Fail,
-				i18n.T("Không có socket "+l.Socket, "The socket "+l.Socket+" is missing"),
+				i18n.T("Không có socket "+sock, "The socket "+sock+" is missing"),
 				i18n.T("Pool PHP-FPM của site chưa chạy (file pool chưa có, chưa được nạp, hoặc PHP-FPM đang dừng). Web server không có chỗ chuyển request PHP tới: lỗi 502.",
 					"The site's PHP-FPM pool is not running (the pool file is missing or not loaded, or PHP-FPM is stopped). The web server has nowhere to send PHP requests: error 502."),
 				// restart chứ không reload: socket bị xoá thì reload không tạo lại
@@ -260,10 +267,10 @@ func PoolSocket(l site.Layout) Check {
 		}
 		if info.Mode&fs.ModeSocket == 0 {
 			return b.bad(Fail,
-				i18n.T(l.Socket+" tồn tại nhưng không phải socket", l.Socket+" exists but is not a socket"),
+				i18n.T(sock+" tồn tại nhưng không phải socket", sock+" exists but is not a socket"),
 				i18n.T("Có một file thường nằm ở chỗ của socket (thường do ai đó tạo tay), PHP-FPM không bind được vào đó.",
 					"A regular file sits where the socket should be (usually created by hand), so PHP-FPM cannot bind to it."),
-				[]string{line("ls", "-l", l.Socket), line("systemctl", "status", phpUnits, "--no-pager"), recheck}, ev)
+				[]string{line("ls", "-l", sock), line("systemctl", "status", phpUnits, "--no-pager"), recheck}, ev)
 		}
 
 		var vi, en []string
@@ -555,7 +562,7 @@ const siteBodyEvidence = 1024
 func HTTPSite(l site.Layout) Check {
 	b := siteBase("http.site", StageEndToEnd, l,
 		i18n.T("Gọi HTTP vào site trả 200 và đúng là WordPress của site", "An HTTP request to the site returns 200 and is the site's WordPress"))
-	if g := siteGuard(b, l, true, l.Socket, l.LogDir, l.PHPErrorLog, l.Public); g != nil {
+	if g := siteGuard(b, l, true, l.LogDir, l.PHPErrorLog, l.Public); g != nil {
 		return g
 	}
 	dom := l.Domain.String()
@@ -629,7 +636,7 @@ func HTTPSite(l site.Layout) Check {
 				i18n.T("Site trả "+code+": web server không nói chuyện được với PHP", "The site answered "+code+": the web server cannot talk to PHP"),
 				i18n.T("Pool PHP-FPM của site không chạy, socket sai chủ hay quyền, hoặc pool quá tải (504).",
 					"The site's PHP-FPM pool is not running, the socket has the wrong owner or mode, or the pool is overloaded (504)."),
-				[]string{line("ls", "-l", l.Socket), line("systemctl", "status", "php*-fpm.service", "--no-pager"), line("tail", "-n", "20", l.LogDir+"/error.log"), recheck}, ev)
+				[]string{line("ls", "-l", "/run/php"), line("systemctl", "status", "php*-fpm.service", "--no-pager"), line("tail", "-n", "20", l.LogDir+"/error.log"), recheck}, ev)
 		case "500":
 			return b.bad(Fail,
 				i18n.T("Site trả 500: PHP hoặc WordPress báo lỗi", "The site answered 500: PHP or WordPress reported an error"),
@@ -709,13 +716,12 @@ func siteHTTPEvidence(code, body, stderr string) string {
 // Cú pháp PHP-FPM (PHPFPMConfig) không nằm ở đây dù thuộc chặng PHP: nó là
 // phép kiểm của cả máy, đã có trong phép kiểm stack. Lặp lại ở từng site thì
 // cùng một ID xuất hiện N lần, bản đồ tuyến vẽ một lỗi thành N sự cố, và health
-// (M4) mở đóng sự cố theo ID sẽ va nhau. phpVersion giữ cho M12, khi mỗi site
-// có thể chạy một bản PHP riêng.
+// (M4) mở đóng sự cố theo ID sẽ va nhau. phpVersion là bản PHP site đang dùng
+// (M12: mỗi site một bản), chọn socket của pool.
 func SiteChecks(web, phpVersion string, l site.Layout) []Check {
-	_ = phpVersion
 	return []Check{
 		VhostEnabled(web, l),
-		PoolSocket(l),
+		PoolSocket(l, phpVersion),
 		// Nặng: wp core verify-checksums đọc lại toàn bộ mã nguồn và tải danh
 		// sách checksum từ wordpress.org.
 		Heavy(WPChecksums(l)),

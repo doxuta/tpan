@@ -4,8 +4,8 @@
 #   scripts/faults/02-pool-socket-rm.sh break <domain>
 #   scripts/faults/02-pool-socket-rm.sh restore <domain>
 #
-# Gây lỗi: rm -f /run/php/tpan-<slug>.sock (đường dẫn lấy từ
-# `tpan site info <domain> --json`, trường layout.socket). PHP-FPM vẫn chạy
+# Gây lỗi: rm -f /run/php/tpan-<slug>-<bản PHP>.sock (đường dẫn lấy từ
+# `tpan site info <domain> --json`, trường socket). PHP-FPM vẫn chạy
 # nhưng web server không còn chỗ để nói chuyện với pool: site trả 502.
 # Chặng chuyển sang lỗi: PHP. Mong đợi Fail:
 #   php.socket:<domain>
@@ -23,9 +23,9 @@ mode=$1 domain=$2
 
 case "$mode" in
   break)
-    sock="$(site_field "$domain" layout.socket)"
+    sock="$(site_field "$domain" socket)"
     # rm chạy bằng root: chỉ nhận đúng dạng socket tpan đặt (mục 5).
-    [[ "$sock" =~ ^/run/php/tpan-[a-z0-9_-]+\.sock$ ]] || die "đường dẫn socket lạ: $sock"
+    [[ "$sock" =~ ^/run/php/tpan-[a-z0-9_-]+-[0-9]+\.[0-9]+\.sock$ ]] || die "đường dẫn socket lạ: $sock"
     vm_root rm -f "$sock"
     printf 'Đã xoá %s. Mong đợi Fail: php.socket:%s\n' "$sock" "$domain"
     ;;

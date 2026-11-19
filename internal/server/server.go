@@ -93,6 +93,8 @@ type Server struct {
 	// sched là bộ hẹn giờ health; nil khi không chạy bằng Run (test dùng
 	// NewHandler), khi đó kick không làm gì.
 	sched *health.Scheduler
+	// phpNotes đệm ghi chú của GET /api/v1/php (api_m12.go). Zero value dùng được.
+	phpNotes phpNotes
 }
 
 func (s *Server) now() time.Time {
@@ -210,6 +212,15 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("GET /api/v1/ai/sessions/{id}", auth(s.handleAISession))
 	mux.Handle("GET /api/v1/ai/sessions/{id}/turns/{seq}/events", auth(s.handleAITurnEvents))
 	mux.Handle("POST /api/v1/ai/views", auth(s.handleAIView))
+	// M12: phiên bản và cập nhật (types_m12.go, api_m12.go).
+	mux.Handle("GET /api/v1/php", auth(s.handlePHP))
+	mux.Handle("POST /api/v1/php/install", auth(s.handlePHPInstall))
+	mux.Handle("POST /api/v1/php/remove", auth(s.handlePHPRemove))
+	mux.Handle("POST /api/v1/sites/{domain}/php", auth(s.handleSitePHP))
+	mux.Handle("GET /api/v1/updates", auth(s.handleUpdates))
+	mux.Handle("POST /api/v1/updates", auth(s.handleUpdateApply))
+	mux.Handle("POST /api/v1/updates/auto", auth(s.handleUpdateAuto))
+	mux.Handle("POST /api/v1/mariadb/upgrade", auth(s.handleMariaDBUpgrade))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

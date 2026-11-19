@@ -292,7 +292,7 @@ func sslPlan(web, php string, l site.Layout, email validate.Email, cfg SSLConfig
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
-	vhost, err := steps.SiteVhostSSL(l, web, acmeRoot)
+	vhost, err := steps.SiteVhostSSL(l, web, php, acmeRoot)
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}

@@ -73,8 +73,32 @@ func TestPackages(t *testing.T) {
 		}
 	}
 
-	if _, err := Packages(StackConfig{Web: Nginx, DBSource: "mariadb.org"}); refusedCode(t, err) != "source_unsupported" {
-		t.Error("nguồn DB khác ubuntu phải bị từ chối")
+	// M12: nguồn ngoài Ubuntu đổi kho, không đổi tên gói.
+	ubuntu, _ := Packages(StackConfig{Web: Nginx})
+	for _, cfg := range []StackConfig{
+		{Web: Nginx, WebSource: SourceNginxStable},
+		{Web: Nginx, WebSource: SourceNginxMainline, DBSource: SourceMariaDB, DBLine: "11.8"},
+	} {
+		got, err := Packages(cfg)
+		if err != nil || !reflect.DeepEqual(got, ubuntu) {
+			t.Errorf("%+v: %v, %v; muốn đúng danh sách của Ubuntu", cfg, got, err)
+		}
+	}
+	for _, tc := range []struct {
+		cfg  StackConfig
+		code string
+	}{
+		{StackConfig{Web: Nginx, DBSource: SourceMariaDB}, "mariadb_line_invalid"},
+		{StackConfig{Web: Nginx, DBSource: SourceMariaDB, DBLine: "11.8; id"}, "mariadb_line_invalid"},
+		{StackConfig{Web: Nginx, DBLine: "11.8"}, "mariadb_line_invalid"},
+		{StackConfig{Web: Apache, WebSource: SourceNginxStable}, "source_unsupported"},
+		{StackConfig{Web: Nginx, WebSource: "caddy.org"}, "source_unsupported"},
+		{StackConfig{Web: Nginx, DBSource: "mysql.com"}, "source_unsupported"},
+		{StackConfig{Web: Nginx, PHPSource: SourceSury}, "source_unsupported"},
+	} {
+		if _, err := Packages(tc.cfg); refusedCode(t, err) != tc.code {
+			t.Errorf("%+v: muốn %s", tc.cfg, tc.code)
+		}
 	}
 	if _, err := Packages(StackConfig{Web: "caddy"}); refusedCode(t, err) != "web_invalid" {
 		t.Error("web lạ phải bị từ chối")
@@ -89,6 +113,7 @@ var (
 		"file:/etc/mysql/mariadb.conf.d/99-tpan.cnf",
 		"mariadb.secure:localhost",
 		"php.detect:/etc/php",
+		"php.idle:<bản>",
 		"dir:/var/lib/tpan",
 		"dir:/var/lib/tpan/acme",
 	}
@@ -134,8 +159,8 @@ func TestPlanOrder(t *testing.T) {
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("thứ tự bước:\ncó    %q\nmuốn  %q", got, want)
 			}
-			if len(in.Plan.Verify) != 10 {
-				t.Errorf("Verify có %d phép kiểm, muốn 10", len(in.Plan.Verify))
+			if len(in.Plan.Verify) != 11 {
+				t.Errorf("Verify có %d phép kiểm, muốn 11", len(in.Plan.Verify))
 			}
 		})
 	}
@@ -224,17 +249,17 @@ func TestPrepareInstallRefusals(t *testing.T) {
 		}
 	})
 
-	t.Run("nguồn khác ubuntu", func(t *testing.T) {
+	t.Run("nguồn lạ trong settings", func(t *testing.T) {
 		s, _, st := newTestStack(t)
-		mustSet(t, st, SettingWebSource, "nginx.org")
+		mustSet(t, st, SettingWebSource, "caddy.org")
 		_, err := s.PrepareInstall(ctx, Nginx)
 		if refusedCode(t, err) != "source_unsupported" {
 			t.Error("muốn source_unsupported")
 		}
 		var re *RefusedError
 		errors.As(err, &re)
-		if !strings.Contains(re.Message.Vi, "chưa hỗ trợ ở bản này") {
-			t.Errorf("lời từ chối = %q", re.Message.Vi)
+		if !strings.Contains(re.Message.Vi, "nginx.org-mainline") {
+			t.Errorf("lời từ chối không liệt kê nguồn được nhận: %q", re.Message.Vi)
 		}
 	})
 
@@ -393,7 +418,7 @@ func TestFullInstall(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !h.Installed || len(h.Results) != 10 {
+			if !h.Installed || len(h.Results) != 11 {
 				t.Fatalf("Health: installed=%v, %d kết quả", h.Installed, len(h.Results))
 			}
 			for _, r := range h.Results {

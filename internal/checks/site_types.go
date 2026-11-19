@@ -14,9 +14,9 @@ package checks
 //	// sites-enabled trỏ đúng vào nó.
 //	func VhostEnabled(web string, l site.Layout) Check
 //
-//	// PoolSocket (StagePHP, "php.socket:<domain>"): l.Socket tồn tại, là
+//	// PoolSocket (StagePHP, "php.socket:<domain>"): l.SocketFor(php) tồn tại, là
 //	// socket, chủ www-data:www-data, quyền 0660.
-//	func PoolSocket(l site.Layout) Check
+//	func PoolSocket(l site.Layout, php string) Check
 //
 //	// WPChecksums (StageWordPress, "wp.checksums:<domain>"):
 //	// wp core verify-checksums --path=l.Public, dưới l.User.

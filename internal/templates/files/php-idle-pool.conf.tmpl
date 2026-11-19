@@ -1,0 +1,25 @@
+{{.Header}}
+;
+; Pool giữ chỗ của PHP-FPM {{.Version}}. File theo cú pháp INI của PHP: chú
+; thích bắt đầu bằng dấu chấm phẩy, không dùng dấu # (PHP 7.0 đã bỏ).
+;
+; Vì sao có pool này: tpan gỡ pool "www" mặc định của gói php-fpm (nó chạy 2
+; tiến trình dưới www-data dù không site nào dùng). Nhưng PHP-FPM từ chối chạy
+; khi không có pool nào ("No pool defined"), nên khi máy chưa có site, pool này
+; giữ cho dịch vụ khởi động được.
+;
+; Không ai nói chuyện được với nó: socket thuộc root, quyền 0600, còn web
+; server chạy dưới www-data nên không mở được. Không tốn RAM: ondemand nghĩa là
+; chưa có ai gọi thì không có tiến trình con nào, chỉ còn tiến trình chính.
+[tpan-idle]
+user = www-data
+group = www-data
+
+listen = /run/php/tpan-idle-{{.Version}}.sock
+listen.owner = root
+listen.group = root
+listen.mode = 0600
+
+pm = ondemand
+pm.max_children = 1
+pm.process_idle_timeout = 10s

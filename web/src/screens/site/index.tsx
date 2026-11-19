@@ -24,6 +24,7 @@ import { CheckItem } from "./CheckItem";
 import { ErrorNote } from "./ErrorNote";
 import { LiveLog } from "./LiveLog";
 import { formatDate, formatTime } from "./format";
+import { PhpBlock } from "./PhpBlock";
 import { Legend, RouteMap, stageGroupId } from "./RouteMap";
 import { checksOfStage, routeStages, stageOrder, worstStatus } from "./route";
 import { Traffic } from "./Traffic";
@@ -227,7 +228,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
     [t.layout.dir, l.dir],
     [t.layout.public, l.public],
     [t.layout.pool, l.pool],
-    [t.layout.socket, l.socket],
+    // Layout không còn trường socket từ M12 (socket mang số bản PHP); lấy từ SiteInfo.socket.
+    [t.layout.socket, info.socket ?? ""],
     [t.layout.vhost, vhost],
     [t.layout.wpConfig, l.wp_config],
     [t.layout.logDir, l.log_dir],
@@ -307,6 +309,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
       </section>
 
       {hasLogs && <LiveLog domain={domain} />}
+
+      {hasLogs && <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} />}
 
       <section aria-labelledby="ten-duong-dan">
         <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[6px] pt-[26px] pb-[10px]">

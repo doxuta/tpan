@@ -11,7 +11,7 @@ group = tp_example_com_a379a6
 
 ; Web server (www-data) nói chuyện với pool qua socket này. Chỉ www-data đọc
 ; ghi được socket, user của site khác thì không.
-listen = /run/php/tpan-example_com_a379a6.sock
+listen = /run/php/tpan-example_com_a379a6-8.3.sock
 listen.owner = www-data
 listen.group = www-data
 listen.mode = 0660

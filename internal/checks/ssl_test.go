@@ -436,7 +436,7 @@ func TestHTTPSSiteCases(t *testing.T) {
 		{"200 nhưng không phải WordPress", 0, httpOut("<html>Welcome to nginx! shop.example.com</html>", "200"), "", Fail, "không phải WordPress", nil},
 		{"tên domain nằm trong tên dài hơn (myshop)", 0, httpOut(`<link href="http://myshop.example.com/wp-content/x.css">`, "200"), "", Fail, "shop.example.com", nil},
 		{"domain là đuôi của tên khác", 0, httpOut(`wp-content http://shop.example.com.evil.net/`, "200"), "", Fail, "shop.example.com", nil},
-		{"502", 0, httpOut("Bad Gateway", "502"), "", Fail, "502", []string{"ls -l " + l.Socket}},
+		{"502", 0, httpOut("Bad Gateway", "502"), "", Fail, "502", []string{"ls -l /run/php"}},
 		{"504", 0, httpOut("", "504"), "", Fail, "504", nil},
 		{"500", 0, httpOut("Error establishing a database connection", "500"), "", Fail, "500", []string{"tail -n 20 " + l.PHPErrorLog}},
 		{"301 (vòng lặp chuyển hướng)", 0, httpOut("", "301"), "", Fail, "301", []string{"wp option update home https://shop.example.com"}},

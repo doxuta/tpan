@@ -1,0 +1,10 @@
+{{.Header}}
+#
+# Gói nginx của nginx.org chỉ đọc /etc/nginx/conf.d/*.conf và không có
+# sites-enabled. tpan giữ vhost của site ở sites-enabled như với gói của
+# Ubuntu, nên dòng include dưới đây nối hai bên lại.
+include /etc/nginx/sites-enabled/*;
+
+# Tên miền dài làm ô trong bảng tên (mặc định 32 hoặc 64 byte tuỳ nền tảng)
+# không đủ chỗ, và nginx từ chối khởi động. Đặt 64 cho mọi máy.
+server_names_hash_bucket_size 64;

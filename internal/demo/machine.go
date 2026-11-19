@@ -118,6 +118,9 @@ func newMachine() *machine {
 	m.sslHandlers()
 	m.securityHandlers()
 	m.trashHandlers()
+	// Sau securityHandlers: m12.go thay handler `apt-get -s` của security.go
+	// (cùng độ dài prefix thì handler đăng ký sau thắng).
+	m.m12Setup()
 	m.writeProc()
 	return m
 }
@@ -134,12 +137,16 @@ func (m *machine) installFiles() {
 		m.SetDir(d, 0o755, rootOwner)
 	}
 	m.SetDir("/run/php", 0o755, wwwOwner)
-	m.SetSocket("/run/php/php"+phpVer+"-fpm.sock", 0o660, wwwOwner) // pool www mặc định của distro
+	// Máy demo đã qua stack install của M12: pool www của gói đã gỡ, thay bằng
+	// pool tpan-idle (socket chỉ root).
+	m.SetSocket("/run/php/tpan-idle-"+phpVer+".sock", 0o600, rootOwner)
 
-	m.SetFile("/etc/os-release", []byte("NAME=\"Ubuntu\"\nVERSION=\"24.04.2 LTS (Noble Numbat)\"\nID=ubuntu\nVERSION_ID=\"24.04\"\n"), 0o644, rootOwner)
+	m.SetFile("/etc/os-release", []byte("NAME=\"Ubuntu\"\nVERSION=\"24.04.2 LTS (Noble Numbat)\"\nID=ubuntu\nVERSION_ID=\"24.04\"\nVERSION_CODENAME=noble\n"), 0o644, rootOwner)
 	m.SetFile("/etc/hostname", []byte("tpan-demo\n"), 0o644, rootOwner)
 	m.SetFile("/etc/nginx/nginx.conf", []byte("user www-data;\nworker_processes auto;\nevents { worker_connections 768; }\nhttp { include /etc/nginx/sites-enabled/*; }\n"), 0o644, rootOwner)
-	m.SetFile("/etc/php/"+phpVer+"/fpm/pool.d/www.conf", []byte("[www]\nuser = www-data\ngroup = www-data\nlisten = /run/php/php"+phpVer+"-fpm.sock\n"), 0o644, rootOwner)
+	if idle, err := templates.PHPIdlePool(phpVer); err == nil {
+		m.SetFile("/etc/php/"+phpVer+"/fpm/pool.d/tpan-idle.conf", idle, 0o644, rootOwner)
+	}
 	m.SetFile("/etc/mysql/mariadb.conf.d/99-tpan.cnf", []byte(templates.Header+"\n[mysqld]\nbind-address = 127.0.0.1\n"), 0o644, rootOwner)
 	m.SetFile("/usr/local/bin/wp", fakeWPCLI, 0o755, rootOwner)
 
@@ -289,15 +296,28 @@ func (m *machine) handlers() {
 		}
 		return okResult // reload, restart, enable... của dịch vụ khác: không đổi gì
 	})
-	m.Handle([]string{"systemctl", "reload", "php" + phpVer + "-fpm"}, func(system.Cmd) system.Result {
-		m.syncSockets()
+	// reload, restart php<bản>-fpm của mọi bản PHP (M12: nhiều bản song song).
+	// Dịch vụ khác: không đổi gì, như handler chung ở trên.
+	m.Handle([]string{"systemctl", "reload"}, func(c system.Cmd) system.Result {
+		if v, ok := fpmVersion(c.Args[len(c.Args)-1]); ok {
+			m.syncSockets(v)
+		}
 		return okResult
 	})
-	m.Handle([]string{"systemctl", "restart", "php" + phpVer + "-fpm"}, func(system.Cmd) system.Result {
+	m.Handle([]string{"systemctl", "restart"}, func(c system.Cmd) system.Result {
+		v, ok := fpmVersion(c.Args[len(c.Args)-1])
+		if !ok {
+			return okResult
+		}
+		// Khởi động lại là nạp lại mọi pool của bản đó, kể cả pool đang hỏng.
 		m.mu.Lock()
-		clear(m.broken) // khởi động lại là nạp lại mọi pool, kể cả pool đang hỏng
+		for s := range m.broken {
+			if strings.HasSuffix(s, "-"+v+".sock") {
+				delete(m.broken, s)
+			}
+		}
 		m.mu.Unlock()
-		m.syncSockets()
+		m.syncSockets(v)
 		return okResult
 	})
 
@@ -453,7 +473,7 @@ func (m *machine) httpSite(dom, port string, headers bool) system.Result {
 		return reply("301", "Moved Permanently", "Location: "+loc+"\r\n",
 			"<html><head><title>301 Moved Permanently</title></head><body>301 Moved Permanently</body></html>")
 	}
-	if _, err := m.Stat(l.Socket); err != nil {
+	if _, err := m.Stat(m.vhostSocket(l)); err != nil {
 		return reply("502", "Bad Gateway", "", "<html><head><title>502 Bad Gateway</title></head><body>502 Bad Gateway</body></html>")
 	}
 	body := "<html><head><link rel='stylesheet' href='" + scheme + "://" + dom + "/wp-content/themes/x/style.css'></head><body>" + dom + "</body></html>"
@@ -500,27 +520,59 @@ func (m *machine) setOption(u, name, val string) {
 	m.options[u][name] = val
 }
 
-// syncSockets làm cho thư mục socket khớp với các file pool: mỗi tpan-*.conf
-// trong pool.d có một socket, pool đã gỡ thì mất socket. Pool đang hỏng
-// (broken) thì không có socket dù file pool còn.
-func (m *machine) syncSockets() {
-	names, _ := m.ReadDir("/etc/php/" + phpVer + "/fpm/pool.d")
+// fpmVersion đọc bản PHP từ tên dịch vụ "php8.4-fpm".
+func fpmVersion(unit string) (string, bool) {
+	v, ok := strings.CutPrefix(unit, "php")
+	v, ok2 := strings.CutSuffix(v, "-fpm")
+	return v, ok && ok2 && phpVerRE.MatchString(v)
+}
+
+var (
+	phpVerRE      = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
+	fastcgiSockRE = regexp.MustCompile(`unix:(/run/php/[A-Za-z0-9._-]+\.sock)`)
+)
+
+// vhostSocket là socket PHP-FPM mà vhost của site đang trỏ tới (fastcgi_pass
+// unix:...), như web server thật: site đổi bản PHP thì vhost đổi socket. Không
+// đọc được thì "" (Stat lỗi, request ra 502).
+func (m *machine) vhostSocket(l site.Layout) string {
+	conf, err := m.ReadFile(l.NginxConf)
+	if err != nil {
+		return ""
+	}
+	if g := fastcgiSockRE.FindSubmatch(conf); g != nil {
+		return string(g[1])
+	}
+	return ""
+}
+
+// syncSockets làm cho socket của bản PHP v khớp với các file pool của bản đó:
+// mỗi tpan-*.conf trong pool.d có một socket, pool đã gỡ thì mất socket. Pool
+// đang hỏng (broken) thì không có socket dù file pool còn. Socket của pool giữ
+// chỗ tpan-idle chỉ root dùng được (0600), như template của nó.
+func (m *machine) syncSockets(v string) {
+	names, _ := m.ReadDir("/etc/php/" + v + "/fpm/pool.d")
 	want := map[string]bool{}
 	for _, n := range names {
 		if pool, ok := strings.CutSuffix(n, ".conf"); ok && strings.HasPrefix(pool, "tpan-") {
-			want["/run/php/"+pool+".sock"] = true
+			want["/run/php/"+pool+"-"+v+".sock"] = true
 		}
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for s := range m.sockets {
-		if !want[s] || m.broken[s] {
+		if strings.HasSuffix(s, "-"+v+".sock") && (!want[s] || m.broken[s]) {
 			_ = m.Remove(s)
 			delete(m.sockets, s)
 		}
 	}
 	for s := range want {
-		if !m.broken[s] {
+		switch {
+		case m.broken[s]:
+		case s == "/run/php/tpan-idle-"+v+".sock":
+			m.SetSocket(s, 0o600, rootOwner)
+			m.sockets[s] = true
+		default:
 			m.SetSocket(s, 0o660, wwwOwner)
 			m.sockets[s] = true
 		}
@@ -532,11 +584,11 @@ func (m *machine) syncSockets() {
 // (mục 6.7), chạy trên máy giả.
 func (m *machine) breakPool(l site.Layout) error {
 	m.mu.Lock()
-	m.broken[l.Socket] = true
-	delete(m.sockets, l.Socket)
+	m.broken[l.SocketFor(phpVer)] = true
+	delete(m.sockets, l.SocketFor(phpVer))
 	m.mu.Unlock()
-	if err := m.Remove(l.Socket); err != nil {
-		return fmt.Errorf("xoá socket %s: %w", l.Socket, err)
+	if err := m.Remove(l.SocketFor(phpVer)); err != nil {
+		return fmt.Errorf("xoá socket %s: %w", l.SocketFor(phpVer), err)
 	}
 	return nil
 }

@@ -92,15 +92,10 @@ func Packages(cfg StackConfig) ([]string, error) {
 	if _, err := ParseWeb(string(cfg.Web)); err != nil {
 		return nil, err
 	}
-	for _, s := range []struct {
-		what string
-		src  Source
-	}{{"web", cfg.WebSource}, {"db", cfg.DBSource}, {"php", cfg.PHPSource}} {
-		if s.src != "" && s.src != SourceUbuntu {
-			return nil, refuse("source_unsupported", i18n.T(
-				fmt.Sprintf("nguồn gói %q cho %s chưa hỗ trợ ở bản này; bản này chỉ cài từ kho của Ubuntu", s.src, s.what),
-				fmt.Sprintf("package source %q for %s is not supported in this version; this version only installs from the Ubuntu archive", s.src, s.what)))
-		}
+	// Tên gói giống nhau ở mọi nguồn (nginx.org cũng gọi gói là nginx, kho
+	// MariaDB cũng có mariadb-server): nguồn chỉ đổi kho apt, do stackRepos thêm.
+	if err := checkSources(cfg); err != nil {
+		return nil, err
 	}
 	return []string{
 		"mariadb-server",
@@ -156,6 +151,7 @@ func (s *Stack) Config(ctx context.Context) (StackConfig, error) {
 		{SettingDBSource, (*string)(&cfg.DBSource)},
 		{SettingPHPSource, (*string)(&cfg.PHPSource)},
 		{SettingPHPVersion, &cfg.PHPVersion},
+		{SettingDBLine, &cfg.DBLine},
 	} {
 		v, err := get(f.key)
 		if err != nil {
@@ -177,7 +173,8 @@ func (s *Stack) Config(ctx context.Context) (StackConfig, error) {
 // Install là một lần cài stack đã qua điều kiện đầu, sẵn sàng xem trước hoặc
 // chạy. Dùng cho đúng một lần Execute: các Step giữ trạng thái để hoàn tác.
 type Install struct {
-	// Config là cấu hình sẽ được ghi vào settings (PHPVersion rỗng tới khi xong).
+	// Config là cấu hình sẽ được ghi vào settings. PHPVersion: lần đầu thì
+	// rỗng tới khi xong; chạy lại thì là bản mặc định đã ghi (giữ nguyên).
 	Config StackConfig
 	// Preconditions là kết quả mọi điều kiện đầu, kể cả Pass và Unknown, để
 	// người gọi hiện cho người dùng thấy.
@@ -192,57 +189,11 @@ type Install struct {
 // PrepareInstall làm phần chỉ đọc của "cài stack" (mục 6.1): đọc cấu hình, kiểm
 // điều kiện đầu, dựng Plan. Không ghi gì, không lấy khoá. Bị từ chối thì trả
 // *RefusedError.
+//
+// Nguồn gói giữ như đã ghi (lần đầu: Ubuntu); chọn nguồn khác thì dùng
+// PrepareInstallWith (stack_sources.go).
 func (s *Stack) PrepareInstall(ctx context.Context, web WebServer) (*Install, error) {
-	if _, err := ParseWeb(string(web)); err != nil {
-		return nil, err
-	}
-	cfg, err := s.Config(ctx)
-	if err != nil {
-		return nil, err
-	}
-	firstInstall := cfg.Web == ""
-	if !firstInstall && cfg.Web != web {
-		return nil, refuse("stack_switch_required", i18n.T(
-			fmt.Sprintf("máy này đã được tpan cài với %s; muốn đổi sang %s thì dùng `tpan stack switch --to %s` (chưa có ở bản này)", cfg.Web, web, web),
-			fmt.Sprintf("tpan already installed this machine with %s; to change to %s use `tpan stack switch --to %s` (not in this version yet)", cfg.Web, web, web)))
-	}
-	cfg.Web = web
-	pkgs, err := Packages(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Điều kiện đầu. Lần đầu thì máy phải sạch. Chạy lại (stack.web đã ghi và
-	// trùng) thì máy có gói và cổng bận là do chính tpan, kể cả sau một lần hỏng
-	// giữa chừng, nên bỏ hai kiểm đó.
-	pre := []checks.Check{checks.OSRelease("ubuntu", "24.04")}
-	if firstInstall {
-		pre = append(pre,
-			checks.PortsFree(80, 443),
-			checks.PackagesAbsent("nginx", "apache2", "mariadb-server", "mysql-server"))
-	}
-	results := checks.RunAll(ctx, s.Sys, pre)
-	var failed []checks.Result
-	for _, r := range results {
-		if r.Status == checks.Fail {
-			failed = append(failed, r)
-		}
-	}
-	if len(failed) > 0 {
-		e := refuse("precondition_failed", i18n.T(
-			"máy chưa đạt điều kiện để cài stack",
-			"the machine does not meet the conditions to install the stack"))
-		e.Checks = failed
-		return nil, e
-	}
-
-	php := new(string)
-	version, sha := s.wpcli()
-	plan, err := installPlan(cfg, pkgs, php, version, sha)
-	if err != nil {
-		return nil, err
-	}
-	return &Install{Config: cfg, Preconditions: results, Plan: plan, stack: s, php: php}, nil
+	return s.PrepareInstallWith(ctx, web, InstallOptions{})
 }
 
 // Preview là bản xem trước: từng bước, lý do, lệnh, file sẽ ghi, bước nào đã
@@ -269,6 +220,7 @@ func (in *Install) Execute(ctx context.Context, onEvent func(engine.Event)) (eng
 		{SettingWebSource, string(in.Config.WebSource)},
 		{SettingDBSource, string(in.Config.DBSource)},
 		{SettingPHPSource, string(in.Config.PHPSource)},
+		{SettingDBLine, in.Config.DBLine},
 	} {
 		if err := s.Settings.SetSetting(ctx, kv[0], kv[1]); err != nil {
 			return engine.Report{}, fmt.Errorf("ghi setting %s trước khi cài: %w", kv[0], err)
@@ -279,6 +231,11 @@ func (in *Install) Execute(ctx context.Context, onEvent func(engine.Event)) (eng
 		return rep, fmt.Errorf("chạy %s: %w", in.Plan.Kind, err)
 	}
 	if rep.Job.Status != engine.JobSucceeded {
+		return rep, nil
+	}
+	// Đã có bản mặc định (chạy lại) thì giữ nguyên: máy cài thêm 8.4 cho vài
+	// site không có nghĩa là site mới từ giờ dùng 8.4.
+	if in.Config.PHPVersion != "" {
 		return rep, nil
 	}
 	if *in.php == "" {
@@ -293,11 +250,22 @@ func (in *Install) Execute(ctx context.Context, onEvent func(engine.Event)) (eng
 }
 
 // installPlan dựng Plan "stack.install" đúng thứ tự mục 6.1. Không Step nào cần
-// bản PHP lúc dựng; chỉ phép kiểm cần, và chúng đọc *php lúc chạy qua checks.Lazy.
+// bản PHP lúc dựng; PHPIdlePool và phép kiểm đọc *php lúc chạy (checks.Lazy).
+//
+// *php khác rỗng (bản mặc định đã ghi) thì DetectPHP ghi vào một biến riêng:
+// nó luôn lấy bản cao nhất trong /etc/php, mà máy đã cài thêm 8.4 cho vài site
+// thì pool tpan-idle và phép kiểm của stack vẫn phải là của bản mặc định.
+//
+// Không gồm bước thêm kho ngoài (cần tên mã Ubuntu đọc từ máy):
+// PrepareInstallWith thêm vào đầu. fix.go dựng lại Plan này để lấy các Step File.
 func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA string) (engine.Plan, error) {
 	web := cfg.Web
 	unit := webUnit(web)
 	reloadWeb := &system.Cmd{Name: "systemctl", Args: []string{"reload", unit}}
+	detected := php
+	if *php != "" {
+		detected = new(string)
+	}
 
 	// Bước 1, 2: làm mới danh sách gói, cài gói.
 	ss := []engine.Step{
@@ -321,8 +289,18 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 		&steps.MariaDBSecure{},
 	)
 
-	// Bước 4: dò bản PHP-FPM vào biến cục bộ.
-	ss = append(ss, &steps.DetectPHP{Result: php})
+	// Bước 4: dò bản PHP-FPM vào biến cục bộ, rồi thay pool www thừa của gói
+	// bằng pool tpan-idle (mục 16, M2 "Còn mở").
+	//
+	// ponytail: engine gọi Info() một lần lúc bắt đầu job, khi DetectPHP chưa
+	// chạy, nên trên máy mới Info của PHPIdlePool chưa khai Files và
+	// tpan-idle.conf không vào sổ file tpan quản lý (health không báo được nó bị
+	// sửa tay; phép kiểm php.www_pool vẫn thấy nó có hay không). Nâng cấp: engine
+	// gọi lại Info() của bước vừa Apply trước khi RecordFile.
+	ss = append(ss,
+		&steps.DetectPHP{Result: detected},
+		&steps.PHPIdlePool{Version: php, Render: templates.PHPIdlePool},
+	)
 
 	// Bước 5: thư mục trạng thái và webroot ACME, rồi site mặc định. 0755 để
 	// www-data đi qua được /var/lib/tpan tới acme; tpan.db tự có quyền 0600.
@@ -338,6 +316,13 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 			return engine.Plan{}, fmt.Errorf("dựng Plan cài stack: %w", err)
 		}
 		test := &system.Cmd{Name: "nginx", Args: []string{"-t"}}
+		if nginxOrg(cfg) {
+			adapt, err := nginxOrgSteps(test, reloadWeb)
+			if err != nil {
+				return engine.Plan{}, err
+			}
+			ss = append(ss, adapt...)
+		}
 		avail := "/etc/nginx/sites-available/tpan-default.conf"
 		ss = append(ss,
 			&steps.Absent{Path: "/etc/nginx/sites-enabled/default", Test: test, Reload: reloadWeb},
@@ -366,7 +351,9 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 			&steps.Symlink{Target: avail, Link: "/etc/apache2/sites-enabled/000-tpan-default.conf", Test: test, Reload: reloadWeb},
 		)
 	}
-	ss = append(ss, &steps.Service{Unit: unit})
+	if !nginxOrg(cfg) { // nginx.org: bước bật dịch vụ đã nằm đầu nginxOrgSteps
+		ss = append(ss, &steps.Service{Unit: unit})
+	}
 
 	// Bước 6: WP-CLI, tải vào thư mục cache trước.
 	ss = append(ss,
@@ -428,7 +415,14 @@ func stackChecks(web WebServer, php func() string, wpSHA string) []checks.Check 
 		checks.MariaDBSecure(),
 		checks.WPCLI(wpSHA),
 		checks.Disk("/"),
+		// Cuối danh sách để thứ tự các phép kiểm của M1 không đổi.
+		lazy(checks.PHPPoolWWWAbsent),
 	}
+}
+
+// nginxOrg: web server là nginx lấy từ kho nginx.org (stable hoặc mainline).
+func nginxOrg(cfg StackConfig) bool {
+	return cfg.Web == Nginx && (cfg.WebSource == SourceNginxStable || cfg.WebSource == SourceNginxMainline)
 }
 
 // Health là kết quả `tpan health` cho stack.

@@ -33,7 +33,7 @@ var (
 // Danger: true (mọi site dùng bản PHP này gián đoạn vài giây).
 type PHPFPMRestart struct {
 	PHPVersion string
-	// Socket là socket phải có sau khi khởi động lại (site.Layout.Socket).
+	// Socket là socket phải có sau khi khởi động lại (site.Layout.SocketFor của bản PHP).
 	Socket string
 }
 

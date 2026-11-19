@@ -261,7 +261,7 @@ d=$1; u=$2; slug=$3
 getent passwd "$u" >/dev/null && echo "CÒN user Linux $u" || echo "không có user Linux $u"
 mariadb -N -B -e "SHOW DATABASES" | grep -qx "$u" && echo "CÒN DB $u" || echo "không có DB $u"
 mariadb -N -B -e "SELECT User FROM mysql.user" | grep -qx "$u" && echo "CÒN user DB $u" || echo "không có user DB $u"
-for p in /var/www/$d /var/log/tpan/sites/$d /etc/php/*/fpm/pool.d/tpan-$slug.conf /run/php/tpan-$slug.sock /etc/nginx/sites-enabled/tpan-$d.conf /etc/nginx/sites-available/tpan-$d.conf; do
+for p in /var/www/$d /var/log/tpan/sites/$d /etc/php/*/fpm/pool.d/tpan-$slug.conf /run/php/tpan-$slug-8.3.sock /etc/nginx/sites-enabled/tpan-$d.conf /etc/nginx/sites-available/tpan-$d.conf; do
   if [ -e "$p" ] || [ -L "$p" ]; then echo "CÒN $p"; else echo "không có $p"; fi
 done
 python3 -c "import sqlite3,sys; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); n = c.execute(\"SELECT COUNT(*) FROM sites WHERE domain = ?\", (sys.argv[1],)).fetchone()[0]; print((\"CÒN\" if n else \"không có\") + \" dòng \" + sys.argv[1] + \" trong bảng sites\")" "$d"

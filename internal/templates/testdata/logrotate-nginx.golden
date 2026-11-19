@@ -25,9 +25,11 @@
     # Một lần postrotate cho tất cả site, không phải mỗi site một lần.
     sharedscripts
     postrotate
-        # Giống file logrotate của gói nginx: init script gửi tín hiệu USR1 để
-        # Nginx mở lại file log, không ngắt kết nối đang chạy.
-        invoke-rc.d nginx rotate >/dev/null 2>&1
+        # Gửi USR1 cho tiến trình chính của Nginx để nó mở lại file log, không
+        # ngắt kết nối đang chạy. Không gọi init script của gói Ubuntu (gói của
+        # nginx.org không có); cả hai gói đều ghi /run/nginx.pid. Chưa có file
+        # pid (Nginx chưa chạy) thì bỏ qua, không báo lỗi.
+        [ ! -f /run/nginx.pid ] || kill -USR1 "$(cat /run/nginx.pid)"
     endscript
 }
 

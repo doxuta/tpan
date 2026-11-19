@@ -92,7 +92,7 @@ package steps
 //	// SiteVhost: File{conf, 0644 root} rồi Symlink{conf → link}, cả hai có
 //	// Test (nginx -t | apachectl configtest) và Reload (systemctl reload
 //	// nginx | apache2). acmeRoot là webroot chung của Let's Encrypt.
-//	func SiteVhost(l site.Layout, web, acmeRoot string) ([]engine.Step, error)
+//	func SiteVhost(l site.Layout, web, phpVersion, acmeRoot string) ([]engine.Step, error)
 //
 //	// SiteHtaccess (chỉ Apache): File{l.Public+"/.htaccess", 0640,
 //	// l.User:www-data} với nội dung chuẩn của WordPress.

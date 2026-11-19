@@ -222,7 +222,7 @@ func restoreSteps(web WebServer, php string, st site.Site) ([]engine.Step, error
 	if err != nil {
 		return nil, err
 	}
-	vhost, err := siteVhost(st, string(web))
+	vhost, err := siteVhost(st, StackConfig{Web: web, PHPVersion: php})
 	if err != nil {
 		return nil, err
 	}

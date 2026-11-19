@@ -87,7 +87,7 @@ func seedOf(s string) uint32 {
 
 // poolDown: socket của pool không có, request PHP sẽ ra 502.
 func (m *machine) poolDown(l site.Layout) bool {
-	_, err := m.Stat(l.Socket)
+	_, err := m.Stat(m.vhostSocket(l))
 	return err != nil
 }
 
@@ -126,7 +126,7 @@ func (m *machine) errorLog(l site.Layout, now time.Time) []string {
 		for i := range 5 {
 			at := now.Add(-time.Duration(50-i*11) * time.Minute).UTC()
 			out = append(out, fmt.Sprintf(`%s [crit] 1180#1180: *%d connect() to unix:%s failed (2: No such file or directory) while connecting to upstream, client: 203.0.113.%d, server: %s, request: "GET / HTTP/1.1", upstream: "fastcgi://unix:%s:", host: "%s"`,
-				at.Format(layout), 4100+i*37, l.Socket, 20+i, dom, l.Socket, dom))
+				at.Format(layout), 4100+i*37, l.SocketFor(phpVer), 20+i, dom, l.SocketFor(phpVer), dom))
 		}
 		return out
 	}

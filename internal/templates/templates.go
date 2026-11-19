@@ -101,6 +101,9 @@ func render(name string, d data) ([]byte, error) {
 // của Nginx hay Apache.
 var pathSegment = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
+// phpVersion là bản PHP dạng "8.3" (cùng luật với steps).
+var phpVersion = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
+
 func (d DefaultSite) validate() error {
 	root := d.AcmeRoot
 	if root == "" {

@@ -77,13 +77,13 @@ func SitePool(l site.Layout, phpVersion string) (engine.Step, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước pool PHP-FPM: %w", err)
 	}
-	conf, err := templates.SitePool(l)
+	conf, err := templates.SitePool(l, phpVersion)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước pool PHP-FPM: %w", err)
 	}
 	d := l.Domain.String()
 	return &File{Path: l.PoolConf(phpVersion), Content: conf, Perm: 0o644, Owner: system.Root,
-		Test: test, Reload: reload, WaitFor: l.Socket,
+		Test: test, Reload: reload, WaitFor: l.SocketFor(phpVersion),
 		Title: i18n.T("Ghi pool PHP-FPM "+l.Pool+" cho "+d, "Write PHP-FPM pool "+l.Pool+" for "+d),
 		Why: i18n.T(
 			"Pool riêng cho PHP của site chạy dưới user "+l.User+", chỉ mở được file trong "+l.Dir+". Thiếu nó thì web server không có chỗ chuyển file .php tới (502); dùng chung pool thì một site bị chiếm đọc được file của site khác.",
@@ -91,17 +91,18 @@ func SitePool(l site.Layout, phpVersion string) (engine.Step, error) {
 }
 
 // SiteVhost ghi vhost vào sites-available rồi bật bằng symlink ở
-// sites-enabled. Cả hai bước kiểm cú pháp rồi reload web server.
-func SiteVhost(l site.Layout, web, acmeRoot string) ([]engine.Step, error) {
+// sites-enabled. Cả hai bước kiểm cú pháp rồi reload web server. phpVersion là
+// bản PHP site đang dùng: vhost chuyển .php tới socket của bản đó.
+func SiteVhost(l site.Layout, web, phpVersion, acmeRoot string) ([]engine.Step, error) {
 	v, err := webVhostOf(l, web)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost: %w", err)
 	}
 	var conf []byte
 	if web == "nginx" {
-		conf, err = templates.NginxSite(l, acmeRoot)
+		conf, err = templates.NginxSite(l, phpVersion, acmeRoot)
 	} else {
-		conf, err = templates.ApacheSite(l, acmeRoot)
+		conf, err = templates.ApacheSite(l, phpVersion, acmeRoot)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost %s: %w", web, err)

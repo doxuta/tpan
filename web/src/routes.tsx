@@ -87,6 +87,16 @@ export const screens: ScreenEntry[] = [
   { path: "/plans", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanList) },
   { path: "/plans/:id", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanDetail) },
   {
+    path: "/stack",
+    load: () => import("./screens/stack").then((m) => m.default),
+    menu: { label: "stack", group: "may" },
+  },
+  {
+    path: "/updates",
+    load: () => import("./screens/cap-nhat").then((m) => m.default),
+    menu: { label: "updates", group: "may" },
+  },
+  {
     path: "/security",
     load: () => import("./screens/bao-mat").then((m) => m.default),
     menu: { label: "security", group: "may" },

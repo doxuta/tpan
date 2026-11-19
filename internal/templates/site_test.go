@@ -29,9 +29,9 @@ func TestSiteGolden(t *testing.T) {
 		name string
 		gen  func() ([]byte, error)
 	}{
-		{"site-pool", func() ([]byte, error) { return SitePool(l) }},
-		{"site-nginx", func() ([]byte, error) { return NginxSite(l, acmeRoot) }},
-		{"site-apache", func() ([]byte, error) { return ApacheSite(l, acmeRoot) }},
+		{"site-pool", func() ([]byte, error) { return SitePool(l, "8.3") }},
+		{"site-nginx", func() ([]byte, error) { return NginxSite(l, "8.3", acmeRoot) }},
+		{"site-apache", func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot) }},
 		{"site-htaccess", func() ([]byte, error) { return WPHtaccess(), nil }},
 	}
 	for _, c := range cases {
@@ -64,9 +64,9 @@ func TestSiteGolden(t *testing.T) {
 // INI của PHP không nhận dấu # làm chú thích.
 func TestSiteFirstLine(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
-	pool, _ := SitePool(l)
-	ng, _ := NginxSite(l, acmeRoot)
-	ap, _ := ApacheSite(l, acmeRoot)
+	pool, _ := SitePool(l, "8.3")
+	ng, _ := NginxSite(l, "8.3", acmeRoot)
+	ap, _ := ApacheSite(l, "8.3", acmeRoot)
 	for name, c := range map[string]struct {
 		out  []byte
 		want string
@@ -91,12 +91,12 @@ func TestSiteFirstLine(t *testing.T) {
 // Những dòng mà bỏ đi là mất cô lập hay mất tính năng (mục 5, 6.2).
 func TestSiteKeyDirectives(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
-	pool, _ := SitePool(l)
+	pool, _ := SitePool(l, "8.3")
 	for _, s := range []string{
 		"[" + l.Pool + "]",
 		"user = " + l.User,
 		"group = " + l.User,
-		"listen = " + l.Socket,
+		"listen = " + l.SocketFor("8.3"),
 		"listen.owner = www-data",
 		"listen.group = www-data",
 		"listen.mode = 0660",
@@ -114,7 +114,7 @@ func TestSiteKeyDirectives(t *testing.T) {
 		}
 	}
 
-	ng, _ := NginxSite(l, acmeRoot)
+	ng, _ := NginxSite(l, "8.3", acmeRoot)
 	for _, s := range []string{
 		"listen 80;",
 		"listen [::]:80;",
@@ -127,7 +127,7 @@ func TestSiteKeyDirectives(t *testing.T) {
 		"location ~ /\\.(?!well-known/) {\n        deny all;",
 		"location ~* ^/wp-content/uploads/.*\\.php$ {\n        deny all;",
 		"try_files $uri $uri/ /index.php?$args;",
-		"fastcgi_pass unix:" + l.Socket + ";",
+		"fastcgi_pass unix:" + l.SocketFor("8.3") + ";",
 	} {
 		if !bytes.Contains(ng, []byte(s)) {
 			t.Errorf("nginx thiếu %q", s)
@@ -147,7 +147,7 @@ func TestSiteKeyDirectives(t *testing.T) {
 		}
 	}
 
-	ap, _ := ApacheSite(l, acmeRoot)
+	ap, _ := ApacheSite(l, "8.3", acmeRoot)
 	for _, s := range []string{
 		"<VirtualHost *:80>",
 		"ServerName example.com\n",
@@ -160,7 +160,7 @@ func TestSiteKeyDirectives(t *testing.T) {
 		"AllowOverride All",
 		"Options SymLinksIfOwnerMatch",
 		`<Directory "` + l.Public + `/wp-content/uploads">`,
-		`SetHandler "proxy:unix:` + l.Socket + `|fcgi://localhost"`,
+		`SetHandler "proxy:unix:` + l.SocketFor("8.3") + `|fcgi://localhost"`,
 		`<FilesMatch "^\.">`,
 	} {
 		if !bytes.Contains(ap, []byte(s)) {
@@ -210,9 +210,9 @@ func TestSiteLogsMatchLogrotate(t *testing.T) {
 func TestSiteIDN(t *testing.T) {
 	l := siteTestLayout(t, "cửahàng.vn")
 	for name, gen := range map[string]func() ([]byte, error){
-		"nginx":  func() ([]byte, error) { return NginxSite(l, acmeRoot) },
-		"apache": func() ([]byte, error) { return ApacheSite(l, acmeRoot) },
-		"pool":   func() ([]byte, error) { return SitePool(l) },
+		"nginx":  func() ([]byte, error) { return NginxSite(l, "8.3", acmeRoot) },
+		"apache": func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot) },
+		"pool":   func() ([]byte, error) { return SitePool(l, "8.3") },
 	} {
 		out, err := gen()
 		if err != nil {
@@ -239,7 +239,6 @@ func TestSiteBadParams(t *testing.T) {
 		"zero":            {},
 		"public chèn":     tamper(func(l *site.Layout) { l.Public = "/var/www/example.com/public;\n}" }),
 		"public thoát":    tamper(func(l *site.Layout) { l.Public = "/var/www/example.com/../../etc" }),
-		"socket lệnh":     tamper(func(l *site.Layout) { l.Socket = "/run/php/$(id).sock" }),
 		"user rm":         tamper(func(l *site.Layout) { l.User = "root; rm -rf /" }),
 		"user khác":       tamper(func(l *site.Layout) { l.User = "www-data" }),
 		"pool xuống dòng": tamper(func(l *site.Layout) { l.Pool = "tpan-x]\n[www" }),
@@ -249,9 +248,9 @@ func TestSiteBadParams(t *testing.T) {
 	}
 	for name, l := range bad {
 		gens := map[string]func() ([]byte, error){
-			"pool":   func() ([]byte, error) { return SitePool(l) },
-			"nginx":  func() ([]byte, error) { return NginxSite(l, acmeRoot) },
-			"apache": func() ([]byte, error) { return ApacheSite(l, acmeRoot) },
+			"pool":   func() ([]byte, error) { return SitePool(l, "8.3") },
+			"nginx":  func() ([]byte, error) { return NginxSite(l, "8.3", acmeRoot) },
+			"apache": func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot) },
 		}
 		for g, gen := range gens {
 			out, err := gen()
@@ -264,9 +263,22 @@ func TestSiteBadParams(t *testing.T) {
 		}
 	}
 	for _, r := range []string{"", "acme", "/var/lib/acme;", "/var/lib/acme\nserver {", "/var/lib/../etc", "/var/lib/$(id)", `/var/lib/"x"`} {
-		for g, gen := range map[string]func(site.Layout, string) ([]byte, error){"nginx": NginxSite, "apache": ApacheSite} {
-			if out, err := gen(good, r); !errors.Is(err, ErrParam) || out != nil {
+		for g, gen := range map[string]func(site.Layout, string, string) ([]byte, error){"nginx": NginxSite, "apache": ApacheSite} {
+			if out, err := gen(good, "8.3", r); !errors.Is(err, ErrParam) || out != nil {
 				t.Errorf("%s AcmeRoot %q: muốn ErrParam không nội dung, được %v", g, r, err)
+			}
+		}
+	}
+	// Bản PHP đi vào đường dẫn socket: chỉ nhận dạng 8.3.
+	for _, php := range []string{"", "8", "8.3; id", "8.3\n", "../8.3", "$(id)"} {
+		gens := map[string]func() ([]byte, error){
+			"pool":   func() ([]byte, error) { return SitePool(good, php) },
+			"nginx":  func() ([]byte, error) { return NginxSite(good, php, acmeRoot) },
+			"apache": func() ([]byte, error) { return ApacheSite(good, php, acmeRoot) },
+		}
+		for g, gen := range gens {
+			if out, err := gen(); !errors.Is(err, ErrParam) || out != nil {
+				t.Errorf("%s php %q: muốn ErrParam không nội dung, được %v", g, php, err)
 			}
 		}
 	}

@@ -54,8 +54,8 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 		return engine.Plan{
 			Target: l.Domain.String(),
 			Title:  i18n.T("Khởi động lại PHP-FPM "+php+" để tạo lại socket của "+obj, "Restart PHP-FPM "+php+" to recreate the socket of "+obj),
-			Steps:  []engine.Step{&steps.PHPFPMRestart{PHPVersion: php, Socket: l.Socket}},
-			Verify: []checks.Check{checks.PoolSocket(l)},
+			Steps:  []engine.Step{&steps.PHPFPMRestart{PHPVersion: php, Socket: l.SocketFor(php)}},
+			Verify: []checks.Check{checks.PoolSocket(l, php)},
 		}, nil
 	case FixFileRewrite:
 		file, err := f.managedFile(ctx, cfg, obj)
@@ -233,7 +233,7 @@ func siteFiles(cfg StackConfig, st site.Site) ([]*steps.File, error) {
 		return nil, err
 	}
 	ss := []engine.Step{pool}
-	vhost, err := siteVhost(st, string(cfg.Web))
+	vhost, err := siteVhost(st, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +327,7 @@ func (f *Fixes) webRewrite(ctx context.Context, cfg StackConfig, id, kind string
 		return engine.Plan{}, err
 	}
 	for _, st := range sites {
-		vhost, err := siteVhost(st, string(cfg.Web))
+		vhost, err := siteVhost(st, cfg)
 		if err != nil {
 			return engine.Plan{}, fmt.Errorf("dựng lại vhost của %s: %w", st.Domain, err)
 		}
@@ -357,7 +357,7 @@ func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj strin
 	if err != nil {
 		return engine.Plan{}, err
 	}
-	ss, err := siteVhost(st, string(cfg.Web))
+	ss, err := siteVhost(st, cfg)
 	if err != nil {
 		return engine.Plan{}, fmt.Errorf("dựng lại vhost của %s: %w", obj, err)
 	}
@@ -382,10 +382,12 @@ func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj strin
 // siteVhost dựng bước ghi vhost đúng loại của site: có SSL (M5) thì bản có
 // cổng 443 và chuyển hướng 80, không thì bản chỉ cổng 80. Sửa tự động và
 // phát hiện lệch phải dùng đúng bản này; dùng bản cổng 80 cho site có SSL là
-// ghi đè vhost 443 và làm site mất HTTPS.
-func siteVhost(st site.Site, web string) ([]engine.Step, error) {
+// ghi đè vhost 443 và làm site mất HTTPS. Web server lấy từ cfg; bản PHP là
+// của site (sitePHP), để vhost trỏ đúng socket của pool site đang dùng (M12).
+func siteVhost(st site.Site, cfg StackConfig) ([]engine.Step, error) {
+	web, php := string(cfg.Web), sitePHP(st, cfg)
 	if st.SSL {
-		return steps.SiteVhostSSL(st.Layout(), web, acmeRoot)
+		return steps.SiteVhostSSL(st.Layout(), web, php, acmeRoot)
 	}
-	return steps.SiteVhost(st.Layout(), web, acmeRoot)
+	return steps.SiteVhost(st.Layout(), web, php, acmeRoot)
 }
