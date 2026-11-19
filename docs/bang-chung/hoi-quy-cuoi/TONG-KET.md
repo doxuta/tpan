@@ -43,7 +43,7 @@ M1, M2 chạy trước ba lần sửa kịch bản dưới đây; ba lần sửa
 
 | Kịch bản | Khẳng định cũ | Vì sao không còn đúng | Sửa | Commit |
 |---|---|---|---|---|
-| `scripts/e2e-m3.sh` | "SSE: log trực tiếp: luồng kéo dài trên 10 giây" | Job tạo site lần này xong trong 9,8 giây (lần 19/11: 15 giây); thời gian phụ thuộc mạng lúc tải WordPress, không phải hành vi của tpan. Dấu hiệu luồng là trực tiếp đã có ở khẳng định kế bên: hơn 20 sự kiện tới trước `job.done` ít nhất 2 giây (lần này 128 sự kiện) | Ngưỡng hạ xuống 5 giây, kèm chú thích lý do | 6404a28 |
+| `scripts/e2e-m3.sh` | "SSE: log trực tiếp: luồng kéo dài trên 10 giây" | Job tạo site lần này xong trong 9,8 giây (lần 19/11: 15 giây). Riêng bước tải WordPress (`wp.archive:7.1.5`, `curl` từ wordpress.org) mất 5,0 giây lần này, 10,6 giây lần 19/11: chênh lệch nằm ở mạng, không ở tpan. Lần chạy lại sau khi sửa: 10,1 giây. Dấu hiệu luồng là trực tiếp đã có ở khẳng định kế bên: hơn 20 sự kiện tới trước `job.done` ít nhất 2 giây (lần này 128 sự kiện) | Ngưỡng hạ xuống 5 giây, kèm chú thích lý do | 6404a28 |
 | `scripts/e2e-m7.sh` | "đủ 18 công cụ đúng tên của danh mục (15 của M7, 3 của M8)" | M9 thêm `list_backups`, `propose_backup_create`, `propose_backup_restore` vào danh mục (commit e51d621); khẳng định viết trước khi ghép M9 | Danh sách 21 tên | a37555e |
 | `scripts/e2e-m7.sh` | "không còn gì của b.example.com" sau `propose_site_remove` rồi `apply_plan` | Từ M6, xoá site là đưa vào thùng rác (mục 6.4): user Linux, DB, user DB (bị khoá), file vhost ở `sites-available`, dòng `sites` còn lại có chủ ý. Khẳng định viết trước khi ghép M6 | Hai khẳng định mới: `/var/www/<d>`, pool, socket, link `sites-enabled` không còn; thư mục nằm ở `/var/lib/tpan/trash/<slug>` và dòng `sites` có `status trashed` | a37555e |
 | `scripts/e2e-m8.sh` | "claude giả thấy 18 công cụ mcp__tpan__*" | Như trên, M9 thêm 3 công cụ | 21 công cụ | 0735b82 |
@@ -58,8 +58,8 @@ Không có. Không thấy lỗi thật nào của tpan trên bản cuối.
 
 ## Một số con số đo lại được (mục 16 của KE-HOACH.md)
 
-Các phép đo dưới đây nằm trong chính các kịch bản; lần này cho cùng kết luận với
-lần đo của từng mốc.
+Các phép đo dưới đây nằm trong chính các kịch bản. Các khẳng định đi kèm đều
+đạt; con số là của lần chạy này, chưa so từng số với lần đo của từng mốc.
 
 - M3: khoá toàn cục khi CLI đang chạy job và API cũng gọi: API chờ khoá khoảng
   2 giây rồi trả 409 `job_running`, xem trước và đọc vẫn 200; `GET /api/v1/overview` lần đầu với 2 site (bộ nhớ đệm rỗng):
@@ -67,7 +67,7 @@ lần đo của từng mốc.
 - M4: `ACCOUNT LOCK` đọc qua `JSON_VALUE(... account_locked)` là 1, sau sửa tự
   động là 0; `scripts/vm.sh root` giữ nguyên đối số có dấu cách; một lần
   `tpan health` đầy đủ với 2 site: 3,5 giây; socket pool bị xoá, chữ báo lỗi
-  của `tail`, bộ hẹn giờ bỏ vòng khi CLI giữ khoá: đạt như M4 đã chốt.
+  của `tail`, bộ hẹn giờ bỏ vòng khi CLI giữ khoá: các khẳng định đi kèm đạt.
 - M6: root vẫn `runuser` được dưới user site đã hết hạn (user bị khoá ở thùng rác).
 - M7: `sudo -n` qua ssh không tty chạy được; stdout của `tpan mcp` chỉ có
   JSON-RPC, stderr 0 byte; bắt tay mặc định 2026-07-28, ép 2025-06-18 cũng
@@ -75,7 +75,8 @@ lần đo của từng mốc.
 - M8 (claude giả): từ lúc gửi câu hỏi tới chữ đầu tiên trên SSE 1,34 giây (gồm
   1 giây claude giả cố ý chờ); mở ssh + `tpan mcp --session` + liệt kê công cụ 256 ms.
 - M9: `wp cron event run --due-now` khi không có việc thoát 0; cron đọc
-  file mới trong `/etc/cron.d` không cần reload; opcache sau đổi mật khẩu DB.
+  file mới trong `/etc/cron.d` không cần reload; trong lúc đổi mật khẩu DB, vòng curl gọi site có 2 trên 31 request trả 500 (cùng
+  một khoảnh khắc dưới nửa giây), sau đó 200.
 - M10: bước `web.swap` 95 ms (nginx sang apache) và 107 ms (apache sang nginx);
   mỗi cặp site và scheme mất 1 tới 3 request (curl mã 7), gián đoạn dài nhất
   98 tới 176 ms; `policy-rc.d` khi cài lại gói nginx của Ubuntu và của
