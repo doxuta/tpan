@@ -129,7 +129,7 @@ func TestPHPFPMRestart(t *testing.T) {
 // =============================================================== DBUserUnlock
 
 var (
-	lockFakeState  = regexp.MustCompile(`^SELECT COUNT\(\*\), COALESCE\(MAX\(JSON_VALUE\(Priv, '\$\.account_locked'\) = 'true'\), 0\) FROM mysql\.global_priv WHERE User='([a-z0-9_]+)' AND Host='localhost';$`)
+	lockFakeState  = regexp.MustCompile(`^SELECT COUNT\(\*\), COALESCE\(MAX\(JSON_VALUE\(Priv, '\$\.account_locked'\) IN \('1', 'true'\)\), 0\) FROM mysql\.global_priv WHERE User='([a-z0-9_]+)' AND Host='localhost';$`)
 	lockFakeAlter  = regexp.MustCompile(`^ALTER USER '([a-z0-9_]+)'@'localhost' ACCOUNT (LOCK|UNLOCK);$`)
 	lockFakeUnlock = []string{"ALTER USER"}
 )
@@ -173,6 +173,15 @@ func (f *lockFake) state() map[string]bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return maps.Clone(f.users)
+}
+
+// MariaDB 10.11 trả "1" (không phải "true") cho JSON_VALUE của JSON true (đo
+// trên máy ảo M4). Câu SQL phải coi "1" là đang khoá, không thì Check báo đã mở
+// khoá và sửa tự động bỏ qua đúng bước cần chạy.
+func TestDBLockStateSQLAcceptsOne(t *testing.T) {
+	if q := dbLockStateSQL("tp_x"); !strings.Contains(q, "JSON_VALUE(Priv, '$.account_locked') IN ('1', 'true')") {
+		t.Errorf("câu SQL không nhận '1' là đang khoá: %s", q)
+	}
 }
 
 func TestDBUserUnlock(t *testing.T) {

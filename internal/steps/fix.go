@@ -27,7 +27,8 @@ var (
 
 // PHPFPMRestart khởi động lại php<PHPVersion>-fpm để socket của các pool được
 // tạo lại (socket bị xoá thì reload không tạo lại, vì PHP-FPM giữ socket cũ
-// qua lần reload; cần kiểm trên máy ảo). Check: Socket tồn tại và là socket.
+// qua lần reload; đã kiểm trên máy ảo M4: sau reload socket vẫn mất, sau
+// restart có lại). Check: Socket tồn tại và là socket.
 // Apply: systemctl restart php<v>-fpm. Undo: không làm gì (NoUndo có lý do).
 // Danger: true (mọi site dùng bản PHP này gián đoạn vài giây).
 type PHPFPMRestart struct {
@@ -123,8 +124,12 @@ type DBUserUnlock struct {
 
 // dbLockStateSQL trả một dòng, hai số: user có không (0/1), bị khoá không (0/1).
 // MAX và COALESCE để luôn có đúng một dòng kể cả khi user không có.
+// JSON_VALUE của giá trị JSON true trả chuỗi "1" trên MariaDB 10.11 (đã kiểm
+// trên máy ảo M4: sau ACCOUNT LOCK là "1", sau UNLOCK là "0", JSON_EXTRACT là
+// true/false), không phải "true": so với 'true' thì user bị khoá vẫn ra 0 và
+// Step bỏ qua bước mở khoá. Nhận cả hai cách viết.
 func dbLockStateSQL(name string) string {
-	return "SELECT COUNT(*), COALESCE(MAX(JSON_VALUE(Priv, '$.account_locked') = 'true'), 0) " +
+	return "SELECT COUNT(*), COALESCE(MAX(JSON_VALUE(Priv, '$.account_locked') IN ('1', 'true')), 0) " +
 		"FROM mysql.global_priv WHERE User='" + name + "' AND Host='localhost';\n"
 }
 
