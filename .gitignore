@@ -15,3 +15,6 @@
 .DS_Store
 .env
 .env.*
+
+# Log bằng chứng chạy trên máy ảo phải vào repo (mục 15 của KE-HOACH.md)
+!/docs/bang-chung/*.log
