@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"path"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/buildinfo"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/web"
 )
 
@@ -65,12 +67,35 @@ type Server struct {
 	api  *apiState
 }
 
-//nolint:unused // auth.go và api.go dùng từ đợt 1 của M3.
 func (s *Server) now() time.Time {
 	if s.deps.Now != nil {
 		return s.deps.Now()
 	}
 	return time.Now()
+}
+
+// audit ghi một dòng nhật ký cho request r (mục 11). Lỗi ghi nhật ký chỉ được
+// log ra, không làm hỏng thao tác đã xong. Deps.Store nil (test) thì bỏ qua.
+func (s *Server) audit(r *http.Request, action, target, result, jobID string) {
+	if s.deps.Store == nil {
+		return
+	}
+	err := s.deps.Store.AddAudit(r.Context(), store.AuditEntry{
+		Time: s.now(), IP: clientIP(r), Action: action, Target: target, Result: result, JobID: jobID,
+	})
+	if err != nil {
+		slog.Error("ghi nhật ký", "action", action, "err", err)
+	}
+}
+
+// clientIP là IP của kết nối trực tiếp. Không đọc X-Forwarded-For: panel không
+// đứng sau proxy, và tin header đó thì ai cũng tự đổi IP để né khoá đăng nhập.
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 // NewHandler ghép API và giao diện web vào một handler. Tách riêng để test được

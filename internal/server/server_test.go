@@ -75,3 +75,14 @@ func TestSPAWithoutBuild(t *testing.T) {
 		t.Fatalf("mã trả về = %d, muốn 503 khi chưa build giao diện", rec.Code)
 	}
 }
+
+func TestClientIPAndAuditWithoutStore(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.RemoteAddr = "192.0.2.7:51000"
+	r.Header.Set("X-Forwarded-For", "198.51.100.1")
+	if got := clientIP(r); got != "192.0.2.7" {
+		t.Errorf("clientIP = %q, muốn IP của kết nối, không phải X-Forwarded-For", got)
+	}
+	// Không có Store thì audit không làm gì và không panic.
+	(&Server{}).audit(r, "login", "", "ok", "")
+}

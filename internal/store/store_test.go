@@ -539,3 +539,18 @@ func eventEqual(a, b engine.Event) bool {
 	return a.JobID == b.JobID && a.Seq == b.Seq && a.Time.Equal(b.Time) && a.Kind == b.Kind &&
 		a.StepID == b.StepID && a.Message == b.Message
 }
+
+func TestAddAudit(t *testing.T) {
+	s, _ := openTemp(t)
+	ctx := context.Background()
+	if err := s.AddAudit(ctx, AuditEntry{Time: time.Unix(0, 0), IP: "cli", Action: "admin.passwd", Result: "ok"}); err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM audit WHERE action = 'admin.passwd'").Scan(&n); err != nil || n != 1 {
+		t.Fatalf("đếm audit = %d, %v", n, err)
+	}
+	if err := s.AddAudit(ctx, AuditEntry{IP: "cli"}); err == nil {
+		t.Error("thiếu thao tác phải lỗi")
+	}
+}
