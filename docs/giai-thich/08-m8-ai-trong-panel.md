@@ -398,7 +398,7 @@ So với bản đầu (2.4): `done` giờ bắt đầu bằng "Mình xem danh s�
   => ĐẠT: answer của lượt 1 trên trang phiên là toàn bộ chữ: có đoạn viết trước lần gọi công cụ đầu và đoạn cuối
 ```
 
-Lần chạy lại dùng `claude` giả. Với Claude Code thật, bản sửa này chưa chạy (lần 6 và 7 build trước nó).
+Lần chạy lại dùng `claude` giả. Với Claude Code thật, bản sửa này đã chạy ở lần gọi 8 và 9, lúc đóng mốc, trên mã cuối: `docs/bang-chung/M8-claude-cuoi.log`, 63 khẳng định đạt, 0 không đạt.
 
 Bản sửa cũng được kiểm bằng unit test. Mình đã chạy trên Mac:
 
@@ -543,7 +543,6 @@ ok  	github.com/doxuta/tpan/internal/steps	0.529s
 
 ### 2.14 Chưa chạy
 
-- Claude Code thật trên mã cuối cùng (lần 6 và 7 build trước `a7a6090` và trước bản sửa reload): `scripts/e2e-m8.sh real`, tốn hai lần gọi hạn mức.
 - Hồi quy e2e M5 với bản sửa reload (nginx rồi apache, certbot thật với máy chủ ACME thử pebble trong máy ảo): 232 khẳng định đạt, 0 không đạt (`docs/bang-chung/M8-hoi-quy-m5.log`, dòng cuối `TỔNG KẾT: 0 khẳng định không đạt`).
 - Mở panel bằng trình duyệt thật, dùng ngăn AI, `⌘K`, nút "Giải thích".
 - Duyệt Plan `health.fix` do AI đề xuất rồi xem site trở lại 200. Lần chạy chỉ kiểm Plan nằm `pending` và máy không đổi.
@@ -1013,7 +1012,7 @@ Mỗi lượt `claude` mở một SSH mới cho MCP. Có thể dùng `ControlMas
 ### Chỗ sai trong mốc này
 
 - **Chữ hai tin nhắn dính nhau.** Bộ đọc luồng nối mọi `text_delta` như một tin. Phát hiện ở lần gọi thật 4 (`đã lưu.Nguyên nhân`, 2.10). Cùng lúc sửa (`eaa11ed`), `claude` giả được sửa để viết như Claude Code thật ("nay viết mỗi tin nhắn không có dấu cách đầu và trả `result` chỉ có tin cuối", theo `docs/thay-doi/M8.md`), và `e2e-m8.sh` kiểm "chữ sau mỗi lần gọi công cụ là đoạn mới". Bài học: bản giả chỉ bắt được lỗi mà người viết nó đã nghĩ tới; hai lỗi này chỉ lộ khi chạy bản thật.
-- **Câu trả lời cuối chỉ là `result`.** Hợp đồng ban đầu của `ai.Event` coi `result` là câu trả lời. Phát hiện cùng lần gọi 4: tới `done`, các câu viết trước khi gọi công cụ biến mất khỏi ngăn AI. Sửa ở `a7a6090`; kiểm bằng unit test và bằng lần chạy lại e2e M8 với `claude` giả (2.10). Với Claude Code thật thì chưa chạy lại.
+- **Câu trả lời cuối chỉ là `result`.** Hợp đồng ban đầu của `ai.Event` coi `result` là câu trả lời. Phát hiện cùng lần gọi 4: tới `done`, các câu viết trước khi gọi công cụ biến mất khỏi ngăn AI. Sửa ở `a7a6090`; kiểm bằng unit test và bằng lần chạy lại e2e M8 với `claude` giả (2.10), rồi bằng Claude Code thật ở lần gọi 8 và 9 (`docs/bang-chung/M8-claude-cuoi.log`).
 - **Bí danh viết tắt (còn mở).** Model viết `site-a` thay cho `site-a.example`, panel hiện nguyên `site-a` (2.9). Bộ che chỉ đổi đúng bí danh đầy đủ, để không đổi nhầm chữ khác. Chưa sửa; e2e không bắt được vì chỉ tìm dạng đầy đủ.
 
 ## 6. Tự kiểm
