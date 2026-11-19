@@ -63,6 +63,13 @@ func (s *Server) healthBusy() bool {
 	if busy {
 		return true
 	}
+	return s.lockHeldElsewhere()
+}
+
+// lockHeldElsewhere thử khoá toàn cục trong healthBusyProbe rồi nhả ngay: true
+// khi tiến trình khác (CLI) đang giữ nó. Dùng chung cho health và bộ hẹn giờ
+// dọn thùng rác (trash_timer.go).
+func (s *Server) lockHeldElsewhere() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), healthBusyProbe)
 	defer cancel()
 	unlock, err := s.deps.Sys.Lock(ctx)
@@ -72,7 +79,7 @@ func (s *Server) healthBusy() bool {
 		}
 		// Khoá hỏng (không tạo được /run/tpan...) thì job cũng không chạy được,
 		// nên không có gì đang đổi máy: cứ kiểm.
-		slog.Warn("health: không thử được khoá toàn cục", "err", err)
+		slog.Warn("không thử được khoá toàn cục", "err", err)
 		return false
 	}
 	unlock()
@@ -92,7 +99,13 @@ func (s *Server) kick(domain string) {
 // apiReadJSON đọc thân JSON (tối đa 64 KiB, không nhận trường lạ) vào v; sai
 // thì đã trả 400 bad_request và trả false.
 func apiReadJSON(w http.ResponseWriter, r *http.Request, v any) bool {
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
+	return apiReadJSONMax(w, r, v, 64<<10)
+}
+
+// apiReadJSONMax là apiReadJSON với trần limit byte: POST /apply nhận tới
+// core.MaxSitesEntries dòng, quá 64 KiB.
+func apiReadJSONMax(w http.ResponseWriter, r *http.Request, v any, limit int64) bool {
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", i18n.T(

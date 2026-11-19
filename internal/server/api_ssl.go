@@ -34,8 +34,19 @@ type apiPlan interface {
 // planJob là khuôn của mọi POST chạy một Plan của core: ?dry_run=1 thì trả
 // bản xem trước; không thì giành chỗ chạy job, chuẩn bị (lời từ chối về thẳng
 // người gọi kèm checks), rồi chạy ở nền và trả 202. Giống handleSiteDelete,
-// tách ra vì SSL và hai nút của trang bảo mật cùng một hình dạng.
+// tách ra vì SSL, hai nút của trang bảo mật, khôi phục và xoá hẳn site trong
+// thùng rác (M6) cùng một hình dạng.
+//
+// kick "": job SSL đổi vhost (chặng TLS và web), job bảo mật đổi ufw,
+// fail2ban (phép kiểm của máy); kiểm nhẹ lại mọi thứ sau job (M4).
 func (s *Server) planJob(w http.ResponseWriter, r *http.Request, action, target string, prepare func(context.Context) (apiPlan, error)) {
+	s.planJobKick(w, r, jobOpts{action: action, target: target}, prepare)
+}
+
+// planJobKick là planJob với kick (và onStart) tuỳ chọn: khôi phục xin kiểm
+// lại đúng site vừa sống lại.
+func (s *Server) planJobKick(w http.ResponseWriter, r *http.Request, o jobOpts, prepare func(context.Context) (apiPlan, error)) {
+	action, target := o.action, o.target
 	if apiDryRun(r) {
 		p, err := prepare(r.Context())
 		if err != nil {
@@ -61,9 +72,7 @@ func (s *Server) planJob(w http.ResponseWriter, r *http.Request, action, target 
 		s.jobRefused(w, r, action, target, err)
 		return
 	}
-	// kick "": job SSL đổi vhost (chặng TLS và web), job bảo mật đổi ufw,
-	// fail2ban (phép kiểm của máy); kiểm nhẹ lại mọi thứ sau job (M4).
-	s.jobStart(w, r, jobOpts{action: action, target: target}, func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error) {
+	s.jobStart(w, r, o, func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error) {
 		rep, err := p.Execute(ctx, onEvent)
 		return jobResult{status: rep.Job.Status}, err
 	})

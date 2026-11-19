@@ -213,31 +213,8 @@ func TestAPISiteCreateRunsJob(t *testing.T) {
 
 // ---------------------------------------------------------------- xoá site
 
-func TestAPISiteDelete(t *testing.T) {
-	e := apiNewEnv(t)
-	e.stack(t)
-	d := e.addSite(t, "old.example.com")
-
-	// Xem trước: không đổi gì.
-	p := apiDecode[engine.Preview](t, apiCall(e.s.handleSiteDelete, "DELETE", "/?dry_run=1", "", "domain", "old.example.com"), 200)
-	if p.Kind != "site.rm" || len(p.Steps) == 0 {
-		t.Fatalf("Preview = %+v", p)
-	}
-	if _, ok, _ := e.st.Site(context.Background(), d); !ok {
-		t.Fatal("xem trước mà site đã mất")
-	}
-
-	// Chạy thật: máy giả không có gì của site, mọi bước bỏ qua, job thành công.
-	js := apiDecode[JobStarted](t, apiCall(e.s.handleSiteDelete, "DELETE", "/", "", "domain", "old.example.com"), 202)
-	e.s.api.wg.Wait()
-	job, err := e.st.Job(context.Background(), js.JobID)
-	if err != nil || job.Status != engine.JobSucceeded || job.Kind != "site.rm" {
-		t.Fatalf("job = %+v, %v", job, err)
-	}
-	if _, ok, _ := e.st.Site(context.Background(), d); ok {
-		t.Fatal("job xong mà site còn trong bảng sites")
-	}
-}
+// DELETE /sites/{domain} chạy thật (từ M6 là đưa vào thùng rác):
+// TestAPISiteDeleteTrashes ở api_trash_test.go.
 
 func TestAPISiteDeleteErrors(t *testing.T) {
 	e := apiNewEnv(t)

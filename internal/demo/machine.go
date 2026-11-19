@@ -76,7 +76,12 @@ type machine struct {
 	users     map[string]string // user Linux → thư mục home
 	dbs       map[string]bool
 	dbUsers   map[string]bool
-	installed map[string]bool              // WordPress đã cài, theo user của site
+	// dbLocked: user DB bị khoá (ALTER USER ... ACCOUNT LOCK, thùng rác M6).
+	dbLocked map[string]bool
+	// expired: user Linux có hạn tài khoản (usermod --expiredate, thùng rác
+	// M6), giá trị là dòng "Account expires" của chage -l.
+	expired   map[string]string
+	installed map[string]bool // WordPress đã cài, theo user của site
 	options   map[string]map[string]string // tuỳ chọn WordPress (wp option), theo user của site
 	sockets   map[string]bool              // socket pool mà lần reload gần nhất đã tạo
 	units     map[string]bool              // dịch vụ systemd đang chạy và tự bật
@@ -98,6 +103,8 @@ func newMachine() *machine {
 		users:      map[string]string{},
 		dbs:        map[string]bool{},
 		dbUsers:    map[string]bool{},
+		dbLocked:   map[string]bool{},
+		expired:    map[string]string{},
 		installed:  map[string]bool{},
 		options:    map[string]map[string]string{},
 		sockets:    map[string]bool{},
@@ -110,6 +117,7 @@ func newMachine() *machine {
 	m.handlers()
 	m.sslHandlers()
 	m.securityHandlers()
+	m.trashHandlers()
 	m.writeProc()
 	return m
 }
@@ -211,6 +219,11 @@ func (m *machine) handlers() {
 			return exit(6, "", "userdel: user '"+name+"' does not exist\n")
 		}
 		delete(m.users, name)
+		// Xoá hẳn site (M6) rồi tạo lại cùng domain trên giao diện demo thì
+		// phải là WordPress mới cài, có mật khẩu mới: quên mọi thứ của user cũ.
+		delete(m.expired, name)
+		delete(m.installed, name)
+		delete(m.options, name)
 		return okResult
 	})
 
@@ -335,6 +348,9 @@ func (m *machine) mariadb(c system.Cmd) system.Result {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if res, ok := m.mariadbLock(sql); ok {
+		return res
+	}
 	// Màn Cơ sở dữ liệu hỏi dung lượng và số bảng của các DB trong một câu
 	// (core.Sites.Databases): mỗi DB có một dòng "tên<TAB>số bảng<TAB>byte".
 	if i := strings.Index(sql, "SCHEMA_NAME IN ("); i >= 0 && strings.Contains(sql, "information_schema.SCHEMATA") {
@@ -363,6 +379,7 @@ func (m *machine) mariadb(c system.Cmd) system.Result {
 	}
 	for _, g := range sqlDropUsr.FindAllStringSubmatch(sql, -1) {
 		delete(m.dbUsers, g[1])
+		delete(m.dbLocked, g[1])
 	}
 	for _, g := range sqlDropDB.FindAllStringSubmatch(sql, -1) {
 		delete(m.dbs, g[1])
@@ -404,17 +421,19 @@ func (m *machine) curl(c system.Cmd) system.Result {
 
 // httpSite giả lập một request tới site qua nginx và PHP-FPM, ở cổng port
 // ("80" hoặc "443"); headers: curl được gọi với -D - (in header thay vì thân).
-// Vhost chưa bật thì request rơi vào site mặc định (nginx đóng kết nối, curl
-// mã 56). Vhost có SSL (ssl.go) thì cổng 80 chuyển hướng 301 sang https;
-// không có SSL thì cổng 443 không nối được. Socket của pool mất thì 502; còn
-// lại là trang WordPress của site.
+// Vhost chưa bật (site chưa tạo hoặc đã vào thùng rác) thì request rơi vào
+// site mặc định của tpan: nginx trả 444, tức đóng kết nối không trả lời, curl
+// mã 52 như trên máy thật (phép kiểm "domain không còn được phục vụ" của thùng
+// rác chờ đúng mã này). Vhost có SSL (ssl.go) thì cổng 80 chuyển hướng 301
+// sang https; không có SSL thì cổng 443 không nối được. Socket của pool mất thì
+// 502; còn lại là trang WordPress của site.
 func (m *machine) httpSite(dom, port string, headers bool) system.Result {
 	l, ok := siteOf(dom)
 	if !ok {
 		return exit(6, "", "curl: (6) Could not resolve host\n")
 	}
 	if _, err := m.Stat(l.NginxLink); err != nil {
-		return exit(56, "", "curl: (56) Recv failure: Connection reset by peer\n")
+		return exit(52, "", "curl: (52) Empty reply from server\n")
 	}
 	ssl := m.vhostSSL(l)
 	reply := func(code, status, extra, body string) system.Result {

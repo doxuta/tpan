@@ -15,6 +15,7 @@ import (
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
@@ -69,12 +70,15 @@ func TestNewHasThreeSites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// List trả cả site trong thùng rác (M6); ba site đang chạy và site cũ.
 	var got []string
 	for _, s := range sites {
-		got = append(got, s.Domain.String())
+		if s.Status == site.Active {
+			got = append(got, s.Domain.String())
+		}
 	}
-	if want := []string{siteBlog, siteShop, siteWiki}; !slices.Equal(got, want) {
-		t.Fatalf("List = %v; muốn %v", got, want)
+	if want := []string{siteBlog, siteShop, siteWiki}; !slices.Equal(got, want) || len(sites) != 4 {
+		t.Fatalf("List = %v (site active %v); muốn active %v và %s trong thùng rác", sites, got, want, siteOld)
 	}
 	for _, s := range sites {
 		if s.Created.IsZero() || time.Since(s.Created) < 24*time.Hour {
@@ -147,23 +151,26 @@ func TestJobHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Mới nhất trước: wiki, lần thất bại, shop, blog.
+	// Mới nhất trước: wiki, site cũ vào thùng rác, lần thất bại, shop, blog,
+	// tạo site cũ.
 	want := []struct {
-		target string
-		status engine.JobStatus
+		kind, target string
+		status       engine.JobStatus
 	}{
-		{siteWiki, engine.JobSucceeded},
-		{siteFail, engine.JobRolledBack},
-		{siteShop, engine.JobSucceeded},
-		{siteBlog, engine.JobSucceeded},
+		{"site.add", siteWiki, engine.JobSucceeded},
+		{"site.rm", siteOld, engine.JobSucceeded},
+		{"site.add", siteFail, engine.JobRolledBack},
+		{"site.add", siteShop, engine.JobSucceeded},
+		{"site.add", siteBlog, engine.JobSucceeded},
+		{"site.add", siteOld, engine.JobSucceeded},
 	}
 	if len(jobs) != len(want) {
 		t.Fatalf("có %d job; muốn %d: %+v", len(jobs), len(want), jobs)
 	}
 	for i, w := range want {
 		j := jobs[i]
-		if j.Kind != "site.add" || j.Target != w.target || j.Status != w.status {
-			t.Errorf("job %d = %s %s %s; muốn site.add %s %s", i, j.Kind, j.Target, j.Status, w.target, w.status)
+		if j.Kind != w.kind || j.Target != w.target || j.Status != w.status {
+			t.Errorf("job %d = %s %s %s; muốn %s %s %s", i, j.Kind, j.Target, j.Status, w.kind, w.target, w.status)
 		}
 		if j.Finished.IsZero() || j.Finished.Before(j.Started) {
 			t.Errorf("job %d có thời gian lạ: %v → %v", i, j.Started, j.Finished)
@@ -215,8 +222,8 @@ func TestAddSiteOnDemoMachine(t *testing.T) {
 	if !res.WPInstalled || len(res.AdminPassword.Reveal()) != 32 {
 		t.Errorf("WPInstalled=%v, độ dài mật khẩu=%d", res.WPInstalled, len(res.AdminPassword.Reveal()))
 	}
-	if list, _ := s.List(ctx); len(list) != 4 {
-		t.Errorf("List có %d site; muốn 4", len(list))
+	if n := countActive(ctx, t, s); n != 4 {
+		t.Errorf("có %d site active; muốn 4", n)
 	}
 
 	h, err := s.Health(ctx, in.Domain)
@@ -236,7 +243,8 @@ func TestAddSiteOnDemoMachine(t *testing.T) {
 		t.Errorf("sau khi tạo site mới, php.socket của %s = %q; muốn fail", siteWiki, got)
 	}
 
-	// Xoá site (nút xoá trên giao diện) cũng chạy được trên máy giả.
+	// Xoá site (nút "Đưa vào thùng rác" trên giao diện) cũng chạy được trên
+	// máy giả, kể cả bước kiểm chứng "domain không còn được phục vụ".
 	rm, err := s.PrepareRemove(ctx, in.Domain)
 	if err != nil {
 		t.Fatal(err)
@@ -245,9 +253,25 @@ func TestAddSiteOnDemoMachine(t *testing.T) {
 	if err != nil || rep.Job.Status != engine.JobSucceeded {
 		t.Fatalf("xoá site: %v %s %s", err, rep.Job.Status, rep.Job.Error)
 	}
-	if list, _ := s.List(ctx); len(list) != 3 {
-		t.Errorf("sau khi xoá List có %d site; muốn 3", len(list))
+	if n := countActive(ctx, t, s); n != 3 {
+		t.Errorf("sau khi xoá có %d site active; muốn 3", n)
 	}
+}
+
+// countActive đếm site đang chạy (List trả cả site trong thùng rác).
+func countActive(ctx context.Context, t *testing.T, s *core.Sites) int {
+	t.Helper()
+	list, err := s.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, st := range list {
+		if st.Status == site.Active {
+			n++
+		}
+	}
+	return n
 }
 
 // Domain của lần thất bại gõ lại được: chỗ chặn vhost đã được dọn.

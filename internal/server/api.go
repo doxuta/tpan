@@ -54,7 +54,7 @@ type apiState struct {
 	// secrets giữ mật khẩu quản trị WordPress theo job id cho tới lần
 	// GET /jobs/{id} đầu tiên sau khi job xong (mục 11, "Bí mật"). Chỉ trong
 	// bộ nhớ: không ghi DB, không log; tpan khởi động lại thì mất.
-	secrets map[string]AdminSecret
+	secrets map[string]heldSecret
 
 	// wg đếm goroutine job nền, để test chờ chúng xong trước khi đóng DB.
 	wg sync.WaitGroup
@@ -66,7 +66,7 @@ func newAPIState(s *Server) *apiState {
 		s:        s,
 		lockWait: apiLockWait,
 		runs:     map[string]*jobRun{},
-		secrets:  map[string]AdminSecret{},
+		secrets:  map[string]heldSecret{},
 	}
 }
 
@@ -88,9 +88,10 @@ func (s *Server) apiStack() *core.Stack {
 // ---------------------------------------------------------------- lỗi
 
 // apiErrorStatus chọn mã HTTP và mã lỗi cho err (mục 9, quy ước ở types.go).
-// Lời từ chối của core phần lớn là 409 (máy không đạt điều kiện), trừ bốn mã là
+// Lời từ chối của core phần lớn là 409 (máy không đạt điều kiện), trừ các mã là
 // lỗi đầu vào (400) và site_not_found (404): người gọi cần phân biệt "gõ sai"
-// và "không có" với "máy đang lệch".
+// và "không có" với "máy đang lệch". M6 thêm hai mã đầu vào: sites_file_invalid
+// (danh sách dán hay sites.yaml sai) và trash_days_invalid (số ngày giữ ngoài khoảng).
 func apiErrorStatus(err error) (status int, body ErrorBody) {
 	var ve *validate.Error
 	var re *core.RefusedError
@@ -100,7 +101,8 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 	case errors.As(err, &re):
 		status = http.StatusConflict
 		switch re.Code {
-		case validate.CodeDomainInvalid, validate.CodeEmailInvalid, "title_invalid", "ssl_server_invalid":
+		case validate.CodeDomainInvalid, validate.CodeEmailInvalid, "title_invalid", "ssl_server_invalid",
+			"sites_file_invalid", "trash_days_invalid", "apply_empty", "domain_duplicate", "prune_empty":
 			status = http.StatusBadRequest
 		case "site_not_found":
 			status = http.StatusNotFound
@@ -241,7 +243,8 @@ func (s *Server) handleJobs(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, apiNonNil(jobs))
 }
 
-// handleJob trả job, mọi sự kiện, và mật khẩu quản trị nếu có (đúng một lần).
+// handleJob trả job, mọi sự kiện, và mật khẩu quản trị nếu có (đúng một lần):
+// Secret cho job site.add, Secrets cho job hàng loạt (POST /apply).
 func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	// Job của tiến trình này đã phát job.done nhưng goroutine chưa xong (đang
@@ -270,7 +273,8 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 	}
 	d := JobDetail{Job: job, Events: apiNonNil(evs)}
 	if job.Status != engine.JobRunning {
-		d.Secret = s.api.takeSecret(id)
+		sec := s.api.takeSecret(id)
+		d.Secret, d.Secrets = sec.one, sec.many
 	}
 	writeJSON(w, http.StatusOK, d)
 }
