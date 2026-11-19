@@ -58,6 +58,11 @@ export const screens: ScreenEntry[] = [
     menu: { label: "databases", group: "chinh", count: activeSites },
   },
   {
+    path: "/ssl",
+    load: () => import("./screens/ssl").then((m) => m.default),
+    menu: { label: "ssl", group: "chinh" },
+  },
+  {
     // M3 chưa có màn Sự cố riêng (mốc sau). Mục này dẫn về Bảng điều khiển,
     // nơi có khối "Sự cố đang mở", và đếm số phép kiểm đang lỗi. Khi có màn
     // Sự cố thì đổi path thành "/incidents" và thêm load.
@@ -75,6 +80,11 @@ export const screens: ScreenEntry[] = [
     menu: { label: "jobs", group: "may" },
   },
   { path: "/jobs/:id", load: () => import("./screens/lich-su").then((m) => m.JobDetail) },
+  {
+    path: "/security",
+    load: () => import("./screens/bao-mat").then((m) => m.default),
+    menu: { label: "security", group: "may" },
+  },
   {
     path: "/settings",
     load: () => import("./screens/cai-dat").then((m) => m.default),

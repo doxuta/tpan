@@ -264,3 +264,27 @@ export type SessionRow = {
   created: string;
   last_seen: string;
 };
+
+// ---- SSL (M5, internal/server/types_m5.go, internal/core/ssl.go) ----
+
+export type SSLConfig = {
+  email: string;
+  /** Chưa đặt thì máy chủ trả true (mặc định bật staging). */
+  staging: boolean;
+};
+
+export type SSLSiteRow = {
+  domain: string;
+  ssl: boolean;
+  /** Phép kiểm chứng chỉ (tls.cert:<domain>); chỉ có khi ssl là true. */
+  cert?: CheckResult;
+};
+
+export type SSLOverview = { config: SSLConfig; sites: SSLSiteRow[] };
+
+/** Thân POST /api/v1/ssl/settings; trường vắng mặt thì giữ nguyên. */
+export type SSLSettings = { email?: string; staging?: boolean };
+
+// ---- Bảo mật (M5, internal/core/security.go) ----
+
+export type SecurityStatus = { results: CheckResult[] };
