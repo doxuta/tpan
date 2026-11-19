@@ -221,6 +221,15 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("POST /api/v1/updates", auth(s.handleUpdateApply))
 	mux.Handle("POST /api/v1/updates/auto", auth(s.handleUpdateAuto))
 	mux.Handle("POST /api/v1/mariadb/upgrade", auth(s.handleMariaDBUpgrade))
+	// M9: backup, cron, thao tác DB (types_m9.go, api_m9.go).
+	mux.Handle("GET /api/v1/backups", auth(s.handleBackups))
+	mux.Handle("POST /api/v1/sites/{domain}/backups", auth(s.handleSiteBackup))
+	mux.Handle("POST /api/v1/backups/{id}/restore", auth(s.handleBackupRestore))
+	mux.Handle("POST /api/v1/backups/settings", auth(s.handleBackupSettings))
+	mux.Handle("GET /api/v1/cron", auth(s.handleCron))
+	mux.Handle("POST /api/v1/databases/{domain}/password", auth(s.handleDBPassword))
+	mux.Handle("POST /api/v1/databases/{domain}/dump", auth(s.handleDBDump))
+	mux.Handle("POST /api/v1/databases/{domain}/import", auth(s.handleDBImport))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

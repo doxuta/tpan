@@ -837,7 +837,15 @@ const dumpDone = "-- Dump completed"
 
 // MariaDBDump xuất toàn bộ DB ra một file trước khi nâng dòng MariaDB: đó là
 // đường lùi duy nhất (mục 6.11).
-type MariaDBDump struct{ Path string }
+//
+// M9: DB khác rỗng thì chỉ xuất DB đó (`mariadb-dump --single-transaction
+// --quick <DB>`), dùng cho xuất DB của site (mục 6.9) và bản xuất trước khi
+// nhập hay khôi phục; Path khi đó được nằm dưới site.BackupRoot hoặc
+// site.RestoreRoot. DB rỗng: như M12.
+type MariaDBDump struct {
+	Path string
+	DB   string
+}
 
 func (s *MariaDBDump) validate() error {
 	if err := checkPath("file xuất MariaDB", s.Path); err != nil {

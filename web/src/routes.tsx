@@ -62,6 +62,16 @@ export const screens: ScreenEntry[] = [
     menu: { label: "ssl", group: "chinh" },
   },
   {
+    path: "/backups",
+    load: () => import("./screens/backup").then((m) => m.default),
+    menu: { label: "backups", group: "chinh" },
+  },
+  {
+    path: "/cron",
+    load: () => import("./screens/cron").then((m) => m.default),
+    menu: { label: "cron", group: "chinh" },
+  },
+  {
     path: "/trash",
     load: () => import("./screens/thung-rac").then((m) => m.default),
     // Mục 10: mục đếm được thì có số; thùng rác đếm site đang nằm trong đó.
