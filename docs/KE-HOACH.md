@@ -288,6 +288,8 @@ Mỗi luồng dưới đây là một Plan. Liệt kê theo đúng thứ tự b�
 
 Điều kiện đầu: Ubuntu 24.04; cổng 80 và 443 đang trống; chưa có nginx, apache2, mariadb, mysql. Sai điều kiện thì từ chối và nói rõ lý do (giống các panel yêu cầu máy sạch).
 
+Chạy lại phải được phép, kể cả sau một lần hỏng giữa chừng, mà lúc đó máy đã có gói do chính tpan cài dở. Vì vậy `settings.stack.web` được ghi **ngay trước** khi chạy Plan, như lời "máy này thuộc tpan với web server X". Lần sau, nếu `stack.web` trùng web server được yêu cầu thì bỏ kiểm cổng và gói; nếu khác thì từ chối và chỉ sang `tpan stack switch`. `stack.php_version` chỉ được ghi khi job thành công, và "stack đã cài" nghĩa là khoá này có giá trị.
+
 1. `apt-get update`.
 2. Cài gói chung và gói web server đã chọn (mục 3).
 3. MariaDB: kiểm root dùng `unix_socket`, không có user ẩn danh, không có DB `test`, chỉ nghe `127.0.0.1`. Thiếu gì sửa nấy bằng SQL.

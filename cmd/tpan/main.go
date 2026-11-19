@@ -1,63 +1,77 @@
 // Lệnh tpan: điểm vào duy nhất của công cụ.
 //
-// Hiện mới có khung: `tpan version` và `tpan serve`.
-// Các lệnh thật (stack, site, apply, doctor...) được thêm theo docs/KE-HOACH.md.
+// Các lệnh được dựng bằng cobra (mục 3 và 9 của docs/KE-HOACH.md). Mỗi lệnh chỉ
+// đọc cờ, gọi một ca sử dụng trong internal/core rồi in kết quả; mọi quyết định
+// về máy nằm ở core, để CLI, API và MCP cho cùng một kết quả.
+//
+// Hiện có: version, serve, stack install, stack status, health.
 package main
 
 import (
 	"context"
-	"flag"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/doxuta/tpan/internal/buildinfo"
-	"github.com/doxuta/tpan/internal/server"
+	"github.com/doxuta/tpan/internal/store"
+	"github.com/doxuta/tpan/internal/system"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		usage()
-		os.Exit(2)
-	}
-
-	switch os.Args[1] {
-	case "version":
-		fmt.Println(buildinfo.String())
-	case "serve":
-		if err := serve(os.Args[2:]); err != nil {
-			fmt.Fprintln(os.Stderr, "tpan:", err)
-			os.Exit(1)
-		}
-	case "help", "-h", "--help":
-		usage()
-	default:
-		fmt.Fprintf(os.Stderr, "tpan: không có lệnh %q\n\n", os.Args[1])
-		usage()
-		os.Exit(2)
-	}
-}
-
-func serve(args []string) error {
-	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
-	listen := fs.String("listen", "127.0.0.1:8080", "địa chỉ và cổng để nghe")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	// Ctrl+C hoặc `systemctl stop` gửi tín hiệu; ctx bị huỷ và server tắt êm.
+	// Ctrl+C hoặc `systemctl stop` gửi tín hiệu; ctx bị huỷ, server tắt êm, job
+	// đang chạy dừng và hoàn tác các bước đã làm.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	return server.Run(ctx, *listen)
+	code := run(ctx, os.Args[1:], realEnv())
+	stop()
+	os.Exit(code)
 }
 
-func usage() {
-	fmt.Fprint(os.Stderr, `tpan - panel tự động hoá LAMP/LEMP và WordPress
-
-Cách dùng:
-  tpan version              in phiên bản
-  tpan serve [--listen A]   chạy giao diện web và API (mặc định 127.0.0.1:8080)
-`)
+// realEnv nối CLI với máy thật.
+func realEnv() env {
+	return env{
+		sys:    system.NewLocal(),
+		isRoot: func() bool { return os.Geteuid() == 0 },
+		// Stdin là terminal thì mới hỏi được "Chạy? [y/N]". Chạy trong script
+		// hay qua pipe thì không có ai trả lời.
+		isTerminal: func() bool {
+			fi, err := os.Stdin.Stat()
+			return err == nil && fi.Mode()&os.ModeCharDevice != 0
+		},
+		// Dùng os.Stat chứ không qua system.System: file DB do store mở bằng
+		// hệ thống file thật, và đây chỉ là đọc.
+		fileExists: func(p string) bool {
+			_, err := os.Stat(p)
+			return err == nil
+		},
+		openStore: store.Open,
+		stdin:     os.Stdin,
+		stdout:    os.Stdout,
+		stderr:    os.Stderr,
+	}
 }
+
+// run chạy CLI và trả mã thoát. Tách khỏi main để test gọi được.
+func run(ctx context.Context, args []string, e env) int {
+	root := newRoot(&e)
+	root.SetArgs(args)
+	err := root.ExecuteContext(ctx)
+	var ec *exitCode
+	switch {
+	case err == nil:
+		return 0
+	case errors.As(err, &ec):
+		// Lệnh đã tự in lý do.
+		return ec.code
+	default:
+		// Lỗi cờ, lỗi đọc DB...: in một dòng, không stack trace.
+		printf(e.stderr, "tpan: %v\n", err)
+		return 1
+	}
+}
+
+// exitCode báo mã thoát khác 0 khi lệnh đã tự in lý do cho người dùng.
+type exitCode struct{ code int }
+
+func (e *exitCode) Error() string { return fmt.Sprintf("mã thoát %d", e.code) }
