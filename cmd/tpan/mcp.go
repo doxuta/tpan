@@ -105,6 +105,17 @@ func mcpConfigCmd(e *env) *cobra.Command {
 					"CẢNH BÁO: chế độ client cho agent nối qua `tpan mcp` tự chạy Plan nó đề xuất (apply_plan), chỉ dựa vào bước hỏi quyền của chính agent. Tắt bằng: sudo tpan mcp config --approval panel",
 					"WARNING: client mode lets an agent connected through `tpan mcp` run the plans it proposes (apply_plan), relying only on the agent's own permission prompt. Turn it off with: sudo tpan mcp config --approval panel"))
 			}
+			if setBrain {
+				// tpan serve đọc ai.brain một lần lúc khởi động (mở hay không
+				// mở socket của bộ não), nên đổi setting chưa có tác dụng ngay.
+				w := e.stdout
+				if asJSON {
+					w = e.stderr
+				}
+				printf(w, "%s\n", e.tr(
+					"Khởi động lại tpan để áp dụng: sudo systemctl restart tpan",
+					"Restart tpan to apply: sudo systemctl restart tpan"))
+			}
 			if asJSON {
 				return writeJSON(e.stdout, cfg)
 			}

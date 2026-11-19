@@ -182,6 +182,14 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("POST /api/v1/plans/{id}/approve", auth(s.handlePlanApprove))
 	mux.Handle("POST /api/v1/plans/{id}/reject", auth(s.handlePlanReject))
 	mux.Handle("GET /api/v1/agent", auth(s.handleAgent))
+	// M8: AI trong panel (ai_types.go, api_ai.go).
+	mux.Handle("GET /api/v1/ai/brain", auth(s.handleAIBrain))
+	mux.Handle("POST /api/v1/ai/preview", auth(s.handleAIPreview))
+	mux.Handle("POST /api/v1/ai/ask", auth(s.handleAIAsk))
+	mux.Handle("GET /api/v1/ai/sessions", auth(s.handleAISessions))
+	mux.Handle("GET /api/v1/ai/sessions/{id}", auth(s.handleAISession))
+	mux.Handle("GET /api/v1/ai/sessions/{id}/turns/{seq}/events", auth(s.handleAITurnEvents))
+	mux.Handle("POST /api/v1/ai/views", auth(s.handleAIView))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

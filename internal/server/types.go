@@ -93,6 +93,8 @@ package server
 import (
 	"time"
 
+	"github.com/doxuta/tpan/internal/ai"
+	"github.com/doxuta/tpan/internal/ai/bridge"
 	"github.com/doxuta/tpan/internal/health"
 	"github.com/doxuta/tpan/internal/monitor"
 
@@ -125,6 +127,14 @@ type Deps struct {
 	// DBPath là file tpan.db, cho phép kiểm quyền của health (M4). Rỗng: bỏ
 	// phép kiểm đó.
 	DBPath string
+	// AI là lõi AI trong panel (M8); nil khi AI tắt (setting ai.brain = off,
+	// hoặc không mở được socket của bộ não). Các đường chỉ đọc lịch sử phiên
+	// AI vẫn chạy khi nil.
+	AI *ai.Panel
+	// Brain cho biết tình trạng bộ não (bridge.Hub); nil khi tắt hoặc demo.
+	Brain interface{ Status() bridge.Status }
+	// BrainMode là "off" | "bridge" | "demo" (BrainStatus.Mode); rỗng coi là off.
+	BrainMode string
 }
 
 // ErrorBody là dạng lỗi duy nhất của API (mục 9).

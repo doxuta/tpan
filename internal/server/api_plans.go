@@ -44,15 +44,16 @@ func (s *Server) apiPlanner() *core.Planner {
 }
 
 // planErrorStatus là apiErrorStatus cộng hai mã của Plan: apiErrorStatus (M3)
-// coi mọi lời từ chối là 409, nhưng "không có Plan này" là 404 và "loại Plan
-// không có" là lỗi đầu vào (400). Bọc ở đây thay vì sửa api.go để không đụng
+// coi mọi lời từ chối là 409, nhưng "không có Plan này" và "không có kết quả
+// của phép kiểm này" (Plan health.fix, M8) là 404, còn "loại Plan không có" là
+// lỗi đầu vào (400). Bọc ở đây thay vì sửa api.go để không đụng
 // file của M3.
 func planErrorStatus(err error) (int, ErrorBody) {
 	status, body := apiErrorStatus(err)
 	var re *core.RefusedError
 	if errors.As(err, &re) {
 		switch re.Code {
-		case "plan_not_found":
+		case "plan_not_found", "check_not_found":
 			status = http.StatusNotFound
 		case "plan_kind_invalid":
 			status = http.StatusBadRequest

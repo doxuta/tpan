@@ -19,7 +19,11 @@ package server
 //
 // Lời từ chối của Panel (*core.RefusedError) đi qua apiErrorStatus như mọi
 // lời từ chối khác (409), trừ: question_empty, question_too_long → 400;
-// ai_session_not_found → 404; ai_daily_limit → 429.
+// ai_session_not_found → 404; ai_daily_limit → 429. Thêm khi làm (đợt 3):
+// ai_turn_not_found (404, SSE của lượt không có); label_invalid, path_invalid
+// (400, POST /ai/views). Lượt bị Recover đóng (serve chết giữa lượt) thì luồng
+// SSE gửi một sự kiện error lấy từ lời lỗi đã lưu, để trình duyệt không nối
+// lại mãi.
 //
 // Thợ đợt 3 thêm vào Deps hai trường dưới đây, viết api_ai.go (cùng test với
 // fake.Brain) và nối trong `tpan serve`:
