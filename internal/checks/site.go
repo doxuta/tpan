@@ -701,12 +701,18 @@ func siteHTTPEvidence(code, body, stderr string) string {
 // ---- Gom lại ----
 
 // SiteChecks trả mọi phép kiểm của một site theo đúng thứ tự chặng của request:
-// vhost, cú pháp PHP-FPM, socket, mã nguồn, quyền wp-config, DB, rồi gọi HTTP.
+// vhost, socket, mã nguồn, quyền wp-config, DB, rồi gọi HTTP.
 // Isolated cần hai site nên không nằm ở đây: core thêm khi biết site còn lại.
+//
+// Cú pháp PHP-FPM (PHPFPMConfig) không nằm ở đây dù thuộc chặng PHP: nó là
+// phép kiểm của cả máy, đã có trong phép kiểm stack. Lặp lại ở từng site thì
+// cùng một ID xuất hiện N lần, bản đồ tuyến vẽ một lỗi thành N sự cố, và health
+// (M4) mở đóng sự cố theo ID sẽ va nhau. phpVersion giữ cho M12, khi mỗi site
+// có thể chạy một bản PHP riêng.
 func SiteChecks(web, phpVersion string, l site.Layout) []Check {
+	_ = phpVersion
 	return []Check{
 		VhostEnabled(web, l),
-		PHPFPMConfig(phpVersion),
 		PoolSocket(l),
 		WPChecksums(l),
 		WPConfigPerm(l),

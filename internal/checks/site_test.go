@@ -666,7 +666,6 @@ func TestSiteChecksOrder(t *testing.T) {
 		stage Stage
 	}{
 		{"web.vhost:shop.example.com", StageWeb},
-		{"config.phpfpm:8.3", StagePHP},
 		{"php.socket:shop.example.com", StagePHP},
 		{"wp.checksums:shop.example.com", StageWordPress},
 		{"wp.config:shop.example.com", StageWordPress},

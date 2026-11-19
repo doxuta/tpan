@@ -43,6 +43,7 @@ package checks
 //	func HTTPSite(l site.Layout) Check
 //
 //	// SiteChecks trả mọi phép kiểm của một site theo đúng thứ tự chặng:
-//	// VhostEnabled, PHPFPMConfig(phpVersion), PoolSocket, WPChecksums,
-//	// WPConfigPerm, DBAccess, HTTPSite. (Isolated cần hai site, core tự thêm.)
+//	// VhostEnabled, PoolSocket, WPChecksums, WPConfigPerm, DBAccess, HTTPSite.
+//	// (Isolated cần hai site, core tự thêm. PHPFPMConfig là phép kiểm của cả
+//	// máy, nằm ở phép kiểm stack: xem chú thích ở site.go.)
 //	func SiteChecks(web, phpVersion string, l site.Layout) []Check
