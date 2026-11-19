@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: M0 đến M4 và M7 xong (M0 đến M3 ngày 19/11/2026; M4, health đầy đủ, ghép vào `dev` cùng ngày). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`): lượt A (M4, M5, M7) song song theo mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`, đang ghép M5. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: M0 đến M5 và M7 xong ngày 19/11/2026 (lượt A gồm M4, M5, M7 chạy song song rồi ghép vào `dev`; M5 và M7 xong phần máy ảo, phần cần VPS hay Claude Code thật ở mục 18). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt kế tiếp là B (M6, M8, M12). Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -343,6 +343,25 @@ Template vhost của cả hai web server đều có: chặn file ẩn (trừ `.w
 5. Kiểm chứng: `https://<domain>/` trả 200, chứng chỉ khớp tên miền, còn bao nhiêu ngày; `certbot renew --dry-run`.
 
 Giới hạn của Let's Encrypt cần nhớ: 50 chứng chỉ cho mỗi tên miền đăng ký trong 7 ngày (tính chung cho mọi tên miền con và mọi người dùng tên miền đó), 5 chứng chỉ cho cùng một bộ tên trong 7 ngày, 300 đơn mới cho một tài khoản trong 3 giờ. **Trong lúc phát triển luôn bật staging.** Chỉ tắt staging cho buổi demo, và khi đó chỉ xin vài chứng chỉ: hạn mức 50 là của chung mọi người dùng cùng tên miền gốc, dùng hết thì người khác cũng không xin được.
+
+#### Đã chốt khi làm M5
+
+- **Email cho Let's Encrypt**: mục 9 chỉ có `tpan ssl issue <domain>`, bảng `sites` không giữ email. M5 lưu email ở `settings` (`ssl.email`), đặt bằng `tpan ssl settings --email E` hoặc `tpan ssl issue <domain> --email E` (lần đầu), hoặc ô trên màn SSL. Chưa có email thì từ chối `acme_email_missing`.
+- **Staging mặc định bật**: `ssl.staging` chưa ghi thì hiểu là bật (mục 6.3: "Trong lúc phát triển luôn bật staging"). Tắt bằng `tpan ssl settings --staging=false` hoặc công tắc trên màn SSL.
+- **`ssl.server`** (ẩn, chỉ cho test): địa chỉ thư mục ACME khác Let's Encrypt, để e2e trên máy ảo chạy certbot thật với một máy chủ ACME thử chạy ngay trong máy ảo. Có giá trị thì thắng `ssl.staging`.
+- **Site mặc định cổng 443 thuộc Plan SSL, không thuộc Plan cài stack**: máy chưa có site SSL nào thì cổng 443 vẫn đóng. Plan SSL đầu tiên bật `ssl` của Apache (cùng gói `ssl-cert` cho chứng chỉ tự ký của site mặc định) và ghi file mặc định 443 riêng (`tpan-default-ssl.conf` cho Nginx, `000-tpan-default-ssl.conf` cho Apache), nên chạy lại `stack install` không đụng tới chúng.
+- **Hook gia hạn**: dòng đầu phải là `#!/bin/sh` nên dòng `# Do tpan quản lý...` nằm ở dòng thứ hai (giống pool PHP-FPM: phép kiểm so bằng "có chứa").
+- **Bước thử đường HTTP của ACME (6.3 bước 1, ý 2) là một Step**, không phải điều kiện đầu: nó ghi một file vào webroot, mà điều kiện đầu và bản xem trước chỉ được đọc. Kiểm DNS vẫn là điều kiện đầu.
+- **Hoàn tác của bước xin chứng chỉ không xoá chứng chỉ**: nếu xoá, mỗi lần thử lại sau một lỗi ở bước sau sẽ tốn một lượt trong hạn mức 5 chứng chỉ cùng bộ tên mỗi 7 ngày. Chứng chỉ nằm lại trên đĩa không phục vụ gì khi vhost chưa trỏ tới nó; lần chạy lại bỏ qua bước xin. Chứng chỉ chỉ bị xoá khi xoá hẳn site.
+- **Đặt URL WordPress sang https**: Plan SSL có thêm bước `wp option update home|siteurl https://<domain>`. Không có bước này thì WordPress chuyển https về http, web server chuyển http về https: vòng lặp chuyển hướng.
+- **`certbot renew --dry-run` có thêm `--no-random-sleep-on-renew`** (mục 6.3, bước 5): không có cờ này, certbot chạy không terminal tự chờ ngẫu nhiên tới 8 phút trước khi gia hạn thử (đợt 3 thấy trên máy ảo, xem "Kết quả kiểm cho mục 16").
+- **certbot nhận `--server <url>` thay cho `--staging`** (mục 6.3 bước 2), và khoá setting là `ssl.staging` thay cho `settings.acme_staging` (mục 4.4): một đường cho cả Let's Encrypt thật, staging và máy chủ ACME thử, và `CertbotCert.Check` so được dòng `server = ` trong file gia hạn để biết chứng chỉ đang có là staging hay thật.
+- **Apache: lần xin SSL đầu tiên restart apache2** (bật mod ssl bằng bước `ApacheModules` của M1, bước này restart chứ không reload). Site Apache gián đoạn một khoảnh khắc ở lần đầu; chưa đo.
+- **Jail sshd của fail2ban** dùng bộ lọc mặc định `_SYSTEMD_UNIT=sshd.service + _COMM=sshd`; trên Ubuntu 24.04 unit tên `ssh.service` nên jail đọc được log nhờ vế `_COMM=sshd` (đã kiểm trên máy ảo, xem dưới).
+- **Lệnh mới ở CLI** (mục 9 chưa có): `tpan ssl list`, `tpan ssl settings`, `tpan security status|ufw|fail2ban`, `tpan internal reload-web` (ẩn, cho hook gia hạn).
+- **API mới** (mục 9): `GET /api/v1/ssl`, `POST /api/v1/ssl/settings`, `POST /api/v1/sites/{domain}/ssl[?dry_run=1]`, `GET /api/v1/security`, `POST /api/v1/security/ufw[?dry_run=1]`, `POST /api/v1/security/fail2ban[?dry_run=1]`.
+
+Khi ghép với M4 (đã làm lúc ghép, 19/11/2026): sửa tự động "ghi lại vhost" của health đi qua `core.siteVhost`, chọn bản có cổng 443 khi `site.SSL`; bộ phép kiểm của site có SSL là `checks.SiteChecksSSL`. Việc gọn để sau: `sslServerRe` chép ở cả `internal/core/ssl.go` và `internal/steps/ssl.go`; `checks.CertRenewDryRun` nhận cả http; `templates.Fail2banSSHD` nằm trong `templates/ssl.go`; `checks.SiteChecksSSL` nhận `phpVersion` mà không dùng.
 
 ### 6.4 Xoá, thùng rác, khôi phục
 
@@ -819,7 +838,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M2** ✅ | `tpan site add/list/info/rm` với cô lập đầy đủ và hoàn tác; phép kiểm theo đường đi request | e2e bước 2 đến 6 |
 | **M3** ✅ | `tpan setup`, API, đăng nhập, SSE; giao diện theo `docs/GIAO-DIEN.md`, sáng và tối: menu chính, bảng điều khiển với bản đồ tuyến và số liệu máy, màn cơ sở dữ liệu (chỉ xem), đổi mật khẩu quản trị và `tpan admin passwd` để đặt lại khi quên, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
 | **M4** ✅ | Health đầy đủ: chạy định kỳ, sự cố, sửa tự động và sửa tay, tự kiểm TPAN, phát hiện lệch, log trực tiếp, số request và lỗi 5xx theo site, `scripts/faults/` | e2e bước 9 và 11 |
-| **M5** | SSL (staging), trang bảo mật, ufw, fail2ban | chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt |
+| **M5** ✅ | SSL (staging), trang bảo mật, ufw, fail2ban | chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt |
 | **M6** | Hàng loạt (dán danh sách, `apply -f`, `export`), thùng rác, khôi phục, dọn tự động | e2e bước 7; tạo 10 site một lượt chỉ reload một lần |
 | **M7** ✅ | Cổng cho agent: danh mục công cụ, che dữ liệu, `tpan mcp`, hai chế độ duyệt, Plan chờ duyệt, thư mục `agents/`, nút "Chép lệnh cho Claude Code" | e2e bước 12; test che dữ liệu và test log cài câu lệnh đạt; Claude Code trên máy cá nhân liệt kê được site của máy ảo qua SSH, chẩn đoán đúng chặng một lỗi từ `scripts/faults/`, và Plan nó đề xuất sửa được lỗi đó |
 | **M8** | AI trong panel: `Brain`, `claudecode`, `tpan brain`, kiểm sự kiện `init`, ngăn AI có ngữ cảnh làm việc và bản hướng dẫn theo mục, thanh lệnh, giải thích, chẩn đoán, trang phiên AI | e2e bước 13; với Claude Code thật: hỏi từ panel của máy ảo, chữ hiện dần, Plan đề xuất hiện ở màn duyệt; chuyển mục rồi hỏi tiếp thì ngữ cảnh gửi đi đổi theo, xem được ở trang phiên AI |
@@ -929,6 +948,31 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - **Quan sát còn mở (cho M4)**: `curl` ngay sau `systemctl reload nginx` vẫn có thể nhận trả lời của worker cũ (200) trong khoảng dưới 2 giây; phép kiểm chạy sau đó 1,7 giây đã thấy đúng. Mọi job đều đạt, nhưng phép kiểm chạy ngay sau reload nên được xem lại.
   - **Bộ che và đuôi tên miền**: chỉ coi là tên miền chuỗi có đuôi thật theo danh sách Public Suffix của `golang.org/x/net` (bản trong `go.mod`), cộng một danh sách nhóm mã của tpan (`site`, `stack`, `step`, `job`, `http`...) để `site.repair`, `http.site` không bị đổi. Cái giá: domain lạ hai nhãn trùng tên nhóm (`php.net`, `nginx.org`) không bị che; đuôi mới ra sau bản `x/net` đang dùng không được nhận.
 
+- Kiểm ở M5 (19/11/2026), máy ảo Ubuntu 24.04:
+  Mục 16 của KE-HOACH.md chưa có dòng nào riêng cho SSL hay ufw. Dưới đây là những gì M5 đã kiểm trên máy ảo `tpan-m5` (Ubuntu 24.04, arm64, 19/11/2026); khi ghép, phiên điều phối thêm chúng vào mục 16 thành một khối "Kiểm ở M5". Log đầy đủ: `docs/bang-chung/M5.log` (chạy bằng `scripts/e2e-m5.sh all`: 205 khẳng định đạt, 0 không đạt; nginx rồi apache, mỗi bên từ máy sạch).
+
+  Cách chạy SSL không cần tên miền thật: máy chủ ACME thử `pebble` của Let's Encrypt chạy ngay trong máy ảo, tpan trỏ tới nó bằng `tpan ssl settings --server https://localhost:14000/dir` (cờ ẩn). certbot, nginx/apache, thử thách HTTP-01 đều là thật. Đồ nghề này chỉ có trong máy ảo, mô tả ở đầu `scripts/e2e-m5.sh`.
+
+  - **Gói `pebble` của Ubuntu không kèm chứng chỉ cho API của nó.** Bản `2.4.0+ds1-2ubuntu0.24.04.3` chỉ có `/usr/bin/pebble` và file cấu hình mẫu trỏ tới `test/certs/...`, không có CA "minica" như repo gốc. Script e2e tự tạo một CA thử và chứng chỉ cho `localhost` bằng openssl, thêm CA vào kho hệ thống (`update-ca-certificates`).
+  - **certbot của Ubuntu tin kho chứng chỉ hệ thống.** certbot 2.9.0 dùng `python3-certifi` đã được Debian sửa để `certifi.where()` trả `/etc/ssl/certs/ca-certificates.crt`, nên CA thêm bằng `update-ca-certificates` là đủ (tpan không cần truyền biến môi trường nào cho certbot).
+  - **`/etc/hosts` được cả ba bên đọc.** `getent ahostsv4 s1.example.com` trả `127.0.0.1`; pebble kiểm `http://s1.example.com:80/.well-known/acme-challenge/...` và request đó nằm trong access log của site (từ `127.0.0.1`, user agent `LetsEncrypt-Pebble-VA`), tức đi đúng vào vhost của nginx/apache. Phép `DNSPointsHere` báo **cảnh báo** cho tên trỏ về 127.0.0.1 (loopback không phải địa chỉ `scope global`), không chặn, như thiết kế.
+  - **`certbot renew` không có terminal tự chờ ngẫu nhiên tới 8 phút, kể cả `--dry-run`.** Lần chạy đầu: `Non-interactive renewal: random delay of 221.5 seconds` ngay trong bước kiểm chứng của `tpan ssl issue`, nên một lần xin chứng chỉ (và lần chạy lại, vốn bỏ qua hết các bước) mất 1 đến 4 phút, giữ khoá toàn cục suốt lúc đó. Bằng chứng từ lần chạy thử trước khi sửa (19/11, lượt apache; không nằm trong M5.log vì log đó chạy sau khi sửa): lệnh `tpan ssl issue s1.example.com --yes --verbose` chạy từ 18:32:12 tới 18:36:02, và `/var/log/letsencrypt/letsencrypt.log` trong máy ảo có:
+    ```
+    2026-11-19 18:32:18,752:DEBUG:certbot._internal.main:Arguments: ['--dry-run', '--cert-name', 's1.example.com', '--non-interactive', '--server', 'https://localhost:14000/dir']
+    2026-11-19 18:32:18,766:INFO:certbot._internal.renewal:Non-interactive renewal: random delay of 221.50437307169258 seconds
+    2026-11-19 18:36:00,370:INFO:certbot._internal.auth_handler:Waiting for verification...
+    ```
+    **Đã sửa**: `checks.CertRenewDryRun` thêm `--no-random-sleep-on-renew`. Sau khi sửa: xin chứng chỉ 8 giây, chạy lại 4 đến 5 giây; letsencrypt.log không còn dòng `random delay`. Bộ hẹn giờ `certbot.timer` vẫn chờ ngẫu nhiên như mặc định (đúng ý của Let's Encrypt).
+  - **`certbot renew --dry-run --server <khác>` dùng đúng máy chủ đó** (không tự đổi sang staging); bước kiểm chứng `tls.renew` đạt với pebble ở cả hai web server. **Không có `--server` thì `--dry-run` luôn đi tới staging thật của Let's Encrypt**, không theo dòng `server` trong file renewal: trên máy ảo, `certbot renew --dry-run --no-random-sleep-on-renew --cert-name s1.example.com` (chứng chỉ do pebble cấp) in `Account registered.` rồi `Failed to renew certificate s1.example.com with error: urn:ietf:params:acme:error:rejectedIdentifier :: ... Cannot issue for "s1.example.com"` (Let's Encrypt cấm tên example.com). Lần gọi đó (19/11, 19:49, một lần ở lượt nginx của lần chạy bị bỏ) là lần duy nhất e2e ra internet tới Let's Encrypt; script giờ luôn truyền `--server` của pebble. Trên VPS đây là điều mong muốn: gia hạn thử luôn bằng staging, không tốn hạn mức. Chú thích sai về chỗ này trong `core/ssl.go` đã được sửa.
+  - **Hook gia hạn chạy thật.** `certbot renew --force-renewal` ghi `Running deploy-hook command: /etc/letsencrypt/renewal-hooks/deploy/tpan` vào letsencrypt.log; journal của nginx/apache2 có `Reloaded`; serial chứng chỉ đang phục vụ ở 443 đổi sang bản mới, khớp `live/`. Ở `--dry-run`, certbot cố ý bỏ qua hook (`Dry run: skipping deploy hook command`).
+  - **Gói `certbot` bật sẵn `certbot.timer`** ngay khi cài (`systemctl is-active certbot.timer` trả `active` sau `tpan stack install`).
+  - **Nginx 1.24 với `ssl_reject_handshake on`**: request 443 với SNI lạ, với IP (không SNI), hoặc với tên của site chưa có SSL đều bị từ chối lúc bắt tay: `curl: (35) ... tlsv1 unrecognized name`, mã thoát 35. **Apache 2.4.58**: cả ba trả 403 với chứng chỉ snakeoil của gói `ssl-cert` (CN là hostname của máy), không lộ chứng chỉ của site; không trang mặc định Ubuntu nào lộ ở 443.
+  - **Apache**: `rewrite_module` đã bật từ lúc cài stack, `ssl_module` do Plan SSL bật; `apachectl configtest` đạt (kèm cảnh báo AH00558 về ServerName toàn cục, có từ M1, vô hại).
+  - **ufw**: ảnh Ubuntu 24.04 của Multipass có sẵn ufw 0.36.2 (bước cài được bỏ qua), tắt. `sshd -T` báo `port 22`; trên 24.04 cổng 22 do `ssh.socket` (systemd) giữ, `ss -tlnp` thấy cả `systemd` và `sshd`. Sau `tpan security ufw --yes`: `Status: active`, `Default: deny (incoming)`, mở 22, 80, 443, 8443 (cả IPv6); `multipass exec` (đi qua SSH) vẫn vào được; một cổng thử 9090 vào được từ Mac trước khi bật và bị chặn sau khi bật (curl mã 28); panel 8443 và cổng 80 vẫn vào được từ Mac.
+  - **fail2ban**: jail sshd với `backend = systemd`. Unit trên 24.04 tên `ssh.service`, nhưng `journalmatch` của filter là `_SYSTEMD_UNIT=sshd.service + _COMM=sshd` và `+` trong journalctl là "hoặc": `journalctl _COMM=sshd` thấy 270 dòng (các dòng có `_SYSTEMD_UNIT=ssh.service`), `_SYSTEMD_UNIT=sshd.service` thấy 0 (hai lệnh này chạy riêng sau e2e, không nằm trong M5.log). Tức jail vẫn đọc được log của sshd. Chưa thử một lần đăng nhập sai thật để thấy bộ đếm tăng (đăng nhập sai từ trong máy bị fail2ban bỏ qua vì 127.0.0.1 nằm trong `ignoreip`).
+  - **Trang bảo mật trên máy ảo sạch** (trước khi bật gì): ufw tắt (cảnh báo), fail2ban chưa cài (cảnh báo), `PermitRootLogin without-password` (đạt), `PasswordAuthentication no` (đạt), không có swap (cảnh báo), 45 gói bảo mật chờ cập nhật (cảnh báo), panel nghe `*:8443` (cảnh báo).
+  - **Chứng chỉ của pebble có hạn 5 năm** (1825 ngày), không phải 90 ngày như Let's Encrypt; số ngày còn lại trong log không đại diện cho chứng chỉ thật.
+
 ## 17. Nguồn đã tra (19/11/2026)
 
 - Giới hạn của Let's Encrypt: https://letsencrypt.org/docs/rate-limits/
@@ -1018,6 +1062,46 @@ Xem giao diện bằng mắt (thợ giao diện chỉ chạy được typecheck 
 
 Trên VPS thật về sau (không bắt buộc cho M7): tạo một user riêng cho agent và một dòng sudoers chỉ cho `/usr/local/bin/tpan mcp` (mẫu trong `agents/skills/tpan/SKILL.md`), thử lại bước 2 và 3 với user đó.
 
+### M5
+
+E2E của M5 chạy lại trên `tpan-test` sau khi ghép vào `dev`: 225 khẳng định đạt, 0 không đạt (`docs/bang-chung/M5-ghep.log`, certbot thật với máy chủ ACME thử trong máy ảo). Phần dưới cần VPS và tên miền thật.
+
+Tiêu chí đóng M5 ở mục 13 là "chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt". Máy ảo không có tên miền thật nên tiêu chí này **chưa** được đáp ứng; phần dưới là việc của bạn trên VPS, sau khi đã có `tpan` bản M5 và một site WordPress tạo bằng `tpan site add`.
+
+Chuẩn bị: một tên miền (hoặc tên miền con) bạn quản lý, có bản ghi A trỏ về IP của VPS, và **không** có bản ghi AAAA nào trỏ đi chỗ khác. Thay `<domain>` và `<email>` bằng giá trị thật của bạn khi gõ; đừng chép chúng vào repo.
+
+1. Xem cấu hình SSL; staging phải đang bật và không có địa chỉ ACME lạ:
+   ```bash
+   sudo tpan ssl settings
+   sudo tpan ssl settings --email <email>
+   ```
+   Dòng `ACME:` phải là `https://acme-staging-v02.api.letsencrypt.org/directory`. Nếu thấy địa chỉ khác (cờ ẩn chỉ dùng cho e2e) thì xoá: `sudo tpan ssl settings --server ''`.
+2. Xem trước rồi xin chứng chỉ staging:
+   ```bash
+   sudo tpan ssl issue <domain> --dry-run
+   sudo tpan ssl issue <domain> --yes
+   ```
+   Bản `--dry-run` in `Kế hoạch: Xin chứng chỉ SSL cho <domain>` cùng danh sách bước, không đổi gì trên máy. Bản `--yes`: chờ `Job ...: thành công` và mọi dòng dưới "Kiểm chứng:" là `[đạt]`, kể cả "Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công". tpan chỉ in dòng DNS ở đầu khi nó là `[cảnh báo]`: không có dòng đó nghĩa là bản ghi A trỏ đúng VPS. Nếu có cảnh báo ("không địa chỉ nào nằm trên máy này") mà VPS đứng sau NAT thì vẫn chạy được, bước thử HTTP sẽ quyết.
+3. Kiểm độc lập:
+   ```bash
+   sudo certbot certificates
+   sudo certbot renew --dry-run --no-random-sleep-on-renew --cert-name <domain>
+   curl -sI http://<domain>/ | head -3
+   curl -skI https://<domain>/ | head -3
+   systemctl is-active certbot.timer
+   ```
+   `--no-random-sleep-on-renew` để certbot không tự chờ ngẫu nhiên tới 8 phút khi không có terminal (đúng lệnh đã chạy trên máy ảo). Chờ: chứng chỉ do "(STAGING) ..." cấp; `renew --dry-run` báo `Congratulations, all simulated renewals succeeded`; http trả 301 sang https; https trả 200 (trình duyệt sẽ báo không tin vì là staging, đúng như mong đợi).
+4. ufw: **giữ sẵn một đường vào khác** (console web của nhà cung cấp VPS) trước khi bật tường lửa. Xem trước và đối chiếu cổng SSH:
+   ```bash
+   sudo sshd -T | grep -i '^port'
+   sudo tpan security ufw --dry-run
+   ```
+   Cổng trong dòng "Mở cổng trên tường lửa" phải chứa đúng cổng SSH ở lệnh đầu. Đúng thì `sudo tpan security ufw --yes`, rồi **mở một phiên SSH mới** (đừng đóng phiên cũ) để chắc vẫn vào được.
+5. fail2ban: `sudo tpan security fail2ban --yes`, rồi `sudo fail2ban-client status sshd`.
+6. Gửi lại output của bước 2, 3, 4 để ghi vào `docs/bang-chung/` (che IP và tên miền thật trước khi gửi).
+
+Chỉ tắt staging (`sudo tpan ssl settings --staging=false`) cho buổi demo, và khi đó chỉ xin vài chứng chỉ (mục 6.3).
+
 ## 19. Bảng chia việc đã dùng (từ M4)
 
 Từ M4 mỗi mốc tự lập bảng chia việc theo khuôn ở mục 4 của `agent-dev/CHAY-NHIEU-AGENT.md`; bảng thật đã dùng ghi ở đây khi ghép mốc.
@@ -1057,3 +1141,20 @@ Mục KE-HOACH.md phải đọc: 4.2, 4.4, 5, 6.7, 9, 10, 11, 12 (bước 9, 11)
 | 4 | Giải thích: file của M7 | `docs/giai-thich/07-m7-cong-cho-agent.md` | `tho-viet` | opus | medium |
 
 Mục phải đọc: đợt 1 và 2 đọc mục 4.2, 4.4, 8.1, 8.3, 11; thêm 6.2 cho core; thêm 10 và `docs/GIAO-DIEN.md` cho giao diện; đợt 2 thêm mục 9.
+
+### M5
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Hợp đồng: chữ ký template, Step, phép kiểm, ca sử dụng (thân tạm), kiểu JSON của API, route và mục menu, màn giữ chỗ | `internal/*/ssl*.go`, `internal/*/security*.go`, `internal/site/ssl.go`, `internal/server/types_m5.go`, `web/src/api/types.ts`, `web/src/routes.tsx`, `web/src/i18n/khung.ts`, màn giữ chỗ | phiên chính | opus | high |
+| 1 | Template: vhost 443 của site (Nginx, Apache), site mặc định 443, hook gia hạn, jail fail2ban; golden test | `internal/templates/` | `tho-phu` | sonnet | high |
+| 1 | Step: certbot (xin, xoá), thử đường HTTP của ACME, URL WordPress, vhost SSL, ufw | file mới trong `internal/steps/` | `tho-loi` | opus | high |
+| 1 | Phép kiểm: chứng chỉ, DNS, HTTPS, chuyển hướng, `certbot renew --dry-run`, các dòng của trang bảo mật | file mới trong `internal/checks/` | `tho-phu` | sonnet | high |
+| 2 | Ca sử dụng SSL và bảo mật; site nhớ SSL khi chạy lại và khi xoá; CLI `ssl`, `security`, `internal reload-web`, `site add --ssl` | `internal/core/`, `cmd/tpan/` | `tho-loi` | opus | high |
+| 2 | API: `/ssl`, `/sites/{domain}/ssl`, `/security...`; dữ liệu demo cho màn SSL và Bảo mật | `internal/server/`, `internal/demo/` | `tho-loi` | opus | high |
+| 2 | Màn SSL | `web/src/screens/ssl/`, `web/src/i18n/ssl.ts` | `tho-giao-dien` | sonnet | high |
+| 2 | Màn Bảo mật | `web/src/screens/bao-mat/`, `web/src/i18n/bao-mat.ts` | `tho-giao-dien` | sonnet | high |
+| 3 | Chạy thật trên máy ảo `tpan-m5`: Nginx rồi Apache | máy ảo, `scripts/e2e-m5.sh`, `docs/bang-chung/M5.log` | `tho-may-ao` | opus | high |
+| 4 | Giải thích | `docs/giai-thich/05-m5-ssl-va-bao-mat.md` | `tho-viet` | opus | medium |
+
+Dữ liệu demo lúc đầu định là phần thứ tư của đợt 1, nhưng nó phải trả lời đúng từng lệnh mà phép kiểm của đợt 1 chạy, nên dời sang đợt 2 và giao cho thợ API. Mục phải đọc: đợt 1 đọc mục 3, 5, 6.3, 6.8, 11 của KE-HOACH.md và file hợp đồng của gói mình; đợt 2 đọc thêm 6.4, 6.7, 9, 10.
