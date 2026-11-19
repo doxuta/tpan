@@ -223,7 +223,12 @@ export type Machine = {
   errors?: string[];
 };
 
-export type SiteRow = { site: Site; checks: CheckResult[] };
+export type SiteRow = {
+  site: Site;
+  checks: CheckResult[];
+  /** M4: request và 5xx trong 1 giờ gần nhất; không có khi chưa đọc được. */
+  traffic?: Traffic;
+};
 
 export type Overview = {
   hostname: string;
@@ -232,6 +237,12 @@ export type Overview = {
   machine: Machine;
   jobs: Job[];
   stack_checks: CheckResult[];
+  /** M4: phép kiểm của chính tpan. */
+  tpan_checks: CheckResult[];
+  /** M4: sự cố đang mở, mới nhất trước. */
+  incidents: Incident[];
+  /** M4: lần health chạy đầy đủ gần nhất (RFC 3339); không có khi chưa bao giờ. */
+  last_run?: string;
 };
 
 export type DatabaseRow = {
@@ -264,3 +275,69 @@ export type SessionRow = {
   created: string;
   last_seen: string;
 };
+
+// ---- health (M4, mục 6.7; internal/store/health.go, internal/server/types.go) ----
+
+/** monitor.Traffic: đếm từ access.log của site. */
+export type Traffic = {
+  requests: number;
+  errors_5xx: number;
+  since: string;
+  /** Chỉ đọc được phần cuối log, số thật có thể lớn hơn. */
+  partial?: boolean;
+};
+
+/** store.Incident. */
+export type Incident = {
+  id: number;
+  check_id: string;
+  /** "" máy và stack, domain của site, "tpan" cho chính tpan. */
+  target: string;
+  stage: Stage;
+  title: Text;
+  opened: string;
+  /** Không có khi còn mở. */
+  closed?: string;
+  close_reason?: "pass" | "gone";
+  open_result: CheckResult;
+  close_result?: CheckResult;
+  /** Id các job sửa đã chạy cho sự cố, cũ trước. */
+  jobs: string[];
+};
+
+/** store.StoredResult: CheckResult kèm đối tượng và thời điểm. */
+export type StoredResult = CheckResult & {
+  target: string;
+  checked: string;
+  /** Lần gần nhất trạng thái đổi. */
+  changed: string;
+};
+
+/** GET /api/v1/incidents/{id}. */
+export type IncidentDetail = {
+  incident: Incident;
+  /** Kết quả gần nhất; không có khi phép kiểm không còn được chạy. */
+  current?: StoredResult;
+  jobs: Job[];
+};
+
+/** POST /api/v1/fixes[?dry_run=1]: trả Preview (dry_run) hoặc JobStarted. */
+export type FixRequest = { check_id: string };
+
+/** POST /api/v1/files/accept: nhận bản sửa tay làm chuẩn mới. */
+export type AcceptFileRequest = { path: string };
+
+/** POST /api/v1/health/run: health.Report. */
+export type HealthReport = {
+  started: string;
+  finished: string;
+  installed: boolean;
+  groups: { target: string; results: CheckResult[] }[];
+  changes: { opened: Incident[] | null; closed: Incident[] | null };
+};
+
+/** File log của GET /api/v1/sites/{domain}/log?file=... (SSE, sự kiện "line"). */
+export type LogFile = "access" | "error" | "php";
+
+/** data của một sự kiện "line". Dòng log là chữ không tin cậy: chỉ hiện như chữ thường. */
+export type LogLine = { line: string };

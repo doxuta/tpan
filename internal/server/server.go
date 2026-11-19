@@ -131,6 +131,15 @@ func NewHandler(d Deps, dist fs.FS) http.Handler {
 	mux.Handle("GET /api/v1/jobs/{id}/events", auth(s.handleJobEvents))
 	mux.Handle("GET /api/v1/databases", auth(s.handleDatabases))
 
+	// Health (M4, api_health.go).
+	mux.Handle("GET /api/v1/incidents", auth(s.handleIncidents))
+	mux.Handle("GET /api/v1/incidents/{id}", auth(s.handleIncident))
+	mux.Handle("POST /api/v1/fixes", auth(s.handleFix))
+	mux.Handle("POST /api/v1/files/accept", auth(s.handleAcceptFile))
+	mux.Handle("POST /api/v1/health/run", auth(s.handleHealthRun))
+	mux.Handle("GET /api/v1/sites/{domain}/traffic", auth(s.handleSiteTraffic))
+	mux.Handle("GET /api/v1/sites/{domain}/log", auth(s.handleSiteLog))
+
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))
 	// secure thêm header bảo mật và chặn CSRF cho mọi request (auth.go).

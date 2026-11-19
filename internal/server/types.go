@@ -51,6 +51,28 @@ package server
 //	  GET    /api/v1/jobs/{id}/events             SSE                               api
 //	  GET    /api/v1/databases                    → []DatabaseRow                   api
 //
+// Thêm ở M4 (health, mục 6.7; viết ở api_health.go):
+//
+//	  GET    /api/v1/incidents[?state=open|all][&limit=N] → []store.Incident (mới nhất trước; mặc định open)
+//	  GET    /api/v1/incidents/{id}               → IncidentDetail
+//	  POST   /api/v1/fixes[?dry_run=1]            FixRequest → Preview | JobStarted (sửa tự động)
+//	  POST   /api/v1/files/accept                 AcceptFileRequest → 204 (nhận bản sửa tay làm chuẩn)
+//	  POST   /api/v1/health/run[?domain=D]        → health.Report (chạy đầy đủ ngay, nút "Kiểm lại")
+//	  GET    /api/v1/sites/{domain}/traffic       → monitor.Traffic (1 giờ gần nhất)
+//	  GET    /api/v1/sites/{domain}/log?file=F    SSE log trực tiếp; F là access | error | php
+//
+// Mã lỗi thêm ở M4: 400 file_invalid (F lạ), path_invalid (file không do tpan
+// quản lý), 404 incident_not_found, check_not_found, 409 no_auto_fix.
+//
+// SSE log (/sites/{domain}/log): mỗi dòng log là
+//
+//	event: line
+//	data: {"line": "<một dòng log>"}
+//
+// Dòng log là dữ liệu không tin cậy (khách lạ gửi URL, User-Agent): giao diện
+// hiện nó như chữ thường, không bao giờ như HTML. Luồng tự đóng sau
+// LogStreamMax; trình duyệt (EventSource) tự nối lại.
+//
 // SSE (/api/v1/jobs/{id}/events): mỗi sự kiện là
 //
 //	id: <Event.Seq>
@@ -63,6 +85,9 @@ package server
 
 import (
 	"time"
+
+	"github.com/doxuta/tpan/internal/health"
+	"github.com/doxuta/tpan/internal/monitor"
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
@@ -90,6 +115,9 @@ type Deps struct {
 	// bước kiểm checksum.
 	WPHash      string
 	WPCLISHA512 string
+	// DBPath là file tpan.db, cho phép kiểm quyền của health (M4). Rỗng: bỏ
+	// phép kiểm đó.
+	DBPath string
 }
 
 // ErrorBody là dạng lỗi duy nhất của API (mục 9).
@@ -197,6 +225,8 @@ type DiskUsage struct {
 type SiteRow struct {
 	Site   site.Site       `json:"site"`
 	Checks []checks.Result `json:"checks"`
+	// Traffic: request và 5xx trong 1 giờ gần nhất (M4); nil khi chưa đọc được.
+	Traffic *monitor.Traffic `json:"traffic,omitempty"`
 }
 
 // Overview là mọi thứ Bảng điều khiển cần trong một lần gọi.
@@ -209,6 +239,14 @@ type Overview struct {
 	// StackChecks là phép kiểm chung của máy (core.Stack.Health). Lỗi ở đây
 	// là "cột" ga đỏ trên bản đồ (lỗi tầng dùng chung).
 	StackChecks []checks.Result `json:"stack_checks"`
+	// Từ M4: Sites[].Checks và StackChecks đọc từ bảng check_results (health
+	// định kỳ ghi), không chạy phép kiểm lúc gọi.
+	// TPANChecks là phép kiểm của chính tpan (store.TargetTPAN).
+	TPANChecks []checks.Result `json:"tpan_checks"`
+	// Incidents là các sự cố đang mở, mới nhất trước.
+	Incidents []store.Incident `json:"incidents"`
+	// LastRun là lần health chạy đầy đủ gần nhất; zero khi chưa bao giờ.
+	LastRun time.Time `json:"last_run,omitzero"`
 }
 
 // StackSummary là các nhãn stack trên thanh đầu trang: "LEMP", "nginx",
@@ -227,3 +265,36 @@ type DatabaseRow struct {
 	SizeBytes int64  `json:"size_bytes"` // -1 khi không đọc được
 	Tables    int    `json:"tables"`     // -1 khi không đọc được
 }
+
+// ---- health (M4) ----
+
+// LogStreamMax là thời gian tối đa của một luồng log trực tiếp. Output của lệnh
+// tail được LocalSystem.Run giữ trong bộ nhớ tới khi lệnh xong, nên luồng
+// không được sống mãi; trình duyệt tự nối lại khi luồng đóng.
+const LogStreamMax = 10 * time.Minute
+
+// FixRequest là thân của POST /api/v1/fixes: sửa tự động phép kiểm có ID này,
+// theo kết quả gần nhất trong check_results.
+type FixRequest struct {
+	CheckID string `json:"check_id"`
+}
+
+// AcceptFileRequest là thân của POST /api/v1/files/accept: nhận nội dung đang
+// có của file (đã do tpan quản lý) làm chuẩn mới; ghi sha256 mới vào
+// managed_files với job_id "manual" và ghi audit.
+type AcceptFileRequest struct {
+	Path string `json:"path"`
+}
+
+// IncidentDetail là một sự cố kèm kết quả hiện tại của phép kiểm và các job sửa.
+type IncidentDetail struct {
+	Incident store.Incident `json:"incident"`
+	// Current là kết quả gần nhất của phép kiểm; nil khi không còn được kiểm.
+	Current *store.StoredResult `json:"current,omitempty"`
+	// Jobs là các job sửa (store.Incident.Jobs) đã đọc ra, cũ trước.
+	Jobs []engine.Job `json:"jobs"`
+}
+
+// ponytail: health.Report là kiểu trả về của POST /api/v1/health/run; nhắc
+// tên ở đây để types.go vẫn là nơi liệt kê mọi kiểu của API.
+type HealthReport = health.Report

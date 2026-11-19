@@ -9,7 +9,6 @@
 
 import type { ComponentType } from "react";
 import type { Overview } from "./api/types";
-import { allChecks } from "./api/queries";
 import type { strings as khung } from "./i18n/khung";
 
 export type MenuGroup = "chinh" | "may" | "ai" | "taiKhoan";
@@ -58,17 +57,16 @@ export const screens: ScreenEntry[] = [
     menu: { label: "databases", group: "chinh", count: activeSites },
   },
   {
-    // M3 chưa có màn Sự cố riêng (mốc sau). Mục này dẫn về Bảng điều khiển,
-    // nơi có khối "Sự cố đang mở", và đếm số phép kiểm đang lỗi. Khi có màn
-    // Sự cố thì đổi path thành "/incidents" và thêm load.
-    path: "/",
+    path: "/incidents",
+    load: () => import("./screens/su-co").then((m) => m.IncidentList),
     menu: {
       label: "incidents",
       group: "may",
       alert: true,
-      count: (o) => allChecks(o).filter((c) => c.status === "fail").length || undefined,
+      count: (o) => o.incidents.length || undefined,
     },
   },
+  { path: "/incidents/:id", load: () => import("./screens/su-co").then((m) => m.IncidentDetail) },
   {
     path: "/jobs",
     load: () => import("./screens/lich-su").then((m) => m.JobList),
