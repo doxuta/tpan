@@ -115,10 +115,11 @@ func (f *planRun) progress(e *env, p engine.Plan) *progress {
 func siteAddCmd(e *env) *cobra.Command {
 	var (
 		title, email string
+		withSSL      bool
 		f            planRun
 	)
 	c := &cobra.Command{
-		Use:   "add <domain> --email E [--title T]",
+		Use:   "add <domain> --email E [--title T] [--ssl]",
 		Short: "Tạo một site WordPress (chạy lại cho domain đã có thì sửa chỗ lệch)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -147,6 +148,12 @@ func siteAddCmd(e *env) *cobra.Command {
 				return fail(e, f.asJSON, err)
 			}
 			if ok, err := f.previewOrConfirm(e, func() (engine.Preview, error) { return add.Preview(ctx) }); !ok {
+				// Plan SSL chưa xem trước được: site chưa có trong bảng sites.
+				if err == nil && withSSL && !f.asJSON {
+					printf(e.stdout, "\n%s\n", e.tr(
+						"Có --ssl: tạo site xong thì tpan chạy tiếp Plan xin SSL (xem trước được bằng `tpan ssl issue "+d.String()+" --dry-run` khi site đã có).",
+						"With --ssl: once the site exists tpan goes on with the SSL Plan (preview it with `tpan ssl issue "+d.String()+" --dry-run` once the site exists)."))
+				}
 				return err
 			}
 
@@ -155,27 +162,47 @@ func siteAddCmd(e *env) *cobra.Command {
 			if err != nil && res.Report.Job.ID == "" {
 				return err
 			}
-			if f.asJSON {
-				if werr := writeJSON(e.stdout, siteAddJSONOf(res)); werr != nil {
-					return werr
-				}
-			} else {
+			out := siteAddJSONOf(res)
+			if !f.asJSON {
+				// In mật khẩu quản trị TRƯỚC khi chạy SSL: SSL hỏng cũng không làm mất nó.
 				printReport(e, res.Report)
 				printAdminPassword(e, res)
+			}
+			siteOK := err == nil && res.Report.Job.Status == engine.JobSucceeded
+			var sslErr error
+			if withSSL && siteOK {
+				out.SSL, out.SSLError, sslErr = siteAddSSL(ctx, e, &f, s, d, em)
+				if !f.asJSON {
+					switch {
+					case out.SSLError != nil:
+						printRefusal(e, out.SSLError)
+					case out.SSL != nil:
+						printReport(e, *out.SSL)
+					}
+				}
+				if sslErr == nil && (out.SSL == nil || out.SSL.Job.Status != engine.JobSucceeded) {
+					sslErr = &exitCode{1}
+				}
+			}
+			if f.asJSON {
+				if werr := writeJSON(e.stdout, out); werr != nil {
+					return werr
+				}
 			}
 			if err != nil {
 				return err
 			}
-			if res.Report.Job.Status != engine.JobSucceeded {
+			if !siteOK {
 				return &exitCode{1}
 			}
-			return nil
+			return sslErr
 		},
 	}
 	fl := c.Flags()
 	fl.StringVar(&email, "email", "", "email của tài khoản quản trị WordPress")
 	_ = c.MarkFlagRequired("email")
 	fl.StringVar(&title, "title", "", "tiêu đề site (mặc định là domain)")
+	fl.BoolVar(&withSSL, "ssl", false, "tạo xong thì xin luôn chứng chỉ Let's Encrypt (email SSL chưa đặt thì dùng --email)")
 	f.flags(c)
 	return c
 }
@@ -190,6 +217,10 @@ type siteAddJSON struct {
 	WPInstalled   bool          `json:"wp_installed"`
 	AdminUser     string        `json:"admin_user,omitempty"`
 	AdminPassword string        `json:"admin_password,omitempty"`
+	// SSL là báo cáo job SSL khi có --ssl và Plan SSL đã chạy; SSLError là lời
+	// từ chối của nó (ví dụ DNS chưa trỏ về máy). Site vẫn được tạo trong cả hai trường hợp.
+	SSL      *engine.Report     `json:"ssl,omitempty"`
+	SSLError *core.RefusedError `json:"ssl_error,omitempty"`
 }
 
 func siteAddJSONOf(res core.SiteAddResult) siteAddJSON {

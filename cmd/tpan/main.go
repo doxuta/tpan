@@ -4,7 +4,7 @@
 // đọc cờ, gọi một ca sử dụng trong internal/core rồi in kết quả; mọi quyết định
 // về máy nằm ở core, để CLI, API và MCP cho cùng một kết quả.
 //
-// Hiện có: version, serve, stack install, stack status, site add/list/info/rm, health [<domain>], setup, admin passwd.
+// Hiện có: version, serve, stack install, stack status, site add/list/info/rm, health [<domain>], setup, admin passwd, ssl issue/list/settings, security status/ufw/fail2ban, internal reload-web (ẩn).
 package main
 
 import (
