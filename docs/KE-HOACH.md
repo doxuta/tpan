@@ -43,7 +43,7 @@ Cũng không làm trình quản lý file và công cụ gõ SQL trên web. Một
 | Cập nhật | có (mục 6.11) | M12 |
 | Thống kê | một phần: CPU, RAM, đĩa, số request và lỗi 5xx theo site; không có biểu đồ dài ngày | M3, M4 |
 | Thông báo | một phần: sự cố hiện trên menu và trên logo; chưa gửi ra ngoài | M4 |
-| Tài khoản | một tài khoản quản trị: đổi mật khẩu, đăng xuất | M3 |
+| Tài khoản | một tài khoản quản trị: đổi mật khẩu, đăng xuất; quên mật khẩu thì đặt lại bằng `tpan admin passwd` trên máy chủ | M3 |
 | Nhiều người dùng, gói, hạn mức | không làm | |
 | Trình quản lý file | không làm; trang site cho xem các file TPAN quản lý kèm diff | |
 | Mail, DNS, FTP | không làm | |
@@ -648,6 +648,7 @@ Không có lệnh `tpan ask`: hỏi bằng dòng lệnh chính là gõ trong Cla
 ```
 tpan setup                         khởi tạo panel: thư mục, DB, chứng chỉ, mật khẩu, systemd
 tpan serve [--listen A] [--demo]   chạy giao diện và API
+tpan admin passwd                  đặt lại mật khẩu quản trị khi quên (chạy trên máy chủ, cần root)
 tpan stack install --web nginx|apache
 tpan stack status
 tpan stack switch --to nginx|apache
@@ -718,7 +719,7 @@ Panel chạy bằng quyền root nên lỗi ở panel là lỗi chiếm máy. N�
 
 - **Không shell**: mọi lệnh chạy bằng argv (mục 4.3). Có test tĩnh cấm `sh -c`, `bash -c` trong mã.
 - **Đầu vào có kiểu**: `validate.Domain` chỉ nhận tên miền hợp lệ (chuyển về chữ thường, punycode, mỗi nhãn `[a-z0-9-]`, không bắt đầu hay kết thúc bằng `-`, tổng ≤ 253 ký tự). Tên user, DB, pool không lấy từ người dùng mà sinh từ slug. Template chỉ nhận các kiểu đã kiểm.
-- **Đăng nhập**: một tài khoản quản trị; mật khẩu băm bằng argon2id; `tpan setup` sinh mật khẩu lần đầu và in ra đúng một lần. Sai 5 lần thì khoá IP đó 15 phút.
+- **Đăng nhập**: một tài khoản quản trị; mật khẩu băm bằng argon2id; `tpan setup` sinh mật khẩu lần đầu và in ra đúng một lần. Sai 5 lần thì khoá IP đó 15 phút. Quên mật khẩu: `tpan admin passwd` chạy trên máy chủ bằng root sinh mật khẩu mới, in ra đúng một lần, huỷ mọi phiên đang đăng nhập, gỡ các IP đang bị khoá và ghi vào `audit`. Không có đường lấy lại qua web hay email: ai có root trên máy thì đặt lại được, ai không có thì không.
 - **Phiên**: token ngẫu nhiên 32 byte, DB chỉ lưu sha256 của nó; cookie `__Host-tpan`, `Secure`, `HttpOnly`, `SameSite=Strict`; hết hạn sau 12 giờ không dùng.
 - **CSRF**: kiểm `Sec-Fetch-Site` và `Origin` cho mọi request có thay đổi (Go có sẵn `http.CrossOriginProtection`; đọc tài liệu của đúng phiên bản Go đang dùng trước khi áp dụng).
 - **TLS**: panel nghe HTTPS ở cổng 8443 với chứng chỉ tự ký sinh lúc `setup` (in fingerprint để đối chiếu). Có chế độ riêng tư: chỉ nghe `127.0.0.1`, vào bằng `ssh -L 8443:127.0.0.1:8443 <máy>`.
@@ -766,7 +767,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M0** ✅ | Khung: repo, build chéo, nhúng giao diện, CI, máy ảo test | `make check` xanh; `tpan version` chạy trong máy ảo |
 | **M1** | `validate`, `system`, `engine`, `store`, `checks`; `tpan stack install` cho cả Nginx và Apache; `--dry-run`; `tpan health` cho stack. Nguồn gói và bản PHP là tham số đọc từ `settings`, không ghi cứng ở đâu, để M12 không phải viết lại | e2e bước 1 cho cả hai web server; chạy lại không đổi gì |
 | **M2** | `tpan site add/list/info/rm` với cô lập đầy đủ và hoàn tác; phép kiểm theo đường đi request | e2e bước 2 đến 6 |
-| **M3** | `tpan setup`, API, đăng nhập, SSE; giao diện theo `docs/GIAO-DIEN.md`, sáng và tối: menu chính, bảng điều khiển với bản đồ tuyến và số liệu máy, màn cơ sở dữ liệu (chỉ xem), đổi mật khẩu quản trị, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
+| **M3** | `tpan setup`, API, đăng nhập, SSE; giao diện theo `docs/GIAO-DIEN.md`, sáng và tối: menu chính, bảng điều khiển với bản đồ tuyến và số liệu máy, màn cơ sở dữ liệu (chỉ xem), đổi mật khẩu quản trị và `tpan admin passwd` để đặt lại khi quên, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
 | **M4** | Health đầy đủ: chạy định kỳ, sự cố, sửa tự động và sửa tay, tự kiểm TPAN, phát hiện lệch, log trực tiếp, số request và lỗi 5xx theo site, `scripts/faults/` | e2e bước 9 và 11 |
 | **M5** | SSL (staging), trang bảo mật, ufw, fail2ban | chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt |
 | **M6** | Hàng loạt (dán danh sách, `apply -f`, `export`), thùng rác, khôi phục, dọn tự động | e2e bước 7; tạo 10 site một lượt chỉ reload một lần |
