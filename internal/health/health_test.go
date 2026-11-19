@@ -142,6 +142,7 @@ func TestRunDayDuGomVaGanTarget(t *testing.T) {
 		"disk.free:" + StateDir:                              store.TargetTPAN,
 		"tpan.jobs:stuck":                                    store.TargetTPAN,
 		"tpan.scheduler:health":                              store.TargetTPAN,
+		"tpan.backup:db":                                     store.TargetTPAN, // M9
 	}
 	for id, tg := range want {
 		if g, ok := got[id]; !ok || g != tg {
