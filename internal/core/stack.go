@@ -22,6 +22,14 @@ const (
 	logrotateCnf = "/etc/logrotate.d/tpan-sites"
 )
 
+// StateDirPerm là quyền của /var/lib/tpan, dùng chung cho stack install và
+// tpan setup: 0755 để www-data đi qua được tới webroot ACME bên trong; tpan.db
+// (0600), backups và trash (0700) tự giữ kín phần của mình. Hai lệnh mà đặt
+// hai quyền khác nhau thì mỗi lần chạy lệnh này lại sửa lại thứ lệnh kia vừa
+// đặt (install.sh chạy cả hai), và chạy riêng tpan setup sau khi có stack làm
+// www-data không tới được acme.
+const StateDirPerm = 0o755
+
 // Settings là phần của bảng settings mà ca sử dụng cần. *store.Store thoả giao
 // diện này. Tách ra giao diện để `--dry-run` chạy được khi chưa có file DB
 // (EmptySettings) mà không phải tạo DB chỉ để đọc.
@@ -305,7 +313,7 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 	// Bước 5: thư mục trạng thái và webroot ACME, rồi site mặc định. 0755 để
 	// www-data đi qua được /var/lib/tpan tới acme; tpan.db tự có quyền 0600.
 	ss = append(ss,
-		&steps.Dir{Path: stateDir, Perm: 0o755, Owner: system.Root},
+		&steps.Dir{Path: stateDir, Perm: StateDirPerm, Owner: system.Root},
 		&steps.Dir{Path: acmeRoot, Perm: 0o755, Owner: system.Root},
 	)
 	webSs, err := webSteps(cfg, true)

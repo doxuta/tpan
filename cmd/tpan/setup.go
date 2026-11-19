@@ -22,6 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/steps"
@@ -251,7 +252,9 @@ func buildSetupPlan(sys system.System, private bool) (setupPlan, error) {
 					"Chứng chỉ không có khoá riêng thì không dùng được. Khoá lộ thì người khác giả được panel, nên file chỉ root đọc được và nội dung không hiện trong bản xem trước.",
 					"A certificate is useless without its private key. If the key leaks someone can impersonate the panel, so only root can read it and the preview never shows it."),
 			}},
-			secretDir(setupStateDir),
+			// Không phải secretDir: stack install đặt /var/lib/tpan 0755 (xem
+			// core.StateDirPerm); tpan.db bên trong vẫn 0600.
+			&steps.Dir{Path: setupStateDir, Perm: core.StateDirPerm, Owner: system.Root},
 			&steps.File{
 				Path: setupUnitPath, Content: setupUnitFile(listen), Perm: 0o644, Owner: system.Root,
 				Reload: reload,

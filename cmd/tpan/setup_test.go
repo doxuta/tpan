@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
@@ -105,7 +106,7 @@ func TestSetupLanDauVaChayLai(t *testing.T) {
 	// Quyền và nội dung trên máy giả.
 	snap := c.fake.Snapshot()
 	for p, perm := range map[string]uint32{
-		"/etc/tpan": 0o700, "/etc/tpan/tls": 0o700, "/var/lib/tpan": 0o700,
+		"/etc/tpan": 0o700, "/etc/tpan/tls": 0o700, "/var/lib/tpan": 0o755,
 		"/etc/tpan/tls/cert.pem": 0o600, "/etc/tpan/tls/key.pem": 0o600,
 		"/etc/systemd/system/tpan.service": 0o644,
 	} {
@@ -185,6 +186,31 @@ func TestSetupLanDauVaChayLai(t *testing.T) {
 	_, out, _ = c.run("setup", "--dry-run", "--json")
 	if strings.Contains(out, base64.StdEncoding.EncodeToString([]byte(key))) || strings.Contains(out, "PRIVATE KEY") {
 		t.Fatal("bản xem trước làm lộ khoá riêng")
+	}
+}
+
+// Máy đã có stack (stack install để /var/lib/tpan 0755 cho acme): setup không
+// được đặt lại quyền khác. Lỗi M11: setup đặt 0700, stack 0755, nên mỗi lần
+// install.sh chạy lại (setup rồi stack install) bước dir:/var/lib/tpan lại chạy
+// ở cả hai, và tpan setup chạy riêng làm www-data không tới được acme.
+func TestSetupGiuQuyenThuMucTrangThaiCuaStack(t *testing.T) {
+	c := newSetupCLI(t)
+	c.fake.SetDir("/var/lib/tpan", core.StateDirPerm, system.Root)
+	code, out, errb := c.run("setup", "--yes", "--json")
+	if code != 0 {
+		t.Fatalf("setup: mã %d\n%s\n%s", code, out, errb)
+	}
+	var res setupJSON
+	if err := json.Unmarshal([]byte(out), &res); err != nil {
+		t.Fatalf("JSON: %v\n%s", err, out)
+	}
+	for _, s := range res.Report.Steps {
+		if s.ID == "dir:/var/lib/tpan" && s.Outcome != "skipped" {
+			t.Errorf("bước %s: %s, muốn skipped (quyền đã đúng như stack đặt)", s.ID, s.Outcome)
+		}
+	}
+	if got := c.fake.Snapshot()["/var/lib/tpan"].Mode.Perm(); got != 0o755 {
+		t.Fatalf("/var/lib/tpan: quyền %o, muốn 755", got)
 	}
 }
 

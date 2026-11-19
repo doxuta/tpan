@@ -68,6 +68,9 @@ Kết quả trên máy (`scripts/vm.sh root stat -c '%a %U:%G %n' ...`, mình th
 644 root:root /etc/systemd/system/tpan.service
 ```
 
+Ghi chú thêm từ M11: `/var/lib/tpan` nay là 0755 chứ không phải 0700 như output trên (lúc đó là M3). `stack install` cần 0755 để www-data đi qua tới thư mục ACME; xem `core.StateDirPerm` và mục 16 của KE-HOACH.md.
+
+
 File dịch vụ mà setup ghi (`scripts/vm.sh root cat /etc/systemd/system/tpan.service`):
 
 ```

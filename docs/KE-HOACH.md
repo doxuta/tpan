@@ -1099,7 +1099,7 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - `tail` khi file không có: `tail: cannot open '<file>' for reading: No such file or directory`; không `-F` thì mã 1, có `-F` thì chờ.
   - `scripts/vm.sh root` giữ nguyên đối số có dấu cách, `$`, `'`, `*` khi qua `multipass exec`.
   - Thời gian (lần chạy ở `docs/bang-chung/M4.log`): `tpan health` đầy đủ với 2 site 3,65 giây; riêng `wp core verify-checksums` 1,67 giây một site; lần chạy trước đó đo 3,8 và 1,84 giây.
-  - Quyền sau `tpan setup`: `/etc/tpan`, `/etc/tpan/tls`, `/var/lib/tpan` là 0700 root:root; `cert.pem`, `key.pem`, `tpan.db` (và `-wal`, `-shm`) 0600 root:root.
+  - Quyền sau `tpan setup`: `/etc/tpan`, `/etc/tpan/tls` là 0700 root:root; `cert.pem`, `key.pem`, `tpan.db` (và `-wal`, `-shm`) 0600 root:root. `/var/lib/tpan` ghi ở M4 là 0700, nhưng **từ M11 là 0755** (`core.StateDirPerm`): `stack install` cần 0755 để www-data đi qua tới `/var/lib/tpan/acme` (webroot ACME), và hai lệnh đặt hai quyền khác nhau thì chạy lại `install.sh` luôn đổi qua đổi lại, còn chạy riêng `tpan setup` trên máy đã có stack làm hỏng lấy chứng chỉ HTTP-01 (e2e M11 bắt được). Các file bên trong vẫn 0600, `backups/` và `trash/` vẫn 0700.
   - Bộ hẹn giờ bỏ vòng khi job ở CLI giữ khoá: có, journal của `tpan.service` ghi `health: đang có job, bỏ vòng này`.
   - Đóng luồng log trực tiếp thì `tail` bị giết: `pgrep -a tail` trong máy ảo không còn gì.
   - Nhiễu còn lại: mỗi vòng health, journal có vài dòng `pam_unix` do `runuser` (phép kiểm chạy dưới user của site). Không ảnh hưởng chạy.
