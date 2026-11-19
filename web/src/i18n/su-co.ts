@@ -97,8 +97,6 @@ const vi = {
   autoPreviewFailed: "Chưa dựng được bản xem trước của cách sửa này.",
 
   manualHeading: "Sửa tay",
-  manualBody: "Gõ lần lượt trên máy. Dòng cuối là lệnh kiểm lại.",
-  manualRecheckTag: "kiểm lại",
   manualNone: "Phép kiểm này chưa đưa ra lệnh nào. Xem bằng chứng bên dưới để biết hỏng ở đâu.",
 
   acceptHeading: "Nhận bản sửa tay làm chuẩn",
@@ -206,8 +204,6 @@ export const strings = defineStrings(vi, {
   autoPreviewFailed: "Could not build the preview of this fix.",
 
   manualHeading: "Fix by hand",
-  manualBody: "Type these on the machine, in order. The last line is the command that checks again.",
-  manualRecheckTag: "check again",
   manualNone: "This check gave no commands. Read the evidence below to see where it breaks.",
 
   acceptHeading: "Keep the hand edit as the standard",

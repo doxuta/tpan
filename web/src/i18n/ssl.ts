@@ -49,7 +49,6 @@ const vi = {
   noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
   cause: "NGUYÊN NHÂN",
   manualFix: "SỬA TAY",
-  manualFixHint: "Chạy trên máy chủ, từng dòng một. Dòng cuối kiểm lại.",
 
   // Xem trước và lỗi
   issueHeading: (d: string) => `Xin chứng chỉ cho ${d}`,
@@ -102,7 +101,6 @@ export const strings = defineStrings(vi, {
   noEvidence: "This check did not record any command.",
   cause: "CAUSE",
   manualFix: "FIX BY HAND",
-  manualFixHint: "Run on the server, one line at a time. The last line checks again.",
 
   issueHeading: (d) => `Issue a certificate for ${d}`,
   reissueHeading: (d) => `Issue the certificate for ${d} again`,

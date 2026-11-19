@@ -48,7 +48,6 @@ const vi = {
   noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
   cause: "NGUYÊN NHÂN",
   manualFix: "SỬA TAY",
-  manualFixHint: "Chạy trên máy chủ, từng dòng một. Dòng cuối kiểm lại.",
 
   // ---- số request một giờ qua ----
   trafficHeading: "Request một giờ qua",
@@ -144,7 +143,6 @@ export const strings = defineStrings(vi, {
   noEvidence: "This check did not record any command.",
   cause: "CAUSE",
   manualFix: "FIX BY HAND",
-  manualFixHint: "Run on the server, one line at a time. The last line checks again.",
 
   trafficHeading: "Requests in the last hour",
   trafficRequests: "REQUESTS",

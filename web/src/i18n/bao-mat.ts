@@ -23,7 +23,6 @@ const vi = {
   noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
   cause: "NGUYÊN NHÂN",
   manualFix: "SỬA TAY",
-  manualFixHint: "Chạy trên máy chủ, từng dòng một. Dòng cuối kiểm lại.",
   sshNoFix: "TPAN không sửa dòng này giúp bạn: sửa sai SSH là mất đường vào máy.",
 
   // ---- hai thao tác ----
@@ -59,7 +58,6 @@ export const strings = defineStrings(vi, {
   noEvidence: "This check did not record any command.",
   cause: "CAUSE",
   manualFix: "MANUAL FIX",
-  manualFixHint: "Run on the server, one line at a time. The last line checks again.",
   sshNoFix: "TPAN does not fix this line for you: a wrong SSH change locks you out of the machine.",
 
   ufwButton: "Turn on the firewall",

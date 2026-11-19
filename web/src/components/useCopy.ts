@@ -18,7 +18,7 @@ export function useCopy(): { state: CopyState; copy: (text: string) => void } {
     const done = (s: CopyState) => {
       setState(s);
       window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setState("idle"), 1500);
+      timer.current = window.setTimeout(() => setState("idle"), 2000);
     };
     // navigator.clipboard chỉ có trong ngữ cảnh an toàn (HTTPS hoặc localhost); panel luôn chạy HTTPS.
     if (!navigator.clipboard) return done("failed");

@@ -12,6 +12,7 @@ import { useNavigate } from "react-router";
 import { post } from "../../api/client";
 import type { AcceptFileRequest, CheckResult, FixRequest, Incident, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { CommandBlock } from "../../components/CommandBlock";
 import { Dialog } from "../../components/Dialog";
 import { MonoText } from "../../components/MonoText";
 import { useStrings } from "../../i18n";
@@ -115,17 +116,7 @@ export function FixPanel({ incident, live }: Props) {
         {manual.length === 0 ? (
           <p className="m-0 text-muted">{t.manualNone}</p>
         ) : (
-          <>
-            <p className="m-0 text-muted">{t.manualBody}</p>
-            <ul className="mt-[8px] mb-0 flex list-none flex-col gap-[6px] p-0">
-              {manual.map((line, i) => (
-                <li key={i} className="flex flex-wrap items-baseline gap-x-[10px]">
-                  <MonoText size={12}>{line}</MonoText>
-                  {i === manual.length - 1 && <span className="font-mono text-[11px] tracking-[0.08em] text-muted uppercase">{t.manualRecheckTag}</span>}
-                </li>
-              ))}
-            </ul>
-          </>
+          <CommandBlock commands={manual} />
         )}
       </Option>
 

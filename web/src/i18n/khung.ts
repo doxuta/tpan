@@ -45,6 +45,11 @@ const vi = {
   copy: "bấm để chép",
   copied: "Đã chép",
   copyFailed: "Không chép được. Chọn chữ rồi chép tay.",
+  copyCommand: "Chép lệnh",
+  copyAll: "Chép hết",
+  commandHostFallback: "<máy>",
+  commandWhere: (host: string) => `Chạy trên máy ${host} (vào máy bằng ssh <user>@${host}), quyền root (các lệnh đã có sudo), thư mục nào cũng được.`,
+  commandWhereDemo: "Đây là máy giả của chế độ demo: lệnh chỉ để xem, không chạy ở đâu được.",
   close: "Đóng",
   cancel: "Huỷ",
 
@@ -98,6 +103,11 @@ export const strings = defineStrings(vi, {
   copy: "click to copy",
   copied: "Copied",
   copyFailed: "Could not copy. Select the text and copy it by hand.",
+  copyCommand: "Copy command",
+  copyAll: "Copy all",
+  commandHostFallback: "<machine>",
+  commandWhere: (host) => `Run on the machine ${host} (log in with ssh <user>@${host}), as root (the commands already have sudo), from any directory.`,
+  commandWhereDemo: "This is the pretend machine of demo mode: the commands are for reading only and run nowhere.",
   close: "Close",
   cancel: "Cancel",
 

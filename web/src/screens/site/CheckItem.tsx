@@ -4,8 +4,8 @@
 
 import { useState } from "react";
 import type { CheckResult } from "../../api/types";
+import { CommandBlock } from "../../components/CommandBlock";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
-import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
@@ -65,14 +65,7 @@ export function CheckItem({ check, open, onToggle }: Props) {
           {fix.length > 0 && (
             <div>
               <div className="mb-[6px] font-mono text-[11px] tracking-[0.08em] text-muted">{t.manualFix}</div>
-              <p className="mt-0 mb-[6px] text-muted">{t.manualFixHint}</p>
-              <ul className="m-0 flex list-none flex-col gap-[4px] p-0">
-                {fix.map((line, i) => (
-                  <li key={i}>
-                    <MonoText size={12}>{line}</MonoText>
-                  </li>
-                ))}
-              </ul>
+              <CommandBlock commands={fix} />
             </div>
           )}
         </div>

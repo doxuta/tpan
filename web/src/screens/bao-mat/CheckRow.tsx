@@ -7,8 +7,8 @@
 import type { ReactNode } from "react";
 import type { CheckResult } from "../../api/types";
 import { Button } from "../../components/Button";
+import { CommandBlock } from "../../components/CommandBlock";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
-import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bao-mat";
@@ -103,14 +103,7 @@ export function CheckRow({ check, open, onToggle, action, noFix = false }: Props
           {fix.length > 0 && (
             <div>
               <div className={labelClass}>{t.manualFix}</div>
-              <p className="mt-0 mb-[6px] text-muted">{t.manualFixHint}</p>
-              <ul className="m-0 flex list-none flex-col gap-[4px] p-0">
-                {fix.map((line, i) => (
-                  <li key={i}>
-                    <MonoText size={12}>{line}</MonoText>
-                  </li>
-                ))}
-              </ul>
+              <CommandBlock commands={fix} />
             </div>
           )}
         </div>

@@ -153,6 +153,7 @@ Tất cả đều góc vuông, viền 1 px, không bóng đổ.
 | Nhãn (LEMP, nginx 1.24) | chữ mono 12 px, viền `--ink`, đệm 2 px 8 px, không nền |
 | Thẻ | viền `--card-border`, nền `--surface`, đệm 18 px. Thẻ sự cố có thêm vạch trên dày 4 px màu `--fail` |
 | Khối bằng chứng | nền `--pre`, chữ mono 12 px, dòng 1,55, tự xuống dòng; dòng lệnh (bắt đầu bằng `$`) đậm 600 |
+| Khối lệnh để người tự gõ | nền `--pre`. Đầu khối một dòng chữ `--muted` nói chạy ở máy nào, quyền gì, thư mục nào. Mỗi lệnh một hàng: `$ ` nhạt (không chép được), lệnh mono 12 px, cuối hàng nút biểu tượng chép (đổi sang ✓ khoảng 2 giây). Góc khối có nút phụ nhỏ "Chép hết" khi có từ hai lệnh |
 | Hàng tuyến | cao 44 px; cột tên site rộng 180 px (mono, là liên kết tới trang site); sáu ga chia đều; cột mã HTTP rộng 76 px. Mã khác 200 có nền `--fail`, chữ `--on-fail`. Dưới hàng lỗi có một dòng chữ `--fail-text` nói hỏng ở đâu, từ lúc nào |
 | Thanh số liệu | nhãn mono 11 px, số 24 px, một dòng phụ, rồi thanh cao 6 px: nền `--track`, phần đầy `--ink`, vạch ngưỡng 80% màu `--muted` |
 | Hàng lịch sử | mã job, giờ (mono, `--muted`), việc và đối tượng, kết quả (`--muted`), liên kết "bằng chứng" và "hoàn tác"; kẻ trên `--hair` |
@@ -177,6 +178,13 @@ Cuộc trò chuyện trong ngăn AI:
 - Mỗi nhãn ngữ cảnh có nút × riêng để bỏ nó khỏi câu hỏi sắp gửi.
 - Chấm ở đầu ngăn là tình trạng bộ não: chấm xanh khi đã nối, vòng rỗng kèm cách nối khi chưa.
 - Cuối ngăn luôn có dòng: "AI chỉ đọc và đề xuất. Máy chỉ đổi khi bạn duyệt."
+
+Khối lệnh để người tự gõ (`CommandBlock`, dùng cho cách sửa tay `manual_fix`) khác khối bằng chứng: bằng chứng là việc tpan đã chạy, còn khối lệnh là việc người vận hành phải làm, nên:
+
+- Đầu khối luôn nói ba điều: chạy trên máy nào (tên máy lấy từ phiên, kèm `ssh <user>@<máy>`), quyền gì (root, các lệnh đã có `sudo`), thư mục nào (mọi đường dẫn tuyệt đối nên thư mục nào cũng được). Ở chế độ demo, dòng đó nói đây là máy giả, lệnh chỉ để xem.
+- Mỗi lệnh có nút chép riêng, nhãn đọc màn hình là "Chép lệnh" kèm lệnh. Bấm xong biểu tượng đổi sang ✓ rồi trở lại, và có vùng `aria-live` báo "Đã chép".
+- Chữ được chép là đúng lệnh, không có `$ `. Dấu `$ ` chỉ để nhìn và không bôi đen được. Dữ liệu `manual_fix` từ API không có `sudo`; `CommandBlock` thêm vào khi hiện và khi chép (trừ lệnh đã có `sudo` hoặc dòng chú thích bắt đầu bằng `#`).
+- Lệnh tpan tự chạy (ví dụ "Lệnh sẽ chạy" ở màn duyệt Plan) vẫn dùng khối bằng chứng, không dùng khối này.
 
 Biểu tượng: vẽ bằng SVG nét, khung 24, nét 2, đầu nét tròn. Chỉ dùng khi chữ không đủ (kính lúp, dấu ×, dấu ✓). Không dùng emoji.
 

@@ -7,8 +7,8 @@ import { Fragment, useState } from "react";
 import { Link } from "react-router";
 import type { CheckResult, SSLSiteRow } from "../../api/types";
 import { Button } from "../../components/Button";
+import { CommandBlock } from "../../components/CommandBlock";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
-import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
@@ -148,14 +148,7 @@ function CertDetail({ id, check }: { id: string; check: CheckResult }) {
       {fix.length > 0 && (
         <div>
           <div className={`mb-[6px] ${labelClass}`}>{t.manualFix}</div>
-          <p className="mt-0 mb-[6px] text-muted">{t.manualFixHint}</p>
-          <ul className="m-0 flex list-none flex-col gap-[4px] p-0">
-            {fix.map((line, i) => (
-              <li key={i}>
-                <MonoText size={12}>{line}</MonoText>
-              </li>
-            ))}
-          </ul>
+          <CommandBlock commands={fix} />
         </div>
       )}
     </div>
