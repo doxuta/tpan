@@ -236,7 +236,7 @@ func TestPHPInstallPlan(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := []string{"apt.repo:sury", pkgs("8.4"), "php.idle:8.4", "service:php8.4-fpm"}
+		want := []string{"apt.repo:sury", "hosts.block:" + suryTelemetryHost, pkgs("8.4"), "php.idle:8.4", "service:php8.4-fpm"}
 		if got := stepIDs(pl.Plan); !reflect.DeepEqual(got, want) {
 			t.Errorf("bước = %q; muốn %q", got, want)
 		}
@@ -500,6 +500,55 @@ func TestPHPRemove(t *testing.T) {
 	pkgs = ""
 	if _, err := pe.p.PrepareRemove(ctx, "8.4"); refusedCode(t, err) != "php_not_installed" {
 		t.Error("không gói nào: muốn php_not_installed")
+	}
+}
+
+// Gỡ bản PHP cuối cùng cài từ kho sury thì gỡ thêm dòng chặn telemetry; còn
+// bản sury khác thì giữ dòng.
+func TestPHPRemoveUnblocksSuryTelemetry(t *testing.T) {
+	pe := newPHPEnv(t)
+	pe.m.Handle([]string{"dpkg-query", "-W"}, func(c system.Cmd) system.Result {
+		v := strings.TrimSuffix(strings.TrimPrefix(c.Args[len(c.Args)-1], "php"), "-*")
+		return system.Result{Stdout: "php" + v + "-fpm\tinstalled\n"}
+	})
+	pe.m.SetFile(RepoSourcesPath(RepoSury), []byte("Types: deb\n"), 0o644, system.Root)
+	pe.avail = []string{"8.3", "8.4", "8.5"}
+	pe.from = map[string]string{"8.3": "ubuntu,sury", "8.4": "sury", "8.5": "sury"}
+	pe.installPHP("8.4")
+	pe.installPHP("8.5")
+	unblock := "hosts.unblock:" + suryTelemetryHost
+
+	pl, err := pe.p.PrepareRemove(ctx, "8.4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stepIDs(pl.Plan); !reflect.DeepEqual(got, []string{"apt.remove:php8.4-fpm"}) {
+		t.Errorf("8.5 còn từ kho sury mà gỡ dòng chặn: %q", got)
+	}
+
+	// 8.5 đã gỡ gói (file chạy mất, thư mục cấu hình còn).
+	if err := pe.m.Remove("/usr/sbin/php-fpm8.5"); err != nil {
+		t.Fatal(err)
+	}
+	pl, err = pe.p.PrepareRemove(ctx, "8.4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stepIDs(pl.Plan); !reflect.DeepEqual(got, []string{"apt.remove:php8.4-fpm", unblock}) {
+		t.Errorf("bản sury cuối cùng: bước = %q", got)
+	}
+
+	// Kho sury chưa thêm: không có bước nào đụng /etc/hosts.
+	pe2 := newUseEnv(t)
+	pe2.m.Handle([]string{"dpkg-query", "-W"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: "php8.4-fpm\tinstalled\n"}
+	})
+	pl, err = pe2.p.PrepareRemove(ctx, "8.4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stepIDs(pl.Plan); slices.Contains(got, unblock) {
+		t.Errorf("chưa có kho sury mà gỡ dòng chặn: %q", got)
 	}
 }
 

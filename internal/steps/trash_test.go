@@ -360,7 +360,7 @@ func TestSiteUserLock(t *testing.T) {
 			}
 		}
 		if lock.Commands[0] != "chage -l "+l.User ||
-		lock.Commands[1] != "usermod --expiredate 1 "+l.User || unlock.Commands[1] != "usermod --expiredate '' "+l.User {
+			lock.Commands[1] != "usermod --expiredate 1 "+l.User || unlock.Commands[1] != "usermod --expiredate '' "+l.User {
 			t.Errorf("lệnh %v, %v", lock.Commands, unlock.Commands)
 		}
 	})

@@ -8,6 +8,8 @@ package core
 //     có kho sury) thì: steps.AptRepo của kho sury (Danger, hiện rõ kho và khoá
 //     sẽ thêm), ghim: cả kho 100, php-common và php<bản>* của mọi bản cài từ
 //     kho này (kể cả bản đang cài) 500. Bản Ubuntu có thì không thêm kho.
+//     Đi kèm kho sury: steps.HostsBlock chặn telemetry.sury.org trong
+//     /etc/hosts (suryTelemetryHost trong repos.go).
 //  2. AptInstall php<bản>-fpm và đúng bộ extension ở mục 3 (php<bản>-cli,
 //     -mysql, -curl, -gd, -mbstring, -xml, -zip, -intl).
 //  3. steps.PHPIdlePool cho bản đó (gỡ pool www của gói, thêm tpan-idle).
@@ -34,7 +36,8 @@ package core
 //
 // Plan "php.remove" (tpan php remove <bản>): chỉ khi không site nào dùng và
 // không phải bản mặc định (php_in_use, php_default). AptRemove php<bản>-* đã
-// cài (Danger, NoUndo).
+// cài (Danger, NoUndo). Bản gỡ là bản cuối cùng cài từ kho sury thì gỡ thêm
+// dòng chặn telemetry trong /etc/hosts (lastSuryPHP).
 
 import (
 	"cmp"
@@ -167,7 +170,10 @@ func (p *PHP) PrepareInstall(ctx context.Context, version string) (*Planned, err
 		if err != nil {
 			return nil, fmt.Errorf("dựng kho sury: %w", err)
 		}
-		ss = append(ss, repo)
+		// Chặn telemetry TRƯỚC khi cài: postinst của php<bản>-fpm khởi động
+		// dịch vụ, chỗ đầu tiên phải chờ truy vấn ra ngoài. Kho đã có từ trước
+		// (máy cài trước khi có bước này) thì bước này vẫn chạy và bù dòng.
+		ss = append(ss, repo, &steps.HostsBlock{Name: suryTelemetryHost})
 	}
 	v := version
 	unit := "php" + v + "-fpm"
@@ -334,13 +340,48 @@ func (p *PHP) PrepareRemove(ctx context.Context, version string) (*Planned, erro
 			"PHP "+version+" không có gói nào đang cài; không có gì để gỡ",
 			"PHP "+version+" has no installed packages; nothing to remove"))
 	}
+	ss := []engine.Step{&steps.AptRemove{Packages: pkgs}}
+	last, err := lastSuryPHP(ctx, p.Sys, version)
+	if err != nil {
+		return nil, err
+	}
+	if last {
+		ss = append(ss, &steps.HostsBlock{Name: suryTelemetryHost, Remove: true})
+	}
 	plan := engine.Plan{
 		Kind:   "php.remove",
 		Target: version,
 		Title:  i18n.T("Gỡ PHP "+version, "Remove PHP "+version),
-		Steps:  []engine.Step{&steps.AptRemove{Packages: pkgs}},
+		Steps:  ss,
 	}
 	return newPlanned(p.Sys, p.Journal, plan, nil), nil
+}
+
+// lastSuryPHP: kho sury đã thêm và, bỏ bản version đi, không còn bản PHP nào
+// cài từ kho đó. Khi đó dòng chặn telemetry của kho (suryTelemetryHost) hết
+// việc và php.remove gỡ nó.
+// ponytail: tpan chưa có thao tác gỡ kho, nên dòng đi theo bản PHP cuối cùng
+// của kho chứ không theo file sources (file đó còn lại sau php.remove).
+func lastSuryPHP(ctx context.Context, sys system.System, version string) (bool, error) {
+	sury, err := repoEnabled(sys, RepoSury)
+	if err != nil || !sury {
+		return false, err
+	}
+	installed, err := phpInstalled(sys)
+	if err != nil {
+		return false, err
+	}
+	others := slices.DeleteFunc(installed, func(v string) bool { return v == version })
+	src, err := phpSources(ctx, sys, others)
+	if err != nil {
+		return false, err
+	}
+	for _, v := range others {
+		if f := src[v]; f.found && !f.ubuntu {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // ---------------------------------------------------------------- đọc máy

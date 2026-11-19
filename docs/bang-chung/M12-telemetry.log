@@ -1,0 +1,582 @@
+# Chặn telemetry.sury.org trong /etc/hosts (quyết định của chủ dự án, 19/11/2026)
+# Máy ảo: tpan-test (Multipass, Ubuntu 24.04, arm64). IP ngoài máy (nếu có) đã che bằng <ip>/<ip6>;
+# 0.0.0.0 và 127.x là địa chỉ của chính máy nên để nguyên.
+#
+# Mốc so sánh, khi CHƯA có dòng chặn: php-fpm8.4 -t mất 2074 ms (docs/bang-chung/M12-ghep.log, mục 16);
+# đo lại trong phiên này trước khi viết mã, xoá cache DNS mỗi lần: 2311, 2127, 2041 ms.
+# Khi chưa chặn, strace cho thấy php-fpm8.4 hỏi DNS tên telemetry.sury.org (A và AAAA) rồi gửi một gói
+# 277 byte tới cổng 53 của địa chỉ vừa hỏi được (máy chủ bên ngoài) và chờ trả lời.
+
+######## [2026-11-19 23:46:36] Chuẩn bị: máy ảo vừa make vm-reset và make vm-deploy (bản đang sửa)
+
+[2026-11-19 23:46:36] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-19 23:46:36] (mã thoát 0)
+
+[2026-11-19 23:46:36] $ scripts/vm.sh root tpan version
+tpan aca0c69-dirty (commit aca0c69, build 2026-11-19T16:46:33Z)
+[2026-11-19 23:46:36] (mã thoát 0)
+
+[2026-11-19 23:46:36] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job 861b584ccf5c1bcd
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 861b584ccf5c1bcd: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.1%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:47:10] (mã thoát 0)
+
+
+######## [2026-11-19 23:47:10] Trước khi thêm kho sury: /etc/hosts chưa có dòng telemetry
+
+[2026-11-19 23:47:10] $ scripts/vm.sh root bash -c cp -p /etc/hosts /root/hosts.truoc; ls -l /etc/hosts; sha256sum /etc/hosts; grep -c telemetry /etc/hosts
+-rw-r--r-- 1 root root 545 Nov 19 23:46 /etc/hosts
+682b46ccc10900a8aa5749b708d21541df59acc493a8f1a92c8b4e0cb38a37b4  /etc/hosts
+0
+[2026-11-19 23:47:10] (mã thoát 1)
+
+
+######## [2026-11-19 23:47:10] Xem trước php install 8.4: bước chặn nằm ngay sau bước thêm kho
+
+[2026-11-19 23:47:10] $ scripts/vm.sh root tpan php install 8.4 --dry-run
+Kế hoạch: Cài PHP 8.4
+5 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 1 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Thêm kho PHP của Ondřej Surý (packages.sury.org)  (apt.repo:sury)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đây là nguồn gói ngoài Ubuntu: từ giờ apt cài và cập nhật gói từ kho này, ký bằng khoá có vân tay 15058500A0235D97F5D10063B188E2B695BD4743. Không có bước này thì không cài được bản bạn chọn (Ubuntu không có). File ghim giữ cho các gói khác vẫn lấy từ Ubuntu.
+    $ curl -fsSL --proto =https --max-time 60 -o /tmp/tpan-apt-key.XXXXXXXX/key https://packages.sury.org/php/apt.gpg
+    $ gpg --homedir /tmp/tpan-apt-key.XXXXXXXX --batch --no-default-keyring --keyring /tmp/tpan-apt-key.XXXXXXXX/k.kbx --import /tmp/tpan-apt-key.XXXXXXXX/key
+    $ gpg --homedir /tmp/tpan-apt-key.XXXXXXXX --batch --no-default-keyring --keyring /tmp/tpan-apt-key.XXXXXXXX/k.kbx --yes --output /tmp/tpan-apt-key.XXXXXXXX/export.gpg --export 15058500A0235D97F5D10063B188E2B695BD4743  # → /etc/apt/keyrings/tpan-sury.gpg
+    $ apt-get update -o DPkg::Lock::Timeout=300
+    tạo /etc/apt/sources.list.d/tpan-sury.sources
+    tạo /etc/apt/preferences.d/tpan-sury
+ 2. [sẽ chạy] Chặn telemetry.sury.org trong /etc/hosts  (hosts.block:telemetry.sury.org)
+    Vì sao: PHP-FPM của kho Ondřej Surý gửi một gói tin DNS tới máy chủ telemetry.sury.org mỗi lần khởi động hoặc kiểm cấu hình, rồi chờ trả lời khoảng 2 giây. tpan thêm dòng "0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury" vào /etc/hosts: tên đó trỏ về chính máy này nên không có gì được gửi ra ngoài, hết 2 giây chờ, PHP chạy y hệt. Bỏ bước này thì mỗi lần cài, đổi bản hay nạp lại PHP chậm thêm 2 giây và máy báo về bên ngoài. Chỉ thêm đúng một dòng có dấu của tpan, không đụng các dòng khác.
+ 3. [sẽ chạy] Cài gói: php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl  (apt.install:php8.4-fpm,php8.4-cli,php8.4-mysql,php8.4-curl,php8.4-gd,php8.4-mbstring,php8.4-xml,php8.4-zip,php8.4-intl)
+    Vì sao: Đây là phần mềm chạy site: web server, PHP-FPM, MariaDB, certbot. Thiếu gói nào thì mọi bước cấu hình nó phía sau đều lỗi vì chưa có file hay dịch vụ để cấu hình.
+    $ apt-get install -y php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl
+    Ghi chú hoàn tác: Gói đã cài không được gỡ khi hoàn tác: gỡ gói có thể kéo theo gỡ gói khác đang dùng chung thư viện. Gói thừa không làm hỏng gì; muốn gỡ thì dùng apt-get remove bằng tay.
+ 4. [sẽ chạy] Thay pool www của php8.4-fpm bằng pool tpan-idle  (php.idle:8.4)
+    Vì sao: Gói php8.4-fpm tự tạo pool www chạy sẵn 2 tiến trình dưới user www-data dù không site nào dùng: tốn RAM, và là một cửa chạy PHP không thuộc site nào. Không gỡ được nó mà để trống, vì PHP-FPM từ chối chạy khi không có pool nào; pool tpan-idle giữ chỗ, chỉ root nói chuyện được với nó và không có tiến trình nào chạy sẵn.
+    $ php-fpm8.4 -t
+    $ systemctl reload php8.4-fpm
+    tạo /etc/php/8.4/fpm/pool.d/tpan-idle.conf
+    xoá /etc/php/8.4/fpm/pool.d/www.conf
+ 5. [sẽ chạy] Chạy và bật php8.4-fpm khi khởi động  (service:php8.4-fpm)
+    Vì sao: Gói đã cài nhưng dịch vụ không chạy thì site không trả lời. Không bật khi khởi động thì sau lần khởi động lại máy, mọi site chết cho tới khi có người vào bật tay.
+    $ systemctl enable --now php8.4-fpm
+[2026-11-19 23:47:10] (mã thoát 0)
+
+
+######## [2026-11-19 23:47:10] Cài PHP 8.4 (thêm kho sury)
+
+[2026-11-19 23:47:10] $ scripts/vm.sh root tpan php install 8.4 --yes
+Bắt đầu job af9b678e30adc65b
+- Thêm kho PHP của Ondřej Surý (packages.sury.org) ...
+  xong
+- Chặn telemetry.sury.org trong /etc/hosts ...
+  xong
+- Cài gói: php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl ...
+  xong
+- Thay pool www của php8.4-fpm bằng pool tpan-idle ...
+  xong
+- Chạy và bật php8.4-fpm khi khởi động ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa
+
+Job af9b678e30adc65b: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy: php8.4-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ: Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:47:23] (mã thoát 0)
+
+
+######## [2026-11-19 23:47:23] Sau khi cài: đúng một dòng mới, các dòng cũ giữ nguyên, quyền và chủ giữ nguyên
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root bash -c grep -n telemetry /etc/hosts; ls -l /etc/hosts; diff /root/hosts.truoc /etc/hosts
+16:0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+-rw-r--r-- 1 root root 616 Nov 19 23:47 /etc/hosts
+15a16
+> 0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+[2026-11-19 23:47:23] (mã thoát 1)
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root getent ahosts telemetry.sury.org
+0.0.0.0         STREAM telemetry.sury.org
+0.0.0.0         DGRAM  
+0.0.0.0         RAW    
+[2026-11-19 23:47:23] (mã thoát 0)
+
+
+######## [2026-11-19 23:47:23] Đo php-fpm8.4 -t (xoá cache DNS của systemd-resolved trước mỗi lần)
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root bash -c for i in 1 2 3; do resolvectl flush-caches; s=$(date +%s%N); php-fpm8.4 -t >/dev/null 2>&1; e=$(date +%s%N); echo "php-fpm8.4 -t: $(( (e - s) / 1000000 )) ms"; done
+php-fpm8.4 -t: 13 ms
+php-fpm8.4 -t: 13 ms
+php-fpm8.4 -t: 12 ms
+[2026-11-19 23:47:23] (mã thoát 0)
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root bash -c resolvectl flush-caches; time php-fpm8.4 -t
+[19-Nov-2026 23:47:23] NOTICE: configuration file /etc/php/8.4/fpm/php-fpm.conf test is successful
+
+real	0m0.013s
+user	0m0.007s
+sys	0m0.006s
+[2026-11-19 23:47:23] (mã thoát 0)
+
+
+######## [2026-11-19 23:47:23] strace: gói tin telemetry đi tới 0.0.0.0 (chính máy này) và bị từ chối ngay, không ra ngoài
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root bash -c resolvectl flush-caches; strace -f -e trace=connect,sendto,sendmmsg,recvfrom -s 0 php-fpm8.4 -t 2>&1 | grep -v nscd | grep -E "AF_INET|sendto|sendmmsg|recvfrom"
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("0.0.0.0")}, 16) = 0
+sendto(3, ""..., 277, 0, NULL, 0)       = 277
+recvfrom(3, 0xffffdc7c8528, 1232, 0, NULL, NULL) = -1 ECONNREFUSED (Connection refused)
+[2026-11-19 23:47:23] (mã thoát 0)
+
+
+######## [2026-11-19 23:47:23] Chạy lại php install 8.4: không đổi gì, vẫn đúng một dòng
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root tpan php install 8.4 --yes
+Bắt đầu job 9b258ec4ecf1ea36
+- Thêm kho PHP của Ondřej Surý (packages.sury.org) ...
+  đã đúng, bỏ qua
+- Chặn telemetry.sury.org trong /etc/hosts ...
+  đã đúng, bỏ qua
+- Cài gói: php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl ...
+  đã đúng, bỏ qua
+- Thay pool www của php8.4-fpm bằng pool tpan-idle ...
+  đã đúng, bỏ qua
+- Chạy và bật php8.4-fpm khi khởi động ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa
+
+Job 9b258ec4ecf1ea36: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy: php8.4-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ: Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:47:23] (mã thoát 0)
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root bash -c grep -c telemetry /etc/hosts; diff /root/hosts.truoc /etc/hosts
+1
+15a16
+> 0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+[2026-11-19 23:47:23] (mã thoát 1)
+
+
+######## [2026-11-19 23:47:23] Gỡ PHP 8.4 (bản cuối cùng từ kho sury): dòng chặn đi mất, /etc/hosts về đúng như trước
+
+[2026-11-19 23:47:23] $ scripts/vm.sh root tpan php remove 8.4 --yes
+Bắt đầu job c664dad16b8ec8ca
+- Gỡ gói: php8.4-cli php8.4-common php8.4-curl php8.4-fpm php8.4-gd php8.4-intl php8.4-mbstring php8.4-mysql php8.4-opcache php8.4-readline php8.4-xml php8.4-zip ...
+  xong
+- Gỡ dòng chặn telemetry.sury.org khỏi /etc/hosts ...
+  xong
+
+Job c664dad16b8ec8ca: thành công
+[2026-11-19 23:47:26] (mã thoát 0)
+
+[2026-11-19 23:47:26] $ scripts/vm.sh root bash -c grep -c telemetry /etc/hosts; ls -l /etc/hosts; sha256sum /etc/hosts; diff /root/hosts.truoc /etc/hosts && echo "giống hệt trước khi cài"
+0
+-rw-r--r-- 1 root root 545 Nov 19 23:47 /etc/hosts
+682b46ccc10900a8aa5749b708d21541df59acc493a8f1a92c8b4e0cb38a37b4  /etc/hosts
+giống hệt trước khi cài
+[2026-11-19 23:47:26] (mã thoát 0)
+
+
+######## [2026-11-19 23:47:26] Ghi chú: /etc/hosts trên máy ảo này do cloud-init quản (manage_etc_hosts)
+
+[2026-11-19 23:47:26] $ scripts/vm.sh root bash -c head -3 /etc/hosts; grep -rn "manage_etc_hosts" /etc/cloud/cloud.cfg /etc/cloud/cloud.cfg.d/ 2>/dev/null; ls /var/lib/cloud/instance/ 2>/dev/null | head -0; cloud-init query merged_cfg.manage_etc_hosts 2>&1 | head -2
+# Your system has configured 'manage_etc_hosts' as True.
+# As a result, if you wish for changes to this file to persist
+# then you will need to either
+true
+[2026-11-19 23:47:26] (mã thoát 0)
+
+
+# Lần thử khởi động lại đầu tiên (23:49:02) không dùng được: các lệnh chạy khi SSH chưa vào lại được, nên bỏ; dưới đây là lần chạy lại có chờ SSH.
+# KẾT LUẬN: cloud-init sinh lại /etc/hosts mỗi lần khởi động, dòng chặn mất, php-fpm8.4 -t lại ~2,1 giây và gói 277 byte lại đi ra ngoài; chạy lại php install 8.4 thì bước chặn bù dòng.
+
+######## [2026-11-19 23:49:48] Khởi động lại máy ảo: cloud-init (manage_etc_hosts: true) có giữ dòng chặn không
+
+[2026-11-19 23:49:48] $ scripts/vm.sh root tpan php install 8.4 --yes
+Bắt đầu job 26d5879683d6807d
+- Thêm kho PHP của Ondřej Surý (packages.sury.org) ...
+  đã đúng, bỏ qua
+- Chặn telemetry.sury.org trong /etc/hosts ...
+  xong
+- Cài gói: php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl ...
+  xong
+- Thay pool www của php8.4-fpm bằng pool tpan-idle ...
+  đã đúng, bỏ qua
+- Chạy và bật php8.4-fpm khi khởi động ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa
+
+Job 26d5879683d6807d: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy: php8.4-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ: Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:49:56] (mã thoát 0)
+
+[2026-11-19 23:49:56] $ scripts/vm.sh root bash -c grep -c telemetry /etc/hosts; uptime -p
+1
+up 0 minutes
+[2026-11-19 23:49:56] (mã thoát 0)
+
+[2026-11-19 23:49:56] $ multipass restart tpan-test
+[2K[0A[0ERestarting tpan-test  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E[2026-11-19 23:50:09] (mã thoát 0)
+
+(chờ SSH vào lại được: 1 lần thử)
+[2026-11-19 23:50:09] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-19 23:50:10] (mã thoát 0)
+
+[2026-11-19 23:50:10] $ scripts/vm.sh root bash -c uptime -p; grep -c telemetry /etc/hosts; diff /root/hosts.truoc /etc/hosts && echo "giống bản trước khi cài (dòng chặn đã mất)"
+up 0 minutes
+0
+giống bản trước khi cài (dòng chặn đã mất)
+[2026-11-19 23:50:10] (mã thoát 0)
+
+[2026-11-19 23:50:10] $ scripts/vm.sh root bash -c for i in 1 2 3; do resolvectl flush-caches; s=$(date +%s%N); php-fpm8.4 -t >/dev/null 2>&1; rc=$?; e=$(date +%s%N); echo "php-fpm8.4 -t (mã $rc): $(( (e - s) / 1000000 )) ms"; done
+php-fpm8.4 -t (mã 0): 21 ms
+php-fpm8.4 -t (mã 0): 2135 ms
+php-fpm8.4 -t (mã 0): 2082 ms
+[2026-11-19 23:50:14] (mã thoát 0)
+
+[2026-11-19 23:50:14] $ scripts/vm.sh root bash -c resolvectl flush-caches; strace -f -e trace=connect,sendto,sendmmsg,recvfrom -s 0 php-fpm8.4 -t 2>&1 | grep -v nscd | grep -E "AF_INET|sendto|sendmmsg|recvfrom"
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("127.0.0.53")}, 16) = 0
+sendmmsg(3, [...], 2, MSG_NOSIGNAL)     = 2
+recvfrom(3, ""..., 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("127.0.0.53")}, [28 => 16]) = 63
+recvfrom(3, ""..., 65536, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("127.0.0.53")}, [28 => 16]) = 75
+sendto(3, ..., 20, 0, {sa_family=AF_NETLINK, nl_pid=0, nl_groups=00000000}, 12) = 20
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("<ip>")}, 16) = 0
+connect(3, {sa_family=AF_INET6, sin6_port=htons(53), sin6_flowinfo=htonl(0), inet_pton(AF_INET6, "<ip6>", &sin6_addr), sin6_scope_id=0}, 28) = 0
+connect(3, {sa_family=AF_INET6, sin6_port=htons(53), sin6_flowinfo=htonl(0), inet_pton(AF_INET6, "<ip6>", &sin6_addr), sin6_scope_id=0}, 28) = 0
+sendto(3, ""..., 277, 0, NULL, 0)       = 277
+recvfrom(3, 0xfffff3f90718, 1232, 0, NULL, NULL) = -1 EAGAIN (Resource temporarily unavailable)
+[2026-11-19 23:50:17] (mã thoát 0)
+
+
+######## [2026-11-19 23:50:17] Chạy lại php install 8.4 sau khi khởi động: bước chặn bù lại dòng
+
+[2026-11-19 23:50:17] $ scripts/vm.sh root tpan php install 8.4 --yes
+Bắt đầu job e67139e5eb701951
+- Thêm kho PHP của Ondřej Surý (packages.sury.org) ...
+  đã đúng, bỏ qua
+- Chặn telemetry.sury.org trong /etc/hosts ...
+  xong
+- Cài gói: php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl ...
+  đã đúng, bỏ qua
+- Thay pool www của php8.4-fpm bằng pool tpan-idle ...
+  đã đúng, bỏ qua
+- Chạy và bật php8.4-fpm khi khởi động ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa
+
+Job e67139e5eb701951: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy: php8.4-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ: Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:50:17] (mã thoát 0)
+
+[2026-11-19 23:50:17] $ scripts/vm.sh root grep -c telemetry /etc/hosts
+1
+[2026-11-19 23:50:17] (mã thoát 0)
+
+
+######## [2026-11-19 23:50:17] Dọn: gỡ PHP 8.4
+
+[2026-11-19 23:50:17] $ scripts/vm.sh root tpan php remove 8.4 --yes
+Bắt đầu job 5029fc944480ad7a
+- Gỡ gói: php8.4-cli php8.4-common php8.4-curl php8.4-fpm php8.4-gd php8.4-intl php8.4-mbstring php8.4-mysql php8.4-opcache php8.4-readline php8.4-xml php8.4-zip ...
+  xong
+- Gỡ dòng chặn telemetry.sury.org khỏi /etc/hosts ...
+  xong
+
+Job 5029fc944480ad7a: thành công
+[2026-11-19 23:50:20] (mã thoát 0)
+
+[2026-11-19 23:50:20] $ scripts/vm.sh root bash -c grep -c telemetry /etc/hosts; diff /root/hosts.truoc /etc/hosts && echo "giống bản trước khi cài"
+0
+giống bản trước khi cài
+[2026-11-19 23:50:20] (mã thoát 0)
+
+
+# =====================================================================
+# BẢN SỬA (cùng ngày): HostsBlock ghi cùng dòng vào cả /etc/hosts và /etc/cloud/templates/hosts.debian.tmpl (nếu file mẫu có).
+# KẾT LUẬN: sau khi khởi động lại, cloud-init sinh lại /etc/hosts mà vẫn còn dòng chặn; php-fpm8.4 -t 15-20 ms; gỡ PHP 8.4 thì cả hai file về đúng sha256 cũ.
+
+######## [2026-11-19 23:52:54] BẢN SỬA: HostsBlock ghi cả /etc/hosts lẫn file mẫu của cloud-init. Máy ảo vừa make vm-reset, make vm-deploy
+
+[2026-11-19 23:52:54] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-19 23:52:54] (mã thoát 0)
+
+[2026-11-19 23:52:54] $ scripts/vm.sh root tpan version
+tpan aca0c69-dirty (commit aca0c69, build 2026-11-19T16:52:49Z)
+[2026-11-19 23:52:54] (mã thoát 0)
+
+[2026-11-19 23:52:54] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job 055d53c5f0a79322
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 055d53c5f0a79322: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:53:33] (mã thoát 0)
+
+[2026-11-19 23:53:33] $ scripts/vm.sh root bash -c cp -p /etc/hosts /root/hosts.truoc; cp -p /etc/cloud/templates/hosts.debian.tmpl /root/tmpl.truoc; ls -l /etc/hosts /etc/cloud/templates/hosts.debian.tmpl; sha256sum /etc/hosts /etc/cloud/templates/hosts.debian.tmpl; grep -c telemetry /etc/hosts /etc/cloud/templates/hosts.debian.tmpl
+-rw-r--r-- 1 root root 845 Feb 28  2026 /etc/cloud/templates/hosts.debian.tmpl
+-rw-r--r-- 1 root root 545 Nov 19 23:52 /etc/hosts
+682b46ccc10900a8aa5749b708d21541df59acc493a8f1a92c8b4e0cb38a37b4  /etc/hosts
+809caec424db135edb695095a4d3bd17cf755c9179c1a639ae56155315767d00  /etc/cloud/templates/hosts.debian.tmpl
+/etc/hosts:0
+/etc/cloud/templates/hosts.debian.tmpl:0
+[2026-11-19 23:53:33] (mã thoát 1)
+
+
+######## [2026-11-19 23:53:33] Cài PHP 8.4: dòng chặn vào cả hai file
+
+[2026-11-19 23:53:33] $ scripts/vm.sh root tpan php install 8.4 --yes
+Bắt đầu job 0509df2f967bef1c
+- Thêm kho PHP của Ondřej Surý (packages.sury.org) ...
+  xong
+- Chặn telemetry.sury.org trong /etc/hosts ...
+  xong
+- Cài gói: php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl ...
+  xong
+- Thay pool www của php8.4-fpm bằng pool tpan-idle ...
+  xong
+- Chạy và bật php8.4-fpm khi khởi động ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa
+
+Job 0509df2f967bef1c: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy: php8.4-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ: Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:53:45] (mã thoát 0)
+
+[2026-11-19 23:53:45] $ scripts/vm.sh root bash -c grep -n telemetry /etc/hosts /etc/cloud/templates/hosts.debian.tmpl; ls -l /etc/hosts /etc/cloud/templates/hosts.debian.tmpl; diff /root/hosts.truoc /etc/hosts; diff /root/tmpl.truoc /etc/cloud/templates/hosts.debian.tmpl
+/etc/hosts:16:0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+/etc/cloud/templates/hosts.debian.tmpl:24:0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+-rw-r--r-- 1 root root 916 Nov 19 23:53 /etc/cloud/templates/hosts.debian.tmpl
+-rw-r--r-- 1 root root 616 Nov 19 23:53 /etc/hosts
+15a16
+> 0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+23a24
+> 0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+[2026-11-19 23:53:45] (mã thoát 1)
+
+
+######## [2026-11-19 23:53:45] Khởi động lại máy ảo (cloud-init sinh lại /etc/hosts từ file mẫu)
+
+[2026-11-19 23:53:45] $ multipass restart tpan-test
+[2K[0A[0ERestarting tpan-test  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E[2026-11-19 23:53:58] (mã thoát 0)
+
+(chờ SSH vào lại được: 1 lần thử)
+[2026-11-19 23:53:58] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-19 23:53:58] (mã thoát 0)
+
+[2026-11-19 23:53:58] $ scripts/vm.sh root bash -c uptime -p; head -1 /etc/hosts; grep -c telemetry /etc/hosts; grep -n telemetry /etc/hosts
+up 0 minutes
+# Your system has configured 'manage_etc_hosts' as True.
+1
+16:0.0.0.0 telemetry.sury.org # tpan: chặn telemetry của kho PHP Sury
+[2026-11-19 23:53:58] (mã thoát 0)
+
+[2026-11-19 23:53:58] $ scripts/vm.sh root bash -c for i in 1 2 3; do resolvectl flush-caches; s=$(date +%s%N); php-fpm8.4 -t >/dev/null 2>&1; rc=$?; e=$(date +%s%N); echo "php-fpm8.4 -t (mã $rc): $(( (e - s) / 1000000 )) ms"; done
+php-fpm8.4 -t (mã 0): 20 ms
+php-fpm8.4 -t (mã 0): 15 ms
+php-fpm8.4 -t (mã 0): 15 ms
+[2026-11-19 23:53:58] (mã thoát 0)
+
+[2026-11-19 23:53:58] $ scripts/vm.sh root bash -c resolvectl flush-caches; time php-fpm8.4 -t
+[19-Nov-2026 23:53:58] NOTICE: configuration file /etc/php/8.4/fpm/php-fpm.conf test is successful
+
+real	0m0.014s
+user	0m0.005s
+sys	0m0.008s
+[2026-11-19 23:53:59] (mã thoát 0)
+
+[2026-11-19 23:53:59] $ scripts/vm.sh root bash -c resolvectl flush-caches; strace -f -e trace=connect,sendto,sendmmsg,recvfrom -s 0 php-fpm8.4 -t 2>&1 | grep -v nscd | grep -E "AF_INET|sendto|sendmmsg|recvfrom"
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("0.0.0.0")}, 16) = 0
+sendto(3, ""..., 277, 0, NULL, 0)       = 277
+recvfrom(3, 0xffffc100d2a8, 1232, 0, NULL, NULL) = -1 ECONNREFUSED (Connection refused)
+[2026-11-19 23:53:59] (mã thoát 0)
+
+
+######## [2026-11-19 23:53:59] Chạy lại php install 8.4: không đổi gì
+
+[2026-11-19 23:53:59] $ scripts/vm.sh root tpan php install 8.4 --yes
+Bắt đầu job 8584688b1b60d2d3
+- Thêm kho PHP của Ondřej Surý (packages.sury.org) ...
+  đã đúng, bỏ qua
+- Chặn telemetry.sury.org trong /etc/hosts ...
+  đã đúng, bỏ qua
+- Cài gói: php8.4-fpm php8.4-cli php8.4-mysql php8.4-curl php8.4-gd php8.4-mbstring php8.4-xml php8.4-zip php8.4-intl ...
+  đã đúng, bỏ qua
+- Thay pool www của php8.4-fpm bằng pool tpan-idle ...
+  đã đúng, bỏ qua
+- Chạy và bật php8.4-fpm khi khởi động ...
+  đã đúng, bỏ qua
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa
+
+Job 8584688b1b60d2d3: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ php8.4-fpm đang chạy và tự bật cùng máy: php8.4-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình PHP-FPM 8.4 hợp lệ: Cấu hình PHP-FPM 8.4 hợp lệ
+  [đạt] PHP-FPM 8.4 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-19 23:53:59] (mã thoát 0)
+
+
+######## [2026-11-19 23:53:59] Gỡ PHP 8.4: cả hai file về đúng như trước (so sha256)
+
+[2026-11-19 23:53:59] $ scripts/vm.sh root tpan php remove 8.4 --yes
+Bắt đầu job 8c4fd7fdfd3ceb1a
+- Gỡ gói: php8.4-cli php8.4-common php8.4-curl php8.4-fpm php8.4-gd php8.4-intl php8.4-mbstring php8.4-mysql php8.4-opcache php8.4-readline php8.4-xml php8.4-zip ...
+  xong
+- Gỡ dòng chặn telemetry.sury.org khỏi /etc/hosts ...
+  xong
+
+Job 8c4fd7fdfd3ceb1a: thành công
+[2026-11-19 23:54:03] (mã thoát 0)
+
+[2026-11-19 23:54:03] $ scripts/vm.sh root bash -c grep -c telemetry /etc/hosts /etc/cloud/templates/hosts.debian.tmpl; ls -l /etc/hosts /etc/cloud/templates/hosts.debian.tmpl; sha256sum /etc/hosts /etc/cloud/templates/hosts.debian.tmpl; sha256sum /root/hosts.truoc /root/tmpl.truoc; cmp /root/tmpl.truoc /etc/cloud/templates/hosts.debian.tmpl && echo 'file mẫu giống hệt'
+/etc/hosts:0
+/etc/cloud/templates/hosts.debian.tmpl:0
+-rw-r--r-- 1 root root 845 Nov 19 23:54 /etc/cloud/templates/hosts.debian.tmpl
+-rw-r--r-- 1 root root 545 Nov 19 23:54 /etc/hosts
+682b46ccc10900a8aa5749b708d21541df59acc493a8f1a92c8b4e0cb38a37b4  /etc/hosts
+809caec424db135edb695095a4d3bd17cf755c9179c1a639ae56155315767d00  /etc/cloud/templates/hosts.debian.tmpl
+682b46ccc10900a8aa5749b708d21541df59acc493a8f1a92c8b4e0cb38a37b4  /root/hosts.truoc
+809caec424db135edb695095a4d3bd17cf755c9179c1a639ae56155315767d00  /root/tmpl.truoc
+file mẫu giống hệt
+[2026-11-19 23:54:03] (mã thoát 0)
+
+[2026-11-19 23:54:03] $ scripts/vm.sh root bash -c diff /root/hosts.truoc /etc/hosts && echo '/etc/hosts giống hệt'
+/etc/hosts giống hệt
+[2026-11-19 23:54:03] (mã thoát 0)
+

@@ -36,6 +36,13 @@ const (
 	OriginMariaDB = "MariaDB"
 )
 
+// suryTelemetryHost là tên mà php-fpm của kho sury (từ 8.4) hỏi DNS rồi gửi
+// telemetry tới mỗi lần khởi động hoặc chạy `-t` (strace trên máy ảo M12).
+// Chủ dự án quyết chặn (docs/KE-HOACH.md, tìm "telemetry"): thêm kho thì
+// steps.HostsBlock trỏ tên này về 0.0.0.0 trong /etc/hosts, gỡ bản PHP cuối
+// cùng của kho thì gỡ dòng đó (PrepareInstall, PrepareRemove trong php.go).
+const suryTelemetryHost = "telemetry.sury.org"
+
 var (
 	suryFingerprints    = []string{"15058500A0235D97F5D10063B188E2B695BD4743"}
 	nginxFingerprints   = []string{"8540A6F18833A80E9C1653A42FD21310B49F6B46", "573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62", "9E9BE90EACBCDE69FE9B204CBCDCD8A38D88A2B3"}
