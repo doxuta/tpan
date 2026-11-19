@@ -379,3 +379,21 @@ func TestError(t *testing.T) {
 		t.Errorf("Error() chứa xuống dòng: %q", err.Error())
 	}
 }
+
+func TestSlugTextRoundTrip(t *testing.T) {
+	d, err := ParseDomain("shop.example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := SlugOf(d)
+	b, _ := want.MarshalText()
+	var got Slug
+	if err := got.UnmarshalText(b); err != nil || got != want {
+		t.Fatalf("đọc lại slug %q: %v, %q", b, err, got)
+	}
+	for _, bad := range []string{"tp_x", "a; rm -rf /_abcdef", "SHOP_abcdef", "x_ABCDEF"} {
+		if err := got.UnmarshalText([]byte(bad)); err == nil {
+			t.Errorf("slug %q phải bị từ chối", bad)
+		}
+	}
+}

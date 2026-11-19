@@ -16,6 +16,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/mail"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -329,6 +330,21 @@ func (s Slug) DBName() string { return "tp_" + s.s }
 // MarshalText để Slug ra JSON như một chuỗi (không có nó, struct có trường
 // không xuất sẽ ra "{}").
 func (s Slug) MarshalText() ([]byte, error) { return []byte(s.s), nil }
+
+// UnmarshalText để đọc lại JSON có Slug (client Go của API, MCP). Chỉ nhận
+// đúng dạng SlugOf sinh ra; slug không bao giờ được dùng để suy ngược domain,
+// nên ai cần tên user hay DB vẫn phải đi từ Domain.
+func (s *Slug) UnmarshalText(b []byte) error {
+	v := string(b)
+	if v != "" && !slugForm.MatchString(v) {
+		return &Error{Code: "slug_invalid", Message: i18n.T("slug không đúng dạng", "malformed slug")}
+	}
+	s.s = v
+	return nil
+}
+
+// slugForm: tối đa 16 ký tự [a-z0-9_], dấu _, rồi 6 ký tự hex (SlugOf).
+var slugForm = regexp.MustCompile(`^[a-z0-9_]{1,16}_[0-9a-f]{6}$`)
 
 // isLowerAlnum: chữ thường a-z hoặc chữ số, tập ký tự duy nhất được phép trong nhãn tên miền.
 func isLowerAlnum(r rune) bool { return r >= 'a' && r <= 'z' || r >= '0' && r <= '9' }
