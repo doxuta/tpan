@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: M0 đến M8 xong ngày 19/11/2026 (lượt A gồm M4, M5, M7 chạy song song rồi ghép vào `dev`; M5 và M7 xong phần máy ảo, phần cần VPS hay Claude Code thật ở mục 18). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt B (M6, M8, M12) đang ghép; M6 và M8 đã vào `dev` (e2e chạy lại trên `tpan-test` sau ghép đều 0 không đạt: `docs/bang-chung/M6-ghep.log`, `M8-ghep.log`; M8 kiểm thêm bằng Claude Code thật, 9 trên 20 lần gọi được phép). Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: M0 đến M8 và M12 xong ngày 19/11/2026 (lượt A: M4, M5, M7; lượt B: M6, M8, M12; mỗi mốc chạy song song trên nhánh riêng rồi ghép vào `dev` và chạy lại e2e trên `tpan-test`). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Phần cần VPS, tên miền thật hay Claude Code thật ở mục 18. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); lượt kế tiếp là C (M9, M10), rồi M11. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -957,7 +957,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M9** | Backup, khôi phục, chặn đầy đĩa, backup theo lịch; cron thật cho WordPress và màn Cron; đổi mật khẩu, xuất và nhập DB | e2e bước 10; backup bị từ chối khi đĩa giả lập gần đầy; một bài hẹn giờ của WordPress được đăng đúng giờ khi không có khách nào vào site |
 | **M10** | Chuyển LEMP ⇄ LAMP | e2e bước 8; đo được thời gian gián đoạn |
 | **M11** | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), bản phát hành trên GitHub, README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
-| **M12** | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
+| **M12** ✅ | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
 
 M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7, và M12 cần health của M4), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc. M1 đến M3 làm nối tiếp; từ M4 các mốc chạy song song theo lượt, mỗi mốc một worktree, một nhánh `moc/M<n>`, một máy ảo, rồi được ghép vào `dev` (mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`). Migration của mốc `n` đánh số từ `n*100` đến `n*100+99`; bảng `schema_migrations` ghi từng bản đã áp, nên ghép mốc không theo thứ tự số vẫn không sót bản nào.
 
@@ -1379,6 +1379,8 @@ Xem từng chỗ:
 Mỗi chỗ xem ở cả nền sáng và nền tối, đổi sang tiếng Anh, thu cửa sổ về 390 px (DevTools, chế độ thiết bị) và đi hết bằng bàn phím (Tab, Enter, Esc; luôn thấy viền focus).
 
 ### M12
+
+E2E của M12 chạy lại trên `tpan-test` sau khi ghép vào `dev`: 167 khẳng định đạt, 0 không đạt (`docs/bang-chung/M12-ghep.log`).
 
 Mọi bước "Xong khi" của M12 đã chạy trọn trên máy ảo (bước 14, 15, nâng MariaDB trên bản sao). VPS là amd64, máy ảo là arm64, và VPS có thể có mirror gói của nhà cung cấp và chặn DNS ra ngoài, nên khi đã cài `tpan` bản M12 trên VPS thì chạy lại các lệnh chỉ đọc hoặc có xem trước sau đây (thay `<domain>` bằng một site thật của bạn, đừng chép vào repo):
 
