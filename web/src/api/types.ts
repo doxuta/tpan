@@ -170,6 +170,8 @@ export type WebServer = "nginx" | "apache" | "";
 export type SiteInfo = {
   site: Site;
   layout: Layout;
+  /** Socket của pool site đang dùng, theo bản PHP của site (M12). Layout không còn trường socket. */
+  socket?: string;
   web: WebServer;
   checks: CheckResult[];
 };
