@@ -1,21 +1,22 @@
 // Cột bên của Bảng điều khiển (mục 7): "Sự cố đang mở", "Cảnh báo", "Chờ bạn
 // duyệt". Khối nào không có gì thì ghi một dòng "Không có", không ẩn đi.
 //
-// M3 chưa có màn Sự cố riêng, nên mỗi phép kiểm Fail là một thẻ sự cố; mỗi
-// phép kiểm Warn là một thẻ cảnh báo. Sửa tự động (M4) và Hỏi AI (M8) chưa có,
-// nên hai nút đó vô hiệu và nói lý do ngay trong thẻ; Sửa tay dùng được ngay.
+// Sự cố đọc từ overview.incidents (health mở khi một phép kiểm chuyển sang
+// lỗi, mục 6.7), không còn suy từ phép kiểm lỗi như M3. Ba cách sửa (tự động
+// qua xem trước, sửa tay, hỏi AI) nằm ở trang sự cố /incidents/:id, nên thẻ ở
+// đây chỉ dẫn tới đó; cảnh báo vẫn là phép kiểm warn và mở bằng chứng tại chỗ.
 
-import { useId, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import type { Overview } from "../../api/types";
-import { Button } from "../../components/Button";
+import type { Incident as IncidentData, Overview, Stage } from "../../api/types";
+import { Button, buttonClass } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bang-dieu-khien";
 import { strings as khung } from "../../i18n/khung";
-import { checksWith, type Entry } from "./model";
+import { checksWith, fmtWhen, type Entry } from "./model";
 
 function Block({ title, count, children }: { title: string; count: number; children: ReactNode }) {
   return (
@@ -34,10 +35,16 @@ function None() {
   return <p className="m-0 text-muted">{t.none}</p>;
 }
 
-/** Domain của site (liên kết tới trang site) hoặc nhãn "Cả máy" cho phép kiểm dùng chung. */
-function Where({ domain, size }: { domain: string | null; size: 13 | 15 }) {
+/** Tên chỗ bị lỗi khi nó không phải một site: chính tpan hay cả máy. */
+function useSharedName(stage: Stage): string {
   const t = useStrings(strings);
-  if (domain === null) return <>{t.sharedIncident}</>;
+  return stage === "tpan" ? t.stage.tpan : t.sharedIncident;
+}
+
+/** Domain của site (liên kết tới trang site) hoặc tên "Cả máy" / "TPAN" cho phép kiểm không thuộc site nào. */
+function Where({ domain, stage, size }: { domain: string | null; stage: Stage; size: 13 | 15 }) {
+  const shared = useSharedName(stage);
+  if (domain === null) return <>{shared}</>;
   return (
     <Link to={`/sites/${encodeURIComponent(domain)}`} className={`font-mono font-semibold text-ink no-underline hover:text-ink hover:underline ${size === 15 ? "text-[15px]" : "text-[13px]"}`}>
       {domain}
@@ -45,51 +52,31 @@ function Where({ domain, size }: { domain: string | null; size: 13 | 15 }) {
   );
 }
 
-function Incident({ e }: { e: Entry }) {
+/** Sự cố theo hợp đồng: target "" là máy và stack, "tpan" là chính tpan, còn lại là domain của site. */
+function Incident({ inc }: { inc: IncidentData }) {
   const t = useStrings(strings);
   const kt = useStrings(khung);
   const { lang } = useLang();
-  const [manual, setManual] = useState(false);
-  const reasonId = useId();
-  const c = e.check;
-  const stage = t.stage[c.stage];
-  const lines = c.manual_fix ?? [];
+  const domain = inc.target === "" || inc.target === "tpan" ? null : inc.target;
+  const stage = t.stage[inc.stage];
+  const r = inc.open_result;
+  const shared = useSharedName(inc.stage);
 
   return (
     <Card incident>
       <div className="flex items-center gap-[10px]">
         <StatusMark status="fail" label={kt.statusLabel(stage, kt.status.fail)} />
         <h3 className="m-0 text-[17px] leading-[1.3] font-semibold">
-          <Where domain={e.domain} size={15} /> {tx(c.summary, lang)}
+          <Where domain={domain} stage={inc.stage} size={15} /> {tx(r.summary, lang)}
         </h3>
       </div>
-      <p className="mt-[6px] mb-0 text-[13px] text-muted">{t.incidentMeta(e.domain ?? t.sharedIncident, stage, tx(c.title, lang))}</p>
-      {c.cause && <p className="mt-[14px] mb-0 leading-[1.5]">{tx(c.cause, lang)}</p>}
-      {c.evidence && c.evidence.length > 0 && (
-        <div className="mt-[16px]">
-          <EvidenceBlock evidence={c.evidence} />
-        </div>
-      )}
-      <div className="mt-[16px] flex flex-wrap gap-[8px]">
-        {/* aria-disabled, không phải disabled: nút vẫn focus được nên người dùng bàn phím nghe được lý do. */}
-        <Button variant="primary" aria-disabled="true" aria-describedby={reasonId}>
-          {t.autoFix}
-        </Button>
-        <Button aria-expanded={manual} disabled={lines.length === 0} onClick={() => setManual(!manual)}>
-          {t.manualFix}
-        </Button>
-        <Button aria-disabled="true" aria-describedby={reasonId}>
-          {t.askAi}
-        </Button>
+      <p className="mt-[6px] mb-0 text-[13px] text-muted">{t.incidentMeta(domain ?? shared, stage, tx(inc.title, lang), fmtWhen(inc.opened, lang, t.yesterday))}</p>
+      {r.cause && <p className="mt-[14px] mb-0 leading-[1.5]">{tx(r.cause, lang)}</p>}
+      <div className="mt-[16px]">
+        <Link to={`/incidents/${inc.id}`} className={buttonClass("secondary")}>
+          {t.openIncident}
+        </Link>
       </div>
-      <p id={reasonId} className="mt-[8px] mb-0 text-[12px] text-muted">
-        {t.fixesReason}
-      </p>
-      {manual && (
-        <div className="mt-[12px]">
-          <EvidenceBlock label={t.manualLabel} text={lines.map((l) => `$ ${l}`).join("\n")} />
-        </div>
-      )}
     </Card>
   );
 }
@@ -105,7 +92,7 @@ function Warning({ e }: { e: Entry }) {
       <div className="flex items-center gap-[12px]">
         <StatusMark status="warn" label={kt.statusLabel(t.stage[c.stage], kt.status.warn)} />
         <div className="leading-[1.45]">
-          <Where domain={e.domain} size={13} /> · {tx(c.summary, lang)}
+          <Where domain={e.domain} stage={c.stage} size={13} /> · {tx(c.summary, lang)}
         </div>
       </div>
       {c.cause && <p className="mt-[8px] mb-0 text-[13px] text-muted">{tx(c.cause, lang)}</p>}
@@ -129,20 +116,22 @@ function Warning({ e }: { e: Entry }) {
 
 export function Side({ o }: { o: Overview }) {
   const t = useStrings(strings);
-  const fails = checksWith(o, "fail");
   const warns = checksWith(o, "warn");
   return (
     <aside className="flex min-w-0 flex-[1_1_372px] flex-col gap-[24px] pt-[24px]">
-      <Block title={t.incidentsTitle} count={fails.length}>
-        {fails.length === 0 ? (
+      <Block title={t.incidentsTitle} count={o.incidents.length}>
+        {o.incidents.length === 0 ? (
           <None />
         ) : (
           <div className="flex flex-col gap-[12px]">
-            {fails.map((e) => (
-              <Incident key={`${e.domain ?? "*"}:${e.check.id}`} e={e} />
+            {o.incidents.map((inc) => (
+              <Incident key={inc.id} inc={inc} />
             ))}
           </div>
         )}
+        <p className="mt-[12px] mb-0 text-[13px]">
+          <Link to="/incidents">{t.allIncidents}</Link>
+        </p>
       </Block>
       <Block title={t.warningsTitle} count={warns.length}>
         {warns.length === 0 ? (
@@ -155,7 +144,7 @@ export function Side({ o }: { o: Overview }) {
           </div>
         )}
       </Block>
-      {/* M3 chưa có Plan nào chờ duyệt (Plan do AI hay agent đề xuất đến từ M8). */}
+      {/* Chưa có Plan nào chờ duyệt (Plan do AI hay agent đề xuất đến từ M8). */}
       <Block title={t.pendingTitle} count={0}>
         <None />
       </Block>

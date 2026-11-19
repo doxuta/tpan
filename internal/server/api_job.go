@@ -11,12 +11,12 @@ package server
 //     hoàn tác, mà hoàn tác bằng một context đã huỷ thì lỗi nốt).
 //  3. Sự kiện đầu tiên (job.start) mang job id: handler trả 202 JobStarted.
 //     Mọi sự kiện được phát qua bộ phát của job (sse.go) cho người đang nghe.
-//  4. Goroutine xong: cất mật khẩu quản trị (nếu có), bỏ đệm phép kiểm của
-//     site, nhả busy, ghi nhật ký.
+//  4. Goroutine xong: cất mật khẩu quản trị (nếu có), nhả busy, ghi nhật ký,
+//     rồi xin health kiểm lại thứ job vừa chạm vào (Scheduler.Kick). Kick đi
+//     SAU khi nhả busy: vòng kiểm thấy còn job thì bỏ qua.
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -68,6 +68,18 @@ type jobResult struct {
 }
 
 type jobFunc func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error)
+
+// jobOpts là phần khác nhau giữa các loại job.
+type jobOpts struct {
+	// action và target ghi vào nhật ký (audit).
+	action, target string
+	// kick là domain xin health kiểm lại khi job xong; "" là kiểm nhẹ mọi thứ.
+	kick string
+	// onStart (có thể nil) chạy trong request ngay khi có job id, trước khi trả
+	// 202. Kick của job chờ nó xong: sửa tự động gắn job vào sự cố ở đây, và
+	// vòng kiểm sau job không được đóng sự cố trước khi job kịp gắn vào.
+	onStart func(ctx context.Context, id string)
+}
 
 // claim giành chỗ chạy job; false nếu tiến trình này đang có job.
 func (a *apiState) claim() bool {
@@ -121,13 +133,16 @@ func (s *Server) jobRefused(w http.ResponseWriter, r *http.Request, action, targ
 
 // jobStart chạy fn ở nền và trả 202 khi có job id. Người gọi đã claim; jobStart
 // nhả busy khi job xong (hoặc không bắt đầu được).
-func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, action, target string, fn jobFunc) {
+func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, o jobOpts, fn jobFunc) {
 	a := s.api
+	action, target := o.action, o.target
 	// Nhật ký ghi lúc job xong, khi request đã kết thúc và r.Context() đã huỷ.
 	ar := r.WithContext(context.WithoutCancel(r.Context()))
 	run := &jobRun{done: make(chan struct{})}
 	started := make(chan string, 1)
 	notStarted := make(chan error, 1)
+	// linked đóng khi handler đã chạy xong onStart (xem jobOpts.onStart).
+	linked := make(chan struct{})
 
 	// onEvent chạy trong engine, dưới khoá của engine, theo thứ tự Seq: phải
 	// nhanh và không bao giờ chặn (bộ phát không chờ người nghe).
@@ -149,7 +164,6 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, action, target
 			a.secrets[run.id] = *res.secret
 		}
 		delete(a.runs, run.id)
-		delete(a.checks, target)
 		a.busy = false
 		a.mu.Unlock()
 		if run.feed != nil {
@@ -175,10 +189,16 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, action, target
 			}
 		}
 		s.audit(ar, action, target, result, run.id)
+		<-linked
+		s.kick(o.kick)
 	})
 
 	select {
 	case id := <-started:
+		if o.onStart != nil {
+			o.onStart(ar.Context(), id)
+		}
+		close(linked)
 		writeJSON(w, http.StatusAccepted, JobStarted{JobID: id})
 	case err := <-notStarted:
 		if errors.Is(err, errJobBusy) {
@@ -194,11 +214,7 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, action, target
 func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 	const action = "site.add"
 	var body SiteCreate
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "bad_request", i18n.T(
-			"Thân request không phải JSON hợp lệ: "+err.Error(), "The request body is not valid JSON: "+err.Error()))
+	if !apiReadJSON(w, r, &body) {
 		return
 	}
 	d, err := validate.ParseDomain(body.Domain)
@@ -239,7 +255,7 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 		s.jobRefused(w, r, action, d.String(), err)
 		return
 	}
-	s.jobStart(w, r, action, d.String(), func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error) {
+	s.jobStart(w, r, jobOpts{action: action, target: d.String(), kick: d.String()}, func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error) {
 		res, err := add.Execute(ctx, onEvent)
 		out := jobResult{status: res.Report.Job.Status}
 		// Kể cả khi err khác nil (job xong mà không ghi được bảng sites), mật
@@ -291,7 +307,10 @@ func (s *Server) handleSiteDelete(w http.ResponseWriter, r *http.Request) {
 		s.jobRefused(w, r, action, d.String(), err)
 		return
 	}
-	s.jobStart(w, r, action, d.String(), func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error) {
+	// Kick "" chứ không phải domain: site đã xoá thì không còn gì để kiểm theo
+	// domain (Runner trả site_not_found). Sự cố cũ của site đóng ("gone") ở lần
+	// chạy đầy đủ kế tiếp.
+	s.jobStart(w, r, jobOpts{action: action, target: d.String()}, func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error) {
 		rep, err := rm.Execute(ctx, onEvent)
 		return jobResult{status: rep.Job.Status}, err
 	})

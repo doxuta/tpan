@@ -6,7 +6,9 @@ package server
 // Chia file:
 //   - api.go:        trạng thái chung, đổi lỗi sang ErrorBody, các handler chỉ đọc.
 //   - api_job.go:    tạo và xoá site: chạy job ở nền, giữ mật khẩu quản trị một lần.
-//   - api_checks.go: bộ nhớ đệm phép kiểm của site.
+//   - api_health.go: health (M4): tổng quan đọc từ check_results, sự cố, sửa
+//     tự động, nhận bản sửa tay, chạy health ngay, số request, log trực tiếp,
+//     bộ hẹn giờ.
 //   - sse.go:        luồng sự kiện của job (Server-Sent Events).
 
 import (
@@ -18,12 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/monitor"
-	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -33,9 +33,6 @@ const (
 	// Khoá đang bị giữ nghĩa là một job khác (thường gõ ở CLI, tiến trình
 	// khác) đang chạy; chờ lâu hơn chỉ làm request treo.
 	apiLockWait = 2 * time.Second
-	// apiChecksTTL: kết quả phép kiểm của một site được dùng lại trong 60 giây
-	// (xem api_checks.go).
-	apiChecksTTL = 60 * time.Second
 	// apiOverviewJobs: số job mới nhất trên Bảng điều khiển.
 	apiOverviewJobs = 10
 	apiJobsDefault  = 50
@@ -45,9 +42,8 @@ const (
 // apiState là trạng thái của phần API, sống cùng Server.
 type apiState struct {
 	s *Server
-	// lockWait và checksTTL là hằng ở trên; test đặt nhỏ lại.
-	lockWait  time.Duration
-	checksTTL time.Duration
+	// lockWait là hằng ở trên; test đặt nhỏ lại.
+	lockWait time.Duration
 
 	mu sync.Mutex
 	// busy: tiến trình này đang có một job thay đổi máy (từ lúc nhận request tới
@@ -59,8 +55,6 @@ type apiState struct {
 	// GET /jobs/{id} đầu tiên sau khi job xong (mục 11, "Bí mật"). Chỉ trong
 	// bộ nhớ: không ghi DB, không log; tpan khởi động lại thì mất.
 	secrets map[string]AdminSecret
-	// checks là bộ nhớ đệm phép kiểm theo domain (api_checks.go).
-	checks map[string]apiChecksEntry
 
 	// wg đếm goroutine job nền, để test chờ chúng xong trước khi đóng DB.
 	wg sync.WaitGroup
@@ -69,12 +63,10 @@ type apiState struct {
 // newAPIState không đọc s.deps: server_test dựng Server với Deps rỗng.
 func newAPIState(s *Server) *apiState {
 	return &apiState{
-		s:         s,
-		lockWait:  apiLockWait,
-		checksTTL: apiChecksTTL,
-		runs:      map[string]*jobRun{},
-		secrets:   map[string]AdminSecret{},
-		checks:    map[string]apiChecksEntry{},
+		s:        s,
+		lockWait: apiLockWait,
+		runs:     map[string]*jobRun{},
+		secrets:  map[string]AdminSecret{},
 	}
 }
 
@@ -196,30 +188,22 @@ func (s *Server) handleSites(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, apiNonNil(list))
 }
 
-// handleSite trả core.SiteInfo. Không gọi Sites.Info (nó luôn chạy lại phép
-// kiểm): ghép từ bảng sites và kết quả phép kiểm trong bộ nhớ đệm.
+// handleSite trả core.SiteInfo, chạy phép kiểm của site ngay lúc gọi: trang
+// một site là nơi người dùng xem kỹ, cần kết quả mới. Bảng điều khiển thì đọc
+// kết quả health đã ghi (handleOverview).
 func (s *Server) handleSite(w http.ResponseWriter, r *http.Request) {
 	d, err := validate.ParseDomain(r.PathValue("domain"))
 	if err != nil {
 		apiFail(w, r, err)
 		return
 	}
-	st, ok, err := s.deps.Store.Site(r.Context(), d)
+	info, err := s.apiSites().Info(r.Context(), d)
 	if err != nil {
 		apiFail(w, r, err)
 		return
 	}
-	if !ok {
-		writeError(w, http.StatusNotFound, "site_not_found", i18n.T(
-			"Không có site "+d.String()+" trong tpan.", "tpan has no site "+d.String()+"."))
-		return
-	}
-	h, err := s.apiSiteHealth(r.Context(), d, r.URL.Query().Get("refresh") == "1")
-	if err != nil {
-		apiFail(w, r, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, core.SiteInfo{Site: st, Layout: st.Layout(), Web: h.Config.Web, Checks: apiNonNil(h.Results)})
+	info.Checks = apiNonNil(info.Checks)
+	writeJSON(w, http.StatusOK, info)
 }
 
 func (s *Server) handleDatabases(w http.ResponseWriter, r *http.Request) {
@@ -289,66 +273,4 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 		d.Secret = s.api.takeSecret(id)
 	}
 	writeJSON(w, http.StatusOK, d)
-}
-
-// ---------------------------------------------------------------- tổng quan
-
-// handleOverview gom mọi thứ Bảng điều khiển cần. Số liệu máy đo trước (xem
-// chú thích bên dưới), rồi phép kiểm của site và phép kiểm stack chạy song
-// song: mỗi phần có thể mất vài trăm mili giây tới vài giây. Một site kiểm lỗi
-// thì site đó không có phép kiểm, không làm hỏng cả trang.
-func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	refresh := r.URL.Query().Get("refresh") == "1"
-	cfg, err := s.apiStack().Config(ctx)
-	if err != nil {
-		apiFail(w, r, err)
-		return
-	}
-	sites, err := s.deps.Store.Sites(ctx)
-	if err != nil {
-		apiFail(w, r, err)
-		return
-	}
-	jobs, err := s.deps.Store.Jobs(ctx, apiOverviewJobs)
-	if err != nil {
-		apiFail(w, r, err)
-		return
-	}
-
-	ov := Overview{
-		Hostname: s.deps.Hostname,
-		Stack:    StackSummary{Installed: cfg.PHPVersion != "", Web: string(cfg.Web), PHPVersion: cfg.PHPVersion},
-		Sites:    make([]SiteRow, len(sites)),
-		Jobs:     apiNonNil(jobs),
-	}
-	// Số liệu máy đo trước, một mình: CPU% là phần bận giữa hai lần đọc
-	// /proc/stat, mà phép kiểm (wp verify-checksums, nginx -t, curl...) chính
-	// là tải. Đo song song với chúng thì Bảng điều khiển luôn thấy CPU bận vì
-	// chính tpan (trên máy ảo: 15-30% khi máy rỗi, /machine đo riêng ra 0%).
-	ov.Machine = s.apiMachine(ctx)
-	var stackErr error
-	var wg sync.WaitGroup
-	wg.Go(func() {
-		h, err := s.apiStack().Health(ctx)
-		ov.StackChecks, stackErr = apiNonNil(h.Results), err
-	})
-	for i, st := range sites {
-		wg.Go(func() { ov.Sites[i] = s.apiSiteRow(ctx, st, refresh) })
-	}
-	wg.Wait()
-	if stackErr != nil {
-		apiFail(w, r, stackErr)
-		return
-	}
-	writeJSON(w, http.StatusOK, ov)
-}
-
-func (s *Server) apiSiteRow(ctx context.Context, st site.Site, refresh bool) SiteRow {
-	h, err := s.apiSiteHealth(ctx, st.Domain, refresh)
-	if err != nil {
-		slog.Warn("kiểm site cho tổng quan", "domain", st.Domain.String(), "err", err)
-		return SiteRow{Site: st, Checks: []checks.Result{}}
-	}
-	return SiteRow{Site: st, Checks: apiNonNil(h.Results)}
 }

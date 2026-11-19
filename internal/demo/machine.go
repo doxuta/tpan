@@ -206,6 +206,8 @@ func (m *machine) handlers() {
 
 	m.Handle([]string{"mariadb", "-N", "-B"}, m.mariadb)
 	m.Handle([]string{"curl"}, m.curl)
+	// Log của site: log trực tiếp và đếm request (logs.go).
+	m.Handle([]string{"tail"}, m.tail)
 
 	// tar giải nén WordPress: chỉ dựng vài file đủ để phép kiểm thấy có mã nguồn.
 	m.Handle([]string{"tar"}, func(c system.Cmd) system.Result {

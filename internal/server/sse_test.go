@@ -48,7 +48,7 @@ func sseStartScripted(t *testing.T, e *apiEnv, id string) func() {
 		t.Fatal("claim")
 	}
 	rec := httptest.NewRecorder()
-	e.s.jobStart(rec, httptest.NewRequest("DELETE", "/", nil), "site.rm", "a.example.com", sseScriptedJob(e, id, step))
+	e.s.jobStart(rec, httptest.NewRequest("DELETE", "/", nil), jobOpts{action: "site.rm", target: "a.example.com"}, sseScriptedJob(e, id, step))
 	if js := apiDecode[JobStarted](t, rec, 202); js.JobID != id {
 		t.Fatalf("job id = %q", js.JobID)
 	}

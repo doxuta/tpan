@@ -133,7 +133,9 @@ func serveCmd(e *env) *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("đọc hostname: %w", err)
 				}
-				deps.Store, deps.Hostname = st, host
+				// DBPath cho phép kiểm quyền 0600 của tpan.db trong health. Máy
+				// demo không có file thật nên không đặt.
+				deps.Store, deps.Hostname, deps.DBPath = st, host, e.dbPath
 			}
 			return server.Run(ctx, server.RunOptions{Listen: listen, CertFile: certFile, KeyFile: keyFile, Deps: deps})
 		},

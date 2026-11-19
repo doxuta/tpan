@@ -6,9 +6,10 @@
 // Dữ liệu: GET /api/v1/overview qua useOverview, cùng truy vấn mà khung trang
 // dùng cho menu và logo nên chỉ một request.
 
-import { errorMessage } from "../../api/client";
-import { useOverview } from "../../api/queries";
-import type { Status } from "../../api/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { errorMessage, post } from "../../api/client";
+import { queryKeys, useOverview } from "../../api/queries";
+import type { HealthReport, Status } from "../../api/types";
 import { Button } from "../../components/Button";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { StatusMark } from "../../components/StatusMark";
@@ -17,9 +18,10 @@ import { strings } from "../../i18n/bang-dieu-khien";
 import { strings as khung } from "../../i18n/khung";
 import { History } from "./History";
 import { Machine } from "./Machine";
-import { checksWith, fmtClock } from "./model";
+import { checksWith, fmtWhen } from "./model";
 import { RouteMap } from "./RouteMap";
 import { Side } from "./Side";
+import { TpanChecks } from "./TpanChecks";
 
 const legend: Status[] = ["pass", "warn", "fail", "unknown"];
 
@@ -27,11 +29,23 @@ export default function BangDieuKhien() {
   const t = useStrings(strings);
   const kt = useStrings(khung);
   const { lang } = useLang();
+  const qc = useQueryClient();
   const q = useOverview();
   const o = q.data;
 
+  // "Kiểm lại": chạy health đầy đủ ngay (như bộ hẹn giờ, có ghi kết quả và mở đóng sự cố) rồi đọc lại overview.
+  const recheck = useMutation({
+    mutationFn: () => post<HealthReport>("/api/v1/health/run"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.overview }),
+  });
+
   const summary = o
-    ? t.summaryLine(o.sites.filter((r) => r.site.status === "active").length, fmtClock(q.dataUpdatedAt, lang), checksWith(o, "fail").length, checksWith(o, "warn").length)
+    ? t.summaryLine(
+        o.sites.filter((r) => r.site.status === "active").length,
+        o.last_run ? fmtWhen(o.last_run, lang, t.yesterday) : null,
+        o.incidents.length,
+        checksWith(o, "warn").length,
+      )
     : t.summary;
 
   return (
@@ -54,7 +68,12 @@ export default function BangDieuKhien() {
         {o && (
           <>
             <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
-              <h2 className="m-0 text-[16px] font-semibold">{t.mapTitle}</h2>
+              <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
+                <h2 className="m-0 text-[16px] font-semibold">{t.mapTitle}</h2>
+                <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
+                  {recheck.isPending ? t.rechecking : t.recheck}
+                </Button>
+              </div>
               <ul aria-label={t.legend} className="m-0 flex list-none flex-wrap gap-x-[18px] gap-y-[8px] p-0">
                 {legend.map((s) => (
                   <li key={s} className="flex items-center gap-[8px] text-[13px] text-muted">
@@ -64,8 +83,14 @@ export default function BangDieuKhien() {
                 ))}
               </ul>
             </div>
+            {recheck.isError && (
+              <p role="alert" className="mt-0 mb-[12px]">
+                {t.recheckFailed} {errorMessage(recheck.error, lang)}
+              </p>
+            )}
             <RouteMap o={o} />
             <Machine m={o.machine} />
+            <TpanChecks checks={o.tpan_checks} />
             <History jobs={o.jobs} />
           </>
         )}

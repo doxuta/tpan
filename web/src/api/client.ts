@@ -9,7 +9,7 @@
 // errorMessage(err, lang). Gặp 401 (phiên hết hạn) thì chuyển về trang đăng
 // nhập, kèm ?next= để đăng nhập xong quay lại đúng chỗ.
 
-import type { ErrorBody, EventKind, JobEvent } from "./types";
+import type { ErrorBody, EventKind, JobEvent, LogEnd, LogFile, LogLine } from "./types";
 import { tx, type Lang } from "../i18n";
 import { strings as khung } from "../i18n/khung";
 
@@ -170,5 +170,48 @@ export function subscribeJobEvents(
     // CONNECTING: đang tự nối lại, cứ để. CLOSED: trình duyệt bỏ cuộc.
     if (es.readyState === EventSource.CLOSED) onClose?.("error");
   };
+  return () => es.close();
+}
+
+/** Hàm nhận sự kiện của luồng log trực tiếp. */
+export type SiteLogHandlers = {
+  /** Luồng (nối lại) đã mở. Server gửi lại 100 dòng cuối mỗi lần mở, nên bên nhận bỏ dòng cũ trước khi nhận tiếp. */
+  onOpen: () => void;
+  onLine: (line: string) => void;
+  /** Sự kiện "end": tail đã thoát. Luồng đã đóng và không tự nối lại; error rỗng nếu thoát không lỗi. */
+  onEnd: (error: string) => void;
+  /** Rớt luồng. closed false: trình duyệt đang tự nối lại. closed true: trình duyệt bỏ cuộc (401, 404, 400). */
+  onError: (closed: boolean) => void;
+};
+
+/**
+ * Nghe log trực tiếp của một site (/api/v1/sites/{domain}/log?file=...). Cùng
+ * origin nên cookie phiên tự đi kèm. Mỗi dòng log tới trong sự kiện "line";
+ * nó là chữ không tin cậy, nơi hiện phải coi như chữ thường. Server tự đóng
+ * luồng sau 10 phút và EventSource tự nối lại; riêng sự kiện "end" thì ta đóng
+ * tay, nếu không EventSource nối lại mãi một tail đã chết. Trả về hàm huỷ.
+ */
+export function subscribeSiteLog(domain: string, file: LogFile, h: SiteLogHandlers): () => void {
+  const es = new EventSource(`/api/v1/sites/${encodeURIComponent(domain)}/log?file=${file}`);
+  es.onopen = h.onOpen;
+  es.addEventListener("line", (msg) => {
+    try {
+      const d = JSON.parse((msg as MessageEvent<string>).data) as LogLine;
+      if (typeof d.line === "string") h.onLine(d.line);
+    } catch {
+      // dòng hỏng thì bỏ, dòng sau vẫn tới
+    }
+  });
+  es.addEventListener("end", (msg) => {
+    let reason = "";
+    try {
+      reason = (JSON.parse((msg as MessageEvent<string>).data) as LogEnd).error ?? "";
+    } catch {
+      // không đọc được lý do thì coi như rỗng
+    }
+    es.close();
+    h.onEnd(reason);
+  });
+  es.onerror = () => h.onError(es.readyState === EventSource.CLOSED);
   return () => es.close();
 }

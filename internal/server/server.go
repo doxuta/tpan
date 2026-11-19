@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
+	"github.com/doxuta/tpan/internal/health"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/web"
@@ -33,9 +34,26 @@ type RunOptions struct {
 // Run nghe cho tới khi ctx bị huỷ, rồi tắt êm (chờ các request đang chạy tối
 // đa 10 giây).
 func Run(ctx context.Context, o RunOptions) error {
+	s := newServer(o.Deps)
+	if o.Deps.Store != nil {
+		// Health định kỳ (mục 6.7) sống cùng tiến trình serve. Dựng trước khi
+		// nghe để mọi request thấy s.sched (Kick sau mỗi job).
+		s.sched = &health.Scheduler{Runner: s.healthRunner(), Busy: s.healthBusy}
+		// ctx riêng: Run có thể trả về khi ctx ngoài còn sống (nghe cổng lỗi),
+		// lúc đó vẫn phải dừng được bộ hẹn giờ.
+		sctx, cancel := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			s.sched.Run(sctx)
+		}()
+		// Dừng rồi chờ vòng kiểm đang dở xong hẳn (ctx đã huỷ nên nó dừng
+		// nhanh) trước khi trả về: người gọi đóng store ngay sau Run.
+		defer func() { cancel(); <-done }()
+	}
 	srv := &http.Server{
 		Addr:              o.Listen,
-		Handler:           NewHandler(o.Deps, web.DistFS()),
+		Handler:           s.handler(web.DistFS()),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -65,6 +83,9 @@ type Server struct {
 	deps Deps
 	auth *authState
 	api  *apiState
+	// sched là bộ hẹn giờ health; nil khi không chạy bằng Run (test dùng
+	// NewHandler), khi đó kick không làm gì.
+	sched *health.Scheduler
 }
 
 func (s *Server) now() time.Time {
@@ -101,10 +122,19 @@ func clientIP(r *http.Request) string {
 // NewHandler ghép API và giao diện web vào một handler. Tách riêng để test được
 // mà không cần mở cổng thật. Bảng đường dẫn và ý nghĩa: types.go.
 func NewHandler(d Deps, dist fs.FS) http.Handler {
+	return newServer(d).handler(dist)
+}
+
+// newServer dựng Server; tách khỏi NewHandler để Run giữ được *Server (gắn bộ
+// hẹn giờ health vào nó).
+func newServer(d Deps) *Server {
 	s := &Server{deps: d}
 	s.auth = newAuthState(s)
 	s.api = newAPIState(s)
+	return s
+}
 
+func (s *Server) handler(dist fs.FS) http.Handler {
 	mux := http.NewServeMux()
 	// Công khai.
 	mux.HandleFunc("GET /api/v1/health", handleHealth)
@@ -130,6 +160,15 @@ func NewHandler(d Deps, dist fs.FS) http.Handler {
 	mux.Handle("GET /api/v1/jobs/{id}", auth(s.handleJob))
 	mux.Handle("GET /api/v1/jobs/{id}/events", auth(s.handleJobEvents))
 	mux.Handle("GET /api/v1/databases", auth(s.handleDatabases))
+
+	// Health (M4, api_health.go).
+	mux.Handle("GET /api/v1/incidents", auth(s.handleIncidents))
+	mux.Handle("GET /api/v1/incidents/{id}", auth(s.handleIncident))
+	mux.Handle("POST /api/v1/fixes", auth(s.handleFix))
+	mux.Handle("POST /api/v1/files/accept", auth(s.handleAcceptFile))
+	mux.Handle("POST /api/v1/health/run", auth(s.handleHealthRun))
+	mux.Handle("GET /api/v1/sites/{domain}/traffic", auth(s.handleSiteTraffic))
+	mux.Handle("GET /api/v1/sites/{domain}/log", auth(s.handleSiteLog))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

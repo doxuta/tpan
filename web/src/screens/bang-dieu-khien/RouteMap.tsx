@@ -5,7 +5,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
-import type { Overview } from "../../api/types";
+import type { Overview, Traffic as TrafficData } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
@@ -15,7 +15,7 @@ import { Tag } from "../../components/Tag";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bang-dieu-khien";
 import { strings as khung } from "../../i18n/khung";
-import { buildRoute, stationStages, type Item, type Line, type Route, type StationStage } from "./model";
+import { buildRoute, fmtNumber, stationStages, type Item, type Line, type Route, type StationStage } from "./model";
 
 type Open = { domain: string; stage: StationStage | "e2e" };
 
@@ -100,13 +100,16 @@ export function RouteMap({ o }: { o: Overview }) {
             {routes.map((r) => (
               <li key={r.domain} className="border-t border-hair">
                 <div className="flex items-center">
-                  <Link
-                    to={`/sites/${encodeURIComponent(r.domain)}`}
-                    title={r.domain}
-                    className="w-[180px] flex-none overflow-hidden font-mono text-[13px] text-ellipsis whitespace-nowrap text-ink no-underline hover:text-ink hover:underline"
-                  >
-                    {r.domain}
-                  </Link>
+                  <div className="w-[180px] flex-none overflow-hidden">
+                    <Link
+                      to={`/sites/${encodeURIComponent(r.domain)}`}
+                      title={r.domain}
+                      className="block overflow-hidden font-mono text-[13px] text-ellipsis whitespace-nowrap text-ink no-underline hover:text-ink hover:underline"
+                    >
+                      {r.domain}
+                    </Link>
+                    {r.traffic && <Traffic traffic={r.traffic} />}
+                  </div>
                   <div className="grid flex-1 grid-cols-6">
                     {r.cells.map((c) => {
                       const k = keyOf(r.domain, c.stage);
@@ -159,6 +162,26 @@ export function RouteMap({ o }: { o: Overview }) {
         />
       )}
     </>
+  );
+}
+
+/**
+ * Số request và lỗi 5xx một giờ qua, dòng phụ dưới tên site (mono 11 px, màu
+ * --muted như nhãn phụ khác; màu đỏ chỉ dành cho dấu trạng thái). Chữ hiện ra
+ * rút gọn cho vừa cột 180 px; trình đọc màn hình và tooltip nhận câu đầy đủ,
+ * trong đó partial (chỉ đọc được phần cuối log) ghi là "ít nhất".
+ */
+function Traffic({ traffic }: { traffic: TrafficData }) {
+  const t = useStrings(strings);
+  const { lang } = useLang();
+  const req = fmtNumber(traffic.requests, lang, 0);
+  const err = fmtNumber(traffic.errors_5xx, lang, 0);
+  const partial = traffic.partial === true;
+  return (
+    <div title={t.trafficFull(req, err, partial)} className="overflow-hidden font-mono text-[11px] leading-[1.3] text-ellipsis whitespace-nowrap text-muted tabular-nums">
+      <span aria-hidden="true">{t.trafficShort(req, err, partial)}</span>
+      <span className="sr-only">{t.trafficFull(req, err, partial)}</span>
+    </div>
   );
 }
 

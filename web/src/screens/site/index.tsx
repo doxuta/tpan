@@ -21,9 +21,11 @@ import { strings } from "../../i18n/site";
 import { PlanReview } from "../duyet-plan";
 import { CheckItem } from "./CheckItem";
 import { ErrorNote } from "./ErrorNote";
+import { LiveLog } from "./LiveLog";
 import { formatDate, formatTime } from "./format";
 import { Legend, RouteMap, stageGroupId } from "./RouteMap";
 import { checksOfStage, routeStages, stageOrder, worstStatus } from "./route";
+import { Traffic } from "./Traffic";
 
 const sitePath = (domain: string) => `/api/v1/sites/${encodeURIComponent(domain)}`;
 const siteKey = (domain: string) => ["site", domain] as const;
@@ -182,6 +184,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
 
   const groups = stageOrder.filter((s) => (routeStages as readonly Stage[]).includes(s) || s === "e2e" || checksOfStage(checks, s).length > 0);
   const noStack = info.web === "" && checks.length === 0;
+  const hasLogs = info.web !== "" && info.site.status === "active";
   // Dòng "Hỏng ở ..." lấy ga hỏng đầu tiên; nếu sáu ga đều ổn mà phép gọi HTTP thật hỏng thì nói về nó.
   const firstFail = [...routeStages, "e2e" as const].map((s) => ({ s, c: checksOfStage(checks, s).find((c) => c.status === "fail") })).find((x) => x.c);
 
@@ -266,6 +269,9 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
         )}
       </section>
 
+      {/* Log và số request đọc file log của site: chưa cài stack hoặc site trong thùng rác thì không có gì để đọc. */}
+      {hasLogs && <Traffic domain={domain} />}
+
       <section aria-labelledby="phep-kiem">
         <h2 id="phep-kiem" tabIndex={-1} className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
           {t.checksHeading}
@@ -298,6 +304,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
           })
         )}
       </section>
+
+      {hasLogs && <LiveLog domain={domain} />}
 
       <section aria-labelledby="ten-duong-dan">
         <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[6px] pt-[26px] pb-[10px]">

@@ -30,16 +30,19 @@ type apiEnv struct {
 	st  *store.Store
 	mu  sync.Mutex
 	now time.Time
+	// dbPath là file của st, để test đọc bảng mà store không có hàm đọc (audit).
+	dbPath string
 }
 
 func apiNewEnv(t *testing.T) *apiEnv {
 	t.Helper()
-	st, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "tpan.db"))
+	dbPath := filepath.Join(t.TempDir(), "tpan.db")
+	st, err := store.Open(context.Background(), dbPath)
 	if err != nil {
 		t.Fatalf("mở store: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	e := &apiEnv{f: system.NewFake(), st: st, now: time.Date(2026, 11, 19, 8, 0, 0, 0, time.UTC)}
+	e := &apiEnv{f: system.NewFake(), st: st, dbPath: dbPath, now: time.Date(2026, 11, 19, 8, 0, 0, 0, time.UTC)}
 	e.s = &Server{deps: Deps{Sys: e.f, Store: st, Hostname: "vps-test", Now: e.clock}}
 	e.s.api = newAPIState(e.s)
 	e.s.api.lockWait = 100 * time.Millisecond
@@ -308,7 +311,7 @@ func TestAPIJobSecretOnce(t *testing.T) {
 	}
 	r := httptest.NewRequest("POST", "/api/v1/sites", nil)
 	rec := httptest.NewRecorder()
-	e.s.jobStart(rec, r, "site.add", "a.example.com", apiEmptyJob(e, &AdminSecret{URL: "http://a.example.com/wp-admin/", User: "admin", Password: pw}, release))
+	e.s.jobStart(rec, r, jobOpts{action: "site.add", target: "a.example.com"}, apiEmptyJob(e, &AdminSecret{URL: "http://a.example.com/wp-admin/", User: "admin", Password: pw}, release))
 	js := apiDecode[JobStarted](t, rec, 202)
 
 	// Giao diện gọi GET ngay sau job.done, lúc goroutine chưa cất mật khẩu:
@@ -398,34 +401,28 @@ type apiOverviewJSON struct {
 		Checks []checks.Result `json:"checks"`
 	} `json:"sites"`
 	StackChecks []checks.Result `json:"stack_checks"`
+	LastRun     time.Time       `json:"last_run"`
 }
 
-func TestAPISiteChecksCache(t *testing.T) {
+// GET /sites/{domain} chạy phép kiểm của site ngay mỗi lần gọi (core.Sites.Info).
+func TestAPISiteRunsChecks(t *testing.T) {
 	e := apiNewEnv(t)
 	e.stack(t)
 	e.addSite(t, "a.example.com")
-	get := func(target string) int {
+	for range 2 {
 		e.f.ResetRan()
-		info := apiDecode[apiSiteInfoJSON](t, apiCall(e.s.handleSite, "GET", target, "", "domain", "a.example.com"), 200)
+		info := apiDecode[apiSiteInfoJSON](t, apiCall(e.s.handleSite, "GET", "/", "", "domain", "a.example.com"), 200)
 		if info.Site.Domain != "a.example.com" || info.Layout.DB == "" || info.Web != "nginx" || len(info.Checks) == 0 {
 			t.Fatalf("SiteInfo = %+v", info)
 		}
-		return len(e.f.Ran())
-	}
-	if n := get("/"); n == 0 {
-		t.Fatal("lần đầu không chạy phép kiểm nào")
-	}
-	if n := get("/"); n != 0 {
-		t.Fatalf("trong 60 giây mà vẫn chạy lại %d lệnh", n)
-	}
-	if n := get("/?refresh=1"); n == 0 {
-		t.Fatal("refresh=1 không chạy lại")
-	}
-	e.advance(61 * time.Second)
-	if n := get("/"); n == 0 {
-		t.Fatal("quá 60 giây mà không chạy lại")
+		if len(e.f.Ran()) == 0 {
+			t.Fatal("không chạy phép kiểm nào")
+		}
 	}
 	if got := apiErrCode(t, apiCall(e.s.handleSite, "GET", "/", "", "domain", "none.example.com"), 404); got != "site_not_found" {
+		t.Fatalf("code = %q", got)
+	}
+	if got := apiErrCode(t, apiCall(e.s.handleSite, "GET", "/", "", "domain", "a.com;id"), 400); got != validate.CodeDomainInvalid {
 		t.Fatalf("code = %q", got)
 	}
 }
@@ -462,6 +459,8 @@ func TestAPIReadOnly(t *testing.T) {
 	}
 }
 
+// Tổng quan đọc phép kiểm từ check_results, không chạy chúng; ?refresh=1 chạy
+// health đầy đủ trước.
 func TestAPIOverview(t *testing.T) {
 	e := apiNewEnv(t)
 	e.stack(t)
@@ -472,23 +471,37 @@ func TestAPIOverview(t *testing.T) {
 	if ov.Hostname != "vps-test" || !ov.Stack.Installed || ov.Stack.Web != "nginx" || ov.Stack.PHPVersion != "8.3" {
 		t.Errorf("đầu trang = %+v", ov)
 	}
-	if len(ov.Sites) != 2 || ov.Sites[0].Site.Domain != "a.example.com" || len(ov.Sites[1].Checks) == 0 {
-		t.Errorf("sites = %+v", ov.Sites)
+	if len(ov.Sites) != 2 || ov.Sites[0].Site.Domain != "a.example.com" || len(ov.Sites[1].Checks) != 0 || len(ov.StackChecks) != 0 {
+		t.Errorf("chưa chạy health mà đã có phép kiểm: %+v", ov)
 	}
-	if len(ov.StackChecks) == 0 {
-		t.Error("thiếu phép kiểm stack")
-	}
-	for _, k := range []string{`"jobs":[]`, `"sites":[`, `"machine":{`} {
+	for _, k := range []string{`"jobs":[]`, `"sites":[`, `"machine":{`, `"stack_checks":[]`, `"tpan_checks":[]`, `"incidents":[]`, `"checks":[]`} {
 		if !strings.Contains(rec.Body.String(), k) {
 			t.Errorf("JSON thiếu %s", k)
 		}
 	}
-	// Lần hai trong 60 giây: phép kiểm site lấy từ bộ nhớ đệm.
-	e.f.ResetRan()
-	apiCall(e.s.handleOverview, "GET", "/", "")
+	if strings.Contains(rec.Body.String(), `"last_run"`) {
+		t.Error("chưa chạy health mà có last_run")
+	}
 	for _, c := range e.f.Ran() {
-		if c.Name == "wp" {
-			t.Fatalf("tổng quan lần hai vẫn chạy phép kiểm site: %s", c.String())
+		if c.Name != "tail" {
+			t.Fatalf("tổng quan chạy lệnh ngoài đếm request: %s", c.String())
+		}
+	}
+
+	ov = apiDecode[apiOverviewJSON](t, apiCall(e.s.handleOverview, "GET", "/?refresh=1", ""), 200)
+	if len(ov.StackChecks) == 0 || len(ov.Sites[1].Checks) == 0 || !ov.LastRun.Equal(e.clock()) {
+		t.Errorf("refresh=1: stack %d, site %d, last_run %v", len(ov.StackChecks), len(ov.Sites[1].Checks), ov.LastRun)
+	}
+
+	// Lần sau: vẫn có kết quả (đọc từ store) mà không chạy phép kiểm nào.
+	e.f.ResetRan()
+	ov2 := apiDecode[apiOverviewJSON](t, apiCall(e.s.handleOverview, "GET", "/", ""), 200)
+	if len(ov2.Sites[1].Checks) != len(ov.Sites[1].Checks) || len(ov2.StackChecks) != len(ov.StackChecks) {
+		t.Errorf("đọc lại khác lần refresh: %+v", ov2)
+	}
+	for _, c := range e.f.Ran() {
+		if c.Name != "tail" {
+			t.Fatalf("tổng quan chạy phép kiểm: %s", c.String())
 		}
 	}
 }
@@ -530,7 +543,8 @@ func TestAPIOverviewCPUNotDuringChecks(t *testing.T) {
 	e.f.SetFile("/proc/stat", []byte("cpu  100 0 100 800 0 0 0 0 0 0\ncpu0 100 0 100 800 0 0 0 0 0 0\n"), 0o444, system.Root)
 	ss := &apiSampleSystem{FakeSystem: e.f}
 	e.s.deps.Sys = ss
-	apiDecode[apiOverviewJSON](t, apiCall(e.s.handleOverview, "GET", "/", ""), 200)
+	// refresh=1: phép kiểm chạy trong cùng request, trước khi đo.
+	apiDecode[apiOverviewJSON](t, apiCall(e.s.handleOverview, "GET", "/?refresh=1", ""), 200)
 	if ss.reads != 2 {
 		t.Fatalf("đọc /proc/stat %d lần, muốn 2 (test không đo được gì)", ss.reads)
 	}

@@ -1,0 +1,50 @@
+# M4: thử lệch dương tính giả của .htaccess trên Apache (19/11/2026)
+#
+# Chạy SAU lần e2e sạch (docs/bang-chung/M4.log, phần F), trên đúng máy ảo đó,
+# KHÔNG reset. Phần F của e2e gọi `wp rewrite flush --hard` nhưng WP-CLI không
+# ghi .htaccess (cần cấu hình apache_modules), nên phần F chưa kiểm được trường
+# hợp WordPress tự ghi lại .htaccess. Ở đây ép WordPress ghi thật.
+
+$ scripts/vm.sh root stat -c '%a %U:%G %n' /var/www/a.example.com /var/www/a.example.com/public /var/www/a.example.com/public/.htaccess
+2750 tp_a_example_com_7653e4:www-data /var/www/a.example.com
+2750 tp_a_example_com_7653e4:www-data /var/www/a.example.com/public
+640 tp_a_example_com_7653e4:www-data /var/www/a.example.com/public/.htaccess
+=> .htaccess thuộc user của site, PHP-FPM của site chạy dưới user đó: WordPress ghi được file này (lưu permalink trong wp-admin).
+
+$ scripts/vm.sh root bash -c 'printf "apache_modules:\n  - mod_rewrite\n" > /tmp/e2e-wpcli.yml && chmod 644 /tmp/e2e-wpcli.yml && cd / && sha256sum /var/www/a.example.com/public/.htaccess && runuser -u tp_a_example_com_7653e4 -- env WP_CLI_CONFIG_PATH=/tmp/e2e-wpcli.yml wp rewrite structure "/%postname%/" --hard --path=/var/www/a.example.com/public 2>&1 | grep -v HTTP_HOST; sha256sum /var/www/a.example.com/public/.htaccess; cat /var/www/a.example.com/public/.htaccess'
+323969eac053238be34aa9672b05e11a6aa0c12fae313e13fb4e8c7bc98c087c  /var/www/a.example.com/public/.htaccess
+Success: Rewrite structure set.
+Success: Rewrite rules flushed.
+1dd027ac3334b520d432f4206804d84a91e9d3d6cff7c2134c95ea2128a3b18f  /var/www/a.example.com/public/.htaccess
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# .htaccess chuẩn của WordPress (bản "Basic WP" trong tài liệu của WordPress).
+# Không có file hay thư mục đúng tên thì chuyển request cho index.php: permalink
+# /%postname%/ cần luật này. WordPress có thể tự viết lại đoạn giữa hai dấu
+# BEGIN/END khi lưu permalink; dòng đầu của tpan nằm ngoài nên không mất.
+
+# BEGIN WordPress
+# The directives (lines) between "BEGIN WordPress" and "END WordPress" are
+# dynamically generated, and should only be modified via WordPress filters.
+# Any changes to the directives between these markers will be overwritten.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+
+# END WordPress
+
+$ scripts/vm.sh root tpan health --json 2>/dev/null | jq -r '.groups[].results[] | select(.status!="pass") | "\(.status) \(.stage) \(.id) | \(.summary.vi)"'
+fail wordpress drift:/var/www/a.example.com/public/.htaccess | File /var/www/a.example.com/public/.htaccess khác bản tpan đã ghi (có thể bị sửa tay)
+
+=> DƯƠNG TÍNH GIẢ: WordPress tự ghi lại đoạn BEGIN/END WordPress (thêm dòng
+   HTTP_AUTHORIZATION và các dòng chú thích của nó) là việc bình thường khi lưu
+   permalink, nhưng phép kiểm lệch so sha256 cả file nên báo Fail và mở sự cố
+   ở chặng WordPress. Chưa sửa: cách sửa là quyết định thiết kế (bỏ .htaccess
+   khỏi managed_files, hay so lệch bỏ qua đoạn giữa BEGIN/END WordPress), để
+   phiên chính quyết và ghi vào docs/thay-doi/M4.md.

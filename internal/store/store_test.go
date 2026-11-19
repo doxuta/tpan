@@ -527,6 +527,44 @@ func TestJobKhongCo(t *testing.T) {
 	}
 }
 
+// Hai tiến trình cùng mở tpan.db (`tpan serve` và một lệnh CLI): transaction
+// đọc trước rồi ghi sau không được hỏng vì tiến trình kia ghi xen vào giữa.
+// Với transaction deferred (mặc định), lần ghi trong tx gặp SQLITE_BUSY ngay
+// mà không chờ busy_timeout; e2e M4 gặp đúng lỗi này ở migration lúc
+// `tpan setup` khởi động tpan.service.
+func TestTxReadThenWriteWithOtherWriter(t *testing.T) {
+	ctx := context.Background()
+	s1, path := openTemp(t)
+	s2, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s2.Close() })
+
+	tx, err := s1.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var n int
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM settings").Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	// Tiến trình kia ghi trong lúc tx đang mở: phải chờ tx xong, không chen vào.
+	done := make(chan error, 1)
+	go func() { done <- s2.SetSetting(ctx, "khac", "1") }()
+	time.Sleep(200 * time.Millisecond)
+	if _, err := tx.ExecContext(ctx, "INSERT INTO settings (key, value, updated_at) VALUES ('tx', '1', 'x')"); err != nil {
+		t.Fatalf("ghi trong tx sau khi tiến trình khác ghi: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatalf("ghi của tiến trình kia: %v", err)
+	}
+}
+
 func TestManagedFiles(t *testing.T) {
 	ctx := context.Background()
 	s, _ := openTemp(t)
@@ -562,6 +600,13 @@ func TestManagedFiles(t *testing.T) {
 		if got[i].Path != want[i].Path || got[i].SHA256 != want[i].SHA256 || got[i].JobID != want[i].JobID || !got[i].Updated.Equal(want[i].Updated) {
 			t.Errorf("ManagedFiles[%d] = %+v, muốn %+v", i, got[i], want[i])
 		}
+	}
+
+	if sha, ok, err := s.FileSHA256(ctx, "/etc/nginx/nginx.conf"); err != nil || !ok || sha != "cc" {
+		t.Errorf("FileSHA256 = %q, %v, %v; muốn cc, true", sha, ok, err)
+	}
+	if sha, ok, err := s.FileSHA256(ctx, "/khong/co"); err != nil || ok || sha != "" {
+		t.Errorf("FileSHA256 file lạ = %q, %v, %v; muốn rỗng, false, nil", sha, ok, err)
 	}
 
 	if err := s.ForgetFile(ctx, "/etc/nginx/nginx.conf"); err != nil {
