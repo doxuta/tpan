@@ -16,14 +16,14 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
-
-var errNotWritten = errors.New("core: chưa viết")
 
 // Checks trả bộ phép kiểm của stack (stackChecks dựng từ settings).
 // installed=false (chưa có stack.php_version) thì không trả phép kiểm nào.
@@ -95,6 +95,32 @@ const (
 // Unknown, hoặc loại phép kiểm không có cách sửa tự động như disk.usage,
 // http.site). Hàm thuần: không chạm máy, không đọc settings.
 func AutoFixName(r checks.Result) string {
+	kind, _, _ := strings.Cut(r.ID, ":")
+	switch r.Status {
+	case checks.Fail:
+	case checks.Warn:
+		// Lệch là Warn (máy có thể vẫn chạy đúng); vẫn cho ghi lại bản của tpan.
+		if kind == "drift" {
+			return FixFileRewrite
+		}
+		return ""
+	default: // Pass, Unknown: không có gì để sửa, hoặc chưa biết sửa gì.
+		return ""
+	}
+	switch kind {
+	case "service.active":
+		return FixServiceStart
+	case "php.socket":
+		return FixPHPRestart
+	case "drift":
+		return FixFileRewrite
+	case "config.nginx", "config.apache":
+		return FixWebRewrite
+	case "wp.config":
+		return FixWPConfigPerm
+	case "db.access":
+		return FixDBUnlock
+	}
 	return ""
 }
 
@@ -126,17 +152,35 @@ type Fix struct {
 // nhưng Drift sau khi ghi lại phải Pass).
 // Không có cách sửa tự động: *RefusedError code "no_auto_fix".
 func (f *Fixes) Prepare(ctx context.Context, r checks.Result) (*Fix, error) {
-	return nil, errNotWritten
+	name := AutoFixName(r)
+	// r.AutoFix khác tên suy từ ID và Status thì không tin: tên sửa phải khớp
+	// đúng phép kiểm, không để người gọi chọn một cách sửa cho đối tượng khác.
+	if name == "" || (r.AutoFix != "" && r.AutoFix != name) {
+		return nil, noAutoFix(r.ID)
+	}
+	plan, err := f.plan(ctx, name, r)
+	if err != nil {
+		return nil, err
+	}
+	plan.Kind = "fix." + name
+	return &Fix{CheckID: r.ID, Name: name, Plan: plan, fixes: f}, nil
 }
 
 // Preview xem trước Plan sửa (engine.Preview, có diff cho file).
 func (x *Fix) Preview(ctx context.Context) (engine.Preview, error) {
-	_ = x.fixes
-	return engine.Preview{}, errNotWritten
+	return engine.New(x.fixes.Sys, engine.Options{}).Preview(ctx, x.Plan)
 }
 
 // Execute chạy Plan sửa qua engine với Journal của Fixes. Engine ghi sha256
 // mới của file đã ghi vào managed_files, nên phép kiểm lệch đạt lại.
 func (x *Fix) Execute(ctx context.Context, onEvent func(engine.Event)) (engine.Report, error) {
-	return engine.Report{}, errNotWritten
+	f := x.fixes
+	if f.Journal == nil {
+		return engine.Report{}, errors.New("sửa tự động: thiếu Journal, không ghi được lịch sử job")
+	}
+	rep, err := engine.New(f.Sys, engine.Options{Journal: f.Journal, OnEvent: onEvent}).Execute(ctx, x.Plan)
+	if err != nil {
+		return rep, fmt.Errorf("chạy %s cho %s: %w", x.Plan.Kind, x.CheckID, err)
+	}
+	return rep, nil
 }
