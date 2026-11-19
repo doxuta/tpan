@@ -132,7 +132,10 @@ func TestKeyDirectives(t *testing.T) {
 func TestLogrotateByWeb(t *testing.T) {
 	ng, _ := LogrotateSites(Logrotate{Web: "nginx"})
 	ap, _ := LogrotateSites(Logrotate{Web: "apache"})
-	if !bytes.Contains(ng, []byte("invoke-rc.d nginx rotate")) || bytes.Contains(ng, []byte("apache2")) {
+	// Bản nginx gửi USR1 qua /run/nginx.pid (chạy được với cả gói Ubuntu lẫn
+	// nginx.org), không dùng init script của gói Ubuntu (M12).
+	if !bytes.Contains(ng, []byte(`[ ! -f /run/nginx.pid ] || kill -USR1 "$(cat /run/nginx.pid)"`)) ||
+		bytes.Contains(ng, []byte("invoke-rc.d")) || bytes.Contains(ng, []byte("apache2")) {
 		t.Errorf("bản nginx sai:\n%s", ng)
 	}
 	if !bytes.Contains(ap, []byte("invoke-rc.d apache2 reload")) || bytes.Contains(ap, []byte("invoke-rc.d nginx")) {

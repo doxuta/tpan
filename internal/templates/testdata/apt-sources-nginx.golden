@@ -1,0 +1,8 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+# Kho apt ngoài, dạng deb822. Signed-By trỏ vào đúng một file khoá do tpan tạo
+# (chỉ chứa các vân tay đã chốt): kho này chỉ được tin bằng khoá đó.
+Types: deb
+URIs: https://nginx.org/packages/ubuntu
+Suites: noble
+Components: nginx
+Signed-By: /etc/apt/keyrings/tpan-nginx.gpg

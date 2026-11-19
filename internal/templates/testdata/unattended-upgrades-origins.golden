@@ -1,0 +1,13 @@
+// # Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+//
+// Bản vá bảo mật tự cài mỗi ngày (unattended-upgrades). File này đọc sau
+// 20auto-upgrades và 50unattended-upgrades của Ubuntu nên giá trị ở đây thắng.
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+
+// Danh sách trong apt.conf được cộng dồn: các origin dưới đây thêm vào danh
+// sách của Ubuntu (kho -security vẫn được vá), không thay nó.
+Unattended-Upgrade::Origins-Pattern {
+    "origin=deb.sury.org";
+    "origin=nginx";
+};

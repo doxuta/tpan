@@ -1,0 +1,9 @@
+{{.Header}}
+Explanation: tpan ghim kho ngoài để apt không tự thay các gói Ubuntu đang chạy bằng bản của kho đó; chỉ các gói nêu rõ dưới đây mới lấy từ kho ngoài.
+{{- range $i, $r := .Rules}}
+{{if $i}}
+{{end -}}
+Package: {{$r.Packages}}
+Pin: origin {{$r.Origin}}
+Pin-Priority: {{$r.Priority}}
+{{- end}}

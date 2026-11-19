@@ -1,0 +1,8 @@
+{{.Header}}
+# Kho apt ngoài, dạng deb822. Signed-By trỏ vào đúng một file khoá do tpan tạo
+# (chỉ chứa các vân tay đã chốt): kho này chỉ được tin bằng khoá đó.
+Types: deb
+URIs: {{.Source.URIs}}
+Suites: {{.Source.Suites}}
+Components: {{.Source.Components}}
+Signed-By: {{.Source.KeyPath}}
