@@ -1,6 +1,6 @@
 // Chụp ảnh giao diện cho README: docs/anh/*.png.
 //
-// Chạy từ gốc repo (cần Chrome trên Mac, đã build web/dist bằng `npm run build`
+// Chạy từ gốc repo (cần Chrome trên Mac, đã build web/dist bằng `make web` (pnpm)
 // trong web/ vì file chạy nhúng web/dist):
 //
 //	go run ./scripts/anh-readme
