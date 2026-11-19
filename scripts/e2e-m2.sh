@@ -515,10 +515,13 @@ nginx_run() {
   ok "dry-run cho $D không bị từ chối là site lạ (không sót gì)" bash -c '[ "$1" -eq 0 ] && ! grep -q site_exists_unmanaged <<<"$2" && grep -q "Kế hoạch:" <<<"$2"' _ "$RC" "$OUT"
   check_http "$A" "$B" "$C"
 
-  section "nginx thêm: xoá hẳn site c khi worker của nó còn chạy"
-  vroot bash -c 'curl -s -o /dev/null -w "c: %{http_code}\n" --resolve "$1:80:127.0.0.1" "http://$1/"; ps -eo user:32,pid,cmd | grep "[p]ool tpan-$2"; tpan site rm "$1" --yes --verbose' _ "$C" "$(slug_of "$C")"
-  ok "site rm $C thoát 0" rc_is 0
-  ok "job xoá thành công" has '^Job .*: thành công'
+  # Từ M6, `site rm` chỉ đưa site vào thùng rác; xoá hẳn là `trash purge`
+  # ngay sau đó (cùng một lệnh, để worker của site vẫn còn vừa chạy như ở M2).
+  section "nginx thêm: xoá hẳn site c khi worker của nó còn chạy (site rm rồi trash purge)"
+  vroot bash -c 'curl -s -o /dev/null -w "c: %{http_code}\n" --resolve "$1:80:127.0.0.1" "http://$1/"; ps -eo user:32,pid,cmd | grep "[p]ool tpan-$2"; tpan site rm "$1" --yes --verbose; echo "site rm mã $?"; tpan trash purge "$1" --yes --verbose' _ "$C" "$(slug_of "$C")"
+  ok "site rm $C thoát 0" has '^site rm mã 0'
+  ok "trash purge $C thoát 0" rc_is 0
+  ok "job đưa vào thùng rác và job xoá hẳn đều thành công" bash -c '[ "$(grep -c "^Job .*: thành công" <<<"$1")" = 2 ]' _ "$OUT"
   vroot bash -c "$LEFT_SCRIPT" _ "$C" "$(user_of "$C")" "$(slug_of "$C")" "$php" nginx
   ok "không còn gì của $C" hasnt '^CÒN'
   vexec curl -sS -m 10 -o /dev/null -w '%{http_code}\n' --resolve "$C:80:127.0.0.1" "http://$C/"

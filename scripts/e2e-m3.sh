@@ -700,6 +700,15 @@ main_run() {
   sse_wait
   sse_report "$TMPD/sseD" "$JD"
   ok "job xoá succeeded" bash -c 'jq -e ".last_message == \"succeeded\"" <<<"$1" >/dev/null' _ "$SSE_SUMMARY"
+  # Từ M6, DELETE /sites/{d} chỉ đưa vào thùng rác; DELETE /trash/{d} xoá hẳn.
+  api DELETE "/api/v1/trash/$B" -H 'Sec-Fetch-Site: same-origin' -H "Origin: $BASE"
+  show
+  ok "DELETE /trash/$B: 202 có job_id" code_is 202
+  JD="$(jb .job_id)"
+  sse_start "$JD" "$TMPD/sseP"
+  sse_wait
+  sse_report "$TMPD/sseP" "$JD"
+  ok "job xoá hẳn succeeded" bash -c 'jq -e ".last_message == \"succeeded\"" <<<"$1" >/dev/null' _ "$SSE_SUMMARY"
   api GET "/api/v1/sites/$B"
   show
   ok "GET /sites/$B: 404 site_not_found" bash -c '[ "$1" = 404 ] && [ "$(jq -r .error.code "$2")" = site_not_found ]' _ "$CODE" "$TMPD/body"

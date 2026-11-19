@@ -560,10 +560,14 @@ run_web() {
     ok "đúng dạng: config.email, config.server, $S1 ssl=true cert pass, $S2 ssl=false không cert" bash -c 'jq -e --arg s1 "$2" --arg s2 "$3" --arg e "$4" --arg a "$5" ".config.email == \$e and .config.server == \$a and .config.staging == true and ([.sites[] | select(.domain == \$s1 and .ssl and .cert.status == \"pass\")] | length) == 1 and ([.sites[] | select(.domain == \$s2 and (.ssl | not) and .cert == null)] | length) == 1" "$1" >/dev/null' _ "$TMPD/body" "$S1" "$S2" "$EMAIL" "$ACME"
   fi
 
-  section "$web bước 5: site rm $S1: chứng chỉ bị certbot delete"
+  # Từ M6, `site rm` chỉ đưa vào thùng rác (chứng chỉ giữ để khôi phục được);
+  # `trash purge` xoá hẳn và mới chạy certbot delete.
+  section "$web bước 5: site rm rồi trash purge $S1: chứng chỉ bị certbot delete"
   vroot tpan site rm "$S1" --yes
   ok "site rm thoát 0, thành công" bash -c '[ "$2" = 0 ] && grep -q "^Job .*: thành công" <<<"$1"' _ "$OUT" "$RC"
-  vroot python3 -c "$JOB_PY" site.rm
+  vroot tpan trash purge "$S1" --yes
+  ok "trash purge thoát 0, thành công" bash -c '[ "$2" = 0 ] && grep -q "^Job .*: thành công" <<<"$1"' _ "$OUT" "$RC"
+  vroot python3 -c "$JOB_PY" site.purge
   ok "job có lệnh certbot delete --cert-name $S1" hasF "certbot delete --cert-name $S1"
   vroot bash -c 'ls /etc/letsencrypt/renewal /etc/letsencrypt/live /etc/letsencrypt/archive 2>&1; certbot certificates 2>&1 | tail -4'
   ok "không còn renewal, live, archive của $S1; certbot không còn chứng chỉ nào" bash -c '! grep -q "$2" <<<"$1" && grep -q "No certificates found" <<<"$1"' _ "$OUT" "$S1"
