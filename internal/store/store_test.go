@@ -223,12 +223,60 @@ func TestMigrateTheoThuTuVaHoanTacKhiLoi(t *testing.T) {
 		}
 	})
 
-	t.Run("số bản bị hổng hoặc trùng thì lỗi", func(t *testing.T) {
+	t.Run("số nhảy cóc được, bản số nhỏ ghép vào sau vẫn được áp", func(t *testing.T) {
+		db := open()
+		first := fstest.MapFS{
+			"migrations/001_a.sql": {Data: []byte("CREATE TABLE t (n INTEGER); INSERT INTO t VALUES (1);")},
+			"migrations/500_e.sql": {Data: []byte("INSERT INTO t VALUES (500);")},
+		}
+		if err := migrate(ctx, db, first); err != nil {
+			t.Fatal(err)
+		}
+		// M4 (số 400) được ghép sau M5 (số 500): DB đã ở 500 vẫn phải nhận 400.
+		later := fstest.MapFS{
+			"migrations/001_a.sql": first["migrations/001_a.sql"],
+			"migrations/400_d.sql": {Data: []byte("INSERT INTO t VALUES (400);")},
+			"migrations/500_e.sql": first["migrations/500_e.sql"],
+		}
+		if err := migrate(ctx, db, later); err != nil {
+			t.Fatal(err)
+		}
+		var sum int
+		if err := db.QueryRow("SELECT SUM(n) FROM t").Scan(&sum); err != nil || sum != 901 {
+			t.Errorf("tổng = %d (%v), muốn 901: mỗi bản áp đúng một lần", sum, err)
+		}
+		if v := version(db); v != 500 {
+			t.Errorf("user_version = %d, muốn 500", v)
+		}
+		// Chạy lại không áp gì thêm.
+		if err := migrate(ctx, db, later); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.QueryRow("SELECT SUM(n) FROM t").Scan(&sum); err != nil || sum != 901 {
+			t.Errorf("chạy lại: tổng = %d, muốn 901", sum)
+		}
+	})
+
+	t.Run("DB của bản tpan cũ (chỉ có user_version) không áp lại", func(t *testing.T) {
+		db := open()
+		if _, err := db.Exec("CREATE TABLE t (n INTEGER); PRAGMA user_version = 1"); err != nil {
+			t.Fatal(err)
+		}
+		fsys := fstest.MapFS{
+			"migrations/001_a.sql": {Data: []byte("CREATE TABLE t (n INTEGER);")},
+			"migrations/002_b.sql": {Data: []byte("INSERT INTO t VALUES (2);")},
+		}
+		if err := migrate(ctx, db, fsys); err != nil {
+			t.Fatalf("áp lại 001 sẽ lỗi vì bảng t đã có: %v", err)
+		}
+		var n int
+		if err := db.QueryRow("SELECT COUNT(*) FROM t").Scan(&n); err != nil || n != 1 {
+			t.Errorf("số dòng = %d, muốn 1", n)
+		}
+	})
+
+	t.Run("số bản trùng hoặc tên sai thì lỗi", func(t *testing.T) {
 		for name, fsys := range map[string]fstest.MapFS{
-			"hổng": {
-				"migrations/001_a.sql": {Data: []byte("SELECT 1;")},
-				"migrations/003_c.sql": {Data: []byte("SELECT 1;")},
-			},
 			"trùng": {
 				"migrations/001_a.sql": {Data: []byte("SELECT 1;")},
 				"migrations/001_b.sql": {Data: []byte("SELECT 1;")},

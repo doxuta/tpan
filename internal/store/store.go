@@ -122,9 +122,10 @@ type migration struct {
 	name    string
 }
 
-// loadMigrations đọc các file migrations/NNN_ten.sql, sắp theo số, và bắt lỗi
-// đặt tên: số phải bắt đầu từ 1, liên tục, không trùng. Bắt ở đây để lỗi hiện
-// ngay lúc test thay vì lúc người dùng nâng cấp.
+// loadMigrations đọc các file migrations/NNN_ten.sql và sắp theo số. Số không
+// cần liên tục: từ M4 các mốc làm song song, mỗi mốc dùng một khoảng riêng
+// (mốc n dùng n*100 đến n*100+99, mục 6.3 của agent-dev/CHAY-NHIEU-AGENT.md).
+// Trùng số hay tên sai thì lỗi ngay lúc test thay vì lúc người dùng nâng cấp.
 func loadMigrations(fsys fs.FS) ([]migration, error) {
 	entries, err := fs.ReadDir(fsys, "migrations")
 	if err != nil {
@@ -143,17 +144,23 @@ func loadMigrations(fsys fs.FS) ([]migration, error) {
 		ms = append(ms, migration{version: v, name: e.Name()})
 	}
 	sort.Slice(ms, func(i, j int) bool { return ms[i].version < ms[j].version })
-	for i, m := range ms {
-		if m.version != i+1 {
-			return nil, fmt.Errorf("migration %q: số bản phải liên tục từ 1 và không trùng (mong %d)", m.name, i+1)
+	for i := 1; i < len(ms); i++ {
+		if ms[i].version == ms[i-1].version {
+			return nil, fmt.Errorf("migration %q và %q trùng số %d", ms[i-1].name, ms[i].name, ms[i].version)
 		}
 	}
 	return ms, nil
 }
 
-// migrate áp các migration chưa áp, theo thứ tự, trong MỘT transaction cùng với
-// việc ghi PRAGMA user_version. Lỗi ở bản nào thì cả đợt bị hoàn tác và số bản
-// giữ nguyên; DDL của SQLite có transaction nên không bao giờ để DB nửa vời.
+// migrate áp mọi migration chưa áp, theo thứ tự số, trong MỘT transaction.
+// Bản nào đã áp được ghi vào bảng schema_migrations, không chỉ một con số
+// user_version: số có thể nhảy cóc và các mốc được ghép vào dev không theo thứ
+// tự số (M5 có thể vào trước M4), nên "áp mọi bản lớn hơn bản đã có" sẽ bỏ sót
+// bản 4xx trên một DB đã ở 5xx. Lỗi ở bản nào thì cả đợt bị hoàn tác; DDL của
+// SQLite có transaction nên không bao giờ để DB nửa vời.
+//
+// DB do bản tpan cũ tạo (chỉ có user_version, chưa có schema_migrations): mọi
+// bản có số <= user_version được coi là đã áp, vì bản cũ áp liên tục từ 1.
 func migrate(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 	ms, err := loadMigrations(fsys)
 	if err != nil {
@@ -165,15 +172,60 @@ func migrate(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 	}
 	defer func() { _ = tx.Rollback() }() // không làm gì nếu đã Commit
 
+	if _, err := tx.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY) STRICT"); err != nil {
+		return fmt.Errorf("tạo bảng schema_migrations: %w", err)
+	}
+	applied := map[int]bool{}
+	rows, err := tx.QueryContext(ctx, "SELECT version FROM schema_migrations")
+	if err != nil {
+		return fmt.Errorf("đọc schema_migrations: %w", err)
+	}
+	for rows.Next() {
+		var v int
+		if err := rows.Scan(&v); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("đọc schema_migrations: %w", err)
+		}
+		applied[v] = true
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("đọc schema_migrations: %w", err)
+	}
+
+	known := map[int]bool{}
+	maxKnown := 0
+	for _, m := range ms {
+		known[m.version] = true
+		maxKnown = max(maxKnown, m.version)
+	}
 	var current int
 	if err := tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&current); err != nil {
 		return fmt.Errorf("đọc user_version: %w", err)
 	}
-	if current > len(ms) {
+	if current > maxKnown {
 		// DB do tpan mới hơn tạo ra; chạy tiếp có thể làm hỏng dữ liệu của nó.
-		return fmt.Errorf("DB ở bản %d, tpan này chỉ biết tới bản %d: hãy dùng tpan mới hơn", current, len(ms))
+		return fmt.Errorf("DB ở bản %d, tpan này chỉ biết tới bản %d: hãy dùng tpan mới hơn", current, maxKnown)
 	}
-	for _, m := range ms[current:] {
+	if len(applied) == 0 {
+		for _, m := range ms {
+			if m.version <= current {
+				applied[m.version] = true
+				if _, err := tx.ExecContext(ctx, "INSERT INTO schema_migrations (version) VALUES (?)", m.version); err != nil {
+					return fmt.Errorf("ghi schema_migrations: %w", err)
+				}
+			}
+		}
+	}
+	for v := range applied {
+		if !known[v] {
+			return fmt.Errorf("DB đã áp migration %d mà tpan này không có: hãy dùng tpan mới hơn", v)
+		}
+	}
+
+	for _, m := range ms {
+		if applied[m.version] {
+			continue
+		}
 		body, err := fs.ReadFile(fsys, "migrations/"+m.name)
 		if err != nil {
 			return fmt.Errorf("đọc %s: %w", m.name, err)
@@ -181,12 +233,14 @@ func migrate(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 		if _, err := tx.ExecContext(ctx, string(body)); err != nil {
 			return fmt.Errorf("áp %s: %w", m.name, err)
 		}
-	}
-	if len(ms) > current {
-		// PRAGMA không nhận tham số ?, nhưng số này do mã tính, không phải đầu vào ngoài.
-		if _, err := tx.ExecContext(ctx, "PRAGMA user_version = "+strconv.Itoa(len(ms))); err != nil {
-			return fmt.Errorf("ghi user_version: %w", err)
+		if _, err := tx.ExecContext(ctx, "INSERT INTO schema_migrations (version) VALUES (?)", m.version); err != nil {
+			return fmt.Errorf("ghi schema_migrations: %w", err)
 		}
+	}
+	// user_version giữ số lớn nhất đã áp, để công cụ ngoài (sqlite3) xem nhanh.
+	// PRAGMA không nhận tham số ?, nhưng số này do mã tính, không phải đầu vào ngoài.
+	if _, err := tx.ExecContext(ctx, "PRAGMA user_version = "+strconv.Itoa(maxKnown)); err != nil {
+		return fmt.Errorf("ghi user_version: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit migration: %w", err)
