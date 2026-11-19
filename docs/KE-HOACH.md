@@ -136,6 +136,7 @@ cmd/tpan/            điểm vào, khai báo lệnh CLI
 internal/
   buildinfo/         phiên bản gán lúc build
   core/              ca sử dụng: stack, site, ssl, trash, backup
+  site/              Layout (mọi tên, đường dẫn suy từ domain) và bản ghi Site; gói lá để checks, steps, store cùng dùng
   engine/            Plan, Step, chạy, hoàn tác, sự kiện
   system/            giao diện System, LocalSystem, FakeSystem
   steps/             các Step cụ thể: apt, service, file, user, mariadb, phpfpm,
@@ -325,6 +326,8 @@ Chạy lại phải được phép, kể cả sau một lần hỏng giữa ch�
 
 Hoàn tác đi ngược: gỡ vhost, gỡ pool, xoá DB và user DB, xoá thư mục, xoá user.
 
+Chạy lại (`tpan site add` cho domain đã có trong bảng `sites`) là chạy lại đúng Plan đó: mọi bước đã đúng thì được bỏ qua, nên không có gì thay đổi; bước nào lệch thì được sửa (mục 4.2). Riêng mật khẩu: mỗi lần chạy sinh mật khẩu mới, nhưng chỉ dùng tới khi bước tạo user DB hay ghi `wp-config.php` thật sự chạy. Vì vậy nếu máy lệch đúng chỗ đó (user DB có mà `wp-config.php` không có, hoặc ngược lại) thì từ chối và báo lệch, không ghi một mật khẩu mà bên kia không biết. Domain chưa có trong bảng `sites` mà `/var/www/<domain>`, user Linux hay DB của nó đã có trên máy thì từ chối: đó không phải site của tpan (hoặc là phần còn sót của một lần hoàn tác lỗi).
+
 Template vhost của cả hai web server đều có: chặn file ẩn (trừ `.well-known`), chặn chạy PHP trong `wp-content/uploads`, giới hạn upload 64 MB, log riêng từng site. Bản Apache đặt `AllowOverride All` và ghi `.htaccess` chuẩn của WordPress; bản Nginx dùng `try_files $uri $uri/ /index.php?$args`.
 
 ### 6.3 SSL
@@ -340,6 +343,8 @@ Template vhost của cả hai web server đều có: chặn file ẩn (trừ `.w
 Giới hạn của Let's Encrypt cần nhớ: 50 chứng chỉ cho mỗi tên miền đăng ký trong 7 ngày (tính chung cho mọi tên miền con và mọi người dùng tên miền đó), 5 chứng chỉ cho cùng một bộ tên trong 7 ngày, 300 đơn mới cho một tài khoản trong 3 giờ. **Trong lúc phát triển luôn bật staging.** Chỉ tắt staging cho buổi demo, và khi đó chỉ xin vài chứng chỉ: hạn mức 50 là của chung mọi người dùng cùng tên miền gốc, dùng hết thì người khác cũng không xin được.
 
 ### 6.4 Xoá, thùng rác, khôi phục
+
+Ở M2 chưa có thùng rác: `tpan site rm` xoá hẳn (như "Xoá hẳn" dưới đây, trừ `certbot delete` vì chưa có SSL), có hỏi lại và có `--dry-run`. Thứ tự: gỡ vhost và pool trước (hoàn tác được), rồi mới xoá DB, file, user (không hoàn tác được). M6 đổi `site rm` thành đưa vào thùng rác và dùng lại Plan này cho `trash purge`.
 
 Xoá một site là đưa vào thùng rác, không mất dữ liệu:
 

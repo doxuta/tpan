@@ -8,6 +8,13 @@
 // chỉ core đọc và ghi settings.
 package core
 
+import (
+	"context"
+
+	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/validate"
+)
+
 // WebServer là web server của stack.
 type WebServer string
 
@@ -42,3 +49,19 @@ const (
 	SettingPHPSource  = "stack.php_source"
 	SettingPHPVersion = "stack.php_version"
 )
+
+// SiteStore là phần của store mà ca sử dụng site cần (bảng sites, mục 4.4).
+// *store.Store thoả giao diện này. Tách ra giao diện vì core không import store
+// (giống Settings), và để test của core dùng một bản trong bộ nhớ.
+type SiteStore interface {
+	// Site trả site theo domain; ok=false nếu không có (kể cả status trashed
+	// vẫn trả về, người gọi tự xem Status).
+	Site(ctx context.Context, d validate.Domain) (s site.Site, ok bool, err error)
+	// Sites trả mọi site, sắp theo domain.
+	Sites(ctx context.Context) ([]site.Site, error)
+	// SaveSite thêm mới hoặc ghi đè site cùng domain. Slug luôn được ghi là
+	// validate.SlugOf(s.Domain), không tin trường Slug người gọi đưa vào.
+	SaveSite(ctx context.Context, s site.Site) error
+	// DeleteSite xoá dòng của site; không có thì lỗi thoả errors.Is(err, store.ErrNotFound).
+	DeleteSite(ctx context.Context, d validate.Domain) error
+}
