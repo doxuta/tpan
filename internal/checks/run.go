@@ -40,6 +40,21 @@ func RunAll(ctx context.Context, sys system.System, cs []Check) []Result {
 	return out
 }
 
+// heavyCheck đánh dấu một phép kiểm nặng (tốn tải hoặc gọi mạng).
+type heavyCheck struct{ Check }
+
+// Heavy đánh dấu c là phép kiểm nặng: health chỉ chạy nó ở lần đầy đủ (mỗi
+// giờ), không ở lần nhẹ 5 phút một lần (mục 6.7). Kiểm chứng sau thao tác và
+// `tpan health` vẫn chạy nó như thường.
+func Heavy(c Check) Check { return heavyCheck{c} }
+
+// IsHeavy cho biết c có được đánh dấu bằng Heavy không. Biết được trước khi
+// chạy, nên health bỏ hẳn nó ở lần nhẹ thay vì chạy rồi bỏ kết quả.
+func IsHeavy(c Check) bool {
+	_, ok := c.(heavyCheck)
+	return ok
+}
+
 // Lazy dựng phép kiểm thật ở lúc Run, không phải lúc gọi Lazy. Lý do: Plan
 // "cài stack" được dựng trước khi apt cài php-fpm nên chưa biết bản PHP; fn đọc
 // nó từ nơi đã lưu (settings) sau khi bước dò bản đã chạy. fn được gọi lại ở

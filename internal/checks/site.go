@@ -714,7 +714,9 @@ func SiteChecks(web, phpVersion string, l site.Layout) []Check {
 	return []Check{
 		VhostEnabled(web, l),
 		PoolSocket(l),
-		WPChecksums(l),
+		// Nặng: wp core verify-checksums đọc lại toàn bộ mã nguồn và tải danh
+		// sách checksum từ wordpress.org.
+		Heavy(WPChecksums(l)),
 		WPConfigPerm(l),
 		DBAccess(l),
 		HTTPSite(l),
