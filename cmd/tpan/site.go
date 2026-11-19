@@ -119,7 +119,7 @@ func siteAddCmd(e *env) *cobra.Command {
 		f            planRun
 	)
 	c := &cobra.Command{
-		Use:   "add <domain> --email E [--title T] [--ssl]",
+		Use:   "add <domain> [--email E] [--title T] [--ssl]",
 		Short: "Tạo một site WordPress (chạy lại cho domain đã có thì sửa chỗ lệch)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -128,9 +128,14 @@ func siteAddCmd(e *env) *cobra.Command {
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
-			em, err := validate.ParseEmail(email)
-			if err != nil {
-				return fail(e, f.asJSON, asRefusal(err))
+			// --email chỉ bắt buộc cho site mới (core từ chối nếu thiếu); chạy lại
+			// cho site đã có thì bỏ trống được.
+			var em validate.Email
+			if email != "" {
+				em, err = validate.ParseEmail(email)
+				if err != nil {
+					return fail(e, f.asJSON, asRefusal(err))
+				}
 			}
 			if !f.dryRun {
 				if err := requireRoot(e, cmd); err != nil {
@@ -199,8 +204,7 @@ func siteAddCmd(e *env) *cobra.Command {
 		},
 	}
 	fl := c.Flags()
-	fl.StringVar(&email, "email", "", "email của tài khoản quản trị WordPress")
-	_ = c.MarkFlagRequired("email")
+	fl.StringVar(&email, "email", "", "email của tài khoản quản trị WordPress (bắt buộc với site mới)")
 	fl.StringVar(&title, "title", "", "tiêu đề site (mặc định là domain)")
 	fl.BoolVar(&withSSL, "ssl", false, "tạo xong thì xin luôn chứng chỉ Let's Encrypt (email SSL chưa đặt thì dùng --email)")
 	f.flags(c)

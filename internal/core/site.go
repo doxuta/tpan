@@ -329,9 +329,6 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if d.IsZero() {
 		return nil, refuse(validate.CodeDomainInvalid, i18n.T("thiếu domain", "the domain is missing"))
 	}
-	if in.Email.IsZero() {
-		return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị", "the admin email is missing"))
-	}
 	title := in.Title
 	if title == "" {
 		title = d.String()
@@ -349,6 +346,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if err != nil {
 		return nil, err
 	}
+	emailGuessed := false
 	rec := site.Site{Domain: d, Slug: l.Slug, Status: site.Active, PHPVersion: cfg.PHPVersion}
 	if found {
 		switch old.Status {
@@ -369,7 +367,20 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		if err := s.drift(ctx, l); err != nil {
 			return nil, err
 		}
+		// Chạy lại không cần email: WordPress đã cài thì bước cài được bỏ qua và
+		// email không dùng tới. Điền tạm admin@<domain> cho đủ kiểu; nếu hoá ra
+		// WordPress chưa cài thì wpInstallStep từ chối thay vì cài với email đoán.
+		if in.Email.IsZero() {
+			em, err := validate.ParseEmail("admin@" + d.String())
+			if err != nil {
+				return nil, err
+			}
+			in.Email, emailGuessed = em, true
+		}
 	} else {
+		if in.Email.IsZero() {
+			return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị (--email): site mới cần email cho tài khoản quản trị WordPress", "the admin email is missing (--email): a new site needs an email for its WordPress admin account"))
+		}
 		vi, en, err := s.unmanaged(ctx, l)
 		if err != nil {
 			return nil, err
@@ -402,7 +413,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if rec.SSL {
 		scheme = "https://"
 	}
-	install := &wpInstallStep{WPInstall: &steps.WPInstall{
+	install := &wpInstallStep{emailGuessed: emailGuessed, WPInstall: &steps.WPInstall{
 		Layout: l, URL: scheme + d.String(), Title: title,
 		AdminUser: siteAdminUser, AdminEmail: in.Email, AdminPassword: adminPw,
 	}}
@@ -473,6 +484,9 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 type wpInstallStep struct {
 	*steps.WPInstall
 	ran bool
+	// emailGuessed: chạy lại không có --email, AdminEmail là admin@<domain>
+	// điền tạm. Khi đó không được cài WordPress mới bằng email đoán.
+	emailGuessed bool
 }
 
 // Apply hỏi `wp core is-installed` (cùng câu chỉ đọc bước gốc dùng: mã 1 là
@@ -487,6 +501,9 @@ func (w *wpInstallStep) Apply(ctx context.Context, sys system.System) error {
 	})
 	var ee *system.ExitError
 	fresh := errors.As(err, &ee) && ee.Code == 1
+	if fresh && w.emailGuessed {
+		return fmt.Errorf("WordPress của %s chưa được cài: chạy lại với --email <email quản trị> để cài", l.Domain)
+	}
 	if err := w.WPInstall.Apply(ctx, sys); err != nil {
 		return err
 	}

@@ -1068,3 +1068,26 @@ func TestEmptySiteStore(t *testing.T) {
 		t.Error("muốn stack_not_installed")
 	}
 }
+
+// Chạy lại không cần --email (mục "Sửa tay" của phép kiểm gợi `tpan site add
+// <domain>` trần); site mới thì vẫn bắt buộc.
+func TestSiteAddEmailOnlyForNewSite(t *testing.T) {
+	se := newSiteEnv(t, Nginx)
+	const dom = "shop.example.com"
+
+	_, err := se.s.PrepareAdd(ctx, SiteInput{Domain: mustDomain(t, dom)})
+	var re *RefusedError
+	if !errors.As(err, &re) || re.Code != validate.CodeEmailInvalid {
+		t.Fatalf("site mới không email: lỗi = %v, muốn từ chối %s", err, validate.CodeEmailInvalid)
+	}
+
+	se.add(t, dom)
+	a, err := se.s.PrepareAdd(ctx, SiteInput{Domain: mustDomain(t, dom)})
+	if err != nil {
+		t.Fatalf("chạy lại không email: %v", err)
+	}
+	res, err := a.Execute(ctx, nil)
+	if err != nil || res.Report.Job.Status != engine.JobSucceeded || res.WPInstalled {
+		t.Fatalf("chạy lại: %v, %s, WPInstalled=%v", err, res.Report.Job.Status, res.WPInstalled)
+	}
+}

@@ -721,7 +721,7 @@ tpan admin passwd                  đặt lại mật khẩu quản trị khi qu
 tpan stack install --web nginx|apache
 tpan stack status
 tpan stack switch --to nginx|apache
-tpan site add <domain> --email E [--title T] [--ssl]
+tpan site add <domain> [--email E] [--title T] [--ssl]   (--email bắt buộc với site mới; chạy lại site đã có thì bỏ trống)
 tpan site list | info <domain> | rm <domain> | restore <domain>
 tpan ssl issue <domain>
 tpan apply -f sites.yaml [--prune]

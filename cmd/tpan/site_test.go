@@ -61,8 +61,10 @@ func TestSiteDomainRejectedBeforeAnything(t *testing.T) {
 
 func TestSiteAddEmail(t *testing.T) {
 	c := newCLI(t)
-	if code, _, errs := c.run("site", "add", "shop.example.com"); code != 1 || !strings.Contains(errs, "email") {
-		t.Errorf("thiếu --email: mã %d, %q", code, errs)
+	// Thiếu --email không còn bị cobra chặn (chạy lại site đã có thì bỏ trống
+	// được); site mới thì core từ chối, và không lệnh nào chạy.
+	if code, _, errs := c.run("site", "add", "shop.example.com"); code != 1 || !strings.Contains(errs, "Từ chối:") || len(c.fake.Ran()) != 0 {
+		t.Errorf("thiếu --email: mã %d, %q, lệnh %v", code, errs, c.fake.Ran())
 	}
 	code, _, errs := c.run("site", "add", "shop.example.com", "--email", "a@b c")
 	if code != 1 || !strings.Contains(errs, "Từ chối:") || len(c.fake.Ran()) != 0 {
