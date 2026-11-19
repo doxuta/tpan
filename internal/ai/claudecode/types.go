@@ -46,7 +46,9 @@
 //	func Gate(in Init) error
 //	// Parse đổi một dòng stream-json (đã giải) thành 0..n ai.Event, dùng
 //	// trạng thái của p (công cụ đang gọi theo tool_use id):
-//	//   stream_event/content_block_delta text_delta → EventText (phần mới);
+//	//   stream_event/content_block_delta text_delta → EventText (phần mới;
+//	//     chữ đầu tiên của một tin nhắn assistant sau tin đã có chữ được
+//	//     thêm "\n\n" ở đầu, vì delta không mang dấu ngắt giữa hai tin);
 //	//   assistant: mỗi khối tool_use → EventToolCall (Tool, Input);
 //	//   user: mỗi khối tool_result → EventToolResult (Text rút gọn 2000 ký tự,
 //	//     IsError; PlanID nếu kết quả là JSON có "plan_id");
@@ -139,4 +141,7 @@ type AuthStatus struct {
 type Parser struct {
 	// tools: tool_use id → tên công cụ, để gắn tên vào tool_result.
 	tools map[string]string
+	// wrote: đã phát chữ; split: một tin nhắn assistant đã kết thúc sau chữ
+	// đó, nên chữ kế tiếp thuộc đoạn mới (stream.go).
+	wrote, split bool
 }

@@ -66,9 +66,19 @@ func (p *Parser) Line(line []byte) []ai.Event {
 		// assistant lặp lại đúng các delta này nên không phát lần nữa.
 		if l.Event != nil && l.Event.Type == "content_block_delta" &&
 			l.Event.Delta.Type == "text_delta" && l.Event.Delta.Text != "" {
-			return []ai.Event{{Kind: ai.EventText, Time: now, Text: l.Event.Delta.Text}}
+			text := l.Event.Delta.Text
+			// Mỗi tin nhắn assistant là một đoạn; delta không mang dấu ngắt
+			// giữa hai tin nhắn, nên tự thêm một dòng trống.
+			if p.split {
+				text = "\n\n" + text
+				p.split = false
+			}
+			p.wrote = true
+			return []ai.Event{{Kind: ai.EventText, Time: now, Text: text}}
 		}
 	case "assistant":
+		// Dòng assistant đến khi một tin nhắn (hay khối của nó) đã xong.
+		p.split = p.wrote
 		var out []ai.Event
 		for _, b := range blocks(l) {
 			if b.Type != "tool_use" {

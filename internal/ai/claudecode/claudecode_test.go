@@ -202,7 +202,8 @@ func TestRunLuongSuKien(t *testing.T) {
 			text += e.Text
 		}
 	}
-	if text != "Đang kiểm tra Xong." {
+	// Hai tin nhắn assistant (trước và sau các lần gọi công cụ): ngăn bằng dòng trống.
+	if text != "Đang kiểm tra\n\n Xong." {
 		t.Errorf("chữ ghép từ các EventText = %q", text)
 	}
 	if e := evs[3]; e.Tool != "mcp__tpan__list_sites" || string(e.Input) != "{}" {

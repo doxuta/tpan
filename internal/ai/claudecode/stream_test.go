@@ -53,6 +53,45 @@ func TestParserLine(t *testing.T) {
 	}
 }
 
+// Chữ của hai tin nhắn assistant liền nhau (trước và sau một lần gọi công cụ)
+// được ngăn bằng một dòng trống. Lần chạy Claude Code thật số 4 (M8, đợt 4)
+// cho thấy không ngăn thì panel hiện "...kết quả đã lưu.Nguyên nhân gốc...".
+func TestParserNganDoanGiuaTinNhan(t *testing.T) {
+	var p Parser
+	delta := func(s string) string {
+		return `{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":` + quoteJSON(s) + `}}}`
+	}
+	lines := []string{
+		delta("Tôi chạy "), delta("health check."),
+		`{"type":"assistant","message":{"content":[{"type":"text","text":"Tôi chạy health check."}]}}`,
+		`{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"mcp__tpan__site_health","input":{}}]}}`,
+		`{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"{}"}]}}`,
+		delta("Nguyên nhân"), delta(" gốc đã rõ."),
+		`{"type":"assistant","message":{"content":[{"type":"text","text":"Nguyên nhân gốc đã rõ."}]}}`,
+		delta("**Chẩn đoán**"),
+	}
+	var text strings.Builder
+	for _, l := range lines {
+		for _, e := range p.Line([]byte(l)) {
+			if e.Kind == ai.EventText {
+				text.WriteString(e.Text)
+			}
+		}
+	}
+	want := "Tôi chạy health check.\n\nNguyên nhân gốc đã rõ.\n\n**Chẩn đoán**"
+	if text.String() != want {
+		t.Errorf("chữ nối lại = %q, muốn %q", text.String(), want)
+	}
+
+	// Tin nhắn assistant đầu tiên không có chữ (chỉ gọi công cụ): chữ đầu tiên
+	// của câu trả lời không bị thêm dòng trống ở đầu.
+	var q Parser
+	q.Line([]byte(`{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"mcp__tpan__site_health","input":{}}]}}`))
+	if ev := q.Line([]byte(delta("Xong."))); len(ev) != 1 || ev[0].Text != "Xong." {
+		t.Errorf("chữ đầu tiên = %+v, muốn đúng \"Xong.\"", ev)
+	}
+}
+
 func TestParserResultLoi(t *testing.T) {
 	cases := map[string]struct {
 		line string
