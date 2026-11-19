@@ -16,12 +16,15 @@ import { strings as khung } from "../i18n/khung";
 export class ApiError extends Error {
   readonly status: number;
   readonly body: ErrorBody | null;
+  /** Giây phải chờ theo header Retry-After (423 login_locked); null nếu không có. */
+  readonly retryAfter: number | null;
 
-  constructor(status: number, body: ErrorBody | null, message: string) {
+  constructor(status: number, body: ErrorBody | null, message: string, retryAfter: number | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.body = body;
+    this.retryAfter = retryAfter;
   }
 
   /** Mã lỗi máy đọc được (ErrorBody.error.code), rỗng nếu máy chủ không trả. */
@@ -79,12 +82,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   const errBody = isErrorBody(parsed) ? parsed : null;
 
-  if (res.status === 401 && window.location.pathname !== loginPath) {
+  const code = errBody?.error.code ?? "";
+  // 401 "wrong_password" (sai mật khẩu hiện tại khi đổi mật khẩu) không phải
+  // hết phiên: để màn đó tự báo, không đá người dùng ra khỏi form.
+  if (res.status === 401 && code !== "wrong_password" && window.location.pathname !== loginPath) {
     // Phiên hết hạn hoặc bị huỷ. Tải lại hẳn trang đăng nhập để bỏ mọi dữ
     // liệu đang giữ trong bộ nhớ của phiên cũ.
     window.location.assign(loginHref(window.location.pathname + window.location.search));
   }
-  throw new ApiError(res.status, errBody, `${method} ${path}: HTTP ${res.status} ${errBody?.error.code ?? ""}`.trim());
+  const secs = Number.parseInt(res.headers.get("Retry-After") ?? "", 10);
+  throw new ApiError(res.status, errBody, `${method} ${path}: HTTP ${res.status} ${code}`.trim(), Number.isFinite(secs) && secs > 0 ? secs : null);
 }
 
 export function get<T>(path: string): Promise<T> {
@@ -134,14 +141,17 @@ const eventKinds: Record<EventKind, true> = {
  * đóng và EventSource sẽ nối lại mãi.
  *
  * onClose("done") khi job xong, onClose("error") khi luồng hỏng hẳn (401,
- * 404, máy chủ từ chối). Trả về hàm huỷ để gọi khi rời màn.
+ * 404, máy chủ từ chối). after: chỉ nhận sự kiện có seq lớn hơn (đã có phần
+ * trước từ GET /api/v1/jobs/{id}). Trả về hàm huỷ để gọi khi rời màn.
  */
 export function subscribeJobEvents(
   id: string,
   onEvent: (e: JobEvent) => void,
   onClose?: (reason: "done" | "error") => void,
+  after = 0,
 ): () => void {
-  const es = new EventSource(`/api/v1/jobs/${encodeURIComponent(id)}/events`); // cùng origin: cookie phiên tự đi kèm
+  const q = after > 0 ? `?after=${after}` : "";
+  const es = new EventSource(`/api/v1/jobs/${encodeURIComponent(id)}/events${q}`); // cùng origin: cookie phiên tự đi kèm
   const handle = (msg: Event) => {
     let ev: JobEvent;
     try {
