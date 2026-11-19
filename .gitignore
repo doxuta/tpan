@@ -16,5 +16,8 @@
 .env
 .env.*
 
+# Tên máy ảo của worktree một mốc (agent-dev/mo-moc.sh ghi), không đưa vào git
+/.tpan-vm
+
 # Log bằng chứng chạy trên máy ảo phải vào repo (mục 15 của KE-HOACH.md)
 !/docs/bang-chung/*.log

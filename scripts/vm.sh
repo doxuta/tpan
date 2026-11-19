@@ -14,6 +14,12 @@
 # TPAN_VM_CPUS, TPAN_VM_MEM, TPAN_VM_DISK.
 set -euo pipefail
 
+# Chưa đặt TPAN_VM thì đọc tên máy ảo từ file .tpan-vm ở gốc repo (mỗi worktree
+# của một mốc có máy ảo riêng, mục 6 của agent-dev/CHAY-NHIEU-AGENT.md);
+# không có file thì dùng tpan-test.
+if [ -z "${TPAN_VM:-}" ] && [ -f "$(dirname "$0")/../.tpan-vm" ]; then
+  TPAN_VM="$(tr -d '[:space:]' < "$(dirname "$0")/../.tpan-vm")"
+fi
 VM="${TPAN_VM:-tpan-test}"
 IMAGE="${TPAN_VM_IMAGE:-24.04}"
 CPUS="${TPAN_VM_CPUS:-2}"
