@@ -25,10 +25,11 @@ func stackCmd(e *env) *cobra.Command {
 func stackInstallCmd(e *env) *cobra.Command {
 	var (
 		web                          string
+		opts                         core.InstallOptions
 		dryRun, yes, asJSON, verbose bool
 	)
 	c := &cobra.Command{
-		Use:   "install --web nginx|apache",
+		Use:   "install --web nginx|apache [--web-source S] [--db-source S --db-line L]",
 		Short: "Cài stack LEMP (nginx) hoặc LAMP (apache) lên máy Ubuntu 24.04 sạch",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -56,7 +57,9 @@ func stackInstallCmd(e *env) *cobra.Command {
 				}
 			}
 
-			in, err := s.PrepareInstall(ctx, w)
+			// Giá trị lạ của nguồn không đi đâu ngoài core.Packages: nó từ chối
+			// mọi thứ không nằm trong danh sách nguồn đã biết.
+			in, err := s.PrepareInstallWith(ctx, w, opts)
 			if err != nil {
 				return fail(e, asJSON, err)
 			}
@@ -119,6 +122,9 @@ func stackInstallCmd(e *env) *cobra.Command {
 	f := c.Flags()
 	f.StringVar(&web, "web", "", "web server: nginx hoặc apache")
 	_ = c.MarkFlagRequired("web")
+	f.StringVar((*string)(&opts.WebSource), "web-source", "", "nguồn gói web server: ubuntu (mặc định), nginx.org, nginx.org-mainline (chỉ khi --web nginx)")
+	f.StringVar((*string)(&opts.DBSource), "db-source", "", "nguồn gói MariaDB: ubuntu (mặc định) hoặc mariadb.org")
+	f.StringVar(&opts.DBLine, "db-line", "", "dòng MariaDB khi --db-source mariadb.org, ví dụ 11.8")
 	f.BoolVar(&dryRun, "dry-run", false, "chỉ in kế hoạch, không thay đổi gì")
 	f.BoolVar(&yes, "yes", false, "không hỏi xác nhận")
 	f.BoolVar(&asJSON, "json", false, "in kết quả dạng JSON")
