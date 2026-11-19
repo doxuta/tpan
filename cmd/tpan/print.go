@@ -132,6 +132,7 @@ type progress struct {
 	lang    string
 	verbose bool
 	titles  map[string]i18n.Text
+	noUndo  map[string]i18n.Text
 	out     map[string][]string
 }
 
@@ -139,10 +140,13 @@ type progress struct {
 const maxKeptLines = 40
 
 func newProgress(w io.Writer, lang string, verbose bool, p engine.Plan) *progress {
-	pr := &progress{w: w, lang: lang, verbose: verbose, titles: map[string]i18n.Text{}, out: map[string][]string{}}
+	pr := &progress{w: w, lang: lang, verbose: verbose, titles: map[string]i18n.Text{}, noUndo: map[string]i18n.Text{}, out: map[string][]string{}}
 	for _, s := range p.Steps {
 		info := s.Info()
 		pr.titles[info.ID] = info.Title
+		if !info.NoUndo.IsZero() {
+			pr.noUndo[info.ID] = info.NoUndo
+		}
 	}
 	return pr
 }
@@ -190,6 +194,12 @@ func (p *progress) onEvent(ev engine.Event) {
 	case engine.EventUndoStart:
 		printf(p.w, "- %s %s ...\n", p.tr("Hoàn tác:", "Undo:"), p.title(ev.StepID))
 	case engine.EventUndoDone:
+		// Bước có NoUndo thì Undo không làm gì; nói thẳng như vậy để người đọc
+		// không tưởng máy vừa được trả lại thứ gì.
+		if n, ok := p.noUndo[ev.StepID]; ok {
+			printf(p.w, "  %s %s\n", p.tr("không có gì để hoàn tác:", "nothing to undo:"), n.In(p.lang))
+			return
+		}
 		printf(p.w, "  %s\n", p.tr("đã hoàn tác", "undone"))
 	case engine.EventUndoFail:
 		printf(p.w, "  %s %s\n", p.tr("HOÀN TÁC LỖI:", "UNDO FAILED:"), ev.Message)

@@ -26,7 +26,7 @@
 //	// Unknown không làm job lỗi). Job thành công thì ghi sha256 của mọi file đã
 //	// ghi vào Journal.RecordFile (Delete thì ForgetFile).
 //	// error trả về chỉ khi không chạy được (không lấy được khoá, Journal lỗi);
-//	// bước lỗi thì error là nil và Report.Status cho biết kết quả.
+//	// bước lỗi thì error là nil và Report.Job.Status cho biết kết quả.
 //	func (e *Engine) Execute(ctx context.Context, p Plan) (Report, error)
 //
 // Trong lúc Execute, System mà engine đưa cho Step.Check/Apply/Undo là một lớp

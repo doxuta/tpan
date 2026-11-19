@@ -13,7 +13,7 @@ import (
 )
 
 // ApacheModules bật và tắt module Apache (mục 6.1, bước 5): tắt mpm_prefork,
-// bật mpm_event proxy_fcgi setenvif rewrite ssl headers http2.
+// bật mpm_event proxy_fcgi setenvif rewrite headers http2 (ssl để tới M5, xem mục 6.1).
 //
 // Đổi MPM không reload được, phải restart apache2: mọi kết nối đang mở bị cắt,
 // nên bước này Danger.
@@ -72,8 +72,8 @@ func (s *ApacheModules) Info() engine.StepInfo {
 			"Apache modules: enable "+strings.Join(s.Enable, " ")+"; disable "+strings.Join(s.Disable, " "),
 		),
 		Why: i18n.T(
-			"Thiếu proxy_fcgi thì Apache không chuyển được request sang PHP-FPM và trả mã nguồn PHP hoặc lỗi 500. Còn mpm_prefork thì mỗi kết nối chiếm một tiến trình, máy nhỏ hết RAM khi đông khách; mpm_event và http2 phục vụ nhiều kết nối hơn với cùng RAM. Thiếu rewrite thì đường dẫn đẹp của WordPress trả 404; thiếu ssl thì không có HTTPS.",
-			"Without proxy_fcgi Apache cannot hand requests to PHP-FPM and serves PHP source or a 500 error. With mpm_prefork every connection holds a whole process and a small machine runs out of RAM under load; mpm_event and http2 serve more connections with the same RAM. Without rewrite WordPress pretty links return 404; without ssl there is no HTTPS.",
+			"Thiếu proxy_fcgi thì Apache không chuyển được request sang PHP-FPM và trả mã nguồn PHP hoặc lỗi 500. Còn mpm_prefork thì mỗi kết nối chiếm một tiến trình, máy nhỏ hết RAM khi đông khách; mpm_event và http2 phục vụ nhiều kết nối hơn với cùng RAM. Thiếu rewrite thì đường dẫn đẹp của WordPress trả 404.",
+			"Without proxy_fcgi Apache cannot hand requests to PHP-FPM and serves PHP source or a 500 error. With mpm_prefork every connection holds a whole process and a small machine runs out of RAM under load; mpm_event and http2 serve more connections with the same RAM. Without rewrite WordPress pretty links return 404.",
 		),
 		Commands: cmds,
 		Danger:   true,
