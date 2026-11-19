@@ -19,6 +19,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -837,19 +838,47 @@ const dumpDone = "-- Dump completed"
 
 // MariaDBDump xuất toàn bộ DB ra một file trước khi nâng dòng MariaDB: đó là
 // đường lùi duy nhất (mục 6.11).
-type MariaDBDump struct{ Path string }
+//
+// M9: DB khác rỗng thì chỉ xuất DB đó (`mariadb-dump --single-transaction
+// --quick <DB>`), dùng cho xuất DB của site (mục 6.9) và bản xuất trước khi
+// nhập hay khôi phục; Path khi đó được nằm dưới site.BackupRoot hoặc
+// site.RestoreRoot. DB rỗng: như M12.
+type MariaDBDump struct {
+	Path string
+	DB   string
+}
 
 func (s *MariaDBDump) validate() error {
 	if err := checkPath("file xuất MariaDB", s.Path); err != nil {
 		return err
 	}
-	if !strings.HasPrefix(s.Path, mariadbBackupDir+"/") {
-		return fmt.Errorf("file xuất MariaDB %q không nằm dưới %s", s.Path, mariadbBackupDir)
+	if s.DB == "" {
+		if !strings.HasPrefix(s.Path, mariadbBackupDir+"/") {
+			return fmt.Errorf("file xuất MariaDB %q không nằm dưới %s", s.Path, mariadbBackupDir)
+		}
+		return nil
+	}
+	// Tên DB đi thẳng vào argv: dbNameRe không cho ký tự đầu là "-", nên nó
+	// không bao giờ bị mariadb-dump đọc thành tuỳ chọn.
+	if !dbNameRe.MatchString(s.DB) {
+		return fmt.Errorf("tên DB %q có ký tự không cho phép", s.DB)
+	}
+	if !strings.HasPrefix(s.Path, site.BackupRoot+"/") && !strings.HasPrefix(s.Path, site.RestoreRoot+"/") {
+		return fmt.Errorf("file xuất DB %s %q không nằm dưới %s hoặc %s", s.DB, s.Path, site.BackupRoot, site.RestoreRoot)
 	}
 	return nil
 }
 
 func (s *MariaDBDump) cmd() system.Cmd {
+	if s.DB != "" {
+		// Một DB, không --databases: file không có CREATE DATABASE hay USE, nên
+		// nhập lại được vào đúng DB của site (DBImport chọn DB bằng --database).
+		// --single-transaction: bản xuất nhất quán mà không khoá bảng InnoDB
+		// của site đang chạy; --quick: đọc từng dòng, không giữ cả bảng trong RAM.
+		return system.Cmd{Name: "mariadb-dump", Args: []string{
+			"--single-transaction", "--quick", "--result-file=" + s.Path, s.DB,
+		}}
+	}
 	return system.Cmd{Name: "mariadb-dump", Args: []string{
 		"--all-databases", "--single-transaction", "--routines", "--events", "--triggers",
 		"--result-file=" + s.Path,
@@ -863,6 +892,21 @@ func (s *MariaDBDump) tail() system.Cmd {
 }
 
 func (s *MariaDBDump) Info() engine.StepInfo {
+	if s.DB != "" {
+		return engine.StepInfo{
+			ID:    "mariadb.dump:" + s.Path,
+			Title: i18n.T("Xuất DB "+s.DB+" ra "+s.Path, "Dump database "+s.DB+" to "+s.Path),
+			Why: i18n.T(
+				"Bản xuất này là đường lùi của DB: nhập lại nó là DB về đúng lúc xuất. Bỏ bước này thì thao tác tiếp theo (nhập, khôi phục) ghi đè DB mà không còn bản cũ để trả về. File chỉ root đọc được vì có toàn bộ dữ liệu của site.",
+				"This dump is the way back for the database: importing it returns the database to this moment. Without it the next operation (import, restore) overwrites the database with no old copy to go back to. Only root can read the file because it holds all of the site's data.",
+			),
+			Commands: []string{dbShow(measureDBSQL(s.DB)), s.cmd().String(), s.tail().String()},
+			NoUndo: i18n.T(
+				"Không hoàn tác: file xuất được giữ lại vì nó là đường lùi (hoặc chính là bản người dùng muốn xuất).",
+				"Not undone: the dump is kept because it is the way back (or the very export the user asked for).",
+			),
+		}
+	}
 	return engine.StepInfo{
 		ID:    "mariadb.dump:" + s.Path,
 		Title: i18n.T("Xuất toàn bộ MariaDB ra "+s.Path, "Dump all MariaDB databases to "+s.Path),
@@ -909,6 +953,13 @@ func (s *MariaDBDump) Apply(ctx context.Context, sys system.System) error {
 		return err
 	}
 	dir := path.Dir(s.Path)
+	if s.DB != "" {
+		// Chặn đầy đĩa lại lúc Apply (mục 6.5, 6.9): core đã đo lúc dựng Plan,
+		// nhưng Plan chờ duyệt có thể chạy sau đó hàng giờ.
+		if err := dumpSpaceOK(ctx, sys, s.DB, dir); err != nil {
+			return err
+		}
+	}
 	// Thư mục cha của backups (/var/lib/tpan) giữ 0755: bên trong còn acme mà
 	// web server phải đi qua được. Chỉ backups trở xuống là 0700.
 	if err := sys.MkdirAll(path.Dir(mariadbBackupDir), 0o755, system.Root); err != nil {
@@ -917,6 +968,12 @@ func (s *MariaDBDump) Apply(ctx context.Context, sys system.System) error {
 	if err := sys.MkdirAll(dir, 0o700, system.Root); err != nil {
 		return fmt.Errorf("tạo thư mục %s: %w", dir, err)
 	}
+	return s.write(ctx, sys)
+}
+
+// write xuất ra s.Path khi thư mục cha đã có. BackupArchive gọi thẳng hàm này
+// (thư mục tạm của nó đã có, và nó đã chặn đầy đĩa cho cả bản backup).
+func (s *MariaDBDump) write(ctx context.Context, sys system.System) error {
 	// Tạo file rỗng 0600 trước: mariadb-dump mở file có sẵn bằng "w" nên giữ
 	// quyền này, không có lúc nào file chứa dữ liệu mà quyền rộng hơn.
 	if err := sys.WriteFileAtomic(s.Path, nil, 0o600, system.Root); err != nil {

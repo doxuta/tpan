@@ -691,3 +691,60 @@ export type MariaDBUpgradeBody = { line: string };
  * (checks là các site đang không trả lời đúng trên web server hiện tại).
  */
 export type StackSwitchBody = { to: "nginx" | "apache" };
+
+// ---- M9: backup (mục 6.5), thao tác DB (6.9), cron (6.10); khớp internal/core/types_m9.go và internal/server/types_m9.go ----
+
+export type BackupKind = "full" | "sql";
+export type BackupReason = "manual" | "schedule" | "before-restore" | "before-purge" | "before-import";
+
+/** Một dòng của bảng backups (core.Backup). */
+export type Backup = {
+  id: string;
+  domain: string;
+  kind: BackupKind;
+  reason: BackupReason;
+  path: string;
+  size: number;
+  sha256: string;
+  wp_version?: string;
+  php_version?: string;
+  job_id?: string;
+  created: string;
+};
+
+/** core.BackupSettings: at "HH:MM" hoặc "" (tắt lịch). */
+export type BackupSettings = { keep: number; at: string };
+
+/** GET /api/v1/backups[?domain=D]. items mới nhất trước, gồm cả backup của site đã xoá hẳn. */
+export type BackupsOverview = { settings: BackupSettings; items: Backup[] };
+
+/** POST /api/v1/backups/settings[?dry_run=1] → Preview | JobStarted. */
+export type BackupSettingsRequest = { keep: number; at: string };
+
+/** POST /api/v1/databases/{domain}/import[?dry_run=1] → Preview | JobStarted. */
+export type DBImportRequest = { backup_id: string };
+
+export type CronStatus = "ok" | "fail" | "skipped";
+
+/** core.CronRun: lần chạy gần nhất của cron WordPress một site. */
+export type CronRun = {
+  domain: string;
+  started: string;
+  duration_ns: number;
+  status: CronStatus;
+  exit_code: number;
+  output: string;
+};
+
+/** core.CronEntry: một dòng của màn Cron. */
+export type CronEntry = {
+  domain: string;
+  file: string;
+  schedule: string;
+  command: string;
+  enabled: boolean;
+  last?: CronRun;
+};
+
+/** GET /api/v1/cron (core.CronOverview). */
+export type CronOverview = { sites: CronEntry[]; backup: BackupSettings; backup_file?: string };

@@ -1,0 +1,12 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Lịch backup hằng ngày của tpan: lúc 03:30 theo múi giờ của máy
+# (xem bằng timedatectl). Chạy backup mọi site đang hoạt động rồi chép tpan.db.
+# --scheduled ghi lý do "theo lịch" vào bản backup, --yes bỏ câu hỏi xác nhận vì
+# không có ai ngồi trước màn hình.
+#
+# Kết quả xem ở màn Backup và Lịch sử của panel; output bị bỏ vì máy này không
+# có chương trình gửi thư.
+#
+# Lệnh dùng đường dẫn tuyệt đối vì PATH của cron rất hẹp.
+30 03 * * * root /usr/local/bin/tpan backup create --all --scheduled --yes >/dev/null 2>&1

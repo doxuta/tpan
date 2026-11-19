@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -804,6 +805,76 @@ func TestSiteRemovePlanFlow(t *testing.T) {
 	if !ok || st.Status != site.Trashed {
 		t.Errorf("sau site.rm, bảng sites = %+v (có %v); muốn trashed", st, ok)
 	}
+}
+
+// M9: hai loại Plan backup qua Planner. Dựng lại lúc duyệt phải ra đúng bản
+// xem trước lúc đề xuất (không plan_changed), và khôi phục với BackupID rỗng
+// ghim id bản mới nhất lúc đề xuất.
+func TestBackupPlansFlow(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	p := &Planner{Sites: be.s, Plans: newMemPlans(), Backups: be.bs, NotFound: errPlanMissing, NotPending: errPlanNotPending}
+	src := be.seedFull(t, dom, "20261101-000000", "từ backup", "db từ backup", ReasonManual)
+
+	// Không có bảng backups: như loại Plan không có.
+	noB := &Planner{Sites: be.s, Plans: newMemPlans()}
+	for _, k := range []string{PlanBackupCreate, PlanBackupRestore} {
+		if _, err := noB.Prepare(ctx, PlanRequest{Kind: k, Domain: dom}); refusedCode(t, err) != "plan_kind_invalid" {
+			t.Errorf("%s khi Backups nil: muốn plan_kind_invalid", k)
+		}
+		if _, err := p.Prepare(ctx, PlanRequest{Kind: k, Domain: "$(id).example.com"}); !errors.As(err, new(*validate.Error)) {
+			t.Errorf("%s domain tấn công: muốn *validate.Error, có %v", k, err)
+		}
+	}
+	if _, err := p.Prepare(ctx, PlanRequest{Kind: PlanBackupRestore, Domain: dom, BackupID: "../../x"}); refusedCode(t, err) != "backup_not_found" {
+		t.Errorf("id backup sai dạng: %v", err)
+	}
+
+	pp, err := p.Propose(ctx, PlanRequest{Kind: PlanBackupRestore, Domain: dom}, Proposal{Origin: engine.OriginMCP})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var req PlanRequest
+	if err := json.Unmarshal(pp.Request, &req); err != nil || req.BackupID != src.ID {
+		t.Fatalf("yêu cầu đã lưu = %s (%v); muốn ghim backup_id %s", pp.Request, err, src.ID)
+	}
+	// Một bản mới hơn xuất hiện trong lúc chờ duyệt: Plan vẫn là bản đã xem.
+	be.seedFull(t, dom, "20261102-000000", "mới hơn", "db mới hơn", ReasonSchedule)
+	ap, err := p.PrepareApprove(ctx, pp.ID, "cli")
+	if err != nil {
+		t.Fatalf("duyệt khôi phục: %v", err)
+	}
+	res, err := ap.Execute(ctx, nil)
+	if err != nil || res.Report.Job.Status != engine.JobSucceeded {
+		t.Fatalf("chạy khôi phục: %v %s (%s)", err, res.Report.Job.Status, res.Report.Job.Error)
+	}
+	if got := be.read(t, be.layout(t, dom).Public+"/index.php"); got != "từ backup" {
+		t.Errorf("index.php = %q, muốn bản đã duyệt", got)
+	}
+
+	// Backup trên máy riêng: tên file theo giây, bản tự backup của lần khôi
+	// phục vừa rồi có thể trùng giây.
+	be = newBktEnv(t, dom)
+	p = &Planner{Sites: be.s, Plans: newMemPlans(), Backups: be.bs, NotFound: errPlanMissing, NotPending: errPlanNotPending}
+	pp, err = p.Propose(ctx, PlanRequest{Kind: PlanBackupCreate, Domain: dom}, Proposal{Origin: engine.OriginMCP})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ap, err = p.PrepareApprove(ctx, pp.ID, "cli")
+	if err != nil {
+		t.Fatalf("duyệt backup: %v", err)
+	}
+	if res, err = ap.Execute(ctx, nil); err != nil || res.Report.Job.Status != engine.JobSucceeded {
+		t.Fatalf("chạy backup: %v %s (%s)", err, res.Report.Job.Status, res.Report.Job.Error)
+	}
+	list, _ := be.b.List(ctx, dom)
+	if len(list) == 0 || list[0].Reason != ReasonManual || list[0].JobID != res.Report.Job.ID {
+		t.Errorf("backup qua Planner không ghi dòng manual: %+v", list)
+	}
+}
+
+func (be *bktEnv) layout(t *testing.T, dom string) site.Layout {
+	return site.LayoutOf(mustDomain(t, dom))
 }
 
 // ---------------------------------------------------------------- 6. cấu hình cổng agent

@@ -72,6 +72,11 @@ type Sites struct {
 	WPHash    string
 	// Now nil thì dùng time.Now. Test đặt để có TrashedAt, PurgeAt cố định (M6).
 	Now func() time.Time
+	// Backups (M9) là bảng backups: xoá hẳn ghi vào đây bản tự backup trước
+	// khi xoá (mục 6.5). *store.Store thoả. nil (xem trước khi máy chưa có
+	// tpan.db, test) thì xoá hẳn vẫn backup nhưng không ghi được dòng: Execute
+	// trả lỗi kèm đường dẫn file để người ghi nhận bằng tay.
+	Backups BackupStore
 }
 
 func (s *Sites) now() time.Time {
@@ -458,6 +463,21 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 		&steps.WPFiles{Layout: l, Archive: archive.Path()},
 		&steps.WPConfig{Layout: l, DBPassword: dbPw},
 	)
+	// Bước 7b (M9, mục 6.10): tắt cron theo lượt xem trong wp-config.php rồi
+	// đặt cron thật. Ngay sau WPConfig vì WPConstant sửa chính file đó. Đặt
+	// trước vhost (không để cuối, sau bước cài) vì hai lẽ: site chưa được phục
+	// vụ thì lượt xem đầu tiên đã không còn gánh việc định kỳ; và job hàng loạt
+	// (apply.go) tách bước cài xuống pha C, nên bước nào đứng sau bước cài sẽ
+	// chạy TRƯỚC nó trong lô mà SAU nó khi tạo một site, hai đường lệch thứ tự.
+	// File cron có trước khi WordPress được cài cũng không sao: `tpan cron run`
+	// bỏ qua site chưa có (dòng sites chỉ được ghi khi job thành công).
+	// Site tạo trước M9: chạy lại `tpan site add <domain>` thì hai bước này
+	// Apply, các bước đã đúng được bỏ qua (đường nâng cấp, docs/thay-doi/M9.md).
+	cron, err := siteCronSteps(l)
+	if err != nil {
+		return engine.Plan{}, wrap(err)
+	}
+	ss = append(ss, cron...)
 	// Bước 8: vhost (Apache cần thêm .htaccess, phải có trước khi vhost được bật).
 	if web == Apache {
 		ht, err := steps.SiteHtaccess(l)
@@ -613,7 +633,8 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 //     sites-available, để khôi phục chỉ cần bật lại link. Site có SSL thì link
 //     là của vhost 443, cùng đường dẫn.
 //  2. Khoá user DB; DB giữ nguyên.
-//  3. Khoá user Linux (hạn tài khoản, lý do ở steps.SiteUserLock).
+//  3. Khoá user Linux (hạn tài khoản, lý do ở steps.SiteUserLock), rồi gỡ
+//     file cron của site (M9, mục 6.10).
 //  4. Chuyển /var/www/<domain> vào site.TrashDir bằng một lần rename.
 //
 // Dùng chung cho PrepareRemove và unit "đưa vào thùng rác" của job hàng loạt.
@@ -650,6 +671,9 @@ func trashSteps(web WebServer, php string, l site.Layout) ([]engine.Step, error)
 	return append(ss,
 		&steps.DBUserLock{Layout: l},
 		&steps.SiteUserLock{Layout: l},
+		// M9: gỡ file cron trước khi chuyển thư mục, để cron không gọi
+		// `wp` vào một thư mục đang đi. Khôi phục ghi lại (restoreSteps).
+		siteCronAbsent(l),
 		&steps.MoveTree{From: l.Dir, To: site.TrashDir(l),
 			Title: i18n.T("Chuyển thư mục của "+d+" vào thùng rác", "Move the directory of "+d+" to the trash")},
 	), nil

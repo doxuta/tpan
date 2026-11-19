@@ -24,7 +24,8 @@
 #      unattended-upgrade --dry-run, `tpan update`, `tpan update auto`.
 #   G  hồi quy: scripts/faults/02-pool-socket-rm.sh (socket có số bản) trên site 2.
 #   D  nâng MariaDB 10.11 -> 11.8 trên một bản sao của máy ảo (multipass clone):
-#      dữ liệu của từng site trước và sau, thời gian dừng của mariadb.
+#      dữ liệu của từng site trước và sau, thời gian dừng của mariadb. Từ M9
+#      phải `tpan backup create --all` trước (nâng MariaDB đòi backup).
 #   E  `tpan self-update` từ một máy chủ HTTP trong máy ảo (python3 -m
 #      http.server trên 127.0.0.1), SHA256SUMS sai bị từ chối, --rollback.
 #   F  máy sạch, `stack install --web-source nginx.org --db-source mariadb.org
@@ -677,6 +678,12 @@ part_d() {
   section "D: tpan update --check (dòng nâng được)"
   croot tpan update --check
   ok "thấy dòng nâng lên 11.8" hasF 'sudo tpan mariadb upgrade --to 11.8'
+
+  # Từ M9, nâng MariaDB (cả --dry-run) bị từ chối backup_required khi còn site
+  # active chưa có bản backup đầy đủ trong 24 giờ: backup mọi site trước.
+  section "D: tpan backup create --all --yes (M9: nâng MariaDB đòi backup trước)"
+  croot tpan backup create --all --yes
+  ok "backup create --all thoát 0" rc_is 0
 
   section "D: tpan mariadb upgrade --to 11.8 --dry-run"
   croot tpan mariadb upgrade --to 11.8 --dry-run

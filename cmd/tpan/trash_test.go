@@ -208,7 +208,7 @@ func TestTrashPurgeExpired(t *testing.T) {
 		t.Fatalf("--dry-run --json: mã %d, %v, %q, %s", code, err, out, errs)
 	}
 	code, out, _ = c.run("trash", "purge", "--expired", "--dry-run")
-	if code != 0 || !strings.Contains(out, "== old.example.com") || strings.Contains(out, "new.example.com") || !strings.Contains(out, "KHÔNG lấy lại được") {
+	if code != 0 || !strings.Contains(out, "== old.example.com") || strings.Contains(out, "new.example.com") || !strings.Contains(out, "tự backup site") {
 		t.Errorf("--dry-run: mã %d\n%s", code, out)
 	}
 	if code, _, errs := c.run("trash", "purge", "--expired"); code != 1 || !strings.Contains(errs, "--yes") {

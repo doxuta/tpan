@@ -1,0 +1,2500 @@
+
+
+######## [2026-11-20 01:02:29] 0: máy sạch, triển khai tpan
+Máy ảo: tpan-m9 (file .tpan-vm)
+
+[2026-11-20 01:02:29] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m9  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m9.clean
+[2K[0A[0EStarting tpan-m9  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\ [2K[0A[0E
+[2026-11-20 01:02:42] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-20 01:02:42] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-20 01:02:43] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-20 01:02:44] $ make vm-deploy DATE=2026-11-19T18:02:28Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 9h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 11ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 331 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-BQkOncIF.css                                   27.26 kB │ gzip:   6.71 kB
+dist/assets/OriginTag-Bb-1qdJ3.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-CxcUyxKb.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/Field-DcAXOvhi.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/MonoText-CoOdts-h.js                                  0.67 kB │ gzip:   0.43 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-DCAHrt80.js                                 0.89 kB │ gzip:   0.44 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/useMutation-GN1Vg1so.js                               2.32 kB │ gzip:   0.97 kB
+dist/assets/bao-mat-CzPjcsma.js                                   4.16 kB │ gzip:   1.80 kB
+dist/assets/dang-nhap-4HLQPI49.js                                 5.82 kB │ gzip:   2.56 kB
+dist/assets/CheckRow-0jM_JiYv.js                                  6.02 kB │ gzip:   2.63 kB
+dist/assets/plan-cho-duyet-v4BEz8kZ.js                            6.12 kB │ gzip:   2.09 kB
+dist/assets/model-DfN6xi8N.js                                     6.75 kB │ gzip:   2.67 kB
+dist/assets/thung-rac-eTZ7arkv.js                                 9.08 kB │ gzip:   3.57 kB
+dist/assets/backup-CHG7lkc4.js                                    9.79 kB │ gzip:   3.17 kB
+dist/assets/ssl-BjKCcXfO.js                                      12.16 kB │ gzip:   4.50 kB
+dist/assets/cron-BYEd7vDn.js                                     12.22 kB │ gzip:   4.64 kB
+dist/assets/co-so-du-lieu-DMTYlyc9.js                            12.57 kB │ gzip:   4.55 kB
+dist/assets/stack-d9vyzTUo.js                                    13.98 kB │ gzip:   4.83 kB
+dist/assets/tao-site-CD3U5jHK.js                                 14.50 kB │ gzip:   4.80 kB
+dist/assets/cap-nhat-0mIvKB9S.js                                 15.45 kB │ gzip:   5.07 kB
+dist/assets/cai-dat-DHjxZRdx.js                                  18.02 kB │ gzip:   5.63 kB
+dist/assets/phien-ai-DKoKNHlf.js                                 18.28 kB │ gzip:   5.87 kB
+dist/assets/su-co-D_7Yjw8S.js                                    22.85 kB │ gzip:   7.27 kB
+dist/assets/site-BIeY-Ozj.js                                     23.77 kB │ gzip:   6.86 kB
+dist/assets/bang-dieu-khien-BiOtfgXZ.js                          25.51 kB │ gzip:   7.80 kB
+dist/assets/lich-su-C0PfLOnl.js                                  26.38 kB │ gzip:   8.49 kB
+dist/assets/ErrorNote-D-ml3DFN.js                                28.84 kB │ gzip:  10.12 kB
+dist/assets/ScreenHeader-BesYCyps.js                             40.66 kB │ gzip:  14.61 kB
+dist/assets/hooks-DuuAO7Df.js                                    74.14 kB │ gzip:  24.43 kB
+dist/assets/index-D2zgjJxb.js                                   340.06 kB │ gzip: 107.08 kB
+
+✓ built in 170ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=9a1def4-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=9a1def4 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T18:02:28Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=9a1def4-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=9a1def4 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-19T18:02:28Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan 9a1def4-dirty (commit 9a1def4, build 2026-11-19T18:02:28Z)
+[2026-11-20 01:02:49] (mã thoát 0)
+  => ĐẠT: build và chép tpan vào máy ảo
+
+[2026-11-20 01:02:49] $ shasum -a 256 bin/tpan-linux-arm64 bin/tpan-linux-amd64
+7d73f3f839ccdc595da12b2a6036e55e97a3115e4d2d5374c5e4ff5f1d1ea836  bin/tpan-linux-arm64
+2b5842e50c2a25317c3f648e33389fad10e009f8041f5df4b338960977a9de5d  bin/tpan-linux-amd64
+[2026-11-20 01:02:49] (mã thoát 0)
+
+[2026-11-20 01:02:49] $ git log --oneline -1
+9a1def4 server, demo: API backup, cron, thao tác DB; dữ liệu demo M9
+[2026-11-20 01:02:49] (mã thoát 0)
+
+[2026-11-20 01:02:49] $ git status --short
+ M scripts/e2e-m12.sh
+?? docs/bang-chung/M9.log
+?? scripts/e2e-m9.sh
+[2026-11-20 01:02:49] (mã thoát 0)
+
+
+######## [2026-11-20 01:02:49] A: tpan stack install --web nginx
+
+[2026-11-20 01:02:49] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job 8e82e029126de602
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 8e82e029126de602: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-20 01:03:21] (mã thoát 0)
+  => ĐẠT: stack install thoát 0, job thành công
+
+[2026-11-20 01:03:21] $ scripts/vm.sh exec systemctl is-active nginx php8.3-fpm mariadb cron
+active
+active
+active
+active
+[2026-11-20 01:03:21] (mã thoát 0)
+  => ĐẠT: nginx, php8.3-fpm, mariadb, cron active
+
+
+######## [2026-11-20 01:03:21] A: tạo hai site m9a.example.com, m9b.example.com
+
+[2026-11-20 01:03:21] $ scripts/vm.sh root tpan site add m9a.example.com --email admin@example.com --yes
+Bắt đầu job 63845c6d33b7e390
+- Tạo user Linux tp_m9a_example_com_c2b3ff cho site ...
+  xong
+- Tạo thư mục /var/www/m9a.example.com ...
+  xong
+- Tạo thư mục /var/www/m9a.example.com/public ...
+  xong
+- Tạo thư mục /var/www/m9a.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/m9a.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/m9a.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_m9a_example_com_c2b3ff và user DB riêng của site m9a.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-m9a_example_com_c2b3ff cho m9a.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/m9a.example.com/public ...
+  xong
+- Tạo /var/www/m9a.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/m9a.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của m9a.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho m9a.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-m9a.example.com.conf → /etc/nginx/sites-available/tpan-m9a.example.com.conf ...
+  xong
+- Cài WordPress cho m9a.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job 63845c6d33b7e390: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_m9a_example_com_c2b3ff
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_m9a_example_com_c2b3ff
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của m9a.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://m9a.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-20 01:03:34] (mã thoát 0)
+  => ĐẠT: site add m9a.example.com thoát 0, job thành công
+  => ĐẠT: m9a.example.com: đọc được mật khẩu quản trị (đã che)
+
+[2026-11-20 01:03:34] $ scripts/vm.sh root tpan site add m9b.example.com --email admin@example.com --yes
+Bắt đầu job 21f1e770e31c2981
+- Tạo user Linux tp_m9b_example_com_36b746 cho site ...
+  xong
+- Tạo thư mục /var/www/m9b.example.com ...
+  xong
+- Tạo thư mục /var/www/m9b.example.com/public ...
+  xong
+- Tạo thư mục /var/www/m9b.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/m9b.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/m9b.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_m9b_example_com_36b746 và user DB riêng của site m9b.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-m9b_example_com_36b746 cho m9b.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Giải nén WordPress vào /var/www/m9b.example.com/public ...
+  xong
+- Tạo /var/www/m9b.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/m9b.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của m9b.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho m9b.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-m9b.example.com.conf → /etc/nginx/sites-available/tpan-m9b.example.com.conf ...
+  xong
+- Cài WordPress cho m9b.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Site m9b.example.com không đọc được wp-config.php của site m9a.example.com
+  [đạt] Site m9a.example.com không đọc được wp-config.php của site m9b.example.com
+
+Job 21f1e770e31c2981: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_m9b_example_com_36b746
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_m9b_example_com_36b746
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của m9b.example.com
+  [đạt] Site m9b.example.com không đọc được wp-config.php của site m9a.example.com: Bị từ chối như mong đợi: tp_m9b_example_com_36b746 không đọc được wp-config.php của m9a.example.com
+  [đạt] Site m9a.example.com không đọc được wp-config.php của site m9b.example.com: Bị từ chối như mong đợi: tp_m9a_example_com_c2b3ff không đọc được wp-config.php của m9b.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://m9b.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-20 01:03:40] (mã thoát 0)
+  => ĐẠT: site add m9b.example.com thoát 0, job thành công
+  => ĐẠT: m9b.example.com: đọc được mật khẩu quản trị (đã che)
+
+[2026-11-20 01:03:40] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  echo "$d curl=$rc http=$code $title"
+done
+ _ m9a.example.com m9b.example.com
+m9a.example.com curl=0 http=200 <title>m9a.example.com</title>
+m9b.example.com curl=0 http=200 <title>m9b.example.com</title>
+[2026-11-20 01:03:40] (mã thoát 0)
+  => ĐẠT: m9a.example.com và m9b.example.com trả 200, tiêu đề là domain của mình
+
+
+######## [2026-11-20 01:03:40] H0: health trước bản sao tpan.db đầu tiên
+
+[2026-11-20 01:03:40] $ scripts/vm.sh root bash -c ls -la /var/lib/tpan/backups/_tpan 2>&1; ls -la /var/lib/tpan/backups 2>&1
+ls: cannot access '/var/lib/tpan/backups/_tpan': No such file or directory
+ls: cannot access '/var/lib/tpan/backups': No such file or directory
+[2026-11-20 01:03:40] (mã thoát 2)
+
+[2026-11-20 01:03:40] $ scripts/vm.sh root tpan health --json
+started 2026-11-20T01:03:40.846896829+07:00  finished 2026-11-20T01:03:44.567712179+07:00
+nhóm: (máy, stack), m9a.example.com, m9b.example.com, tpan
+số phép kiểm theo trạng thái: pass=39 unknown=3 warn=2
+--- unknown tpan.cert:/etc/tpan/tls/cert.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+--- unknown tpan.perm:/etc/tpan/tls/key.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/key.pem
+--- unknown tpan.perm:/etc/tpan (chặng tpan): Chưa kiểm được: không có /etc/tpan
+--- warn tpan.scheduler:health (chặng tpan): Bộ hẹn giờ health chưa chạy lần nào
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+tpan.backup:db = warn: chưa có bản sao lưu tpan.db nào
+sự cố vừa mở: 
+[2026-11-20 01:03:44] (mã thoát 0)
+  => ĐẠT: tpan.backup:db là Warn (chưa có bản sao nào)
+  => ĐẠT: health không có Fail
+
+
+######## [2026-11-20 01:03:44] B: cron WordPress của m9a.example.com (mục 6.10)
+
+[2026-11-20 01:03:44] $ scripts/vm.sh root stat -c %U:%G %a %n /etc/cron.d/tpan-m9a_example_com_c2b3ff
+root:root 644 /etc/cron.d/tpan-m9a_example_com_c2b3ff
+[2026-11-20 01:03:44] (mã thoát 0)
+  => ĐẠT: /etc/cron.d/tpan-m9a_example_com_c2b3ff có, root:root 0644
+
+[2026-11-20 01:03:44] $ scripts/vm.sh root cat /etc/cron.d/tpan-m9a_example_com_c2b3ff
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Cron của WordPress cho m9a.example.com: mỗi 5 phút chạy các việc đã đến giờ
+# (bài hẹn giờ, kiểm cập nhật, thư dọn dẹp của plugin).
+#
+# Vì sao không dùng wp-cron.php mặc định: WordPress chỉ chạy việc đến giờ khi
+# có khách vào trang, nên site không có khách thì bài hẹn giờ không được đăng,
+# còn site đông khách thì mỗi lượt xem đều tốn một lần kiểm. tpan đặt
+# DISABLE_WP_CRON trong wp-config.php và để file này gọi cron đúng nhịp.
+#
+# Vì sao dòng này chạy bằng root: tpan cron run tự hạ xuống user của site khi
+# gọi wp (không chạy WordPress bằng root), nhưng đứng ở giữa để ghi kết quả
+# lần chạy gần nhất vào tpan.db (màn Cron đọc ở đó) và bỏ qua site không còn
+# hoạt động, ví dụ site đang nằm trong thùng rác.
+#
+# Vì sao bỏ output: kết quả đã nằm trong tpan.db, còn máy này không có chương
+# trình gửi thư nên output để lại cũng không tới ai.
+#
+# Lệnh dùng đường dẫn tuyệt đối vì PATH của cron rất hẹp.
+*/5 * * * * root /usr/local/bin/tpan cron run m9a.example.com >/dev/null 2>&1
+[2026-11-20 01:03:44] (mã thoát 0)
+  => ĐẠT: đúng một dòng gọi /usr/local/bin/tpan cron run m9a.example.com
+  => ĐẠT: dòng đó chạy mỗi 5 phút
+  => ĐẠT: không có dòng lệnh nào khác (ngoài chú thích)
+
+[2026-11-20 01:03:44] $ scripts/vm.sh exec systemctl is-active cron
+active
+[2026-11-20 01:03:45] (mã thoát 0)
+  => ĐẠT: systemctl is-active cron: active
+
+[2026-11-20 01:03:45] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp config get DISABLE_WP_CRON --type=constant --path="/var/www/$1/public" _ m9a.example.com tp_m9a_example_com_c2b3ff
+1
+[2026-11-20 01:03:45] (mã thoát 0)
+  => ĐẠT: wp config get DISABLE_WP_CRON --type=constant (user của site) in 1
+
+[2026-11-20 01:03:45] $ scripts/vm.sh root bash -c journalctl -u cron --no-pager -o short-iso | grep -E "tpan-|RELOAD|tpan cron run" | tail -20
+2026-11-19T23:35:36+07:00 tpan-m9 systemd[1]: Started cron.service - Regular background program processing daemon.
+2026-11-19T23:35:36+07:00 tpan-m9 (cron)[784]: cron.service: Referenced but unset environment variable evaluates to an empty string: EXTRA_OPTS
+2026-11-19T23:35:36+07:00 tpan-m9 cron[784]: (CRON) INFO (pidfile fd = 3)
+2026-11-19T23:35:36+07:00 tpan-m9 cron[784]: (CRON) INFO (Running @reboot jobs)
+2026-11-19T23:35:51+07:00 tpan-m9 systemd[1]: Stopping cron.service - Regular background program processing daemon...
+2026-11-19T23:35:51+07:00 tpan-m9 systemd[1]: cron.service: Deactivated successfully.
+2026-11-19T23:35:51+07:00 tpan-m9 systemd[1]: Stopped cron.service - Regular background program processing daemon.
+2026-11-20T01:02:42+07:00 tpan-m9 systemd[1]: Started cron.service - Regular background program processing daemon.
+2026-11-20T01:02:42+07:00 tpan-m9 (cron)[652]: cron.service: Referenced but unset environment variable evaluates to an empty string: EXTRA_OPTS
+2026-11-20T01:02:42+07:00 tpan-m9 cron[652]: (CRON) INFO (pidfile fd = 3)
+2026-11-20T01:02:42+07:00 tpan-m9 cron[652]: (CRON) INFO (Running @reboot jobs)
+[2026-11-20 01:03:45] (mã thoát 0)
+(mục 16) cron đọc file mới trong /etc/cron.d không cần reload: các dòng trên là bằng chứng
+
+
+######## [2026-11-20 01:03:45] B: bài hẹn giờ khoảng 2 phút sau (giờ của WordPress), không ai gọi site
+
+[2026-11-20 01:03:45] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp eval "echo wp_date(\"Y-m-d H:i:s\", time() + 120), \"|\", wp_timezone_string(), \"|\", current_time(\"mysql\");" --path="/var/www/$1/public" _ m9a.example.com tp_m9a_example_com_c2b3ff
+2026-11-19 18:05:45|+00:00|2026-11-19 18:03:45
+[2026-11-20 01:03:45] (mã thoát 0)
+  => ĐẠT: đọc được giờ hẹn theo WordPress (2026-11-19 18:05:45)
+
+[2026-11-20 01:03:45] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp post create --post_title="e2e-m9 bai hen gio" --post_status=future --post_date="$3" --porcelain --path="/var/www/$1/public" _ m9a.example.com tp_m9a_example_com_c2b3ff 2026-11-19 18:05:45
+5
+[2026-11-20 01:03:45] (mã thoát 0)
+  => ĐẠT: wp post create --post_status=future trả id
+
+[2026-11-20 01:03:45] $ scripts/vm.sh root mariadb -N -B tp_m9a_example_com_c2b3ff -e SELECT post_status, post_date, post_date_gmt FROM wp_posts WHERE ID = 5
+future	2026-11-19 18:05:45	2026-11-19 18:05:45
+[2026-11-20 01:03:46] (mã thoát 0)
+  => ĐẠT: bài đang ở trạng thái future
+
+[2026-11-20 01:03:46] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp cron event list --fields=hook,next_run_gmt,next_run_relative --path="/var/www/$1/public" | grep -E "hook|publish_future_post" _ m9a.example.com tp_m9a_example_com_c2b3ff
+hook	next_run_gmt	next_run_relative
+publish_future_post	2026-11-19 18:05:45	1 minute 59 seconds
+[2026-11-20 01:03:46] (mã thoát 0)
+  => ĐẠT: có việc publish_future_post trong lịch của WordPress
+
+[2026-11-20 01:03:46] $ scripts/vm.sh root wc -l /var/log/tpan/sites/m9a.example.com/access.log
+3 /var/log/tpan/sites/m9a.example.com/access.log
+[2026-11-20 01:03:46] (mã thoát 0)
+GIỜ HẸN (giờ WordPress): 2026-11-19 18:05:45; giờ máy ảo lúc tạo bài: 2026-11-20 01:03:46; số dòng access.log: 3
+
+
+######## [2026-11-20 01:03:46] B: chờ tối đa 7 phút 30 giây, chỉ đọc DB (không gọi site)
+[2026-11-20 01:04:01] lần 1: post_status=future
+[2026-11-20 01:04:16] lần 2: post_status=future
+[2026-11-20 01:04:31] lần 3: post_status=future
+[2026-11-20 01:04:47] lần 4: post_status=future
+[2026-11-20 01:05:02] lần 5: post_status=future
+[2026-11-20 01:05:17] lần 6: post_status=future
+[2026-11-20 01:05:32] lần 7: post_status=future
+[2026-11-20 01:05:48] lần 8: post_status=future
+[2026-11-20 01:06:03] lần 9: post_status=future
+[2026-11-20 01:06:18] lần 10: post_status=future
+[2026-11-20 01:06:33] lần 11: post_status=future
+[2026-11-20 01:06:49] lần 12: post_status=future
+[2026-11-20 01:07:04] lần 13: post_status=future
+[2026-11-20 01:07:19] lần 14: post_status=future
+[2026-11-20 01:07:34] lần 15: post_status=future
+[2026-11-20 01:07:49] lần 16: post_status=future
+[2026-11-20 01:08:04] lần 17: post_status=future
+[2026-11-20 01:08:20] lần 18: post_status=future
+[2026-11-20 01:08:35] lần 19: post_status=future
+[2026-11-20 01:08:50] lần 20: post_status=future
+[2026-11-20 01:09:05] lần 21: post_status=future
+[2026-11-20 01:09:20] lần 22: post_status=future
+[2026-11-20 01:09:36] lần 23: post_status=future
+[2026-11-20 01:09:51] lần 24: post_status=future
+[2026-11-20 01:10:06] lần 25: post_status=publish
+
+[2026-11-20 01:10:06] $ scripts/vm.sh root mariadb -N -B tp_m9a_example_com_c2b3ff -e SELECT post_status, post_date, post_date_gmt FROM wp_posts WHERE ID = 5
+publish	2026-11-19 18:05:45	2026-11-19 18:05:45
+[2026-11-20 01:10:06] (mã thoát 0)
+  => ĐẠT: bài đã chuyển publish
+GIỜ HẸN: 2026-11-19 18:05:45; THẤY ĐĂNG LÚC (giờ máy ảo, lần đọc DB đầu tiên thấy publish): 2026-11-20 01:10:06
+
+[2026-11-20 01:10:06] $ scripts/vm.sh root wc -l /var/log/tpan/sites/m9a.example.com/access.log
+3 /var/log/tpan/sites/m9a.example.com/access.log
+[2026-11-20 01:10:06] (mã thoát 0)
+  => ĐẠT: access.log của m9a.example.com không đổi số dòng (vẫn 3): không khách nào vào
+
+[2026-11-20 01:10:06] $ scripts/vm.sh root tail -3 /var/log/tpan/sites/m9a.example.com/access.log
+127.0.0.1 - - [20/Nov/2026:01:03:34 +0700] "GET / HTTP/1.1" 200 69793 "-" "curl/8.5.0"
+127.0.0.1 - - [20/Nov/2026:01:03:40 +0700] "GET / HTTP/1.1" 200 69793 "-" "curl/8.5.0"
+127.0.0.1 - - [20/Nov/2026:01:03:42 +0700] "GET / HTTP/1.1" 200 69798 "-" "curl/8.5.0"
+[2026-11-20 01:10:06] (mã thoát 0)
+
+[2026-11-20 01:10:06] $ scripts/vm.sh root tpan cron list --json
+{
+  "sites": [
+    {
+      "domain": "m9a.example.com",
+      "file": "/etc/cron.d/tpan-m9a_example_com_c2b3ff",
+      "schedule": "*/5 * * * *",
+      "command": "/usr/local/bin/tpan cron run m9a.example.com",
+      "enabled": true,
+      "last": {
+        "domain": "m9a.example.com",
+        "started": "2026-11-19T18:10:01.640334399Z",
+        "duration_ns": 199000000,
+        "status": "ok",
+        "exit_code": 0,
+        "output": ""
+      }
+    },
+    {
+      "domain": "m9b.example.com",
+      "file": "/etc/cron.d/tpan-m9b_example_com_36b746",
+      "schedule": "*/5 * * * *",
+      "command": "/usr/local/bin/tpan cron run m9b.example.com",
+      "enabled": true,
+      "last": {
+        "domain": "m9b.example.com",
+        "started": "2026-11-19T18:10:01.65090331Z",
+        "duration_ns": 175000000,
+        "status": "ok",
+        "exit_code": 0,
+        "output": ""
+      }
+    }
+  ],
+  "backup": {
+    "keep": 3,
+    "at": ""
+  }
+}
+[2026-11-20 01:10:07] (mã thoát 0)
+  => ĐẠT: cron list --json: m9a.example.com bật, lần chạy gần nhất status ok
+
+[2026-11-20 01:10:07] $ scripts/vm.sh root tpan cron list
+Mỗi site chạy `wp cron event run --due-now` theo lịch */5 * * * *
+
+DOMAIN                                   BẬT    CHẠY LÚC         KẾT QUẢ  MẤT
+m9a.example.com                          bật    2026-11-20 01:10 ok       199ms
+m9b.example.com                          bật    2026-11-20 01:10 ok       175ms
+
+Lịch backup: tắt. Bật bằng: sudo tpan backup settings --at HH:MM
+[2026-11-20 01:10:07] (mã thoát 0)
+
+[2026-11-20 01:10:07] $ scripts/vm.sh root python3 -c 
+import sqlite3
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+for r in c.execute("SELECT * FROM cron_runs"):
+    print(*[str(x).replace("\n", " ")[:300] for x in r])
+m9b.example.com 2026-11-19T18:10:01.650903310Z 175 ok 0 
+m9a.example.com 2026-11-19T18:10:01.640334399Z 199 ok 0 
+[2026-11-20 01:10:07] (mã thoát 0)
+
+[2026-11-20 01:10:07] $ scripts/vm.sh root bash -c journalctl -u cron --no-pager -o short-iso --since "-10 min" | grep -E "tpan cron run" | tail -6
+2026-11-20T01:05:01+07:00 tpan-m9 CRON[15160]: (root) CMD (/usr/local/bin/tpan cron run m9b.example.com >/dev/null 2>&1)
+2026-11-20T01:05:01+07:00 tpan-m9 CRON[15166]: (root) CMD (/usr/local/bin/tpan cron run m9a.example.com >/dev/null 2>&1)
+2026-11-20T01:10:01+07:00 tpan-m9 CRON[16288]: (root) CMD (/usr/local/bin/tpan cron run m9a.example.com >/dev/null 2>&1)
+2026-11-20T01:10:01+07:00 tpan-m9 CRON[16289]: (root) CMD (/usr/local/bin/tpan cron run m9b.example.com >/dev/null 2>&1)
+[2026-11-20 01:10:07] (mã thoát 0)
+  => ĐẠT: journal của cron có dòng CMD chạy tpan cron run m9a.example.com
+
+
+######## [2026-11-20 01:10:07] B: (mục 16) mã thoát của wp cron event run --due-now khi không có việc
+
+[2026-11-20 01:10:07] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp cron event run --due-now --path="/var/www/$1/public"; echo "mã thoát: $?" _ m9a.example.com tp_m9a_example_com_c2b3ff
+Executed the cron event 'do_pings' in 0.815s.
+Success: Executed a total of 1 cron event.
+mã thoát: 0
+[2026-11-20 01:10:08] (mã thoát 0)
+
+[2026-11-20 01:10:08] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp cron event run --due-now --quiet --path="/var/www/$1/public"; echo "mã thoát (--quiet): $?" _ m9a.example.com tp_m9a_example_com_c2b3ff
+mã thoát (--quiet): 0
+[2026-11-20 01:10:08] (mã thoát 0)
+
+
+######## [2026-11-20 01:10:08] C: e2e bước 10: dấu trước backup
+
+[2026-11-20 01:10:08] $ scripts/vm.sh root bash -c printf "%s\n" "$3" | runuser -u "$2" -- tee "/var/www/$1/public/e2e-m9.txt" >/dev/null && chmod 640 "/var/www/$1/public/e2e-m9.txt" && stat -c "%a %U:%G %n" "/var/www/$1/public/e2e-m9.txt" _ m9a.example.com tp_m9a_example_com_c2b3ff e2e-m9-truoc-backup-1795111808
+640 tp_m9a_example_com_c2b3ff:www-data /var/www/m9a.example.com/public/e2e-m9.txt
+[2026-11-20 01:10:08] (mã thoát 0)
+  => ĐẠT: ghi file dấu (user của site, 640)
+
+[2026-11-20 01:10:08] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp post update 1 --post_title="e2e-m9 tieu de luc backup" --path="/var/www/$1/public" && runuser -u "$2" -- wp post get 1 --field=post_title --path="/var/www/$1/public" _ m9a.example.com tp_m9a_example_com_c2b3ff
+Success: Updated post 1.
+e2e-m9 tieu de luc backup
+[2026-11-20 01:10:09] (mã thoát 0)
+  => ĐẠT: đặt tiêu đề bài 1
+
+[2026-11-20 01:10:09] $ scripts/vm.sh root bash -c 
+cd "$1" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-64
+find . -type f | wc -l
+ _ /var/www/m9a.example.com/public
+7861874386f6cae5ef119d33ba5dfab364764a973b909feadb94b1e8093090fd
+3785
+[2026-11-20 01:10:09] (mã thoát 0)
+
+[2026-11-20 01:10:09] $ scripts/vm.sh root bash -c 
+cd "$1" && find . -printf "%m %u:%g %y %p\n" | sort | sha256sum | cut -c1-64
+find . -printf "%m %u:%g %y\n" | sort | uniq -c
+ _ /var/www/m9a.example.com/public
+29d2514bbbee5c9cbfcc61693e070fabebc5791efc92e3c7b1018731b1184740
+    471 2750 tp_m9a_example_com_c2b3ff:www-data d
+      1 600 tp_m9a_example_com_c2b3ff:www-data f
+   3784 640 tp_m9a_example_com_c2b3ff:www-data f
+[2026-11-20 01:10:09] (mã thoát 0)
+
+[2026-11-20 01:10:09] $ scripts/vm.sh root bash -c 
+pub=$1; u=$2
+echo "sai chủ: $(find "$pub" \( ! -user "$u" -o ! -group www-data \) | tee /tmp/e2e-perm1 | wc -l)"; head -5 /tmp/e2e-perm1
+echo "thư mục khác 2750: $(find "$pub" -type d ! -perm 2750 | tee /tmp/e2e-perm2 | wc -l)"; head -5 /tmp/e2e-perm2
+echo "file khác 640 (trừ wp-config.php): $(find "$pub" -type f ! -path "$pub/wp-config.php" ! -perm 640 | tee /tmp/e2e-perm3 | wc -l)"; head -5 /tmp/e2e-perm3
+echo "symlink: $(find "$pub" -type l | wc -l)"
+stat -c "wp-config.php %a %U:%G" "$pub/wp-config.php"
+rm -f /tmp/e2e-perm1 /tmp/e2e-perm2 /tmp/e2e-perm3
+ _ /var/www/m9a.example.com/public tp_m9a_example_com_c2b3ff
+sai chủ: 0
+thư mục khác 2750: 0
+file khác 640 (trừ wp-config.php): 0
+symlink: 0
+wp-config.php 600 tp_m9a_example_com_c2b3ff:www-data
+[2026-11-20 01:10:09] (mã thoát 0)
+  => ĐẠT: trước backup: quyền và chủ đúng mục 5 (đối chứng)
+
+
+######## [2026-11-20 01:10:09] C: tpan backup create m9a.example.com --yes
+
+[2026-11-20 01:10:09] $ scripts/vm.sh root tpan backup create m9a.example.com --yes
+Bắt đầu job 92e9527a3c4ccba1
+- Backup site m9a.example.com vào /var/lib/tpan/backups/m9a.example.com ...
+  xong
+
+Job 92e9527a3c4ccba1: thành công
+[2026-11-20 01:10:12] (mã thoát 0)
+  => ĐẠT: backup create thoát 0, job thành công
+
+[2026-11-20 01:10:12] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n, size = c.execute("SELECT COUNT(*), COALESCE(SUM(LENGTH(message)), 0) FROM job_events WHERE job_id = ?", (j[0],)).fetchone()
+print("số sự kiện của job:", n, "| tổng cỡ message:", size, "byte")
+for kind, cnt in c.execute("SELECT kind, COUNT(*) FROM job_events WHERE job_id = ? GROUP BY kind ORDER BY kind", (j[0],)):
+    print("  sự kiện", kind, cnt)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ backup.create
+số job trong tpan.db: 4
+job backup.create 92e9527a3c4ccba1 succeeded | target: m9a.example.com
+bắt đầu: 2026-11-19T18:10:09.849411505Z | xong: 2026-11-19T18:10:12.320728250Z
+thời gian job: 2.5 giây
+số sự kiện của job: 18 | tổng cỡ message: 1194 byte
+  sự kiện command 8
+  sự kiện job.done 1
+  sự kiện job.start 1
+  sự kiện output 6
+  sự kiện step.done 1
+  sự kiện step.start 1
+  command backup.create:m9a.example.com du -sb --one-file-system -- /var/www/m9a.example.com/public
+  command backup.create:m9a.example.com mariadb -N -B
+  command backup.create:m9a.example.com mariadb-dump --single-transaction --quick --result-file=/var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181009/db.sql tp_m9a_example_com_c2b3ff
+  command backup.create:m9a.example.com tail -n 1 -- /var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181009/db.sql
+  command backup.create:m9a.example.com sha256sum -- /var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181009/db.sql
+  command backup.create:m9a.example.com runuser -u tp_m9a_example_com_c2b3ff -- wp core version --path=/var/www/m9a.example.com/public
+  command backup.create:m9a.example.com tar --create --gzip --file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz.part --one-file-system --directory=/var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181009 manifest.json db.sql --directory=/var/www/m9a.example.com public
+  command backup.create:m9a.example.com sha256sum -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+[2026-11-20 01:10:12] (mã thoát 0)
+
+[2026-11-20 01:10:12] $ scripts/vm.sh root tpan backup list m9a.example.com --json
+[
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:10:12] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  => ĐẠT: có đúng 1 bản full manual của m9a.example.com
+
+[2026-11-20 01:10:12] $ scripts/vm.sh root bash -c sha256sum "$1"; stat -c "%a %U:%G %s %n" "$1" "$(dirname "$1")" /var/lib/tpan/backups; tar -tzf "$1" | grep -vE "^public/." ; echo "số mục trong tar: $(tar -tzf "$1" | wc -l)"; tar -xOzf "$1" manifest.json _ /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9  /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+600 root:root 35623370 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+700 root:root 4096 /var/lib/tpan/backups/m9a.example.com
+700 root:root 4096 /var/lib/tpan/backups
+manifest.json
+db.sql
+public/
+số mục trong tar: 4258
+{
+  "domain": "m9a.example.com",
+  "wp_version": "7.1.5",
+  "php_version": "8.3",
+  "created": "2026-11-19T18:10:09Z",
+  "db_sha256": "9f82cdcf5e92ba8b4b275dbcc3eb3e65f0f362e5de04a98d7a661eb7c8da9b8f"
+}
+[2026-11-20 01:10:14] (mã thoát 0)
+  => ĐẠT: sha256sum file backup khớp backup list --json
+  => ĐẠT: file backup 0600 root, thư mục 0700 root
+  => ĐẠT: tar có manifest.json, db.sql, public/
+
+
+######## [2026-11-20 01:10:14] C: sửa nội dung sau backup (file và DB)
+
+[2026-11-20 01:10:14] $ scripts/vm.sh root bash -c printf "%s\n" "$3" | runuser -u "$2" -- tee "/var/www/$1/public/e2e-m9.txt" >/dev/null; printf "moi\n" | runuser -u "$2" -- tee "/var/www/$1/public/e2e-m9-moi.txt" >/dev/null; cd / && runuser -u "$2" -- wp post update 1 --post_title="e2e-m9 tieu de da sua" --path="/var/www/$1/public" _ m9a.example.com tp_m9a_example_com_c2b3ff e2e-m9-sau-backup-1795111808
+Success: Updated post 1.
+[2026-11-20 01:10:14] (mã thoát 0)
+
+[2026-11-20 01:10:14] $ scripts/vm.sh exec curl -sS -m 20 --resolve m9a.example.com:80:127.0.0.1 http://m9a.example.com/e2e-m9.txt
+e2e-m9-sau-backup-1795111808
+[2026-11-20 01:10:14] (mã thoát 0)
+  => ĐẠT: site đang trả nội dung đã sửa
+
+[2026-11-20 01:10:14] $ scripts/vm.sh root mariadb -N -B tp_m9a_example_com_c2b3ff -e SELECT post_title FROM wp_posts WHERE ID = 1
+e2e-m9 tieu de da sua
+[2026-11-20 01:10:14] (mã thoát 0)
+  => ĐẠT: DB đang có tiêu đề đã sửa
+
+
+######## [2026-11-20 01:10:14] C: tpan backup restore m9a.example.com --yes
+
+[2026-11-20 01:10:14] $ scripts/vm.sh root tpan backup restore m9a.example.com --dry-run
+Kế hoạch: Khôi phục site m9a.example.com từ bản backup 72e54e57aedafcc6
+6 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 3 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Backup site m9a.example.com vào /var/lib/tpan/backups/m9a.example.com  (backup.create:m9a.example.com)
+    Vì sao: Một file gồm toàn bộ mã nguồn, file tải lên và DB của site, kèm sha256 để biết file còn nguyên. Không có nó thì lỗi, xoá nhầm hay nâng cấp hỏng không còn đường lùi.
+    $ du -sb --one-file-system -- /var/www/m9a.example.com/public
+    $ mariadb -N -B  (stdin: SELECT COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH), 0) FROM information_schema.TABLES WHERE TABLE_SCHEMA='tp_m9a_example_com_c2b3ff';)
+    $ mariadb-dump --single-transaction --quick '--result-file=/var/lib/tpan/backups/m9a.example.com/.tmp-<giờ lúc chạy>/db.sql' tp_m9a_example_com_c2b3ff
+    $ runuser -u tp_m9a_example_com_c2b3ff -- wp core version --path=/var/www/m9a.example.com/public
+    $ tar --create --gzip '--file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-<giờ lúc chạy>.tar.gz.part' --one-file-system '--directory=/var/lib/tpan/backups/m9a.example.com/.tmp-<giờ lúc chạy>' manifest.json db.sql --directory=/var/www/m9a.example.com public
+    $ sha256sum -- '/var/lib/tpan/backups/m9a.example.com/m9a.example.com-<giờ lúc chạy>.tar.gz'
+ 2. [sẽ chạy] Giải nén /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz vào /var/lib/tpan/restore/m9a_example_com_c2b3ff  (backup.extract:m9a.example.com)
+    Vì sao: Giải nén ra một thư mục riêng chỉ root vào được, kiểm và đặt lại chủ, quyền ở đó, rồi mới tráo vào site. Giải nén thẳng đè lên site đang chạy thì lỗi giữa chừng để lại một site nửa cũ nửa mới, và file lạ trong backup có thể ghi ra ngoài site.
+    $ sha256sum -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+    $ tar --list --verbose --gzip --file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+    $ tar --extract --gzip --file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz --directory=/var/lib/tpan/restore/m9a_example_com_c2b3ff --no-same-owner --no-same-permissions
+    $ chown -R -h tp_m9a_example_com_c2b3ff:www-data -- /var/lib/tpan/restore/m9a_example_com_c2b3ff/public
+    $ find -P /var/lib/tpan/restore/m9a_example_com_c2b3ff/public -type d -exec chmod 2750 '{}' +
+    $ find -P /var/lib/tpan/restore/m9a_example_com_c2b3ff/public -type f -exec chmod 0640 '{}' +
+ 3. [sẽ chạy] Cất mã nguồn hiện tại của m9a.example.com sang /var/lib/tpan/restore/m9a_example_com_c2b3ff/old-public  (dir.move:/var/www/m9a.example.com/public)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đổi tên, không xoá: kiểm chứng sau khôi phục mà lỗi thì engine chuyển nó về chỗ cũ. Thư mục này chỉ bị xoá khi job đã thành công.
+ 4. [sẽ chạy] Đưa mã nguồn từ bản backup vào /var/www/m9a.example.com/public  (dir.move:/var/lib/tpan/restore/m9a_example_com_c2b3ff/public)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Một lần đổi tên trên cùng phân vùng: site không bao giờ nằm ở trạng thái nửa cũ nửa mới.
+ 5. [sẽ chạy] Xuất DB tp_m9a_example_com_c2b3ff ra /var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql  (mariadb.dump:/var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql)
+    Vì sao: Bản xuất này là đường lùi của DB: nhập lại nó là DB về đúng lúc xuất. Bỏ bước này thì thao tác tiếp theo (nhập, khôi phục) ghi đè DB mà không còn bản cũ để trả về. File chỉ root đọc được vì có toàn bộ dữ liệu của site.
+    $ mariadb -N -B  (stdin: SELECT COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH), 0) FROM information_schema.TABLES WHERE TABLE_SCHEMA='tp_m9a_example_com_c2b3ff';)
+    $ mariadb-dump --single-transaction --quick --result-file=/var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql tp_m9a_example_com_c2b3ff
+    $ tail -n 1 -- /var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql
+    Ghi chú hoàn tác: Không hoàn tác: file xuất được giữ lại vì nó là đường lùi (hoặc chính là bản người dùng muốn xuất).
+ 6. [sẽ chạy] Nhập /var/lib/tpan/restore/m9a_example_com_c2b3ff/db.sql vào DB tp_m9a_example_com_c2b3ff  (db.import:m9a.example.com)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đưa DB của site về đúng nội dung của bản xuất. DB được xoá và tạo lại trước, để không còn bảng nào ngoài các bảng trong file. Hoàn tác là nhập lại /var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql, bản xuất ngay trước bước này.
+    $ mariadb -N -B  (stdin: DROP DATABASE IF EXISTS `tp_m9a_example_com_c2b3ff`;
+CREATE DATABASE `tp_m9a_example_com_c2b3ff` CHARACTER SET utf8mb4;)
+    $ mariadb --database=tp_m9a_example_com_c2b3ff --abort-source-on-error -e 'source /var/lib/tpan/restore/m9a_example_com_c2b3ff/db.sql'
+[2026-11-20 01:10:14] (mã thoát 0)
+  => ĐẠT: restore --dry-run thoát 0
+
+[2026-11-20 01:10:14] $ scripts/vm.sh root tpan backup restore m9a.example.com --yes
+Bắt đầu job 65d43af7b44f3406
+- Backup site m9a.example.com vào /var/lib/tpan/backups/m9a.example.com ...
+  xong
+- Giải nén /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz vào /var/lib/tpan/restore/m9a_example_com_c2b3ff ...
+  xong
+- Cất mã nguồn hiện tại của m9a.example.com sang /var/lib/tpan/restore/m9a_example_com_c2b3ff/old-public ...
+  xong
+- Đưa mã nguồn từ bản backup vào /var/www/m9a.example.com/public ...
+  xong
+- Xuất DB tp_m9a_example_com_c2b3ff ra /var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql ...
+  xong
+- Nhập /var/lib/tpan/restore/m9a_example_com_c2b3ff/db.sql vào DB tp_m9a_example_com_c2b3ff ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Site m9a.example.com không đọc được wp-config.php của site m9b.example.com
+  [đạt] Site m9b.example.com không đọc được wp-config.php của site m9a.example.com
+
+Job 65d43af7b44f3406: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_m9a_example_com_c2b3ff
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_m9a_example_com_c2b3ff
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của m9a.example.com
+  [đạt] Site m9a.example.com không đọc được wp-config.php của site m9b.example.com: Bị từ chối như mong đợi: tp_m9a_example_com_c2b3ff không đọc được wp-config.php của m9b.example.com
+  [đạt] Site m9b.example.com không đọc được wp-config.php của site m9a.example.com: Bị từ chối như mong đợi: tp_m9b_example_com_36b746 không đọc được wp-config.php của m9a.example.com
+[2026-11-20 01:10:22] (mã thoát 0)
+  => ĐẠT: backup restore thoát 0, job thành công
+
+[2026-11-20 01:10:22] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n, size = c.execute("SELECT COUNT(*), COALESCE(SUM(LENGTH(message)), 0) FROM job_events WHERE job_id = ?", (j[0],)).fetchone()
+print("số sự kiện của job:", n, "| tổng cỡ message:", size, "byte")
+for kind, cnt in c.execute("SELECT kind, COUNT(*) FROM job_events WHERE job_id = ? GROUP BY kind ORDER BY kind", (j[0],)):
+    print("  sự kiện", kind, cnt)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ backup.restore
+số job trong tpan.db: 5
+job backup.restore 65d43af7b44f3406 succeeded | target: m9a.example.com
+bắt đầu: 2026-11-19T18:10:15.008935090Z | xong: 2026-11-19T18:10:22.856601394Z
+thời gian job: 7.8 giây
+số sự kiện của job: 4314 | tổng cỡ message: 523808 byte
+  sự kiện check 8
+  sự kiện command 22
+  sự kiện job.done 1
+  sự kiện job.start 1
+  sự kiện output 4270
+  sự kiện step.done 6
+  sự kiện step.start 6
+  command backup.create:m9a.example.com du -sb --one-file-system -- /var/www/m9a.example.com/public
+  command backup.create:m9a.example.com mariadb -N -B
+  command backup.create:m9a.example.com mariadb-dump --single-transaction --quick --result-file=/var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181015/db.sql tp_m9a_example_com_c2b3ff
+  command backup.create:m9a.example.com tail -n 1 -- /var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181015/db.sql
+  command backup.create:m9a.example.com sha256sum -- /var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181015/db.sql
+  command backup.create:m9a.example.com runuser -u tp_m9a_example_com_c2b3ff -- wp core version --path=/var/www/m9a.example.com/public
+  command backup.create:m9a.example.com tar --create --gzip --file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz.part --one-file-system --directory=/var/lib/tpan/backups/m9a.example.com/.tmp-20261119-181015 manifest.json db.sql --directory=/var/www/m9a.example.com public
+  command backup.create:m9a.example.com sha256sum -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+  command backup.extract:m9a.example.com sha256sum -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  command backup.extract:m9a.example.com tar --list --verbose --gzip --file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  command backup.extract:m9a.example.com tar --extract --gzip --file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz --directory=/var/lib/tpan/restore/m9a_example_com_c2b3ff --no-same-owner --no-same-permissions
+  command backup.extract:m9a.example.com chown -R -h tp_m9a_example_com_c2b3ff:www-data -- /var/lib/tpan/restore/m9a_example_com_c2b3ff/public
+  command backup.extract:m9a.example.com find -P /var/lib/tpan/restore/m9a_example_com_c2b3ff/public -type d -exec chmod 2750 '{}' +
+  command backup.extract:m9a.example.com find -P /var/lib/tpan/restore/m9a_example_com_c2b3ff/public -type f -exec chmod 0640 '{}' +
+  command mariadb.dump:/var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql mariadb -N -B
+  command mariadb.dump:/var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql mariadb-dump --single-transaction --quick --result-file=/var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql tp_m9a_example_com_c2b3ff
+  command mariadb.dump:/var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql tail -n 1 -- /var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql
+  command mariadb.dump:/var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql tail -n 1 -- /var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql
+  command db.import:m9a.example.com tail -n 1 -- /var/lib/tpan/restore/m9a_example_com_c2b3ff/db-before.sql
+  command db.import:m9a.example.com tail -n 1 -- /var/lib/tpan/restore/m9a_example_com_c2b3ff/db.sql
+  command db.import:m9a.example.com mariadb -N -B
+  command db.import:m9a.example.com mariadb --database=tp_m9a_example_com_c2b3ff --abort-source-on-error -e 'source /var/lib/tpan/restore/m9a_example_com_c2b3ff/db.sql'
+[2026-11-20 01:10:23] (mã thoát 0)
+(mục 16 / M9.md) số sự kiện của job khôi phục ở trên: tar -tzvf đẩy mỗi file một dòng vào log job
+
+[2026-11-20 01:10:23] $ scripts/vm.sh exec curl -sS -m 20 --resolve m9a.example.com:80:127.0.0.1 http://m9a.example.com/e2e-m9.txt
+e2e-m9-truoc-backup-1795111808
+[2026-11-20 01:10:23] (mã thoát 0)
+  => ĐẠT: file về như lúc backup (qua HTTP)
+
+[2026-11-20 01:10:23] $ scripts/vm.sh exec curl -sS -m 20 -o /dev/null -w %{http_code}\n --resolve m9a.example.com:80:127.0.0.1 http://m9a.example.com/e2e-m9-moi.txt
+404
+[2026-11-20 01:10:23] (mã thoát 0)
+  => ĐẠT: file tạo sau backup không còn (404)
+
+[2026-11-20 01:10:23] $ scripts/vm.sh root mariadb -N -B tp_m9a_example_com_c2b3ff -e SELECT post_title FROM wp_posts WHERE ID = 1
+e2e-m9 tieu de luc backup
+[2026-11-20 01:10:23] (mã thoát 0)
+  => ĐẠT: DB về như lúc backup (tiêu đề bài 1)
+
+[2026-11-20 01:10:23] $ scripts/vm.sh root bash -c 
+cd "$1" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-64
+find . -type f | wc -l
+ _ /var/www/m9a.example.com/public
+7861874386f6cae5ef119d33ba5dfab364764a973b909feadb94b1e8093090fd
+3785
+[2026-11-20 01:10:23] (mã thoát 0)
+  => ĐẠT: cây public giống hệt lúc backup (sha256 từng file)
+
+[2026-11-20 01:10:23] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  echo "$d curl=$rc http=$code $title"
+done
+ _ m9a.example.com
+m9a.example.com curl=0 http=200 <title>m9a.example.com</title>
+[2026-11-20 01:10:23] (mã thoát 0)
+  => ĐẠT: m9a.example.com trả 200
+
+[2026-11-20 01:10:23] $ scripts/vm.sh root tpan backup list m9a.example.com --json
+[
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:10:23] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  => ĐẠT: bản backup cũ còn, sha256 vẫn vậy
+  => ĐẠT: có thêm bản before-restore (full)
+
+[2026-11-20 01:10:23] $ scripts/vm.sh root bash -c ls -la "$1"; sha256sum "$1"; echo "== /var/lib/tpan/restore"; ls -la /var/lib/tpan/restore 2>&1; ls -d "/var/lib/tpan/restore/$2" 2>&1 _ /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz m9a_example_com_c2b3ff
+-rw------- 1 root root 35623765 Nov 20 01:10 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c  /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+== /var/lib/tpan/restore
+total 8
+drwx------ 2 root root 4096 Nov 20 01:10 .
+drwxr-xr-x 5 root root 4096 Nov 20 01:10 ..
+ls: cannot access '/var/lib/tpan/restore/m9a_example_com_c2b3ff': No such file or directory
+[2026-11-20 01:10:23] (mã thoát 2)
+  => ĐẠT: file before-restore có, sha256 khớp
+  => ĐẠT: RestoreDir /var/lib/tpan/restore/m9a_example_com_c2b3ff đã được gỡ
+
+[2026-11-20 01:10:23] $ scripts/vm.sh root bash -c 
+pub=$1; u=$2
+echo "sai chủ: $(find "$pub" \( ! -user "$u" -o ! -group www-data \) | tee /tmp/e2e-perm1 | wc -l)"; head -5 /tmp/e2e-perm1
+echo "thư mục khác 2750: $(find "$pub" -type d ! -perm 2750 | tee /tmp/e2e-perm2 | wc -l)"; head -5 /tmp/e2e-perm2
+echo "file khác 640 (trừ wp-config.php): $(find "$pub" -type f ! -path "$pub/wp-config.php" ! -perm 640 | tee /tmp/e2e-perm3 | wc -l)"; head -5 /tmp/e2e-perm3
+echo "symlink: $(find "$pub" -type l | wc -l)"
+stat -c "wp-config.php %a %U:%G" "$pub/wp-config.php"
+rm -f /tmp/e2e-perm1 /tmp/e2e-perm2 /tmp/e2e-perm3
+ _ /var/www/m9a.example.com/public tp_m9a_example_com_c2b3ff
+sai chủ: 1
+/var/www/m9a.example.com/public/wp-config.php
+thư mục khác 2750: 0
+file khác 640 (trừ wp-config.php): 0
+symlink: 0
+wp-config.php 600 tp_m9a_example_com_c2b3ff:tp_m9a_example_com_c2b3ff
+[2026-11-20 01:10:24] (mã thoát 0)
+  => KHÔNG ĐẠT: sau khôi phục: chủ tp_m9a_example_com_c2b3ff:www-data, thư mục 2750, file 640, wp-config.php 600
+
+[2026-11-20 01:10:24] $ scripts/vm.sh root bash -c 
+cd "$1" && find . -printf "%m %u:%g %y %p\n" | sort | sha256sum | cut -c1-64
+find . -printf "%m %u:%g %y\n" | sort | uniq -c
+ _ /var/www/m9a.example.com/public
+07b687425585e8785805795851c5c72c47132440d0cbd192aa432e23ba4c9c06
+    471 2750 tp_m9a_example_com_c2b3ff:www-data d
+      1 600 tp_m9a_example_com_c2b3ff:tp_m9a_example_com_c2b3ff f
+   3784 640 tp_m9a_example_com_c2b3ff:www-data f
+[2026-11-20 01:10:24] (mã thoát 0)
+  => KHÔNG ĐẠT: quyền và chủ từng mục giống hệt lúc trước backup
+
+[2026-11-20 01:10:24] $ scripts/vm.sh root bash -c stat -c "%a %U:%G %n" "/var/www/$1" "/var/www/$1/public" _ m9a.example.com
+2750 tp_m9a_example_com_c2b3ff:www-data /var/www/m9a.example.com
+2750 tp_m9a_example_com_c2b3ff:www-data /var/www/m9a.example.com/public
+[2026-11-20 01:10:24] (mã thoát 0)
+
+
+######## [2026-11-20 01:10:24] D: chặn đầy đĩa
+
+[2026-11-20 01:10:24] $ scripts/vm.sh root bash -c df -B1 --output=size,avail,pcent /; ls -la "/var/lib/tpan/backups/$1"; find /var/lib/tpan/backups /var/lib/tpan/restore -name "*.part" 2>/dev/null | wc -l _ m9a.example.com
+  1B-blocks       Avail Use%
+19682557952 16674529280  16%
+total 69592
+drwx------ 2 root root     4096 Nov 20 01:10 .
+drwx------ 3 root root     4096 Nov 20 01:10 ..
+-rw------- 1 root root 35623370 Nov 20 01:10 m9a.example.com-20261119-181009.tar.gz
+-rw------- 1 root root 35623765 Nov 20 01:10 m9a.example.com-20261119-181015.tar.gz
+0
+[2026-11-20 01:10:24] (mã thoát 0)
+
+[2026-11-20 01:10:24] $ scripts/vm.sh root tpan backup list m9a.example.com --json
+[
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:10:24] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+
+[2026-11-20 01:10:24] $ scripts/faults/06-disk-full.sh break
+Đã tạo /var/tmp/tpan-fault-fill (14903094969 byte).
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        19G   17G  1.7G  91% /
+Mong đợi Fail: disk.usage:/ (không có sửa tự động; nhớ chạy restore)
+Xem kết quả: scripts/vm.sh root tpan health
+Sửa tự động: scripts/vm.sh root tpan health --fix --yes
+[2026-11-20 01:10:25] (mã thoát 0)
+  => ĐẠT: lấp đĩa tới khoảng 91%
+
+[2026-11-20 01:10:25] $ scripts/vm.sh root tpan backup create m9a.example.com --yes --json
+{
+  "error": {
+    "code": "disk_space_low",
+    "message": {
+      "vi": "không đủ chỗ trống để backup m9a.example.com: cần khoảng 105.8 MiB (mã nguồn và DB của site), đĩa còn trống 1.6 GiB trên tổng 18.3 GiB. Luật: chỗ trống phải ít nhất gấp 1,2 lần chỗ cần và sau khi ghi vẫn còn 10% đĩa. Xem bản cũ bằng: sudo tpan backup list m9a.example.com, và xem đĩa bằng: df -h /var/lib/tpan/backups",
+      "en": "not enough free space to back up m9a.example.com: needs about 105.8 MiB (the site's code and database), the disk has 1.6 GiB free of 18.3 GiB. Rule: free space must be at least 1.2 times what is needed and 10% of the disk must stay free afterwards. See old copies with: sudo tpan backup list m9a.example.com, and check the disk with: df -h /var/lib/tpan/backups"
+    }
+  }
+}
+[2026-11-20 01:10:25] (mã thoát 1)
+  => ĐẠT: backup create bị từ chối disk_space_low
+
+[2026-11-20 01:10:25] $ scripts/vm.sh root tpan backup create m9a.example.com --yes
+Từ chối: không đủ chỗ trống để backup m9a.example.com: cần khoảng 105.8 MiB (mã nguồn và DB của site), đĩa còn trống 1.6 GiB trên tổng 18.3 GiB. Luật: chỗ trống phải ít nhất gấp 1,2 lần chỗ cần và sau khi ghi vẫn còn 10% đĩa. Xem bản cũ bằng: sudo tpan backup list m9a.example.com, và xem đĩa bằng: df -h /var/lib/tpan/backups
+[2026-11-20 01:10:25] (mã thoát 1)
+  => ĐẠT: lời từ chối dạng chữ nói luật 1,2 lần và 10%
+
+[2026-11-20 01:10:25] $ scripts/vm.sh root tpan db dump m9a.example.com --yes --json
+{
+  "error": {
+    "code": "disk_space_low",
+    "message": {
+      "vi": "không đủ chỗ trống để xuất DB tp_m9a_example_com_c2b3ff: cần khoảng 752.0 KiB, đĩa còn trống 1.6 GiB trên tổng 18.3 GiB. Luật: chỗ trống phải ít nhất gấp 1,2 lần cỡ bản xuất và sau khi ghi vẫn còn 10% đĩa. Dọn bớt bằng: sudo tpan backup list m9a.example.com rồi xoá bản cũ, hoặc xem: df -h /var/lib/tpan/backups",
+      "en": "not enough free space to dump database tp_m9a_example_com_c2b3ff: needs about 752.0 KiB, the disk has 1.6 GiB free of 18.3 GiB. Rule: free space must be at least 1.2 times the dump and 10% of the disk must stay free afterwards. Free some up with: sudo tpan backup list m9a.example.com and delete old copies, or check: df -h /var/lib/tpan/backups"
+    }
+  }
+}
+[2026-11-20 01:10:25] (mã thoát 1)
+  => ĐẠT: xuất DB cũng bị từ chối disk_space_low
+
+[2026-11-20 01:10:25] $ scripts/vm.sh root bash -c ls -la "/var/lib/tpan/backups/$1"; find /var/lib/tpan/backups /var/lib/tpan/restore -name "*.part" 2>/dev/null | wc -l _ m9a.example.com
+total 69592
+drwx------ 2 root root     4096 Nov 20 01:10 .
+drwx------ 3 root root     4096 Nov 20 01:10 ..
+-rw------- 1 root root 35623370 Nov 20 01:10 m9a.example.com-20261119-181009.tar.gz
+-rw------- 1 root root 35623765 Nov 20 01:10 m9a.example.com-20261119-181015.tar.gz
+0
+[2026-11-20 01:10:25] (mã thoát 0)
+  => ĐẠT: không file nào được tạo trong thư mục backup, không .part
+
+[2026-11-20 01:10:25] $ scripts/vm.sh root tpan backup list m9a.example.com --json
+[
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:10:25] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  => ĐẠT: bảng backups không thêm dòng (vẫn 2)
+
+[2026-11-20 01:10:25] $ scripts/faults/06-disk-full.sh restore
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        19G  2.8G   16G  16% /
+Đã xoá /var/tmp/tpan-fault-fill.
+Xem kết quả: scripts/vm.sh root tpan health
+Sửa tự động: scripts/vm.sh root tpan health --fix --yes
+[2026-11-20 01:10:26] (mã thoát 0)
+  => ĐẠT: dọn file lấp đĩa
+
+[2026-11-20 01:10:26] $ scripts/vm.sh root bash -c ls -la /var/tmp/tpan-fault-fill 2>&1; df -h /
+ls: cannot access '/var/tmp/tpan-fault-fill': No such file or directory
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        19G  2.8G   16G  16% /
+[2026-11-20 01:10:26] (mã thoát 0)
+  => ĐẠT: file giả đã xoá
+
+
+######## [2026-11-20 01:10:26] E: đổi mật khẩu DB của m9a.example.com (mục 6.9)
+  => ĐẠT: đọc được mật khẩu DB cũ (32 ký tự, đã che)
+
+[2026-11-20 01:10:26] $ scripts/vm.sh root systemd-run --unit=tpan-e2e-curl bash -c while :; do printf "%s %s\n" "$(date +%s.%N)" "$(curl -s -m 5 -o /dev/null -w "%{http_code}" --resolve "$1:80:127.0.0.1" "http://$1/")" >>/root/e2e-curl.log; sleep 0.1; done _ m9a.example.com
+Running as unit: tpan-e2e-curl.service; invocation ID: 8d217dd6264e4deaae32425050f89d0b
+[2026-11-20 01:10:26] (mã thoát 0)
+
+[2026-11-20 01:10:28] $ scripts/vm.sh root tpan db passwd m9a.example.com --yes
+Bắt đầu job c31a1380ca800dad
+- Đổi mật khẩu user DB tp_m9a_example_com_c2b3ff của site m9a.example.com ...
+  xong
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job c31a1380ca800dad: thành công
+Kiểm chứng:
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_m9a_example_com_c2b3ff
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của m9a.example.com
+[2026-11-20 01:10:29] (mã thoát 0)
+  => ĐẠT: db passwd thoát 0, job thành công
+  => ĐẠT: mật khẩu mới đọc được, 32 ký tự, khác mật khẩu cũ
+  => ĐẠT: mật khẩu mới không có trong output của lệnh
+site m9a.example.com sau đổi mật khẩu: 200 (lần thử 1)
+  => ĐẠT: m9a.example.com trả 200 sau đổi mật khẩu
+
+[2026-11-20 01:10:32] $ scripts/vm.sh root systemctl stop tpan-e2e-curl
+[2026-11-20 01:10:32] (mã thoát 0)
+
+[2026-11-20 01:10:32] $ scripts/vm.sh root bash -c echo "số request: $(wc -l </root/e2e-curl.log)"; echo "theo mã:"; awk "{print \$2}" /root/e2e-curl.log | sort | uniq -c; echo "các request khác 200 (giờ, mã):"; awk "\$2 != 200" /root/e2e-curl.log | head -20
+số request: 33
+theo mã:
+     31 200
+      2 500
+các request khác 200 (giờ, mã):
+1795111828.698848506 500
+1795111828.879225227 500
+[2026-11-20 01:10:32] (mã thoát 0)
+(mục 16 / M9.md) opcache sau đổi mật khẩu: số request khác 200 trong vòng curl ở trên
+
+[2026-11-20 01:10:32] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n, size = c.execute("SELECT COUNT(*), COALESCE(SUM(LENGTH(message)), 0) FROM job_events WHERE job_id = ?", (j[0],)).fetchone()
+print("số sự kiện của job:", n, "| tổng cỡ message:", size, "byte")
+for kind, cnt in c.execute("SELECT kind, COUNT(*) FROM job_events WHERE job_id = ? GROUP BY kind ORDER BY kind", (j[0],)):
+    print("  sự kiện", kind, cnt)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ db.passwd
+số job trong tpan.db: 6
+job db.passwd c31a1380ca800dad succeeded | target: m9a.example.com
+bắt đầu: 2026-11-19T18:10:28.614598852Z | xong: 2026-11-19T18:10:29.079864363Z
+thời gian job: 0.5 giây
+số sự kiện của job: 8 | tổng cỡ message: 159 byte
+  sự kiện check 2
+  sự kiện command 2
+  sự kiện job.done 1
+  sự kiện job.start 1
+  sự kiện step.done 1
+  sự kiện step.start 1
+  command mariadb.db-password:m9a.example.com mariadb -N -B
+  command mariadb.db-password:m9a.example.com runuser -u tp_m9a_example_com_c2b3ff -- wp config set DB_PASSWORD --prompt --type=constant --quiet --path=/var/www/m9a.example.com/public
+[2026-11-20 01:10:32] (mã thoát 0)
+
+[2026-11-20 01:10:32] $ scripts/vm.sh root bash -c cd / && pw="$(runuser -u "$2" -- wp config get DB_PASSWORD --path="/var/www/$1/public")"; for f in /var/lib/tpan/tpan.db /var/lib/tpan/tpan.db-wal /var/lib/tpan/tpan.db-shm; do if [ -e "$f" ]; then echo "$f: $(grep -caF -- "$pw" "$f") dòng chứa mật khẩu mới"; else echo "$f: không có file"; fi; done; journalctl --no-pager -o cat --since "-10 min" | grep -cF -- "$pw" | sed "s/^/journal: /"; stat -c "%a %U:%G %n" "/var/www/$1/public/wp-config.php"; MYSQL_PWD="$pw" mariadb -u "$2" -N -e "SELECT CURRENT_USER()" _ m9a.example.com tp_m9a_example_com_c2b3ff
+/var/lib/tpan/tpan.db: 0 dòng chứa mật khẩu mới
+/var/lib/tpan/tpan.db-wal: 0 dòng chứa mật khẩu mới
+/var/lib/tpan/tpan.db-shm: 0 dòng chứa mật khẩu mới
+journal: 0
+600 tp_m9a_example_com_c2b3ff:tp_m9a_example_com_c2b3ff /var/www/m9a.example.com/public/wp-config.php
+tp_m9a_example_com_c2b3ff@localhost
+[2026-11-20 01:10:32] (mã thoát 0)
+  => ĐẠT: mật khẩu mới không có trong tpan.db, WAL, SHM, journal
+  => KHÔNG ĐẠT: wp-config.php vẫn 600 tp_m9a_example_com_c2b3ff:www-data
+  => ĐẠT: user DB đăng nhập được bằng mật khẩu mới
+
+
+######## [2026-11-20 01:10:32] E: tpan db dump m9a.example.com --yes, sửa DB, tpan db import
+
+[2026-11-20 01:10:32] $ scripts/vm.sh root tpan db dump m9a.example.com --yes
+Bắt đầu job a2f33d4eb78f40b6
+- Xuất DB tp_m9a_example_com_c2b3ff ra /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql ...
+  xong
+
+Job a2f33d4eb78f40b6: thành công
+[2026-11-20 01:10:33] (mã thoát 0)
+  => ĐẠT: db dump thoát 0, job thành công
+
+[2026-11-20 01:10:33] $ scripts/vm.sh root tpan backup list m9a.example.com --json
+[
+  {
+    "id": "8cb53a3ac647c5f2",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql",
+    "size": 114153,
+    "sha256": "96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f",
+    "job_id": "a2f33d4eb78f40b6",
+    "created": "2026-11-19T18:10:32.98386131Z"
+  },
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:10:33] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+8cb53a3ac647c5f2 m9a.example.com sql manual 114153 96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  => ĐẠT: có 1 bản sql manual
+
+[2026-11-20 01:10:33] $ scripts/vm.sh root bash -c sha256sum "$1"; stat -c "%a %U:%G %n" "$1"; tail -1 "$1" _ /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f  /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+600 root:root /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+-- Dump completed on 2026-11-20  1:10:32
+[2026-11-20 01:10:33] (mã thoát 0)
+  => ĐẠT: file .sql 0600 root, sha256 khớp, dòng cuối Dump completed
+
+[2026-11-20 01:10:33] $ scripts/vm.sh root mariadb -N -B tp_m9a_example_com_c2b3ff -e UPDATE wp_posts SET post_title = 'e2e-m9 sua sau dump' WHERE ID = 1; INSERT INTO wp_options (option_name, option_value, autoload) VALUES ('e2e_m9_sau_dump', '1', 'no'); SELECT post_title FROM wp_posts WHERE ID = 1
+e2e-m9 sua sau dump
+[2026-11-20 01:10:33] (mã thoát 0)
+  => ĐẠT: DB đã sửa sau khi xuất
+
+[2026-11-20 01:10:33] $ scripts/vm.sh root tpan db import m9a.example.com --id 8cb53a3ac647c5f2 --yes
+Bắt đầu job 46a356a69189029a
+- Xuất DB tp_m9a_example_com_c2b3ff ra /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql ...
+  xong
+- Nhập /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql vào DB tp_m9a_example_com_c2b3ff ...
+  xong
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job 46a356a69189029a: thành công
+Kiểm chứng:
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_m9a_example_com_c2b3ff
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của m9a.example.com
+[2026-11-20 01:10:33] (mã thoát 0)
+  => ĐẠT: db import thoát 0, job thành công
+
+[2026-11-20 01:10:33] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n, size = c.execute("SELECT COUNT(*), COALESCE(SUM(LENGTH(message)), 0) FROM job_events WHERE job_id = ?", (j[0],)).fetchone()
+print("số sự kiện của job:", n, "| tổng cỡ message:", size, "byte")
+for kind, cnt in c.execute("SELECT kind, COUNT(*) FROM job_events WHERE job_id = ? GROUP BY kind ORDER BY kind", (j[0],)):
+    print("  sự kiện", kind, cnt)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ db.import
+số job trong tpan.db: 8
+job db.import 46a356a69189029a succeeded | target: m9a.example.com
+bắt đầu: 2026-11-19T18:10:33.451112177Z | xong: 2026-11-19T18:10:33.732388398Z
+thời gian job: 0.3 giây
+số sự kiện của job: 21 | tổng cỡ message: 928 byte
+  sự kiện check 2
+  sự kiện command 8
+  sự kiện job.done 1
+  sự kiện job.start 1
+  sự kiện output 5
+  sự kiện step.done 2
+  sự kiện step.start 2
+  command mariadb.dump:/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql mariadb -N -B
+  command mariadb.dump:/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql mariadb-dump --single-transaction --quick --result-file=/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql tp_m9a_example_com_c2b3ff
+  command mariadb.dump:/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql tail -n 1 -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql
+  command mariadb.dump:/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql tail -n 1 -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql
+  command db.import:m9a.example.com tail -n 1 -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql
+  command db.import:m9a.example.com tail -n 1 -- /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+  command db.import:m9a.example.com mariadb -N -B
+  command db.import:m9a.example.com mariadb --database=tp_m9a_example_com_c2b3ff --abort-source-on-error -e 'source /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql'
+[2026-11-20 01:10:33] (mã thoát 0)
+
+[2026-11-20 01:10:33] $ scripts/vm.sh root mariadb -N -B tp_m9a_example_com_c2b3ff -e SELECT post_title FROM wp_posts WHERE ID = 1; SELECT COUNT(*) FROM wp_options WHERE option_name = 'e2e_m9_sau_dump'
+e2e-m9 tieu de luc backup
+0
+[2026-11-20 01:10:33] (mã thoát 0)
+  => ĐẠT: DB về như lúc xuất (tiêu đề cũ, dòng thêm sau xuất không còn)
+
+[2026-11-20 01:10:33] $ scripts/vm.sh root tpan backup list m9a.example.com --json
+[
+  {
+    "id": "c0eae137bebb0508",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "before-import",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql",
+    "size": 114181,
+    "sha256": "bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002",
+    "job_id": "46a356a69189029a",
+    "created": "2026-11-19T18:10:33.735177397Z"
+  },
+  {
+    "id": "8cb53a3ac647c5f2",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql",
+    "size": 114153,
+    "sha256": "96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f",
+    "job_id": "a2f33d4eb78f40b6",
+    "created": "2026-11-19T18:10:32.98386131Z"
+  },
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:10:34] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+c0eae137bebb0508 m9a.example.com sql before-import 114181 bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql
+8cb53a3ac647c5f2 m9a.example.com sql manual 114153 96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  => ĐẠT: có bản before-import (sql)
+
+[2026-11-20 01:10:34] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  echo "$d curl=$rc http=$code $title"
+done
+ _ m9a.example.com
+m9a.example.com curl=0 http=200 <title>m9a.example.com</title>
+[2026-11-20 01:10:34] (mã thoát 0)
+  => ĐẠT: m9a.example.com trả 200 sau nhập
+
+
+######## [2026-11-20 01:10:34] F: thùng rác: tpan site rm m9b.example.com --yes
+
+[2026-11-20 01:10:34] $ scripts/vm.sh root ls -la /etc/cron.d/tpan-m9b_example_com_36b746
+-rw-r--r-- 1 root root 1293 Nov 20 01:03 /etc/cron.d/tpan-m9b_example_com_36b746
+[2026-11-20 01:10:34] (mã thoát 0)
+  => ĐẠT: trước khi xoá: file cron của m9b.example.com có
+
+[2026-11-20 01:10:34] $ scripts/vm.sh root tpan site rm m9b.example.com --yes
+Bắt đầu job 99d90dbe6b6d812e
+- Tắt vhost của m9b.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-m9b_example_com_36b746 ...
+  xong
+- Khoá user DB tp_m9b_example_com_36b746 của site m9b.example.com ...
+  xong
+- Khoá user Linux tp_m9b_example_com_36b746 của m9b.example.com ...
+  xong
+- Gỡ lịch cron WordPress của m9b.example.com ...
+  xong
+- Chuyển thư mục của m9b.example.com vào thùng rác ...
+  xong
+  [đạt] Domain m9b.example.com không còn được phục vụ
+
+Job 99d90dbe6b6d812e: thành công
+Kiểm chứng:
+  [đạt] Domain m9b.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 52, HTTP 000)
+Site m9b.example.com đã vào thùng rác; xoá hẳn lúc 2026-11-27 01:10. Khôi phục: sudo tpan site restore m9b.example.com
+[2026-11-20 01:10:34] (mã thoát 0)
+  => ĐẠT: site rm thoát 0, job thành công
+
+[2026-11-20 01:10:34] $ scripts/vm.sh root ls -la /etc/cron.d/tpan-m9b_example_com_36b746
+ls: cannot access '/etc/cron.d/tpan-m9b_example_com_36b746': No such file or directory
+[2026-11-20 01:10:34] (mã thoát 2)
+  => ĐẠT: file cron của m9b.example.com đã gỡ
+
+[2026-11-20 01:10:34] $ scripts/vm.sh root tpan cron run m9b.example.com
+[2026-11-20 01:10:34] (mã thoát 0)
+  => ĐẠT: tpan cron run m9b.example.com thoát 0, không in gì
+
+[2026-11-20 01:10:34] $ scripts/vm.sh root tpan cron list --json
+{
+  "sites": [
+    {
+      "domain": "m9a.example.com",
+      "file": "/etc/cron.d/tpan-m9a_example_com_c2b3ff",
+      "schedule": "*/5 * * * *",
+      "command": "/usr/local/bin/tpan cron run m9a.example.com",
+      "enabled": true,
+      "last": {
+        "domain": "m9a.example.com",
+        "started": "2026-11-19T18:10:01.640334399Z",
+        "duration_ns": 199000000,
+        "status": "ok",
+        "exit_code": 0,
+        "output": ""
+      }
+    },
+    {
+      "domain": "m9b.example.com",
+      "file": "/etc/cron.d/tpan-m9b_example_com_36b746",
+      "schedule": "*/5 * * * *",
+      "command": "/usr/local/bin/tpan cron run m9b.example.com",
+      "enabled": false,
+      "last": {
+        "domain": "m9b.example.com",
+        "started": "2026-11-19T18:10:34.87878266Z",
+        "duration_ns": 0,
+        "status": "skipped",
+        "exit_code": 0,
+        "output": "site m9b.example.com không active (trashed), bỏ qua"
+      }
+    }
+  ],
+  "backup": {
+    "keep": 3,
+    "at": ""
+  }
+}
+[2026-11-20 01:10:35] (mã thoát 0)
+  => ĐẠT: cron list: m9b.example.com tắt, lần chạy gần nhất skipped
+
+[2026-11-20 01:10:35] $ scripts/vm.sh root tpan backup create m9b.example.com --yes
+Bắt đầu job f275344014b8a88c
+- Backup site m9b.example.com vào /var/lib/tpan/backups/m9b.example.com ...
+  xong
+
+Job f275344014b8a88c: thành công
+[2026-11-20 01:10:37] (mã thoát 0)
+  => ĐẠT: backup create m9b.example.com (nguồn là thùng rác) thoát 0, job thành công
+
+[2026-11-20 01:10:37] $ scripts/vm.sh root tpan backup list m9b.example.com --json
+[
+  {
+    "id": "17e63ca7c0124506",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz",
+    "size": 35623269,
+    "sha256": "fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743",
+    "php_version": "8.3",
+    "job_id": "f275344014b8a88c",
+    "created": "2026-11-19T18:10:37.555200824Z"
+  }
+]
+[2026-11-20 01:10:37] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+17e63ca7c0124506 m9b.example.com full manual 35623269 fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743 /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz
+  => ĐẠT: có bản full manual của m9b.example.com
+
+[2026-11-20 01:10:37] $ scripts/vm.sh root bash -c tar -tzf "$1" | grep -cE "^public/wp-config.php$|^db.sql$" _ /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz
+2
+[2026-11-20 01:10:38] (mã thoát 0)
+  => ĐẠT: bản backup từ thùng rác có wp-config.php và db.sql
+
+
+######## [2026-11-20 01:10:38] F: tpan trash purge m9b.example.com --yes
+
+[2026-11-20 01:10:38] $ scripts/vm.sh root tpan trash purge m9b.example.com --yes
+Bắt đầu job 8536379c594ab2d6
+- Tự backup m9b.example.com trước khi xoá hẳn, vào /var/lib/tpan/backups/m9b.example.com ...
+  xong
+- Tắt vhost của m9b.example.com ...
+  đã đúng, bỏ qua
+- Gỡ file vhost của m9b.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-m9b_example_com_36b746 ...
+  đã đúng, bỏ qua
+- Gỡ lịch cron WordPress của m9b.example.com ...
+  đã đúng, bỏ qua
+- Xoá user DB và DB tp_m9b_example_com_36b746 của site m9b.example.com ...
+  xong
+- Xoá hẳn /var/lib/tpan/trash/m9b_example_com_36b746 và mọi thứ bên trong ...
+  xong
+- Xoá hẳn /var/log/tpan/sites/m9b.example.com và mọi thứ bên trong ...
+  xong
+- Xoá user Linux tp_m9b_example_com_36b746 ...
+  xong
+
+Job 8536379c594ab2d6: thành công
+[2026-11-20 01:10:41] (mã thoát 0)
+  => ĐẠT: trash purge thoát 0, job thành công
+
+[2026-11-20 01:10:41] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n, size = c.execute("SELECT COUNT(*), COALESCE(SUM(LENGTH(message)), 0) FROM job_events WHERE job_id = ?", (j[0],)).fetchone()
+print("số sự kiện của job:", n, "| tổng cỡ message:", size, "byte")
+for kind, cnt in c.execute("SELECT kind, COUNT(*) FROM job_events WHERE job_id = ? GROUP BY kind ORDER BY kind", (j[0],)):
+    print("  sự kiện", kind, cnt)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ site.purge
+số job trong tpan.db: 11
+job site.purge 8536379c594ab2d6 succeeded | target: m9b.example.com
+bắt đầu: 2026-11-19T18:10:38.508195140Z | xong: 2026-11-19T18:10:41.257710932Z
+thời gian job: 2.7 giây
+số sự kiện của job: 65 | tổng cỡ message: 2257 byte
+  sự kiện command 22
+  sự kiện job.done 1
+  sự kiện job.start 1
+  sự kiện output 23
+  sự kiện step.done 6
+  sự kiện step.skip 3
+  sự kiện step.start 9
+  command backup.create:m9b.example.com du -sb --one-file-system -- /var/lib/tpan/trash/m9b_example_com_36b746/public
+  command backup.create:m9b.example.com mariadb -N -B
+  command backup.create:m9b.example.com mariadb-dump --single-transaction --quick --result-file=/var/lib/tpan/backups/m9b.example.com/.tmp-20261119-181038/db.sql tp_m9b_example_com_36b746
+  command backup.create:m9b.example.com tail -n 1 -- /var/lib/tpan/backups/m9b.example.com/.tmp-20261119-181038/db.sql
+  command backup.create:m9b.example.com sha256sum -- /var/lib/tpan/backups/m9b.example.com/.tmp-20261119-181038/db.sql
+  command backup.create:m9b.example.com tar --create --gzip --file=/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz.part --one-file-system --directory=/var/lib/tpan/backups/m9b.example.com/.tmp-20261119-181038 manifest.json db.sql --directory=/var/lib/tpan/trash/m9b_example_com_36b746 public
+  command backup.create:m9b.example.com sha256sum -- /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz
+  command absent:/etc/nginx/sites-available/tpan-m9b.example.com.conf nginx -t
+  command absent:/etc/nginx/sites-available/tpan-m9b.example.com.conf ps -o pid=,args= --ppid 10066
+  command absent:/etc/nginx/sites-available/tpan-m9b.example.com.conf systemctl reload nginx
+  command absent:/etc/nginx/sites-available/tpan-m9b.example.com.conf ps -o pid=,args= --ppid 10066
+  command absent:/etc/nginx/sites-available/tpan-m9b.example.com.conf ps -o pid=,args= --ppid 10066
+  command absent:/etc/nginx/sites-available/tpan-m9b.example.com.conf ps -o pid=,args= --ppid 10066
+  command mariadb.site-db-absent:m9b.example.com mariadb -N -B
+  command mariadb.site-db-absent:m9b.example.com mariadb -N -B
+  command mariadb.site-db-absent:m9b.example.com mariadb -N -B
+  command remove-tree:/var/lib/tpan/trash/m9b_example_com_36b746 rm -r --one-file-system -- /var/lib/tpan/trash/m9b_example_com_36b746
+  command remove-tree:/var/log/tpan/sites/m9b.example.com rm -r --one-file-system -- /var/log/tpan/sites/m9b.example.com
+  command site.user.absent:tp_m9b_example_com_36b746 getent passwd tp_m9b_example_com_36b746
+  command site.user.absent:tp_m9b_example_com_36b746 getent passwd tp_m9b_example_com_36b746
+  command site.user.absent:tp_m9b_example_com_36b746 userdel tp_m9b_example_com_36b746
+  command site.user.absent:tp_m9b_example_com_36b746 getent passwd tp_m9b_example_com_36b746
+[2026-11-20 01:10:41] (mã thoát 0)
+  => ĐẠT: job xoá hẳn có lệnh tar (tự backup) trước khi xoá
+
+[2026-11-20 01:10:41] $ scripts/vm.sh root tpan backup list m9b.example.com --json
+[
+  {
+    "id": "4d3c4a3c19383c51",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "before-purge",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz",
+    "size": 35623219,
+    "sha256": "13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e",
+    "php_version": "8.3",
+    "job_id": "8536379c594ab2d6",
+    "created": "2026-11-19T18:10:41.259750473Z"
+  },
+  {
+    "id": "17e63ca7c0124506",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz",
+    "size": 35623269,
+    "sha256": "fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743",
+    "php_version": "8.3",
+    "job_id": "f275344014b8a88c",
+    "created": "2026-11-19T18:10:37.555200824Z"
+  }
+]
+[2026-11-20 01:10:41] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+4d3c4a3c19383c51 m9b.example.com full before-purge 35623219 13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz
+17e63ca7c0124506 m9b.example.com full manual 35623269 fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743 /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz
+  => ĐẠT: backup list m9b.example.com có bản before-purge (dòng còn sau khi site xoá hẳn)
+
+[2026-11-20 01:10:41] $ scripts/vm.sh root bash -c ls -la "$1"; sha256sum "$1"; ls -la "$2" 2>&1; ls -d "/var/www/$3" "/var/lib/tpan/trash/$4" 2>&1; getent passwd "$5" || echo "không có user $5"; mariadb -N -e "SHOW DATABASES" | grep -cx "$5" _ /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz /etc/cron.d/tpan-m9b_example_com_36b746 m9b.example.com m9b_example_com_36b746 tp_m9b_example_com_36b746
+-rw------- 1 root root 35623219 Nov 20 01:10 /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz
+13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e  /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz
+ls: cannot access '/etc/cron.d/tpan-m9b_example_com_36b746': No such file or directory
+ls: cannot access '/var/www/m9b.example.com': No such file or directory
+ls: cannot access '/var/lib/tpan/trash/m9b_example_com_36b746': No such file or directory
+không có user tp_m9b_example_com_36b746
+0
+[2026-11-20 01:10:41] (mã thoát 1)
+  => ĐẠT: file before-purge còn, sha256 khớp
+  => ĐẠT: file cron không còn
+  => ĐẠT: site đã xoá hẳn: không thư mục, không user, không DB
+
+[2026-11-20 01:10:41] $ scripts/vm.sh root tpan site list
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC
+m9a.example.com                          active   8.3   không 2026-11-20 01:03
+[2026-11-20 01:10:41] (mã thoát 0)
+  => ĐẠT: site list không còn m9b.example.com
+
+[2026-11-20 01:10:41] $ scripts/vm.sh root tpan backup list --json
+[
+  {
+    "id": "4d3c4a3c19383c51",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "before-purge",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz",
+    "size": 35623219,
+    "sha256": "13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e",
+    "php_version": "8.3",
+    "job_id": "8536379c594ab2d6",
+    "created": "2026-11-19T18:10:41.259750473Z"
+  },
+  {
+    "id": "17e63ca7c0124506",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz",
+    "size": 35623269,
+    "sha256": "fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743",
+    "php_version": "8.3",
+    "job_id": "f275344014b8a88c",
+    "created": "2026-11-19T18:10:37.555200824Z"
+  },
+  {
+    "id": "c0eae137bebb0508",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "before-import",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql",
+    "size": 114181,
+    "sha256": "bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002",
+    "job_id": "46a356a69189029a",
+    "created": "2026-11-19T18:10:33.735177397Z"
+  },
+  {
+    "id": "8cb53a3ac647c5f2",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql",
+    "size": 114153,
+    "sha256": "96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f",
+    "job_id": "a2f33d4eb78f40b6",
+    "created": "2026-11-19T18:10:32.98386131Z"
+  },
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:10:41] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+4d3c4a3c19383c51 m9b.example.com full before-purge 35623219 13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz
+17e63ca7c0124506 m9b.example.com full manual 35623269 fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743 /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz
+c0eae137bebb0508 m9a.example.com sql before-import 114181 bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql
+8cb53a3ac647c5f2 m9a.example.com sql manual 114153 96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  => ĐẠT: backup list (mọi site) vẫn có các dòng của m9b.example.com
+
+
+######## [2026-11-20 01:10:41] G: nâng MariaDB đòi backup: site mới m9c.example.com chưa backup
+
+[2026-11-20 01:10:41] $ scripts/vm.sh root tpan site add m9c.example.com --email admin@example.com --yes
+Bắt đầu job 85512d00bf7322c3
+- Tạo user Linux tp_m9c_example_com_38078e cho site ...
+  xong
+- Tạo thư mục /var/www/m9c.example.com ...
+  xong
+- Tạo thư mục /var/www/m9c.example.com/public ...
+  xong
+- Tạo thư mục /var/www/m9c.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/m9c.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/m9c.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_m9c_example_com_38078e và user DB riêng của site m9c.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-m9c_example_com_38078e cho m9c.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Giải nén WordPress vào /var/www/m9c.example.com/public ...
+  xong
+- Tạo /var/www/m9c.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/m9c.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của m9c.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho m9c.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-m9c.example.com.conf → /etc/nginx/sites-available/tpan-m9c.example.com.conf ...
+  xong
+- Cài WordPress cho m9c.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Site m9c.example.com không đọc được wp-config.php của site m9a.example.com
+  [đạt] Site m9a.example.com không đọc được wp-config.php của site m9c.example.com
+
+Job 85512d00bf7322c3: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_m9c_example_com_38078e
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_m9c_example_com_38078e
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của m9c.example.com
+  [đạt] Site m9c.example.com không đọc được wp-config.php của site m9a.example.com: Bị từ chối như mong đợi: tp_m9c_example_com_38078e không đọc được wp-config.php của m9a.example.com
+  [đạt] Site m9a.example.com không đọc được wp-config.php của site m9c.example.com: Bị từ chối như mong đợi: tp_m9a_example_com_c2b3ff không đọc được wp-config.php của m9c.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://m9c.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-20 01:10:48] (mã thoát 0)
+  => ĐẠT: site add m9c.example.com thoát 0, job thành công
+  => ĐẠT: m9c.example.com: đọc được mật khẩu quản trị (đã che)
+
+[2026-11-20 01:10:48] $ scripts/vm.sh exec mariadb --version
+mariadb  Ver 15.1 Distrib 10.11.14-MariaDB, for debian-linux-gnu (aarch64) using  EditLine wrapper
+[2026-11-20 01:10:48] (mã thoát 0)
+
+[2026-11-20 01:10:48] $ scripts/vm.sh root tpan mariadb upgrade --to 11.8 --dry-run --json
+{
+  "error": {
+    "code": "backup_required",
+    "message": {
+      "vi": "nâng MariaDB là một chiều, mà các site sau chưa có bản backup đầy đủ trong 24 giờ qua: m9c.example.com. Backup trước bằng: sudo tpan backup create --all --yes, rồi chạy lại.",
+      "en": "upgrading MariaDB is one-way, and these sites have no full backup from the last 24 hours: m9c.example.com. Back them up first with: sudo tpan backup create --all --yes, then run again."
+    }
+  }
+}
+[2026-11-20 01:10:48] (mã thoát 1)
+  => ĐẠT: mariadb upgrade --dry-run bị từ chối backup_required
+  => ĐẠT: lời từ chối nêu m9c.example.com, không nêu m9a.example.com (đã có bản trong 24 giờ)
+
+[2026-11-20 01:10:48] $ scripts/vm.sh root tpan mariadb upgrade --to 11.8 --dry-run
+Từ chối: nâng MariaDB là một chiều, mà các site sau chưa có bản backup đầy đủ trong 24 giờ qua: m9c.example.com. Backup trước bằng: sudo tpan backup create --all --yes, rồi chạy lại.
+[2026-11-20 01:10:48] (mã thoát 1)
+
+
+######## [2026-11-20 01:10:48] G: tpan backup create --all --yes rồi --dry-run lại
+
+[2026-11-20 01:10:48] $ scripts/vm.sh root tpan backup create --all --yes
+Bắt đầu job dc523d13369cd2df
+- Backup site m9a.example.com vào /var/lib/tpan/backups/m9a.example.com ...
+  xong
+Bắt đầu job 43a4bd299562fc92
+- Backup site m9c.example.com vào /var/lib/tpan/backups/m9c.example.com ...
+  xong
+
+== m9a.example.com
+
+Job dc523d13369cd2df: thành công
+
+== m9c.example.com
+
+Job 43a4bd299562fc92: thành công
+
+Bản sao tpan.db: /var/lib/tpan/backups/_tpan/tpan-20261119-181053.db
+[2026-11-20 01:10:54] (mã thoát 0)
+  => ĐẠT: backup create --all thoát 0
+  => ĐẠT: có kết quả cho m9a.example.com và m9c.example.com, có bản sao tpan.db
+
+[2026-11-20 01:10:54] $ scripts/vm.sh root tpan mariadb upgrade --to 11.8 --dry-run
+Kế hoạch: Nâng MariaDB từ dòng 10.11 lên 11.8. Một chiều, không tự hoàn tác: đường lùi là cài lại dòng 10.11 rồi nhập lại /var/lib/tpan/backups/mariadb-upgrade-20261120-011054.sql
+6 bước sẽ chạy, 1 bước đã đúng sẽ bỏ qua, 3 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Xuất toàn bộ MariaDB ra /var/lib/tpan/backups/mariadb-upgrade-20261120-011054.sql  (mariadb.dump:/var/lib/tpan/backups/mariadb-upgrade-20261120-011054.sql)
+    Vì sao: Nâng dòng MariaDB là một chiều: dữ liệu đã nâng thì bản cũ không đọc lại được. File xuất này là đường lùi duy nhất: cài lại dòng cũ rồi nhập lại nó. File chỉ root đọc được vì có cả mật khẩu băm của user DB.
+    $ mariadb-dump --all-databases --single-transaction --routines --events --triggers --result-file=/var/lib/tpan/backups/mariadb-upgrade-20261120-011054.sql
+    $ tail -n 1 -- /var/lib/tpan/backups/mariadb-upgrade-20261120-011054.sql
+    Ghi chú hoàn tác: Không hoàn tác: file xuất được giữ lại vì nó là đường lùi của bản nâng cấp.
+ 2. [sẽ chạy] Dừng mariadb  (service.stop:mariadb)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Bước sau thay file chạy hoặc dữ liệu của dịch vụ này; làm khi nó đang chạy thì dữ liệu có thể hỏng giữa chừng. Trong lúc dừng, mọi site dùng nó không phục vụ được.
+    $ systemctl stop mariadb
+ 3. [sẽ chạy] Thêm kho của MariaDB (dòng 11.8)  (apt.repo:mariadb)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đây là nguồn gói ngoài Ubuntu: từ giờ apt cài và cập nhật gói từ kho này, ký bằng khoá có vân tay 177F4010FE56CA3336300305F1656F24C74CD1D8. Không có bước này thì không cài được bản bạn chọn (Ubuntu không có). File ghim giữ cho các gói khác vẫn lấy từ Ubuntu.
+    $ curl -fsSL --proto =https --max-time 60 -o /tmp/tpan-apt-key.XXXXXXXX/key https://mariadb.org/mariadb_release_signing_key.pgp
+    $ gpg --homedir /tmp/tpan-apt-key.XXXXXXXX --batch --no-default-keyring --keyring /tmp/tpan-apt-key.XXXXXXXX/k.kbx --import /tmp/tpan-apt-key.XXXXXXXX/key
+    $ gpg --homedir /tmp/tpan-apt-key.XXXXXXXX --batch --no-default-keyring --keyring /tmp/tpan-apt-key.XXXXXXXX/k.kbx --yes --output /tmp/tpan-apt-key.XXXXXXXX/export.gpg --export 177F4010FE56CA3336300305F1656F24C74CD1D8  # → /etc/apt/keyrings/tpan-mariadb.gpg
+    $ apt-get update -o DPkg::Lock::Timeout=300
+    tạo /etc/apt/sources.list.d/tpan-mariadb.sources
+    xoá /etc/apt/preferences.d/tpan-mariadb
+    Ghi chú hoàn tác: Không gỡ kho khi hoàn tác: nếu gói đã kịp nâng thì máy cần kho này để nhận bản vá của dòng 11.8; gỡ thì apt không còn biết gói đang chạy từ đâu ra.
+ 4. [sẽ chạy] Nâng gói: galera-4 mariadb-client mariadb-client-core mariadb-common mariadb-plugin-provider-bzip2 mariadb-plugin-provider-lz4 mariadb-plugin-provider-lzma mariadb-plugin-provider-lzo mariadb-plugin-provider-snappy mariadb-server mariadb-server-core  (apt.upgrade:galera-4,mariadb-client,mariadb-client-core,mariadb-common,mariadb-plugin-provider-bzip2,mariadb-plugin-provider-lz4,mariadb-plugin-provider-lzma,mariadb-plugin-provider-lzo,mariadb-plugin-provider-snappy,mariadb-server,mariadb-server-core)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Bản mới vá lỗi và lỗ hổng. Không nâng thì máy tiếp tục chạy bản có lỗi đã biết. File cấu hình đang dùng được giữ nguyên.
+    $ apt-get install -y --only-upgrade -o DPkg::Lock::Timeout=300 -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold galera-4 mariadb-client mariadb-client-core mariadb-common mariadb-plugin-provider-bzip2 mariadb-plugin-provider-lz4 mariadb-plugin-provider-lzma mariadb-plugin-provider-lzo mariadb-plugin-provider-snappy mariadb-server mariadb-server-core
+    Ghi chú hoàn tác: Không hoàn tác: apt không hạ gói về bản cũ một cách an toàn (bản cũ có thể không còn trên kho, gói khác có thể đã cần bản mới).
+ 5. [sẽ chạy] Ghi nguồn MariaDB mới vào settings (mariadb.org, dòng 11.8)  (settings:stack.db_source=mariadb.org:stack.db_line=11.8)
+    Vì sao: tpan đọc settings để biết máy đang dùng kho nào; ghi ngay sau khi nâng gói để dù bước sau lỗi, tpan vẫn nói đúng dòng đang chạy.
+    Ghi chú hoàn tác: Không hoàn tác: bước này chỉ chạy sau khi gói đã nâng, mà gói đã nâng thì máy đang chạy dòng mới; trả settings về dòng cũ là để tpan nói sai về máy.
+ 6. [đã đúng, bỏ qua] Chạy và bật mariadb khi khởi động  (service:mariadb)
+ 7. [sẽ chạy] Chạy mariadb-upgrade  (mariadb.upgrade:localhost)
+    Vì sao: Bản server mới cần bảng hệ thống theo dạng mới. Không chạy bước này thì một số lệnh quản lý user và quyền lỗi, log đầy cảnh báo, và lần nâng sau dễ hỏng.
+    $ mariadb -N -B -e 'SELECT VERSION()'
+    $ mariadb-upgrade
+    Ghi chú hoàn tác: Không hoàn tác: bảng hệ thống đã nâng không hạ lại được. Đường lùi là file xuất ở bước trước.
+[2026-11-20 01:10:54] (mã thoát 0)
+  => ĐẠT: mariadb upgrade --dry-run giờ qua (thoát 0)
+
+[2026-11-20 01:10:54] $ scripts/vm.sh root bash -c ls /etc/apt/sources.list.d/; mariadb --version
+ubuntu.sources
+mariadb  Ver 15.1 Distrib 10.11.14-MariaDB, for debian-linux-gnu (aarch64) using  EditLine wrapper
+[2026-11-20 01:10:54] (mã thoát 0)
+  => ĐẠT: chỉ xem trước: không thêm kho MariaDB
+
+
+######## [2026-11-20 01:10:54] H: bản sao tpan.db và health
+
+[2026-11-20 01:10:54] $ scripts/vm.sh root bash -c stat -c "%a %U:%G %s %n" /var/lib/tpan/backups/_tpan /var/lib/tpan/backups/_tpan/*
+700 root:root 4096 /var/lib/tpan/backups/_tpan
+600 root:root 3375104 /var/lib/tpan/backups/_tpan/tpan-20261119-181053.db
+[2026-11-20 01:10:54] (mã thoát 0)
+  => ĐẠT: có bản sao tpan-*.db 0600 root:root, thư mục 0700
+
+[2026-11-20 01:10:54] $ scripts/vm.sh root bash -c f="$(ls /var/lib/tpan/backups/_tpan/tpan-*.db | tail -1)"; python3 -c "import sqlite3,sys; c=sqlite3.connect(\"file:\"+sys.argv[1]+\"?mode=ro\", uri=True); print(\"integrity:\", c.execute(\"PRAGMA integrity_check\").fetchone()[0]); print(\"sites:\", c.execute(\"SELECT COUNT(*) FROM sites\").fetchone()[0]); print(\"backups:\", c.execute(\"SELECT COUNT(*) FROM backups\").fetchone()[0])" "$f"
+integrity: ok
+sites: 2
+backups: 8
+[2026-11-20 01:10:54] (mã thoát 0)
+  => ĐẠT: bản sao đọc được, integrity ok
+
+[2026-11-20 01:10:54] $ scripts/vm.sh root tpan health --json
+started 2026-11-20T01:10:54.665991645+07:00  finished 2026-11-20T01:10:58.83211733+07:00
+nhóm: (máy, stack), m9a.example.com, m9c.example.com, tpan
+số phép kiểm theo trạng thái: pass=40 unknown=3 warn=1
+--- unknown tpan.cert:/etc/tpan/tls/cert.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+--- unknown tpan.perm:/etc/tpan/tls/key.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/key.pem
+--- unknown tpan.perm:/etc/tpan (chặng tpan): Chưa kiểm được: không có /etc/tpan
+--- warn tpan.scheduler:health (chặng tpan): Bộ hẹn giờ health chưa chạy lần nào
+tpan.backup:db = pass: Bản sao lưu tpan.db mới nhất: tpan-20261119-181053.db
+sự cố vừa mở: 
+[2026-11-20 01:10:58] (mã thoát 0)
+  => ĐẠT: tpan.backup:db là Pass
+  => ĐẠT: health không có Fail
+
+
+######## [2026-11-20 01:10:58] H: lịch backup hằng ngày
+
+[2026-11-20 01:10:58] $ scripts/vm.sh root tpan backup settings
+Số bản giữ mỗi site: 3
+Lịch backup hằng ngày: tắt (bật bằng: sudo tpan backup settings --at 03:30)
+[2026-11-20 01:10:58] (mã thoát 0)
+
+[2026-11-20 01:10:58] $ scripts/vm.sh root tpan backup settings --at 03:30 --yes
+Bắt đầu job 4ab0a9f5d5e409f5
+- Đặt lịch backup hằng ngày lúc 03:30 ...
+  xong
+
+Job 4ab0a9f5d5e409f5: thành công
+[2026-11-20 01:10:59] (mã thoát 0)
+  => ĐẠT: backup settings --at 03:30 thoát 0, job thành công
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root stat -c %U:%G %a %n /etc/cron.d/tpan-backup
+root:root 644 /etc/cron.d/tpan-backup
+[2026-11-20 01:10:59] (mã thoát 0)
+  => ĐẠT: /etc/cron.d/tpan-backup root:root 0644
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root cat /etc/cron.d/tpan-backup
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Lịch backup hằng ngày của tpan: lúc 03:30 theo múi giờ của máy
+# (xem bằng timedatectl). Chạy backup mọi site đang hoạt động rồi chép tpan.db.
+# --scheduled ghi lý do "theo lịch" vào bản backup, --yes bỏ câu hỏi xác nhận vì
+# không có ai ngồi trước màn hình.
+#
+# Kết quả xem ở màn Backup và Lịch sử của panel; output bị bỏ vì máy này không
+# có chương trình gửi thư.
+#
+# Lệnh dùng đường dẫn tuyệt đối vì PATH của cron rất hẹp.
+30 03 * * * root /usr/local/bin/tpan backup create --all --scheduled --yes >/dev/null 2>&1
+[2026-11-20 01:10:59] (mã thoát 0)
+  => ĐẠT: đúng một dòng lệnh: 30 3 * * * root /usr/local/bin/tpan backup create --all --scheduled --yes
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root sha256sum /etc/cron.d/tpan-backup
+18319acea8edfa5d32a7ef601f5a7953d12725340a12db5adf09f7c19e4b0294  /etc/cron.d/tpan-backup
+[2026-11-20 01:10:59] (mã thoát 0)
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root tpan cron list --json
+{
+  "sites": [
+    {
+      "domain": "m9a.example.com",
+      "file": "/etc/cron.d/tpan-m9a_example_com_c2b3ff",
+      "schedule": "*/5 * * * *",
+      "command": "/usr/local/bin/tpan cron run m9a.example.com",
+      "enabled": true,
+      "last": {
+        "domain": "m9a.example.com",
+        "started": "2026-11-19T18:10:01.640334399Z",
+        "duration_ns": 199000000,
+        "status": "ok",
+        "exit_code": 0,
+        "output": ""
+      }
+    },
+    {
+      "domain": "m9c.example.com",
+      "file": "/etc/cron.d/tpan-m9c_example_com_38078e",
+      "schedule": "*/5 * * * *",
+      "command": "/usr/local/bin/tpan cron run m9c.example.com",
+      "enabled": true
+    }
+  ],
+  "backup": {
+    "keep": 3,
+    "at": "03:30"
+  },
+  "backup_file": "/etc/cron.d/tpan-backup"
+}
+[2026-11-20 01:10:59] (mã thoát 0)
+  => ĐẠT: cron list: backup at 03:30, backup_file
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root tpan backup settings --at 03:30 --yes
+Bắt đầu job c40dfc8972d410ab
+- Đặt lịch backup hằng ngày lúc 03:30 ...
+  đã đúng, bỏ qua
+
+Job c40dfc8972d410ab: thành công
+[2026-11-20 01:10:59] (mã thoát 0)
+  => ĐẠT: chạy lại: thoát 0
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root sha256sum /etc/cron.d/tpan-backup
+18319acea8edfa5d32a7ef601f5a7953d12725340a12db5adf09f7c19e4b0294  /etc/cron.d/tpan-backup
+[2026-11-20 01:10:59] (mã thoát 0)
+  => ĐẠT: chạy lại: file không đổi
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root tpan backup settings --off --yes
+Bắt đầu job 660dd494b9fa8193
+- Gỡ lịch backup hằng ngày /etc/cron.d/tpan-backup ...
+  xong
+
+Job 660dd494b9fa8193: thành công
+[2026-11-20 01:10:59] (mã thoát 0)
+  => ĐẠT: backup settings --off thoát 0, job thành công
+
+[2026-11-20 01:10:59] $ scripts/vm.sh root ls -la /etc/cron.d/
+total 36
+drwxr-xr-x   2 root root 4096 Nov 20 01:10 .
+drwxr-xr-x 113 root root 4096 Nov 20 01:10 ..
+-rw-r--r--   1 root root  102 Mar 31  2024 .placeholder
+-rw-r--r--   1 root root  802 Apr 16  2023 certbot
+-rw-r--r--   1 root root  202 Apr  8  2024 e2scrub_all
+-rw-r--r--   1 root root  712 Jan 19  2024 php
+-rw-r--r--   1 root root  396 Jan 10  2024 sysstat
+-rw-r--r--   1 root root 1293 Nov 20 01:03 tpan-m9a_example_com_c2b3ff
+-rw-r--r--   1 root root 1293 Nov 20 01:10 tpan-m9c_example_com_38078e
+[2026-11-20 01:11:00] (mã thoát 0)
+  => ĐẠT: /etc/cron.d/tpan-backup đã gỡ
+
+[2026-11-20 01:11:00] $ scripts/vm.sh root tpan backup settings
+Số bản giữ mỗi site: 3
+Lịch backup hằng ngày: tắt (bật bằng: sudo tpan backup settings --at 03:30)
+[2026-11-20 01:11:00] (mã thoát 0)
+  => ĐẠT: settings nói lịch tắt
+
+
+######## [2026-11-20 01:11:00] I: tpan setup (panel nghe 8443) rồi đăng nhập từ Mac
+
+[2026-11-20 01:11:00] $ scripts/vm.sh root tpan setup --yes
+Bắt đầu job 5802c2edae2610c5
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 5802c2edae2610c5: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    A0:83:6D:CC:8F:1A:88:BD:81:53:C2:6A:8F:11:C1:07:B1:B6:66:AD:F2:EC:6C:F4:DD:DA:1D:B0:AA:F5:BC:71
+Mở: https://<IP của máy>:8443
+[2026-11-20 01:11:00] (mã thoát 0)
+  => ĐẠT: setup thoát 0
+  => ĐẠT: đọc được mật khẩu panel (đã che)
+
+[2026-11-20 01:11:00] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login.json https://<vm>:8443/api/v1/login
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+set-cookie: __Host-tpan=<đã che>; Path=/; HttpOnly; Secure; SameSite=Strict
+x-content-type-options: nosniff
+date: Thu, 19 Nov 2026 18:11:00 GMT
+
+-> HTTP 204, 0.072024s
+[2026-11-20 01:11:00] (mã thoát 0)
+  => ĐẠT: đăng nhập panel: 204
+
+
+######## [2026-11-20 01:11:00] I: API M9
+
+[2026-11-20 01:11:00] $ scripts/vm.sh root tpan backup list --json
+[
+  {
+    "id": "c479185542621bfc",
+    "domain": "m9c.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9c.example.com/m9c.example.com-20261119-181051.tar.gz",
+    "size": 35624375,
+    "sha256": "39b794fd3bc6f141b6ecbc18e619260d94a4c91b38928d635bc813faab7f3648",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "43a4bd299562fc92",
+    "created": "2026-11-19T18:10:53.964914269Z"
+  },
+  {
+    "id": "31ad12e9fe32323e",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181048.tar.gz",
+    "size": 35623767,
+    "sha256": "687857da3b0e0a4a9846f5ec2f25e242eed695c550c19f16e8b8c872eff477b1",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "dc523d13369cd2df",
+    "created": "2026-11-19T18:10:51.337133407Z"
+  },
+  {
+    "id": "4d3c4a3c19383c51",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "before-purge",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz",
+    "size": 35623219,
+    "sha256": "13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e",
+    "php_version": "8.3",
+    "job_id": "8536379c594ab2d6",
+    "created": "2026-11-19T18:10:41.259750473Z"
+  },
+  {
+    "id": "17e63ca7c0124506",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz",
+    "size": 35623269,
+    "sha256": "fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743",
+    "php_version": "8.3",
+    "job_id": "f275344014b8a88c",
+    "created": "2026-11-19T18:10:37.555200824Z"
+  },
+  {
+    "id": "c0eae137bebb0508",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "before-import",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql",
+    "size": 114181,
+    "sha256": "bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002",
+    "job_id": "46a356a69189029a",
+    "created": "2026-11-19T18:10:33.735177397Z"
+  },
+  {
+    "id": "8cb53a3ac647c5f2",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql",
+    "size": 114153,
+    "sha256": "96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f",
+    "job_id": "a2f33d4eb78f40b6",
+    "created": "2026-11-19T18:10:32.98386131Z"
+  },
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:11:00] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+c479185542621bfc m9c.example.com full manual 35624375 39b794fd3bc6f141b6ecbc18e619260d94a4c91b38928d635bc813faab7f3648 /var/lib/tpan/backups/m9c.example.com/m9c.example.com-20261119-181051.tar.gz
+31ad12e9fe32323e m9a.example.com full manual 35623767 687857da3b0e0a4a9846f5ec2f25e242eed695c550c19f16e8b8c872eff477b1 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181048.tar.gz
+4d3c4a3c19383c51 m9b.example.com full before-purge 35623219 13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz
+17e63ca7c0124506 m9b.example.com full manual 35623269 fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743 /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz
+c0eae137bebb0508 m9a.example.com sql before-import 114181 bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql
+8cb53a3ac647c5f2 m9a.example.com sql manual 114153 96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+
+[2026-11-20 01:11:00] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/backups
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 2946
+date: Thu, 19 Nov 2026 18:11:00 GMT
+
+-> HTTP 200, 0.003032s
+[2026-11-20 01:11:01] (mã thoát 0)
+{
+  "settings": {
+    "keep": 3,
+    "at": ""
+  },
+  "n": 8,
+  "first": {
+    "id": "c479185542621bfc",
+    "domain": "m9c.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "size": 35624375,
+    "sha256": 64
+  }
+}
+  => ĐẠT: GET /api/v1/backups: 200, settings.keep, items cùng số với backup list (8)
+
+[2026-11-20 01:11:01] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/backups?domain=m9a.example.com
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 1857
+date: Thu, 19 Nov 2026 18:11:01 GMT
+
+-> HTTP 200, 0.003216s
+[2026-11-20 01:11:01] (mã thoát 0)
+  => ĐẠT: GET /api/v1/backups?domain=m9a.example.com: chỉ dòng của m9a.example.com
+
+[2026-11-20 01:11:01] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/cron
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 533
+date: Thu, 19 Nov 2026 18:11:01 GMT
+
+-> HTTP 200, 0.004045s
+[2026-11-20 01:11:01] (mã thoát 0)
+{
+  "sites": [
+    {
+      "domain": "m9a.example.com",
+      "enabled": true,
+      "file": "/etc/cron.d/tpan-m9a_example_com_c2b3ff",
+      "schedule": "*/5 * * * *",
+      "last": {
+        "status": "ok",
+        "exit_code": 0
+      }
+    },
+    {
+      "domain": "m9c.example.com",
+      "enabled": true,
+      "file": "/etc/cron.d/tpan-m9c_example_com_38078e",
+      "schedule": "*/5 * * * *",
+      "last": null
+    }
+  ],
+  "backup": {
+    "keep": 3,
+    "at": ""
+  }
+}
+  => ĐẠT: GET /api/v1/cron: 200, m9a.example.com và m9c.example.com bật, m9a.example.com có lần chạy ok
+
+[2026-11-20 01:11:01] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Accept: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/sites/m9a.example.com/backups?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 1681
+date: Thu, 19 Nov 2026 18:11:01 GMT
+
+-> HTTP 200, 0.014313s
+[2026-11-20 01:11:01] (mã thoát 0)
+{
+  "kind": "backup.create",
+  "target": "m9a.example.com",
+  "steps": [
+    {
+      "title": "Backup site m9a.example.com vào /var/lib/tpan/backups/m9a.example.com",
+      "done": false
+    }
+  ]
+}
+  => ĐẠT: POST /sites/m9a.example.com/backups?dry_run=1: 200, Preview kind backup.create có bước
+
+[2026-11-20 01:11:01] $ scripts/vm.sh root tpan backup list --json
+[
+  {
+    "id": "c479185542621bfc",
+    "domain": "m9c.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9c.example.com/m9c.example.com-20261119-181051.tar.gz",
+    "size": 35624375,
+    "sha256": "39b794fd3bc6f141b6ecbc18e619260d94a4c91b38928d635bc813faab7f3648",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "43a4bd299562fc92",
+    "created": "2026-11-19T18:10:53.964914269Z"
+  },
+  {
+    "id": "31ad12e9fe32323e",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181048.tar.gz",
+    "size": 35623767,
+    "sha256": "687857da3b0e0a4a9846f5ec2f25e242eed695c550c19f16e8b8c872eff477b1",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "dc523d13369cd2df",
+    "created": "2026-11-19T18:10:51.337133407Z"
+  },
+  {
+    "id": "4d3c4a3c19383c51",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "before-purge",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz",
+    "size": 35623219,
+    "sha256": "13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e",
+    "php_version": "8.3",
+    "job_id": "8536379c594ab2d6",
+    "created": "2026-11-19T18:10:41.259750473Z"
+  },
+  {
+    "id": "17e63ca7c0124506",
+    "domain": "m9b.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz",
+    "size": 35623269,
+    "sha256": "fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743",
+    "php_version": "8.3",
+    "job_id": "f275344014b8a88c",
+    "created": "2026-11-19T18:10:37.555200824Z"
+  },
+  {
+    "id": "c0eae137bebb0508",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "before-import",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql",
+    "size": 114181,
+    "sha256": "bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002",
+    "job_id": "46a356a69189029a",
+    "created": "2026-11-19T18:10:33.735177397Z"
+  },
+  {
+    "id": "8cb53a3ac647c5f2",
+    "domain": "m9a.example.com",
+    "kind": "sql",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql",
+    "size": 114153,
+    "sha256": "96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f",
+    "job_id": "a2f33d4eb78f40b6",
+    "created": "2026-11-19T18:10:32.98386131Z"
+  },
+  {
+    "id": "a8ad1c83b4f97890",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz",
+    "size": 35623765,
+    "sha256": "ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "65d43af7b44f3406",
+    "created": "2026-11-19T18:10:22.858376519Z"
+  },
+  {
+    "id": "72e54e57aedafcc6",
+    "domain": "m9a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz",
+    "size": 35623370,
+    "sha256": "11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "92e9527a3c4ccba1",
+    "created": "2026-11-19T18:10:12.323500249Z"
+  }
+]
+[2026-11-20 01:11:01] (mã thoát 0)
+(tóm tắt: id domain kind reason size sha256 path)
+c479185542621bfc m9c.example.com full manual 35624375 39b794fd3bc6f141b6ecbc18e619260d94a4c91b38928d635bc813faab7f3648 /var/lib/tpan/backups/m9c.example.com/m9c.example.com-20261119-181051.tar.gz
+31ad12e9fe32323e m9a.example.com full manual 35623767 687857da3b0e0a4a9846f5ec2f25e242eed695c550c19f16e8b8c872eff477b1 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181048.tar.gz
+4d3c4a3c19383c51 m9b.example.com full before-purge 35623219 13f0e32964898fa6da653aa1de3aafcba0bf59af6f7df0c14b7e115d2ad8d97e /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181038.tar.gz
+17e63ca7c0124506 m9b.example.com full manual 35623269 fac0c02005e27adbaf03896370f6857ec81fd20df26f37a056e571b78e2bc743 /var/lib/tpan/backups/m9b.example.com/m9b.example.com-20261119-181035.tar.gz
+c0eae137bebb0508 m9a.example.com sql before-import 114181 bd816918d8988f3a76f1fa5d75c8f8f69fc58239123c2a7e1d0fab2ce9c81002 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181033-before-import.sql
+8cb53a3ac647c5f2 m9a.example.com sql manual 114153 96634d6e0579c52bb4eda2a08ea3ffb13a90ca9d6c5d26b3f4f11f418830dd5f /var/lib/tpan/backups/m9a.example.com/m9a.example.com-db-20261119-181032.sql
+a8ad1c83b4f97890 m9a.example.com full before-restore 35623765 ec135eeb76c5750936d6ff41e8cb44b0ef88b29d81e2fa9fc378a7a7d2c94c9c /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181015.tar.gz
+72e54e57aedafcc6 m9a.example.com full manual 35623370 11a3fec1111df466364dd04b51c15beef1726d2e90559728964891c177d604a9 /var/lib/tpan/backups/m9a.example.com/m9a.example.com-20261119-181009.tar.gz
+  => ĐẠT: xem trước qua API không tạo bản backup nào (vẫn 8)
+
+
+######## [2026-11-20 01:11:01] I: tpan cron run chạy cùng lúc với tpan serve (SQLite busy?)
+
+[2026-11-20 01:11:01] $ scripts/vm.sh root bash -c for i in 1 2 3 4 5; do (tpan cron run "$1" >/tmp/e2e-cr-a$i 2>&1; echo "a$i mã $?" >>/tmp/e2e-cr.rc) & (tpan cron run "$2" >/tmp/e2e-cr-c$i 2>&1; echo "c$i mã $?" >>/tmp/e2e-cr.rc) & done; wait; sort /tmp/e2e-cr.rc; cat /tmp/e2e-cr-* ; rm -f /tmp/e2e-cr*; journalctl -u tpan --no-pager -o cat --since "-5 min" | grep -ciE "locked|busy" | sed "s/^/dòng locked|busy trong journal của tpan: /" _ m9a.example.com m9c.example.com
+a1 mã 0
+a2 mã 0
+a3 mã 0
+a4 mã 0
+a5 mã 0
+c1 mã 0
+c2 mã 0
+c3 mã 0
+c4 mã 0
+c5 mã 0
+dòng locked|busy trong journal của tpan: 0
+[2026-11-20 01:11:03] (mã thoát 0)
+  => ĐẠT: 10 lần cron run song song (cùng tpan serve) đều thoát 0, không in gì
+
+[2026-11-20 01:11:03] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/cron
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 678
+date: Thu, 19 Nov 2026 18:11:03 GMT
+
+-> HTTP 200, 0.003124s
+[2026-11-20 01:11:03] (mã thoát 0)
+  => ĐẠT: API vẫn trả 200 sau đó
+
+
+######## [2026-11-20 01:11:03] bí mật, IP, tên user Mac, cookie có lọt vào chính file log không
+Số bí mật đã gặp: 8; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu nào
+  => ĐẠT: log không chứa IP máy ảo (IPv4)
+  => ĐẠT: log không chứa mạng Multipass
+  => ĐẠT: log không chứa IPv6 của máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+  => ĐẠT: log không chứa giá trị cookie nào
+
+
+######## [2026-11-20 01:11:03] TỔNG KẾT: 124 khẳng định đạt, 3 khẳng định không đạt

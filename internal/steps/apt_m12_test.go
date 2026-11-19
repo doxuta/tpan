@@ -11,6 +11,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -1197,6 +1198,107 @@ func TestMariaDBDump(t *testing.T) {
 			}
 		})
 	}
+}
+
+// M9: MariaDBDump một DB (mục 6.9), máy giả của backup_test.go.
+func TestMariaDBDumpOneDB(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("xuất đúng một DB, chặn đầy đĩa lúc Apply, Check true, chạy lại bỏ qua", func(t *testing.T) {
+		f := newBkFake(t)
+		p := site.BackupDir(f.l) + "/shop.example.com-db-20261119-100000.sql"
+		s := &MariaDBDump{Path: p, DB: f.l.DB}
+		if done, err := s.Check(ctx, f); err != nil || done {
+			t.Fatalf("Check trước = %v, %v", done, err)
+		}
+		if rep := runOne(t, f, s); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("%s %s", rep.Job.Status, rep.Job.Error)
+		}
+		want := "mariadb-dump --single-transaction --quick --result-file=" + p + " " + f.l.DB
+		if !f.ranHas(want) || !ranStdin(f.Ran(), "information_schema.TABLES") {
+			t.Errorf("lệnh: %v", ranStrings(f.Ran()))
+		}
+		snap := f.Snapshot()
+		if e := snap[p]; e.Mode != 0o600 || e.Owner != system.Root || e.Data != bkDumpOf("v1") {
+			t.Errorf("file xuất = %+v", e)
+		}
+		if e := snap[site.BackupDir(f.l)]; e.Mode != fs.ModeDir|0o700 {
+			t.Errorf("thư mục = %v", e.Mode)
+		}
+		f.ResetRan()
+		if rep := runOne(t, f, &MariaDBDump{Path: p, DB: f.l.DB}); rep.Steps[0].Outcome != "skipped" || f.ranHas("mariadb-dump") {
+			t.Errorf("lần hai %q", rep.Steps[0].Outcome)
+		}
+	})
+
+	t.Run("dưới RestoreRoot được", func(t *testing.T) {
+		f := newBkFake(t)
+		f.SetDir(site.RestoreDir(f.l), 0o700, system.Root)
+		if err := (&MariaDBDump{Path: site.RestoreDir(f.l) + "/db-before.sql", DB: f.l.DB}).Apply(ctx, f); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("không đủ chỗ: lỗi, không xuất, không tạo file", func(t *testing.T) {
+		f := newBkFake(t)
+		f.dbSize = "9000"
+		f.SetDisk("/", system.DiskUsage{Total: 100000, Free: 10500}) // 9000 × 1,2 = 10800
+		before := f.Snapshot()
+		err := (&MariaDBDump{Path: site.BackupDir(f.l) + "/a.sql", DB: f.l.DB}).Apply(ctx, f)
+		if err == nil || !strings.Contains(err.Error(), "không đủ chỗ trống") {
+			t.Errorf("err = %v", err)
+		}
+		if f.ranHas("mariadb-dump") || !reflect.DeepEqual(before, f.Snapshot()) {
+			t.Error("đã xuất dù thiếu chỗ")
+		}
+	})
+
+	t.Run("Info nói một DB, không nói toàn bộ", func(t *testing.T) {
+		in := (&MariaDBDump{Path: site.BackupRoot + "/a.sql", DB: "tp_shop"}).Info()
+		if !strings.Contains(in.Title.Vi, "tp_shop") || strings.Contains(in.Commands[1], "--all-databases") || in.NoUndo.IsZero() {
+			t.Errorf("Info = %+v", in)
+		}
+	})
+
+	for _, c := range []struct{ db, path string }{
+		{"tp_shop", "/var/lib/tpan/restorex/a.sql"},
+		{"tp_shop", site.RestoreRoot},
+		{"tp_shop", "/etc/a.sql"},
+		{"tp_shop", site.RestoreRoot + "/../backups/a.sql"},
+		{"--all-databases", site.BackupRoot + "/a.sql"},
+		{"-e", site.BackupRoot + "/a.sql"},
+		{"tp_shop; DROP", site.BackupRoot + "/a.sql"},
+		{"$(id)", site.BackupRoot + "/a.sql"},
+		{"TP_SHOP", site.BackupRoot + "/a.sql"},
+		{"tp_shop\n", site.BackupRoot + "/a.sql"},
+		{strings.Repeat("a", 65), site.BackupRoot + "/a.sql"},
+		// DB rỗng giữ luật M12: chỉ dưới backups, không dưới restore.
+		{"", site.RestoreRoot + "/a.sql"},
+	} {
+		t.Run(fmt.Sprintf("tham số xấu %q %q", c.db, c.path), func(t *testing.T) {
+			f := newBkFake(t)
+			s := &MariaDBDump{Path: c.path, DB: c.db}
+			if _, err := s.Check(ctx, f); err == nil {
+				t.Error("Check không lỗi")
+			}
+			if err := s.Apply(ctx, f); err == nil {
+				t.Error("Apply không lỗi")
+			}
+			if len(f.Ran()) != 0 {
+				t.Errorf("đã chạy: %v", ranStrings(f.Ran()))
+			}
+		})
+	}
+}
+
+// ranStdin: có lệnh nào nhận stdin chứa sub (câu SQL không nằm trong Cmd.String()).
+func ranStdin(cmds []system.Cmd, sub string) bool {
+	for _, c := range cmds {
+		if strings.Contains(string(c.Stdin), sub) {
+			return true
+		}
+	}
+	return false
 }
 
 // =========================================================== MariaDBUpgradeRun

@@ -85,7 +85,7 @@ func trashPurgeCmd(e *env) *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "purge <domain> | --expired",
-		Short: "Xoá hẳn một site trong thùng rác, hoặc mọi site đã quá hạn giữ (không lấy lại được)",
+		Short: "Xoá hẳn một site trong thùng rác, hoặc mọi site đã quá hạn giữ (tự backup trước)",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if expired == (len(args) == 1) {
@@ -94,8 +94,8 @@ func trashPurgeCmd(e *env) *cobra.Command {
 					"give exactly one of: a domain name, or --expired")})
 			}
 			f.note = i18n.T(
-				"Xoá hẳn: DB, file, log và user của site bị xoá, KHÔNG lấy lại được.",
-				"Permanent delete: the site's database, files, logs and user are removed and CANNOT be recovered.")
+				"Xoá hẳn: DB, file, log và user của site bị xoá. Bước đầu tiên tự backup site vào /var/lib/tpan/backups/<domain>/ (xem bằng: sudo tpan backup list <domain>); muốn lấy lại thì tạo lại site cùng domain rồi khôi phục bản đó.",
+				"Permanent delete: the site's database, files, logs and user are removed. The first step backs the site up to /var/lib/tpan/backups/<domain>/ (see it with: sudo tpan backup list <domain>); to get it back, create the site again with the same domain and restore that backup.")
 			if expired {
 				return trashPurgeExpired(cmd, e, &f)
 			}

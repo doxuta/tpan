@@ -45,7 +45,7 @@ func openUpdates(ctx context.Context, e *env, readOnly bool) (u *core.Updates, s
 	if st, err = openStore(ctx, e); err != nil {
 		return nil, nil, nil, err
 	}
-	u.Settings, u.Sites = st, st
+	u.Settings, u.Sites, u.Backups = st, st, st
 	if !readOnly {
 		u.Journal = st
 	}

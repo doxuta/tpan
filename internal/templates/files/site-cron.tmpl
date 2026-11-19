@@ -1,0 +1,20 @@
+{{.Header}}
+#
+# Cron của WordPress cho {{.Domain}}: mỗi 5 phút chạy các việc đã đến giờ
+# (bài hẹn giờ, kiểm cập nhật, thư dọn dẹp của plugin).
+#
+# Vì sao không dùng wp-cron.php mặc định: WordPress chỉ chạy việc đến giờ khi
+# có khách vào trang, nên site không có khách thì bài hẹn giờ không được đăng,
+# còn site đông khách thì mỗi lượt xem đều tốn một lần kiểm. tpan đặt
+# DISABLE_WP_CRON trong wp-config.php và để file này gọi cron đúng nhịp.
+#
+# Vì sao dòng này chạy bằng root: tpan cron run tự hạ xuống user của site khi
+# gọi wp (không chạy WordPress bằng root), nhưng đứng ở giữa để ghi kết quả
+# lần chạy gần nhất vào tpan.db (màn Cron đọc ở đó) và bỏ qua site không còn
+# hoạt động, ví dụ site đang nằm trong thùng rác.
+#
+# Vì sao bỏ output: kết quả đã nằm trong tpan.db, còn máy này không có chương
+# trình gửi thư nên output để lại cũng không tới ai.
+#
+# Lệnh dùng đường dẫn tuyệt đối vì PATH của cron rất hẹp.
+*/5 * * * * root {{.Bin}} cron run {{.Domain}} >/dev/null 2>&1

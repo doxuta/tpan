@@ -66,6 +66,11 @@ const (
 	// (WPCLISHA512) và Files của Planner; không cần trường riêng.
 	PlanHealthFix = "health.fix"
 	PlanSSLIssue  = "ssl.issue"
+	// M9: backup một site (Backups.PrepareCreate, ReasonManual) và khôi phục
+	// một site từ bản BackupID (Backups.PrepareRestore; BackupID rỗng là bản
+	// full mới nhất). Backups dựng từ Sites của Planner và Backups (BackupStore).
+	PlanBackupCreate  = "backup.create"
+	PlanBackupRestore = "backup.restore"
 )
 
 // PlanRequest đủ để dựng lại một Plan. Mang giá trị thật (đã đổi bí danh về
@@ -77,6 +82,8 @@ type PlanRequest struct {
 	Title  string `json:"title,omitempty"`
 	// CheckID: chỉ cho PlanHealthFix (id phép kiểm, như check_results.id).
 	CheckID string `json:"check_id,omitempty"`
+	// BackupID: chỉ cho PlanBackupRestore (id của bảng backups).
+	BackupID string `json:"backup_id,omitempty"`
 }
 
 // Proposal là nguồn gốc của một lần đề xuất.
@@ -112,6 +119,9 @@ type Planner struct {
 	// "check_not_found" và Files không lọc.
 	Checks CheckLookup
 	Files  FileRecords
+	// Backups (M9) là bảng backups cho PlanBackupCreate, PlanBackupRestore;
+	// nil thì hai loại đó bị từ chối "plan_kind_invalid".
+	Backups BackupStore
 	// Now nil thì dùng time.Now.
 	Now func() time.Time
 }

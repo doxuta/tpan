@@ -20,6 +20,7 @@ import { tx, useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/site";
 import { PlanReview } from "../duyet-plan";
+import { Backups } from "./Backups";
 import { CheckItem } from "./CheckItem";
 import { ErrorNote } from "./ErrorNote";
 import { LiveLog } from "./LiveLog";
@@ -311,6 +312,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
       {hasLogs && <LiveLog domain={domain} />}
 
       {hasLogs && <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} />}
+
+      <Backups domain={domain} active={info.site.status === "active"} />
 
       <section aria-labelledby="ten-duong-dan">
         <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[6px] pt-[26px] pb-[10px]">

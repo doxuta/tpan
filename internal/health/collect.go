@@ -160,6 +160,9 @@ func (r *Runner) selfChecks() []checks.Check {
 			return out, nil
 		}),
 		checks.TPANScheduler(r.lastBeat, SchedulerMaxAge, now),
+		// M9: bản sao tpan.db do lịch backup hằng ngày tạo; 48 giờ là một ngày
+		// lịch cộng một ngày cho trễ (máy tắt qua đêm, một lần chạy lỗi).
+		checks.TPANBackupAge(site.TPANDBBackupDir, 48*time.Hour, now),
 	)
 }
 

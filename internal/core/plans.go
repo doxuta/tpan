@@ -56,11 +56,56 @@ func (p *Planner) Prepare(ctx context.Context, req PlanRequest) (*Prepared, erro
 		return p.prepareHealthFix(ctx, req)
 	case PlanSSLIssue:
 		return p.prepareSSLIssue(ctx, req)
+	case PlanBackupCreate, PlanBackupRestore:
+		// Không có bảng backups thì như loại Plan không có: Plan dựng được mà
+		// không ghi được dòng backup là Plan làm dở.
+		if p.Backups != nil {
+			return p.prepareBackup(ctx, req)
+		}
 	}
-	kinds := strings.Join([]string{PlanSiteAdd, PlanSiteRemove, PlanSiteRepair, PlanStackRepair, PlanHealthFix, PlanSSLIssue}, ", ")
+	kinds := []string{PlanSiteAdd, PlanSiteRemove, PlanSiteRepair, PlanStackRepair, PlanHealthFix, PlanSSLIssue}
+	if p.Backups != nil {
+		kinds = append(kinds, PlanBackupCreate, PlanBackupRestore)
+	}
 	return nil, refuse("plan_kind_invalid", i18n.T(
-		fmt.Sprintf("loại Plan %q không có; chỉ nhận %s", req.Kind, kinds),
-		fmt.Sprintf("there is no plan kind %q; only %s", req.Kind, kinds)))
+		fmt.Sprintf("loại Plan %q không có; chỉ nhận %s", req.Kind, strings.Join(kinds, ", ")),
+		fmt.Sprintf("there is no plan kind %q; only %s", req.Kind, strings.Join(kinds, ", "))))
+}
+
+// prepareBackup dựng Plan backup một site (ReasonManual) hoặc khôi phục site
+// từ một bản backup (M9). Khôi phục: BackupID rỗng được đổi thành id của bản
+// full mới nhất NGAY LÚC ĐỀ XUẤT và lưu vào yêu cầu, để lúc duyệt dựng lại
+// đúng bản người đã xem, không phải một bản mới hơn tạo ra trong lúc chờ.
+func (p *Planner) prepareBackup(ctx context.Context, req PlanRequest) (*Prepared, error) {
+	d, err := validate.ParseDomain(req.Domain)
+	if err != nil {
+		return nil, err
+	}
+	b := &Backups{Sites: p.Sites, Store: p.Backups, Now: p.Now}
+	norm := PlanRequest{Kind: req.Kind, Domain: d.String()}
+	var pl *Planned
+	if req.Kind == PlanBackupCreate {
+		pl, err = b.PrepareCreate(ctx, d, ReasonManual)
+	} else {
+		src, rerr := b.restoreSource(ctx, d, req.BackupID)
+		if rerr != nil {
+			return nil, rerr
+		}
+		norm.BackupID = src.ID
+		pl, err = b.PrepareRestore(ctx, d, src.ID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &Prepared{
+		Request: norm,
+		Plan:    pl.Plan,
+		preview: pl.Preview,
+		execute: func(ctx context.Context, onEvent func(engine.Event)) (RunResult, error) {
+			rep, err := pl.Execute(ctx, onEvent)
+			return RunResult{Report: rep}, err
+		},
+	}, nil
 }
 
 // siteAddPrepared bọc một SiteAdd thành Prepared. req là yêu cầu đã chuẩn hoá.

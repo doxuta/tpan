@@ -9,6 +9,7 @@ package core
 //
 //	Pre:    WPArchive (tải WordPress một lần cho cả lô), nếu có site mới
 //	Unit tạo site, pha A: user, thư mục, DB, pool, WPFiles, WPConfig,
+//	        cron của site (DISABLE_WP_CRON, file cron; M9),
 //	        .htaccess (Apache), vhost: steps.WithoutReload; useradd và các bước
 //	        ghi file có Test bọc steps.Serial (một mutex cho cả lô)
 //	Unit đưa vào thùng rác, pha A: các bước của PrepareRemove, WithoutReload
