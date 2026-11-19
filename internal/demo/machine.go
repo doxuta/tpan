@@ -126,12 +126,16 @@ func (m *machine) installFiles() {
 		m.SetDir(d, 0o755, rootOwner)
 	}
 	m.SetDir("/run/php", 0o755, wwwOwner)
-	m.SetSocket("/run/php/php"+phpVer+"-fpm.sock", 0o660, wwwOwner) // pool www mặc định của distro
+	// Máy demo đã qua stack install của M12: pool www của gói đã gỡ, thay bằng
+	// pool tpan-idle (socket chỉ root).
+	m.SetSocket("/run/php/tpan-idle-"+phpVer+".sock", 0o600, rootOwner)
 
-	m.SetFile("/etc/os-release", []byte("NAME=\"Ubuntu\"\nVERSION=\"24.04.2 LTS (Noble Numbat)\"\nID=ubuntu\nVERSION_ID=\"24.04\"\n"), 0o644, rootOwner)
+	m.SetFile("/etc/os-release", []byte("NAME=\"Ubuntu\"\nVERSION=\"24.04.2 LTS (Noble Numbat)\"\nID=ubuntu\nVERSION_ID=\"24.04\"\nVERSION_CODENAME=noble\n"), 0o644, rootOwner)
 	m.SetFile("/etc/hostname", []byte("tpan-demo\n"), 0o644, rootOwner)
 	m.SetFile("/etc/nginx/nginx.conf", []byte("user www-data;\nworker_processes auto;\nevents { worker_connections 768; }\nhttp { include /etc/nginx/sites-enabled/*; }\n"), 0o644, rootOwner)
-	m.SetFile("/etc/php/"+phpVer+"/fpm/pool.d/www.conf", []byte("[www]\nuser = www-data\ngroup = www-data\nlisten = /run/php/php"+phpVer+"-fpm.sock\n"), 0o644, rootOwner)
+	if idle, err := templates.PHPIdlePool(phpVer); err == nil {
+		m.SetFile("/etc/php/"+phpVer+"/fpm/pool.d/tpan-idle.conf", idle, 0o644, rootOwner)
+	}
 	m.SetFile("/etc/mysql/mariadb.conf.d/99-tpan.cnf", []byte(templates.Header+"\n[mysqld]\nbind-address = 127.0.0.1\n"), 0o644, rootOwner)
 	m.SetFile("/usr/local/bin/wp", fakeWPCLI, 0o755, rootOwner)
 
