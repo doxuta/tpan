@@ -1,0 +1,259 @@
+/*
+ * Nền giao diện TPAN (docs/GIAO-DIEN.md).
+ *
+ * Màu: bảng biến ở mục 3, khai báo một lần cho [data-theme=light|dark]. Đổi
+ * thuộc tính data-theme trên <html> (web/public/theme.js đặt trước khi vẽ) là
+ * đổi cả giao diện. Tailwind chỉ biết các màu này: bảng màu có sẵn bị tắt bằng
+ * --color-*: initial, nên viết bg-red-500 sẽ không ra class nào.
+ */
+@import "tailwindcss";
+
+/*
+ * Font: chỉ nhúng phần Latin và tiếng Việt, độ đậm 400, 500, 600, dạng woff2.
+ *
+ * Không import các file latin-400.css, vietnamese-400.css của @fontsource vì
+ * hai file đó không có unicode-range: khai báo cả hai thì khai báo sau đè khai
+ * báo trước và chữ Latin thường bị rơi về font hệ thống. Ở đây viết lại
+ * @font-face với đúng unicode-range lấy từ file 400.css của gói (bản 5.3.0),
+ * và chỉ trỏ tới woff2 để file .woff không bị chép vào bản build.
+ */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-vietnamese-400-normal.woff2") format("woff2");
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-500-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-vietnamese-500-normal.woff2") format("woff2");
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-vietnamese-600-normal.woff2") format("woff2");
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("@fontsource/ibm-plex-mono/files/ibm-plex-mono-vietnamese-400-normal.woff2") format("woff2");
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("@fontsource/ibm-plex-mono/files/ibm-plex-mono-vietnamese-500-normal.woff2") format("woff2");
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-600-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("@fontsource/ibm-plex-mono/files/ibm-plex-mono-vietnamese-600-normal.woff2") format("woff2");
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+
+/* Bảng màu, đúng mục 3 của GIAO-DIEN.md. Thêm màu mới thì đo tương phản và ghi vào bảng ở đó. */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --ink: #16181A;
+  --paper: #F6F7F5;
+  --surface: #FFFFFF;
+  --muted: #5A6066;
+  --hair: #D5D8DA;
+  --card-border: #16181A;
+  --on-ink: #FFFFFF;
+  --pre: #E9ECEA;
+  --track: #DADDDF;
+  --line: #16181A;
+  --line-dash: #868C92;
+  --link: #0B4FB8;
+  --link-hover: #083A87;
+
+  --ok: #168A3A;
+  --ok-text: #12752F;
+  --warn: #E0A100;
+  --warn-border: #16181A;
+  --fail: #C8320A;
+  --on-fail: #FFFFFF;
+  --fail-text: #B42A06;
+  --unknown: #868C92;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #E9EBED;
+  --paper: #15171A;
+  --surface: #1E2124;
+  --muted: #A3A9AF;
+  --hair: #34393E;
+  --card-border: #6B727A;
+  --on-ink: #15171A;
+  --pre: #101214;
+  --track: #30353A;
+  --line: #B8BEC4;
+  --line-dash: #6B727A;
+  --link: #8FB8FF;
+  --link-hover: #B9D2FF;
+
+  --ok: #45C97A;
+  --ok-text: #45C97A;
+  --warn: #F2C14E;
+  --warn-border: #15171A;
+  --fail: #FF6B4A;
+  --on-fail: #190B07;
+  --fail-text: #FF8A70;
+  --unknown: #8A9096;
+}
+
+/*
+ * Đưa biến vào Tailwind. "inline" để class dùng thẳng var(--ink) tại chỗ dùng,
+ * nhờ vậy đổi data-theme là class đổi màu theo (tài liệu Tailwind 4: @theme
+ * inline). Tên class: bg-ink, text-muted, border-hair, bg-fail, text-on-fail...
+ */
+@theme inline {
+  --color-*: initial;
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-hair: var(--hair);
+  --color-card-border: var(--card-border);
+  --color-on-ink: var(--on-ink);
+  --color-pre: var(--pre);
+  --color-track: var(--track);
+  --color-line: var(--line);
+  --color-line-dash: var(--line-dash);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-ok: var(--ok);
+  --color-ok-text: var(--ok-text);
+  --color-warn: var(--warn);
+  --color-warn-border: var(--warn-border);
+  --color-fail: var(--fail);
+  --color-on-fail: var(--on-fail);
+  --color-fail-text: var(--fail-text);
+  --color-unknown: var(--unknown);
+  --color-transparent: transparent;
+
+  --font-*: initial;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* Chuyển trạng thái khi rê chuột không quá 120 ms (mục 9). */
+  --default-transition-duration: 120ms;
+}
+
+@layer base {
+  html {
+    background: var(--paper);
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  a {
+    color: var(--link);
+  }
+  a:hover {
+    color: var(--link-hover);
+  }
+  /* Đang chọn bằng bàn phím: viền ngoài 2 px màu --link, cách 2 px. Không bao giờ tắt (mục 6). */
+  :focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+/*
+ * Khoá cuộn trang khi hộp hỏi lại (Radix Dialog) đang mở. Radix nhờ
+ * react-remove-scroll-bar 2.3 chèn một thẻ <style> lúc chạy, nhưng CSP
+ * default-src 'self' chặn thẻ đó; thư viện vẫn gắn thuộc tính
+ * data-scroll-locked lên <body>, nên viết sẵn luật tương ứng ở đây.
+ */
+body[data-scroll-locked] {
+  overflow: hidden !important;
+  overscroll-behavior: contain;
+}
+
+/* Người dùng xin bớt chuyển động thì bỏ hẳn (mục 9). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
