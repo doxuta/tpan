@@ -49,7 +49,7 @@ var (
 
 // DBUserLock khoá user DB của site: ALTER USER '<db>'@'localhost' ACCOUNT LOCK
 // (dùng lại dbLockSQL, dbLockStateSQL của fix.go). Check: user có và đang bị
-// khoá; user không có thì lỗi (không có gì để khoá là máy lệch). Undo: mở khoá
+// khoá; user không có cũng là đạt (xem state). Undo: mở khoá
 // nếu chính Apply đã khoá. Danger: site thôi đăng nhập được DB.
 type DBUserLock struct {
 	Layout site.Layout
@@ -76,17 +76,17 @@ func (s *DBUserLock) Info() engine.StepInfo {
 }
 
 // state đọc trạng thái bằng đúng hàm của DBUserUnlock (cùng câu SQL, cùng cách
-// kiểm Layout), rồi coi "user không có" là lỗi: Plan thùng rác chỉ chạy cho
-// site đã có DB, user mất là máy lệch, người vận hành cần biết.
+// kiểm Layout). User không có thì coi là đạt: không ai đăng nhập được bằng một
+// user không tồn tại, đúng điều bước này muốn. Báo lỗi ở đây thì site lệch kiểu
+// "wp-config.php có, user DB mất" (mục 6.2, "Chạy lại") không vào được thùng
+// rác, mà xoá hẳn chỉ đi qua thùng rác: site đó sẽ không có đường nào để xoá.
+// Khôi phục site như vậy thì DBUserUnlock báo lỗi, đúng vì site vẫn đang lệch.
 func (s *DBUserLock) state(ctx context.Context, sys system.System) (bool, error) {
 	exists, locked, err := (&DBUserUnlock{Layout: s.Layout}).lockState(ctx, sys)
 	if err != nil {
 		return false, err
 	}
-	if !exists {
-		return false, fmt.Errorf("user DB %s không có, không có gì để khoá (máy lệch với dữ liệu của tpan)", s.Layout.DB)
-	}
-	return locked, nil
+	return !exists || locked, nil
 }
 
 func (s *DBUserLock) Check(ctx context.Context, sys system.System) (bool, error) {

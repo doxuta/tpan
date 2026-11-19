@@ -81,14 +81,11 @@ func TestDBUserLock(t *testing.T) {
 		}
 	})
 
-	t.Run("user không có thì Check và Apply lỗi", func(t *testing.T) {
+	t.Run("user không có thì coi như đã khoá, không chạy ALTER", func(t *testing.T) {
 		f := newLockFake()
 		s := &DBUserLock{Layout: l}
-		if _, err := s.Check(ctx, f); err == nil || !strings.Contains(err.Error(), "không có") {
-			t.Errorf("Check err = %v", err)
-		}
-		if err := s.Apply(ctx, f); err == nil {
-			t.Error("Apply: muốn lỗi")
+		if done, err := s.Check(ctx, f); err != nil || !done {
+			t.Errorf("Check = %v, %v; muốn true, nil", done, err)
 		}
 		if len(f.state()) != 0 {
 			t.Error("tạo user")
