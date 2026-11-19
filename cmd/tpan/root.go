@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 
 	"github.com/spf13/cobra"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
 	"github.com/doxuta/tpan/internal/core"
+	"github.com/doxuta/tpan/internal/demo"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/server"
 	"github.com/doxuta/tpan/internal/store"
@@ -62,7 +64,8 @@ func newRoot(e *env) *cobra.Command {
 	_ = pf.MarkHidden("db")
 	pf.StringVar(&e.lang, "lang", "vi", "ngôn ngữ của output: vi hoặc en")
 
-	root.AddCommand(versionCmd(e), serveCmd(), stackCmd(e), siteCmd(e), healthCmd(e))
+	root.AddCommand(versionCmd(e), serveCmd(e), stackCmd(e), siteCmd(e), healthCmd(e))
+	root.AddCommand(setupCmd(e), adminCmd(e))
 	return root
 }
 
@@ -78,18 +81,79 @@ func versionCmd(e *env) *cobra.Command {
 	}
 }
 
-func serveCmd() *cobra.Command {
-	var listen string
+func serveCmd(e *env) *cobra.Command {
+	var (
+		listen, certFile, keyFile string
+		demoMode                  bool
+	)
 	c := &cobra.Command{
 		Use:   "serve",
 		Short: "Chạy giao diện web và API",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return server.Run(cmd.Context(), server.RunOptions{Listen: listen})
+			ctx := cmd.Context()
+			if (certFile == "") != (keyFile == "") {
+				return fmt.Errorf("--tls-cert và --tls-key phải đi cùng nhau")
+			}
+			// Không TLS thì mật khẩu đi trên mạng dạng chữ thường (mục 11): chỉ
+			// cho nghe ở loopback (máy dev, --demo).
+			if certFile == "" && !isLoopbackListen(listen) {
+				return fmt.Errorf("không có --tls-cert/--tls-key thì chỉ được nghe 127.0.0.1 hoặc localhost (đang là %q)", listen)
+			}
+			deps := server.Deps{Sys: e.sys}
+			if demoMode {
+				sys, st, err := demo.New(ctx, "")
+				if err != nil {
+					return fmt.Errorf("dựng máy demo: %w", err)
+				}
+				defer closeStore(st)
+				// Mật khẩu demo mới mỗi lần chạy, in ra terminal: chế độ demo
+				// vẫn bắt đăng nhập để giao diện đi đúng luồng như máy thật.
+				pw := store.GeneratePassword()
+				hash, err := store.HashPassword(pw)
+				if err != nil {
+					return err
+				}
+				if err := st.SetAdminPasswordHash(ctx, hash); err != nil {
+					return err
+				}
+				printf(e.stdout, "%s %s\n", e.tr("Mật khẩu đăng nhập demo:", "Demo login password:"), pw)
+				wpHash, wpcliHash := demo.Hashes()
+				deps = server.Deps{Sys: sys, Store: st, Demo: true, Hostname: "demo", WPHash: wpHash, WPCLISHA512: wpcliHash}
+			} else {
+				st, err := openStore(ctx, e)
+				if err != nil {
+					return err
+				}
+				defer closeStore(st)
+				host, err := setupHostname()
+				if err != nil {
+					return fmt.Errorf("đọc hostname: %w", err)
+				}
+				deps.Store, deps.Hostname = st, host
+			}
+			return server.Run(ctx, server.RunOptions{Listen: listen, CertFile: certFile, KeyFile: keyFile, Deps: deps})
 		},
 	}
-	c.Flags().StringVar(&listen, "listen", "127.0.0.1:8080", "địa chỉ và cổng để nghe")
+	f := c.Flags()
+	f.StringVar(&listen, "listen", "127.0.0.1:8080", "địa chỉ và cổng để nghe")
+	f.StringVar(&certFile, "tls-cert", "", "file chứng chỉ PEM (tpan setup sinh ở /etc/tpan/tls/cert.pem)")
+	f.StringVar(&keyFile, "tls-key", "", "file khoá riêng PEM của chứng chỉ")
+	f.BoolVar(&demoMode, "demo", false, "chạy trên máy giả có sẵn dữ liệu mẫu, không đụng máy thật")
 	return c
+}
+
+// isLoopbackListen: địa chỉ nghe chỉ nhận kết nối từ chính máy này.
+func isLoopbackListen(listen string) bool {
+	host, _, err := net.SplitHostPort(listen)
+	if err != nil {
+		return false
+	}
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // requireRoot từ chối sớm khi không chạy bằng root: cài gói, đọc dịch vụ và
