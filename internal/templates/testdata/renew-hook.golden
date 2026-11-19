@@ -1,0 +1,6 @@
+#!/bin/sh
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+# certbot chạy mọi file trong thư mục renewal-hooks/deploy sau mỗi lần gia hạn
+# thành công. Web server chỉ đọc chứng chỉ lúc khởi động, nên không báo nó thì
+# nó vẫn dùng chứng chỉ cũ cho tới khi hết hạn. tpan reload đúng web server đang dùng.
+exec /usr/local/bin/tpan internal reload-web

@@ -297,7 +297,7 @@ func TestApplyPlanClientMode(t *testing.T) {
 	}
 
 	// Plan của chính phiên: chạy.
-	own :=callOK(t, s, "propose_site_remove", `{"domain":"`+alias(s, mustDomain(t, domU).String())+`"}`)
+	own := callOK(t, s, "propose_site_remove", `{"domain":"`+alias(s, mustDomain(t, domU).String())+`"}`)
 	id := field[string](t, own, "plan_id")
 	out := callOK(t, s, "apply_plan", `{"plan_id":"`+id+`"}`)
 	jobID := field[string](t, out, "job_id")

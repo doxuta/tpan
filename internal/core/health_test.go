@@ -16,6 +16,7 @@ import (
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/validate"
 )
 
 func TestAutoFixName(t *testing.T) {
@@ -482,4 +483,32 @@ func TestFixRefusals(t *testing.T) {
 			t.Errorf("err = %v", err)
 		}
 	})
+}
+
+// Site có SSL (M5): sửa tự động và phát hiện lệch phải sinh vhost có cổng 443,
+// không thì "ghi lại từ template" xoá mất HTTPS của site.
+func TestSiteFilesSSLVhost(t *testing.T) {
+	d, err := validate.ParseDomain("shop.example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := StackConfig{Web: Nginx, PHPVersion: "8.3"}
+	for _, ssl := range []bool{false, true} {
+		fs, err := siteFiles(cfg, site.Site{Domain: d, Status: site.Active, PHPVersion: "8.3", SSL: ssl})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var vhost string
+		for _, f := range fs {
+			if f.Path == site.LayoutOf(d).NginxConf {
+				vhost = string(f.Content)
+			}
+		}
+		if vhost == "" {
+			t.Fatalf("ssl=%v: không có file vhost trong %d file", ssl, len(fs))
+		}
+		if has := strings.Contains(vhost, "listen 443"); has != ssl {
+			t.Errorf("ssl=%v: vhost có cổng 443 = %v", ssl, has)
+		}
+	}
 }

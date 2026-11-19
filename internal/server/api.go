@@ -88,7 +88,7 @@ func (s *Server) apiStack() *core.Stack {
 // ---------------------------------------------------------------- lỗi
 
 // apiErrorStatus chọn mã HTTP và mã lỗi cho err (mục 9, quy ước ở types.go).
-// Lời từ chối của core phần lớn là 409 (máy không đạt điều kiện), trừ ba mã là
+// Lời từ chối của core phần lớn là 409 (máy không đạt điều kiện), trừ bốn mã là
 // lỗi đầu vào (400) và site_not_found (404): người gọi cần phân biệt "gõ sai"
 // và "không có" với "máy đang lệch".
 func apiErrorStatus(err error) (status int, body ErrorBody) {
@@ -100,7 +100,7 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 	case errors.As(err, &re):
 		status = http.StatusConflict
 		switch re.Code {
-		case validate.CodeDomainInvalid, validate.CodeEmailInvalid, "title_invalid":
+		case validate.CodeDomainInvalid, validate.CodeEmailInvalid, "title_invalid", "ssl_server_invalid":
 			status = http.StatusBadRequest
 		case "site_not_found":
 			status = http.StatusNotFound

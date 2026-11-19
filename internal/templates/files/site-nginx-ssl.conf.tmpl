@@ -1,0 +1,84 @@
+{{.Header}}
+#
+# Vhost Nginx của site {{.Domain}}, bản đã có chứng chỉ: cổng 80 chỉ còn để gia
+# hạn chứng chỉ và chuyển sang https; site chạy ở cổng 443.
+
+server {
+    # Không có default_server: request không khớp tên nào rơi vào tpan-default.
+    listen 80;
+    listen [::]:80;
+    server_name {{.Domain}};
+
+    access_log {{.LogDir}}/access.log;
+    error_log {{.LogDir}}/error.log;
+
+    # Gia hạn chứng chỉ vẫn đi qua cổng 80 (certbot --webroot), nên thử thách
+    # phải được phục vụ thẳng, không bị chuyển hướng.
+    # ^~: khớp tiền tố này thì Nginx không xét location nào khác bên dưới.
+    location ^~ /.well-known/acme-challenge/ {
+        root {{.AcmeRoot}};
+    }
+
+    # Mọi đường dẫn khác chuyển sang https, giữ nguyên đường dẫn và query.
+    # Dùng tên domain cố định thay vì $host: $host lấy từ request, kẻ gửi
+    # Host lạ sẽ bắt được trình duyệt đi tới tên đó.
+    location / {
+        return 301 https://{{.Domain}}$request_uri;
+    }
+}
+
+server {
+    # "ssl" ở dòng listen là cách bật TLS của Nginx 1.24 (Ubuntu 24.04). Không
+    # dùng "http2 on;": directive đó cần Nginx 1.25.1 trở lên.
+    # Không có default_server: request lạ vào 443 rơi vào tpan-default-ssl.
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{.Domain}};
+
+    ssl_certificate {{.Cert}};
+    ssl_certificate_key {{.Key}};
+
+    # Cố ý không bật HSTS (Strict-Transport-Security): chứng chỉ staging trình
+    # duyệt không tin, và HSTS sẽ khoá người dùng ngoài site, không cho bấm
+    # "tiếp tục" nữa.
+
+    root {{.Public}};
+    index index.php;
+
+    # Log riêng từng site, trong thư mục mà /etc/logrotate.d/tpan-sites xoay vòng.
+    access_log {{.LogDir}}/access.log;
+    error_log {{.LogDir}}/error.log;
+
+    # Giới hạn upload 64 MB (pool PHP đặt cùng mức).
+    client_max_body_size 64m;
+
+    # Từ đây tới hết server là đúng các luật của bản cổng 80 (site-nginx.conf.tmpl):
+    # có chứng chỉ rồi thì không được mất luật bảo mật nào.
+
+    # Các location regex được xét theo thứ tự trong file, cái khớp đầu tiên
+    # thắng, nên hai luật chặn phải đứng trước location của PHP.
+
+    # Chặn file và thư mục ẩn (.git, .env, .htaccess...), trừ .well-known.
+    location ~ /\.(?!well-known/) {
+        deny all;
+    }
+
+    # Không chạy PHP trong thư mục upload: file .php ai đó tải lên được (qua lỗi
+    # của plugin) cũng không thành mã chạy được.
+    location ~* ^/wp-content/uploads/.*\.php$ {
+        deny all;
+    }
+
+    # Permalink của WordPress: không có file hay thư mục đúng tên thì chuyển cho index.php.
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        # Chỉ chuyển cho PHP file .php có thật. Không có dòng này thì
+        # /uploads/anh.jpg/x.php có thể khiến PHP chạy anh.jpg như mã.
+        try_files $uri =404;
+        include fastcgi.conf;
+        fastcgi_pass unix:{{.Socket}};
+    }
+}

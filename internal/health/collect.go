@@ -28,7 +28,6 @@ func (r *Runner) clock() func() time.Time {
 	return time.Now
 }
 
-
 // collect gom phép kiểm theo đối tượng: máy và stack (""), từng site active,
 // lệch file (gắn vào site sở hữu file), rồi chính tpan. installed cho biết
 // stack đã cài chưa.

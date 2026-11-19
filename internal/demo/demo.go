@@ -19,8 +19,8 @@ import (
 
 // Các site của máy demo. Domain dùng tên dành riêng cho ví dụ (RFC 2606).
 const (
-	siteBlog = "blog.example.com" // đạt mọi chặng
-	siteShop = "shop.example.net" // đạt mọi chặng
+	siteBlog = "blog.example.com" // có SSL, đạt mọi chặng
+	siteShop = "shop.example.net" // chưa có SSL, đạt mọi chặng
 	siteWiki = "wiki.example.org" // hỏng ở chặng PHP: socket của pool mất
 	siteFail = "news.example.com" // lần tạo thất bại, đã hoàn tác (không có trong bảng sites)
 
@@ -115,6 +115,10 @@ func seed(ctx context.Context, m *machine, st *store.Store) error {
 		return err
 	}
 	if err := addOK(ctx, s, siteWiki, "Wiki nội bộ", 2*24*time.Hour); err != nil {
+		return err
+	}
+	// Màn SSL: blog đã có chứng chỉ, shop chưa có (bấm xin được ngay).
+	if err := seedSSL(ctx, m, st, siteBlog); err != nil {
 		return err
 	}
 

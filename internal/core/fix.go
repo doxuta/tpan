@@ -230,7 +230,7 @@ func siteFiles(cfg StackConfig, st site.Site) ([]*steps.File, error) {
 		return nil, err
 	}
 	ss := []engine.Step{pool}
-	vhost, err := steps.SiteVhost(l, string(cfg.Web), acmeRoot)
+	vhost, err := siteVhost(st, string(cfg.Web))
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +324,7 @@ func (f *Fixes) webRewrite(ctx context.Context, cfg StackConfig, id, kind string
 		return engine.Plan{}, err
 	}
 	for _, st := range sites {
-		vhost, err := steps.SiteVhost(st.Layout(), string(cfg.Web), acmeRoot)
+		vhost, err := siteVhost(st, string(cfg.Web))
 		if err != nil {
 			return engine.Plan{}, fmt.Errorf("dựng lại vhost của %s: %w", st.Domain, err)
 		}
@@ -340,4 +340,15 @@ func (f *Fixes) webRewrite(ctx context.Context, cfg StackConfig, id, kind string
 		Steps:  ss,
 		Verify: []checks.Check{verify},
 	}, nil
+}
+
+// siteVhost dựng bước ghi vhost đúng loại của site: có SSL (M5) thì bản có
+// cổng 443 và chuyển hướng 80, không thì bản chỉ cổng 80. Sửa tự động và
+// phát hiện lệch phải dùng đúng bản này; dùng bản cổng 80 cho site có SSL là
+// ghi đè vhost 443 và làm site mất HTTPS.
+func siteVhost(st site.Site, web string) ([]engine.Step, error) {
+	if st.SSL {
+		return steps.SiteVhostSSL(st.Layout(), web, acmeRoot)
+	}
+	return steps.SiteVhost(st.Layout(), web, acmeRoot)
 }

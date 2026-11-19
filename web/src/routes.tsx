@@ -57,6 +57,11 @@ export const screens: ScreenEntry[] = [
     menu: { label: "databases", group: "chinh", count: activeSites },
   },
   {
+    path: "/ssl",
+    load: () => import("./screens/ssl").then((m) => m.default),
+    menu: { label: "ssl", group: "chinh" },
+  },
+  {
     path: "/incidents",
     load: () => import("./screens/su-co").then((m) => m.IncidentList),
     menu: {
@@ -75,6 +80,11 @@ export const screens: ScreenEntry[] = [
   { path: "/jobs/:id", load: () => import("./screens/lich-su").then((m) => m.JobDetail) },
   { path: "/plans", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanList) },
   { path: "/plans/:id", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanDetail) },
+  {
+    path: "/security",
+    load: () => import("./screens/bao-mat").then((m) => m.default),
+    menu: { label: "security", group: "may" },
+  },
   {
     path: "/settings",
     load: () => import("./screens/cai-dat").then((m) => m.default),

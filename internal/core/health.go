@@ -62,7 +62,7 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if err != nil {
 		return nil, err
 	}
-	return siteChecks(cfg.Web, php, st.Layout(), others), nil
+	return siteChecks(cfg.Web, php, st.Layout(), others, st.SSL), nil
 }
 
 // Tên các cách sửa tự động (giá trị của checks.Result.AutoFix). Đối tượng

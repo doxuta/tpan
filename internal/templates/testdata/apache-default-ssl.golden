@@ -1,0 +1,24 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Site mặc định của Apache ở cổng 443: hứng mọi kết nối HTTPS mà ServerName
+# không khớp vhost nào. Apache lấy VirtualHost ĐẦU TIÊN (theo thứ tự nạp file,
+# tức theo tên file) làm mặc định cho cổng đó, nên file này mang tên 000- để
+# đứng trước mọi vhost 443 của site (giống 000-tpan-default.conf của cổng 80).
+<VirtualHost *:443>
+    # Có ServerName để Apache không cảnh báo thiếu tên. ".invalid" là đuôi dành
+    # riêng, không bao giờ trùng một domain thật.
+    ServerName tpan-default.invalid
+
+    # Apache bắt buộc vhost 443 có chứng chỉ (khác Nginx không có cách từ chối
+    # lúc bắt tay). Dùng chứng chỉ tự ký của gói ssl-cert: trình duyệt không bao
+    # giờ tin nó, và cũng không cần, vì site này chỉ để từ chối request lạ.
+    SSLEngine on
+    SSLCertificateFile "/etc/ssl/certs/ssl-cert-snakeoil.pem"
+    SSLCertificateKeyFile "/etc/ssl/private/ssl-cert-snakeoil.key"
+
+    # Chặn hết: mọi đường dẫn trả 403. <Location> áp lên URL, không phụ thuộc
+    # vào việc có file nào trên đĩa hay không.
+    <Location "/">
+        Require all denied
+    </Location>
+</VirtualHost>

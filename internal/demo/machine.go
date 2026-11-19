@@ -76,9 +76,12 @@ type machine struct {
 	users     map[string]string // user Linux → thư mục home
 	dbs       map[string]bool
 	dbUsers   map[string]bool
-	installed map[string]bool   // WordPress đã cài, theo user của site
-	permalink map[string]string // theo user của site
-	sockets   map[string]bool   // socket pool mà lần reload gần nhất đã tạo
+	installed map[string]bool              // WordPress đã cài, theo user của site
+	options   map[string]map[string]string // tuỳ chọn WordPress (wp option), theo user của site
+	sockets   map[string]bool              // socket pool mà lần reload gần nhất đã tạo
+	units     map[string]bool              // dịch vụ systemd đang chạy và tự bật
+	missing   map[string]bool              // gói apt chưa cài (mọi gói khác coi như đã cài)
+	ufw       ufwState                     // tường lửa (security.go)
 	// broken: socket của pool bị làm hỏng. Reload không tạo lại; restart thì sửa.
 	broken map[string]bool
 
@@ -96,12 +99,17 @@ func newMachine() *machine {
 		dbs:        map[string]bool{},
 		dbUsers:    map[string]bool{},
 		installed:  map[string]bool{},
-		permalink:  map[string]string{},
+		options:    map[string]map[string]string{},
 		sockets:    map[string]bool{},
 		broken:     map[string]bool{},
+		// Dịch vụ của stack, và certbot.timer (gói certbot cài sẵn nó).
+		units:   map[string]bool{"nginx": true, "mariadb": true, "php" + phpVer + "-fpm": true, "certbot.timer": true},
+		missing: map[string]bool{"fail2ban": true},
 	}
 	m.installFiles()
 	m.handlers()
+	m.sslHandlers()
+	m.securityHandlers()
 	m.writeProc()
 	return m
 }
@@ -138,6 +146,8 @@ func (m *machine) installFiles() {
 	}
 
 	m.SetDisk("/", system.DiskUsage{Total: 80 << 30, Free: 46 << 30})
+	m.sslFiles()
+	m.securityFiles()
 
 	// Bộ đếm CPU khởi đầu: máy đã chạy hơn 12 ngày.
 	for i := range m.cpu {
@@ -246,10 +256,12 @@ func (m *machine) handlers() {
 	// phải bị từ chối. Máy giả luôn từ chối, như máy thật khi quyền đúng.
 	m.Handle([]string{"test", "-r"}, func(system.Cmd) system.Result { return exit(1, "", "") })
 
-	// Dịch vụ của stack luôn chạy và tự bật. Dịch vụ khác thì không có.
+	// Dịch vụ trong m.units luôn chạy và tự bật. Dịch vụ khác thì không có.
 	m.Handle([]string{"systemctl"}, func(c system.Cmd) system.Result {
 		unit := c.Args[len(c.Args)-1]
-		known := unit == "nginx" || unit == "mariadb" || unit == "php"+phpVer+"-fpm"
+		m.mu.Lock()
+		known := m.units[unit]
+		m.mu.Unlock()
 		switch c.Args[0] {
 		case "is-active":
 			if known {
@@ -276,15 +288,20 @@ func (m *machine) handlers() {
 		return okResult
 	})
 
-	// Cổng đang nghe: web ở 80, SSH ở 22, MariaDB chỉ ở 127.0.0.1 (mục 6.1 bước 8).
+	// Cổng đang nghe: web ở 80 và 443 (đã có site SSL), SSH ở 22, MariaDB chỉ
+	// ở 127.0.0.1 (mục 6.1 bước 8), panel ở 0.0.0.0:8443 (chưa bật chế độ
+	// riêng tư, trang bảo mật cảnh báo).
 	m.Handle([]string{"ss"}, func(system.Cmd) system.Result {
 		return exit(0, strings.Join([]string{
 			`LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:(("systemd-resolve",pid=612,fd=14))`,
 			`LISTEN 0 4096 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=701,fd=3))`,
 			`LISTEN 0 511 0.0.0.0:80 0.0.0.0:* users:(("nginx",pid=1180,fd=5))`,
+			`LISTEN 0 511 0.0.0.0:443 0.0.0.0:* users:(("nginx",pid=1180,fd=7))`,
 			`LISTEN 0 80 127.0.0.1:3306 0.0.0.0:* users:(("mariadbd",pid=905,fd=21))`,
+			`LISTEN 0 4096 0.0.0.0:8443 0.0.0.0:* users:(("tpan",pid=640,fd=9))`,
 			`LISTEN 0 4096 [::]:22 [::]:* users:(("sshd",pid=701,fd=4))`,
 			`LISTEN 0 511 [::]:80 [::]:* users:(("nginx",pid=1180,fd=6))`,
+			`LISTEN 0 511 [::]:443 [::]:* users:(("nginx",pid=1180,fd=8))`,
 		}, "\n")+"\n", "")
 	})
 }
@@ -353,20 +370,27 @@ func (m *machine) mariadb(c system.Cmd) system.Result {
 	return okResult
 }
 
-// curl có ba cách dùng trong tpan, phân biệt bằng tham số:
+// curl có bốn cách dùng trong tpan, phân biệt bằng tham số:
 //
-//	--resolve   checks.HTTPSite: gọi vào site, trả mã theo trạng thái của site;
+//	--resolve   checks.HTTPSite, HTTPRedirect, HTTPSSite: gọi vào site ở cổng
+//	            80 hoặc 443, trả mã theo trạng thái của site;
 //	-w          checks.HTTPDefault: nginx đóng kết nối request lạ (curl mã 52);
+//	acme        steps.ACMEProbe: gọi http://<domain>/.well-known/acme-challenge/<tên>
+//	            (ssl.go);
 //	còn lại     tải WordPress hoặc WP-CLI vào đường dẫn sau -o.
 //
-// Thứ tự này quan trọng: HTTPDefault cũng có -o (/dev/null).
+// Thứ tự này quan trọng: HTTPDefault cũng có -o (/dev/null), HTTPRedirect có cả -w.
 func (m *machine) curl(c system.Cmd) system.Result {
 	if r := argAfter(c.Args, "--resolve"); r != "" {
-		dom, _, _ := strings.Cut(r, ":")
-		return m.httpSite(dom)
+		dom, rest, _ := strings.Cut(r, ":")
+		port, _, _ := strings.Cut(rest, ":")
+		return m.httpSite(dom, port, slices.Contains(c.Args, "-D"))
 	}
 	if slices.Contains(c.Args, "-w") {
 		return exit(52, "000", "curl: (52) Empty reply from server\n")
+	}
+	if res, ok := m.acmeProbe(c.Args); ok {
+		return res
 	}
 	if p := argAfter(c.Args, "-o"); p != "" {
 		data := fakeWordPress
@@ -378,10 +402,13 @@ func (m *machine) curl(c system.Cmd) system.Result {
 	return okResult
 }
 
-// httpSite giả lập một request tới site qua nginx và PHP-FPM:
-// vhost chưa bật thì request rơi vào site mặc định (nginx đóng kết nối, curl
-// mã 56); socket của pool mất thì 502; còn lại là trang WordPress của site.
-func (m *machine) httpSite(dom string) system.Result {
+// httpSite giả lập một request tới site qua nginx và PHP-FPM, ở cổng port
+// ("80" hoặc "443"); headers: curl được gọi với -D - (in header thay vì thân).
+// Vhost chưa bật thì request rơi vào site mặc định (nginx đóng kết nối, curl
+// mã 56). Vhost có SSL (ssl.go) thì cổng 80 chuyển hướng 301 sang https;
+// không có SSL thì cổng 443 không nối được. Socket của pool mất thì 502; còn
+// lại là trang WordPress của site.
+func (m *machine) httpSite(dom, port string, headers bool) system.Result {
 	l, ok := siteOf(dom)
 	if !ok {
 		return exit(6, "", "curl: (6) Could not resolve host\n")
@@ -389,11 +416,29 @@ func (m *machine) httpSite(dom string) system.Result {
 	if _, err := m.Stat(l.NginxLink); err != nil {
 		return exit(56, "", "curl: (56) Recv failure: Connection reset by peer\n")
 	}
-	if _, err := m.Stat(l.Socket); err != nil {
-		return exit(0, "<html><head><title>502 Bad Gateway</title></head><body>502 Bad Gateway</body></html>TPAN_HTTP_CODE=502", "")
+	ssl := m.vhostSSL(l)
+	reply := func(code, status, extra, body string) system.Result {
+		if headers {
+			return exit(0, "HTTP/1.1 "+code+" "+status+"\r\nServer: nginx\r\n"+extra+"\r\nTPAN_HTTP_CODE="+code, "")
+		}
+		return exit(0, body+"TPAN_HTTP_CODE="+code, "")
 	}
-	body := "<html><head><link rel='stylesheet' href='http://" + dom + "/wp-content/themes/x/style.css'></head><body>" + dom + "</body></html>"
-	return exit(0, body+"TPAN_HTTP_CODE=200", "")
+	scheme := "http"
+	switch {
+	case port == "443" && !ssl:
+		return exit(7, "", "curl: (7) Failed to connect to "+dom+" port 443: Connection refused\n")
+	case port == "443":
+		scheme = "https"
+	case ssl:
+		loc := "https://" + dom + "/"
+		return reply("301", "Moved Permanently", "Location: "+loc+"\r\n",
+			"<html><head><title>301 Moved Permanently</title></head><body>301 Moved Permanently</body></html>")
+	}
+	if _, err := m.Stat(l.Socket); err != nil {
+		return reply("502", "Bad Gateway", "", "<html><head><title>502 Bad Gateway</title></head><body>502 Bad Gateway</body></html>")
+	}
+	body := "<html><head><link rel='stylesheet' href='" + scheme + "://" + dom + "/wp-content/themes/x/style.css'></head><body>" + dom + "</body></html>"
+	return reply("200", "OK", "", body)
 }
 
 // wp giả lập WP-CLI, chạy dưới user của site.
@@ -410,15 +455,30 @@ func (m *machine) wp(c system.Cmd) system.Result {
 		}
 	case len(c.Args) >= 2 && c.Args[0] == "core" && c.Args[1] == "install":
 		m.installed[u] = true
-	case len(c.Args) >= 3 && c.Args[0] == "option" && c.Args[2] == "permalink_structure":
-		return exit(0, m.permalink[u]+"\n", "")
+		url := argPrefix(c.Args, "--url=")
+		m.setOption(u, "home", url)
+		m.setOption(u, "siteurl", url)
+	case len(c.Args) >= 3 && c.Args[0] == "option" && c.Args[1] == "get":
+		// Tuỳ chọn chưa đặt thì in dòng rỗng, như permalink_structure của một
+		// WordPress mới cài.
+		return exit(0, m.options[u][c.Args[2]]+"\n", "")
+	case len(c.Args) >= 4 && c.Args[0] == "option" && c.Args[1] == "update":
+		m.setOption(u, c.Args[2], c.Args[3])
 	case len(c.Args) >= 3 && c.Args[0] == "rewrite" && c.Args[1] == "structure":
-		m.permalink[u] = c.Args[2]
+		m.setOption(u, "permalink_structure", c.Args[2])
 	case len(c.Args) >= 2 && c.Args[0] == "db" && c.Args[1] == "query":
 		// DB của site cùng tên với user của site (tp_<slug>) và là DB duy nhất nó thấy.
 		return exit(0, "information_schema\n"+u+"\n", "")
 	}
 	return okResult
+}
+
+// setOption ghi một tuỳ chọn WordPress của user u. Người gọi giữ m.mu.
+func (m *machine) setOption(u, name, val string) {
+	if m.options[u] == nil {
+		m.options[u] = map[string]string{}
+	}
+	m.options[u][name] = val
 }
 
 // syncSockets làm cho thư mục socket khớp với các file pool: mỗi tpan-*.conf
