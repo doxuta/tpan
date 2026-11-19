@@ -67,10 +67,7 @@ func (s *ApacheModules) Info() engine.StepInfo {
 	cmds = append(cmds, apacheConfigtest.String(), apacheRestart.String())
 	return engine.StepInfo{
 		ID: "apache.modules:apache2",
-		Title: i18n.T(
-			"Module Apache: bật "+strings.Join(s.Enable, " ")+"; tắt "+strings.Join(s.Disable, " "),
-			"Apache modules: enable "+strings.Join(s.Enable, " ")+"; disable "+strings.Join(s.Disable, " "),
-		),
+		Title: apacheModulesTitle(s.Enable, s.Disable),
 		Why: i18n.T(
 			"Thiếu proxy_fcgi thì Apache không chuyển được request sang PHP-FPM và trả mã nguồn PHP hoặc lỗi 500. Còn mpm_prefork thì mỗi kết nối chiếm một tiến trình, máy nhỏ hết RAM khi đông khách; mpm_event và http2 phục vụ nhiều kết nối hơn với cùng RAM. Thiếu rewrite thì đường dẫn đẹp của WordPress trả 404.",
 			"Without proxy_fcgi Apache cannot hand requests to PHP-FPM and serves PHP source or a 500 error. With mpm_prefork every connection holds a whole process and a small machine runs out of RAM under load; mpm_event and http2 serve more connections with the same RAM. Without rewrite WordPress pretty links return 404.",
@@ -207,4 +204,15 @@ func (s *ApacheModules) revert(ctx context.Context, sys system.System, enabled, 
 		return withStdout(fmt.Errorf("khởi động lại apache2 sau khi trả module về: %w", err), res)
 	}
 	return nil
+}
+
+// apacheModulesTitle bỏ vế "tắt" khi không tắt gì (Plan SSL của M5 chỉ bật
+// ssl), để tiêu đề không cụt thành "bật ssl; tắt ".
+func apacheModulesTitle(enable, disable []string) i18n.Text {
+	vi, en := "Module Apache: bật "+strings.Join(enable, " "), "Apache modules: enable "+strings.Join(enable, " ")
+	if len(disable) > 0 {
+		vi += "; tắt " + strings.Join(disable, " ")
+		en += "; disable " + strings.Join(disable, " ")
+	}
+	return i18n.T(vi, en)
 }
