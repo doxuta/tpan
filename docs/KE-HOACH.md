@@ -785,7 +785,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M11** | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), bản phát hành trên GitHub, README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
 | **M12** | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
 
-M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7, và M12 cần health của M4), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc; không làm dở nhiều mốc cùng lúc.
+M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7, và M12 cần health của M4), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc. M1 đến M3 làm nối tiếp; từ M4 các mốc chạy song song theo lượt, mỗi mốc một worktree, một nhánh `moc/M<n>`, một máy ảo, rồi được ghép vào `dev` (mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`). Migration của mốc `n` đánh số từ `n*100` đến `n*100+99`; bảng `schema_migrations` ghi từng bản đã áp, nên ghép mốc không theo thứ tự số vẫn không sót bản nào.
 
 Để sau: tách đặc quyền, clone site sang staging, đọc trạng thái pool PHP-FPM qua FastCGI, quản lý nhiều máy, gửi thông báo ra ngoài (Discord, email), cron chạy lệnh tuỳ ý, biểu đồ thống kê dài ngày.
 
