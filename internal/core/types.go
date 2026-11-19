@@ -36,6 +36,9 @@ type StackConfig struct {
 	WebSource Source    `json:"web_source"`
 	DBSource  Source    `json:"db_source"`
 	PHPSource Source    `json:"php_source"`
+	// DBLine là dòng MariaDB khi DBSource = SourceMariaDB ("11.8"); rỗng với
+	// MariaDB của Ubuntu (M12).
+	DBLine string `json:"db_line,omitempty"`
 	// PHPVersion là bản PHP mặc định, ví dụ "8.3". Rỗng trước khi cài: dò từ
 	// /etc/php/*/fpm sau bước cài gói rồi mới ghi (mục 6.1, bước 4).
 	PHPVersion string `json:"php_version"`

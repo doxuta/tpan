@@ -156,6 +156,7 @@ func (s *Stack) Config(ctx context.Context) (StackConfig, error) {
 		{SettingDBSource, (*string)(&cfg.DBSource)},
 		{SettingPHPSource, (*string)(&cfg.PHPSource)},
 		{SettingPHPVersion, &cfg.PHPVersion},
+		{SettingDBLine, &cfg.DBLine},
 	} {
 		v, err := get(f.key)
 		if err != nil {

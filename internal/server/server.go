@@ -182,6 +182,15 @@ func (s *Server) handler(dist fs.FS) http.Handler {
 	mux.Handle("POST /api/v1/plans/{id}/approve", auth(s.handlePlanApprove))
 	mux.Handle("POST /api/v1/plans/{id}/reject", auth(s.handlePlanReject))
 	mux.Handle("GET /api/v1/agent", auth(s.handleAgent))
+	// M12: phiên bản và cập nhật (types_m12.go, api_m12.go).
+	mux.Handle("GET /api/v1/php", auth(s.handlePHP))
+	mux.Handle("POST /api/v1/php/install", auth(s.handlePHPInstall))
+	mux.Handle("POST /api/v1/php/remove", auth(s.handlePHPRemove))
+	mux.Handle("POST /api/v1/sites/{domain}/php", auth(s.handleSitePHP))
+	mux.Handle("GET /api/v1/updates", auth(s.handleUpdates))
+	mux.Handle("POST /api/v1/updates", auth(s.handleUpdateApply))
+	mux.Handle("POST /api/v1/updates/auto", auth(s.handleUpdateAuto))
+	mux.Handle("POST /api/v1/mariadb/upgrade", auth(s.handleMariaDBUpgrade))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))

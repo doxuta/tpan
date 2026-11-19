@@ -184,6 +184,8 @@ export type StackConfig = {
   db_source: string;
   php_source: string;
   php_version: string;
+  /** Dòng MariaDB khi db_source là "mariadb.org" (M12). */
+  db_line?: string;
 };
 
 export type StackStatus = {
@@ -411,3 +413,86 @@ export type SSLSettings = { email?: string; staging?: boolean };
 // ---- Bảo mật (M5, internal/core/security.go) ----
 
 export type SecurityStatus = { results: CheckResult[] };
+
+// ---- Phiên bản và cập nhật (M12, internal/core/types_m12.go, server/types_m12.go) ----
+
+/** Nguồn gói: "ubuntu", "nginx.org", "nginx.org-mainline", "mariadb.org", "sury". */
+export type Source = string;
+
+/** Hạn hỗ trợ của một bản PHP (php.net). Ngày dạng YYYY-MM-DD. */
+export type PHPSupport = {
+  state: "stable" | "security" | "eol" | string;
+  active_until?: string;
+  security_until?: string;
+};
+
+export type PHPVersionRow = {
+  version: string;
+  installed: boolean;
+  /** Bản mặc định của stack: site mới dùng bản này. */
+  default: boolean;
+  /** Domain các site đang dùng bản này. */
+  sites: string[];
+  source: Source;
+  /** Không có khi không hỏi được php.net. */
+  support?: PHPSupport;
+};
+
+/** GET /api/v1/php */
+export type PHPList = {
+  versions: PHPVersionRow[];
+  /** Kho PHP của Ondřej Surý đã thêm; chưa thì chỉ có bản của Ubuntu. */
+  sury_enabled: boolean;
+  /** Bản PHP WordPress.org khuyên dùng; không có khi không hỏi được. */
+  wp_recommended?: string;
+  /** false: không hỏi được ghi chú (không mạng), danh sách vẫn đủ. */
+  notes_ok: boolean;
+};
+
+/** Thân POST /api/v1/php/install, /php/remove, /sites/{domain}/php. */
+export type PHPVersionBody = { version: string };
+
+export type PendingPackage = {
+  name: string;
+  from: string;
+  to: string;
+  security: boolean;
+  origins: string[];
+};
+
+export type MariaDBLine = { line: string; eol: string };
+
+export type MariaDBStatus = {
+  source: Source;
+  line: string;
+  version: string;
+  /** Dòng LTS nâng lên được; rỗng khi không hỏi được hoặc đã mới nhất. */
+  upgrades: MariaDBLine[];
+};
+
+export type SelfStatus = {
+  version: string;
+  url: string;
+  /** Có bản cũ để `tpan self-update --rollback`. */
+  has_old: boolean;
+};
+
+/** GET /api/v1/updates */
+export type UpdateStatus = {
+  /** Gói của stack có bản mới. */
+  packages: PendingPackage[];
+  /** Số gói khác của hệ điều hành đang chờ, và bao nhiêu trong đó là bản vá bảo mật. */
+  others: number;
+  others_security: number;
+  /** Lần cuối danh sách gói được làm mới; không có khi không biết. */
+  lists_updated?: string;
+  /** Phép kiểm updates.auto (bản vá bảo mật tự cài hằng ngày). */
+  auto: CheckResult;
+  /** Kho ngoài đang được tự vá. */
+  auto_origins: string[];
+  mariadb: MariaDBStatus;
+  self: SelfStatus;
+};
+
+/** Thân POST /api/v1/mariadb/upgrade. */
+export type MariaDBUpgradeBody = { line: string };
