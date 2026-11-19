@@ -153,7 +153,7 @@ func healthAfterJob(ctx context.Context, e *env, st *store.Store, asJSON bool, j
 		}
 		return err
 	}
-	printf(w, "\n%s\n", e.tr("Kiểm lại toàn bộ health sau khi đổi gói:", "Re-running the full health check after the package change:"))
+	printf(w, "\n%s\n", e.tr("Kiểm lại toàn bộ health sau job:", "Re-running the full health check after the job:"))
 	failed := 0
 	for _, g := range rep.Groups {
 		if g.Target == store.TargetTPAN {
