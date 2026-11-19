@@ -1,0 +1,44 @@
+; # Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+;
+; Pool PHP-FPM riêng của site example.com. File theo cú pháp INI của PHP: chú
+; thích bắt đầu bằng dấu chấm phẩy, không dùng dấu # (PHP 7.0 đã bỏ).
+[tpan-example_com_a379a6]
+
+; PHP của site chạy dưới user riêng, không thuộc nhóm www-data, nên không đọc
+; được file của site khác (mục 5, "Cô lập từng site").
+user = tp_example_com_a379a6
+group = tp_example_com_a379a6
+
+; Web server (www-data) nói chuyện với pool qua socket này. Chỉ www-data đọc
+; ghi được socket, user của site khác thì không.
+listen = /run/php/tpan-example_com_a379a6.sock
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+; ondemand: site không có khách thì không có tiến trình nào, không tốn RAM.
+; Tối đa 5 tiến trình; rảnh 10 giây thì thoát; mỗi tiến trình phục vụ 500
+; request rồi thay mới, để rò rỉ bộ nhớ của plugin không tích luỹ mãi.
+pm = ondemand
+pm.max_children = 5
+pm.process_idle_timeout = 10s
+pm.max_requests = 500
+
+; PHP chỉ mở được file trong thư mục của site. Dấu / ở cuối là bắt buộc: thiếu
+; nó thì /var/www/example.com còn khớp cả một thư mục khác bắt đầu bằng cùng tên.
+php_admin_value[open_basedir] = /var/www/example.com/
+
+; Upload tạm, session và file tạm nằm trong tmp/ riêng (0700), không ở /tmp
+; chung nơi site khác đọc được.
+php_admin_value[upload_tmp_dir] = /var/www/example.com/tmp
+php_admin_value[session.save_path] = /var/www/example.com/tmp
+php_admin_value[sys_temp_dir] = /var/www/example.com/tmp
+
+; Giới hạn upload 64 MB, khớp client_max_body_size / LimitRequestBody của vhost.
+; Mặc định của PHP là 2 MB và 8 MB, nhỏ hơn nhiều.
+php_admin_value[upload_max_filesize] = 64M
+php_admin_value[post_max_size] = 64M
+
+; Lỗi PHP ghi vào log riêng của site, không lẫn với site khác.
+php_admin_flag[log_errors] = on
+php_admin_value[error_log] = /var/log/tpan/sites/example.com/php-error.log
