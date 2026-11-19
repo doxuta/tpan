@@ -11,15 +11,16 @@ import (
 
 func aiSessionSample(id string) AISession {
 	return AISession{
-		ID:        id,
-		Entry:     EntryMCP,
-		Client:    "claude-code 2.0",
-		Question:  "vì sao site chậm?",
-		Context:   json.RawMessage(`{"screen":"sites","site":"shop.example.com"}`),
-		Aliases:   map[string]string{"site_1": "shop.example.com", "ip_1": "203.0.113.7"},
-		Untrusted: true,
-		Created:   t0,
-		Last:      t0.Add(time.Minute),
+		ID:           id,
+		Entry:        EntryMCP,
+		Client:       "claude-code 2.0",
+		Question:     "vì sao site chậm?",
+		Context:      json.RawMessage(`{"screen":"sites","site":"shop.example.com"}`),
+		Aliases:      map[string]string{"site_1": "shop.example.com", "ip_1": "203.0.113.7"},
+		Untrusted:    true,
+		BrainSession: "11111111-2222-4333-8444-555555555555",
+		Created:      t0,
+		Last:         t0.Add(time.Minute),
 	}
 }
 
