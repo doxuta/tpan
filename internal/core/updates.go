@@ -15,7 +15,7 @@ package core
 // --force-confdef --force-confold), kiểm config (nginx -t | apachectl
 // configtest, php-fpm<bản> -t cho mỗi bản đã cài), steps.ServiceRestart cho
 // dịch vụ có gói vừa nâng (web server, php<bản>-fpm, mariadb). Kiểm chứng:
-// stackChecks cộng siteChecks của mọi site active. Không có gói nào chờ thì từ
+// stackChecks (site do health chạy ngay sau job lo, xem verifyAll). Không có gói nào chờ thì từ
 // chối nothing_to_update. CLI và server chạy lại toàn bộ health (health.Runner)
 // sau job để mở sự cố cho site không còn đạt.
 //
@@ -57,7 +57,6 @@ import (
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
-	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/templates"
@@ -447,14 +446,16 @@ func (u *Updates) fpmVersions() ([]string, error) {
 	return out, nil
 }
 
-// verifyAll là kiểm chứng sau khi đổi gói: phép kiểm của stack, `php-fpm<bản>
-// -t` của mọi bản PHP khác bản mặc định, và phép kiểm của mọi site active.
-// Stack chưa cài thì không có gì để kiểm.
+// verifyAll là kiểm chứng sau khi đổi gói: phép kiểm của stack và `php-fpm<bản>
+// -t` của mọi bản PHP khác bản mặc định. Không có phép kiểm của từng site: một
+// site hỏng từ trước không được làm job "lỗi" (gói đã nâng không hạ về được);
+// CLI và API chạy lại toàn bộ health ngay sau job, site nào đang đạt mà giờ
+// không đạt thì mở sự cố (mục 6.11). Stack chưa cài thì không có gì để kiểm.
 func (u *Updates) verifyAll(ctx context.Context, cfg StackConfig) ([]checks.Check, error) {
 	if cfg.Web == "" || cfg.PHPVersion == "" {
 		return nil, nil
 	}
-	_, sha := (&Stack{}).wpcli()
+	_, sha := (&Stack{WPCLISHA512: u.WPCLISHA512}).wpcli()
 	cs := stackChecks(cfg.Web, func() string { return cfg.PHPVersion }, sha)
 	vers, err := u.fpmVersions()
 	if err != nil {
@@ -464,29 +465,6 @@ func (u *Updates) verifyAll(ctx context.Context, cfg StackConfig) ([]checks.Chec
 		if v != cfg.PHPVersion {
 			cs = append(cs, checks.PHPFPMConfig(v))
 		}
-	}
-	all, err := u.Sites.Sites(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("đọc danh sách site: %w", err)
-	}
-	var active []site.Site
-	for _, s := range all {
-		if s.Status == site.Active {
-			active = append(active, s)
-		}
-	}
-	for i, s := range active {
-		php := s.PHPVersion
-		if php == "" {
-			php = cfg.PHPVersion
-		}
-		// Chỉ ghép với các site đứng sau: siteChecks kiểm cô lập hai chiều, nên
-		// mỗi cặp site được kiểm đúng một lần.
-		var others []site.Layout
-		for _, o := range active[i+1:] {
-			others = append(others, o.Layout())
-		}
-		cs = append(cs, siteChecks(cfg.Web, php, s.Layout(), others, s.SSL)...)
 	}
 	return cs, nil
 }

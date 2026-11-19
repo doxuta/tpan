@@ -184,6 +184,9 @@ type Updates struct {
 	Journal  engine.Journal
 	// Version là buildinfo.Version của bản đang chạy.
 	Version string
+	// WPCLISHA512 như Stack.WPCLISHA512: rỗng thì bản thật; demo và test đặt
+	// mã của file giả.
+	WPCLISHA512 string
 }
 
 // SelfUpdate là `tpan self-update` (chỉ CLI).

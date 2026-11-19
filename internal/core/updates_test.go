@@ -245,22 +245,18 @@ func TestPrepareApply(t *testing.T) {
 			t.Errorf("PrepareApply chạy lệnh ngoài mô phỏng apt: %s", cmd.String())
 		}
 	}
-	// Kiểm chứng: stack, php-fpm8.4 -t (bản ngoài mặc định), hai site active;
-	// site trong thùng rác không có.
+	// Kiểm chứng: stack và php-fpm8.4 -t (bản ngoài mặc định); không có phép
+	// kiểm của site nào (health chạy sau job lo phần đó).
 	ids := checkIDs(t, e.f, p.Plan.Verify)
 	for _, id := range []string{"service.active:nginx", "config.phpfpm:8.4"} {
 		if !slices.Contains(ids, id) {
 			t.Errorf("kiểm chứng thiếu %s: %v", id, ids)
 		}
 	}
-	var a, b, c bool
 	for _, id := range ids {
-		a = a || strings.HasSuffix(id, ":a.example.com")
-		b = b || strings.HasSuffix(id, ":b.example.com")
-		c = c || strings.Contains(id, "c.example.com")
-	}
-	if !a || !b || c {
-		t.Errorf("phép kiểm site: a=%v b=%v c=%v (%v)", a, b, c, ids)
+		if strings.Contains(id, "example.com") {
+			t.Errorf("kiểm chứng không được có phép kiểm site: %s", id)
+		}
 	}
 }
 
