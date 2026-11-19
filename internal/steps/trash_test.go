@@ -427,6 +427,36 @@ func TestMoveTree(t *testing.T) {
 		}
 	})
 
+	t.Run("M9 khôi phục: tráo public với RestoreDir, Undo trả về như cũ", func(t *testing.T) {
+		f := moveFake(l)
+		rd := site.RestoreDir(l)
+		f.SetDir(rd, 0o700, system.Root)
+		f.SetFile(rd+"/public/index.php", []byte("<?php // backup"), 0o640, system.Root)
+		before := f.Snapshot()
+		out := &MoveTree{From: l.Public, To: rd + "/old-public"}
+		in := &MoveTree{From: rd + "/public", To: l.Public}
+		for _, s := range []*MoveTree{out, in} {
+			if err := s.Apply(ctx, f); err != nil {
+				t.Fatal(err)
+			}
+			if done, err := s.Check(ctx, f); err != nil || !done {
+				t.Fatalf("Check sau = %v, %v", done, err)
+			}
+		}
+		snap := f.Snapshot()
+		if snap[l.Public+"/index.php"].Data != "<?php // backup" || snap[rd+"/old-public/index.php"].Data != "<?php" {
+			t.Error("không tráo")
+		}
+		for _, s := range []*MoveTree{in, out} {
+			if err := s.Undo(ctx, f); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if !reflect.DeepEqual(before, f.Snapshot()) {
+			t.Error("sau Undo khác trước")
+		}
+	})
+
 	t.Run("chạy lại thì bỏ qua, không đổi gì", func(t *testing.T) {
 		f := moveFake(l)
 		if rep := runOne(t, f, toTrash()); rep.Job.Status != engine.JobSucceeded {
@@ -544,6 +574,12 @@ func TestMoveTree(t *testing.T) {
 			{"/var/www/a/", trash},
 			{"/var/www//a", trash},
 			{"/var/lib/tpan/trashx/a", l.Dir},
+			// M9: thư mục khôi phục.
+			{l.Public, site.RestoreRoot},
+			{site.RestoreRoot, l.Public},
+			{"/var/lib/tpan/restorex/a", l.Public},
+			{l.Public, "/var/lib/tpan/restorex/a/old-public"},
+			{site.RestoreRoot + "/../../../etc", l.Public},
 		} {
 			f := moveFake(l)
 			before := f.Snapshot()

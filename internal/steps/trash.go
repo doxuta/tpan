@@ -289,16 +289,18 @@ func trashRunUsermod(ctx context.Context, sys system.System, name string, lock b
 
 // =================================================================== MoveTree
 
-// trashRoots là hai gốc MoveTree được phép đụng tới: chỗ web server tìm site và
-// thùng rác. Ngoài hai chỗ này, một lệnh rename bằng root có thể chuyển mất
+// trashRoots là các gốc MoveTree được phép đụng tới: chỗ web server tìm site,
+// thùng rác, và chỗ giải nén bản backup trước khi tráo vào site (M9: khôi
+// phục chuyển l.Public sang RestoreDir/old-public rồi RestoreDir/public về
+// l.Public). Ngoài các chỗ này, một lệnh rename bằng root có thể chuyển mất
 // /etc hay /home.
-var trashRoots = []string{"/var/www", site.TrashRoot}
+var trashRoots = []string{"/var/www", site.TrashRoot, site.RestoreRoot}
 
 // MoveTree chuyển cả một thư mục From sang To bằng system.Rename (mục 6.4,
 // bước 4): cùng phân vùng thì tức thì và không bao giờ có bản chép dở.
 //
 //   - From và To phải là đường dẫn tuyệt đối sạch, mỗi cái nằm hẳn bên dưới
-//     một trong hai gốc được phép: "/var/www" và site.TrashRoot (không bằng gốc,
+//     một trong các gốc được phép: "/var/www", site.TrashRoot và site.RestoreRoot (không bằng gốc,
 //     không ra ngoài gốc, giống RemoveTree). Sai thì Check và Apply đều lỗi.
 //   - Check: From không còn VÀ To có (là thư mục, Stat không theo symlink).
 //     From còn và To cũng có: lỗi (hai bản, không đoán được bản nào đúng).
@@ -333,7 +335,7 @@ func (s *MoveTree) Info() engine.StepInfo {
 	}
 }
 
-// trashUnder cho biết p nằm hẳn bên dưới một trong hai gốc (không bằng gốc).
+// trashUnder cho biết p nằm hẳn bên dưới một trong các gốc (không bằng gốc).
 // p đã qua checkPath nên phép so tiền tố không bị lừa bởi "..".
 func trashUnder(p string) bool {
 	for _, r := range trashRoots {
