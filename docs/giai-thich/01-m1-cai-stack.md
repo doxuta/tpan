@@ -409,6 +409,8 @@ Không có `--yes` thì CLI in bản xem trước rồi hỏi `Chạy? [y/N]`; k
 	}
 ```
 
+Đoạn trên là mã ở bản M1. Từ M10, `tpan stack switch` đã có nên câu từ chối bỏ đuôi "(chưa có ở bản này)" ("(not in this version yet)" ở bản tiếng Anh); thân của đoạn này nay nằm trong `PrepareInstallWith` (`internal/core/stack_sources.go`, `PrepareInstall` gọi sang nó) và có thêm bước chọn nguồn gói của M12. Output ở 2.6 là output thật của lần chạy M1 nên vẫn còn đuôi đó.
+
 Điều kiện đầu là các phép kiểm của `internal/checks`, cùng loại với phép kiểm chứng sau khi cài: `checks.OSRelease("ubuntu", "24.04")` luôn chạy; `checks.PortsFree(80, 443)` và `checks.PackagesAbsent("nginx", "apache2", "mariadb-server", "mysql-server")` chỉ chạy ở lần cài đầu. Có phép kiểm nào `Fail` thì trả `*RefusedError` mã `precondition_failed`, kèm các kết quả lỗi để CLI in nguyên nhân và lệnh sửa tay.
 
 Vì sao lần chạy lại bỏ kiểm cổng và gói: lúc đó máy đã có gói và cổng 80 bận, do chính tpan cài, kể cả sau một lần hỏng giữa chừng. Dấu hiệu "máy này thuộc tpan" là khoá `stack.web` trong settings (xem 3.5).
