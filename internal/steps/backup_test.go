@@ -752,7 +752,9 @@ func TestBackupExtract(t *testing.T) {
 		if e := snap[dir+"/public/link.php"]; e.Mode&fs.ModeSymlink == 0 || e.Owner != own {
 			t.Errorf("link.php = %+v", e)
 		}
-		if e := snap[dir+"/public/wp-config.php"]; e.Mode != 0o600 || e.Owner.User != f.l.User || !strings.Contains(e.Data, "passnew") {
+		// Nhóm www-data như mọi file khác trong public: thư mục site có setgid
+		// nên file WP-CLI tạo lúc dựng site mang nhóm www-data (e2e M9 đo được).
+		if e := snap[dir+"/public/wp-config.php"]; e.Mode != 0o600 || e.Owner != own || !strings.Contains(e.Data, "passnew") {
 			t.Errorf("wp-config.php = %+v", e)
 		}
 		if e := snap[dir+"/db.sql"]; e.Data != bkDumpOf("v1") {

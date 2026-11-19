@@ -816,8 +816,10 @@ func (s *BackupExtract) Apply(ctx context.Context, sys system.System) error {
 		return fail(err)
 	}
 	if ok {
-		// Cùng chủ và nhóm như lúc WP-CLI tạo file dưới user của site.
-		if err := sys.WriteFileAtomic(cfg, cur, wpConfigMode, system.Owner{User: l.User, Group: l.User}); err != nil {
+		// Cùng chủ và nhóm như mọi file khác trong public (extractChown): thư
+		// mục site có setgid nên file WP-CLI tạo lúc dựng site mang nhóm
+		// www-data, không phải nhóm riêng của user (e2e M9 đo được).
+		if err := sys.WriteFileAtomic(cfg, cur, wpConfigMode, system.Owner{User: l.User, Group: site.WebGroup}); err != nil {
 			return fail(fmt.Errorf("ghi %s: %w", cfg, err))
 		}
 	} else if fi, err := sys.Stat(cfg); err == nil && fi.Mode.IsRegular() {
