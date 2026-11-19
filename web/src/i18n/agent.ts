@@ -51,7 +51,7 @@ const vi = {
   rejectConfirm: "Từ chối",
 
   // ---- khối ở Bảng điều khiển ----
-  pendingBlockTitle: "Plan đang chờ duyệt",
+  pendingBlockTitle: "Chờ bạn duyệt",
   pendingNone: "Không có Plan nào chờ bạn duyệt.",
   pendingAll: "Xem tất cả",
   pendingMore: (n: number) => `Còn ${n} Plan nữa`,
@@ -122,7 +122,7 @@ export const strings = defineStrings(vi, {
   rejectBody: "The plan will not run and cannot be approved later. The AI or agent can propose a new one.",
   rejectConfirm: "Reject",
 
-  pendingBlockTitle: "Plans waiting for approval",
+  pendingBlockTitle: "Waiting for your approval",
   pendingNone: "No plan is waiting for you.",
   pendingAll: "See all",
   pendingMore: (n) => `${n} more ${n === 1 ? "plan" : "plans"}`,
