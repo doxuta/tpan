@@ -92,8 +92,8 @@ func dbCreateUserSQL(name, password string) string {
 // và "%" là ký tự đại diện: `tp_shop_vn_3fa1c2`.* cũng khớp DB "tpXshop..."
 // của site khác. Thoát "_" thành "\_" để quyền chỉ áp cho đúng tên này.
 // Trang GRANT của MariaDB nói có ký tự đại diện nhưng không nói cách thoát;
-// cách thoát lấy từ tài liệu MySQL (MariaDB kế thừa cú pháp này), phải kiểm
-// trên máy ảo bằng SHOW GRANTS:
+// cách thoát lấy từ tài liệu MySQL (MariaDB kế thừa cú pháp này), đã kiểm
+// trên máy ảo ở M2: SHOW GRANTS hiện `tp\_..`.* và user vẫn dùng được DB.
 // https://dev.mysql.com/doc/refman/8.0/en/grant.html
 func dbGrantSQL(name string) string {
 	return "GRANT ALL PRIVILEGES ON `" + strings.ReplaceAll(name, "_", `\_`) + "`.* TO '" + name + "'@'localhost';\n"

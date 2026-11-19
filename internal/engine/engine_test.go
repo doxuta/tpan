@@ -572,6 +572,19 @@ func TestOutputMasksStdinLines(t *testing.T) {
 	wantEq(t, "OnOutput của Step", strings.Join(got, ","), h.sys.output[0])
 }
 
+// Stdin là cả câu SQL; MariaDB báo lỗi chỉ chép lại một đoạn chứa mật khẩu.
+func TestOutputMasksPasswordInsideSQL(t *testing.T) {
+	h := newHarness()
+	h.sys.output = []string{"ERROR 1064 (42000): near 'aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dE' at line 1"}
+	s := &cmdStep{id: "a", stdin: []byte("CREATE USER 'tp_a_example_com_7653e4'@'localhost' IDENTIFIED BY 'aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dE';\n")}
+	mustExecute(t, h, plan(s))
+	for _, ev := range h.events {
+		if ev.Kind == EventOutput {
+			wantEq(t, "output đã che", ev.Message, "ERROR 1064 (42000): near '••••' at line 1")
+		}
+	}
+}
+
 // cmdStep chạy một lệnh có OnOutput riêng.
 type cmdStep struct {
 	id       string

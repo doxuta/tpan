@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -390,15 +391,25 @@ func (s recSys) Run(ctx context.Context, cmd system.Cmd) (system.Result, error) 
 // stdinLines trả các dòng khác rỗng của stdin. Stdin là chỗ đưa mật khẩu vào
 // lệnh; vài chương trình in lại thứ đã đọc (WP-CLI với --prompt in lại cả câu
 // lệnh kèm giá trị vừa hỏi), nên output phải được che trước khi vào log job.
+//
+// Ngoài cả dòng, mỗi chuỗi chữ-số dài từ 20 ký tự trong stdin cũng được che
+// riêng: mật khẩu tpan sinh là 32 ký tự [A-Za-z0-9], và khi stdin là cả câu SQL
+// (CREATE USER ... IDENTIFIED BY '...') thì lỗi của MariaDB chỉ chép lại một
+// đoạn câu (near '...'), không bao giờ khớp cả dòng.
 func stdinLines(stdin []byte) []string {
 	var out []string
 	for _, ln := range strings.Split(string(stdin), "\n") {
 		if ln = strings.TrimSpace(ln); ln != "" {
 			out = append(out, ln)
+			out = append(out, longToken.FindAllString(ln, -1)...)
 		}
 	}
 	return out
 }
+
+// longToken là một chuỗi chữ-số đủ dài để trông như mật khẩu. Tên DB, tên
+// user của tpan có dấu "_" nên bị cắt thành đoạn ngắn, không bị che nhầm.
+var longToken = regexp.MustCompile(`[A-Za-z0-9]{20,}`)
 
 // maskLines thay mọi dòng stdin xuất hiện trong line bằng "••••".
 func maskLines(line string, secrets []string) string {
