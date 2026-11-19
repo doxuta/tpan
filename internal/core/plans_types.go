@@ -125,7 +125,11 @@ type RunResult struct {
 // Approval là một Plan đã được duyệt (đã chuyển sang applied), sẵn sàng chạy.
 type Approval struct {
 	Plan engine.PendingPlan
-	// Trường không xuất (*Prepared, *Planner) do thợ của đợt 1 thêm.
+
+	// prepared là đúng Plan đã dựng và so dấu vân tay lúc duyệt; Execute chạy
+	// nó, không dựng lại (dựng lại là chạy thứ người chưa xem).
+	prepared *Prepared
+	planner  *Planner
 }
 
 // Hai setting của cổng agent, trong bảng settings. Chỉ đổi được bằng
