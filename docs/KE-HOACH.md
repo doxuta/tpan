@@ -732,7 +732,7 @@ Panel chạy bằng quyền root nên lỗi ở panel là lỗi chiếm máy. N�
 - **TLS**: panel nghe HTTPS ở cổng 8443 với chứng chỉ tự ký sinh lúc `setup` (in fingerprint để đối chiếu). Có chế độ riêng tư: chỉ nghe `127.0.0.1`, vào bằng `ssh -L 8443:127.0.0.1:8443 <máy>`.
 - **Header**: `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`. Radix Dialog chèn một thẻ `<style>` lúc mở hộp thoại để khoá cuộn trang; CSP chặn thẻ đó (trình duyệt báo một dòng ở console) và `web/src/styles.css` tự khoá cuộn bằng luật riêng, nên không nới CSP.
 - **Bí mật**: không ghi mật khẩu vào log, DB hay repo. Mật khẩu quản trị WordPress hiện một lần trong kết quả job rồi bỏ. Với `tpan site add --json`, mật khẩu đó nằm trong trường `admin_password` đúng một lần (khi WordPress vừa được cài), vì script tạo site không có đường nào khác để lấy; bản xem trước, log sự kiện và báo cáo job luôn hiện `••••`. Engine che thêm mọi dòng stdin mà lệnh lỡ in lại trong output.
-- **Nhật ký**: mọi thao tác có thay đổi ghi vào `audit` (thời điểm, IP, thao tác, kết quả).
+- **Nhật ký**: mọi thao tác có thay đổi ghi vào `audit` (thời điểm, IP, thao tác, kết quả). Thao tác gõ ở dòng lệnh ghi IP là `cli`.
 - **AI và MCP**: theo bảy nguyên tắc ở mục 8.1. Máy chủ không giữ khoá hay đăng nhập AI nào. MCP chỉ chạy qua stdio; không có cổng MCP nào mở ra mạng. Socket nội bộ `/run/tpan/brain.sock` có quyền 600, chỉ root dùng được.
 
 Để sau (không làm trong đợt này): tách đặc quyền, tức tiến trình web chạy dưới user thường và chỉ nói chuyện với một tiến trình root nhỏ qua Unix socket với danh sách thao tác cố định. Ranh giới `System` ở mục 4.3 được vẽ sẵn để làm việc này không phải viết lại lõi.

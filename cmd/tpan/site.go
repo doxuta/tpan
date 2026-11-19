@@ -149,6 +149,7 @@ func siteAddCmd(e *env) *cobra.Command {
 			}
 
 			res, err := add.Execute(ctx, f.progress(e, add.Plan).onEvent)
+			cliAudit(ctx, e, s.Store, "site.add", d.String(), res.Report.Job)
 			if err != nil && res.Report.Job.ID == "" {
 				return err
 			}
@@ -293,6 +294,7 @@ func siteRmCmd(e *env) *cobra.Command {
 			}
 
 			rep, err := rm.Execute(ctx, f.progress(e, rm.Plan).onEvent)
+			cliAudit(ctx, e, s.Store, "site.rm", d.String(), rep.Job)
 			if err != nil && rep.Job.ID == "" {
 				return err
 			}

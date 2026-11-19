@@ -95,6 +95,7 @@ func stackInstallCmd(e *env) *cobra.Command {
 			}
 			p := newProgress(out, e.lang, verbose, in.Plan)
 			rep, err := in.Execute(ctx, p.onEvent)
+			cliAudit(ctx, e, s.Journal, "stack.install", string(w), rep.Job)
 			if err != nil && rep.Job.ID == "" {
 				return err
 			}

@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/demo"
+	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/server"
 	"github.com/doxuta/tpan/internal/store"
@@ -201,4 +203,28 @@ func writeJSON(w io.Writer, v any) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+// auditWriter là phần của store ghi được nhật ký. Nhận kiểu chung vì nơi gọi
+// đang giữ store dưới dạng giao diện của core (Journal, SiteStore).
+type auditWriter interface {
+	AddAudit(ctx context.Context, a store.AuditEntry) error
+}
+
+// cliAudit ghi nhật ký cho thao tác chạy ở dòng lệnh (mục 11: mọi thao tác có
+// thay đổi đều vào audit, kể cả không qua giao diện). IP là "cli". Job chưa
+// tạo được (lỗi trước khi chạy) thì không ghi. Ghi lỗi chỉ in ra stderr: thao
+// tác trên máy đã xong, không được báo hỏng vì nhật ký.
+func cliAudit(ctx context.Context, e *env, w any, action, target string, job engine.Job) {
+	aw, ok := w.(auditWriter)
+	if !ok || job.ID == "" {
+		return
+	}
+	result := "ok"
+	if job.Status != engine.JobSucceeded {
+		result = string(job.Status)
+	}
+	if err := aw.AddAudit(ctx, store.AuditEntry{Time: time.Now(), IP: "cli", Action: action, Target: target, Result: result, JobID: job.ID}); err != nil {
+		printf(e.stderr, "tpan: %v\n", err)
+	}
 }
