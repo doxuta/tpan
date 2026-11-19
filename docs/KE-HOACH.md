@@ -818,7 +818,7 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 ## 16. Điều chưa chắc, phải kiểm trên máy ảo
 
 - Gói `apache2` có tự khởi động khi cài không, và `policy-rc.d` có chặn được không. **Đã kiểm (M1, 19/11/2026):** có, cài xong là `active`, `enabled` và nghe cổng 80. `policy-rc.d` trả 101 chặn được việc khởi động nhưng **không** chặn `enable`: kết quả `inactive` mà vẫn `enabled`. Mục 6.6 phải tự `disable` web server mới cho tới bước 3, không thì máy khởi động lại giữa chừng sẽ có hai web server tranh cổng 80.
-- WP-CLI nhận mật khẩu qua stdin với `--prompt=dbpass` và `--prompt=admin_password` như thế nào.
+- WP-CLI nhận mật khẩu qua stdin với `--prompt=dbpass` và `--prompt=admin_password` như thế nào. **Đã kiểm (M2, 19/11/2026):** WP-CLI 2.12.0 đọc mỗi tham số trong `--prompt` là một dòng stdin (có `readline` thì dùng nó, không thì `stream_get_line`), kể cả khi stdin không phải terminal. Đăng nhập `wp-login.php` bằng mật khẩu đưa qua stdin được (302 kèm cookie đăng nhập), user DB đăng nhập được bằng mật khẩu trong `wp-config.php`. Sau khi hỏi, WP-CLI in lại cả câu lệnh kèm giá trị vừa đọc, nên mọi lệnh `wp` của tpan có `--quiet` và engine che các dòng stdin trong output; tìm 10 mật khẩu của lần chạy e2e trong `tpan.db` và WAL: 0 dòng.
 - Bản Ubuntu 24.04 của Multipass khác bản "minimized" trên VPS ở những gói nào (`dpkg -l | wc -l` hai bên, so danh sách). **Máy ảo (M1):** 668 dòng, 663 gói `ii`. Phía VPS chưa đo (chủ dự án tự gõ).
 - MariaDB bản của Ubuntu 24.04 có sẵn user ẩn danh và DB `test` không. **Đã kiểm (M1):** MariaDB 10.11.14 mới cài không có user ẩn danh, không có DB `test`, root đã dùng `unix_socket`, chỉ nghe 127.0.0.1. Bước siết MariaDB vẫn giữ để bắt máy không sạch, và được bỏ qua trên máy mới.
 - Phiên bản và cập nhật (mục 6.11), kiểm trên máy ảo trước khi viết M12:
@@ -830,8 +830,8 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - `wp config set` có cách nào nhận giá trị mà không để lộ trên dòng lệnh không (dùng cho đổi mật khẩu DB ở mục 6.9).
 - `runuser -u <user> --` với môi trường cố định của tpan: **đã kiểm (M1)**: đổi HOME, USER, LOGNAME sang user đích, giữ PATH, LC_ALL, DEBIAN_FRONTEND. Thư mục làm việc kế thừa từ tiến trình gọi; ở M2 phải đặt thư mục làm việc mà user của site đọc được.
 - curl khi Nginx trả 444: **đã kiểm (M1)**: `curl: (52) Empty reply from server`, mã thoát 52 (phép kiểm `HTTPDefault` dựa vào mã này).
-- 80 MB cho một worker PHP của WordPress có sát thực tế không.
-- `rename` giữa `/var/www` và `/var/lib` có cùng phân vùng trên VPS đích không (`df /var/www /var/lib`).
+- 80 MB cho một worker PHP của WordPress có sát thực tế không. **Máy ảo (M2):** WordPress 7.1.5 mới cài, sau khoảng 30 request trang chủ và `wp-login.php`, mỗi worker 46 đến 50 MB RSS (RSS tính cả opcache dùng chung nên cộng lại sẽ lớn hơn thực tế). Chưa đo wp-admin và site có plugin; giữ 80 MB làm trần an toàn.
+- `rename` giữa `/var/www` và `/var/lib` có cùng phân vùng trên VPS đích không (`df /var/www /var/lib`). **Máy ảo (M2):** cùng một phân vùng. Phía VPS chưa đo.
 - Máy ảo test là arm64, VPS là amd64: gói cài giống nhau, nhưng phải chạy lại e2e trên VPS ở lần triển khai đầu.
 - API của SDK MCP Go: đọc tài liệu của đúng phiên bản thêm vào, không viết theo trí nhớ.
 - Che dữ liệu có làm AI chẩn đoán kém đi không: đo bằng các kịch bản trong `scripts/faults/`, có che và không che.
@@ -844,6 +844,14 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - Khi một bản Claude Code mới đặt `--bare` làm mặc định cho `-p`: có cờ nào tắt được không. Nếu không, `tpan brain` ghim phiên bản và báo rõ.
 - Hạn mức của gói Claude khi dùng `claude -p` và điều khoản dùng đăng nhập gói (mục 8.2): đã đổi vài lần trong năm 2026, kiểm lại ở hai trang ghi trong mục 17 trước buổi demo.
 - SSH từ máy cá nhân vào máy ảo Multipass (cần cho `tpan mcp` và `tpan brain` lúc test): thêm khoá công khai của máy cá nhân vào máy ảo bằng một lệnh con mới của `scripts/vm.sh`.
+
+- Kiểm thêm ở M2 (19/11/2026), máy ảo Ubuntu 24.04:
+  - `getent passwd <user>` thoát mã 2 khi không có user. `userdel` thoát mã 8 khi user còn tiến trình; `site rm` gỡ pool và reload PHP-FPM trước `userdel` nên lần thử xoá ngay sau một request vẫn xong. Mới thử một lần; request dài hơn có thể làm `userdel` gặp mã 8, khi đó tpan báo chạy lại.
+  - `GRANT ... ON \`tp\_..\`.*`: MariaDB 10.11 hiểu `\_` là dấu gạch dưới thật (không phải ký tự đại diện), `SHOW GRANTS` hiện đúng như vậy và user vẫn dùng được DB. Đọc bằng `mariadb -N -B` thì client in mỗi `\` thành `\\`; cần `-r` để thấy nguyên văn.
+  - `php-fpm8.3 -t` nhận dòng đầu `; # Do tpan quản lý...` của file pool. `/etc/nginx/fastcgi.conf` có sẵn trong gói nginx của Ubuntu.
+  - PHP của site ghi được `php-error.log` (thuộc user của site, 640) dù file nằm ngoài `open_basedir`, vì `error_log` do PHP-FPM mở chứ không qua kiểm `open_basedir`.
+  - `runuser` với thư mục làm việc `/` (đặt cố định trong `LocalSystem.Run`): `wp`, `tar`, `find`, `chmod` chạy bình thường dưới user của site.
+  - Còn mở: pool `www` của gói `php-fpm` vẫn chạy (2 worker dưới `www-data`, khoảng 16 MB mỗi cái) dù không vhost nào dùng. Gỡ nó là việc của stack (mục 6.1); để sau, cùng lúc với M12 (nhiều bản PHP). WordPress 7.1.5 in cảnh báo `Undefined array key "HTTP_HOST"` mỗi lần `wp core is-installed`, chỉ làm log job dài thêm.
 
 ## 17. Nguồn đã tra (19/11/2026)
 
