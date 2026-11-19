@@ -99,7 +99,7 @@ func clientIP(r *http.Request) string {
 }
 
 // NewHandler ghép API và giao diện web vào một handler. Tách riêng để test được
-// mà không cần mở cổng thật. Bảng đường dẫn và ý nghĩa: types.go.
+// mà không cần mở cổng thật. Bảng đường dẫn và ý nghĩa: types.go, types_m5.go.
 func NewHandler(d Deps, dist fs.FS) http.Handler {
 	s := &Server{deps: d}
 	s.auth = newAuthState(s)
@@ -130,6 +130,13 @@ func NewHandler(d Deps, dist fs.FS) http.Handler {
 	mux.Handle("GET /api/v1/jobs/{id}", auth(s.handleJob))
 	mux.Handle("GET /api/v1/jobs/{id}/events", auth(s.handleJobEvents))
 	mux.Handle("GET /api/v1/databases", auth(s.handleDatabases))
+	// M5: SSL và trang bảo mật (types_m5.go).
+	mux.Handle("GET /api/v1/ssl", auth(s.handleSSL))
+	mux.Handle("POST /api/v1/ssl/settings", auth(s.handleSSLSettings))
+	mux.Handle("POST /api/v1/sites/{domain}/ssl", auth(s.handleSiteSSL))
+	mux.Handle("GET /api/v1/security", auth(s.handleSecurity))
+	mux.Handle("POST /api/v1/security/ufw", auth(s.handleSecurityUFW))
+	mux.Handle("POST /api/v1/security/fail2ban", auth(s.handleSecurityFail2ban))
 
 	mux.HandleFunc("/api/", handleAPINotFound)
 	mux.Handle("/", spa(dist))
