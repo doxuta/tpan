@@ -21,8 +21,8 @@ func TestSSLGolden(t *testing.T) {
 		name string
 		gen  func() ([]byte, error)
 	}{
-		{"site-nginx-ssl", func() ([]byte, error) { return NginxSiteSSL(l, acmeRoot) }},
-		{"site-apache-ssl", func() ([]byte, error) { return ApacheSiteSSL(l, acmeRoot) }},
+		{"site-nginx-ssl", func() ([]byte, error) { return NginxSiteSSL(l, "8.3", acmeRoot) }},
+		{"site-apache-ssl", func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot) }},
 		{"nginx-default-ssl", NginxDefaultSSL},
 		{"apache-default-ssl", ApacheDefaultSSL},
 		{"renew-hook", func() ([]byte, error) { return RenewHook(testTpanBin) }},
@@ -58,8 +58,8 @@ func TestSSLGolden(t *testing.T) {
 func TestSSLFirstLine(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
 	for name, gen := range map[string]func() ([]byte, error){
-		"nginx":          func() ([]byte, error) { return NginxSiteSSL(l, acmeRoot) },
-		"apache":         func() ([]byte, error) { return ApacheSiteSSL(l, acmeRoot) },
+		"nginx":          func() ([]byte, error) { return NginxSiteSSL(l, "8.3", acmeRoot) },
+		"apache":         func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot) },
 		"nginx-default":  NginxDefaultSSL,
 		"apache-default": ApacheDefaultSSL,
 		"fail2ban":       Fail2banSSHD,
@@ -100,7 +100,7 @@ func codeLines(b []byte) []string {
 // chứng chỉ và đủ luật bảo mật của bản cổng 80.
 func TestNginxSiteSSLDirectives(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
-	ng, err := NginxSiteSSL(l, acmeRoot)
+	ng, err := NginxSiteSSL(l, "8.3", acmeRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestNginxSiteSSLDirectives(t *testing.T) {
 		"location ~ /\\.(?!well-known/) {\n        deny all;",
 		"location ~* ^/wp-content/uploads/.*\\.php$ {\n        deny all;",
 		"try_files $uri $uri/ /index.php?$args;",
-		"fastcgi_pass unix:" + l.Socket + ";",
+		"fastcgi_pass unix:" + l.SocketFor("8.3") + ";",
 	} {
 		if !bytes.Contains(ng, []byte(s)) {
 			t.Errorf("nginx SSL thiếu %q", s)
@@ -156,7 +156,7 @@ func TestNginxSiteSSLDirectives(t *testing.T) {
 // chứng chỉ và đủ luật của bản cổng 80.
 func TestApacheSiteSSLDirectives(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
-	ap, err := ApacheSiteSSL(l, acmeRoot)
+	ap, err := ApacheSiteSSL(l, "8.3", acmeRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestApacheSiteSSLDirectives(t *testing.T) {
 		`<Directory "` + l.Public + `/wp-content/uploads">`,
 		`<FilesMatch "^\.">`,
 		`<DirectoryMatch "/\.(?!well-known(/|$))">`,
-		`SetHandler "proxy:unix:` + l.Socket + `|fcgi://localhost"`,
+		`SetHandler "proxy:unix:` + l.SocketFor("8.3") + `|fcgi://localhost"`,
 	} {
 		if !bytes.Contains(ap, []byte(s)) {
 			t.Errorf("apache SSL thiếu %q", s)
@@ -215,8 +215,8 @@ func TestSSLKeepsPlainRules(t *testing.T) {
 	pairs := map[string]struct {
 		plain, ssl func(site.Layout, string) ([]byte, error)
 	}{
-		"nginx":  {NginxSite, NginxSiteSSL},
-		"apache": {ApacheSite, ApacheSiteSSL},
+		"nginx":  {php83(NginxSite), php83(NginxSiteSSL)},
+		"apache": {php83(ApacheSite), php83(ApacheSiteSSL)},
 	}
 	for name, p := range pairs {
 		plain, err := p.plain(l, acmeRoot)
@@ -305,13 +305,13 @@ func TestSiteVhost(t *testing.T) {
 		ssl  bool
 		want func(site.Layout, string) ([]byte, error)
 	}{
-		{"nginx", false, NginxSite},
-		{"nginx", true, NginxSiteSSL},
-		{"apache", false, ApacheSite},
-		{"apache", true, ApacheSiteSSL},
+		{"nginx", false, php83(NginxSite)},
+		{"nginx", true, php83(NginxSiteSSL)},
+		{"apache", false, php83(ApacheSite)},
+		{"apache", true, php83(ApacheSiteSSL)},
 	}
 	for _, c := range cases {
-		got, err := SiteVhost(l, c.web, acmeRoot, c.ssl)
+		got, err := SiteVhost(l, c.web, "8.3", acmeRoot, c.ssl)
 		if err != nil {
 			t.Fatalf("%s ssl=%v: %v", c.web, c.ssl, err)
 		}
@@ -322,7 +322,7 @@ func TestSiteVhost(t *testing.T) {
 	}
 	for _, web := range []string{"", "Nginx", "nginx ", "apache2", "caddy", "nginx\n", "nginx;"} {
 		for _, ssl := range []bool{false, true} {
-			if out, err := SiteVhost(l, web, acmeRoot, ssl); !errors.Is(err, ErrParam) || out != nil {
+			if out, err := SiteVhost(l, web, "8.3", acmeRoot, ssl); !errors.Is(err, ErrParam) || out != nil {
 				t.Errorf("web %q ssl=%v: muốn ErrParam không nội dung, được %v", web, ssl, err)
 			}
 		}
@@ -340,17 +340,16 @@ func TestSSLBadParams(t *testing.T) {
 	bad := map[string]site.Layout{
 		"zero":         {},
 		"public chèn":  tamper(func(l *site.Layout) { l.Public = "/var/www/example.com/public;\n}" }),
-		"socket lệnh":  tamper(func(l *site.Layout) { l.Socket = "/run/php/$(id).sock" }),
 		"user rm":      tamper(func(l *site.Layout) { l.User = "root; rm -rf /" }),
 		"dir passwd":   tamper(func(l *site.Layout) { l.Dir = "../../etc/passwd" }),
 		"log dir dài":  tamper(func(l *site.Layout) { l.LogDir = "/" + strings.Repeat("a", 300) }),
 		"thiếu domain": tamper(func(l *site.Layout) { l.Domain = validate.Domain{} }),
 	}
 	gens := map[string]func(site.Layout, string) ([]byte, error){
-		"nginx SSL":   NginxSiteSSL,
-		"apache SSL":  ApacheSiteSSL,
-		"SiteVhost n": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "nginx", r, true) },
-		"SiteVhost a": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "apache", r, true) },
+		"nginx SSL":   php83(NginxSiteSSL),
+		"apache SSL":  php83(ApacheSiteSSL),
+		"SiteVhost n": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "nginx", "8.3", r, true) },
+		"SiteVhost a": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "apache", "8.3", r, true) },
 	}
 	for name, l := range bad {
 		for g, gen := range gens {
@@ -384,7 +383,7 @@ func TestSSLBadParams(t *testing.T) {
 // (certbot đặt tên lineage theo domain đã chuyển).
 func TestSSLIDN(t *testing.T) {
 	l := siteTestLayout(t, "cửahàng.vn")
-	for name, gen := range map[string]func(site.Layout, string) ([]byte, error){"nginx": NginxSiteSSL, "apache": ApacheSiteSSL} {
+	for name, gen := range map[string]func(site.Layout, string) ([]byte, error){"nginx": php83(NginxSiteSSL), "apache": php83(ApacheSiteSSL)} {
 		out, err := gen(l, acmeRoot)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
@@ -393,4 +392,10 @@ func TestSSLIDN(t *testing.T) {
 			t.Errorf("%s: domain không ở dạng punycode:\n%s", name, out)
 		}
 	}
+}
+
+// php83 cố định bản PHP 8.3 cho các hàm sinh vhost, để bảng test giữ dạng
+// (Layout, acmeRoot) như trước M12.
+func php83(f func(site.Layout, string, string) ([]byte, error)) func(site.Layout, string) ([]byte, error) {
+	return func(l site.Layout, acmeRoot string) ([]byte, error) { return f(l, "8.3", acmeRoot) }
 }

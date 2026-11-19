@@ -434,7 +434,7 @@ func (m *machine) httpSite(dom, port string, headers bool) system.Result {
 		return reply("301", "Moved Permanently", "Location: "+loc+"\r\n",
 			"<html><head><title>301 Moved Permanently</title></head><body>301 Moved Permanently</body></html>")
 	}
-	if _, err := m.Stat(l.Socket); err != nil {
+	if _, err := m.Stat(l.SocketFor(phpVer)); err != nil {
 		return reply("502", "Bad Gateway", "", "<html><head><title>502 Bad Gateway</title></head><body>502 Bad Gateway</body></html>")
 	}
 	body := "<html><head><link rel='stylesheet' href='" + scheme + "://" + dom + "/wp-content/themes/x/style.css'></head><body>" + dom + "</body></html>"
@@ -489,7 +489,7 @@ func (m *machine) syncSockets() {
 	want := map[string]bool{}
 	for _, n := range names {
 		if pool, ok := strings.CutSuffix(n, ".conf"); ok && strings.HasPrefix(pool, "tpan-") {
-			want["/run/php/"+pool+".sock"] = true
+			want["/run/php/"+pool+"-"+phpVer+".sock"] = true
 		}
 	}
 	m.mu.Lock()
@@ -513,11 +513,11 @@ func (m *machine) syncSockets() {
 // (mục 6.7), chạy trên máy giả.
 func (m *machine) breakPool(l site.Layout) error {
 	m.mu.Lock()
-	m.broken[l.Socket] = true
-	delete(m.sockets, l.Socket)
+	m.broken[l.SocketFor(phpVer)] = true
+	delete(m.sockets, l.SocketFor(phpVer))
 	m.mu.Unlock()
-	if err := m.Remove(l.Socket); err != nil {
-		return fmt.Errorf("xoá socket %s: %w", l.Socket, err)
+	if err := m.Remove(l.SocketFor(phpVer)); err != nil {
+		return fmt.Errorf("xoá socket %s: %w", l.SocketFor(phpVer), err)
 	}
 	return nil
 }

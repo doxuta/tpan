@@ -346,7 +346,7 @@ func printSiteInfo(e *env, info core.SiteInfo) {
 	row(e.tr("Thư mục:", "Directory:"), l.Dir)
 	row("Document root:", l.Public)
 	row("Log:", l.LogDir)
-	row("Pool PHP-FPM:", l.Pool+" ("+l.Socket+")")
+	row("Pool PHP-FPM:", l.Pool+" ("+info.Socket+")")
 	switch info.Web {
 	case core.Nginx:
 		row("Vhost:", l.NginxConf)

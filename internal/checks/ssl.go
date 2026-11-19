@@ -482,7 +482,7 @@ func sslDomainRE(dom string) *regexp.Regexp {
 func HTTPSSite(l site.Layout) Check {
 	b := siteBase("https.site", StageEndToEnd, l,
 		i18n.T("Gọi HTTPS vào site trả 200 và đúng là WordPress của site", "An HTTPS request to the site returns 200 and is the site's WordPress"))
-	if g := siteGuard(b, l, true, l.Socket, l.LogDir, l.PHPErrorLog, l.Public); g != nil {
+	if g := siteGuard(b, l, true, l.LogDir, l.PHPErrorLog, l.Public); g != nil {
 		return g
 	}
 	dom := l.Domain.String()
@@ -536,7 +536,7 @@ func HTTPSSite(l site.Layout) Check {
 				i18n.T("Site trả "+code+" qua https: web server không nói chuyện được với PHP", "The site answered "+code+" over https: the web server cannot talk to PHP"),
 				i18n.T("Pool PHP-FPM của site không chạy, socket sai chủ hay quyền, hoặc pool quá tải (504).",
 					"The site's PHP-FPM pool is not running, the socket has the wrong owner or mode, or the pool is overloaded (504)."),
-				[]string{line("ls", "-l", l.Socket), line("systemctl", "status", "php*-fpm.service", "--no-pager"), line("tail", "-n", "20", l.LogDir+"/error.log"), recheck}, ev)
+				[]string{line("ls", "-l", "/run/php"), line("systemctl", "status", "php*-fpm.service", "--no-pager"), line("tail", "-n", "20", l.LogDir+"/error.log"), recheck}, ev)
 		case "500":
 			return b.bad(Fail,
 				i18n.T("Site trả 500 qua https: PHP hoặc WordPress báo lỗi", "The site answered 500 over https: PHP or WordPress reported an error"),
@@ -566,13 +566,12 @@ func HTTPSSite(l site.Layout) Check {
 // SiteChecksSSL là SiteChecks cho site đã có chứng chỉ, theo thứ tự chặng của
 // request: TLS rồi tới web, pool, WordPress, DB, rồi gọi thật qua cổng 80 (phải
 // là 301) và 443. HTTPSite bị thay vì cổng 80 giờ chỉ còn việc chuyển hướng.
-// Cũng như SiteChecks, phpVersion giữ chỗ cho M12.
+// phpVersion là bản PHP site đang dùng (chọn socket của pool).
 func SiteChecksSSL(web, phpVersion string, l site.Layout) []Check {
-	_ = phpVersion
 	return []Check{
 		TLSCert(l),
 		VhostEnabled(web, l),
-		PoolSocket(l),
+		PoolSocket(l, phpVersion),
 		WPChecksums(l),
 		WPConfigPerm(l),
 		DBAccess(l),

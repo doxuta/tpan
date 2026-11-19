@@ -89,7 +89,7 @@ func TestDemoTail(t *testing.T) {
 	// Log lỗi của site hỏng nói đúng lỗi: không nối được socket của pool.
 	l, _ := layoutOf(siteWiki)
 	res, err := sys.Run(ctx, system.Cmd{Name: "tail", Args: []string{"-n", "100", "-F", l.LogDir + "/error.log"}})
-	if err != nil || !strings.Contains(res.Stdout, l.Socket) {
+	if err != nil || !strings.Contains(res.Stdout, l.SocketFor("8.3")) {
 		t.Errorf("error.log của %s: %q, %v", siteWiki, res.Stdout, err)
 	}
 }

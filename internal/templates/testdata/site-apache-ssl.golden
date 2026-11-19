@@ -99,6 +99,6 @@
     # <Proxy "fcgi://localhost">: các site dùng chung tên này, khai báo worker
     # dùng lại kết nối thì các site sẽ dùng chung một worker.
     <FilesMatch "\.php$">
-        SetHandler "proxy:unix:/run/php/tpan-example_com_a379a6.sock|fcgi://localhost"
+        SetHandler "proxy:unix:/run/php/tpan-example_com_a379a6-8.3.sock|fcgi://localhost"
     </FilesMatch>
 </VirtualHost>

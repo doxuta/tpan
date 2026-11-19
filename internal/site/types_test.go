@@ -23,7 +23,7 @@ func TestLayoutOf(t *testing.T) {
 		"LogDir":      "/var/log/tpan/sites/shop.example.com",
 		"PHPErrorLog": "/var/log/tpan/sites/shop.example.com/php-error.log",
 		"Pool":        "tpan-" + slug,
-		"Socket":      "/run/php/tpan-" + slug + ".sock",
+		"Socket":      "/run/php/tpan-" + slug + "-8.3.sock",
 		"NginxConf":   "/etc/nginx/sites-available/tpan-shop.example.com.conf",
 		"NginxLink":   "/etc/nginx/sites-enabled/tpan-shop.example.com.conf",
 		"ApacheConf":  "/etc/apache2/sites-available/tpan-shop.example.com.conf",
@@ -33,7 +33,7 @@ func TestLayoutOf(t *testing.T) {
 	got := map[string]string{
 		"User": l.User, "DB": l.DB, "Dir": l.Dir, "Public": l.Public, "Tmp": l.Tmp,
 		"WPConfig": l.WPConfig, "LogDir": l.LogDir, "PHPErrorLog": l.PHPErrorLog,
-		"Pool": l.Pool, "Socket": l.Socket, "NginxConf": l.NginxConf, "NginxLink": l.NginxLink,
+		"Pool": l.Pool, "Socket": l.SocketFor("8.3"), "NginxConf": l.NginxConf, "NginxLink": l.NginxLink,
 		"ApacheConf": l.ApacheConf, "ApacheLink": l.ApacheLink, "PoolConf": l.PoolConf("8.3"),
 	}
 	for k, w := range want {

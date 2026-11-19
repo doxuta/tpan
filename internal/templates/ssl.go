@@ -36,8 +36,8 @@ func sslRender(name string, d any) ([]byte, error) {
 // sslSiteData kiểm Layout và acmeRoot như vhost cổng 80 (cùng một cửa kiểm), rồi
 // thêm đường dẫn chứng chỉ. Đường dẫn chứng chỉ suy từ domain đã kiểm, nhưng vẫn
 // qua danh sách ký tự cho phép như mọi đường dẫn khác đi vào config.
-func sslSiteData(l site.Layout, acmeRoot string) (sslData, error) {
-	d, err := siteVhostData(l, acmeRoot)
+func sslSiteData(l site.Layout, php, acmeRoot string) (sslData, error) {
+	d, err := siteVhostData(l, php, acmeRoot)
 	if err != nil {
 		return sslData{}, err
 	}
@@ -68,8 +68,8 @@ const (
 //     ssl_certificate_key l.CertPrivkey().
 //
 // Không có default_server ở đây: request lạ vào 443 rơi vào tpan-default-ssl.
-func NginxSiteSSL(l site.Layout, acmeRoot string) ([]byte, error) {
-	d, err := sslSiteData(l, acmeRoot)
+func NginxSiteSSL(l site.Layout, php, acmeRoot string) ([]byte, error) {
+	d, err := sslSiteData(l, php, acmeRoot)
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost nginx SSL: %w", err)
 	}
@@ -86,8 +86,8 @@ func NginxSiteSSL(l site.Layout, acmeRoot string) ([]byte, error) {
 //     SSLCertificateFile l.CertFullchain(), SSLCertificateKeyFile l.CertPrivkey().
 //
 // Cần mod ssl đã bật (Plan SSL bật trước khi ghi file này).
-func ApacheSiteSSL(l site.Layout, acmeRoot string) ([]byte, error) {
-	d, err := sslSiteData(l, acmeRoot)
+func ApacheSiteSSL(l site.Layout, php, acmeRoot string) ([]byte, error) {
+	d, err := sslSiteData(l, php, acmeRoot)
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost apache SSL: %w", err)
 	}
@@ -97,16 +97,17 @@ func ApacheSiteSSL(l site.Layout, acmeRoot string) ([]byte, error) {
 // SiteVhost là chỗ DUY NHẤT chọn template vhost của một site: web "nginx" hoặc
 // "apache", ssl theo site.Site.SSL. Tạo site, chạy lại, xin SSL và phát hiện
 // lệch (M4) đều gọi hàm này, để không có chỗ nào ghi đè vhost 443 bằng bản cổng 80.
-func SiteVhost(l site.Layout, web, acmeRoot string, ssl bool) ([]byte, error) {
+// php là bản PHP site đang dùng (site.Site.PHPVersion): vhost trỏ vào socket của bản đó.
+func SiteVhost(l site.Layout, web, php, acmeRoot string, ssl bool) ([]byte, error) {
 	switch {
 	case web == "nginx" && ssl:
-		return NginxSiteSSL(l, acmeRoot)
+		return NginxSiteSSL(l, php, acmeRoot)
 	case web == "nginx":
-		return NginxSite(l, acmeRoot)
+		return NginxSite(l, php, acmeRoot)
 	case web == "apache" && ssl:
-		return ApacheSiteSSL(l, acmeRoot)
+		return ApacheSiteSSL(l, php, acmeRoot)
 	case web == "apache":
-		return ApacheSite(l, acmeRoot)
+		return ApacheSite(l, php, acmeRoot)
 	}
 	return nil, fmt.Errorf("chọn vhost: %w: web %q phải là \"nginx\" hoặc \"apache\"", ErrParam, web)
 }

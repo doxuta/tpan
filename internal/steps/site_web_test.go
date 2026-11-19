@@ -64,13 +64,13 @@ func TestSiteWebLifecycle(t *testing.T) {
 	base := func(m *machine) { webBase(m, l) }
 	pool := func() engine.Step { return webStepOK(t)(SitePool(l, "8.3")) }
 	vhost := func(web string, i int) func() engine.Step {
-		return func() engine.Step { return webStepsOK(t)(SiteVhost(l, web, webAcme))[i] }
+		return func() engine.Step { return webStepsOK(t)(SiteVhost(l, web, "8.3", webAcme))[i] }
 	}
 	// Máy đã có đủ vhost và pool của site, để thử các bước gỡ.
 	full := func(m *machine) {
 		webBase(m, l)
 		execute(t, m, pool())
-		execute(t, m, webStepsOK(t)(SiteVhost(l, "nginx", webAcme))...)
+		execute(t, m, webStepsOK(t)(SiteVhost(l, "nginx", "8.3", webAcme))...)
 	}
 	absent := func(i int) func() engine.Step {
 		return func() engine.Step { return webStepsOK(t)(SiteWebAbsent(l, "nginx", "8.3"))[i] }
@@ -100,14 +100,14 @@ func TestSiteWebPaths(t *testing.T) {
 	apReload := &system.Cmd{Name: "systemctl", Args: []string{"reload", "apache2"}}
 
 	p := webStepOK(t)(SitePool(l, "8.3")).(*File)
-	want, _ := templates.SitePool(l)
+	want, _ := templates.SitePool(l, "8.3")
 	if p.Path != "/etc/php/8.3/fpm/pool.d/tpan-"+l.Slug.String()+".conf" || p.Perm != 0o644 || p.Owner != system.Root ||
 		!reflect.DeepEqual(p.Test, phpTest) || !reflect.DeepEqual(p.Reload, phpReload) || string(p.Content) != string(want) {
 		t.Errorf("SitePool sai: %+v", p)
 	}
 
-	ngConf, _ := templates.NginxSite(l, webAcme)
-	apConf, _ := templates.ApacheSite(l, webAcme)
+	ngConf, _ := templates.NginxSite(l, "8.3", webAcme)
+	apConf, _ := templates.ApacheSite(l, "8.3", webAcme)
 	for web, w := range map[string]struct {
 		conf, link   string
 		test, reload *system.Cmd
@@ -116,7 +116,7 @@ func TestSiteWebPaths(t *testing.T) {
 		"nginx":  {l.NginxConf, l.NginxLink, nginxTest, nginxReload, ngConf},
 		"apache": {l.ApacheConf, l.ApacheLink, apTest, apReload, apConf},
 	} {
-		ss := webStepsOK(t)(SiteVhost(l, web, webAcme))
+		ss := webStepsOK(t)(SiteVhost(l, web, "8.3", webAcme))
 		if len(ss) != 2 {
 			t.Fatalf("%s: %d bước, muốn 2", web, len(ss))
 		}
@@ -169,7 +169,7 @@ func TestSiteWebChain(t *testing.T) {
 	before := m.Snapshot()
 
 	add := func() []engine.Step {
-		return append([]engine.Step{webStepOK(t)(SitePool(l, "8.3"))}, webStepsOK(t)(SiteVhost(l, "nginx", webAcme))...)
+		return append([]engine.Step{webStepOK(t)(SitePool(l, "8.3"))}, webStepsOK(t)(SiteVhost(l, "nginx", "8.3", webAcme))...)
 	}
 	if rep := execute(t, m, add()...); rep.Job.Status != engine.JobSucceeded {
 		t.Fatalf("job %s: %s", rep.Job.Status, rep.Job.Error)
@@ -217,7 +217,7 @@ func TestSiteWebCommandErrors(t *testing.T) {
 		path   string
 	}{
 		{"pool", []string{"php-fpm8.3", "-t"}, webStepOK(t)(SitePool(l, "8.3")), l.PoolConf("8.3")},
-		{"vhost", []string{"nginx", "-t"}, webStepsOK(t)(SiteVhost(l, "nginx", webAcme))[0], l.NginxConf},
+		{"vhost", []string{"nginx", "-t"}, webStepsOK(t)(SiteVhost(l, "nginx", "8.3", webAcme))[0], l.NginxConf},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -253,7 +253,7 @@ func TestSiteWebBadParams(t *testing.T) {
 		if s, err := SitePool(bl, "8.3"); err == nil || s != nil {
 			t.Errorf("SitePool Layout %s: muốn lỗi", name)
 		}
-		if s, err := SiteVhost(bl, "nginx", webAcme); err == nil || s != nil {
+		if s, err := SiteVhost(bl, "nginx", "8.3", webAcme); err == nil || s != nil {
 			t.Errorf("SiteVhost Layout %s: muốn lỗi", name)
 		}
 		if s, err := SiteHtaccess(bl); err == nil || s != nil {
@@ -272,7 +272,7 @@ func TestSiteWebBadParams(t *testing.T) {
 		}
 	}
 	for _, w := range badWeb {
-		if s, err := SiteVhost(l, w, webAcme); err == nil || s != nil {
+		if s, err := SiteVhost(l, w, "8.3", webAcme); err == nil || s != nil {
 			t.Errorf("SiteVhost web %q: muốn lỗi", w)
 		}
 		if s, err := SiteWebAbsent(l, w, "8.3"); err == nil || s != nil {
@@ -280,7 +280,7 @@ func TestSiteWebBadParams(t *testing.T) {
 		}
 	}
 	for _, r := range []string{"", "acme", "/var/lib/acme;", "/var/lib/$(id)", "/var/lib/../etc"} {
-		if s, err := SiteVhost(l, "apache", r); err == nil || s != nil {
+		if s, err := SiteVhost(l, "apache", "8.3", r); err == nil || s != nil {
 			t.Errorf("SiteVhost acmeRoot %q: muốn lỗi", r)
 		}
 	}

@@ -45,10 +45,9 @@ type Layout struct {
 	// chạy dưới User ghi được.
 	PHPErrorLog string `json:"php_error_log"`
 
-	// Pool là tên pool PHP-FPM, tpan-<slug>.
+	// Pool là tên pool PHP-FPM, tpan-<slug>. Socket của pool mang số bản PHP
+	// nên không nằm ở đây: xem SocketFor.
 	Pool string `json:"pool"`
-	// Socket là /run/php/tpan-<slug>.sock: www-data:www-data, 0660.
-	Socket string `json:"socket"`
 
 	// Vhost của từng web server và symlink bật nó.
 	NginxConf  string `json:"nginx_conf"`
@@ -86,7 +85,6 @@ func LayoutOf(d validate.Domain) Layout {
 		LogDir:      logDir,
 		PHPErrorLog: logDir + "/php-error.log",
 		Pool:        pool,
-		Socket:      "/run/php/" + pool + ".sock",
 		NginxConf:   "/etc/nginx/sites-available/tpan-" + dom + ".conf",
 		NginxLink:   "/etc/nginx/sites-enabled/tpan-" + dom + ".conf",
 		ApacheConf:  "/etc/apache2/sites-available/tpan-" + dom + ".conf",
@@ -99,6 +97,17 @@ func LayoutOf(d validate.Domain) Layout {
 // là của stack (và từ M12 là của từng site), không suy từ domain.
 func (l Layout) PoolConf(version string) string {
 	return "/etc/php/" + version + "/fpm/pool.d/" + l.Pool + ".conf"
+}
+
+// SocketFor là socket của pool khi chạy bản PHP version:
+// /run/php/tpan-<slug>-<version>.sock, chủ www-data:www-data, 0660.
+//
+// Có số bản trong tên vì đổi bản PHP không gián đoạn (mục 6.11) cần hai pool
+// của cùng site chạy song song trong lúc chuyển, mỗi bản PHP-FPM một socket.
+// Cùng một đường dẫn thì PHP-FPM bản cũ, khi gỡ pool, xoá mất socket mà bản
+// mới vừa tạo.
+func (l Layout) SocketFor(version string) string {
+	return "/run/php/" + l.Pool + "-" + version + ".sock"
 }
 
 // Status là trạng thái của site trong bảng sites.
@@ -125,3 +134,6 @@ type Site struct {
 
 // Layout trả tên và đường dẫn của site.
 func (s Site) Layout() Layout { return LayoutOf(s.Domain) }
+
+// Socket là socket của pool site đang dùng (theo PHPVersion).
+func (s Site) Socket() string { return s.Layout().SocketFor(s.PHPVersion) }

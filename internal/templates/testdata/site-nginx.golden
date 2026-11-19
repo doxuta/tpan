@@ -47,6 +47,6 @@ server {
         # /uploads/anh.jpg/x.php có thể khiến PHP chạy anh.jpg như mã.
         try_files $uri =404;
         include fastcgi.conf;
-        fastcgi_pass unix:/run/php/tpan-example_com_a379a6.sock;
+        fastcgi_pass unix:/run/php/tpan-example_com_a379a6-8.3.sock;
     }
 }

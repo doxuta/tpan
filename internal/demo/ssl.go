@@ -199,7 +199,7 @@ func seedSSL(ctx context.Context, m *machine, st *store.Store, dom string) error
 	}
 	m.SetFile("/etc/nginx/sites-available/tpan-default-ssl.conf", def, 0o644, rootOwner)
 	m.SetSymlink("/etc/nginx/sites-available/tpan-default-ssl.conf", "/etc/nginx/sites-enabled/tpan-default-ssl.conf")
-	vhost, err := templates.SiteVhost(l, string(core.Nginx), acmeRoot, true)
+	vhost, err := templates.SiteVhost(l, string(core.Nginx), phpVer, acmeRoot, true)
 	if err != nil {
 		return fmt.Errorf("sinh vhost SSL của %s: %w", dom, err)
 	}

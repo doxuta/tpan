@@ -243,7 +243,7 @@ func newSiteSim(t *testing.T) *siteSim {
 		want := map[string]bool{}
 		for _, n := range names {
 			if pool, ok := strings.CutSuffix(n, ".conf"); ok {
-				want["/run/php/"+pool+".sock"] = true
+				want["/run/php/"+pool+"-8.3.sock"] = true
 			}
 		}
 		m.mu.Lock()
