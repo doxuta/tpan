@@ -31,7 +31,8 @@ package core
 // gói mariadb đang cài; Service mariadb; steps.MariaDBUpgradeRun; kiểm mọi site.
 // Plan.Title và Why của bước đầu nói rõ đường lùi: cài lại dòng cũ rồi nhập lại
 // từ file xuất. Từ chối: mariadb_line_invalid, mariadb_not_newer (chỉ nâng lên).
-// Thành công thì after ghi stack.db_source = mariadb.org, stack.db_line.
+// stack.db_source = mariadb.org, stack.db_line ghi bằng một bước ngay sau
+// AptUpgrade (settingsStep trong oneway.go), không đợi job thành công.
 //
 // Ghi chú khi viết thân (đợt 2):
 //   - ListsUpdated để trống: system.FileInfo chưa có thời điểm sửa file (mtime),
@@ -47,6 +48,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"regexp"
 	"slices"
 	"strconv"
@@ -172,7 +174,7 @@ func (u *Updates) Status(ctx context.Context, refresh bool) (UpdateStatus, error
 		}
 	}
 	st.Auto = checks.UnattendedUpgrades().Run(ctx, u.Sys)
-	if st.AutoOrigins, err = u.externalOrigins(); err != nil {
+	if st.AutoOrigins, err = u.autoOrigins(); err != nil {
 		return UpdateStatus{}, err
 	}
 	if st.MariaDB, err = u.mariadbStatus(ctx); err != nil {
@@ -210,6 +212,29 @@ func (u *Updates) externalOrigins() ([]string, error) {
 		}
 		if ok {
 			out = append(out, r[1])
+		}
+	}
+	return out, nil
+}
+
+// autoOrigins là các kho ngoài đang được thêm MÀ đã nằm trong file tự vá của
+// tpan. Chỉ có kho thì chưa đủ: update.auto mới ghi kho vào danh sách tự vá.
+func (u *Updates) autoOrigins() ([]string, error) {
+	data, err := u.Sys.ReadFile(unattendedConf)
+	if errors.Is(err, fs.ErrNotExist) {
+		return []string{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("đọc %s: %w", unattendedConf, err)
+	}
+	all, err := u.externalOrigins()
+	if err != nil {
+		return nil, err
+	}
+	out := []string{}
+	for _, o := range all {
+		if strings.Contains(string(data), `"origin=`+o+`"`) {
+			out = append(out, o)
 		}
 	}
 	return out, nil

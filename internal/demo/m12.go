@@ -179,6 +179,10 @@ func (x *m12) files() {
 		m.SetFile("/etc/apt/preferences.d/tpan-"+core.RepoSury, pin, 0o644, rootOwner)
 		m.SetFile(steps.AptKeyPath(core.RepoSury), []byte(suryFpr+"\n"), 0o644, rootOwner)
 	}
+	// update.auto đã chạy khi kho sury đã có: kho sury nằm trong danh sách tự vá.
+	if conf, err := templates.UnattendedUpgrades([]string{core.OriginSury}); err == nil {
+		m.SetFile("/etc/apt/apt.conf.d/52tpan-unattended-upgrades", conf, 0o644, rootOwner)
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()

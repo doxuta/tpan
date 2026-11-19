@@ -169,8 +169,8 @@ type UpdateStatus struct {
 	ListsUpdated time.Time `json:"lists_updated,omitzero"`
 	// Auto là kết quả checks.UnattendedUpgrades (bản vá bảo mật tự cài hằng ngày).
 	Auto checks.Result `json:"auto"`
-	// AutoOrigins là các kho ngoài (nginx.org, MariaDB, sury) đang có trong
-	// danh sách tự vá của tpan.
+	// AutoOrigins là các kho ngoài (nginx.org, MariaDB, sury) vừa đang được thêm
+	// vừa có trong file tự vá của tpan (update.auto ghi file đó).
 	AutoOrigins []string      `json:"auto_origins"`
 	MariaDB     MariaDBStatus `json:"mariadb"`
 	Self        SelfStatus    `json:"self"`

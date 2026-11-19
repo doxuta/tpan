@@ -269,8 +269,14 @@ func TestMariaDBUpgradeOnDemo(t *testing.T) {
 	if v, _, _ := st.GetSetting(ctx, core.SettingDBLine); v != "11.8" {
 		t.Errorf("settings %s = %q", core.SettingDBLine, v)
 	}
-	if !slices.Contains(s.AutoOrigins, core.OriginMariaDB) {
-		t.Errorf("kho MariaDB chưa có trong danh sách kho ngoài: %v", s.AutoOrigins)
+	// Kho MariaDB mới thêm chưa nằm trong danh sách tự vá cho tới khi chạy lại
+	// update.auto; màn Cập nhật phải nói đúng như vậy.
+	if slices.Contains(s.AutoOrigins, core.OriginMariaDB) {
+		t.Errorf("kho MariaDB chưa qua update.auto mà đã báo được tự vá: %v", s.AutoOrigins)
+	}
+	runOK(t, ctx, "update.auto")(u.PrepareAuto(ctx))
+	if s, _ := u.Status(ctx, false); !slices.Contains(s.AutoOrigins, core.OriginMariaDB) {
+		t.Errorf("sau update.auto kho MariaDB vẫn chưa được tự vá: %v", s.AutoOrigins)
 	}
 	// Không hạ xuống.
 	if _, err := u.PrepareMariaDB(ctx, "11.4"); err == nil {

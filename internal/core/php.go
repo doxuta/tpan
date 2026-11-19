@@ -19,12 +19,14 @@ package core
 // Plan "php.use" (tpan php use <domain> <bản>), đổi không gián đoạn (6.11 ý 3):
 //  1. Ghi pool của site vào bản mới (steps.SitePool(l, mới): socket mang số bản
 //     mới, file /etc/php/<mới>/fpm/pool.d/tpan-<slug>.conf), kiểm, reload bản mới.
-//  2. Ghi lại vhost trỏ socket mới (siteVhost với site đã đổi PHPVersion),
+//  2. Chờ socket mới xuất hiện (tối đa 20 giây): reload trả về trước khi
+//     PHP-FPM tạo xong socket (thấy trên máy ảo M12, khoảng 2 giây với 8.4).
+//  3. Ghi lại vhost trỏ socket mới (siteVhost với site đã đổi PHPVersion),
 //     kiểm config, reload web server.
-//  3. Kiểm chứng giữa chừng: site trả 200 qua socket mới (một Step chạy
-//     checks.HTTPSite hoặc HTTPSSite; Fail thì Step lỗi và các bước trước hoàn
-//     tác: vhost về socket cũ, pool mới bị gỡ).
-//  4. Cuối cùng mới gỡ pool ở bản cũ (Absent, reload bản cũ).
+//  4. Kiểm chứng giữa chừng: site trả 200 qua socket mới, HAI lần liên tiếp
+//     (worker cũ của web server có thể còn trả lời qua socket cũ); Fail thì
+//     Step lỗi và các bước trước hoàn tác: vhost về socket cũ, pool mới bị gỡ.
+//  5. Cuối cùng mới gỡ pool ở bản cũ (Absent, reload bản cũ).
 //  Kiểm chứng: siteChecks của site với bản mới. Thành công thì after ghi
 //  site.PHPVersion mới vào bảng sites. Từ chối: site_not_found, site_not_active,
 //  php_not_installed (bản mới chưa cài: chỉ sang `tpan php install`),

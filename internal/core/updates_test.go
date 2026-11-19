@@ -13,6 +13,7 @@ import (
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/templates"
 )
 
 func TestParseAptInst(t *testing.T) {
@@ -141,6 +142,16 @@ func TestUpdatesStatus(t *testing.T) {
 	e.f.SetFile(RepoSourcesPath(RepoNginx), []byte("x"), 0o644, system.Root)
 	e.f.SetFile(RepoSourcesPath(RepoSury), []byte("x"), 0o644, system.Root)
 	e.f.SetFile(tpanOld, []byte("bản cũ"), 0o755, system.Root)
+
+	// Có kho mà chưa có file tự vá: chưa kho nào được tự vá.
+	if st, err := e.u.Status(ctx, false); err != nil || len(st.AutoOrigins) != 0 {
+		t.Fatalf("chưa có %s mà AutoOrigins = %v (%v)", unattendedConf, st.AutoOrigins, err)
+	}
+	conf, err := templates.UnattendedUpgrades([]string{OriginNginx, OriginSury})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.f.SetFile(unattendedConf, conf, 0o644, system.Root)
 
 	st, err := e.u.Status(ctx, false)
 	if err != nil {
