@@ -119,16 +119,16 @@
 [data-theme="light"] {
   color-scheme: light;
   --ink: #16181A;
-  --paper: #F6F7F5;
-  --surface: #FFFFFF;
+  --paper: #ECEDEA;
+  --surface: #F6F7F4;
   --muted: #5A6066;
-  --hair: #D5D8DA;
+  --hair: #CDD0D2;
   --card-border: #16181A;
   --on-ink: #FFFFFF;
-  --pre: #E9ECEA;
-  --track: #DADDDF;
+  --pre: #E1E4E1;
+  --track: #D2D5D7;
   --line: #16181A;
-  --line-dash: #868C92;
+  --line-dash: #7E848A;
   --link: #0B4FB8;
   --link-hover: #083A87;
 
@@ -139,7 +139,7 @@
   --fail: #C8320A;
   --on-fail: #FFFFFF;
   --fail-text: #B42A06;
-  --unknown: #868C92;
+  --unknown: #7E848A;
 }
 
 [data-theme="dark"] {

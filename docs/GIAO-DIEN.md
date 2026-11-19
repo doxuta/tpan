@@ -30,7 +30,7 @@ Mỗi trạng thái có một hình riêng và một màu riêng. Hình khác nh
 | đạt | chấm tròn đặc | 12 px | `#168A3A` | `#45C97A` | liền |
 | cảnh báo | hình thoi (ô vuông xoay 45°) có viền | 13 px, viền 2 px | nền `#E0A100`, viền `#16181A` | nền `#F2C14E`, viền `#15171A` | liền |
 | lỗi | ô vuông đặc, bên trong có dấu × | 20 px | nền `#C8320A`, dấu `#FFFFFF` | nền `#FF6B4A`, dấu `#190B07` | liền tới ga, đứt từ ga trở đi |
-| chưa kiểm được | vòng tròn rỗng | 10 px, viền 2 px | `#868C92` | `#8A9096` | đứt |
+| chưa kiểm được | vòng tròn rỗng | 10 px, viền 2 px | `#7E848A` | `#8A9096` | đứt |
 
 Quy tắc:
 
@@ -48,16 +48,16 @@ Khai báo một lần thành biến CSS; mọi thành phần chỉ dùng biến,
 [data-theme="light"] {
   color-scheme: light;
   --ink: #16181A;          /* chữ chính, viền nút, nét tuyến liền */
-  --paper: #F6F7F5;        /* nền trang */
-  --surface: #FFFFFF;      /* nền thẻ, nút phụ, ô nhập */
+  --paper: #ECEDEA;        /* nền trang */
+  --surface: #F6F7F4;      /* nền thẻ, nút phụ, ô nhập */
   --muted: #5A6066;        /* chữ phụ, nhãn cột */
-  --hair: #D5D8DA;         /* kẻ mảnh giữa các hàng */
+  --hair: #CDD0D2;         /* kẻ mảnh giữa các hàng */
   --card-border: #16181A;  /* viền thẻ */
   --on-ink: #FFFFFF;       /* chữ trên nền --ink (nút chính) */
-  --pre: #E9ECEA;          /* nền khối bằng chứng */
-  --track: #DADDDF;        /* rãnh của thanh số liệu */
+  --pre: #E1E4E1;          /* nền khối bằng chứng */
+  --track: #D2D5D7;        /* rãnh của thanh số liệu */
   --line: #16181A;         /* nét tuyến liền */
-  --line-dash: #868C92;    /* nét tuyến đứt */
+  --line-dash: #7E848A;    /* nét tuyến đứt */
   --link: #0B4FB8;
   --link-hover: #083A87;
 
@@ -68,7 +68,7 @@ Khai báo một lần thành biến CSS; mọi thành phần chỉ dùng biến,
   --fail: #C8320A;
   --on-fail: #FFFFFF;
   --fail-text: #B42A06;    /* chữ đỏ trên nền sáng */
-  --unknown: #868C92;
+  --unknown: #7E848A;
 }
 
 [data-theme="dark"] {
@@ -102,16 +102,18 @@ Tương phản đã đo (công thức WCAG 2.1; chữ cần từ 4,5:1, hình c�
 
 | Cặp | Sáng | Tối |
 |---|---|---|
-| `--ink` trên `--paper` | 16,6 | 15,0 |
-| `--muted` trên `--paper` / `--surface` | 5,9 / 6,4 | 7,6 / 6,8 |
-| `--link` trên `--paper` / `--surface` | 6,9 / 7,4 | 9,0 / 8,1 |
-| `--fail-text` trên `--paper` / `--surface` | 6,0 / 6,4 | 7,8 / 7,0 |
+| `--ink` trên `--paper` | 15,1 | 15,0 |
+| `--muted` trên `--paper` / `--surface` / `--pre` | 5,4 / 5,9 / 5,0 | 7,6 / 6,8 |
+| `--link` trên `--paper` / `--surface` | 6,3 / 6,9 | 9,0 / 8,1 |
+| `--fail-text` trên `--paper` / `--surface` | 5,5 / 6,0 | 7,8 / 7,0 |
 | `--on-fail` trên `--fail` | 5,4 | 6,8 |
-| `--ok-text` trên `--paper` / `--surface` | 5,4 / 5,8 | 8,5 / 7,6 |
-| `--ok` (hình) trên `--paper` | 4,1 | 8,5 |
+| `--ok-text` trên `--paper` / `--surface` | 4,9 / 5,4 | 8,5 / 7,6 |
+| `--ok` (hình) trên `--paper` | 3,8 | 8,5 |
 | `--unknown`, `--line-dash` (hình) trên `--paper` | 3,2 | 5,6 và 3,7 |
 
-`--ok` ở chế độ sáng chỉ đạt 4,1:1 trên nền trang, đủ cho hình nhưng không đủ cho chữ. Vì vậy chữ màu xanh dùng `--ok-text`. Thêm màu mới thì đo lại và ghi vào bảng này.
+Bản sáng được làm dịu ngày 19/11/2026 theo ý chủ dự án ("giao diện sáng hơi chói"): nền trang từ `#F6F7F5` xuống `#ECEDEA`, nền thẻ từ trắng tinh `#FFFFFF` xuống `#F6F7F4`, các màu đi kèm (`--hair`, `--pre`, `--track`) đậm theo, và xám "chưa kiểm được" đậm thành `#7E848A` để vòng rỗng vẫn đạt 3:1 trên nền mới. Màu trạng thái và bản tối không đổi.
+
+`--ok` ở chế độ sáng chỉ đạt 3,8:1 trên nền trang, đủ cho hình nhưng không đủ cho chữ. Vì vậy chữ màu xanh dùng `--ok-text`. Thêm màu mới thì đo lại và ghi vào bảng này.
 
 Đưa các biến trên vào Tailwind theo tài liệu của đúng phiên bản Tailwind đang cài (phần khai báo theme bằng biến CSS). Không dùng bảng màu có sẵn của Tailwind và không viết mã màu trong tên class.
 
