@@ -541,14 +541,15 @@ main_fake() {
   ok "có tool_call list_sites và propose_site_add" bash -c 'jq -e "[.[].ev | select(.kind == \"tool_call\") | .tool] == [\"mcp__tpan__list_sites\", \"mcp__tpan__propose_site_add\"]" "$1" >/dev/null' _ "$SSE_JSON"
   pid="$(jq -r '[.[].ev | select(.kind == "tool_result" and (.plan_id // "") != "")][0].plan_id // empty' "$SSE_JSON")"
   ok "tool_result của propose_site_add có plan_id" test -n "$pid"
-  # Chữ hiện dần là sự kiện text cuối (mang toàn bộ chữ của lượt); done chỉ
-  # mang tin nhắn cuối, như trường result của claude thật.
+  # Chữ hiện dần là sự kiện text cuối (mang toàn bộ chữ của lượt). claude giả
+  # trả result chỉ có tin nhắn cuối như claude thật; done (và ai_turns.answer)
+  # phải mang toàn bộ chữ đã nối, không phải result.
   shown="$(jq -r '[.[].ev | select(.kind == "text")][-1].text' "$SSE_JSON")"
   ok "chữ hiển thị là tên thật: bí danh bị cắt giữa hai sự kiện vẫn được đổi về tpan:site/$A hoặc $B" bash -c 'grep -qE "tpan:site/(a|b)\\.example\\.com" <<<"$1"' _ "$shown"
   ok "chữ hiển thị không còn bí danh site-?.example nào (cả chữ hiện dần lẫn done)" bash -c '! grep -qE "site-[a-z]+\\.example" <<<"$1" && ! jq -r .text <<<"$2" | grep -qE "site-[a-z]+\\.example"' _ "$shown" "$final"
   ok "chữ của 3 tin nhắn assistant được ngăn bằng dòng trống (2 chỗ)" bash -c '[ "$(grep -c "^$" <<<"$1")" = 2 ]' _ "$shown"
   ok "chữ sau mỗi lần gọi công cụ là đoạn mới (ngăn bằng dòng trống)" sse_split_ok
-  ok "done mang tin nhắn cuối, trùng đoạn cuối của chữ hiện dần" bash -c 'd="$(jq -r .text <<<"$2")"; [ -n "$d" ] && [[ "$1" == *$'"'"'\n\n'"'"'"$d" ]]' _ "$shown" "$final"
+  ok "done mang toàn bộ chữ đã nối, trùng chữ hiện dần cuối cùng (không chỉ result = tin nhắn cuối)" bash -c '[ -n "$1" ] && [ "$(jq -r .text <<<"$2")" = "$1" ]' _ "$shown" "$final"
   M16+=("(claude giả) từ lúc gửi ask tới chữ đầu tiên trên SSE: $(sse_first_text_s)s, gồm 1s claude giả chờ thay cho độ trễ của model; mở ssh + tpan mcp --session + list tools: $(jq -r .mcp_ms "$(rec 1)") ms")
 
   api GET "/api/v1/plans/$pid"
@@ -607,6 +608,7 @@ main_fake() {
   ok "playbook: lượt 1 site, lượt 2 su-co" bash -c 'jq -e "[.turns[].playbook] == [\"site\", \"su-co\"]" "$1" >/dev/null' _ "$TMPD/session1.json"
   ok "các lần gọi công cụ: list_sites, propose_site_add (có plan_id $pid), list_sites" bash -c 'jq -e --arg p "$2" "[.calls[] | .tool] == [\"list_sites\", \"propose_site_add\", \"list_sites\"] and ([.calls[] | select(.plan_id == \$p)] | length == 1)" "$1" >/dev/null' _ "$TMPD/session1.json" "$pid"
   ok "Plan của phiên: $pid pending origin ai" bash -c 'jq -e --arg p "$2" "[.plans[] | select(.id == \$p and .status == \"pending\" and .origin == \"ai\")] | length == 1" "$1" >/dev/null' _ "$TMPD/session1.json" "$pid"
+  ok "answer của lượt 1 trên trang phiên là toàn bộ chữ: có đoạn viết trước lần gọi công cụ đầu và đoạn cuối" bash -c 'jq -e ".turns[0].answer | startswith(\"Mình xem danh sách site trên máy trước.\n\n\") and contains(\"đang chờ bạn duyệt; máy chưa đổi gì.\")" "$1" >/dev/null' _ "$TMPD/session1.json"
   ok "câu trả lời trên trang phiên đã đổi về tên thật" bash -c 'jq -e "all(.turns[].answer; test(\"site-[a-z]+\\\\.example\") | not) and (.turns[1].answer | test(\"[ab]\\\\.example\\\\.com\"))" "$1" >/dev/null' _ "$TMPD/session1.json"
 
   section "i. claude giả khai thêm công cụ Bash ở init: lượt bị từ chối"
@@ -685,9 +687,10 @@ main_real() {
   local who=$1
   prepare
 
-  section "e. lỗi cố ý ở $B: bỏ symlink bật vhost rồi reload nginx (nginx -t vẫn qua); ghi kết quả health"
-  vroot bash -c "rm -v /etc/nginx/sites-enabled/tpan-$B.conf && nginx -t && systemctl reload nginx"
-  ok "gỡ symlink, nginx -t qua, reload xong" rc_is 0
+  section "e. lỗi cố ý ở $B (scripts/faults/07-vhost-disable.sh): bỏ symlink bật vhost rồi reload nginx (nginx -t vẫn qua); ghi kết quả health"
+  run scripts/faults/07-vhost-disable.sh break "$B"
+  ok "07 break: gỡ symlink, nginx -t qua, reload xong" rc_is 0
+  # Reload của kịch bản trả về trước khi nginx áp dụng (khoảng 100 ms): chờ hiện tượng.
   vexec bash -c 'for i in $(seq 1 40); do c="$(curl -sS -m 5 -o /dev/null -w "%{http_code}" --resolve "$1:80:127.0.0.1" "http://$1/" 2>&1)"; rc=$?; echo "lần $i: $c (curl mã $rc)"; [ "$rc" = 52 ] && exit 52; sleep 0.25; done; exit "$rc"' _ "$B"
   ok "$B rơi vào site mặc định (curl mã 52)" rc_is 52
   http_code "$A"

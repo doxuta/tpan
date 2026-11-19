@@ -16,8 +16,11 @@ scripts/faults/NN-ten.sh restore <domain>   # chỉ khi sửa tự động hỏn
 | `03-vhost-break.sh` | thêm dòng sai cú pháp vào vhost, không reload | Web | `config.nginx:nginx` / `config.apache:apache2`, `drift:<vhost>` | `web.rewrite` |
 | `04-wpconfig-perm.sh` | `chmod 644 wp-config.php` | WordPress | `wp.config:<domain>` | `wp.config.perm` |
 | `05-db-user-lock.sh` | `ALTER USER ... ACCOUNT LOCK` | DB | `db.access:<domain>` | `db.unlock` |
+| `07-vhost-disable.sh` | xoá symlink bật vhost của site ở `sites-enabled` (nginx hoặc apache), kiểm cú pháp, reload | Web | `web.vhost:<domain>` | `web.rewrite` (nhánh của `web.vhost`: chỉ ghi lại vhost và symlink của đúng site đó, `vhostRewrite` trong `internal/core/fix.go`) |
 | `06-disk-full.sh` | file giả `/var/tmp/tpan-fault-fill` cho `/` dùng ~91% | Máy | `disk.usage:/` | không có: `restore` là cách duy nhất |
 
 Chặng "đầu cuối" (`http.site:<domain>`) gọi HTTP thật nên lỗi theo mọi chặng trước nó; đó không tính là chặng thứ hai (docs/thay-doi/M4.md).
 
-`06-disk-full.sh` không nhận domain và luôn phải `restore` sau khi xong; e2e chạy nó cuối cùng. Phần chung (đọc layout của site qua `tpan site info --json`, bản PHP và web server qua `tpan stack status --json`) nằm ở `lib.sh`.
+`06-disk-full.sh` không nhận domain và luôn phải `restore` sau khi xong; e2e chạy nó cuối cùng, nên trong bảng nó đứng sau 07.
+
+`07-vhost-disable.sh` có reload: `systemctl reload nginx` trả về khoảng 100 ms trước khi worker cũ thôi trả lời (đo ở `docs/bang-chung/M8-reload.log`). Bước reload của tpan đã chờ việc đó (`steps.Reload`), còn kịch bản này là bash nên ai gọi HTTP ngay sau nó thì tự chờ tới khi thấy hiện tượng (e2e gọi lại tới khi curl thoát mã 52). Phần chung (đọc layout của site qua `tpan site info --json`, bản PHP và web server qua `tpan stack status --json`) nằm ở `lib.sh`.
