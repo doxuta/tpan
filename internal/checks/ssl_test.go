@@ -283,7 +283,10 @@ func TestCertRenewDryRun(t *testing.T) {
 		assertShape(t, r, id, StageTLS, Pass)
 		assertEvidenceIsRan(t, r, f)
 		got := f.Ran()[0].String()
-		want := "certbot renew --dry-run --cert-name shop.example.com --non-interactive"
+		// --no-random-sleep-on-renew: không có terminal thì certbot tự chờ ngẫu
+		// nhiên tới 8 phút trước khi gia hạn (kể cả --dry-run), giữ job và khoá
+		// toàn cục của tpan suốt lúc đó (thấy trên máy ảo, docs/thay-doi/M5.md).
+		want := "certbot renew --dry-run --no-random-sleep-on-renew --cert-name shop.example.com --non-interactive"
 		if got != want {
 			t.Errorf("lệnh = %q, muốn %q", got, want)
 		}

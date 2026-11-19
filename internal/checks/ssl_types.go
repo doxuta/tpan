@@ -35,7 +35,7 @@ package checks
 //	func HTTPSSite(l site.Layout) Check
 //
 //	// CertRenewDryRun (StageTLS, "tls.renew:<domain>"):
-//	//   certbot renew --dry-run --cert-name <domain> --non-interactive [--server server]
+//	//   certbot renew --dry-run --no-random-sleep-on-renew --cert-name <domain> --non-interactive [--server server]
 //	// Mã 0: Pass. server rỗng thì không thêm --server. Nặng (gọi máy chủ ACME):
 //	// chỉ dùng ở kiểm chứng của Plan SSL và trong e2e, không ở health định kỳ.
 //	func CertRenewDryRun(l site.Layout, server string) Check

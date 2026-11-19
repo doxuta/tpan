@@ -344,7 +344,12 @@ func CertRenewDryRun(l site.Layout, server string) Check {
 			})
 		}
 	}
-	args := []string{"renew", "--dry-run", "--cert-name", dom, "--non-interactive"}
+	// --no-random-sleep-on-renew: chạy không có terminal (như từ tpan) thì
+	// certbot tự chờ ngẫu nhiên tới 8 phút trước khi gia hạn, kể cả --dry-run,
+	// để các bộ hẹn giờ trên mọi máy không gọi Let's Encrypt cùng lúc. Ở đây là
+	// lần kiểm do người bấm, chờ thì job (và khoá toàn cục) bị giữ vô ích; đo
+	// trên máy ảo: 221 giây (docs/thay-doi/M5.md, mục "Kết quả kiểm cho mục 16").
+	args := []string{"renew", "--dry-run", "--no-random-sleep-on-renew", "--cert-name", dom, "--non-interactive"}
 	if server != "" {
 		args = append(args, "--server", server)
 	}
