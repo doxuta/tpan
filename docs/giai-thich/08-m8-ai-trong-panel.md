@@ -544,7 +544,7 @@ ok  	github.com/doxuta/tpan/internal/steps	0.529s
 ### 2.14 Chưa chạy
 
 - Claude Code thật trên mã cuối cùng (lần 6 và 7 build trước `a7a6090` và trước bản sửa reload): `scripts/e2e-m8.sh real`, tốn hai lần gọi hạn mức.
-- Hồi quy e2e M5 với bản sửa reload: đang chạy lúc viết, xem `docs/bang-chung/M8-hoi-quy-m5.log`.
+- Hồi quy e2e M5 với bản sửa reload (nginx rồi apache, certbot thật với máy chủ ACME thử pebble trong máy ảo): 232 khẳng định đạt, 0 không đạt (`docs/bang-chung/M8-hoi-quy-m5.log`, dòng cuối `TỔNG KẾT: 0 khẳng định không đạt`).
 - Mở panel bằng trình duyệt thật, dùng ngăn AI, `⌘K`, nút "Giải thích".
 - Duyệt Plan `health.fix` do AI đề xuất rồi xem site trở lại 200. Lần chạy chỉ kiểm Plan nằm `pending` và máy không đổi.
 - Phần "Việc chủ dự án tự làm trên VPS" của `docs/thay-doi/M8.md` vẫn ghi "(điền ở đợt 4)".
