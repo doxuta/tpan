@@ -1,5 +1,6 @@
 # Kết quả build
 /bin/
+/dist/
 /web/dist/*
 !/web/dist/.gitkeep
 

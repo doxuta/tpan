@@ -9,7 +9,7 @@ LDFLAGS := -s -w \
   -X $(MODULE)/internal/buildinfo.Date=$(DATE)
 
 .DEFAULT_GOAL := help
-.PHONY: help web build build-linux test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean
+.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -25,6 +25,25 @@ build-linux: web ## Build tpan cho Linux amd64 (VPS) và arm64 (máy ảo trên 
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '$(LDFLAGS)' -o bin/tpan-linux-amd64 ./cmd/tpan
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o bin/tpan-linux-arm64 ./cmd/tpan
 
+# Thư mục gói phát hành. := để VERSION chỉ tính một lần, khớp với bản đã nhúng
+# vào file chạy qua LDFLAGS.
+RELEASE_DIR := dist/release/$(VERSION)
+
+release: build-linux ## Đóng gói phát hành vào dist/release/<version>/ (file chạy, install.sh, SHA256SUMS)
+	rm -rf $(RELEASE_DIR)
+	mkdir -p $(RELEASE_DIR)
+	cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh $(RELEASE_DIR)/
+	chmod 0755 $(RELEASE_DIR)/tpan-linux-amd64 $(RELEASE_DIR)/tpan-linux-arm64 $(RELEASE_DIR)/install.sh
+	@# Tính sha256 trong chính thư mục gói để dòng chỉ ghi tên file trần:
+	@# tpan self-update và install.sh tìm đúng tên tpan-linux-<arch>.
+	cd $(RELEASE_DIR) && if command -v sha256sum >/dev/null 2>&1; then \
+	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	else \
+	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	fi > SHA256SUMS
+	@echo "Gói phát hành: $(RELEASE_DIR)/"
+	@ls -l $(RELEASE_DIR)
+
 test: ## Chạy unit test
 	go test ./...
 
@@ -34,6 +53,7 @@ lint: ## go vet + golangci-lint
 
 check: lint test ## Chạy hết kiểm tra trước khi commit
 	cd web && pnpm typecheck
+	bash scripts/install_test.sh
 
 dev-api: ## Chạy backend chế độ demo (máy giả) ở 127.0.0.1:18080; mở thêm một terminal cho dev-web
 	go run ./cmd/tpan serve --demo --listen 127.0.0.1:18080
