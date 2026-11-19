@@ -296,7 +296,7 @@ Chạy lại phải được phép, kể cả sau một lần hỏng giữa ch�
 4. Dò phiên bản PHP đã cài (đọc `/etc/php/*/fpm`), lưu vào `settings`.
 5. Web server:
    - Nginx: gỡ site `default` của distro, ghi `tpan-default.conf`.
-   - Apache: `a2dismod mpm_prefork`, bật `mpm_event proxy_fcgi setenvif rewrite ssl headers http2`, gỡ `000-default`, ghi `000-tpan-default.conf`. Tên file này là ngoại lệ duy nhất của luật tiền tố `tpan-`: Apache coi vhost được nạp **đầu tiên** (theo thứ tự tên file trong `sites-enabled`) là site mặc định, nên nếu đặt `tpan-default.conf` thì site `tpan-abc.com.conf` sẽ xếp trước và hứng mọi request lạ. Nginx không bị vì dùng `default_server`.
+   - Apache: `a2dismod mpm_prefork`, bật `mpm_event proxy_fcgi setenvif rewrite headers http2` (`ssl` để tới M5: bật nó là Apache nghe cổng 443 mà chưa có vhost nào hứng, nên trang mặc định của Ubuntu lộ ra ở 443; M5 bật `ssl` cùng một vhost 443 mặc định), gỡ `000-default`, ghi `000-tpan-default.conf`. Tên file này là ngoại lệ duy nhất của luật tiền tố `tpan-`: Apache coi vhost được nạp **đầu tiên** (theo thứ tự tên file trong `sites-enabled`) là site mặc định, nên nếu đặt `tpan-default.conf` thì site `tpan-abc.com.conf` sẽ xếp trước và hứng mọi request lạ. Nginx không bị vì dùng `default_server`.
    - `tpan-default` là site hứng mọi request không khớp domain nào: trả 444 (Nginx) hoặc 403 (Apache), chỉ phục vụ `/.well-known/acme-challenge/` từ `/var/lib/tpan/acme/`.
 6. Tải WP-CLI vào `/usr/local/bin/wp`, kiểm sha512.
 7. Ghi `/etc/logrotate.d/tpan-sites`, kiểm bằng `logrotate -d`.
@@ -812,10 +812,10 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 
 ## 16. Điều chưa chắc, phải kiểm trên máy ảo
 
-- Gói `apache2` có tự khởi động khi cài không, và `policy-rc.d` có chặn được không.
+- Gói `apache2` có tự khởi động khi cài không, và `policy-rc.d` có chặn được không. **Đã kiểm (M1, 19/11/2026):** có, cài xong là `active`, `enabled` và nghe cổng 80. `policy-rc.d` trả 101 chặn được việc khởi động nhưng **không** chặn `enable`: kết quả `inactive` mà vẫn `enabled`. Mục 6.6 phải tự `disable` web server mới cho tới bước 3, không thì máy khởi động lại giữa chừng sẽ có hai web server tranh cổng 80.
 - WP-CLI nhận mật khẩu qua stdin với `--prompt=dbpass` và `--prompt=admin_password` như thế nào.
-- Bản Ubuntu 24.04 của Multipass khác bản "minimized" trên VPS ở những gói nào (`dpkg -l | wc -l` hai bên, so danh sách).
-- MariaDB bản của Ubuntu 24.04 có sẵn user ẩn danh và DB `test` không.
+- Bản Ubuntu 24.04 của Multipass khác bản "minimized" trên VPS ở những gói nào (`dpkg -l | wc -l` hai bên, so danh sách). **Máy ảo (M1):** 668 dòng, 663 gói `ii`. Phía VPS chưa đo (chủ dự án tự gõ).
+- MariaDB bản của Ubuntu 24.04 có sẵn user ẩn danh và DB `test` không. **Đã kiểm (M1):** MariaDB 10.11.14 mới cài không có user ẩn danh, không có DB `test`, root đã dùng `unix_socket`, chỉ nghe 127.0.0.1. Bước siết MariaDB vẫn giữ để bắt máy không sạch, và được bỏ qua trên máy mới.
 - Phiên bản và cập nhật (mục 6.11), kiểm trên máy ảo trước khi viết M12:
   - Kho PHP của Ondřej Surý cho Ubuntu 24.04 hiện nằm ở đâu và ký bằng khoá nào. Tra ngày 19/11/2026 thấy kho trên Launchpad (`ppa:ondrej/php`) đang được chuyển về `packages.sury.org`; đọc hướng dẫn hiện hành của chính kho đó.
   - Gói nginx từ nginx.org khác gói của Ubuntu ở bố cục thư mục (`conf.d` thay cho `sites-enabled`) và ở user chạy tiến trình (`nginx` thay cho `www-data`). Quyền thư mục site ở mục 5 dựa vào nhóm `www-data`, nên phải thử kỹ trước khi cho chọn nguồn này.
@@ -823,6 +823,8 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - Đọc danh sách bản đang chờ cập nhật bằng lệnh nào để tách được bản vá bảo mật (`apt-get -s`, `apt list --upgradable`), và dịch vụ nào phải khởi động lại sau khi cập nhật.
   - API của WordPress.org về bản PHP khuyên dùng và nguồn của PHP về hạn hỗ trợ trả về gì; panel vẫn phải chạy đủ khi không gọi được hai nơi này.
   - `wp config set` có cách nào nhận giá trị mà không để lộ trên dòng lệnh không (dùng cho đổi mật khẩu DB ở mục 6.9).
+- `runuser -u <user> --` với môi trường cố định của tpan: **đã kiểm (M1)**: đổi HOME, USER, LOGNAME sang user đích, giữ PATH, LC_ALL, DEBIAN_FRONTEND. Thư mục làm việc kế thừa từ tiến trình gọi; ở M2 phải đặt thư mục làm việc mà user của site đọc được.
+- curl khi Nginx trả 444: **đã kiểm (M1)**: `curl: (52) Empty reply from server`, mã thoát 52 (phép kiểm `HTTPDefault` dựa vào mã này).
 - 80 MB cho một worker PHP của WordPress có sát thực tế không.
 - `rename` giữa `/var/www` và `/var/lib` có cùng phân vùng trên VPS đích không (`df /var/www /var/lib`).
 - Máy ảo test là arm64, VPS là amd64: gói cài giống nhau, nhưng phải chạy lại e2e trên VPS ở lần triển khai đầu.

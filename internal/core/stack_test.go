@@ -467,3 +467,11 @@ func TestHealthStatusNotInstalled(t *testing.T) {
 		t.Errorf("Status khi cài dở = installed %v, %d dịch vụ; muốn false, 2", stt.Installed, len(stt.Services))
 	}
 }
+
+// Bật ssl mà chưa có vhost 443 thì Apache phục vụ trang mặc định của Ubuntu ở
+// cổng 443 (thấy trên máy ảo). M1 không được bật ssl; M5 bật cùng vhost 443.
+func TestApacheNoSSLModuleInM1(t *testing.T) {
+	if slices.Contains(apacheModules, "ssl") {
+		t.Fatalf("apacheModules có ssl: %v", apacheModules)
+	}
+}

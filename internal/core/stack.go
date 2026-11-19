@@ -355,7 +355,10 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 		avail := "/etc/apache2/sites-available/000-tpan-default.conf"
 		ss = append(ss,
 			&steps.ApacheModules{
-				Enable:  []string{"mpm_event", "proxy_fcgi", "setenvif", "rewrite", "ssl", "headers", "http2"},
+				// Chưa bật ssl ở M1: bật nó là Apache nghe cổng 443 mà chưa có vhost
+				// nào hứng, nên trang mặc định của Ubuntu lộ ra ở 443 (thấy trên máy
+				// ảo, docs/bang-chung/M1.log). M5 bật ssl cùng một vhost 443 mặc định.
+				Enable:  apacheModules,
 				Disable: []string{"mpm_prefork"},
 			},
 			&steps.Absent{Path: "/etc/apache2/sites-enabled/000-default.conf", Test: test, Reload: reloadWeb},
@@ -495,3 +498,6 @@ func (s *Stack) Status(ctx context.Context) (Status, error) {
 	}
 	return st, nil
 }
+
+// apacheModules là các mod Apache stack cần ở M1 (mục 6.1).
+var apacheModules = []string{"mpm_event", "proxy_fcgi", "setenvif", "rewrite", "headers", "http2"}
