@@ -354,10 +354,12 @@ export type PlanStatus = "pending" | "applied" | "rejected";
 
 /** core.PlanRequest: đủ để dựng lại Plan. */
 export type PlanRequest = {
-  kind: "site.add" | "site.rm" | "site.repair" | "stack.repair";
+  kind: "site.add" | "site.rm" | "site.repair" | "stack.repair" | "health.fix" | "ssl.issue";
   domain?: string;
   email?: string;
   title?: string;
+  /** Chỉ cho health.fix (M8): id phép kiểm. */
+  check_id?: string;
 };
 
 export type PendingPlan = {
@@ -411,3 +413,140 @@ export type SSLSettings = { email?: string; staging?: boolean };
 // ---- Bảo mật (M5, internal/core/security.go) ----
 
 export type SecurityStatus = { results: CheckResult[] };
+
+// ---- AI trong panel (M8: internal/ai/brain.go, panel_types.go, server/ai_types.go) ----
+
+/** Một mục của panel. */
+export type AIView = { path: string; label: string };
+
+/** Thứ người dùng vừa bấm "Hỏi AI", "Giải thích", "Chẩn đoán" trên đó. */
+export type AIPointer = {
+  kind: "check" | "incident" | "job" | "job_step" | "log_line" | "plan" | "site";
+  /** check: id phép kiểm; incident: id; job: id; job_step: "<job>/<step>"; log_line: "<domain>/<access|error|php>"; plan: id; site: domain. */
+  ref: string;
+  label?: string;
+  /** Chỉ cho log_line: đúng dòng log đang nhìn. */
+  text?: string;
+};
+
+export type AIChipKey = "view" | "pointer" | "trail" | "evidence" | "machine";
+
+/** Thân POST /api/v1/ai/preview và /api/v1/ai/ask. */
+export type AskInput = {
+  /** Rỗng: phiên mới. */
+  session_id?: string;
+  question: string;
+  lang: "vi" | "en";
+  view: AIView;
+  pointer?: AIPointer;
+  /** Cũ trước mới sau, tối đa 10. */
+  trail?: AIView[];
+  /** Khoá các khối người dùng đã bỏ. */
+  omit?: AIChipKey[];
+};
+
+/** Một khối ngữ cảnh: nội dung là bản đã che, đúng như gửi đi. */
+export type AIChip = { key: AIChipKey; label: Text; content: string };
+
+/** POST /api/v1/ai/preview: đúng thứ sẽ gửi (đã che). */
+export type AskPreview = {
+  session_id?: string;
+  question: string;
+  chips: (AIChip & { omitted: boolean })[];
+  playbook?: string;
+  prompt: string;
+};
+
+/** POST /api/v1/ai/ask (202). */
+export type AskStarted = { session_id: string; seq: number };
+
+export type AIEventKind = "init" | "text" | "tool_call" | "tool_result" | "done" | "error" | "refused";
+
+/**
+ * Sự kiện hiển thị của một lượt (SSE "ai" của GET /api/v1/ai/sessions/{id}/turns/{seq}/events).
+ * text và done mang TOÀN BỘ câu trả lời tới lúc đó, đã đổi về tên thật: thay chữ cũ bằng chữ mới.
+ * done, error, refused là sự kiện cuối.
+ */
+export type AIEvent = {
+  kind: AIEventKind;
+  time: string;
+  text?: string;
+  /** Tên đầy đủ, ví dụ mcp__tpan__site_health. */
+  tool?: string;
+  input?: unknown;
+  is_error?: boolean;
+  plan_id?: string;
+  version?: string;
+  model?: string;
+};
+
+/** GET /api/v1/ai/brain. */
+export type BrainStatus = {
+  /** off: AI tắt (bật bằng sudo tpan mcp config --brain bridge); bridge: chờ tpan brain; demo: bộ não giả. */
+  mode: "off" | "bridge" | "demo";
+  connected: boolean;
+  host?: string;
+  claude_version?: string;
+  /** Phiên bản Claude Code đã chạy bài kiểm; khác claude_version thì có cảnh báo. */
+  tested_version?: string;
+  model?: string;
+  auth_method?: string;
+  warnings?: Text[];
+  since?: string;
+  /** Lệnh người vận hành gõ trên máy của mình để nối, ví dụ "tpan brain ubuntu@<máy>". */
+  connect_command: string;
+};
+
+export type AISessionEntry = "mcp" | "panel";
+
+export type AISession = {
+  id: string;
+  entry: AISessionEntry;
+  client?: string;
+  question?: string;
+  untrusted: boolean;
+  created: string;
+  last: string;
+};
+
+/** Một dòng của GET /api/v1/ai/sessions. */
+export type AISessionSummary = AISession & { turns: number; calls: number; plans: number };
+
+export type AITurnStatus = "running" | "done" | "error" | "refused";
+
+export type AITurn = {
+  seq: number;
+  lang: "vi" | "en";
+  /** Bản đã che, đúng như gửi. */
+  question: string;
+  chips: AIChip[];
+  playbook?: string;
+  prompt: string;
+  /** Đã đổi về tên thật. */
+  answer: string;
+  events: AIEvent[];
+  status: AITurnStatus;
+  error?: string;
+  started: string;
+  ended?: string;
+};
+
+/** Một lần gọi công cụ (bảng ai_calls): đúng thứ đi qua lại với AI, bản đã che. */
+export type AICall = {
+  session_id: string;
+  seq: number;
+  time: string;
+  tool: string;
+  input: unknown;
+  output: unknown;
+  error?: string;
+  plan_id?: string;
+};
+
+/** GET /api/v1/ai/sessions/{id}. */
+export type AISessionDetail = {
+  session: AISession;
+  turns: AITurn[];
+  calls: AICall[];
+  plans: PendingPlan[];
+};

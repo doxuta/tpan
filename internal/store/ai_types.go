@@ -63,8 +63,11 @@ type AISession struct {
 	// Aliases: bí danh → giá trị thật. Chỉ ở máy chủ.
 	Aliases   map[string]string `json:"-"`
 	Untrusted bool              `json:"untrusted"`
-	Created   time.Time         `json:"created"`
-	Last      time.Time         `json:"last"`
+	// BrainSession là UUID phiên Claude Code của phiên panel (M8, migration
+	// 800); rỗng với phiên mcp. CreateAISession ghi, AISession đọc.
+	BrainSession string    `json:"-"`
+	Created      time.Time `json:"created"`
+	Last         time.Time `json:"last"`
 }
 
 // AICall là một lần gọi công cụ trong phiên. Input và Output là đúng thứ đi

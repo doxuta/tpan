@@ -68,7 +68,7 @@ func (s *Session) stack() *core.Stack {
 
 func (s *Session) planner() *core.Planner {
 	return &core.Planner{
-		Sites: s.sites(), Stack: s.stack(), Plans: s.st.d.Store,
+		Sites: s.sites(), Stack: s.stack(), Plans: s.st.d.Store, Checks: s.st.d.Store, Files: s.st.d.Store,
 		NotFound: store.ErrNotFound, NotPending: store.ErrPlanNotPending, Now: s.st.d.Now,
 	}
 }

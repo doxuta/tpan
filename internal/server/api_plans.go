@@ -36,7 +36,7 @@ func (s *Server) apiPlanner() *core.Planner {
 			Settings: st, Journal: st,
 			WPCLISHA512: s.deps.WPCLISHA512,
 		},
-		Plans:      st,
+		Plans: st, Checks: st, Files: st,
 		NotFound:   store.ErrNotFound,
 		NotPending: store.ErrPlanNotPending,
 		Now:        s.now,

@@ -86,6 +86,12 @@ export const screens: ScreenEntry[] = [
     menu: { label: "security", group: "may" },
   },
   {
+    path: "/ai",
+    load: () => import("./screens/phien-ai").then((m) => m.SessionList),
+    menu: { label: "aiSessions", group: "ai" },
+  },
+  { path: "/ai/:id", load: () => import("./screens/phien-ai").then((m) => m.SessionDetail) },
+  {
     path: "/settings",
     load: () => import("./screens/cai-dat").then((m) => m.default),
     menu: { label: "settings", group: "taiKhoan" },

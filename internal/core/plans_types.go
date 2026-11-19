@@ -43,6 +43,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/system"
 )
@@ -53,6 +54,18 @@ const (
 	PlanSiteRemove  = "site.rm"
 	PlanSiteRepair  = "site.repair"
 	PlanStackRepair = "stack.repair"
+	// M8 (việc dở sau khi ghép M4, M5, M7):
+	//   - PlanHealthFix: sửa tự động một phát hiện của health. Chỉ mang
+	//     CheckID; Prepare đọc kết quả ĐÃ LƯU của phép kiểm đó (Checks), không
+	//     bao giờ nhận kết quả do người gọi gửi lên (giống handleFix của API),
+	//     rồi Fixes.Prepare. Không có kết quả: từ chối "check_not_found".
+	//     Execute chạy Fix.Execute.
+	//   - PlanSSLIssue: xin SSL cho Domain: SSL.PrepareIssue; Execute chạy
+	//     SSLIssue.Execute (ghi site.SSL khi xong).
+	// Fixes và SSL dựng từ Sites (Sys, Settings, Store, Journal), Stack
+	// (WPCLISHA512) và Files của Planner; không cần trường riêng.
+	PlanHealthFix = "health.fix"
+	PlanSSLIssue  = "ssl.issue"
 )
 
 // PlanRequest đủ để dựng lại một Plan. Mang giá trị thật (đã đổi bí danh về
@@ -62,6 +75,8 @@ type PlanRequest struct {
 	Domain string `json:"domain,omitempty"`
 	Email  string `json:"email,omitempty"`
 	Title  string `json:"title,omitempty"`
+	// CheckID: chỉ cho PlanHealthFix (id phép kiểm, như check_results.id).
+	CheckID string `json:"check_id,omitempty"`
 }
 
 // Proposal là nguồn gốc của một lần đề xuất.
@@ -92,8 +107,18 @@ type Planner struct {
 	// NotFound và NotPending là store.ErrNotFound và store.ErrPlanNotPending
 	// (người dựng Planner đặt), để đổi thành lời từ chối có mã.
 	NotFound, NotPending error
+	// Checks đọc kết quả đã lưu của một phép kiểm (PlanHealthFix). Files như
+	// Fixes.Files. *store.Store thoả cả hai; nil thì PlanHealthFix bị từ chối
+	// "check_not_found" và Files không lọc.
+	Checks CheckLookup
+	Files  FileRecords
 	// Now nil thì dùng time.Now.
 	Now func() time.Time
+}
+
+// CheckLookup là phần của store mà PlanHealthFix cần (bảng check_results).
+type CheckLookup interface {
+	CheckResultOf(ctx context.Context, id string) (checks.Result, bool, error)
 }
 
 // Prepared là một Plan đã dựng từ PlanRequest, dùng cho đúng một lần Execute.
@@ -137,6 +162,16 @@ type Approval struct {
 const (
 	SettingMCPApproval = "mcp.approval" // "panel" (mặc định) | "client"
 	SettingAIRedact    = "ai.redact"    // "all" (mặc định) | "secrets"
+	// SettingAIBrain (M8): bộ não của AI trong panel, "off" (mặc định) hoặc
+	// "bridge" (mục 8.2; "local" để sau). Đổi bằng `sudo tpan mcp config
+	// --brain off|bridge`. Thay cho khoá brain trong /etc/tpan/config.toml.
+	SettingAIBrain = "ai.brain"
+)
+
+// Giá trị của SettingAIBrain.
+const (
+	BrainOff    = "off"
+	BrainBridge = "bridge"
 )
 
 // ApprovalMode là chế độ duyệt Plan của agent nối trực tiếp (mục 8.3).
@@ -153,4 +188,6 @@ type AgentSettings struct {
 	// Redact là mức che: "all" hoặc "secrets" (kiểu ai.Level; core không
 	// import ai nên giữ dạng chuỗi).
 	Redact string `json:"redact"`
+	// Brain là SettingAIBrain: "off" hoặc "bridge" (AgentConfig: trống là off).
+	Brain string `json:"brain"`
 }
