@@ -263,7 +263,7 @@ Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và kh�
 /etc/logrotate.d/tpan-sites
 ```
 
-Mọi file TPAN sinh ra đều có tiền tố `tpan-` (trừ site mặc định của Apache, `000-tpan-default.conf`, lý do ở mục 6.1) và dòng đầu `# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.`
+Mọi file TPAN sinh ra đều có tiền tố `tpan-` (trừ site mặc định của Apache, `000-tpan-default.conf`, lý do ở mục 6.1) và dòng đầu `# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.` Riêng file pool PHP-FPM viết theo cú pháp INI của PHP, nơi `#` không còn là chú thích từ PHP 7.0 (`php-fpm -t` sẽ báo lỗi), nên dòng đầu là `; ` + dòng trên; phép kiểm so bằng "có chứa" thay vì "bằng".
 
 ### Cô lập từng site
 
