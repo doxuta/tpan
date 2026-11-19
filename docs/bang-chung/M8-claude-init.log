@@ -92,3 +92,85 @@
   "ultrathink_typed_raises": false,
   "view_mode": "default"
 }
+
+# ---------------------------------------------------------------------------
+# Lần gọi số 2 (đợt 0): có MCP server tpan thật qua SSH vào máy ảo tpan-m8 (stack
+# nginx, một site a.example.com, tpan mcp KHÔNG có --session nên là phiên mcp).
+# Thêm --append-system-prompt-file (internal/ai/claudecode/system-prompt.md),
+# --session-id <uuid>, --max-turns 4. Thư mục làm việc rỗng trước và sau lượt
+# (ls -A không in gì). Mã thoát 0, stderr rỗng, 27 dòng.
+# --mcp-config: {"mcpServers":{"tpan":{"command":"ssh","args":["-F","/dev/null","-i","<tmp>/ssh/id",
+#   "-o","UserKnownHostsFile=<tmp>/ssh/kh","-o","BatchMode=yes","ubuntu@<vm>","sudo","-n","tpan","mcp"]}}}
+# stdin: <tpan-context lang="vi">[view] Bảng điều khiển (/)</tpan-context><question>Dùng công cụ tpan liệt kê các site, trả lời một câu ngắn.</question>
+# Các trường của init mà cửa kiểm đọc (nguyên văn):
+{
+  "tools": [
+    "mcp__tpan__apply_plan",
+    "mcp__tpan__get_job",
+    "mcp__tpan__get_plan",
+    "mcp__tpan__list_jobs",
+    "mcp__tpan__list_plans",
+    "mcp__tpan__list_sites",
+    "mcp__tpan__machine",
+    "mcp__tpan__managed_file",
+    "mcp__tpan__propose_site_add",
+    "mcp__tpan__propose_site_remove",
+    "mcp__tpan__propose_site_repair",
+    "mcp__tpan__propose_stack_repair",
+    "mcp__tpan__site_health",
+    "mcp__tpan__stack_status",
+    "mcp__tpan__tail_log"
+  ],
+  "mcp_servers": [
+    {
+      "name": "tpan",
+      "status": "connected",
+      "source": "dynamic"
+    }
+  ],
+  "plugins": [
+    {
+      "name": "cc-plugin-agents-md",
+      "path": "builtin",
+      "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+      "name": "cc-plugin-telemetry",
+      "path": "builtin",
+      "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+      "name": "cc-plugin-privacy",
+      "path": "builtin",
+      "source": "cc-plugin-privacy@builtin"
+    },
+    {
+      "name": "cc-plugin-plugin-authoring",
+      "path": "builtin",
+      "source": "cc-plugin-plugin-authoring@builtin"
+    },
+    {
+      "name": "cc-plugin-easel",
+      "path": "builtin",
+      "source": "cc-plugin-easel@builtin"
+    }
+  ],
+  "skills": [],
+  "slash_commands": [],
+  "model": "claude-sonnet-5-5",
+  "claude_code_version": "2.1.328",
+  "permissionMode": "dontAsk"
+}
+# Các dòng tool_use, tool_result và result (nguyên văn, cắt usage):
+{"type": "tool_use", "id": "toolu_01Xjbjdxmbzmja4QMZJ2L8Zi", "name": "mcp__tpan__list_sites", "input": {}, "caller": {"type": "direct"}}
+{"tool_use_id": "toolu_01Xjbjdxmbzmja4QMZJ2L8Zi", "type": "tool_result", "content": [{"type": "text", "text": "[{\"created\":\"2026-11-19T14:03:23.338893657Z\",\"domain\":\"site-a.example\",\"php_version\":\"8.3\",\"ssl\":false,\"status\":\"active\"}]"}]}
+{"type": "result", "subtype": "success", "is_error": false, "num_turns": 2, "result": "Server hiện có 1 site: `tpan:site/site-a.example` (đang hoạt động, PHP 8.3, chưa có SSL).", "permission_denials": [], "session_id": "dfb813f3-f715-48f1-b56b-cfcc03444391"}
+
+# ---------------------------------------------------------------------------
+# Lần gọi số 3: cùng thư mục làm việc, --resume <uuid của lần 2>, --max-turns 2.
+# stdin: ...<question>Ở câu trước bạn vừa nhắc tới site nào? Trả lời đúng tên, không gọi công cụ.</question>
+# Mã thoát 0; sự kiện init mang session_id trùng uuid của lần 2; thư mục vẫn rỗng.
+{"type": "result", "subtype": "success", "num_turns": 1, "result": "Tôi vừa nhắc tới site `site-a.example`.", "session_id": "dfb813f3-f715-48f1-b56b-cfcc03444391"}
+
+# claude auth status --json trên máy này (chỉ ghi hai trường tpan đọc; các trường
+# khác có email, tổ chức nên không ghi): {"loggedIn": true, "authMethod": "claude.ai"}
