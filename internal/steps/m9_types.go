@@ -17,7 +17,7 @@ package steps
 //     mục 2750, file 640, wp-config.php 600, không bit setuid/setgid trên file.
 //   - Kiểm sha256 của file backup với dòng trong bảng backups trước khi giải nén.
 //   - Tar từ chối thành viên tuyệt đối hoặc có ".." (GNU tar mặc định làm vậy;
-//     kiểm thêm danh sách thành viên bằng `tar -tzf` trước khi giải nén:
+//     kiểm thêm danh sách thành viên bằng `tar --list --verbose` trước khi giải nén:
 //     chỉ nhận manifest.json, db.sql, và public/...; thiết bị, FIFO bị từ chối).
 //
 // Lệnh dùng: tar, gzip (gói Essential của Ubuntu, luôn có), sha256sum, du,

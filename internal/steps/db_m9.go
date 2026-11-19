@@ -47,10 +47,9 @@ var (
 // không phải trạng thái đọc lại được mà không đọc mật khẩu). Undo: bước 2 và
 // 3 với mật khẩu cũ.
 //
-// Giữa bước 2 và 3 site báo lỗi kết nối DB. Opcache của PHP-FPM kiểm lại
-// file mỗi 2 giây (opcache.revalidate_freq), nên request rơi vào khoảng đó có
-// thể giữ wp-config.php cũ thêm tới 2 giây sau bước 3 (đo trên máy ảo: 500
-// rồi về 200). Phép kiểm "site còn 200" sau bước này phải chờ hoặc thử lại.
+// Giữa bước 2 và 3 site báo lỗi kết nối DB (đo trên máy ảo: 2 đến 3 lần 500
+// trong khoảng 0,2 giây, đều trong lúc job chạy). Phép kiểm "site còn 200"
+// sau bước này vẫn thử lại vài giây cho chắc (core: dbRetry).
 type DBPassword struct {
 	Layout   site.Layout
 	Password system.Secret
@@ -113,8 +112,8 @@ func (s *DBPassword) Info() engine.StepInfo {
 			"Change the password of database user "+l.DB+" for "+l.Domain.String(),
 		),
 		Why: i18n.T(
-			"Ai có mật khẩu DB thì đọc và sửa được toàn bộ bài viết, tài khoản của site. Đổi khi nghi mật khẩu bị lộ (wp-config.php bị đọc trộm, bản sao lưu rơi ra ngoài); không đổi thì người đó vẫn vào được. Mật khẩu mới ghi vào MariaDB rồi vào wp-config.php, chỉ qua stdin, không bao giờ nằm trên dòng lệnh hay trong log. Giữa hai lệnh site báo lỗi kết nối DB vài giây.",
-			"Whoever has the database password can read and change every post and account of the site. Change it when you suspect it leaked (wp-config.php was read, a backup got out); otherwise that person still gets in. The new password goes into MariaDB and then wp-config.php through stdin only, never on a command line or in a log. Between the two commands the site shows a database connection error for a few seconds.",
+			"Ai có mật khẩu DB thì đọc và sửa được toàn bộ bài viết, tài khoản của site. Đổi khi nghi mật khẩu bị lộ (wp-config.php bị đọc trộm, bản sao lưu rơi ra ngoài); không đổi thì người đó vẫn vào được. Mật khẩu mới ghi vào MariaDB rồi vào wp-config.php, chỉ qua stdin, không bao giờ nằm trên dòng lệnh hay trong log. Giữa hai lệnh site báo lỗi kết nối DB trong một khoảnh khắc (dưới nửa giây).",
+			"Whoever has the database password can read and change every post and account of the site. Change it when you suspect it leaked (wp-config.php was read, a backup got out); otherwise that person still gets in. The new password goes into MariaDB and then wp-config.php through stdin only, never on a command line or in a log. Between the two commands the site shows a database connection error for a moment (under half a second).",
 		),
 		// Không đưa wp-config.php vào Files: xem trước sẽ đọc mật khẩu ra giao diện.
 		Commands: []string{

@@ -180,10 +180,11 @@ var (
 )
 
 // dbRetry chạy lại phép kiểm bên trong tới khi hết Fail hoặc hết dbVerifyWait.
-// Lý do: sau khi đổi mật khẩu DB, opcache của PHP-FPM có thể giữ
-// wp-config.php cũ thêm tới 2 giây (opcache.revalidate_freq=2), nên site trả
-// 500 rồi mới về 200 (đo trên máy ảo, docs/thay-doi/M9.md). Không thử lại thì
-// Plan bị hoàn tác oan. Pass, Warn, Unknown trả ngay: chỉ Fail mới có thể là
+// Lý do: giữa ALTER USER và lúc wp-config.php có mật khẩu mới, site trả 500;
+// lúc viết lo opcache (opcache.revalidate_freq=2) giữ file cũ thêm tới 2 giây.
+// Đo trên máy ảo (docs/thay-doi/M9.md): các lần 500 chỉ nằm trong lúc job
+// chạy, dưới 0,3 giây, sau job không còn. Lớp thử lại vẫn giữ làm phòng hờ:
+// không thử lại mà gặp một lần 500 trễ thì Plan bị hoàn tác oan. Pass, Warn, Unknown trả ngay: chỉ Fail mới có thể là
 // khoảng chờ đó.
 type dbRetry struct{ inner checks.Check }
 

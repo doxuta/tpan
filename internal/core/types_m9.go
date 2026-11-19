@@ -88,9 +88,10 @@ package core
 //	func (c *Cron) List(ctx context.Context) (CronOverview, error)
 //	// Run chạy `wp cron event run --due-now --quiet` dưới user của site (như
 //	// mọi lệnh wp của tpan: AsUser, --path), đo thời gian, ghi một dòng
-//	// SaveCronRun (output: 2 KB cuối). Site không có hoặc không active: ghi
-//	// "skipped" và trả nil (root gọi runuser bỏ qua hạn tài khoản của user
-//	// bị khoá, nên chặn ở đây). KHÔNG lấy khoá toàn cục và KHÔNG tạo job:
+//	// SaveCronRun (output: 2 KB cuối). Site không active: ghi "skipped" và
+//	// trả nil (root gọi runuser bỏ qua hạn tài khoản của user bị khoá, nên
+//	// chặn ở đây). Site không có trong tpan: từ chối site_not_found, không
+//	// ghi dòng nào (dòng cron sai thấy được trong log của cron). KHÔNG lấy khoá toàn cục và KHÔNG tạo job:
 //	// chạy 5 phút một lần mỗi site, giữ khoá thì người bấm trên panel bị 409.
 //	func (c *Cron) Run(ctx context.Context, d validate.Domain) (CronRun, error)
 //	// siteCronSteps: hai bước cron của một site cho Plan tạo site (và
