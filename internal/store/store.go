@@ -92,8 +92,14 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	// Pragma đặt qua DSN để áp cho mọi kết nối. WAL: đọc không chặn ghi (giao
 	// diện đọc log trong lúc engine đang ghi). foreign_keys: SQLite mặc định
 	// tắt, bật thì job_events không thể mồ côi. busy_timeout: chờ thay vì báo
-	// "database is locked" ngay.
-	dsn := path + "?_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)"
+	// "database is locked" ngay. _txlock=immediate: transaction lấy quyền ghi
+	// ngay ở BEGIN (có chờ theo busy_timeout). Mặc định (deferred) transaction
+	// đọc trước rồi mới xin ghi; ở WAL, nếu tiến trình khác đã ghi xen vào giữa
+	// thì lúc xin ghi SQLite trả SQLITE_BUSY ngay, không chờ busy_timeout (tìm
+	// thấy ở e2e M4: `tpan serve` do `tpan setup` khởi động chết vì migration
+	// gặp "database is locked" trong lúc setup đang ghi sự kiện job).
+	// https://www.sqlite.org/lang_transaction.html#deferred_immediate_and_exclusive_transactions
+	dsn := path + "?_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)&_txlock=immediate"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("mở DB %s: %w", path, err)
@@ -358,6 +364,19 @@ func (s *Store) RecordFile(ctx context.Context, path, sha256Hex, jobID string) e
 		return fmt.Errorf("ghi file quản lý %s: %w", path, err)
 	}
 	return nil
+}
+
+// FileSHA256 trả sha256 (hex) đang ghi cho path trong managed_files; ok=false
+// khi path không do tpan quản lý (core.FileRecords).
+func (s *Store) FileSHA256(ctx context.Context, path string) (sha string, ok bool, err error) {
+	err = s.db.QueryRowContext(ctx, "SELECT sha256 FROM managed_files WHERE path = ?", path).Scan(&sha)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("đọc file quản lý %s: %w", path, err)
+	}
+	return sha, true, nil
 }
 
 // ForgetFile bỏ path khỏi danh sách quản lý. File chưa từng được ghi không phải lỗi (engine.Journal).
