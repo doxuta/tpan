@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: mốc M0 (khung dự án), M1 (lõi và cài stack), M2 (site WordPress có cô lập) và M3 (giao diện và API) xong ngày 19/11/2026. Bằng chứng ở `docs/bang-chung/M1.log` đến `M3.log`, giải thích ở `docs/giai-thich/00-go-can-ban.md` đến `03-m3-giao-dien-va-api.md`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`); từ M4 các mốc chạy song song theo lượt (mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`), lượt đầu là M4, M5, M7. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: M0 đến M4 xong (M0 đến M3 ngày 19/11/2026; M4, health đầy đủ, ghép vào `dev` cùng ngày). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Đang chạy chế độ tự chạy (`agent-dev/TU-CHAY.md`): lượt A (M4, M5, M7) song song theo mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`, đang ghép M7 và M5. Cùng ngày đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
 
 ## 1. TPAN là gì
 
@@ -414,6 +414,32 @@ File bị sửa tay: hiện diff giữa bản đang có và bản TPAN sẽ sinh
 
 Để kiểm chính hệ thống health, `scripts/faults/` có các kịch bản gây lỗi có chủ ý trên máy ảo: dừng PHP-FPM, xoá socket của một pool, sửa hỏng một vhost, đổi quyền `wp-config.php`, khoá user DB, làm đầy đĩa bằng file giả. Mỗi kịch bản phải làm đúng một chặng chuyển sang lỗi, và cách sửa tự động phải đưa nó về đạt.
 
+#### Đã chốt khi làm M4
+
+- **Kịch bản làm đầy đĩa không có sửa tự động.** Mục 6.7 nói mọi kịch bản trong `scripts/faults/` phải được sửa tự động đưa về đạt. Với đĩa đầy thì không: tpan chạy bằng root mà tự xoá file nó không tạo ra là quá nguy hiểm (không biết file nào là dữ liệu của người dùng). Phép kiểm đĩa chỉ có sửa tay (lệnh tìm file lớn). Kịch bản tự dọn file giả của nó ở bước `restore`, và chạy cuối cùng trong e2e.
+- **"Đúng một chặng" hiểu là**: với mỗi site bị ảnh hưởng, chặng lỗi đầu tiên trên đường đi request là chặng mong đợi, và không có chặng nào khác ngoài "đầu cuối" (e2e) bị lỗi. Chặng đầu cuối gọi HTTP thật nên lỗi theo mọi chặng trước nó, đúng như bảng ở mục 6.7 ("bất kỳ lỗi nào ở trên"). Dừng PHP-FPM làm cả một cột (chặng PHP của mọi site) lỗi: vẫn là một chặng.
+- **Lệch là lỗi (Fail) và mở sự cố.** Lúc lập hợp đồng định để cảnh báo (máy có thể vẫn chạy đúng với bản sửa tay), nhưng sự cố chỉ mở khi một phép kiểm chuyển sang lỗi (mục 6.7) và lựa chọn "ghi lại bản của tpan / nhận bản sửa tay làm chuẩn mới" nằm ở màn Sự cố; để cảnh báo thì người dùng không tới được lựa chọn đó. Một file cấu hình mà tiến trình root đọc bị sửa ngoài tpan cũng đáng là sự cố. Vhost bị sửa *hỏng* thì thêm phép kiểm cú pháp (`nginx -t`) lỗi, cùng chặng web; sửa tự động ghi lại các file web của tpan (file đã đúng được bỏ qua).
+- **Chặng của phép kiểm lệch theo loại file**: vhost và site mặc định → web; pool → PHP; file dưới `/var/www` → WordPress; file của tpan → tpan; còn lại (logrotate, cấu hình MariaDB) → máy.
+- **Sự cố mở khi chuyển sang lỗi (Fail), đóng khi đạt (Pass).** Cảnh báo và "chưa kiểm được" không mở cũng không đóng. Đối tượng không còn được kiểm (site đã xoá) thì sự cố của nó đóng với lý do "gone".
+- **Tự kiểm TPAN chưa có hai thứ**: "tuổi bản sao lưu gần nhất của `tpan.db`" (chưa có cơ chế sao lưu `tpan.db`; để cho M9, cùng lúc với backup) và tường lửa ở phép kiểm chung của máy (ufw thuộc M5, cùng lượt A; để M5 thêm, tránh hai mốc đụng nhau). "Log có được rotate không" cũng chưa có phép kiểm riêng; lệch của `/etc/logrotate.d/tpan-sites` đã được phép kiểm lệch bắt.
+- **Log trực tiếp** chạy `tail -n 100 -F <file>` qua `system.Run` với `OnOutput` (argv, không shell), đường dẫn chỉ lấy từ `site.Layout` với ba tên cố định (`access`, `error`, `php`). `LocalSystem.Run` giữ output trong bộ nhớ tới khi lệnh xong, nên một luồng sống tối đa 10 phút rồi đóng; trình duyệt tự nối lại.
+- **Bộ hẹn giờ bỏ vòng khi đang có job** (trong tiến trình, hoặc khoá toàn cục đang bị tiến trình khác giữ): kiểm một site đang dựng dở chỉ mở sự cố giả. Không giữ khoá trong lúc kiểm, để người bấm tạo site không bị trả 409 vì health đang chạy.
+- **`tpan health` (CLI) ghi kết quả và mở, đóng sự cố** giống bộ hẹn giờ, nên e2e không phải chờ 5 phút.
+
+Phát hiện lúc chạy thật trên máy ảo:
+
+- **`.htaccess` không nằm trong phép kiểm lệch.** tpan ghi bản đầu, nhưng WordPress tự ghi lại đoạn giữa `# BEGIN WordPress` và `# END WordPress` mỗi khi lưu permalink, nên so sha256 cả file là báo lệch giả (bằng chứng ở `docs/bang-chung/M4-htaccess.log`). Health bỏ `.htaccess` khỏi phép kiểm lệch; nâng cấp về sau: chỉ so phần ngoài đoạn BEGIN/END.
+- **`web.rewrite` không ghi đè file người dùng đã nhận làm chuẩn** (sha256 trong `managed_files` khớp file đang có nhưng khác template). Hệ quả: nếu người dùng đã nhận một file hỏng làm chuẩn thì sửa tự động để nguyên nó và job lỗi ở bước kiểm chứng; khi đó sửa tay.
+- **Vòng health bị bỏ vì đang có job thì thử lại sau 30 giây** (mục 6.7 chỉ nói lịch 5 phút và 1 giờ). Vòng đầu ngay khi `tpan setup` bật `tpan.service` luôn bị bỏ vì setup còn giữ khoá; không thử lại thì panel trống kết quả tới 5 phút.
+- **Store: transaction khoá ghi ngay từ đầu** (`_txlock=immediate` trong DSN của `modernc.org/sqlite`). `tpan serve` khởi động trong lúc `tpan setup` đang ghi DB làm migration gặp `SQLITE_BUSY` ngay (transaction đọc trước, ghi sau không được `busy_timeout` cứu), serve chết, setup hoàn tác cả job. Áp cho mọi transaction; e2e M3 chạy lại trên máy ảo M4 vẫn xanh (146 khẳng định đạt, 0 không đạt).
+- **`tpan health --fix --dry-run` in diff** của file sẽ ghi lại (phép kiểm lệch chỉ người dùng tới lệnh này để xem diff).
+- **Log trực tiếp khi file log chưa có**: `tail -F` in một dòng lỗi (`tail: cannot open '...' for reading: No such file or directory`) rồi ngồi chờ file xuất hiện; dòng đó tới giao diện như một dòng log thường, không có sự kiện `end`. Chấp nhận: site mới chưa có khách thì chưa có log, và log hiện ngay khi có request đầu tiên.
+- **Sau `tpan site rm`, sự cố của site đã xoá đóng ở lần chạy đầy đủ kế tiếp** (tối đa 1 giờ, hoặc ngay khi chạy `tpan health`), vì lần chạy sau job là lần nhẹ và chỉ lần đầy đủ mới dọn phép kiểm không còn.
+
+Chưa kiểm ở M4: Giao diện chưa ai nhìn bằng mắt: màn Sự cố (danh sách, trang một sự cố, ba cách sửa, hộp thoại nhận bản sửa tay), khối log trực tiếp và số request ở trang site, khối "TPAN tự kiểm", nút "Kiểm lại" và dòng số request trên bản đồ tuyến. Cần xem ở sáng và tối, hai ngôn ngữ, màn 390 px, bằng bàn phím (`make dev-api` + `make dev-web`, chế độ demo có log giả). API phía sau các màn này đã chạy thật trong e2e (sự cố, nhận bản sửa tay, số request, SSE log).
+  - E2E không chờ đủ lịch 5 phút và 1 giờ, không thử lại 30 giây khi vòng đầu bị bỏ, không xoá site để xem sự cố đóng với lý do `gone`. Các nhánh này chỉ có unit test (`internal/health`, `internal/store`).
+  - Chưa chạy lại e2e của M2. E2E của M3 chạy lại trên máy ảo M4 vẫn xanh (146 đạt, 0 không đạt).
+
 ### 6.8 Bảo mật máy
 
 Trang chỉ đọc là chính, mỗi mục một dòng trạng thái kèm lệnh đã dùng để kiểm:
@@ -775,7 +801,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M1** ✅ | `validate`, `system`, `engine`, `store`, `checks`; `tpan stack install` cho cả Nginx và Apache; `--dry-run`; `tpan health` cho stack. Nguồn gói và bản PHP là tham số đọc từ `settings`, không ghi cứng ở đâu, để M12 không phải viết lại | e2e bước 1 cho cả hai web server; chạy lại không đổi gì |
 | **M2** ✅ | `tpan site add/list/info/rm` với cô lập đầy đủ và hoàn tác; phép kiểm theo đường đi request | e2e bước 2 đến 6 |
 | **M3** ✅ | `tpan setup`, API, đăng nhập, SSE; giao diện theo `docs/GIAO-DIEN.md`, sáng và tối: menu chính, bảng điều khiển với bản đồ tuyến và số liệu máy, màn cơ sở dữ liệu (chỉ xem), đổi mật khẩu quản trị và `tpan admin passwd` để đặt lại khi quên, trang site với đường đi request, tạo site có xem trước, lịch sử và trang job; chế độ `--demo`; hai ngôn ngữ | tạo site từ trình duyệt trên máy ảo, thấy log chạy trực tiếp và bằng chứng |
-| **M4** | Health đầy đủ: chạy định kỳ, sự cố, sửa tự động và sửa tay, tự kiểm TPAN, phát hiện lệch, log trực tiếp, số request và lỗi 5xx theo site, `scripts/faults/` | e2e bước 9 và 11 |
+| **M4** ✅ | Health đầy đủ: chạy định kỳ, sự cố, sửa tự động và sửa tay, tự kiểm TPAN, phát hiện lệch, log trực tiếp, số request và lỗi 5xx theo site, `scripts/faults/` | e2e bước 9 và 11 |
 | **M5** | SSL (staging), trang bảo mật, ufw, fail2ban | chứng chỉ staging cho một domain thật; `certbot renew --dry-run` đạt |
 | **M6** | Hàng loạt (dán danh sách, `apply -f`, `export`), thùng rác, khôi phục, dọn tự động | e2e bước 7; tạo 10 site một lượt chỉ reload một lần |
 | **M7** | Cổng cho agent: danh mục công cụ, che dữ liệu, `tpan mcp`, hai chế độ duyệt, Plan chờ duyệt, thư mục `agents/`, nút "Chép lệnh cho Claude Code" | e2e bước 12; test che dữ liệu và test log cài câu lệnh đạt; Claude Code trên máy cá nhân liệt kê được site của máy ảo qua SSH, chẩn đoán đúng chặng một lỗi từ `scripts/faults/`, và Plan nó đề xuất sửa được lỗi đó |
@@ -863,6 +889,17 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
   - Trình duyệt dựng sẵn từ chối chứng chỉ tự ký của panel và không có cách bỏ qua; phần "tạo site từ trình duyệt" chạy qua một bản `tpan serve` HTTP trên loopback của máy ảo cộng bộ chuyển cổng chỉ dành cho kịch bản test (`scripts/e2e-m3.sh http-up`, `http-down`). Người dùng thật vào bằng HTTPS và tự so fingerprint mà `tpan setup` in ra.
   - CSP chặn đúng một thứ: thẻ `<style>` Radix Dialog chèn khi mở hộp thoại (một dòng ở console mỗi lần mở); khoá cuộn vẫn chạy nhờ luật trong `styles.css`.
 
+- Kiểm ở M4 (19/11/2026), máy ảo Ubuntu 24.04:
+  - Socket của pool bị xoá: `systemctl reload php8.3-fpm` **không** tạo lại socket (PHP-FPM giữ socket cũ qua lần reload); `systemctl restart php8.3-fpm` tạo lại (`srw-rw---- www-data www-data`). Sửa tự động `php.restart` vì vậy dùng restart và có `Danger`; dòng sửa tay của phép kiểm `php.socket` cũng đổi sang `systemctl restart`.
+  - MariaDB 10.11.14, trạng thái khoá của user: sau `ALTER USER ... ACCOUNT LOCK` thì `JSON_EXTRACT(Priv,'$.account_locked')` ra `true`, `JSON_VALUE(...)` ra `1`; sau `UNLOCK` ra `false`/`0`. Đọc bằng `mysql.global_priv` chứ không `SHOW CREATE USER`, vì câu sau in cả hash mật khẩu vào log job. User bị khoá thì phép kiểm DB báo `ERROR 4151 (HY000): Access denied, this account is locked`, site trả 500 "Error establishing a database connection".
+  - `tail` khi file không có: `tail: cannot open '<file>' for reading: No such file or directory`; không `-F` thì mã 1, có `-F` thì chờ.
+  - `scripts/vm.sh root` giữ nguyên đối số có dấu cách, `$`, `'`, `*` khi qua `multipass exec`.
+  - Thời gian (lần chạy ở `docs/bang-chung/M4.log`): `tpan health` đầy đủ với 2 site 3,65 giây; riêng `wp core verify-checksums` 1,67 giây một site; lần chạy trước đó đo 3,8 và 1,84 giây.
+  - Quyền sau `tpan setup`: `/etc/tpan`, `/etc/tpan/tls`, `/var/lib/tpan` là 0700 root:root; `cert.pem`, `key.pem`, `tpan.db` (và `-wal`, `-shm`) 0600 root:root.
+  - Bộ hẹn giờ bỏ vòng khi job ở CLI giữ khoá: có, journal của `tpan.service` ghi `health: đang có job, bỏ vòng này`.
+  - Đóng luồng log trực tiếp thì `tail` bị giết: `pgrep -a tail` trong máy ảo không còn gì.
+  - Nhiễu còn lại: mỗi vòng health, journal có vài dòng `pam_unix` do `runuser` (phép kiểm chạy dưới user của site). Không ảnh hưởng chạy.
+
 ## 17. Nguồn đã tra (19/11/2026)
 
 - Giới hạn của Let's Encrypt: https://letsencrypt.org/docs/rate-limits/
@@ -895,3 +932,42 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 - Đăng nhập Claude Code và thứ tự ưu tiên giữa các cách đăng nhập: https://code.claude.com/docs/en/authentication
 - Điều khoản dùng đăng nhập gói Claude: https://code.claude.com/docs/en/legal-and-compliance
 - Hạn mức của gói Claude với `claude -p`: https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan
+
+## 18. Việc chủ dự án tự làm trên VPS
+
+Phần e2e cần VPS hoặc tên miền thật. Agent không chạy gì trên VPS; các lệnh dưới đây để chủ dự án tự gõ sau khi đã thấy chúng chạy đúng trên máy ảo.
+
+### M4
+
+E2E bước 9 và 11 chạy lại trên `tpan-test` sau khi ghép vào `dev`: 261 khẳng định đạt, 0 không đạt (`docs/bang-chung/M4-ghep.log`).
+
+M4 không cần VPS hay tên miền thật: mọi bước e2e (9 và 11) chạy trọn trên máy ảo. Khi triển khai lần đầu trên VPS (amd64), nên chạy lại các kịch bản lỗi bằng tay, ví dụ với `shop.example.com` là một site đã tạo:
+
+```bash
+sudo tpan health                       # mọi thứ đạt, không có lệch
+sudo systemctl stop php8.3-fpm         # gây lỗi chặng PHP
+sudo tpan health                       # chặng PHP lỗi, có sự cố
+sudo tpan health --fix                 # xem trước, xác nhận, sửa
+sudo tpan health                       # đạt lại, sự cố đã đóng
+```
+
+## 19. Bảng chia việc đã dùng (từ M4)
+
+Từ M4 mỗi mốc tự lập bảng chia việc theo khuôn ở mục 4 của `agent-dev/CHAY-NHIEU-AGENT.md`; bảng thật đã dùng ghi ở đây khi ghép mốc.
+
+### M4
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Hợp đồng: migration 400; chữ ký store, checks, monitor, core, steps, health; kiểu và đường dẫn API; kiểu TypeScript; route màn Sự cố; tách `tpan health` ra file riêng | `internal/store/migrations/400_health.sql`, `internal/store/health.go`, `internal/checks/health.go`, `internal/monitor/traffic.go`, `internal/core/health.go`, `internal/steps/fix.go`, `internal/health/health.go`, `internal/server/types.go`, `internal/server/server.go`, `internal/server/api_health.go`, `cmd/tpan/health.go`, `web/src/api/types.ts`, `web/src/routes.tsx` | phiên chính | opus | high |
+| 1 | Phép kiểm mới (lệch, RAM và swap, chỗ trống, chứng chỉ panel, quyền file, DB, job treo, bộ hẹn giờ) và đếm request, 5xx từ access.log | `internal/checks/health.go`, `internal/checks/health_test.go`, `internal/monitor/traffic.go`, `internal/monitor/traffic_test.go` | `tho-phu` | sonnet | high |
+| 1 | Sửa tự động: tên cách sửa, dựng Plan sửa, hai Step mới (khởi động lại PHP-FPM, mở khoá user DB), xuất phép kiểm của stack và site | `internal/core/health.go`, `internal/core/health_test.go`, `internal/steps/fix.go`, `internal/steps/fix_test.go` | `tho-loi` | opus | high |
+| 1 | Store của health (kết quả phép kiểm, sự cố mở, đóng, dọn, gắn job, toàn vẹn DB, job treo) và gói health: Runner (gom, chạy, ghi, mở đóng sự cố) và Scheduler (lịch, chạy sau job, bỏ vòng khi đang có job). Một thợ vì test của Runner cần store thật | `internal/store/health.go`, `internal/store/health_test.go`, `internal/health/` | `tho-loi` | opus | high |
+| 2 | Server: API sự cố, sửa tự động, nhận bản sửa tay, chạy health ngay, số request, log trực tiếp (SSE `tail -F`), tổng quan đọc từ `check_results`, bộ hẹn giờ trong `tpan serve`, máy demo trả lời `tail` | `internal/server/` (trừ `types.go`), `internal/demo/` | `tho-loi` | opus | high |
+| 2 | CLI `tpan health [<domain>] [--json] [--fix] [--dry-run] [--yes]`, `tpan serve` truyền đường dẫn DB; `scripts/faults/` | `cmd/tpan/health.go`, `cmd/tpan/health_test.go`, `cmd/tpan/root.go` (chỉ phần serve), `scripts/faults/` | `tho-loi` | opus | high |
+| 2 | Màn Sự cố: danh sách, trang một sự cố với bằng chứng lúc mở, lúc đóng, các job sửa, ba cách sửa (tự động qua Duyệt Plan, sửa tay, hỏi AI), diff và nút nhận bản sửa tay cho file lệch | `web/src/screens/su-co/`, `web/src/i18n/su-co.ts` | `tho-giao-dien` | sonnet | high |
+| 2 | Trang site: log trực tiếp, số request và 5xx; Bảng điều khiển: sự cố thật, số request trên tuyến, logo theo sự cố; menu đếm sự cố | `web/src/screens/site/`, `web/src/screens/bang-dieu-khien/`, `web/src/i18n/site.ts`, `web/src/i18n/bang-dieu-khien.ts`, `web/src/api/queries.ts`, `web/src/api/client.ts` | `tho-giao-dien` | sonnet | high |
+| 3 | Chạy thật: `scripts/e2e-m4.sh`, e2e bước 9 và 11 trên máy ảo `tpan-m4` từ máy sạch, hồi quy ngắn M2 và M3, sửa lỗi gốc, lưu log | máy ảo, `scripts/e2e-m4.sh`, `docs/bang-chung/M4.log` | `tho-may-ao` | opus | high |
+| 4 | Giải thích: file của M4 | `docs/giai-thich/04-m4-health.md` | `tho-viet` | opus | medium |
+
+Mục KE-HOACH.md phải đọc: 4.2, 4.4, 5, 6.7, 9, 10, 11, 12 (bước 9, 11) và 13. Phần giao diện đọc thêm `docs/GIAO-DIEN.md`.
