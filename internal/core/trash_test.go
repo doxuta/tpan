@@ -526,3 +526,35 @@ func TestSiteGoneCheck(t *testing.T) {
 		t.Errorf("curl không chạy được: %s; muốn unknown", r.Status)
 	}
 }
+
+// Ngay sau `systemctl reload nginx`, cấu hình cũ còn trả lời một lúc (site có
+// SSL: 301 sang https). Phép kiểm gọi lại tới khi thấy 444 thì đạt.
+func TestSiteGoneCheckWaitsForReload(t *testing.T) {
+	l := site.LayoutOf(mustDomain(t, "shop.example.com"))
+	f := system.NewFake()
+	n := 0
+	f.Handle([]string{"curl"}, func(system.Cmd) system.Result {
+		n++
+		if n < 3 {
+			return system.Result{Stdout: "301"}
+		}
+		return system.Result{ExitCode: 52, Stdout: "000"}
+	})
+	r := siteGone(Nginx, l).Run(ctx, f)
+	if r.Status != checks.Pass || n != 3 || len(r.Evidence) != 1 || r.Evidence[0].ExitCode != 52 {
+		t.Fatalf("= %s sau %d lần gọi (bằng chứng %+v); muốn pass sau 3 lần, bằng chứng của lần cuối", r.Status, n, r.Evidence)
+	}
+	// Vẫn trả lời mãi: Fail sau trần chờ, không treo.
+	f2 := system.NewFake()
+	f2.Handle([]string{"curl"}, func(system.Cmd) system.Result { return system.Result{Stdout: "301"} })
+	start := time.Now()
+	if r := siteGone(Nginx, l).Run(ctx, f2); r.Status != checks.Fail {
+		t.Fatalf("= %s; muốn fail", r.Status)
+	}
+	if d := time.Since(start); d < goneWait || d > goneWait+2*time.Second {
+		t.Fatalf("chờ %v, muốn khoảng %v", d, goneWait)
+	}
+}
+
+// Trần chờ ngắn cho cả gói test: các test có Fail chờ đủ goneWait mỗi lần.
+func init() { goneWait, goneEvery = 300*time.Millisecond, 20*time.Millisecond }

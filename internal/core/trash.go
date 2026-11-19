@@ -405,7 +405,36 @@ type goneCheck struct {
 	link  string
 }
 
+// goneWait, goneEvery: trần và nhịp gọi lại của goneCheck. Biến để test rút ngắn.
+var (
+	goneWait  = 5 * time.Second
+	goneEvery = 200 * time.Millisecond
+)
+
+// Run gọi lại tới khi đạt hoặc hết goneWait. Lý do: `systemctl reload nginx`
+// chỉ gửi tín hiệu cho tiến trình chính rồi trả về; request tới ngay sau đó
+// vẫn được phục vụ theo cấu hình cũ. Đo trên máy ảo (M6): 0,012 giây sau
+// reload site có SSL còn trả 301 (vhost cũ), 0,17 giây sau thì 444. Không
+// gọi lại thì Plan đưa vào thùng rác của site có SSL bị hoàn tác oan (site
+// không SSL thì cấu hình cũ trả 404 vì thư mục đã chuyển, nên lọt). Unknown
+// (curl không chạy được) trả ngay.
 func (g goneCheck) Run(ctx context.Context, sys system.System) checks.Result {
+	deadline := time.Now().Add(goneWait)
+	for {
+		r := g.once(ctx, sys)
+		if r.Status != checks.Fail || time.Now().After(deadline) {
+			return r
+		}
+		select {
+		case <-ctx.Done():
+			return r
+		case <-time.After(goneEvery):
+		}
+	}
+}
+
+// once là một lần gọi curl và phán.
+func (g goneCheck) once(ctx context.Context, sys system.System) checks.Result {
 	r := checks.Result{ID: g.id, Stage: checks.StageEndToEnd, Title: g.title}
 	res, err := sys.Run(ctx, g.cmd)
 	ev := checks.Evidence{Command: g.cmd.String(), ExitCode: res.ExitCode, Output: strings.TrimSpace(res.Stdout + "\n" + res.Stderr)}
