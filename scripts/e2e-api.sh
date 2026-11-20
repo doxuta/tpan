@@ -1470,7 +1470,8 @@ p18_password() {
   part_end 18
 }
 # hash_fp: dấu vân tay ngắn của hash mật khẩu quản trị (không in hash).
-hash_fp() { sqlq "SELECT value FROM settings WHERE key = 'admin.password_hash'" | shasum -a 256 | cut -c1-16; }
+# M13: hash nằm ở bảng users (dòng admin), không còn ở settings.
+hash_fp() { sqlq "SELECT password_hash FROM users WHERE name = 'admin'" | shasum -a 256 | cut -c1-16; }
 
 # ================================================================ cuối
 
