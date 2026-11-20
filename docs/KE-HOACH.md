@@ -1290,7 +1290,7 @@ Output dán vào tài liệu phải là output thật. Chưa chạy thì ghi "ch
 
 ## 18. Việc chủ dự án tự làm trên VPS
 
-Phần e2e cần VPS hoặc tên miền thật. Agent không chạy gì trên VPS; các lệnh dưới đây để chủ dự án tự gõ sau khi đã thấy chúng chạy đúng trên máy ảo.
+Phần e2e cần VPS hoặc tên miền thật. Agent không chạy gì trên VPS; các lệnh dưới đây để chủ dự án tự gõ sau khi đã thấy chúng chạy đúng trên máy ảo. Bản sắp theo thứ tự làm, từng bước, kèm nhìn giao diện, Claude Code thật và phát hành: `docs/HUONG-DAN-CHU-DU-AN.md`.
 
 ### M4
 
