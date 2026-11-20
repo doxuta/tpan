@@ -229,6 +229,16 @@ scripts/vm.sh root tpan mcp config --brain off
 
 ## 3. VPS và tên miền thật
 
+### Cách nhanh: một lệnh, không cần tên miền
+
+Trên VPS Ubuntu 24.04 sạch (SSH vào bằng user lúc cài Ubuntu):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/doxuta/tpan/main/scripts/thu-tren-vps.sh | sudo bash
+```
+
+`scripts/thu-tren-vps.sh` cài tpan từ bản phát hành mới nhất rồi thử lần lượt: health, tạo site `thu.example.com` (gọi bằng `curl --resolve` ngay trên máy), thùng rác, fail2ban, ufw (tpan tự mở cổng SSH đang dùng), backup và lịch backup, đổi nginx sang apache rồi về, PHP, cập nhật, self-update (xem trước). Cuối cùng in bảng đạt/hỏng. Mật khẩu panel in một lần ở phần cài: lưu lại. Log đã che mật khẩu và mọi IP nằm ở `/root/tpan-thu-che.log`. Đã chạy thử trên máy ảo sạch ngày 20/11/2026: 29 đạt, 0 hỏng. Không làm SSL (cần tên miền thật trỏ về máy): phần đó theo 3.3 bên dưới khi có tên miền.
+
 ### 3.0. Chuẩn bị
 
 - Một VPS **Ubuntu 24.04 amd64 sạch** (không có panel khác, không có web đang chạy). Nếu nhà cung cấp có snapshot, chụp một bản ngay sau khi tạo để quay về được.
