@@ -1,0 +1,109 @@
+# M7 với Claude Code thật (mục 18 của KE-HOACH.md, bước 1 đến 5)
+# Ngày 2026-11-20. Claude Code chạy trên Mac của chủ dự án, nối MCP tới máy ảo
+# tpan-test qua SSH. IP máy ảo đã bỏ khỏi log.
+
+$ claude --version
+2.1.329 (Claude Code)
+
+$ scripts/vm.sh root tpan version
+tpan 84727c6-dirty (commit 84727c6, build 2026-11-20T02:05:13Z)
+
+$ claude mcp add --transport stdio tpan -- ssh ubuntu@<IP máy ảo> sudo -n tpan mcp
+$ claude mcp get tpan
+tpan:
+  Scope: Local config (private to you in this project)
+  Status: ✔ Connected
+  Type: stdio
+  Command: ssh
+
+# Ghi chú: lần đầu cấu hình bị lưu thành "ssh ubuntu@" (biến $IP rỗng vì đặt ở
+# tab terminal khác), Claude Code báo CONNECTION_CLOSED. Hướng dẫn đã sửa: gõ
+# thẳng IP, kiểm bằng `claude mcp get tpan`.
+
+## Bước 3: liệt kê site (công cụ mcp__tpan__list_sites)
+
+> Dùng công cụ tpan liệt kê các site trên máy chủ
+
+Công cụ mcp__tpan__list_sites chạy được sau khi kết nối lại. Máy chủ có 2 site:
+
+| Domain         | Trạng thái                | PHP | SSL     | Tạo lúc (UTC)       |
+| site-a.example | active                    | 8.3 | chưa có | 2026-11-20 02:06:22 |
+| site-b.example | trashed (trong thùng rác) | 8.3 | chưa có | 2026-11-20 02:06:36 |
+
+Kết quả: tên miền thật (a.example.com, b.example.com) chỉ tới AI dưới bí danh.
+
+## Bước 4: gây lỗi rồi chẩn đoán
+
+$ scripts/vm.sh root rm /etc/nginx/sites-enabled/tpan-a.example.com.conf
+$ scripts/vm.sh root systemctl reload nginx
+$ scripts/vm.sh root curl -s -o /dev/null -w '%{http_code}\n' --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+000      (curl exit 52: Empty reply from server)
+
+> Dùng công cụ tpan chẩn đoán vì sao site đầu tiên không chạy rồi đề xuất Plan sửa
+
+  Called tpan 3 times
+
+site-a.example không chạy vì vhost nginx của nó đang bị tắt: file
+/etc/nginx/sites-available/tpan-site-a.example.conf còn nguyên nhưng thiếu
+symlink trong /etc/nginx/sites-enabled/. Request tới site vì thế rơi vào site
+mặc định, nginx đóng kết nối không trả gì (mã 444, curl báo (52) Empty reply
+from server).
+
+Các tầng còn lại đều đạt:
+- Stack: nginx, php8.3-fpm, mariadb đang chạy; nginx -t hợp lệ.
+- PHP: socket pool /run/php/tpan-site_a-8.3.sock có, đúng chủ và quyền.
+- WordPress: mã nguồn khớp checksum, wp-config.php quyền 0600.
+- DB: user của site đăng nhập được, chỉ thấy tp_site_a.
+
+Plan 0360aacfebe6f744 ("Ghi lại và bật lại vhost của site-a.example") đang ở
+trạng thái pending, chưa có gì trên máy chủ thay đổi. Plan gồm 2 bước:
+1. Ghi vhost: đã đánh dấu xong, nội dung cũ và mới giống nhau nên không đổi gì.
+2. Bật vhost: tạo symlink sites-enabled/... trỏ về file ở sites-available, rồi
+   chạy nginx -t và systemctl reload nginx.
+
+Plan có gắn cảnh báo "untrusted" vì phiên này đã đọc nội dung không tin cậy
+(phản hồi HTTP trong bước health check).
+
+Kết quả: chỉ đúng chặng web server, có plan_id, máy chưa đổi gì. Đường dẫn trong
+câu trả lời cũng mang bí danh (site-a.example) vì bản che thay mọi chỗ có tên
+miền.
+
+## Bước 5: duyệt Plan
+
+$ scripts/vm.sh root tpan plan show 0360aacfebe6f744
+Plan:          0360aacfebe6f744
+Trạng thái:    pending
+Đề xuất bởi:   agent qua MCP (phiên 93014ae6e554f61a)
+Lúc:           2026-11-20 09:14
+
+CẢNH BÁO: phiên đề xuất Plan này đã đọc nội dung do người lạ gửi tới (log truy cập, output lệnh). Nội dung đó có thể dụ AI đề xuất việc có hại: đọc kỹ từng bước trước khi duyệt.
+
+Kế hoạch: Ghi lại và bật lại vhost của a.example.com
+1 bước sẽ chạy, 1 bước đã đúng sẽ bỏ qua, 0 bước có thể gián đoạn dịch vụ.
+
+ 1. [đã đúng, bỏ qua] Ghi vhost nginx cho a.example.com  (file:/etc/nginx/sites-available/tpan-a.example.com.conf)
+ 2. [sẽ chạy] Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf  (symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf)
+    $ nginx -t
+    $ systemctl reload nginx
+
+$ scripts/vm.sh root tpan plan approve 0360aacfebe6f744 --yes
+Bắt đầu job e5940b71ef5cb123
+- Ghi vhost nginx cho a.example.com ...
+  đã đúng, bỏ qua
+- Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Cấu hình nginx hợp lệ
+
+Job e5940b71ef5cb123: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+
+$ scripts/vm.sh root curl -s -o /dev/null -w '%{http_code}\n' --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+$ scripts/vm.sh root tpan health a.example.com | grep -c "\[lỗi\]"
+0
+
+# Kết luận: đủ các ý "Chờ thấy" của mục 18 (M7). Plan tới từ AI nhưng chỉ chạy
+# khi người duyệt; máy không đổi gì giữa bước 4 và bước 5.

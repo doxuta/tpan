@@ -1308,7 +1308,7 @@ sudo tpan health                       # đạt lại, sự cố đã đóng
 
 ### M7
 
-E2E bước 12 chạy lại trên `tpan-test` sau khi ghép vào `dev`: 0 khẳng định không đạt (`docs/bang-chung/M7-ghep.log`). Ý "Claude Code thật" của cột Xong khi là việc dưới đây; M7 được đánh dấu xong phần máy ảo.
+E2E bước 12 chạy lại trên `tpan-test` sau khi ghép vào `dev`: 0 khẳng định không đạt (`docs/bang-chung/M7-ghep.log`). Ý "Claude Code thật" của cột Xong khi là việc dưới đây; M7 được đánh dấu xong phần máy ảo. **Đã chạy 20/11/2026** với Claude Code 2.1.329: liệt kê site qua `mcp__tpan__list_sites` (bí danh), chẩn đoán đúng vhost chưa bật, Plan chờ duyệt, duyệt xong site trả 200 (`docs/bang-chung/M7-claude.log`).
 
 M7 không cần VPS hay tên miền thật. Phần còn lại của "Xong khi" là **Claude Code thật** trên máy cá nhân: phiên của mốc không được tự chạy `claude` (luật 9 của AGENTS.md, tốn hạn mức gói của bạn), nên ở máy ảo một client MCP viết bằng SDK đã đứng thay và đi đúng đường SSH đó. Bạn tự chạy trên Mac, với máy ảo của mốc (sau khi ghép thì dùng `tpan-test`):
 
