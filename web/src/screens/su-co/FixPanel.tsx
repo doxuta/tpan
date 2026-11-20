@@ -35,7 +35,7 @@ export function FixPanel({ incident, live }: Props) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const { openAI } = useAi();
-  // Sửa tự động, nhận bản sửa tay và hỏi AI là route chỉ admin (docs/thay-doi/M13.md): user thường chỉ có sửa tay.
+  // Sửa tự động, nhận bản sửa tay và hỏi AI là route chỉ admin (docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")): user thường chỉ có sửa tay.
   const { isAdmin } = useWho();
   const qc = useQueryClient();
   const navigate = useNavigate();

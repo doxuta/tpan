@@ -664,6 +664,77 @@ Không có ô gõ SQL và không có phpMyAdmin (mục 1).
 
 **Audit.** Thêm cột tên user vào `audit` và `jobs`; màn Lịch sử có cột "Ai làm" và lọc theo user (admin).
 
+#### Đã chốt khi làm M13
+
+**Quyết định của đợt 0 (hợp đồng).**
+
+1. **Tạm khoá là cột riêng, không phải giá trị mới của `status`.** `sites.status` có `CHECK (status IN ('active','trashed'))`; SQLite không đổi được CHECK nếu không dựng lại bảng. Thêm `sites.suspended`, `sites.db_suspended`, `databases.suspended` kiểu `account.Suspension`: `''` (không khoá), `'self'` (khoá riêng), `'user'` (khoá vì user chủ bị khoá). Cần nguồn chứ không chỉ có/không: mở khoá user chỉ mở đúng thứ bị khoá vì user (mục 6.12).
+2. **Mọi cột mới có DEFAULT** (`owner` = `admin`, `actor` = `''`, `sessions.user_name` = `admin`): site, job, phiên của bản v0.1.x tự thuộc admin, phiên đang mở không bị đăng xuất.
+3. **Hash quản trị chuyển từ `settings` sang `users`** (user `admin` vai admin); migration xoá khoá cũ trong `settings`. `store.AdminPasswordHash`, `SetAdminPasswordHash`, `ResetAdminPassword`, `ChangeAdminPassword` giữ chữ ký nhưng đọc ghi bảng `users`. Lùi về v0.1.1 sau khi đã nâng: bản cũ từ chối mở `tpan.db` có migration nó không biết, đúng như thiết kế từ M1. Đã chạy thật trên máy ảo: `tpan self-update --rollback` báo thành công (kiểm chứng của nó chỉ chạy `tpan version`) nhưng dịch vụ khởi động lại liên tục với `DB ở bản 1300, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn`. Đường ra: chạy `install.sh` của gói mới (DB còn nguyên). Muốn lùi thật thì phải chép lại bản sao `tpan.db` từ trước khi nâng. Ghi ở hướng dẫn nâng cấp.
+4. **Tên user cấm tiền tố `tp_`** và các tên hệ thống (`root`, `tpan`, `mysql`...): DB rời `<user>_<tên>` của user `tp_shop` có thể trùng đúng DB `tp_<slug>` của một site. Tên user Linux có sẵn trên máy bị chặn ở core (đọc bằng `getent passwd`).
+5. **Job có `actor` và `owner`.** `actor` là user đã chạy (server gắn vào ctx bằng `engine.WithActor`, engine đọc lúc tạo job; dòng lệnh, MCP, bộ hẹn giờ để rỗng). `owner` do store suy lúc ghi job: chủ của site hay DB rời có tên trùng `target`, không có thì `actor`, không có nữa thì `admin`. Nhờ vậy user thấy cả job admin chạy trên site của mình, và không ca sử dụng nào của core phải tự truyền chủ.
+6. **Backup có cột `owner`** (ghi lúc tạo, suy từ site): backup sống lâu hơn site đã xoá hẳn.
+7. **Site hay DB đang tạm khoá thì không đưa vào thùng rác được** (`site_suspended`, `db_suspended`): khôi phục từ thùng rác ghi lại pool và `ACCOUNT UNLOCK`, tức là mở khoá lén (user tự xoá rồi khôi phục site admin đã khoá). Mở khoá trước rồi mới xoá; nút "đưa mọi thứ của user vào thùng rác" từ chối khi có thứ đang khoá.
+8. **Mọi chỗ ghi vhost đi qua `core.siteVhost`** (`fix.go`), nơi duy nhất chọn bản thường, bản 443 hay bản tạm khoá: chuyển LEMP ⇄ LAMP, sửa tự động của health, chạy lại `site add`... không được lén mở khoá site. Thao tác cần pool PHP của site (đổi bản PHP, chạy lại `site add`, khôi phục backup, nhập DB) trên site tạm khoá thì từ chối `site_suspended`. Xin SSL vẫn được: vhost tạm khoá cho `/.well-known/acme-challenge/` đi qua, và vhost 443 ghi qua `siteVhost` nên ra bản tạm khoá có 443. Chuyển web server ghi bản tạm khoá cho site đang khoá.
+9. **Màu xám "tạm khoá" là `checks.Unknown` cộng cờ `Result.Suspended`**, không phải trạng thái thứ năm: "chưa kiểm được" vốn không mở cũng không đóng sự cố (M4), nên không phải sửa health, sự cố, hay bốn hình trạng thái của giao diện; giao diện chỉ đổi nhãn.
+10. **core không biết vai.** Ai được gọi gì do luật của route ở server quyết; core nhận chủ đã quyết (`SiteInput.Owner`, `DBInput.Owner`, `ApplyInput.Scope`).
+11. **Plan chờ duyệt, AI, MCP chỉ dành cho admin** (mục 6.12 cho `owner:plan`, nhưng Plan chỉ do AI và agent qua MCP tạo, mà cả hai đều là admin).
+12. **Sửa tự động, nhận bản sửa tay, chạy lại health chỉ admin** (body chứa id phép kiểm, không phải đường dẫn; user vẫn thấy sự cố của site mình).
+13. **DB rời trong thùng rác giữ user DB** (đang khoá, giữ mật khẩu cũ) và file `.sql` ở `/var/lib/tpan/trash/db/<tên>.sql`; khôi phục là tạo lại DB, nhập file, mở khoá user. Xoá hẳn mới `DROP USER`.
+
+**Luật của từng route** (bảng route ở `internal/server/routes.go`).
+
+`public`: không cần đăng nhập. `any`: mọi người đã đăng nhập, dữ liệu tự lọc theo chủ. `owner:X`: lấy chủ của đối tượng X trong đường dẫn; không phải chủ thì 404 như không tồn tại; admin luôn qua. `admin`: user thường nhận 403 `forbidden`.
+
+| Route | Luật |
+|---|---|
+| `GET /api/v1/health`, `POST /login`, `POST /logout`, `GET /session` | public |
+| `POST /account/password`, `GET /account/sessions`, `DELETE /account/sessions/{id}` (chỉ phiên của mình) | any |
+| `GET /overview`, `GET /sites`, `POST /sites`, `GET /jobs`, `GET /databases`, `GET /ssl`, `GET /incidents`, `GET /checks`, `GET /trash`, `POST /apply`, `GET /export`, `GET /backups`, `GET /cron`, `GET /php`, `GET /collations`, `POST /dbs`, `POST /session/view-as/exit` | any |
+| `GET`, `DELETE /sites/{domain}`; `POST /sites/{domain}/ssl`, `/restore`, `/php`, `/backups`; `GET /sites/{domain}/traffic`, `/log`; `DELETE /trash/{domain}`; `POST /databases/{domain}/password`, `/dump`, `/import`, `/charset` | owner:site |
+| `GET /jobs/{id}`, `GET /jobs/{id}/events` | owner:job |
+| `GET /incidents/{id}` | owner:incident (chủ của site là target; sự cố của máy, stack, tpan chỉ admin) |
+| `POST /backups/{id}/restore` | owner:backup |
+| `POST /dbs/{name}`, `/dbs/{name}/password`, `/dbs/{name}/restore`; `DELETE /dbs/{name}`; `DELETE /trash/dbs/{name}` | owner:db |
+| `GET /machine`, `GET /stack`, `POST /ssl/settings`, mọi `/security...`, `POST /fixes`, `POST /files/accept`, `POST /health/run`, mọi `/plans...`, `GET /agent`, mọi `/ai/...`, `POST /php/install`, `/php/remove`, mọi `/updates...`, `POST /mariadb/upgrade`, `POST /stack/switch`, `POST /backups/settings`, `POST /trash/settings`, mọi `/users...`, mọi `/packages...`, `POST /sites/{domain}/suspend`, `/unsuspend`, `POST /databases/{domain}/suspend`, `/unsuspend`, `POST /dbs/{name}/suspend`, `/unsuspend` | admin |
+
+**Đợt 1 (store, core).**
+
+- **Chủ của job tạo thứ chưa có dòng** (site mới, DB rời mới): `engine.WithOwner`, đặt bởi `SiteAdd.Execute` và `Planned.owner`. Không có thì job tạo DB rời hay site hộ người khác thuộc admin (store chưa suy được chủ từ `target`).
+- **Store**: `ChangeAdminPassword` vẫn tạo dòng admin nếu thiếu (test cũ gọi khi chưa có), `ChangeUserPassword` thì báo `ErrNotFound`. Sự cố đã đóng vì `gone` của site đã xoá hẳn chỉ admin thấy (không còn site để suy chủ). Chưa có hàm đọc `audit` (chưa màn nào đọc nhật ký).
+- **Mật khẩu ở core**: core không import store, nên `Accounts.Hash` và `Accounts.Generate` là hàm được gắn từ ngoài (`store.HashPassword`, `store.GeneratePassword`).
+- **Hạn mức backup** chỉ chặn backup bấm tay; bản theo lịch, trước khi xoá hẳn, trước khi khôi phục không bao giờ bị chặn; dọn bản cũ giữ `min(keep, max_backups)`. Hệ quả: gói có `max_backups` mà bật lịch thì backup bấm tay luôn bị từ chối khi đã đủ bản. `disk_mb` tính theo MiB; lần đo lỗi giữ số cũ. File `.sql` của DB rời trong thùng rác chưa tính vào dung lượng.
+- **User**: không xoá được user `admin` (`tpan admin passwd` đặt lại đúng user này); đổi vai thì huỷ phiên của user đó; vai để trống là `user`; mở khoá user chạy được cả khi user đã active (dọn nốt sau một lần hỏng); trong `apply`, dòng có `owner` khác phạm vi bị từ chối `user_not_found`; `export` chỉ in `owner` khi khác admin (file của máy một người dùng không đổi).
+- **Vhost tạm khoá**: trang ở `/var/lib/tpan/suspended/tpan-suspended.html`; cổng 80 của site SSL đang khoá trả thẳng 403, không chuyển sang https; bản Apache đặt `DocumentRoot` là thư mục trang tạm khoá (một `.htaccess` trong `public` không mở lại được site).
+- **Health của site khoá**: chặng đầu cuối là phép kiểm thật `http.suspended:<d>` (403 đúng trang). Các chặng xám mang ID riêng `suspended.<chặng>:<d>`, nên phép kiểm thường biến mất và sự cố đang mở của nó đóng với lý do `gone`; lần chạy health cho riêng site dọn ngay kết quả cũ (`forgetSwapped`), không phải chờ 1 giờ. Site có DB khoá: `php use`, `ssl issue`, sửa tự động `db.unlock` bị từ chối `db_suspended`; cron WordPress bỏ qua.
+- **Mở khoá site** kiểm 200 hai lần liên tiếp (Apache reload trả về trước khi vhost mới có hiệu lực); pool `.suspended` bị mất thì ghi lại từ template; cron bị mất thì không tạo lại (site trước M9 không có cron).
+- **DB rời**: loại job `dbs.add|charset|passwd|suspend|unsuspend|trash|restore|purge` (target là tên DB), DB của site `db.suspend|unsuspend|charset` (target là domain). Thùng rác: khoá user → cắt kết nối → xuất → DROP (khoá trước để không ai ghi thêm giữa lúc xuất và lúc xoá). Mã từ chối mới `db_trashed`, `db_not_trashed`, `db_dump_missing`, `note_invalid` (ghi chú tối đa 500 byte). Đổi mật khẩu DB rời không hoàn tác được. `ALTER DATABASE` chỉ đổi mặc định cho bảng tạo sau.
+- **Còn phải kiểm trên máy ảo**: `nginx -t`/`apachectl configtest` bốn vhost tạm khoá; 403 kèm trang; ACME qua vhost tạm khoá; PHP-FPM bỏ `.conf.suspended`; cron bỏ `tpan-<slug>.suspended`; `PROCESSLIST` theo `USER` bắt cả kết nối TCP; `ALTER USER ... IDENTIFIED BY` giữ `ACCOUNT LOCK`; `information_schema.COLLATIONS` của 10.11; `du -sb`.
+
+**Đợt 2 (server, CLI, giao diện).**
+
+- **Bảng route** ở `internal/server/routes.go` (98 route), đăng ký qua một hàm duy nhất; route thiếu luật thì panic lúc dựng handler. `TestPhanQuyenMoiRoute` duyệt mọi route trong bảng với ba vai bằng handler giả. 404 của "đồ người khác" giống hệt 404 của "đồ không có".
+- **Phiên của user bị khoá hoặc đã xoá** bị xoá ở request kế tiếp (401). Đăng nhập tên lạ vẫn chạy argon2 trên hash giả. Đăng nhập sai không ghi tên đã gõ vào nhật ký (người ta hay gõ nhầm mật khẩu vào ô tên).
+- **Admin chỉ thấy phiên của chính mình** ở Cài đặt (trước M13 thấy mọi phiên, vì chỉ có một tài khoản).
+- **Đo dung lượng** chạy sau một vòng health, tối đa mỗi giờ một lần (`health.Report` không cho biết vòng đó đầy đủ hay nhẹ). `tpan health` cho cả máy cũng đo.
+- **Lý do khoá** chỉ lưu cho user; site, DB không có cột lý do, nên giao diện không hỏi lý do khi khoá site hay DB.
+- **User thường**: `/checks` trả rỗng (phép kiểm của máy), `?refresh=1` của overview bị bỏ qua, `/php` chỉ liệt kê site của mình; nút sửa tự động, nhận bản sửa tay, kiểm lại, hỏi AI bị ẩn (server trả 403 cho các route đó); thanh lệnh chỉ có màn họ vào được.
+- **Admin chưa có dòng trong `users`** (máy chưa chạy `tpan setup`, CLI dùng không cần panel) được coi là admin active gói default không giới hạn (`core.ownerUser`), để `apply`, backup bấm tay, `db add` của admin không bị từ chối `user_not_found`.
+- **CLI**: không có cờ `--password` (mật khẩu trên dòng lệnh lọt vào `ps` và lịch sử shell); tpan luôn sinh và in một lần. `tpan user trash-all <tên>` là lệnh riêng. `db edit` chỉ sửa ghi chú; charset là `db charset`. Đối số có dấu chấm là domain (DB của site). `trash list --json` và `trash purge --expired --json` đổi từ mảng sang `{sites, dbs}`.
+- **Trạng thái DB trong danh sách**: DB của site đang ở thùng rác hiện `trashed` (user DB của nó đang khoá).
+- **Tên DB rời có thể trùng giữa hai user** (`ab` + `c_d` và `ab_c` + `d` cùng ra `ab_c_d`): core từ chối `db_exists`, tức là lộ ra tên đó đã có. Chấp nhận: tên DB không phải bí mật đáng giữ, và chặn hẳn thì phải cấm `_` trong tên user.
+- **Demo** (`tpan serve --demo`): thêm gói `co_ban`, user `khach_a`, `khach_b` (mật khẩu in lúc khởi động như admin), site của từng user, một site tạm khoá, một DB rời, một DB rời trong thùng rác.
+
+**Đợt 3 (máy ảo `tpan-test`).**
+
+- **E2E bước 16** (`scripts/e2e-m13.sh chinh`, `docs/bang-chung/M13.log`): 293 khẳng định đạt, 0 không đạt, từ máy sạch. **Nâng từ bản phát hành v0.1.1** (`scripts/e2e-m13.sh nang-cap`, `docs/bang-chung/M13-nang-cap.log`): 64 đạt, 0 không đạt. Cách nâng đã chạy: cài gói v0.1.1 thật bằng `install.sh` của nó, rồi `tpan self-update --url <gói mới>` của chính bản v0.1.1; chạy lại `install.sh` của gói mới trên máy đã nâng cũng đạt. Sau khi nâng: cookie cũ còn dùng được, đăng nhập chỉ bằng mật khẩu đạt, site cũ thuộc admin, `tpan admin passwd` chạy được.
+- **Hai lỗi thật e2e tìm ra, đã sửa ở gốc**: (1) khoá, đổi mật khẩu hay xoá một user làm admin đang "xem như" user đó bị đăng xuất (store xoá cả phiên có `view_as` bằng user đó; giờ chỉ gỡ `view_as`). (2) user thấy tên, đường dẫn, user Linux của site người khác qua phép kiểm cô lập `isolation:<x>:<y>` (chạy cho mọi cặp site) ở tổng quan, trang site, sự cố, sự kiện job và SSE; server giờ lọc các kết quả và sự kiện nhắc tới site không phải của người gọi.
+- **Đã kiểm trên máy ảo** (danh sách "còn phải kiểm" của đợt 1): `nginx -t`, `apachectl configtest` với bốn vhost tạm khoá đạt; 403 kèm trang tạm khoá ở http, https, `/wp-login.php`, `/wp-admin/`; file thử ACME qua vhost tạm khoá trả 200 và `certbot renew --dry-run` của site SSL đang khoá đạt trên cả nginx và apache; PHP-FPM bỏ `.conf.suspended` (socket biến mất, `php-fpm -t` đạt); cron bỏ `tpan-<slug>.suspended` (hơn 5 phút không chạy, site khác vẫn chạy); `PROCESSLIST` theo `USER` bắt cả kết nối socket (`localhost`) lẫn TCP (`localhost:<cổng>`), hai `SELECT SLEEP(120)` bị cắt; `ALTER USER ... IDENTIFIED BY` giữ `ACCOUNT LOCK` (`ERROR 4151`); `du -sb` cộng dung lượng DB khớp đúng; khoá DB của site: chặng DB unknown + suspended, không sự cố, site trả 500 "Database Error", mở khoá về 200.
+- **Collation**: MariaDB 10.11.14 có 506 dòng trong `information_schema.COLLATIONS`, 184 dòng (họ `uca1400`) có charset NULL nên không vào danh sách; `utf8mb4_uca1400_ai_ci` bị từ chối `collation_invalid` dù MariaDB 10.10+ có nó. Mặc định của utf8mb4 là `utf8mb4_general_ci`. Nâng cấp về sau: đọc thêm `information_schema.COLLATION_CHARACTER_SET_APPLICABILITY`.
+- **Xoá user** cần cả xoá hẳn trong thùng rác: `trash-all` chưa đủ, vì site trong thùng rác vẫn tính (đúng câu "kể cả thùng rác" của chữ ký `DeleteUser`).
+- **Còn hở, chưa sửa**: lời từ chối của API (`ErrorBody.Checks`) không lọc phép kiểm cô lập, nên trong ca hiếm một lời từ chối có thể nêu tên site khác. Dòng backup qua API chưa có trường `owner` (bảng có).
+- **Máy ảo**: một lần `multipass start` sau khi về snapshot bị treo (`timed out waiting for response`, máy ở trạng thái `Unknown`); `multipass stop --force` rồi `start` thì lên lại. Lúc đó trên Mac có thêm máy ảo của phiên khác.
+
 ## 7. Thao tác hàng loạt
 
 Đầu vào: dán danh sách domain (mỗi dòng một cái) trên giao diện, hoặc file:
@@ -997,7 +1068,7 @@ Panel chạy bằng quyền root nên lỗi ở panel là lỗi chiếm máy. N�
 
 - **Không shell**: mọi lệnh chạy bằng argv (mục 4.3). Có test tĩnh cấm `sh -c`, `bash -c` trong mã.
 - **Đầu vào có kiểu**: `validate.Domain` chỉ nhận tên miền hợp lệ (chuyển về chữ thường, punycode, mỗi nhãn `[a-z0-9-]`, không bắt đầu hay kết thúc bằng `-`, tổng ≤ 253 ký tự). Tên user, DB, pool không lấy từ người dùng mà sinh từ slug. Template chỉ nhận các kiểu đã kiểm.
-- **Đăng nhập**: một tài khoản quản trị; mật khẩu băm bằng argon2id; `tpan setup` sinh mật khẩu lần đầu và in ra đúng một lần. Sai 5 lần thì khoá IP đó 15 phút. Quên mật khẩu: `tpan admin passwd` chạy trên máy chủ bằng root sinh mật khẩu mới, in ra đúng một lần, huỷ mọi phiên đang đăng nhập, gỡ các IP đang bị khoá và ghi vào `audit`. Không có đường lấy lại qua web hay email: ai có root trên máy thì đặt lại được, ai không có thì không.
+- **Đăng nhập**: từ M13 có nhiều user (mục 6.12), đăng nhập bằng tên và mật khẩu (để trống tên là `admin`); phân quyền mặc định là cấm ở mọi route API; mật khẩu băm bằng argon2id; `tpan setup` sinh mật khẩu lần đầu và in ra đúng một lần. Sai 5 lần thì khoá IP đó 15 phút. Quên mật khẩu: `tpan admin passwd` chạy trên máy chủ bằng root sinh mật khẩu mới, in ra đúng một lần, huỷ mọi phiên đang đăng nhập, gỡ các IP đang bị khoá và ghi vào `audit`. Không có đường lấy lại qua web hay email: ai có root trên máy thì đặt lại được, ai không có thì không.
 - **Phiên**: token ngẫu nhiên 32 byte, DB chỉ lưu sha256 của nó; cookie `__Host-tpan`, `Secure`, `HttpOnly`, `SameSite=Strict`; hết hạn sau 12 giờ không dùng. Khi không có TLS (chỉ cho `make dev-api` và `--demo`, và `tpan serve` từ chối nghe HTTP thường ở địa chỉ khác loopback) cookie tên là `tpan`, không `Secure`, vì trang `http://` không đặt được cookie `Secure` và `__Host-` bắt buộc `Secure`. Nhập sai mật khẩu hiện tại lúc đổi mật khẩu cũng bị đếm như đăng nhập sai.
 - **CSRF**: kiểm `Sec-Fetch-Site` và `Origin` cho mọi request có thay đổi (Go có sẵn `http.CrossOriginProtection`; đọc tài liệu của đúng phiên bản Go đang dùng trước khi áp dụng).
 - **TLS**: panel nghe HTTPS ở cổng 8443 với chứng chỉ tự ký sinh lúc `setup` (in fingerprint để đối chiếu). Có chế độ riêng tư: chỉ nghe `127.0.0.1`, vào bằng `ssh -L 8443:127.0.0.1:8443 <máy>`.
@@ -1033,6 +1104,7 @@ Kịch bản `make e2e` (bắt đầu bằng `scripts/vm.sh reset`):
 13. Chạy `tpan brain` với một lệnh `claude` giả: câu hỏi gửi từ API của panel đi hết một vòng, Plan đề xuất nằm ở trạng thái chờ duyệt, máy **không** đổi gì. Cho `claude` giả khai thêm công cụ `Bash` ở sự kiện `init`: phiên bị từ chối.
 14. Cài thêm một bản PHP, chuyển site 1 sang bản đó trong lúc một vòng lặp `curl` gọi site liên tục → không request nào lỗi; site 2 vẫn ở bản cũ.
 15. `tpan update` trên máy ảo có gói đang chờ → sau cập nhật toàn bộ health vẫn đạt.
+16. Hai user hai gói: user A không thấy và không đụng được site, DB, job của B (404); vượt gói bị từ chối; tạm khoá site ra 403 rồi mở ra 200; tạm khoá DB làm chặng DB xám rồi mở lại đạt; tạm khoá user thì không đăng nhập được và mọi site của họ ra 403, mở khoá trả về đúng như trước; máy đang chạy bản cũ nâng lên vẫn đăng nhập được bằng `admin` cũ (`scripts/e2e-m13.sh`).
 
 Thứ tự bắt buộc: unit test xanh → e2e xanh trên máy ảo → mới chạy trên VPS. **Không chạy thử lần đầu trên VPS.**
 
@@ -1768,3 +1840,25 @@ Phiên điều phối tự làm M11 trong `~/tpan` (TU-CHAY.md, bước 8).
 | 2 | README có ảnh | `README.md` | `tho-viet` | opus | medium |
 | 2 | E2E cài bằng một lệnh trên `tpan-test` (và sửa lỗi gốc quyền `/var/lib/tpan`) | `scripts/e2e-m11.sh`, `docs/bang-chung/M11.log`, `cmd/tpan/setup.go`, `internal/core/stack.go` | `tho-may-ao` | opus | high |
 | 3 | Giải thích | `docs/giai-thich/11-m11-cai-dat-va-phat-hanh.md` | `tho-viet` | opus | medium |
+
+### M13
+
+- Chế độ tự chạy (`agent-dev/TU-CHAY.md`), phiên chính chạy nền.
+- **Khác `TU-CHAY.md` ("không dùng worktree")**: Claude Code chạy nền chặn mọi lệnh ghi file vào thư mục làm việc chung cho tới khi phiên tách sang một worktree. Phiên chính tạo worktree `.claude/worktrees/m13` trên nhánh `moc/M13` tách từ `dev` (không phải từ `main`), làm toàn bộ mốc trong đó, và cuối mỗi đợt đẩy nhánh lên `dev` (chỉ tua nhanh: `git push origin moc/M13:dev`, rồi `git merge --ff-only moc/M13` trong `~/tpan`). Vẫn chỉ một mốc, một máy ảo `tpan-test`, các thợ chung một thư mục và chia vùng file như cũ.
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Hợp đồng: migration 1300, kiểu `account`, tên trong `validate`, trường mới của `site.Site`, `engine.Job.Actor/Owner` + `engine.WithActor`, `checks.Result.Suspended`, giao diện `core.AccountStore`/`DBStore`, chữ ký mọi hàm core mới (thân tạm), kiểu API `server/types_m13.go` và bản TS, hash quản trị chuyển sang bảng `users` | các file kể trên | phiên chính | opus | high |
+| 1 | Store: users, packages, databases, phiên theo user, lọc theo chủ, owner của backup, test nâng từ DB v0.1.1 | `internal/store/` | `tho-phu` | sonnet | high |
+| 1 | Core user, gói, hạn mức, khoá user, xoá user, đo dung lượng; chủ và hạn mức khi tạo site, `apply` theo phạm vi, hạn mức backup | `internal/core/users.go` (+test), `site.go`, `apply.go`, `sitesfile.go`, `backup.go` | `tho-loi` | opus | high |
+| 1 | Core tạm khoá site: template vhost tạm khoá (nginx, apache) + golden, Step đổi tên `.suspended`, `suspend.go`, mọi chỗ ghi vhost đi qua `siteVhost`, từ chối thao tác trên site khoá, health và phép kiểm cho site/DB tạm khoá | `internal/core/suspend.go` (+test), `fix.go`, `trash.go`, `php.go`, `ssl.go`, `stack_switch.go`, `health.go`, `internal/templates/`, `internal/checks/`, `internal/health/`, file mới `internal/steps/suspend.go` | `tho-loi` | opus | high |
+| 1 | Core DB rời: tạo, sửa charset, ghi chú, đổi mật khẩu, khoá/mở, thùng rác/khôi phục/xoá hẳn, khoá DB của site, danh sách DB; Step MariaDB mới | `internal/core/dbs.go` (+test), `databases.go`, file mới `internal/steps/mariadb_m13.go` | `tho-loi` | opus | high |
+| 2 | Server: bảng route có luật, middleware vai, đăng nhập bằng tên, xem như user, API user/gói/tạm khoá/DB rời, lọc danh sách, Quota, bộ hẹn giờ dọn DB rời, đo dung lượng mỗi giờ, test ba vai cho mọi route | `internal/server/` | `tho-loi` | opus | high |
+| 2 | CLI `tpan user`, `tpan package`, `site suspend/unsuspend`, `site add --owner`, `db add/edit/passwd/suspend/unsuspend/rm/restore/purge/charset`, `apply` có `owner`, `export` có `owner`, `admin passwd` theo bảng users; dữ liệu demo M13 | `cmd/tpan/`, `internal/demo/` | `tho-loi` | opus | high |
+| 2 | Giao diện A: đăng nhập có tên, đầu trang tên và vai, menu theo vai, dải "xem như", màn Người dùng, màn Gói, Bảng điều khiển của user (hạn mức), Lịch sử có cột "Ai làm" và lọc | `web/src/` (khung, `screens/` mới cho người dùng và gói, đăng nhập, bảng điều khiển, lịch sử), file chuỗi tương ứng | `tho-giao-dien` | sonnet | high |
+| 2 | Giao diện B: cột Chủ và nút Tạm khoá ở Site, trang site (tạm khoá, dòng xám trên bản đồ tuyến), Tạo site chọn chủ, màn Cơ sở dữ liệu (Tạo DB, Sửa, Tạm khoá, Xoá, cột Chủ), Thùng rác có DB rời | `web/src/screens/` của site, tạo site, cơ sở dữ liệu, thùng rác, thành phần bản đồ tuyến; file chuỗi tương ứng | `tho-giao-dien` | sonnet | high |
+| 3 | Chạy thật: e2e bước 16 từ máy sạch, nâng từ v0.1.1, lưu bằng chứng | máy ảo `tpan-test`, `scripts/e2e/`, `docs/bang-chung/M13*` | `tho-may-ao` | opus | high |
+| 4 | Giải thích M13 | `docs/giai-thich/13-m13-nhieu-nguoi-dung.md` | `tho-viet` | opus | medium |
+| 4 | README, `docs/HUONG-DAN-CHU-DU-AN.md`, gộp file này vào KE-HOACH.md, ✅ | các file đó | phiên chính | opus | high |
+
+Ngoài bảng: sau đợt 2, một thợ `tho-giao-dien` (sonnet, high) sửa chỗ ghép giữa hai phần giao diện (thanh lệnh và ngăn AI theo vai, ẩn nút chỉ admin dùng được, tuyến xám trên bản đồ của bảng điều khiển, một nguồn cho danh sách user); phiên chính sửa ở core chỗ admin chưa có dòng `users` và bộ phép kiểm của `site info`. Thợ máy ảo sửa hai lỗi e2e tìm ra (`internal/store/users.go`, `internal/server/api_m13.go`, `sse.go`) và các script e2e cũ đọc hash quản trị.

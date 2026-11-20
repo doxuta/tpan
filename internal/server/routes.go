@@ -1,7 +1,7 @@
 package server
 
 // Bảng route có luật (M13, mục 6.12 của docs/KE-HOACH.md; bảng đầy đủ ở
-// docs/thay-doi/M13.md, mục "Luật của từng route").
+// docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13"), mục "Luật của từng route").
 //
 // Mặc định là cấm: mọi đường dẫn của server đi qua đúng một hàm mount, và mount
 // panic khi gặp route không khai luật, nên server không khởi động được với một
@@ -119,7 +119,7 @@ func (s *Server) routes(dist fs.FS) []route {
 
 		// M4: health (api_health.go). Sửa tự động, nhận bản sửa tay, chạy lại
 		// health chỉ admin: thân chứa id phép kiểm, không phải đường dẫn
-		// (quyết định 12 ở docs/thay-doi/M13.md).
+		// (quyết định 12 ở docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")).
 		{pattern: "GET /api/v1/incidents", rule: anyone, h: s.handleIncidents},
 		{pattern: "GET /api/v1/incidents/{id}", rule: ownerIncident, h: s.handleIncident},
 		{pattern: "POST /api/v1/fixes", rule: adminOnly, h: s.handleFix},

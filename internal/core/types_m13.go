@@ -7,7 +7,7 @@ package core
 //	suspend.go  tạm khoá site (thợ "tạm khoá site")
 //	dbs.go      DB rời, sửa charset, tạm khoá DB (thợ "DB rời")
 //
-// Quyết định chung (lý do ở docs/thay-doi/M13.md):
+// Quyết định chung (lý do ở docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")):
 //   - core không biết vai. Ai được gọi gì là việc của server (luật của route);
 //     core chỉ nhận chủ (owner) đã được server quyết.
 //   - Site hay DB đang tạm khoá thì không đưa vào thùng rác được (site_suspended,

@@ -17,7 +17,7 @@
 #      đạt; site cũ có chủ admin; hash mật khẩu giữ nguyên; tpan user list có
 #      admin; tpan admin passwd chạy, mật khẩu mới đăng nhập được
 #   U4 `tpan self-update --rollback`: ghi nguyên output, rồi bản cũ từ chối
-#      tpan.db đã có migration 1300 (đúng thiết kế, quyết định 3 của M13.md)
+#      tpan.db đã có migration 1300 (đúng thiết kế, quyết định 3 của docs/KE-HOACH.md mục 6.12)
 #   U5 đưa máy về bản mới bằng install.sh của gói mới (file chạy có sẵn)
 #
 # CHÍNH (chinh), từ máy sạch:
@@ -691,7 +691,7 @@ part_u4() {
   vexec systemctl show -p ActiveState -p SubState -p NRestarts -p Result tpan
   vroot journalctl -u tpan --no-pager -o cat -n 15
   # Câu thật của v0.1.1 (store.migrate khi bản DB lớn hơn bản lớn nhất nó
-  # biết), khác câu docs/thay-doi/M13.md trích ở quyết định 3.
+  # biết), khác câu docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13") trích ở quyết định 3.
   ok "journal của tpan: bản cũ từ chối tpan.db có migration 1300, dịch vụ khởi động lại liên tục" bash -c 'grep -qF "DB ở bản 1300, tpan này chỉ biết tới bản 900" <<<"$1" && grep -qF "status=1/FAILURE" <<<"$1"' _ "$OUT"
   vroot tpan site list
   ok "tpan site list ($OLD_VER) từ chối: DB ở bản 1300, tpan này chỉ biết tới bản 900" bash -c '[ "$2" != 0 ] && grep -qF "DB ở bản 1300, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn" <<<"$1"' _ "$OUT" "$RC"

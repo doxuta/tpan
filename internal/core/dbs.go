@@ -9,7 +9,7 @@ package core
 // Thứ tự đưa DB rời vào thùng rác: khoá user, cắt kết nối, xuất .sql, rồi mới
 // DROP. Khoá trước để không ai ghi gì giữa lúc xuất và lúc xoá (mariadb-dump
 // chạy bằng root, không bị khoá user ảnh hưởng). Trong thùng rác user DB còn,
-// đang khoá, giữ mật khẩu cũ (quyết định 13 ở docs/thay-doi/M13.md).
+// đang khoá, giữ mật khẩu cũ (quyết định 13 ở docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")).
 //
 // Tên hàm phụ trong file này có tiền tố dbs: thợ users.go và suspend.go viết
 // song song trong cùng gói.
@@ -103,7 +103,7 @@ func dbsNotSuspendedErr(what string) *RefusedError {
 }
 
 // dbsOwnerSuspended từ chối khi chủ đang bị khoá: mở khoá hay khôi phục DB
-// của user bị khoá là mở khoá lén (cùng lý do với quyết định 7 ở M13.md).
+// của user bị khoá là mở khoá lén (cùng lý do với quyết định 7 ở docs/KE-HOACH.md mục 6.12).
 func (d *DBs) dbsOwnerSuspended(ctx context.Context, owner string) error {
 	if d.Accounts == nil {
 		return nil
@@ -432,7 +432,7 @@ func (d *DBs) PrepareTrash(ctx context.Context, name string) (*Planned, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Quyết định 7 ở M13.md: khôi phục mở khoá user DB, tức là mở khoá lén.
+	// Quyết định 7 ở docs/KE-HOACH.md mục 6.12: khôi phục mở khoá user DB, tức là mở khoá lén.
 	if db.Suspended != account.NotSuspended {
 		return nil, dbsSuspendedErr(db.Name)
 	}
