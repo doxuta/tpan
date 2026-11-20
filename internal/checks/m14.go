@@ -208,7 +208,16 @@ func PHPProtectProc(version string) Check {
 		}
 		value := strings.TrimSpace(res.Stdout)
 		if value == "invisible" {
-			return b.pass(i18n.T("Dịch vụ "+unit+" chạy với ProtectProc=invisible", "The "+unit+" service runs with ProtectProc=invisible"), ev)
+			hidden, known, procEv := ProcHidden(ctx, sys, unit)
+			if known && !hidden {
+				restart := line("systemctl", "restart", unit)
+				return b.bad(Warn,
+					i18n.T("systemd đã nạp ProtectProc=invisible cho "+unit+" nhưng tiến trình đang chạy chưa được khởi động lại", "systemd has loaded ProtectProc=invisible for "+unit+", but the running process has not been restarted"),
+					i18n.T("ProtectProc chỉ có hiệu lực khi dịch vụ khởi động: tiến trình PHP-FPM đang chạy vẫn dùng /proc cũ và thấy tiến trình của mọi user. Khởi động lại dịch vụ ngắt request PHP đang chạy trong khoảng một giây.",
+						"ProtectProc only takes effect when the service starts: the running PHP-FPM process still uses the old /proc and sees every user's processes. Restarting the service interrupts running PHP requests for about a second."),
+					[]string{restart, cmd.String()}, ev, procEv)
+			}
+			return b.pass(i18n.T("Dịch vụ "+unit+" chạy với ProtectProc=invisible", "The "+unit+" service runs with ProtectProc=invisible"), ev, procEv)
 		}
 		shown := sslClean(value)
 		if shown == "" {
@@ -220,6 +229,47 @@ func PHPProtectProc(version string) Check {
 				"The PHP of a site can run shell commands, and in /proc it sees the processes and command lines of every other user on the machine (site names, paths, sometimes sensitive arguments). File modes still hold, so this is a warning. The fix writes a systemd drop-in file and restarts the PHP-FPM service."),
 			[]string{m14Harden, cmd.String()}, ev)
 	})
+}
+
+// ProcHidden hỏi tiến trình chính ĐANG CHẠY của dịch vụ unit có một /proc riêng
+// gắn với hidepid=invisible không. `systemctl show -p ProtectProc` chỉ nói cấu
+// hình systemd đã nạp: sau daemon-reload mà chưa restart nó đã in "invisible"
+// trong khi tiến trình vẫn dùng /proc cũ (đo trên máy ảo M14). Sự thật nằm ở
+// /proc/<MainPID>/mountinfo của chính tiến trình đó.
+//
+// known=false khi không biết được (dịch vụ không chạy nên không có MainPID,
+// không đọc được mountinfo): người gọi coi như không có gì để bác bỏ.
+// steps.PHPProtectProc dùng chung hàm này cho Check của nó.
+func ProcHidden(ctx context.Context, sys system.System, unit string) (hidden, known bool, ev Evidence) {
+	res, ev, err := execCmd(ctx, sys, system.Cmd{Name: "systemctl", Args: []string{"show", unit, "-p", "MainPID", "--value"}})
+	if err != nil || res.ExitCode != 0 {
+		return false, false, ev
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(res.Stdout))
+	if err != nil || pid <= 0 {
+		return false, false, ev
+	}
+	p := "/proc/" + strconv.Itoa(pid) + "/mountinfo"
+	ev = Evidence{Command: "grep ' /proc ' " + p + " (tpan)"}
+	data, err := sys.ReadFile(p)
+	if err != nil {
+		ev.ExitCode, ev.Output = -1, err.Error()
+		return false, false, ev
+	}
+	// mountinfo(5): trường thứ 5 là điểm gắn; tuỳ chọn của hệ file (hidepid=...)
+	// nằm ở cuối dòng. Một không gian mount có thể có nhiều dòng /proc chồng
+	// nhau; dòng cuối là cái tiến trình đang thấy.
+	for _, ln := range strings.Split(string(data), "\n") {
+		if f := strings.Fields(ln); len(f) > 4 && f[4] == "/proc" {
+			ev.Output = ln
+			hidden = strings.Contains(ln, "hidepid=invisible")
+		}
+	}
+	if ev.Output == "" {
+		ev.ExitCode, ev.Output = 1, "no /proc mount line"
+		return false, false, ev
+	}
+	return hidden, true, ev
 }
 
 // ---- Quyền log của site (lỗ L6) ----

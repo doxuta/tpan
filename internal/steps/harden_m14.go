@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/system"
@@ -256,7 +257,14 @@ func (s *PHPProtectProc) Check(ctx context.Context, sys system.System) (bool, er
 	if err != nil {
 		return false, withStdout(fmt.Errorf("hỏi systemd ProtectProc của php%s-fpm: %w", v, err), res)
 	}
-	return strings.TrimSpace(res.Stdout) == "invisible", nil
+	if strings.TrimSpace(res.Stdout) != "invisible" {
+		return false, nil
+	}
+	// systemd in "invisible" ngay sau daemon-reload, cả khi tiến trình đang
+	// chạy chưa được khởi động lại (đo trên máy ảo M14): hỏi thêm chính tiến
+	// trình đó. Không biết được (máy không có /proc của nó) thì tin systemd.
+	hidden, known, _ := checks.ProcHidden(ctx, sys, "php"+v+"-fpm")
+	return hidden || !known, nil
 }
 
 // load là nửa chưa đụng tới dịch vụ: daemon-reload để systemd đọc drop-in đang
