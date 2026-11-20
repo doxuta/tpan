@@ -24,7 +24,7 @@ Phần AI là tuỳ chọn và tắt mặc định. Không bật AI thì mọi c
 
 ### Ngoài phạm vi
 
-Mail server, DNS server, FTP, Docker, nhiều người dùng với phân quyền, quản lý nhiều máy chủ, hệ điều hành ngoài Ubuntu 24.04. Lý do: không nằm trong đề, và mỗi thứ là một mảng lớn.
+Mail server, DNS server, FTP, Docker, quản lý nhiều máy chủ, hệ điều hành ngoài Ubuntu 24.04. Lý do: không nằm trong đề, và mỗi thứ là một mảng lớn. (Nhiều người dùng với phân quyền lúc đầu nằm ở đây; từ 20/11/2026 là mốc M13, mục 6.12.)
 
 Cũng không làm trình quản lý file và công cụ gõ SQL trên web. Một panel chạy bằng quyền root mà cho tải lên, sửa file hay chạy SQL tuỳ ý là chỗ các panel dính lỗ hổng nhiều nhất, và hai thứ đó không giúp gì cho hai yêu cầu chính của đề.
 
@@ -43,8 +43,8 @@ Cũng không làm trình quản lý file và công cụ gõ SQL trên web. Một
 | Cập nhật | có (mục 6.11) | M12 |
 | Thống kê | một phần: CPU, RAM, đĩa, số request và lỗi 5xx theo site; không có biểu đồ dài ngày | M3, M4 |
 | Thông báo | một phần: sự cố hiện trên menu và trên logo; chưa gửi ra ngoài | M4 |
-| Tài khoản | một tài khoản quản trị: đổi mật khẩu, đăng xuất; quên mật khẩu thì đặt lại bằng `tpan admin passwd` trên máy chủ | M3 |
-| Nhiều người dùng, gói, hạn mức | không làm | |
+| Tài khoản | đổi mật khẩu, đăng xuất; quên mật khẩu thì đặt lại bằng `tpan admin passwd` trên máy chủ | M3 |
+| Nhiều người dùng, gói, hạn mức, tạm khoá | có: vai admin và user, gói, tạm khoá user, site và DB, DB rời (mục 6.12) | M13 |
 | Trình quản lý file | không làm; trang site cho xem các file TPAN quản lý kèm diff | |
 | Mail, DNS, FTP | không làm | |
 
@@ -535,7 +535,7 @@ Mỗi site có đúng một DB và một user DB, tạo cùng lúc với site (m
 - **Xuất file `.sql`**: `mariadb-dump --single-transaction` vào thư mục backup của site, có chặn đầy đĩa như mục 6.5.
 - **Nhập file `.sql`** từ một bản đã xuất: luôn tự xuất bản hiện tại trước, để hoàn tác được.
 
-Không có DB rời không gắn với site nào, và không có ô gõ SQL trên web (mục 1).
+Không có ô gõ SQL trên web (mục 1). DB rời không gắn với site, sửa charset và tạm khoá DB: M13, mục 6.12.
 
 ### 6.10 Cron
 
@@ -628,6 +628,41 @@ Ba thành phần của stack khác nhau về chuyện "nhiều phiên bản":
 - **Không có API cho self-update** (mục 9 nói mỗi lệnh có endpoint): thay file chạy từ chính panel cắt job đang chạy; màn Cập nhật hiện lệnh để tự gõ.
 - **Lệnh CLI mới ngoài mục 9**: `tpan php remove <bản>`, `tpan update auto`, `tpan mariadb upgrade --to <dòng>`, `tpan self-update --rollback|--url`, cờ `--web-source`, `--db-source`, `--db-line` của `stack install`. API mới ở `internal/server/types_m12.go`.
 - **Kho của Ondřej Surý là `packages.sury.org`** (mục 16 ghi PPA trên Launchpad đang được chuyển về đây), ghim theo gói (dưới đây).
+
+### 6.12 Nhiều người dùng, gói, tạm khoá (M13)
+
+Thêm ngày 20/11/2026 sau khi chủ dự án so TPAN với HestiaCP: một panel hosting phải có tài khoản cho từng khách, giới hạn theo gói, tạm khoá được, và DB sửa hay khoá được. Mục này thay câu "nhiều người dùng với phân quyền" ở phần Ngoài phạm vi của mục 1.
+
+**Hai vai.** `admin` thấy và làm mọi thứ như hiện nay. `user` (khách hosting) chỉ thấy và làm trên site, DB, backup, cron, SSL, thùng rác, job, sự cố của chính mình; không thấy Stack, Cập nhật, Bảo mật, Người dùng, Gói, số liệu máy, phần TPAN tự kiểm, AI và Cài đặt AI. Có thể có nhiều admin.
+
+**Tài khoản.** Bảng `users`: `name` (đăng nhập, `^[a-z][a-z0-9_]{2,31}$`, không trùng, không dùng các tên dành riêng `root`, `tpan`, `www-data`, tên user Linux có sẵn), `full_name`, `email`, `role`, `package`, `status` (`active`, `suspended`), mật khẩu argon2id, `created`, `suspended_at`, lý do khoá. Đăng nhập bằng tên + mật khẩu. Migration chuyển tài khoản quản trị hiện có thành user `admin` vai `admin`, giữ nguyên hash mật khẩu và các phiên đang mở. Màn đăng nhập thêm ô tên đăng nhập (để trống thì hiểu là `admin`, để không làm hỏng thói quen cũ). Đầu trang hiện tên đang đăng nhập và vai. Khoá IP khi sai 5 lần giữ nguyên, đếm theo IP. `tpan admin passwd` giữ nguyên (đặt lại mật khẩu user `admin`); thêm `tpan user passwd <tên>`.
+
+**Gói.** Bảng `packages`: `name`, `max_sites`, `max_dbs` (DB rời, không tính DB đi kèm site), `disk_mb`, `max_backups` mỗi site; 0 là không giới hạn. Có sẵn gói `default` không giới hạn, không xoá được. Tạo site hay DB rời vượt gói thì bị từ chối kèm lý do (lời từ chối kiểu `RefusedError` như mọi điều kiện đầu). Dung lượng đo bằng tổng kích thước thư mục site + DB, cập nhật trong phép kiểm nặng mỗi giờ; vượt `disk_mb` là cảnh báo và chặn tạo mới, không xoá hay khoá gì tự động.
+
+**Sở hữu.** `sites.owner`, `databases.owner` (bảng DB rời, dưới đây), `jobs.actor`. Site cũ thuộc `admin`. Admin tạo site thì chọn chủ (mặc định chính mình); user tạo site thì chủ là mình. Mỗi site vẫn có user Linux `tp_<slug>` riêng như mục 5: cô lập theo site mạnh hơn cô lập theo khách, nên giữ. User của TPAN không có tài khoản SSH hay FTP trên máy: họ chỉ dùng panel.
+
+**Phân quyền ở API: mặc định là cấm.** Mỗi route khai một luật trong bảng định tuyến: `public` (đăng nhập, trạng thái phiên), `any` (mọi người đã đăng nhập, dữ liệu tự lọc theo chủ), `owner:<đối tượng>` (site, DB, backup, job, plan, sự cố: lấy chủ của đối tượng trong đường dẫn, không phải chủ thì trả 404 như không tồn tại, để không dò được tên site của người khác), `admin`. Route không khai luật thì server từ chối khởi động. Test duyệt mọi route đã đăng ký và kiểm ba vai (`admin`, chủ, user khác) cho từng route; thêm route mới mà quên luật thì test đỏ. Danh sách (site, DB, backup, sự cố, job, thùng rác, sự kiện SSE) lọc theo chủ ở truy vấn, không lọc ở giao diện. Ghép lệnh hàng loạt (`apply`, dán danh sách) chỉ chạm site của người gọi. MCP và CLI chạy bằng root nên là `admin`; `tpan mcp` không đổi.
+
+**Tạm khoá site** (`tpan site suspend|unsuspend <domain>`, nút trên trang site và bảng Site). Plan: vhost của site đổi sang bản "tạm khoá" (mọi đường dẫn trả 403 kèm trang tĩnh "Site đang tạm khoá", riêng `/.well-known/acme-challenge/` vẫn đi qua để gia hạn chứng chỉ không hỏng), pool PHP-FPM tắt (file pool đổi tên `.suspended` rồi reload), cron của site tắt. Kiểm chứng: gọi site trên máy ra 403 và đúng trang tạm khoá. Mở khoá làm ngược lại và kiểm site trả 200. Site tạm khoá: health bỏ các chặng PHP, WordPress, DB, đầu cuối, chỉ kiểm vhost tạm khoá và chứng chỉ; bản đồ tuyến hiện một dòng xám "tạm khoá" thay vì đỏ.
+
+**Tạm khoá user.** Khoá mọi site và DB rời của họ (như trên), không cho đăng nhập, huỷ mọi phiên đang mở. Mở khoá thì mở lại đúng những gì bị khoá **vì user bị khoá** (site đã bị khoá riêng từ trước thì giữ khoá). Không khoá được chính mình và user `admin` cuối cùng.
+
+**Xoá user.** Từ chối khi user còn site, DB rời hoặc đang có job chạy; giao diện có nút "Đưa mọi site và DB của user này vào thùng rác" làm trước. Xoá user không xoá job và audit cũ của họ (giữ tên).
+
+**DB.** Thêm:
+
+- **DB rời**: `tpan db add <tên> --owner <user>`, nút "Tạo DB". Tên DB và user DB là `<user>_<tên>` (tổng ≤ 64 ký tự cho DB, ≤ 80 cho user, chỉ `[a-z0-9_]`). Mật khẩu sinh ngẫu nhiên, hiện đúng một lần như mật khẩu WordPress. Bảng `databases`: tên, user DB, chủ, charset, collation, trạng thái, lúc tạo.
+- **Sửa DB**: đổi mật khẩu (đã có cho DB của site; DB rời thì chỉ đổi trong MariaDB), đổi charset và collation (`ALTER DATABASE`, chỉ nhận cặp có trong `information_schema.COLLATIONS`), ghi chú.
+- **Tạm khoá DB**: `ALTER USER '<user>'@'localhost' ACCOUNT LOCK` (MariaDB 10.4 trở lên; Ubuntu 24.04 có 10.11), rồi `KILL` các kết nối đang mở của user đó. Mở khoá: `ACCOUNT UNLOCK`. DB của site bị khoá thì site báo lỗi kết nối DB: giao diện nói rõ trước khi chạy. Health hiện chặng DB là "tạm khoá" (xám), không mở sự cố.
+- **Xoá DB rời**: xuất `.sql` vào thùng rác rồi mới `DROP`; khôi phục được trong số ngày giữ thùng rác. DB đi kèm site vẫn chỉ xoá theo site.
+
+Không có ô gõ SQL và không có phpMyAdmin (mục 1).
+
+**Giao diện.** Menu nhóm TÀI KHOẢN thêm **Người dùng** và **Gói** (chỉ admin). Màn Người dùng giống HestiaCP: bảng tên (và tên đầy đủ, email), vai, gói, số site/DB đang dùng trên giới hạn, dung lượng, trạng thái; nút Thêm user; mỗi hàng: Sửa, Tạm khoá hoặc Mở khoá, Đổi mật khẩu, Xoá; chọn nhiều hàng để khoá hoặc mở khoá hàng loạt. Admin có nút "Xem như user này" (mở phiên chỉ đọc mang vai user đó, có dải màu báo đang xem như ai và nút thoát; mọi thao tác thay đổi trong phiên này bị từ chối). Bảng Site và Cơ sở dữ liệu thêm cột Chủ (chỉ admin thấy) và nút Tạm khoá. Màn Cơ sở dữ liệu thêm "Tạo DB", "Sửa", "Tạm khoá", "Xoá" cho DB rời. User thường thấy Bảng điều khiển chỉ có site của mình và hạn mức gói thay cho số liệu máy. Mọi thao tác vẫn qua xem trước như mục 4.2.
+
+**CLI.** `tpan user add|list|info|edit|passwd|suspend|unsuspend|rm`, `tpan package add|list|edit|rm`, `tpan site add --owner`, `tpan site suspend|unsuspend`, `tpan db add|edit|suspend|unsuspend|rm`. Mọi lệnh đổi máy có `--dry-run` và `--yes`. `tpan apply -f` nhận thêm `owner` trong file.
+
+**Audit.** Thêm cột tên user vào `audit` và `jobs`; màn Lịch sử có cột "Ai làm" và lọc theo user (admin).
 
 ## 7. Thao tác hàng loạt
 
@@ -1020,6 +1055,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M10** ✅ | Chuyển LEMP ⇄ LAMP | e2e bước 8; đo được thời gian gián đoạn |
 | **M11** ✅ | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), gói phát hành tạo tại máy bằng `make release` (đăng lên GitHub là việc của chủ dự án khi mở repo, mục 18), README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
 | **M12** ✅ | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
+| **M13** | Nhiều người dùng (mục 6.12): bảng `users`, `packages`, `databases`; đăng nhập bằng tên; phân quyền mặc định là cấm ở mọi route; tạm khoá user, site, DB; DB rời; sửa charset; màn Người dùng, Gói, xem như user; CLI `tpan user`, `tpan package`, `site suspend`, `db add/edit/suspend/rm`; giao diện lọc theo vai | test phân quyền duyệt mọi route với ba vai đạt; e2e bước 16 trên máy ảo từ máy sạch: hai user hai gói, user A không thấy và không đụng được site, DB, job của B (404), vượt gói bị từ chối, tạm khoá site ra 403 rồi mở lại ra 200, tạm khoá DB làm chặng DB xám rồi mở lại đạt, tạm khoá user thì không đăng nhập được và mọi site của họ ra 403, mở khoá trả về đúng như trước; máy đang chạy bản cũ nâng lên vẫn đăng nhập được bằng tài khoản `admin` cũ |
 
 M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7, và M12 cần health của M4), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc. M1 đến M3 làm nối tiếp; từ M4 các mốc chạy song song theo lượt, mỗi mốc một worktree, một nhánh `moc/M<n>`, một máy ảo, rồi được ghép vào `dev` (mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`). Migration của mốc `n` đánh số từ `n*100` đến `n*100+99`; bảng `schema_migrations` ghi từng bản đã áp, nên ghép mốc không theo thứ tự số vẫn không sót bản nào.
 
