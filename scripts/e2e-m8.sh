@@ -39,6 +39,8 @@
 # Không dùng set -e: nhiều lệnh ở đây được chờ là phải lỗi.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
+# Bản Claude Code tpan đã kiểm (claude giả báo đúng bản này).
+TESTED="$(sed -nE 's/^const TestedVersion = "([^"]+)"/\1/p' internal/ai/claudecode/types.go)"
 
 MODE="${1:-fake}"
 case "$MODE" in fake | real | real-rehearse) ;; *)
@@ -493,8 +495,8 @@ main_fake() {
   ok "tpan brain nối được (in \"Bộ não: đã nối\")" bash -c 'grep -q "Bộ não: đã nối" "$1"' _ "$BRAIN_LOG"
   api GET /api/v1/ai/brain
   show
-  ok "GET /ai/brain: connected, host là tên máy Mac, claude_version 2.1.328, model sonnet, auth claude.ai, không cảnh báo" \
-    bash -c '[ "$1" = 200 ] && jq -e --arg h "$3" ".mode == \"bridge\" and .connected == true and .host == \$h and .claude_version == \"2.1.328\" and .tested_version == \"2.1.328\" and .model == \"sonnet\" and .auth_method == \"claude.ai\" and (.warnings // [] | length == 0)" "$2" >/dev/null' _ "$CODE" "$TMPD/body" "$MAC_HOST"
+  ok "GET /ai/brain: connected, host là tên máy Mac, claude_version bằng bản đã kiểm, model sonnet, auth claude.ai, không cảnh báo" \
+    bash -c '[ "$1" = 200 ] && jq -e --arg h "$3" ".mode == \"bridge\" and .connected == true and .host == \$h and .claude_version == .tested_version and .model == \"sonnet\" and .auth_method == \"claude.ai\" and (.warnings // [] | length == 0)" "$2" >/dev/null' _ "$CODE" "$TMPD/body" "$MAC_HOST"
 
   section "f. chuyển tới trang site $A, xem trước thứ sẽ gửi"
   view_json "/sites/$A" "Trang site $A" >"$TMPD/view-a.json"
@@ -536,7 +538,7 @@ main_fake() {
   ntext="$(sse_texts_before_done)"
   printf 'Thứ tự sự kiện: %s\n' "$kinds"
   ok "SSE kết thúc bằng done" bash -c 'jq -e ".kind == \"done\"" <<<"$1" >/dev/null' _ "$final"
-  ok "SSE có init trước mọi thứ khác, version 2.1.328" bash -c 'jq -e ".[0].ev.kind == \"init\" and .[0].ev.version == \"2.1.328\"" "$1" >/dev/null' _ "$SSE_JSON"
+  ok "SSE có init trước mọi thứ khác, version bằng bản đã kiểm ($TESTED)" bash -c 'jq -e --arg v "$2" ".[0].ev.kind == \"init\" and .[0].ev.version == \$v" "$1" >/dev/null' _ "$SSE_JSON" "$TESTED"
   ok "nhiều sự kiện text trước done ($ntext), chữ hiện dần (cách nhau theo giờ nhận)" bash -c '[ "$1" -ge 4 ] && jq -e "[.[] | select(.ev.kind == \"text\") | .recv] | (.[-1] - .[0]) > 0.5" "$2" >/dev/null' _ "$ntext" "$SSE_JSON"
   ok "có tool_call list_sites và propose_site_add" bash -c 'jq -e "[.[].ev | select(.kind == \"tool_call\") | .tool] == [\"mcp__tpan__list_sites\", \"mcp__tpan__propose_site_add\"]" "$1" >/dev/null' _ "$SSE_JSON"
   pid="$(jq -r '[.[].ev | select(.kind == "tool_result" and (.plan_id // "") != "")][0].plan_id // empty' "$SSE_JSON")"

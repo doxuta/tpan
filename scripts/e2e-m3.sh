@@ -671,7 +671,10 @@ main_run() {
   local t1
   t1="$(sed -nE 's/^-> HTTP [0-9]+, ([0-9.]+)s$/\1/p' <<<"$OUT")"
   show '{hostname: "<hostname>", stack, sites: [.sites[] | {domain: .site.domain, checks: [.checks[] | .status] | group_by(.) | map({(.[0]): length}) | add}], machine: .machine | {cpu_percent, cpus, mem_total, mem_used, disk}, jobs: [.jobs[] | "\(.kind) \(.target) \(.status)"], stack_checks: [.stack_checks[] | "\(.status) \(.id)"]}'
-  ok "overview 200, 2 tuyến, mọi phép kiểm site và stack pass" bash -c '[ "$1" = 200 ] && jq -e "(.sites | length) == 2 and all(.sites[].checks[]; .status == \"pass\") and all(.stack_checks[]; .status == \"pass\") and .stack.installed and .stack.web == \"nginx\"" "$2" >/dev/null' _ "$CODE" "$TMPD/body"
+  # Site chưa xin SSL và tên miền thử không có bản ghi A thật: chặng DNS (dns.a)
+  # và TLS (tls.cert) là cảnh báo có chủ ý (mục 6.7, sửa 20/11/2026). Mọi phép
+  # kiểm khác phải pass.
+  ok "overview 200, 2 tuyến, mọi phép kiểm site và stack pass (trừ cảnh báo DNS, TLS của site chưa SSL)" bash -c '[ "$1" = 200 ] && jq -e "(.sites | length) == 2 and all(.sites[].checks[]; .status == \"pass\" or (.status == \"warn\" and (.id | test(\"^(dns[.]a|tls[.]cert):\")))) and all(.stack_checks[]; .status == \"pass\") and .stack.installed and .stack.web == \"nginx\"" "$2" >/dev/null' _ "$CODE" "$TMPD/body"
   api GET /api/v1/overview
   local t2
   t2="$(sed -nE 's/^-> HTTP [0-9]+, ([0-9.]+)s$/\1/p' <<<"$OUT")"

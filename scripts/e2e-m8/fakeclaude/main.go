@@ -4,7 +4,7 @@
 // question sent from the panel goes the whole way: panel -> bridge.Hub ->
 // tpan brain -> this program -> `ssh ... sudo -n tpan mcp --session <id>`.
 //
-//	claude --version            prints "2.1.328 (Claude Code)"
+//	claude --version            prints "<claudecode.TestedVersion> (Claude Code)"
 //	claude auth status --json   prints {"loggedIn":true,"authMethod":"claude.ai"}
 //	claude -p ...               plays one turn of `claude -p`, see below
 //
@@ -51,9 +51,12 @@ import (
 	"time"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/doxuta/tpan/internal/ai/claudecode"
 )
 
-const version = "2.1.328"
+// version theo đúng bản tpan đã kiểm, để nâng TestedVersion không làm lệch claude giả.
+const version = claudecode.TestedVersion
 
 type config struct {
 	RecordDir string `json:"record_dir"`
