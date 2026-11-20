@@ -10,8 +10,9 @@ Mỗi nhánh tự mở đầu bằng một dấu xuống dòng và không kết 
 Nhánh cuối (else) là an-toan: chế độ đã được kiểm trong Go, nhưng nếu một giá
 trị lạ lọt tới đây thì nó rơi vào bản chặt chứ không vào AllowOverride All.
 
-Phép kiểm web.hardened so "có chứa" trên cả file, kể cả chú thích: chú thích
-của một nhánh không được nhắc nguyên văn tên chỉ thị chỉ có ở nhánh khác
+Phép kiểm web.hardened so từng dòng không phải chú thích với các dòng chỉ thị
+của đúng chế độ. Dù vậy, chú thích của một nhánh vẫn không nhắc nguyên văn tên
+chỉ thị chỉ có ở nhánh khác, để người đọc vhost (và lệnh grep) không nhầm
 (test TestApacheHtaccessModes giữ điều này).
 */ -}}
 {{- if eq .Htaccess "day-du"}}

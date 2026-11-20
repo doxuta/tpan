@@ -42,7 +42,7 @@ func (s *Server) handleSiteRoute(w http.ResponseWriter, r *http.Request) {
 // Luật của route là owner:site, nhưng riêng "day-du" chỉ admin đặt được: ở
 // chế độ đó site ghi được cấu hình Apache và, nếu bị chiếm, chạy được mã dưới
 // user của site khác. Chủ của site không được tự mở lại lỗ đó cho cả máy, nên
-// luật nằm ở đây (core không biết vai, quyết định 10 ở docs/thay-doi/M14.md).
+// luật nằm ở đây (core không biết vai, quyết định 10 của đợt 0, mục 6.13 của docs/KE-HOACH.md, "Đã chốt khi làm M14").
 func (s *Server) handleSiteHtaccess(w http.ResponseWriter, r *http.Request) {
 	d, err := validate.ParseDomain(r.PathValue("domain"))
 	if err != nil {

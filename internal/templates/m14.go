@@ -12,7 +12,8 @@ package templates
 
 // NginxSymlinkGuard là dòng chặn symlink của vhost nginx (không kèm thụt lề):
 // nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích (lỗ
-// L5). Template dùng đúng chuỗi này; checks.VhostHardened so "có chứa".
+// L5). Template dùng đúng chuỗi này; checks.VhostHardened tìm đúng dòng này
+// trong các dòng không phải chú thích của vhost.
 const NginxSymlinkGuard = "disable_symlinks if_not_owner from=$document_root;"
 
 // ApacheFCGIGuards là hai dòng gỡ biến của vhost Apache (không kèm thụt lề):

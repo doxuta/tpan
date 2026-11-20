@@ -253,8 +253,9 @@ Thử bản cài trên máy ảo trước khi đụng VPS: `make release`, chép
   - [11-m11-cai-dat-va-phat-hanh.md](docs/giai-thich/11-m11-cai-dat-va-phat-hanh.md): cài một lệnh và phát hành
   - [12-m12-phien-ban-va-cap-nhat.md](docs/giai-thich/12-m12-phien-ban-va-cap-nhat.md): phiên bản và cập nhật
   - [13-m13-nhieu-nguoi-dung.md](docs/giai-thich/13-m13-nhieu-nguoi-dung.md): nhiều người dùng, gói, tạm khoá, DB rời
+  - [14-m14-co-lap-va-dinh-tuyen.md](docs/giai-thich/14-m14-co-lap-va-dinh-tuyen.md): vì sao request không đi nhầm site, và chín đường tấn công giữa các site bị chặn thế nào
 - [docs/HUONG-DAN-CHU-DU-AN.md](docs/HUONG-DAN-CHU-DU-AN.md): thử từng phần trên VPS thật, từng lệnh một (stack, site, SSL, tường lửa, thùng rác, backup, AI).
-- [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M13.log`, và các lần chạy lại sau khi ghép).
+- [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M14.log`, và các lần chạy lại sau khi ghép).
 
 ## Giấy phép
 

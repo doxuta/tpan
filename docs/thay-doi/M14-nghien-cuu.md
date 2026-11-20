@@ -7,6 +7,8 @@ Nghiên cứu ngày 20/11/2026, trước khi viết mã. Nguồn gốc: hai yêu
 
 File này là đầu vào của mốc M14. Phiên M14 chép phần đặc tả (mục 2) vào `docs/KE-HOACH.md` thành mục 6.13 và hàng M14 ở mục 13, rồi mới viết mã.
 
+**Ghi chú sau khi làm xong M14 (20/11/2026).** File này giữ nguyên như lúc nghiên cứu để đối chiếu; bản đã chốt là mục 6.13 của `docs/KE-HOACH.md`. Những chỗ bản chốt khác file này, kèm bằng chứng, nằm ở phần "Đã chốt khi làm M14" của mục đó. Tóm tắt: có thêm lỗ L9 (Apache, `Options FollowSymLinks`, `t9`), nên danh sách chỉ thị còn 55 tên và `Options` đi qua `AllowOverride Options=...` thay cho `AllowOverride None`; logrotate nhánh nginx gửi `HUP` thay cho `USR1` (`t8`); L8 có trên cả hai stack; phép thử là chín lỗ L1 đến L9 chứ không phải tám.
+
 ## 1. Đã thử gì, kết quả ra sao
 
 Máy thử: máy ảo Multipass riêng, Ubuntu 24.04, TPAN v0.1.2 cài bằng `install.sh`, hai site `a.example.com` và `b.example.com` do `tpan site add` tạo. Phiên bản: nginx 1.24.0, Apache 2.4.58 (MPM event), PHP 8.3.6, systemd 255, nhân 6.8. "A" là site đã bị chiếm (kẻ tấn công chạy được PHP dưới user của A), "B" là nạn nhân. Script và kết quả gốc: `docs/bang-chung/M14-nghien-cuu/` (t1 đến t7).

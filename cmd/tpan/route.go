@@ -6,6 +6,7 @@ package main
 // core.Sites.RouteExplain, lệnh này chỉ in.
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -115,6 +116,13 @@ func printRoute(e *env, tr core.RouteTrace, evidence bool) {
 	if n := routeFails(tr); n > 0 {
 		printf(w, e.tr("Có %d chặng lỗi: request tới %s không đi đúng đường của site. Xem các chặng [lỗi] ở trên.\n",
 			"%d hop(s) failed: a request to %s does not follow the site's own path. See the [fail] hops above.\n"), n, tr.Domain)
+		return
+	}
+	// Site tạm khoá: đường đi dừng ở vhost (không có chặng pool nào), nên câu
+	// "đúng thư mục, pool và user" là nói điều chưa hề được lần.
+	if !slices.ContainsFunc(tr.Hops, func(h core.RouteHop) bool { return h.Key == core.HopPool }) {
+		printf(w, e.tr("Không chặng nào lỗi: request tới %s dừng ở vhost của chính site (site đang tạm khoá, không chuyển tới PHP).\n",
+			"No hop failed: a request to %s stops at the site's own vhost (the site is suspended, nothing is sent to PHP).\n"), tr.Domain)
 		return
 	}
 	printf(w, e.tr("Không chặng nào lỗi: request tới %s đi đúng vhost, thư mục, pool và user của chính site.\n",

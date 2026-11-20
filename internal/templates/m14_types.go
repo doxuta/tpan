@@ -50,7 +50,7 @@ package templates
 //    ứng). Test: dòng AllowOverrideList có đúng len(htaccess.Allowed) tên.
 //
 // 3. Hằng dấu nhận biết NginxSymlinkGuard và ApacheFCGIGuards (đã khai ở
-//    m14.go): phép kiểm checks.VhostHardened so "có chứa" với chính chúng.
+//    m14.go): phép kiểm checks.VhostHardened tìm đúng các dòng này (bỏ dòng chú thích).
 //    Test của template khẳng định vhost sinh ra chứa đúng các chuỗi đó, để
 //    template và phép kiểm không lệch nhau.
 //
