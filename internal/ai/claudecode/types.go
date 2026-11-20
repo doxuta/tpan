@@ -68,7 +68,7 @@ import "github.com/doxuta/tpan/internal/system"
 // TestedVersion là phiên bản Claude Code đã chạy bài kiểm ở mục 16 của
 // KE-HOACH.md. `tpan brain` cảnh báo khi gặp bản khác (mục 8.2, "Không dùng
 // --bare").
-const TestedVersion = "2.1.328"
+const TestedVersion = "2.1.329"
 
 // AllowedBuiltinTools là công cụ có sẵn của Claude Code không tắt được bằng
 // --tools "", lấy từ sự kiện init THẬT ghi ở docs/bang-chung/M8-claude-init.log

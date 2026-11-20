@@ -34,6 +34,11 @@ Mỗi câu hỏi từ panel hiện sau dấu ?, mỗi lần gọi công cụ sau
 09:20:49 [cab268118f461aca-1] ? xem trước thứ sẽ gửi
 09:20:53 [cab268118f461aca-1] → mcp__tpan__list_plans {"status":"pending"}
 09:20:57 [cab268118f461aca-1] done
+09:24:25 [cab268118f461aca-2] ? có lỗi j trong này ko
+09:24:28 [cab268118f461aca-2] → mcp__tpan__site_health {"domain":"site-a.example"}
+09:24:28 [cab268118f461aca-2] → mcp__tpan__stack_status {}
+09:24:34 [cab268118f461aca-2] done
+^CBộ não: đã ngắt.
 
 ## Bước 4: hỏi từ panel (https://<IP máy ảo>:8443, trang site a.example.com)
 
@@ -64,5 +69,10 @@ Kết quả:
 - Tên miền thật không có trong thứ đã gửi: mọi chỗ là site-a.example.
 - AI chỉ đọc, không đề xuất Plan nào; máy không đổi gì.
 
-Ghi chú: câu hỏi là cụm "xem trước thứ sẽ gửi", tức tên một nút trong ngăn AI,
+Lượt 2 ("có lỗi j trong này ko"): AI gọi site_health với bí danh site-a.example
+và stack_status, trả lời sau 9 giây.
+
+Sau đó: tpan mcp config --brain off, restart tpan (AI trong panel tắt lại).
+
+Ghi chú: câu hỏi lượt 1 là cụm "xem trước thứ sẽ gửi", tức tên một nút trong ngăn AI,
 không phải câu hỏi về site. Hướng dẫn đã sửa cho rõ đó là nút bấm.
