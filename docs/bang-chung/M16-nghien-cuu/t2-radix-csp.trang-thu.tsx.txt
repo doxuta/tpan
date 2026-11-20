@@ -1,0 +1,76 @@
+// BẢN THỬ của mốc M16 (không nằm trong sản phẩm): kiểm ba thứ dưới CSP thật
+// của panel (default-src 'self') trước khi thiết kế thành phần bản 2:
+//   A. Radix DropdownMenu với modal={false}: mở, đi bằng phím, chọn, đóng.
+//   B. Radix DropdownMenu mặc định (modal): xem có vi phạm CSP không.
+//   C. Radix Tabs: phím mũi tên đổi tab.
+//   D. color-mix() và box-shadow qua Tailwind 4: trình duyệt nhận giá trị gì.
+// Script: scripts/anh-readme (bộ m16-thu). Kết quả: docs/bang-chung/M16-nghien-cuu/.
+
+import * as Menu from "@radix-ui/react-dropdown-menu";
+import * as Tabs from "@radix-ui/react-tabs";
+import { useState } from "react";
+
+const item = "flex h-[36px] cursor-default items-center px-[10px] outline-none data-[disabled]:text-muted data-[highlighted]:bg-pre";
+
+export default function ThuM16() {
+  const [picked, setPicked] = useState("chưa chọn");
+  return (
+    <div className="p-[24px]">
+      <h1 className="m-0 text-[24px] font-semibold">Bản thử M16</h1>
+      <p id="thu-da-chon">đã chọn: {picked}</p>
+
+      <Menu.Root modal={false}>
+        <Menu.Trigger id="thu-menu-a" className="h-[40px] border border-hair px-[12px]">
+          Menu A (không modal)
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Content id="thu-menu-a-noi-dung" align="end" sideOffset={4} className="min-w-[200px] border border-hair bg-surface p-[4px] shadow-[0_8px_24px_rgb(0_0_0/0.12)]">
+            <Menu.Item className={item} onSelect={() => setPicked("một")}>
+              Việc một
+            </Menu.Item>
+            <Menu.Item className={item} onSelect={() => setPicked("hai")}>
+              Việc hai
+            </Menu.Item>
+            <Menu.Item className={item} disabled>
+              Việc bị khoá
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu.Root>
+
+      <div className="h-[16px]" />
+
+      <Menu.Root>
+        <Menu.Trigger id="thu-menu-b" className="h-[40px] border border-hair px-[12px]">
+          Menu B (modal mặc định)
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Content id="thu-menu-b-noi-dung" className="min-w-[200px] border border-hair bg-surface p-[4px]">
+            <Menu.Item className={item}>Việc ba</Menu.Item>
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu.Root>
+
+      <Tabs.Root defaultValue="mot" className="mt-[24px]">
+        <Tabs.List aria-label="Tab thử" className="flex gap-[4px] border-b border-hair">
+          {["mot", "hai", "ba"].map((v) => (
+            <Tabs.Trigger key={v} value={v} id={`thu-tab-${v}`} className="h-[40px] px-[12px] data-[state=active]:font-semibold">
+              Tab {v}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+        {["mot", "hai", "ba"].map((v) => (
+          <Tabs.Content key={v} value={v} id={`thu-noi-dung-${v}`} className="p-[12px]">
+            Nội dung {v}
+          </Tabs.Content>
+        ))}
+      </Tabs.Root>
+
+      <div id="thu-color-mix" className="mt-[24px] h-[40px] w-[200px] bg-[color-mix(in_srgb,var(--link)_10%,var(--surface))]" />
+      <details id="thu-details" className="mt-[12px]">
+        <summary>Mở ra</summary>
+        <p>Nội dung trong details</p>
+      </details>
+    </div>
+  );
+}
