@@ -214,8 +214,8 @@ scripts/vm.sh root tpan admin passwd
 
 Rồi mở `https://<IP máy ảo>:8443` (in bằng `scripts/vm.sh ip`), bỏ qua cảnh báo chứng chỉ tự ký, đăng nhập. Thử:
 
-1. Mở site `a.example.com`, mở ngăn AI. Xem nhãn ngữ cảnh và "xem trước thứ sẽ gửi": tên miền đã thành `site-a.example`.
-2. Hỏi "Site này có ổn không?". Chữ hiện dần. Nếu AI đề xuất Plan, nó nằm ở "Chờ bạn duyệt"; máy không đổi tới khi bạn duyệt.
+1. Mở site `a.example.com`, mở ngăn AI. Xem nhãn ngữ cảnh, rồi **bấm nút** "xem trước thứ sẽ gửi" (đó là nút, không phải câu để gõ vào ô hỏi): tên miền đã thành `site-a.example`.
+2. Gõ vào ô hỏi: "Site này có ổn không?". Chữ hiện dần. Nếu AI đề xuất Plan, nó nằm ở "Chờ bạn duyệt"; máy không đổi tới khi bạn duyệt.
 3. Màn **Phiên AI**: xem lại từng lượt, ngữ cảnh đã gửi, các lần gọi công cụ.
 4. **Cài đặt**: khối bộ não báo đã nối, có tên Mac và bản `claude`.
 

@@ -1413,7 +1413,7 @@ M6 không cần tên miền thật: mọi bước của cột "Xong khi" chạy 
 
 ### M8
 
-M8 không cần VPS hay tên miền thật: mọi phần của mốc đã chạy trên máy ảo (`scripts/e2e-m8.sh`), kể cả Claude Code thật hỏi từ panel của máy ảo. Phần dưới đây là các lệnh để bạn tự chạy khi muốn dùng AI trong panel trên máy chủ của mình. Agent không chạy lệnh nào trên VPS. `<user>` là tài khoản SSH của bạn trên máy chủ, `<máy>` là tên hoặc IP của máy chủ.
+M8 không cần VPS hay tên miền thật: mọi phần của mốc đã chạy trên máy ảo (`scripts/e2e-m8.sh`), kể cả Claude Code thật hỏi từ panel của máy ảo. Chạy lại 20/11/2026 với khoá SSH có passphrase của chủ dự án: lộ lỗi `tpan brain` không chuyển `SSH_AUTH_SOCK` (đã sửa), sau đó câu hỏi từ panel tới `claude -p` trên Mac, gọi `list_plans` qua MCP, trả lời hiện dần (`docs/bang-chung/M8-claude-mac.log`). Phần dưới đây là các lệnh để bạn tự chạy khi muốn dùng AI trong panel trên máy chủ của mình. Agent không chạy lệnh nào trên VPS. `<user>` là tài khoản SSH của bạn trên máy chủ, `<máy>` là tên hoặc IP của máy chủ.
 
 **1. Trên máy chủ: bật bộ não kiểu `bridge` rồi khởi động lại panel.** Mặc định AI tắt (`off`). Chỉ người có root mới bật được, vì bật là cho một máy khác nối vào panel.
 

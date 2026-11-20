@@ -1,0 +1,68 @@
+# M8 với Claude Code thật trên Mac, hỏi từ panel của máy ảo (mục 18 của
+# KE-HOACH.md, bước 1 đến 4 làm với máy ảo tpan-test)
+# Ngày 2026-11-20. IP máy ảo và tên Mac đã bỏ khỏi log.
+
+## Bước 1: bật bộ não trong máy ảo
+
+$ scripts/vm.sh root tpan mcp config --brain bridge
+Chế độ duyệt:    panel (người duyệt trên web hoặc bằng sudo tpan plan approve <id>)
+Mức che:         all (che bí mật và thay domain, IP, email bằng bí danh)
+Bộ não:          bridge (Claude Code trên máy của bạn, nối bằng tpan brain <máy>)
+$ scripts/vm.sh root systemctl restart tpan
+$ scripts/vm.sh root systemctl is-active tpan
+active
+
+## Bước 2: bỏ qua (Multipass cho ubuntu dùng sudo không mật khẩu)
+
+## Bước 3: nối bộ não từ Mac
+
+$ make build && bin/tpan brain ubuntu@<IP máy ảo>
+CẢNH BÁO: Claude Code bản 2.1.329; tpan đã kiểm với bản 2.1.328. ...
+ubuntu@<IP máy ảo>: Permission denied (publickey).
+Không nối được panel qua ssh ...
+
+# Lỗi thật, gặp lần đầu ở đây: tpan brain chỉ chuyển HOME, PATH, USER, LOGNAME,
+# TMPDIR cho ssh. Khoá SSH của chủ dự án có passphrase, chỉ nằm trong
+# ssh-agent; thiếu SSH_AUTH_SOCK thì ssh (BatchMode=yes) không dùng được agent.
+# e2e M8 trước đó dùng khoá không passphrase nên không lộ. Sửa ở commit
+# "brain: chuyển SSH_AUTH_SOCK cho ssh và claude" (kèm TestBrainEnvSSHAgent).
+
+$ bin/tpan brain ubuntu@<IP máy ảo>      # sau khi sửa
+CẢNH BÁO: Claude Code bản 2.1.329; tpan đã kiểm với bản 2.1.328. ...
+Bộ não: đã nối ubuntu@<IP máy ảo>, Claude Code 2.1.329, model sonnet
+Mỗi câu hỏi từ panel hiện sau dấu ?, mỗi lần gọi công cụ sau dấu →. Dừng bằng Ctrl+C.
+09:20:49 [cab268118f461aca-1] ? xem trước thứ sẽ gửi
+09:20:53 [cab268118f461aca-1] → mcp__tpan__list_plans {"status":"pending"}
+09:20:57 [cab268118f461aca-1] done
+
+## Bước 4: hỏi từ panel (https://<IP máy ảo>:8443, trang site a.example.com)
+
+Đầu ngăn AI: "Claude Code · trên máy <tên Mac> · sonnet", chấm xanh (đã nối).
+
+Lượt hỏi đọc từ DB của panel (bảng ai_sessions, ai_turns):
+
+  phiên:      cab268118f461aca, entry=panel, client=claude-code 2.1.329
+  lượt:       1, lang=vi, status=done
+  câu hỏi:    xem trước thứ sẽ gửi
+  thời gian:  02:20:49Z tới 02:20:57Z (7,3 giây)
+  model:      claude-sonnet-5-5 (sự kiện init)
+  ngữ cảnh đã gửi (đúng bản đã che):
+    Đang ở:        Trang site site-a.example (/sites/site-a.example)
+    Vừa đi qua:    Bảng điều khiển (/), Trang site site-a.example
+    Bối cảnh máy:  web server nginx, default php 8.3, 1 site, tpan 84727c6-dirty
+  sự kiện:    init, rồi nhiều sự kiện text nối nhau (chữ hiện dần), một lần gọi
+              công cụ list_plans, rồi done
+
+Câu trả lời trong ngăn AI (tóm tắt): AI gọi list_plans, thấy không có Plan
+nào chờ, rồi hỏi lại người dùng muốn "xem trước" thứ gì (một Plan thay đổi
+server, nội dung gửi cho AI, hay thứ khác).
+
+Kết quả:
+- Câu hỏi đi từ panel máy ảo sang Mac qua tpan brain-link, claude -p chạy
+  bằng gói Claude của chủ dự án, gọi công cụ của TPAN qua ssh ... tpan mcp
+  --session, câu trả lời hiện dần trong ngăn AI.
+- Tên miền thật không có trong thứ đã gửi: mọi chỗ là site-a.example.
+- AI chỉ đọc, không đề xuất Plan nào; máy không đổi gì.
+
+Ghi chú: câu hỏi là cụm "xem trước thứ sẽ gửi", tức tên một nút trong ngăn AI,
+không phải câu hỏi về site. Hướng dẫn đã sửa cho rõ đó là nút bấm.
