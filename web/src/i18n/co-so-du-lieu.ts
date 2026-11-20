@@ -10,6 +10,8 @@ const vi = {
 
   colDb: "DB",
   colUser: "User",
+  colDbUser: "DB và user",
+  sameUser: "user cùng tên",
   colSite: "Site",
   colSize: "Cỡ",
   colTables: "Số bảng",
@@ -61,6 +63,8 @@ export const strings = defineStrings(vi, {
 
   colDb: "DB",
   colUser: "User",
+  colDbUser: "DB and user",
+  sameUser: "user has the same name",
   colSite: "Site",
   colSize: "Size",
   colTables: "Tables",

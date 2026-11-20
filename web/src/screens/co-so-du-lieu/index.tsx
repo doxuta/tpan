@@ -14,6 +14,7 @@ import { errorMessage, get, post } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { Backup, DatabaseRow, DBImportRequest, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { DomainText } from "../../components/DomainText";
 import { MonoText } from "../../components/MonoText";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { TableList } from "../../components/TableList";
@@ -151,14 +152,28 @@ export default function CoSoDuLieu() {
                 </>
               }
               columns={[
-                { header: t.colDb, cell: (r) => <Min w="min-w-[216px]"><MonoText>{r.db}</MonoText></Min> },
-                { header: t.colUser, cell: (r) => <Min w="min-w-[216px]"><MonoText>{r.user}</MonoText></Min> },
+                {
+                  // DB và user chung một cột (thường cùng tên): bảng bớt một cột rộng, vừa khung khi cửa sổ hẹp.
+                  header: t.colDbUser,
+                  cell: (r) => (
+                    <Min w="min-w-[216px]">
+                      <MonoText>{r.db}</MonoText>
+                      {r.user === r.db ? (
+                        <span className="block text-[12px] text-muted">{t.sameUser}</span>
+                      ) : (
+                        <span className="block">
+                          <MonoText>{r.user}</MonoText>
+                        </span>
+                      )}
+                    </Min>
+                  ),
+                },
                 {
                   header: t.colSite,
                   cell: (r) => (
-                    <Min w="min-w-[170px]">
+                    <Min w="min-w-[130px]">
                       <Link to={`/sites/${encodeURIComponent(r.domain)}`} className="font-mono text-[13px]">
-                        {r.domain}
+                        <DomainText domain={r.domain} />
                       </Link>
                     </Min>
                   ),
@@ -180,7 +195,7 @@ export default function CoSoDuLieu() {
                     const locked = dry.isPending;
                     const inTrash = trashed.has(r.domain);
                     return (
-                      <span className="flex min-w-[250px] flex-wrap items-center gap-[8px]">
+                      <span className="flex min-w-[150px] flex-wrap items-center gap-[8px]">
                         {!inTrash && (
                           <Button aria-label={t.passwordFor(r.domain)} disabled={locked} onClick={() => ask({ action: "password", row: r })}>
                             {busy("password", r.domain) ? t.previewing : t.password}
