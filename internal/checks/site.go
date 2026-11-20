@@ -397,19 +397,43 @@ func WPConfigPerm(l site.Layout) Check {
 	})
 }
 
-// Isolated kiểm cô lập giữa hai site: dưới user của from, `test -r` file
-// wp-config.php của to phải bị từ chối (mã 1). Đọc được (mã 0) là lỗi nặng: một
-// site bị chiếm thì đọc được mật khẩu DB của site kia.
+// isoSocketDir là nơi PHP-FPM đặt socket của mọi pool (site.Layout.SocketFor).
+const isoSocketDir = "/run/php"
+
+// isoProbe là một phép thử của Isolated: `test <flag> <target>` chạy dưới user
+// của site from. what nói thứ chạm được khi phép thử lọt (mã 0), risk nói hậu
+// quả, fix là lệnh sửa tay cho riêng thứ đó.
+type isoProbe struct {
+	flag, target string
+	what, risk   i18n.Text
+	fix          []string
+}
+
+// Isolated kiểm cô lập từ site from sang site to (M14, mục 6.13 của
+// docs/KE-HOACH.md). Dưới user của from chạy năm phép thử, mỗi phép một dòng
+// bằng chứng, và phép nào cũng phải bị từ chối (mã 1):
+//
+//  1. test -r <wp-config.php của to>: không đọc được mật khẩu DB;
+//  2. test -x <thư mục site của to>: không vào được thư mục;
+//  3. test -w <public của to>: không ghi được mã nguồn;
+//  4. test -r <access.log của to>: không đọc được log (lỗ L6);
+//  5. test -w <socket>, cho mỗi socket "<pool của to>-<bản PHP>.sock" trong
+//     /run/php: không gửi được request thẳng vào PHP của to.
+//
+// Một phép trả mã 0 là lỗi nặng: site bị chiếm lấn được sang site kia.
 //
 // Mã 1 chỉ tin được khi không có gì ở stderr, vì runuser cũng thoát mã 1 khi user
-// không tồn tại ("runuser: user ... does not exist"). Và `test -r` cũng trả 1 khi
-// file không có: nên phải thấy file của site kia tồn tại trước, nếu không thì
-// "bị từ chối" chỉ là "không có gì để đọc" và không chứng minh được gì.
+// không tồn tại ("runuser: user ... does not exist"). Và `test` cũng trả 1 khi
+// đích không có: nên phải thấy đích tồn tại trước (stat bằng quyền của tpan),
+// nếu không thì "bị từ chối" chỉ là "không có gì để thử" và không chứng minh
+// được gì. Thiếu wp-config.php thì cả phép kiểm là "chưa kiểm được" như trước
+// M14; thiếu đích của phép 2 đến 5 (site tạm khoá không có socket) thì bỏ riêng
+// phép đó và để lại một dòng bằng chứng nói vì sao bỏ.
 func Isolated(from, to site.Layout) Check {
-	id := "isolation:" + from.Domain.String() + ":" + to.Domain.String()
-	b := base{id: id, stage: StageWordPress,
-		title: i18n.T("Site "+from.Domain.String()+" không đọc được wp-config.php của site "+to.Domain.String(),
-			"Site "+from.Domain.String()+" cannot read the wp-config.php of site "+to.Domain.String())}
+	fromDom, toDom := from.Domain.String(), to.Domain.String()
+	b := base{id: "isolation:" + fromDom + ":" + toDom, stage: StageWordPress,
+		title: i18n.T("Site "+fromDom+" không chạm được vào file, log và socket của site "+toDom,
+			"Site "+fromDom+" cannot touch the files, logs and sockets of site "+toDom)}
 	unknown := func(why i18n.Text) Check {
 		return checkFunc(func(context.Context, system.System) Result { return b.unknown(why) })
 	}
@@ -420,40 +444,148 @@ func Isolated(from, to site.Layout) Check {
 		return unknown(i18n.T("hai site là một", "both sites are the same site"))
 	case !siteUserRE.MatchString(from.User):
 		return unknown(i18n.T("tên user của site không hợp lệ (\""+from.User+"\")", "the site user name is not valid (\""+from.User+"\")"))
-	case !path.IsAbs(to.WPConfig) || !path.IsAbs(to.Dir) || !path.IsAbs(to.Public):
+	case !path.IsAbs(to.WPConfig) || !path.IsAbs(to.Dir) || !path.IsAbs(to.Public) || !path.IsAbs(to.AccessLog):
 		return unknown(i18n.T("đường dẫn của site đích phải tuyệt đối", "the target site paths must be absolute"))
+	case !sitePoolRE.MatchString(to.Pool):
+		// Tên pool dùng để nhận ra socket và đi vào dòng lệnh gợi ý có dấu *.
+		return unknown(i18n.T("tên pool của site đích không hợp lệ (\""+to.Pool+"\")", "the target site pool name is not valid (\""+to.Pool+"\")"))
 	}
-	cmd := system.Cmd{Name: "test", Args: []string{"-r", to.WPConfig}, AsUser: from.User}
-	recheck := cmd.String()
+	logDir := path.Dir(to.AccessLog)
+	// Bốn phép thử có đích cố định; phép thứ năm (socket) dò lúc chạy vì tên
+	// socket mang số bản PHP và site tạm khoá không có socket nào.
+	fixed := []isoProbe{
+		{flag: "-r", target: to.WPConfig,
+			what: i18n.T("đọc được wp-config.php", "can read wp-config.php"),
+			risk: i18n.T("lấy được mật khẩu DB của site kia", "take the other site's DB password"),
+			fix:  []string{line("ls", "-l", to.WPConfig), line("chmod", "600", to.WPConfig)}},
+		{flag: "-x", target: to.Dir,
+			what: i18n.T("vào được thư mục "+to.Dir, "can enter the directory "+to.Dir),
+			risk: i18n.T("duyệt được file của site kia", "browse the other site's files"),
+			fix:  []string{line("ls", "-ld", to.Dir), line("chmod", "2750", to.Dir)}},
+		{flag: "-w", target: to.Public,
+			what: i18n.T("ghi được vào "+to.Public, "can write into "+to.Public),
+			risk: i18n.T("cài được mã độc vào mã nguồn của site kia", "plant malicious code in the other site's source"),
+			fix:  []string{line("ls", "-ld", to.Public), line("chmod", "2750", to.Public)}},
+		{flag: "-r", target: to.AccessLog,
+			what: i18n.T("đọc được access.log", "can read access.log"),
+			risk: i18n.T("đọc được IP khách và URL kèm tham số của site kia", "read the other site's visitor IPs and URLs with their parameters"),
+			// Quyền log do tpan đặt (thư mục root:<nhóm của site> 0750), nên
+			// cách sửa là để tpan đặt lại chứ không chmod tay từng file.
+			fix: []string{line("ls", "-ld", logDir, to.AccessLog), line("sudo", "tpan", "health", "--fix")}},
+	}
+	// Dấu * để shell mở rộng ra mọi bản PHP; không qua line() vì line() đặt nó trong nháy.
+	poolGlob := "/etc/php/*/fpm/pool.d/" + to.Pool + ".conf"
+	socketProbe := func(sock string) isoProbe {
+		return isoProbe{flag: "-w", target: sock,
+			what: i18n.T("ghi được vào socket PHP-FPM "+sock, "can write to the PHP-FPM socket "+sock),
+			risk: i18n.T("gửi được request thẳng vào PHP của site kia, tức chạy mã dưới user của site kia", "send requests straight to the other site's PHP, that is run code as the other site's user"),
+			fix:  []string{line("ls", "-l", sock), "grep -n '^listen' " + poolGlob}}
+	}
+	probeCmd := func(p isoProbe) system.Cmd {
+		return system.Cmd{Name: "test", Args: []string{p.flag, p.target}, AsUser: from.User}
+	}
 
 	return checkFunc(func(ctx context.Context, sys system.System) Result {
-		_, statEv, missing, err := siteStat(sys, to.WPConfig)
-		if err != nil {
-			return siteStatUnknown(b, to.WPConfig, err, statEv)
+		var evs []Evidence
+		var leaked []isoProbe
+		unclear, unclearCode, tried, skipped := false, 0, 0, 0
+
+		// try chạy một phép thử có đích đã biết là tồn tại. Trả false khi lệnh
+		// không chạy được: phép kiểm dừng ở đó.
+		try := func(p isoProbe) (Result, bool) {
+			res, ev, err := execCmd(ctx, sys, probeCmd(p))
+			evs = append(evs, ev)
+			if err != nil {
+				return b.cantRun(err, evs...), false
+			}
+			tried++
+			switch {
+			case res.ExitCode == 0:
+				leaked = append(leaked, p)
+			case res.ExitCode != 1 || strings.TrimSpace(ev.Output) != "":
+				if !unclear {
+					unclear, unclearCode = true, res.ExitCode
+				}
+			}
+			return Result{}, true
 		}
-		if missing {
-			return b.unknown(i18n.T("site "+to.Domain.String()+" chưa có wp-config.php nên không thử được", "site "+to.Domain.String()+" has no wp-config.php yet, so there is nothing to try reading"), statEv)
+
+		for i, p := range fixed {
+			_, statEv, missing, err := siteStat(sys, p.target)
+			if err != nil {
+				return siteStatUnknown(b, p.target, err, append(evs, statEv)...)
+			}
+			if missing && i == 0 {
+				return b.unknown(i18n.T("site "+toDom+" chưa có wp-config.php nên không thử được", "site "+toDom+" has no wp-config.php yet, so there is nothing to try reading"), statEv)
+			}
+			if missing {
+				statEv.Output += ": nothing to try, this probe is skipped"
+				evs = append(evs, statEv)
+				skipped++
+				continue
+			}
+			if r, ok := try(p); !ok {
+				return r
+			}
 		}
-		res, ev, err := execCmd(ctx, sys, cmd)
-		if err != nil {
-			return b.cantRun(err, statEv, ev)
+
+		// Phép 5: mọi socket của pool to. Trong lúc đổi bản PHP site có hai socket.
+		lsEv := Evidence{Command: "ls " + isoSocketDir + " (tpan)"}
+		names, err := sys.ReadDir(isoSocketDir)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			lsEv.ExitCode, lsEv.Output = -1, err.Error()
+			return b.unknown(i18n.T("không đọc được "+isoSocketDir+" ("+err.Error()+")", "could not read "+isoSocketDir+" ("+err.Error()+")"), append(evs, lsEv)...)
 		}
+		var socks []string
+		for _, n := range names {
+			ver, isSock := strings.CutSuffix(strings.TrimPrefix(n, to.Pool+"-"), ".sock")
+			// Phần giữa phải đúng là một số bản PHP, để "tpan-a-8.3.sock" không
+			// bị nhận nhầm là socket của một pool có tên dài hơn hay ngắn hơn.
+			if isSock && strings.HasPrefix(n, to.Pool+"-") && phpVersionRE.MatchString(ver) {
+				socks = append(socks, isoSocketDir+"/"+n)
+			}
+		}
+		if len(socks) == 0 {
+			lsEv.Output = "no socket named " + to.Pool + "-<version>.sock (the site has no running pool): the socket probe is skipped"
+			evs = append(evs, lsEv)
+			skipped++
+		}
+		for _, sock := range socks {
+			if r, ok := try(socketProbe(sock)); !ok {
+				return r
+			}
+		}
+
 		switch {
-		case res.ExitCode == 1 && strings.TrimSpace(ev.Output) == "":
-			return b.pass(i18n.T("Bị từ chối như mong đợi: "+from.User+" không đọc được wp-config.php của "+to.Domain.String(),
-				"Denied as expected: "+from.User+" cannot read the wp-config.php of "+to.Domain.String()), statEv, ev)
-		case res.ExitCode == 0:
+		case len(leaked) > 0:
+			var vi, en, riskVi, riskEn []string
+			fix := []string{line("id", from.User)}
+			for _, p := range leaked {
+				vi, en = append(vi, p.what.Vi), append(en, p.what.En)
+				riskVi, riskEn = append(riskVi, p.risk.Vi), append(riskEn, p.risk.En)
+				fix = append(fix, p.fix...)
+			}
+			// Cuối cùng là các lệnh kiểm lại: đúng những phép thử vừa lọt.
+			for _, p := range leaked {
+				fix = append(fix, probeCmd(p).String())
+			}
 			return b.bad(Fail,
-				i18n.T(from.User+" ĐỌC ĐƯỢC wp-config.php của "+to.Domain.String()+": hai site không còn cô lập", from.User+" CAN read the wp-config.php of "+to.Domain.String()+": the two sites are no longer isolated"),
-				i18n.T("Quyền thư mục hoặc file của site kia quá rộng (thường là other có quyền đọc/duyệt, hoặc user của site này nằm trong nhóm www-data). Một site bị chiếm sẽ lấy được mật khẩu DB của site kia.",
-					"The other site's directory or file mode is too open (usually 'other' can read/search, or this site's user is in the www-data group). A compromised site could take the other site's DB password."),
-				[]string{line("id", from.User),
-					line("ls", "-ld", to.Dir, to.Public, to.WPConfig),
-					line("chmod", "2750", to.Dir, to.Public), line("chmod", "600", to.WPConfig),
-					recheck}, statEv, ev)
+				i18n.T(from.User+" CHẠM ĐƯỢC vào site "+toDom+" ("+strings.Join(vi, "; ")+"): hai site không còn cô lập",
+					from.User+" CAN reach site "+toDom+" ("+strings.Join(en, "; ")+"): the two sites are no longer isolated"),
+				i18n.T("Quyền của site kia quá rộng (other có quyền đọc, ghi hay duyệt), hoặc user của site này nằm trong nhóm www-data hay nhóm của site kia. Một site bị chiếm sẽ: "+strings.Join(riskVi, "; ")+".",
+					"The other site's modes are too open ('other' can read, write or search), or this site's user is in the www-data group or in the other site's group. A compromised site could: "+strings.Join(riskEn, "; ")+"."),
+				fix, evs...)
+		case unclear:
+			return b.unknown(i18n.T("không thử được: lệnh test trả mã "+strconv.Itoa(unclearCode)+" kèm lỗi, không phải câu trả lời \"bị từ chối\"",
+				"could not try: the test command exited with "+strconv.Itoa(unclearCode)+" and an error, which is not a clean denial"), evs...)
 		}
-		return b.unknown(i18n.T("không thử được: lệnh test trả mã "+strconv.Itoa(res.ExitCode)+" kèm lỗi, không phải câu trả lời \"bị từ chối\"",
-			"could not try: the test command exited with "+strconv.Itoa(res.ExitCode)+" and an error, which is not a clean denial"), statEv, ev)
+		sumVi := fmt.Sprintf("Bị từ chối như mong đợi: %s không chạm được vào file, log và socket của %s (%d phép thử)", from.User, toDom, tried)
+		sumEn := fmt.Sprintf("Denied as expected: %s cannot touch the files, logs and sockets of %s (%d probes)", from.User, toDom, tried)
+		if skipped > 0 {
+			sumVi += fmt.Sprintf("; bỏ %d phép vì đích chưa có", skipped)
+			sumEn += fmt.Sprintf("; %d skipped because the target does not exist", skipped)
+		}
+		return b.pass(i18n.T(sumVi, sumEn), evs...)
 	})
 }
 

@@ -468,35 +468,143 @@ func TestIsolated(t *testing.T) {
 	a := siteLayout(t, "shop.example.com")
 	b := siteLayout(t, "blog.example.org")
 	id := "isolation:shop.example.com:blog.example.org"
+	sock := b.SocketFor("8.3")
+	// withConfig dựng site b đủ năm đích: wp-config.php (kéo theo thư mục site
+	// và public), access.log và socket của pool.
 	withConfig := func() *system.FakeSystem {
 		f := system.NewFake()
 		f.SetFile(b.WPConfig, []byte("<?php"), 0o600, system.Owner{User: b.User, Group: b.User})
+		f.SetFile(b.AccessLog, nil, 0o640, system.Owner{User: "root", Group: b.User})
+		f.SetSocket(sock, 0o660, wwwData)
 		return f
 	}
+	// Năm phép thử theo đúng thứ tự của hợp đồng.
+	probes := []string{"-r " + b.WPConfig, "-x " + b.Dir, "-w " + b.Public, "-r " + b.AccessLog, "-w " + sock}
+	ranArgs := func(f *system.FakeSystem) []string {
+		var out []string
+		for _, c := range f.Ran() {
+			if c.Name != "test" || c.AsUser != a.User {
+				t.Errorf("lệnh lạ hoặc sai user: %+v", c)
+			}
+			out = append(out, strings.Join(c.Args, " "))
+		}
+		return out
+	}
 
-	t.Run("bị từ chối thì đạt", func(t *testing.T) {
+	t.Run("bị từ chối cả năm phép thì đạt", func(t *testing.T) {
 		f := withConfig()
 		reply(f, []string{"test"}, 1, "", "")
 		r := Isolated(a, b).Run(bg(), f)
 		assertShape(t, r, id, StageWordPress, Pass)
-		ran := f.Ran()
-		if len(ran) != 1 || ran[0].AsUser != a.User || strings.Join(ran[0].Args, " ") != "-r "+b.WPConfig {
-			t.Fatalf("lệnh đã chạy = %+v", ran)
+		if got := ranArgs(f); strings.Join(got, "\n") != strings.Join(probes, "\n") {
+			t.Fatalf("lệnh đã chạy = %q, muốn %q", got, probes)
 		}
-		if len(r.Evidence) != 2 || r.Evidence[1].Command != ran[0].String() {
-			t.Errorf("Evidence = %+v", r.Evidence)
+		assertEvidenceIsRan(t, r, f) // mỗi phép một dòng bằng chứng, đúng thứ tự
+		if !strings.Contains(r.Title.Vi, "file, log và socket") || !strings.Contains(r.Summary.Vi, "5 phép thử") {
+			t.Errorf("Title = %q, Summary = %q", r.Title.Vi, r.Summary.Vi)
 		}
 	})
-	t.Run("đọc được thì lỗi", func(t *testing.T) {
+	t.Run("một phép lọt thì lỗi, nêu đúng thứ chạm được và cách sửa", func(t *testing.T) {
+		cases := []struct {
+			probe, summary, fix string
+		}{
+			{probes[0], "đọc được wp-config.php", "chmod 600 " + b.WPConfig},
+			{probes[1], "vào được thư mục " + b.Dir, "chmod 2750 " + b.Dir},
+			{probes[2], "ghi được vào " + b.Public, "chmod 2750 " + b.Public},
+			{probes[3], "đọc được access.log", "sudo tpan health --fix"},
+			{probes[4], "ghi được vào socket PHP-FPM " + sock, "grep -n '^listen' /etc/php/*/fpm/pool.d/" + b.Pool + ".conf"},
+		}
+		for _, c := range cases {
+			f := withConfig()
+			reply(f, []string{"test"}, 1, "", "")
+			reply(f, append([]string{"test"}, strings.Fields(c.probe)...), 0, "", "")
+			r := Isolated(a, b).Run(bg(), f)
+			assertShape(t, r, id, StageWordPress, Fail)
+			if !strings.Contains(r.Summary.Vi, c.summary) || !strings.Contains(r.Summary.Vi, "không còn cô lập") {
+				t.Errorf("%s: Summary = %q", c.probe, r.Summary.Vi)
+			}
+			if !containsStr(r.ManualFix, c.fix) || r.ManualFix[0] != "id "+a.User {
+				t.Errorf("%s: ManualFix = %q", c.probe, r.ManualFix)
+			}
+			if want := "runuser -u " + a.User + " -- test " + c.probe; lastFix(r) != want {
+				t.Errorf("%s: ManualFix cuối = %q, muốn %q", c.probe, lastFix(r), want)
+			}
+			if len(f.Ran()) != 5 { // một phép lọt không làm bỏ các phép sau: bằng chứng phải đủ
+				t.Errorf("%s: đã chạy %d lệnh", c.probe, len(f.Ran()))
+			}
+			assertEvidenceIsRan(t, r, f)
+		}
+	})
+	t.Run("lọt cả năm thì Summary và ManualFix nêu đủ", func(t *testing.T) {
 		f := withConfig()
 		reply(f, []string{"test"}, 0, "", "")
 		r := Isolated(a, b).Run(bg(), f)
 		assertShape(t, r, id, StageWordPress, Fail)
-		if lastFix(r) != f.Ran()[0].String() {
-			t.Errorf("ManualFix cuối = %q", lastFix(r))
+		for _, s := range []string{"wp-config.php", "thư mục", "ghi được vào " + b.Public, "access.log", "socket"} {
+			if !strings.Contains(r.Summary.Vi, s) {
+				t.Errorf("Summary thiếu %q: %q", s, r.Summary.Vi)
+			}
 		}
-		if !strings.Contains(strings.Join(r.ManualFix, "\n"), "chmod 2750 "+b.Dir+" "+b.Public) {
-			t.Errorf("ManualFix = %q", r.ManualFix)
+		// Năm dòng cuối là năm lệnh kiểm lại.
+		tail := r.ManualFix[len(r.ManualFix)-5:]
+		for i, p := range probes {
+			if tail[i] != "runuser -u "+a.User+" -- test "+p {
+				t.Errorf("lệnh kiểm lại %d = %q", i, tail[i])
+			}
+		}
+	})
+	t.Run("một phép lọt thắng một phép không rõ", func(t *testing.T) {
+		f := withConfig()
+		reply(f, []string{"test"}, 2, "", "test: lỗi lạ\n")
+		reply(f, []string{"test", "-w", b.Public}, 0, "", "")
+		assertShape(t, Isolated(a, b).Run(bg(), f), id, StageWordPress, Fail)
+	})
+	t.Run("mã khác 1 không được tính là bị từ chối", func(t *testing.T) {
+		f := withConfig()
+		reply(f, []string{"test"}, 1, "", "")
+		reply(f, []string{"test", "-w", sock}, 2, "", "")
+		r := Isolated(a, b).Run(bg(), f)
+		assertShape(t, r, id, StageWordPress, Unknown)
+		if !strings.Contains(r.Summary.Vi, "mã 2") {
+			t.Errorf("Summary = %q", r.Summary.Vi)
+		}
+	})
+	t.Run("đích của phép 2 đến 5 không có thì bỏ riêng phép đó, có dòng bằng chứng", func(t *testing.T) {
+		// Site tạm khoá: không có socket nào; site chưa có khách: chưa có access.log.
+		f := system.NewFake()
+		f.SetFile(b.WPConfig, []byte("<?php"), 0o600, system.Owner{User: b.User, Group: b.User})
+		reply(f, []string{"test"}, 1, "", "")
+		r := Isolated(a, b).Run(bg(), f)
+		assertShape(t, r, id, StageWordPress, Pass)
+		if got := ranArgs(f); strings.Join(got, "\n") != strings.Join(probes[:3], "\n") {
+			t.Fatalf("lệnh đã chạy = %q", got)
+		}
+		if len(r.Evidence) != 5 {
+			t.Fatalf("Evidence có %d dòng, muốn 5: %+v", len(r.Evidence), r.Evidence)
+		}
+		if ev := r.Evidence[3]; ev.Command != "stat "+b.AccessLog+" (tpan)" || !strings.Contains(ev.Output, "skipped") {
+			t.Errorf("bằng chứng của log = %+v", ev)
+		}
+		if ev := r.Evidence[4]; ev.Command != "ls /run/php (tpan)" || !strings.Contains(ev.Output, "skipped") {
+			t.Errorf("bằng chứng của socket = %+v", ev)
+		}
+		if !strings.Contains(r.Summary.Vi, "3 phép thử") || !strings.Contains(r.Summary.Vi, "bỏ 2 phép") {
+			t.Errorf("Summary = %q", r.Summary.Vi)
+		}
+	})
+	t.Run("chỉ thử socket của đúng pool, mỗi bản PHP một socket", func(t *testing.T) {
+		f := withConfig()
+		f.SetSocket(b.SocketFor("8.4"), 0o660, wwwData)                   // đang đổi bản PHP: hai socket
+		f.SetSocket(a.SocketFor("8.3"), 0o660, wwwData)                   // socket của chính from
+		f.SetSocket("/run/php/"+b.Pool+"x-8.3.sock", 0o660, wwwData)      // pool khác, tên dài hơn
+		f.SetSocket("/run/php/"+b.Pool+"-extra-8.3.sock", 0o660, wwwData) // phần giữa không phải số bản
+		f.SetFile("/run/php/php8.3-fpm.pid", []byte("1"), 0o644, system.Root)
+		reply(f, []string{"test"}, 1, "", "")
+		r := Isolated(a, b).Run(bg(), f)
+		assertShape(t, r, id, StageWordPress, Pass)
+		want := append(append([]string{}, probes...), "-w "+b.SocketFor("8.4"))
+		if got := ranArgs(f); strings.Join(got, "\n") != strings.Join(want, "\n") {
+			t.Fatalf("lệnh đã chạy = %q, muốn %q", got, want)
 		}
 	})
 	t.Run("user không tồn tại không được tính là bị từ chối", func(t *testing.T) {
@@ -523,6 +631,16 @@ func TestIsolated(t *testing.T) {
 		f := withConfig()
 		assertShape(t, Isolated(site.Layout{}, b).Run(bg(), f), "isolation::blog.example.org", StageWordPress, Unknown)
 		assertShape(t, Isolated(withUser(a, "-x"), b).Run(bg(), f), id, StageWordPress, Unknown)
+		assertNoCmd(t, f)
+	})
+	t.Run("đường dẫn không tuyệt đối và tên pool lạ", func(t *testing.T) {
+		f := withConfig()
+		noLog := b
+		noLog.AccessLog = ""
+		badPool := b
+		badPool.Pool = "tpan-x; rm -rf /"
+		assertShape(t, Isolated(a, noLog).Run(bg(), f), id, StageWordPress, Unknown)
+		assertShape(t, Isolated(a, badPool).Run(bg(), f), id, StageWordPress, Unknown)
 		assertNoCmd(t, f)
 	})
 }
