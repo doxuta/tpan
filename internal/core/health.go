@@ -70,20 +70,20 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 // và TLS khi site chưa xin SSL (site có SSL thì TLSCert đã nằm trong
 // siteChecks). Không đưa vào kiểm chứng sau thao tác: DNS do nhà cung cấp tên
 // miền quản lý, hỏng ở đó không được làm hoàn tác một lần đổi web server.
-//   - Site chưa có SSL: thiếu bản ghi A, thiếu chứng chỉ là Warn (checks.Soft):
-//     việc còn phải làm, không phải sự cố.
-//   - Site có SSL: thiếu bản ghi A là Fail (gia hạn chứng chỉ sẽ hỏng).
+//   - DNS luôn là Warn (checks.Soft): bản ghi nằm ở nhà cung cấp tên miền,
+//     tpan không sửa được, nên không mở sự cố và không làm mọi lệnh khác thoát 1
+//     (e2e M10: `stack switch` thành công vẫn thoát 1 vì DNS của site SSL).
+//     Site SSL mà DNS hỏng lâu thì gia hạn hỏng và tls.cert báo lỗi đúng lúc.
+//   - Site chưa có SSL: thiếu chứng chỉ là Warn: việc còn phải làm.
 //
 // DNS là phép kiểm nặng (gọi resolver, có thể chờ timeout): chạy mỗi giờ, khi
 // gõ `tpan health` và khi bấm kiểm lại, không ở vòng 5 phút (mục 6.7).
 func siteEdgeChecks(l site.Layout, ssl bool) []checks.Check {
+	dns := checks.Heavy(checks.Soft(checks.DNSPointsHere(l)))
 	if ssl {
-		return []checks.Check{checks.Heavy(checks.DNSPointsHere(l))}
+		return []checks.Check{dns}
 	}
-	return []checks.Check{
-		checks.Heavy(checks.Soft(checks.DNSPointsHere(l))),
-		checks.Soft(checks.TLSCert(l)),
-	}
+	return []checks.Check{dns, checks.Soft(checks.TLSCert(l))}
 }
 
 // Tên các cách sửa tự động (giá trị của checks.Result.AutoFix). Đối tượng

@@ -527,7 +527,9 @@ health_check() {
 }
 # health_pass: mọi phép kiểm của máy, stack và site đều "pass" (nhóm "tpan"
 # không tính: tự kiểm của tpan có "chưa rõ" khi chưa chạy tpan setup).
-health_pass() { jq -e '[.groups[] | select(.target != "tpan") | .results[] | select(.status != "pass")] | length == 0' <<<"$HJ" >/dev/null 2>&1; }
+# Cảnh báo DNS (dns.a) và TLS (tls.cert) là có chủ ý trên máy ảo: tên miền thử
+# không có bản ghi A thật (mục 6.7).
+health_pass() { jq -e '[.groups[] | select(.target != "tpan") | .results[] | select(.status != "pass" and ((.status == "warn" and (.id | test("^(dns[.]a|tls[.]cert):"))) | not))] | length == 0' <<<"$HJ" >/dev/null 2>&1; }
 health_has() { jq -e --arg id "$1" --arg st "$2" '[.groups[].results[] | select(.id == $id and .status == $st)] | length >= 1' <<<"$HJ" >/dev/null 2>&1; }
 health_fails() { jq -r '[.groups[].results[] | select(.status == "fail") | .id] | join(" ")' <<<"$HJ" 2>/dev/null; }
 
