@@ -637,10 +637,10 @@ func TestSSLBadParams(t *testing.T) {
 		}
 	}
 
-	if _, err := SiteVhostSSL(l, "caddy", "8.3", sslWebroot); err == nil {
+	if _, err := SiteVhostSSL(l, "caddy", "8.3", sslWebroot, site.HtaccessSafe); err == nil {
 		t.Error("SiteVhostSSL nhận web server lạ")
 	}
-	if _, err := SiteVhostSSL(tampered, "nginx", "8.3", sslWebroot); err == nil {
+	if _, err := SiteVhostSSL(tampered, "nginx", "8.3", sslWebroot, site.HtaccessSafe); err == nil {
 		t.Error("SiteVhostSSL nhận Layout sửa tay")
 	}
 	if _, err := DefaultSSL("caddy"); err == nil {
@@ -687,11 +687,11 @@ func TestSiteVhostSSL(t *testing.T) {
 		"nginx":  {l.NginxConf, l.NginxLink, nginxTest, nginxReload},
 		"apache": {l.ApacheConf, l.ApacheLink, apTest, apReload},
 	} {
-		want, err := templates.SiteVhost(l, web, "8.3", sslWebroot, true)
+		want, err := templates.SiteVhost(l, web, "8.3", sslWebroot, true, site.HtaccessSafe)
 		if err != nil {
 			t.Fatalf("templates.SiteVhost %s: %v", web, err)
 		}
-		ss, err := SiteVhostSSL(l, web, "8.3", sslWebroot)
+		ss, err := SiteVhostSSL(l, web, "8.3", sslWebroot, site.HtaccessSafe)
 		if err != nil || len(ss) != 2 {
 			t.Fatalf("SiteVhostSSL %s = %v, %v", web, ss, err)
 		}
@@ -712,12 +712,12 @@ func TestSiteVhostSSL(t *testing.T) {
 	// Ghi đè vhost cổng 80 đang có: Undo trả lại đúng bản cổng 80.
 	port80 := func(m *machine) {
 		webBase(m, l)
-		execute(t, m, webStepsOK(t)(SiteVhost(l, "nginx", "8.3", sslWebroot))...)
+		execute(t, m, webStepsOK(t)(SiteVhost(l, "nginx", "8.3", sslWebroot, site.HtaccessSafe))...)
 	}
 	lc := lifecycle{
 		name:  "SiteVhostSSL nginx ghi đè cổng 80",
 		setup: port80,
-		step:  func() engine.Step { return webStepsOK(t)(SiteVhostSSL(l, "nginx", "8.3", sslWebroot))[0] },
+		step:  func() engine.Step { return webStepsOK(t)(SiteVhostSSL(l, "nginx", "8.3", sslWebroot, site.HtaccessSafe))[0] },
 	}
 	t.Run(lc.name, lc.run)
 }

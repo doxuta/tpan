@@ -63,7 +63,7 @@ func NginxSite(l site.Layout, php, acmeRoot string) ([]byte, error) {
 }
 
 // ApacheSite sinh vhost Apache của site. php và acmeRoot như NginxSite.
-func ApacheSite(l site.Layout, php, acmeRoot string) ([]byte, error) {
+func ApacheSite(l site.Layout, php, acmeRoot string, mode site.HtaccessMode) ([]byte, error) {
 	d, err := siteVhostData(l, php, acmeRoot)
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost apache: %w", err)

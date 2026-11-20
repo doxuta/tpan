@@ -253,7 +253,8 @@ func siteFiles(cfg StackConfig, st site.Site) ([]*steps.File, error) {
 		return nil, err
 	}
 	ss = append(ss, vhost...)
-	if cfg.Web == Apache {
+	// Chế độ "tat" (M14): tpan không ghi .htaccess cho site.
+	if cfg.Web == Apache && st.Htaccess.OrDefault() != site.HtaccessOff {
 		ht, err := steps.SiteHtaccess(l)
 		if err != nil {
 			return nil, err
@@ -414,7 +415,7 @@ func siteVhost(st site.Site, cfg StackConfig) ([]engine.Step, error) {
 	case st.Suspended != account.NotSuspended:
 		return steps.SiteVhostSuspended(st.Layout(), web, acmeRoot, st.SSL)
 	case st.SSL:
-		return steps.SiteVhostSSL(st.Layout(), web, php, acmeRoot)
+		return steps.SiteVhostSSL(st.Layout(), web, php, acmeRoot, st.Htaccess.OrDefault())
 	}
-	return steps.SiteVhost(st.Layout(), web, php, acmeRoot)
+	return steps.SiteVhost(st.Layout(), web, php, acmeRoot, st.Htaccess.OrDefault())
 }

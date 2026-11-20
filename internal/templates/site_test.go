@@ -31,7 +31,7 @@ func TestSiteGolden(t *testing.T) {
 	}{
 		{"site-pool", func() ([]byte, error) { return SitePool(l, "8.3") }},
 		{"site-nginx", func() ([]byte, error) { return NginxSite(l, "8.3", acmeRoot) }},
-		{"site-apache", func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot) }},
+		{"site-apache", func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot, site.HtaccessSafe) }},
 		{"site-htaccess", func() ([]byte, error) { return WPHtaccess(), nil }},
 	}
 	for _, c := range cases {
@@ -66,7 +66,7 @@ func TestSiteFirstLine(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
 	pool, _ := SitePool(l, "8.3")
 	ng, _ := NginxSite(l, "8.3", acmeRoot)
-	ap, _ := ApacheSite(l, "8.3", acmeRoot)
+	ap, _ := ApacheSite(l, "8.3", acmeRoot, site.HtaccessSafe)
 	for name, c := range map[string]struct {
 		out  []byte
 		want string
@@ -147,7 +147,7 @@ func TestSiteKeyDirectives(t *testing.T) {
 		}
 	}
 
-	ap, _ := ApacheSite(l, "8.3", acmeRoot)
+	ap, _ := ApacheSite(l, "8.3", acmeRoot, site.HtaccessSafe)
 	for _, s := range []string{
 		"<VirtualHost *:80>",
 		"ServerName example.com\n",
@@ -211,7 +211,7 @@ func TestSiteIDN(t *testing.T) {
 	l := siteTestLayout(t, "cửahàng.vn")
 	for name, gen := range map[string]func() ([]byte, error){
 		"nginx":  func() ([]byte, error) { return NginxSite(l, "8.3", acmeRoot) },
-		"apache": func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot) },
+		"apache": func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot, site.HtaccessSafe) },
 		"pool":   func() ([]byte, error) { return SitePool(l, "8.3") },
 	} {
 		out, err := gen()
@@ -250,7 +250,7 @@ func TestSiteBadParams(t *testing.T) {
 		gens := map[string]func() ([]byte, error){
 			"pool":   func() ([]byte, error) { return SitePool(l, "8.3") },
 			"nginx":  func() ([]byte, error) { return NginxSite(l, "8.3", acmeRoot) },
-			"apache": func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot) },
+			"apache": func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot, site.HtaccessSafe) },
 		}
 		for g, gen := range gens {
 			out, err := gen()
@@ -263,7 +263,7 @@ func TestSiteBadParams(t *testing.T) {
 		}
 	}
 	for _, r := range []string{"", "acme", "/var/lib/acme;", "/var/lib/acme\nserver {", "/var/lib/../etc", "/var/lib/$(id)", `/var/lib/"x"`} {
-		for g, gen := range map[string]func(site.Layout, string, string) ([]byte, error){"nginx": NginxSite, "apache": ApacheSite} {
+		for g, gen := range map[string]func(site.Layout, string, string) ([]byte, error){"nginx": NginxSite, "apache": apacheSite} {
 			if out, err := gen(good, "8.3", r); !errors.Is(err, ErrParam) || out != nil {
 				t.Errorf("%s AcmeRoot %q: muốn ErrParam không nội dung, được %v", g, r, err)
 			}
@@ -274,7 +274,7 @@ func TestSiteBadParams(t *testing.T) {
 		gens := map[string]func() ([]byte, error){
 			"pool":   func() ([]byte, error) { return SitePool(good, php) },
 			"nginx":  func() ([]byte, error) { return NginxSite(good, php, acmeRoot) },
-			"apache": func() ([]byte, error) { return ApacheSite(good, php, acmeRoot) },
+			"apache": func() ([]byte, error) { return ApacheSite(good, php, acmeRoot, site.HtaccessSafe) },
 		}
 		for g, gen := range gens {
 			if out, err := gen(); !errors.Is(err, ErrParam) || out != nil {

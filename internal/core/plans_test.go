@@ -430,7 +430,7 @@ func TestSiteRepairFixesVhost(t *testing.T) {
 			l := pe.layout(t, "shop.example.com")
 			conf, want := l.NginxConf, func() ([]byte, error) { return templates.NginxSite(l, "8.3", acmeRoot) }
 			if web == Apache {
-				conf, want = l.ApacheConf, func() ([]byte, error) { return templates.ApacheSite(l, "8.3", acmeRoot) }
+				conf, want = l.ApacheConf, func() ([]byte, error) { return templates.ApacheSite(l, "8.3", acmeRoot, site.HtaccessSafe) }
 			}
 			tmpl, err := want()
 			if err != nil {

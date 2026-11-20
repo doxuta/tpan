@@ -533,7 +533,7 @@ func (s *WPSiteURL) Undo(ctx context.Context, sys system.System) error {
 
 // SiteVhostSSL giống SiteVhost nhưng ghi bản có cổng 443 (templates.SiteVhost
 // với ssl true). File của M1 giữ vhost cổng 80 cũ nên Undo trả lại được.
-func SiteVhostSSL(l site.Layout, web, phpVersion, acmeRoot string) ([]engine.Step, error) {
+func SiteVhostSSL(l site.Layout, web, phpVersion, acmeRoot string, mode site.HtaccessMode) ([]engine.Step, error) {
 	if err := webCheckLayout(l); err != nil {
 		return nil, fmt.Errorf("dựng bước vhost SSL: %w", err)
 	}
@@ -541,7 +541,7 @@ func SiteVhostSSL(l site.Layout, web, phpVersion, acmeRoot string) ([]engine.Ste
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost SSL: %w", err)
 	}
-	conf, err := templates.SiteVhost(l, web, phpVersion, acmeRoot, true)
+	conf, err := templates.SiteVhost(l, web, phpVersion, acmeRoot, true, mode)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost SSL %s: %w", web, err)
 	}

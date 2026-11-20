@@ -22,7 +22,7 @@ func TestSSLGolden(t *testing.T) {
 		gen  func() ([]byte, error)
 	}{
 		{"site-nginx-ssl", func() ([]byte, error) { return NginxSiteSSL(l, "8.3", acmeRoot) }},
-		{"site-apache-ssl", func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot) }},
+		{"site-apache-ssl", func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot, site.HtaccessSafe) }},
 		{"nginx-default-ssl", NginxDefaultSSL},
 		{"apache-default-ssl", ApacheDefaultSSL},
 		{"renew-hook", func() ([]byte, error) { return RenewHook(testTpanBin) }},
@@ -59,7 +59,7 @@ func TestSSLFirstLine(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
 	for name, gen := range map[string]func() ([]byte, error){
 		"nginx":          func() ([]byte, error) { return NginxSiteSSL(l, "8.3", acmeRoot) },
-		"apache":         func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot) },
+		"apache":         func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot, site.HtaccessSafe) },
 		"nginx-default":  NginxDefaultSSL,
 		"apache-default": ApacheDefaultSSL,
 		"fail2ban":       Fail2banSSHD,
@@ -156,7 +156,7 @@ func TestNginxSiteSSLDirectives(t *testing.T) {
 // chứng chỉ và đủ luật của bản cổng 80.
 func TestApacheSiteSSLDirectives(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
-	ap, err := ApacheSiteSSL(l, "8.3", acmeRoot)
+	ap, err := ApacheSiteSSL(l, "8.3", acmeRoot, site.HtaccessSafe)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +216,7 @@ func TestSSLKeepsPlainRules(t *testing.T) {
 		plain, ssl func(site.Layout, string) ([]byte, error)
 	}{
 		"nginx":  {php83(NginxSite), php83(NginxSiteSSL)},
-		"apache": {php83(ApacheSite), php83(ApacheSiteSSL)},
+		"apache": {php83(apacheSite), php83(apacheSiteSSL)},
 	}
 	for name, p := range pairs {
 		plain, err := p.plain(l, acmeRoot)
@@ -307,11 +307,11 @@ func TestSiteVhost(t *testing.T) {
 	}{
 		{"nginx", false, php83(NginxSite)},
 		{"nginx", true, php83(NginxSiteSSL)},
-		{"apache", false, php83(ApacheSite)},
-		{"apache", true, php83(ApacheSiteSSL)},
+		{"apache", false, php83(apacheSite)},
+		{"apache", true, php83(apacheSiteSSL)},
 	}
 	for _, c := range cases {
-		got, err := SiteVhost(l, c.web, "8.3", acmeRoot, c.ssl)
+		got, err := SiteVhost(l, c.web, "8.3", acmeRoot, c.ssl, site.HtaccessSafe)
 		if err != nil {
 			t.Fatalf("%s ssl=%v: %v", c.web, c.ssl, err)
 		}
@@ -322,7 +322,7 @@ func TestSiteVhost(t *testing.T) {
 	}
 	for _, web := range []string{"", "Nginx", "nginx ", "apache2", "caddy", "nginx\n", "nginx;"} {
 		for _, ssl := range []bool{false, true} {
-			if out, err := SiteVhost(l, web, "8.3", acmeRoot, ssl); !errors.Is(err, ErrParam) || out != nil {
+			if out, err := SiteVhost(l, web, "8.3", acmeRoot, ssl, site.HtaccessSafe); !errors.Is(err, ErrParam) || out != nil {
 				t.Errorf("web %q ssl=%v: muốn ErrParam không nội dung, được %v", web, ssl, err)
 			}
 		}
@@ -347,9 +347,9 @@ func TestSSLBadParams(t *testing.T) {
 	}
 	gens := map[string]func(site.Layout, string) ([]byte, error){
 		"nginx SSL":   php83(NginxSiteSSL),
-		"apache SSL":  php83(ApacheSiteSSL),
-		"SiteVhost n": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "nginx", "8.3", r, true) },
-		"SiteVhost a": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "apache", "8.3", r, true) },
+		"apache SSL":  php83(apacheSiteSSL),
+		"SiteVhost n": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "nginx", "8.3", r, true, site.HtaccessSafe) },
+		"SiteVhost a": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "apache", "8.3", r, true, site.HtaccessSafe) },
 	}
 	for name, l := range bad {
 		for g, gen := range gens {
@@ -383,7 +383,7 @@ func TestSSLBadParams(t *testing.T) {
 // (certbot đặt tên lineage theo domain đã chuyển).
 func TestSSLIDN(t *testing.T) {
 	l := siteTestLayout(t, "cửahàng.vn")
-	for name, gen := range map[string]func(site.Layout, string) ([]byte, error){"nginx": php83(NginxSiteSSL), "apache": php83(ApacheSiteSSL)} {
+	for name, gen := range map[string]func(site.Layout, string) ([]byte, error){"nginx": php83(NginxSiteSSL), "apache": php83(apacheSiteSSL)} {
 		out, err := gen(l, acmeRoot)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)

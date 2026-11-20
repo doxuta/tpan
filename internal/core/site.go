@@ -370,7 +370,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		return nil, err
 	}
 	emailGuessed := false
-	rec := site.Site{Domain: d, Slug: l.Slug, Status: site.Active, PHPVersion: cfg.PHPVersion}
+	rec := site.Site{Domain: d, Slug: l.Slug, Status: site.Active, PHPVersion: cfg.PHPVersion, Htaccess: site.HtaccessSafe}
 	if found {
 		switch old.Status {
 		case site.Trashed:
@@ -451,7 +451,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		Layout: l, URL: scheme + d.String(), Title: title,
 		AdminUser: siteAdminUser, AdminEmail: in.Email, AdminPassword: adminPw,
 	}}
-	plan, err := addPlan(cfg.Web, rec.PHPVersion, l, dbPw, version, hash, install, rec.SSL)
+	plan, err := addPlan(cfg.Web, rec.PHPVersion, l, dbPw, version, hash, install, rec.SSL, rec.Htaccess.OrDefault())
 	if err != nil {
 		return nil, err
 	}
@@ -488,7 +488,7 @@ func (s *Sites) newOwner(ctx context.Context, owner string) (string, error) {
 }
 
 // addPlan dựng Plan "site.add" đúng thứ tự mục 6.2.
-func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep, ssl bool) (engine.Plan, error) {
+func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep, ssl bool, mode site.HtaccessMode) (engine.Plan, error) {
 	wrap := func(err error) error { return fmt.Errorf("dựng Plan tạo site %s: %w", l.Domain, err) }
 
 	// Bước 2, 3, 4: user Linux, thư mục và log, DB.
@@ -523,7 +523,9 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 	}
 	ss = append(ss, cron...)
 	// Bước 8: vhost (Apache cần thêm .htaccess, phải có trước khi vhost được bật).
-	if web == Apache {
+	// Chế độ "tat" (M14): Apache không đọc .htaccess, permalink nằm trong vhost,
+	// nên tpan không ghi file này.
+	if web == Apache && mode != site.HtaccessOff {
 		ht, err := steps.SiteHtaccess(l)
 		if err != nil {
 			return engine.Plan{}, wrap(err)
@@ -534,7 +536,7 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 	if ssl {
 		vhostOf = steps.SiteVhostSSL
 	}
-	vhost, err := vhostOf(l, string(web), php, acmeRoot)
+	vhost, err := vhostOf(l, string(web), php, acmeRoot, mode)
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
