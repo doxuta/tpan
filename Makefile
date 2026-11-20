@@ -73,6 +73,17 @@ vm-deploy: build-linux ## Build rồi chép tpan vào máy ảo test
 vm-shell: ## Mở shell trong máy ảo test
 	scripts/vm.sh shell
 
+# M17: chạy một bản thử nghiên cứu (docs/bang-chung/M17-nghien-cuu/<T>.sh) bằng
+# root trong máy ảo của mốc, lưu output cạnh script. TPAN_VM_CAPTURE=1 vì
+# `multipass exec` có lúc treo khi output dài (xem đầu scripts/vm.sh).
+NC17 := docs/bang-chung/M17-nghien-cuu
+nc-m17: ## (M17) Chạy một bản thử nghiên cứu trong máy ảo: make nc-m17 T=t0-hien-trang
+	@test -f $(NC17)/$(T).sh || { echo "không có $(NC17)/$(T).sh" >&2; exit 2; }
+	@# t0 tự đứng được; các bản thử sau dùng hàm chung trong lib.sh (nối vào trước).
+	@{ case "$(T)" in t0-*) ;; *) cat $(NC17)/lib.sh ;; esac; cat $(NC17)/$(T).sh; } | \
+	  TPAN_VM_CAPTURE=1 scripts/vm.sh root bash -s > $(NC17)/$(T).ket-qua.txt 2>&1; \
+	  rc=$$?; cat $(NC17)/$(T).ket-qua.txt; echo "(mã thoát $$rc; đã lưu $(NC17)/$(T).ket-qua.txt)"
+
 clean: ## Xoá kết quả build
 	rm -rf bin
 	find web/dist -mindepth 1 ! -name .gitkeep -delete

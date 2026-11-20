@@ -1,0 +1,89 @@
+## a. Lệnh trong lồng vượt trần RAM 200M
+OOMPolicy của dịch vụ (unit ghi continue): continue | mặc định của máy: stop
+php cấp phát 400 MB qua systemd-run: mã thoát 1 | stdout=[Usage: php [options] [-f] <file> [--] [args...]
+   php [options] -r <code> [--] [args...]
+   php [options] [-B <begin_code>] -R <code> [-E <end_code>] [--] [args...]
+   php [options] [-B <begin_code>] -F <file> [-E <end_code>] [--] [args...]
+   php [options] -S <addr>:<port> [-t docroot] [router]
+   php [options] -- [args...]
+   php [options] -a
+
+  -a               Run as interactive shell (requires readline extension)
+  -c <path>|<file> Look for php.ini file in this directory
+  -n               No configuration (ini) files will be used
+  -d foo[=bar]     Define INI entry foo with value 'bar'
+  -e               Generate extended information for debugger/profiler
+  -f <file>        Parse and execute <file>.
+  -h               This help
+  -i               PHP information
+  -l               Syntax check only (lint)
+  -m               Show compiled in modules
+  -r <code>        Run PHP <code> without using script tags <?..?>
+  -B <begin_code>  Run PHP <begin_code> before processing input lines
+  -R <code>        Run PHP <code> for every input line
+  -F <file>        Parse and execute <file> for every input line
+  -E <end_code>    Run PHP <end_code> after processing all input lines
+  -H               Hide any passed arguments from external tools.
+  -S <addr>:<port> Run with built-in web server.
+  -t <docroot>     Specify document root <docroot> for built-in web server.
+  -s               Output HTML syntax highlighted source.
+  -v               Version number
+  -w               Output source with stripped comments and whitespace.
+  -z <file>        Load Zend extension <file>.
+
+  args...          Arguments passed to script. Use -- args when first argument
+                   starts with - or script is read from stdin
+
+  --ini            Show configuration file names
+
+  --rf <name>      Show information about function <name>.
+  --rc <name>      Show information about class <name>.
+  --re <name>      Show information about extension <name>.
+  --rz <name>      Show information about Zend extension <name>.
+  --ri <name>      Show configuration for extension <name>.] stderr=[Error in argument 3, char 2: no argument for option r]
+memory.events của slice: low 0 high 0 max 0 oom 0 oom_kill 0 oom_group_kill 0 | dịch vụ PHP: active | A: HTTP 200
+bỏ dòng OOMPolicy khỏi unit -> OOMPolicy=stop
+A cấp phát 400 MB: HTTP 502 | 1,5 giây sau: dịch vụ active, Result=success, NRestarts=1
+   Started tpan-cage-a_example_com_7653e4-php.service - TPAN: PHP-FPM 8.3 rieng cua a.example.com.
+   tpan-cage-a_example_com_7653e4-php.service: A process of this unit has been killed by the OOM killer.
+   tpan-cage-a_example_com_7653e4-php.service: Failed with result 'oom-kill'.
+   tpan-cage-a_example_com_7653e4-php.service: Scheduled restart job, restart counter is at 1.
+   Started tpan-cage-a_example_com_7653e4-php.service - TPAN: PHP-FPM 8.3 rieng cua a.example.com.
+A: HTTP 200
+
+## b. TasksMax=30: sinh 200 tiến trình
+request sinh tiến trình: [ma 2, 0.00 giay, output: ] (.005487768 giây)
+slice:   pids.current=29 pids.peak=30 pids.max=30 pids.events: max 0 
+dịch vụ: pids.current=29 pids.events: max 1 
+trang chủ của A lúc đang đầy: HTTP 200 sau .027845923 giây | B: HTTP 200
+lệnh trong lồng lúc đầy: mã 0 []
+2026/11/21 02:36:19 [error] 24031#24031: *440 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 127.0.0.1, server: a.example.com, request: "GET / HTTP/1.1", upstream: "fas
+2026/11/21 02:38:36 [error] 24681#24681: *452 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 127.0.0.1, server: a.example.com, request: "GET /m.php HTTP/1.1", upstream:
+sau khi các sleep thoát: pids.current=1 | A: HTTP 200
+
+## c. Trần CPU: máy rảnh và máy bận
+  máy rảnh trần 100%: nhận  99.7% (99% của trần) | 102 chu kỳ trong 10.146992631 giây = 98.5 ms mỗi chu kỳ (đặt 100) | bị bóp 3 chu kỳ
+  máy rảnh trần  50%: nhận  35.7% (71% của trần) | 101 chu kỳ trong 10.051629631 giây = 98.5 ms mỗi chu kỳ (đặt 100) | bị bóp 86 chu kỳ
+  máy rảnh trần  25%: nhận  15.7% (62% của trần) | 101 chu kỳ trong 10.131889225 giây = 99.3 ms mỗi chu kỳ (đặt 100) | bị bóp 98 chu kỳ
+  máy bận trần 100%: nhận  99.5% (99% của trần) | 100 chu kỳ trong 10.059833730 giây = 99.6 ms mỗi chu kỳ (đặt 100) | bị bóp 2 chu kỳ
+  máy bận trần  50%: nhận  50.0% (100% của trần) | 101 chu kỳ trong 10.075073812 giây = 98.7 ms mỗi chu kỳ (đặt 100) | bị bóp 100 chu kỳ
+  máy bận trần  25%: nhận  25.0% (100% của trần) | 101 chu kỳ trong 10.047067853 giây = 98.5 ms mỗi chu kỳ (đặt 100) | bị bóp 100 chu kỳ
+  clocksource: arch_sys_counter | HZ: CONFIG_HZ=1000
+
+## d. restart dưới tải, process_control_timeout=10s (5 lượt, mỗi lượt 60 request)
+  lượt 1: restart .366403850 giây | mã:      60 200 
+  lượt 2: restart .086028473 giây | mã:      60 200 
+  lượt 3: restart .089513039 giây | mã:      60 200 
+  lượt 4: restart .082778698 giây | mã:      60 200 
+  lượt 5: restart .083817891 giây | mã:      60 200 
+  reload (USR2) dưới tải:
+  mã:      60 200 
+
+## e. tar giải nén trong lồng (có lọc @privileged)
+mã tar: 0; số file: 3783
+cp -p: mã 0
+chgrp: invalid group: ‘www-data’
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200
