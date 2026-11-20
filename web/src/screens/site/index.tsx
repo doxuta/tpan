@@ -7,10 +7,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { useJobTracker } from "../../components/JobTracker";
 import { ApiError, del, errorMessage, get } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { JobStarted, Preview, SiteInfo, Stage } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
+import { BulkBar, SelectAll, SelectOne, useSelection } from "../../components/Bulk";
 import { DomainText } from "../../components/DomainText";
 import { MonoText } from "../../components/MonoText";
 import { ScreenHeader } from "../../components/ScreenHeader";
@@ -47,6 +49,7 @@ export function SiteList() {
   const rows = (overview.data?.sites ?? [])
     .filter((r) => r.site.status === "active")
     .sort((a, b) => a.site.domain.localeCompare(b.site.domain));
+  const sel = useSelection(rows.map((r) => r.site.domain));
 
   return (
     <>
@@ -65,6 +68,22 @@ export function SiteList() {
         </div>
       )}
       {overview.data && (
+        <BulkBar
+          sel={sel}
+          unit={t.unitSite}
+          actions={[
+            {
+              key: "trash",
+              label: t.bulkTrash,
+              confirmTitle: t.bulkTrashTitle,
+              confirmBody: <p className="m-0">{t.bulkTrashBody}</p>,
+              confirmLabel: t.bulkTrash,
+              run: (d) => del<JobStarted>(sitePath(d)),
+            },
+          ]}
+        />
+      )}
+      {overview.data && (
         <TableList
           caption={t.listCaption}
           rows={rows}
@@ -76,6 +95,12 @@ export function SiteList() {
             </>
           }
           columns={[
+            {
+              header: "chon",
+              headerCell: <SelectAll sel={sel} label={t.selectAll} />,
+              className: "w-[34px]",
+              cell: (r) => <SelectOne sel={sel} id={r.site.domain} label={t.selectOne(r.site.domain)} />,
+            },
             {
               header: t.colDomain,
               className: "min-w-[160px]",
@@ -157,6 +182,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
   const { lang } = useLang();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { track } = useJobTracker();
   const checks = info.checks;
 
   // ---- ga và phép kiểm ----
@@ -212,7 +238,9 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
     mutationFn: () => del<JobStarted>(sitePath(domain)),
     onSuccess: (job) => {
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      void navigate("/sites");
     },
   });
   useEffect(() => {

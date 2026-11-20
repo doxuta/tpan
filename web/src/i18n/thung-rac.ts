@@ -4,6 +4,15 @@
 import { defineStrings } from "./index";
 
 const vi = {
+  unitSite: "site",
+  selectAll: "Chọn mọi site trong thùng rác",
+  selectOne: (d: string) => `Chọn ${d}`,
+  bulkRestore: (n: number) => `Khôi phục ${n} site`,
+  bulkRestoreTitle: (n: number) => `Khôi phục ${n} site?`,
+  bulkRestoreBody: "Các site dưới đây chạy lại như trước khi xoá: file, cơ sở dữ liệu, cấu hình về chỗ cũ. Mỗi site chạy một job, lần lượt.",
+  bulkPurge: (n: number) => `Xoá hẳn ${n} site`,
+  bulkPurgeTitle: (n: number) => `Xoá hẳn ${n} site?`,
+  bulkPurgeBody: "Xoá vĩnh viễn file, cơ sở dữ liệu và bản sao của các site dưới đây khỏi máy. Không khôi phục được. Bản backup đã tạo trước đó vẫn được giữ.",
   title: "Thùng rác",
   summary: "Site đã xoá nằm ở đây, khôi phục được cho tới hạn xoá hẳn.",
 
@@ -46,6 +55,15 @@ const vi = {
 };
 
 const en: typeof vi = {
+  unitSite: "site(s)",
+  selectAll: "Select every site in the trash",
+  selectOne: (d) => `Select ${d}`,
+  bulkRestore: (n) => `Restore ${n} ${n === 1 ? "site" : "sites"}`,
+  bulkRestoreTitle: (n) => `Restore ${n} ${n === 1 ? "site" : "sites"}?`,
+  bulkRestoreBody: "The sites below run again as before they were deleted: files, database and configuration go back in place. Each site runs as its own job, one after another.",
+  bulkPurge: (n) => `Delete ${n} ${n === 1 ? "site" : "sites"} for good`,
+  bulkPurgeTitle: (n) => `Delete ${n} ${n === 1 ? "site" : "sites"} for good?`,
+  bulkPurgeBody: "Permanently removes the files, database and trash copy of the sites below from the machine. This cannot be undone. Backups made earlier are kept.",
   title: "Trash",
   summary: "Deleted sites stay here and can be restored until they are permanently deleted.",
 
