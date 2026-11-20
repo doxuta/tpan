@@ -16,7 +16,7 @@
 # Các phần:
 #   a. máy sạch, triển khai, stack nginx, tpan setup, site a.example.com
 #   b. khoá dùng một lần, vm.sh ssh-key; đo ssh không tty, sudo -n
-#   c. bước 12: đủ 18 công cụ (15 của M7, 3 của M8); list_sites dưới bí danh; log có câu lệnh cài
+#   c. bước 12: đủ 21 công cụ (15 của M7, 3 của M8, 3 của M9); list_sites dưới bí danh; log có câu lệnh cài
 #      vào User-Agent nằm trong thẻ <untrusted>; propose_site_add b.example.com
 #      có plan_id, pending; máy không đổi gì; apply_plan ở chế độ panel bị từ
 #      chối; tpan plan list thấy Plan origin mcp, untrusted
@@ -279,10 +279,10 @@ d=$1; u=$2; slug=$3
 getent passwd "$u" >/dev/null && echo "CÒN user Linux $u" || echo "không có user Linux $u"
 mariadb -N -B -e "SHOW DATABASES" | grep -qx "$u" && echo "CÒN DB $u" || echo "không có DB $u"
 mariadb -N -B -e "SELECT User FROM mysql.user" | grep -qx "$u" && echo "CÒN user DB $u" || echo "không có user DB $u"
-for p in /var/www/$d /etc/php/*/fpm/pool.d/tpan-$slug.conf /run/php/tpan-$slug-8.3.sock /etc/nginx/sites-enabled/tpan-$d.conf /etc/nginx/sites-available/tpan-$d.conf; do
+for p in /var/www/$d /var/lib/tpan/trash/$slug /etc/php/*/fpm/pool.d/tpan-$slug.conf /run/php/tpan-$slug-8.3.sock /etc/nginx/sites-enabled/tpan-$d.conf /etc/nginx/sites-available/tpan-$d.conf; do
   if [ -e "$p" ] || [ -L "$p" ]; then echo "CÒN $p"; else echo "không có $p"; fi
 done
-python3 -c "import sqlite3,sys; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); n = c.execute(\"SELECT COUNT(*) FROM sites WHERE domain = ?\", (sys.argv[1],)).fetchone()[0]; print((\"CÒN\" if n else \"không có\") + \" dòng \" + sys.argv[1] + \" trong bảng sites\")" "$d"
+python3 -c "import sqlite3,sys; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); r = c.execute(\"SELECT status FROM sites WHERE domain = ?\", (sys.argv[1],)).fetchone(); print((\"CÒN\" if r else \"không có\") + \" dòng \" + sys.argv[1] + \" trong bảng sites\" + (\", status \" + r[0] if r else \"\"))" "$d"
 '
 
 http_code() { vexec curl -sS -m 20 -o /dev/null -w '%{http_code}\n' --resolve "$1:80:127.0.0.1" "http://$1/"; }
@@ -418,7 +418,9 @@ main_run() {
   printf 'Công cụ: %s\n' "$tools"
   # 15 công cụ của M7, cộng 3 của M8: current_view, propose_health_fix,
   # propose_ssl_issue (docs/thay-doi/M8.md, đợt 1).
-  ok "đủ 18 công cụ đúng tên của danh mục (15 của M7, 3 của M8)" test "$tools" = '["apply_plan","current_view","get_job","get_plan","list_jobs","list_plans","list_sites","machine","managed_file","propose_health_fix","propose_site_add","propose_site_remove","propose_site_repair","propose_ssl_issue","propose_stack_repair","site_health","stack_status","tail_log"]'
+  # M9 thêm list_backups, propose_backup_create, propose_backup_restore vào danh
+  # mục (commit e51d621); khẳng định cũ (18 công cụ) viết trước khi ghép M9.
+  ok "đủ 21 công cụ đúng tên của danh mục (15 của M7, 3 của M8, 3 của M9)" test "$tools" = '["apply_plan","current_view","get_job","get_plan","list_backups","list_jobs","list_plans","list_sites","machine","managed_file","propose_backup_create","propose_backup_restore","propose_health_fix","propose_site_add","propose_site_remove","propose_site_repair","propose_ssl_issue","propose_stack_repair","site_health","stack_status","tail_log"]'
   ok "không có công cụ shell, chạy lệnh hay ghi file" bash -c '! grep -qiE "shell|exec|bash|write_file|run_command" <<<"$1"' _ "$tools"
   sites="$(mtext list_sites)"
   ok "list_sites trả đúng 1 site dưới bí danh *.example (không phải $A)" bash -c 'jq -e "length == 1 and (.[0].domain | test(\"\\\\.example$\")) and .[0].domain != \"$2\"" <<<"$1" >/dev/null' _ "$sites" "$A"
@@ -528,7 +530,12 @@ main_run() {
   vroot tpan plan show "$PFC" --json
   ok "Plan $PFC: rejected" bash -c 'jq -e ".status == \"rejected\"" <<<"$1" >/dev/null' _ "$OUT"
   vroot bash -c "$LEFT_SCRIPT" _ "$B" "$(user_of "$B")" "$(slug_of "$B")"
-  ok "không còn gì của $B" hasnt '^CÒN'
+  # Từ M6, xoá site là đưa vào thùng rác (mục 6.4): user Linux, DB, user DB
+  # (bị khoá), file vhost ở sites-available và dòng sites còn; thư mục chuyển
+  # sang /var/lib/tpan/trash/<slug>; pool, socket, link sites-enabled gỡ hẳn.
+  # Khẳng định cũ "không còn gì" viết trước khi ghép M6.
+  ok "$B vào thùng rác: /var/www, pool, socket, link sites-enabled không còn" bash -c '! grep -q "^CÒN \(/var/www/\|/etc/php/\|/run/php/\|/etc/nginx/sites-enabled/\)" <<<"$1"' _ "$OUT"
+  ok "$B vào thùng rác: thư mục ở /var/lib/tpan/trash/<slug>, dòng sites status trashed" bash -c 'grep -q "^CÒN /var/lib/tpan/trash/" <<<"$1" && grep -q "^CÒN dòng .*, status trashed$" <<<"$1"' _ "$OUT"
   http_code "$B"
   ok "$B rơi vào site mặc định (curl mã 52)" rc_is 52
   http_code "$A"

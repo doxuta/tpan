@@ -538,7 +538,10 @@ main_run() {
   sse_wait
   sse_report "$TMPD/sseA" "$JA"
   ok "SSE: job.done báo succeeded" bash -c 'jq -e ".last_message == \"succeeded\"" <<<"$1" >/dev/null' _ "$SSE_SUMMARY"
-  ok "SSE: log trực tiếp: luồng kéo dài trên 10 giây" bash -c 'jq -e ".span_seconds > 10" <<<"$1" >/dev/null' _ "$SSE_SUMMARY"
+  # Ngưỡng 5 giây (trước là 10): thời gian job phụ thuộc mạng lúc tải WordPress
+  # (lần chạy 19/11 mất 15 giây, lần hồi quy 20/11 mất 9,8 giây). Dấu hiệu luồng
+  # là trực tiếp nằm ở khẳng định sau: hơn 20 sự kiện tới trước job.done 2 giây.
+  ok "SSE: log trực tiếp: luồng kéo dài trên 5 giây" bash -c 'jq -e ".span_seconds > 5" <<<"$1" >/dev/null' _ "$SSE_SUMMARY"
   ok "SSE: hơn 20 sự kiện tới trước job.done ít nhất 2 giây" bash -c 'jq -e ".received_2s_before_done > 20" <<<"$1" >/dev/null' _ "$SSE_SUMMARY"
   ok "SSE: có phép kiểm (bằng chứng), không phép kiểm nào fail/unknown" bash -c 'jq -e "(.checks.pass // 0) > 0 and (.checks.fail // 0) == 0 and (.checks.unknown // 0) == 0" <<<"$1" >/dev/null' _ "$SSE_SUMMARY"
 
