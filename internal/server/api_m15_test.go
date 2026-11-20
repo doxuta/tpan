@@ -282,6 +282,31 @@ func TestSelfKiemAuto(t *testing.T) {
 	check("&auto=1", 8, e.now) // quá hạn: kiểm lại
 }
 
+// Lần kiểm đã nhớ nói về một nguồn tải. Nguồn tải đổi (settings
+// update.self_url) thì nó không còn đúng: GET không trả nó nữa, và auto=1
+// kiểm lại dù chưa hết hạn.
+func TestSelfKiemQuenKhiDoiNguon(t *testing.T) {
+	e := newSelfEnv(t)
+	if st := apiDecode[SelfState](t, e.admin("POST", "/api/v1/self/update?dry_run=1", ""), 200); st.Check == nil {
+		t.Fatal("thiếu check sau lần kiểm đầu")
+	}
+	const other = "https://example.com/ban-phat-hanh"
+	if err := e.st.SetSetting(context.Background(), core.SettingSelfURL, other); err != nil {
+		t.Fatal(err)
+	}
+	if st := apiDecode[SelfState](t, e.admin("GET", "/api/v1/self", ""), 200); st.URL != other || st.Check != nil {
+		t.Errorf("sau khi đổi nguồn tải: url = %s, check = %+v; muốn không còn check", st.URL, st.Check)
+	}
+	before := len(e.ran("curl"))
+	st := apiDecode[SelfState](t, e.admin("POST", "/api/v1/self/update?dry_run=1&auto=1", ""), 200)
+	if len(e.ran("curl")) == before {
+		t.Error("auto=1 sau khi đổi nguồn tải không hỏi nguồn mới")
+	}
+	if st.Check == nil || st.Check.URL != other {
+		t.Errorf("check sau khi đổi nguồn tải = %+v, muốn của %s", st.Check, other)
+	}
+}
+
 // Không hỏi được nguồn tải vẫn là 200: lý do nằm ở check.error, và lần lỗi
 // cũng được nhớ để auto=1 không chờ mạng lại ở mọi lần tải trang.
 func TestSelfKiemLoi(t *testing.T) {
@@ -332,7 +357,7 @@ func TestSelfKiemBiHuyKhongNho(t *testing.T) {
 	cancel()
 	r := httptest.NewRequest("POST", "/api/v1/self/update?dry_run=1", nil).WithContext(ctx)
 	e.s.handleSelfUpdate(httptest.NewRecorder(), r)
-	if c := e.s.selfCheck.get(); c != nil {
+	if c := e.s.selfCheck.get(core.DefaultSelfURL); c != nil {
 		t.Errorf("lần kiểm bị huỷ vẫn được nhớ: %+v", c)
 	}
 }
@@ -602,7 +627,7 @@ func (e *selfEnv) selfUntouched() {
 	if a := e.audit(); len(a) != 0 {
 		e.t.Errorf("nhật ký self.* có dòng: %+v", a)
 	}
-	if c := e.s.selfCheck.get(); c != nil {
+	if c := e.s.selfCheck.get(core.DefaultSelfURL); c != nil {
 		e.t.Errorf("đã nhớ một lần kiểm: %+v", c)
 	}
 }

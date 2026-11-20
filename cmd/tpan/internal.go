@@ -8,12 +8,12 @@ import (
 
 func init() { register(internalCmd) }
 
-// internalCmd gom các lệnh chỉ chương trình khác gọi (hook của certbot), không
-// phải người. Ẩn khỏi help để không ai tưởng đó là lệnh dùng hằng ngày.
+// internalCmd gom các lệnh chỉ chương trình khác gọi (hook của certbot, đơn vị
+// systemd tạm của nút cập nhật trong panel), không phải người. Ẩn khỏi help để không ai tưởng đó là lệnh dùng hằng ngày.
 func internalCmd(e *env) *cobra.Command {
 	c := &cobra.Command{
 		Use:    "internal",
-		Short:  "Lệnh nội bộ cho các hook của tpan",
+		Short:  "Lệnh nội bộ, do hook và đơn vị systemd của tpan gọi",
 		Hidden: true,
 	}
 	c.AddCommand(&cobra.Command{

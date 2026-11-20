@@ -3,7 +3,7 @@ package server
 // Hợp đồng API của M15 (mục 6.14 của docs/KE-HOACH.md): nút cập nhật TPAN
 // trong panel. Bản TypeScript cùng nghĩa nằm ở web/src/api/m15-types.ts; đổi
 // một bên thì đổi cả bên kia. Quy ước lỗi như M3 (types.go); luật route như
-// M13 (routes.go): cả bốn route chỉ admin, và mọi POST đi qua lớp chống CSRF
+// M13 (routes.go): cả ba route (năm cách gọi dưới đây) chỉ admin, và mọi POST đi qua lớp chống CSRF
 // chung (secure, auth.go).
 //
 //	GET  /api/v1/self                           admin → SelfState
@@ -25,6 +25,8 @@ package server
 //     nguồn tải vẫn là 200: lý do nằm ở check.error (giao diện hiện ngay dưới
 //     nút). Thêm auto=1 (dòng phiên bản cuối trang tự gọi): lần kiểm gần nhất,
 //     kể cả lần lỗi, chưa quá SelfCheckTTL thì trả lại nó, không ra mạng.
+//     Lần kiểm chỉ được nhớ cho đúng nguồn tải nó đã hỏi: đổi update.self_url
+//     thì coi như chưa kiểm.
 //   - Chạy thật (/self/update, /self/rollback không có dry_run), theo thứ tự:
 //     chế độ --demo thì 409 demo_no_self_update; tiến trình này đang có job
 //     thì 409 job_running (job đó sẽ bị cắt khi panel restart); rồi

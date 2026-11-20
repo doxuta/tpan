@@ -44,9 +44,14 @@ type selfChecks struct {
 	last *SelfCheckInfo
 }
 
-func (c *selfChecks) get() *SelfCheckInfo {
+// get trả lần kiểm còn nhớ nếu nó hỏi đúng nguồn tải url; nguồn tải đã đổi
+// (settings update.self_url) thì lần kiểm cũ nói về chỗ khác, coi như chưa kiểm.
+func (c *selfChecks) get(url string) *SelfCheckInfo {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.last == nil || c.last.URL != url {
+		return nil
+	}
 	return c.last
 }
 
@@ -68,7 +73,7 @@ func (s *Server) selfState(r *http.Request) (SelfState, error) {
 	if err != nil {
 		return SelfState{}, err
 	}
-	out := SelfState{SelfStatus: st, Busy: busy, Check: s.selfCheck.get()}
+	out := SelfState{SelfStatus: st, Busy: busy, Check: s.selfCheck.get(st.URL)}
 	last, ok, err := su.Last(ctx)
 	if err != nil {
 		return SelfState{}, err
@@ -110,7 +115,12 @@ func (s *Server) handleSelfUpdate(w http.ResponseWriter, r *http.Request) {
 	// (không có auto) thì luôn hỏi mới.
 	fresh := false
 	if r.URL.Query().Get("auto") == "1" {
-		if c := s.selfCheck.get(); c != nil && s.now().Sub(c.CheckedAt) <= SelfCheckTTL {
+		st, err := s.apiSelf().Status(r.Context())
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		if c := s.selfCheck.get(st.URL); c != nil && s.now().Sub(c.CheckedAt) <= SelfCheckTTL {
 			fresh = true
 		}
 	}
