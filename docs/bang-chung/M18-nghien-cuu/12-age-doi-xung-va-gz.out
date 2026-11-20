@@ -1,0 +1,37 @@
+bash docs/bang-chung/M18-nghien-cuu/12-age-doi-xung-va-gz.sh
+== ngay thu: 2026-11-20T20:02:33Z
+
+=== 1. age, khoá đối xứng
+khoá dài 63 ký tự (không in), đúng dạng: 1
+--- mã hoá 50 MiB bằng thư viện, scrypt hệ số công 15
+(đỉnh RAM VmHWM 36568 kB)
+thời gian 0.12s
+age-encryption.org/v1
+-> scrypt RvGoB4D2vrBNi9VD5qQzAg 15
+ut2WDKF2+5B3FZfcBtV1JHZ0x6TLmnFc0Txha2bOf0w
+--- giải mã bằng thư viện
+(đỉnh RAM VmHWM 70016 kB)
+ĐẠT: thư viện giải mã ra đúng sha256
+--- giải mã bằng LỆNH age của apt (1.1.1), mật khẩu gõ qua một terminal giả
+mã thoát của age: 0
+ĐẠT: lệnh age giải mã ra đúng sha256 eba13d2a0b67dbe242c992e66df3a8606208e0ceb21ab5e49ccc074981a3caf1
+--- khoá sai
+(đỉnh RAM VmHWM 37236 kB)
+LỖI: identity did not match any of the recipients: incorrect identity for recipient block: incorrect passphrase
+mã thoát: 1
+--- sửa một byte ở giữa bản mã
+(đỉnh RAM VmHWM 63036 kB)
+LỖI: failed to decrypt and authenticate payload chunk, file may be corrupted or tampered with
+mã thoát: 1
+
+=== 2. cloud-init: encoding gz+b64
+user-data: 344 byte; file gốc: 132 byte, sha256 4ac976208f248096eb5f0a9e5423017af2f59ca8334f40e808d89e51b59ac4b2
+tạo máy phụ: xong
+status: done
+-rw------- 1 root root 132 Nov 21 03:02 /etc/tpan-ci/sites.yaml
+4ac976208f248096eb5f0a9e5423017af2f59ca8334f40e808d89e51b59ac4b2  /etc/tpan-ci/sites.yaml
+defaults:
+  admin_email: admin@example.com
+sites:
+  - domain: a.example.com
+    title: "Tiêu đề có dấu: và # và \"nháy\""

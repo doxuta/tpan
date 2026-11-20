@@ -73,6 +73,9 @@ vm-deploy: build-linux ## Build rồi chép tpan vào máy ảo test
 vm-shell: ## Mở shell trong máy ảo test
 	scripts/vm.sh shell
 
+m18-nc: ## (M18, đợt 0) chạy một bản thử nghiên cứu trên Mac: make m18-nc S=02-thu-vien-s3
+	bash docs/bang-chung/M18-nghien-cuu/$(S).sh
+
 clean: ## Xoá kết quả build
 	rm -rf bin
 	find web/dist -mindepth 1 ! -name .gitkeep -delete

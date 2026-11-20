@@ -1,0 +1,47 @@
+== ngay tra: 2026-11-20T19:33:15Z
+
+== https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-add-user-data.html
+ User data is limited to 16 KB, in raw form, before it is base64-encoded. The size 
+ the 16 KB limit imposed by IMDS. To use this feature, compress your user data script into 
+
+== https://docs.cloud-init.io/en/latest/explanation/format.html
+ Gzip 
+ Gzip 
+
+== https://docs.cloud-init.io/en/latest/explanation/security.html
+ Validate user-data 
+ User-data script 
+
+== https://docs.cloud-init.io/en/latest/reference/faq.html
+
+== https://docs.digitalocean.com/products/droplets/how-to/provide-user-data/
+
+== https://docs.hetzner.cloud/reference/cloud
+
+== https://docs.openstack.org/nova/latest/user/metadata.html
+API, which has a limit of 65535 bytes after encoding. 
+
+== https://cloud.google.com/compute/docs/metadata/setting-custom-metadata
+ Each metadata value has a maximum limit of 256 KB. 
+key. If your metadata content or value for this key exceeds the 256 KB
+
+== https://learn.microsoft.com/en-us/azure/virtual-machines/user-data
+ the latest Azure Resource Manager API to use the new user data features. The contents should be base64 encoded before passed to the API. The size can't exceed 64 KB. 
+
+== repo aws/aws-sdk-go-v2
+archived=false license=Apache-2.0 pushed_at=2026-11-19T20:14:43Z stars=3689
+
+== repo minio/minio-go
+archived=false license=Apache-2.0 pushed_at=2026-11-12T06:00:23Z stars=3019
+
+== repo FiloSottile/age
+archived=false license=BSD-3-Clause pushed_at=2026-08-29T17:55:36Z stars=24394
+
+== age trong apt của Ubuntu 24.04 (công cụ giải mã độc lập với tpan)
+age:
+  Installed: (none)
+  Candidate: 1.1.1-1ubuntu0.24.04.3
+---
+ vendordata keys will see only redacted values. 
+ Sensitive data such as user passwords may be contained in instance-data .
+ Cloud-init separates this sensitive data such that is it only readable by
