@@ -1,0 +1,110 @@
+# n2-so-cach-mo  (2026-11-21 03:16:43 +0700, máy ảo tpan-m28, 4269cc1)
+=== máy ===
+kernel: 6.8.0-147-generic
+go: go1.27.4 linux/arm64
+openat2: dùng được (RESOLVE_NO_SYMLINKS trên /etc/hostname mở được)
+os.Root: dùng được
+fs.protected_symlinks = 1 (<nil>)
+fs.protected_hardlinks = 1 (<nil>)
+fs.protected_fifos = 1 (<nil>)
+fs.protected_regular = 2 (<nil>)
+user của site thử: uid=994(tp_thu) gid=985(tp_thu) groups=985(tp_thu)
+file bí mật: root:root 600, 406 byte trong thư mục root:root 700
+
+=== từng thứ user của site đặt được ở public/.htaccess ===
+
+--- 1. file thường của site ---
+  readfile  đọc được 9 byte (không phải file bí mật)                                  0.0 ms
+  lstat     đọc được 9 byte (không phải file bí mật)                                  0.0 ms
+  osroot    đọc được 9 byte (không phải file bí mật)                                  0.0 ms
+  openat2   đọc được 9 byte (không phải file bí mật)                                  0.0 ms
+  walk      đọc được 9 byte (không phải file bí mật)                                  0.0 ms
+
+--- 2. symlink tới file bí mật ở ngoài site ---
+  readfile  LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  lstat     từ chối: lstat: không phải file thường (L---------)                       0.0 ms
+  osroot    từ chối: openat public/.htaccess: path escapes from parent                0.0 ms
+  openat2   từ chối: ELOOP (openat2: too many levels of symbolic links)               0.0 ms
+  walk      từ chối: ELOOP (walk: tên cuối: too many levels of symbolic links)        0.0 ms
+
+--- 3. symlink tới một file khác ở TRONG site ---
+  readfile  đọc được 9 byte (không phải file bí mật)                                  0.0 ms
+  lstat     từ chối: lstat: không phải file thường (L---------)                       0.0 ms
+  osroot    đọc được 9 byte (không phải file bí mật)                                  0.0 ms
+  openat2   từ chối: ELOOP (openat2: too many levels of symbolic links)               0.0 ms
+  walk      từ chối: ELOOP (walk: tên cuối: too many levels of symbolic links)        0.0 ms
+
+--- 4. thư mục cha public là symlink ra thư mục của nạn nhân ---
+  readfile  LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  lstat     LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  osroot    từ chối: openat public/.htaccess: path escapes from parent                0.0 ms
+  openat2   từ chối: ELOOP (openat2: too many levels of symbolic links)               0.0 ms
+  walk      từ chối: ENOTDIR (walk: thành phần "public": not a directory)             0.0 ms
+
+--- 5. FIFO ---
+  readfile  TREO (quá 3s)                                                          3016.7 ms
+  lstat     từ chối: lstat: không phải file thường (p---------)                       0.3 ms
+  osroot    từ chối: fstat: không phải file thường (loại 010000)                      0.2 ms
+  openat2   từ chối: fstat: không phải file thường (loại 010000)                      0.2 ms
+  walk      từ chối: fstat: không phải file thường (loại 010000)                      0.1 ms
+
+--- 6. Unix socket ---
+  readfile  từ chối: ENXIO (open /srv/m28-thu/www/a/public/.htaccess: no such device or address)    0.0 ms
+  lstat     từ chối: lstat: không phải file thường (S---------)                       0.0 ms
+  osroot    từ chối: ENXIO (openat public/.htaccess: no such device or address)       0.0 ms
+  openat2   từ chối: ENXIO (openat2: no such device or address)                       0.1 ms
+  walk      từ chối: ENXIO (walk: tên cuối: no such device or address)                0.0 ms
+
+--- 7. file thiết bị (root tạo hộ: user thường không mknod được) ---
+  user của site thử mknod: mknod: /srv/m28-thu/www/a/public/.htaccess: Operation not permitted
+  readfile  ĐỌC KHÔNG TRẦN: dừng ở 64 MiB (bản thật đọc tới hết RAM)                109.3 ms
+  lstat     từ chối: lstat: không phải file thường (Dc---------)                      0.0 ms
+  osroot    từ chối: fstat: không phải file thường (loại 020000)                      0.0 ms
+  openat2   từ chối: fstat: không phải file thường (loại 020000)                      0.0 ms
+  walk      từ chối: fstat: không phải file thường (loại 020000)                      0.0 ms
+
+--- 8. symlink tới /dev/zero ---
+  readfile  ĐỌC KHÔNG TRẦN: dừng ở 64 MiB (bản thật đọc tới hết RAM)                 62.3 ms
+  lstat     từ chối: lstat: không phải file thường (L---------)                       0.1 ms
+  osroot    từ chối: openat public/.htaccess: path escapes from parent                0.0 ms
+  openat2   từ chối: ELOOP (openat2: too many levels of symbolic links)               0.0 ms
+  walk      từ chối: ELOOP (walk: tên cuối: too many levels of symbolic links)        0.0 ms
+
+--- 9. file thường 2 GiB (thưa) ---
+  readfile  ĐỌC KHÔNG TRẦN: dừng ở 64 MiB (bản thật đọc tới hết RAM)                 95.7 ms
+  lstat     ĐỌC KHÔNG TRẦN: dừng ở 64 MiB (bản thật đọc tới hết RAM)                 40.2 ms
+  osroot    từ chối: fstat: 2147483648 byte, quá trần 1048576                         0.1 ms
+  openat2   từ chối: fstat: 2147483648 byte, quá trần 1048576                         0.0 ms
+  walk      từ chối: fstat: 2147483648 byte, quá trần 1048576                         0.0 ms
+
+--- 10. hardlink tới file bí mật ---
+  user của site thử ln (fs.protected_hardlinks=1): ln: failed to access '/srv/m28-thu/nan-nhan/bi-mat.txt': Permission denied
+  root tạo hộ (như máy tắt fs.protected_hardlinks): regular file, chủ root:root, quyền 600, 2 tên
+  readfile  LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  lstat     LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  osroot    LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  openat2   LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  walk      LỘ: đọc được 406 byte của file bí mật                                     0.0 ms
+  => cả năm cách đều đọc: hardlink là file thường. Phải kiểm thêm chủ của file (fstat trên fd).
+
+=== đua: tráo file thường <-> symlink tới bí mật, mỗi cách đọc 20000 lần ===
+  readfile  20000 lần: LỘ 9757, đọc file của site 10243, từ chối 0 (18446 lần tráo, 54ms)
+  lstat     20000 lần: LỘ 95, đọc file của site 5232, từ chối 14673 (11887 lần tráo, 34ms)
+  osroot    20000 lần: LỘ 0, đọc file của site 12211, từ chối 7789 (28789 lần tráo, 81ms)
+  openat2   20000 lần: LỘ 0, đọc file của site 7385, từ chối 12615 (14530 lần tráo, 42ms)
+  walk      20000 lần: LỘ 0, đọc file của site 10585, từ chối 9415 (21780 lần tráo, 63ms)
+
+=== đua: tráo thư mục public <-> symlink tới thư mục nạn nhân, mỗi cách đọc 20000 lần ===
+  readfile  20000 lần: LỘ 9425, đọc file của site 10575, từ chối 0 (18880 lần tráo, 52ms)
+  lstat     20000 lần: LỘ 9966, đọc file của site 10034, từ chối 0 (27065 lần tráo, 72ms)
+  osroot    20000 lần: LỘ 0, đọc file của site 11650, từ chối 8350 (23922 lần tráo, 69ms)
+  openat2   20000 lần: LỘ 0, đọc file của site 7674, từ chối 12326 (14605 lần tráo, 43ms)
+  walk      20000 lần: LỘ 0, đọc file của site 9570, từ chối 10430 (21126 lần tráo, 58ms)
+
+=== thời gian một lần đọc file thường (100000 lần) ===
+  readfile  100000 lần đọc: 2292 ns mỗi lần
+  lstat     100000 lần đọc: 2824 ns mỗi lần
+  osroot    100000 lần đọc: 3701 ns mỗi lần
+  openat2   100000 lần đọc: 2665 ns mỗi lần
+  walk      100000 lần đọc: 3250 ns mỗi lần
+# mã thoát: 0
