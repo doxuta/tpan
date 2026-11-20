@@ -2,7 +2,8 @@ package server
 
 // Bộ hẹn giờ dọn thùng rác (mục 6.4 của docs/KE-HOACH.md): trong `tpan serve`,
 // mỗi giờ một lần (và một lần vài phút sau khi khởi động), xoá hẳn các site
-// trong thùng rác đã quá hạn (core.Sites.PurgeExpired).
+// trong thùng rác đã quá hạn (core.Sites.PurgeExpired), rồi các DB rời quá hạn
+// (core.DBs.PurgeExpired, M13) trong cùng chỗ chạy job.
 //
 // Vì sao chạy như một job của API: xoá hẳn đổi máy (xoá DB, file, user), nên
 // cùng lúc với một job khác là phá luật "cùng lúc chỉ một job" (mục 4.2).
@@ -45,6 +46,9 @@ type trashTimer struct {
 	s            *Server
 	first, every time.Duration
 	purge        purgeFunc
+	// purgeDBs (M13) xoá hẳn DB rời quá hạn trong thùng rác, cùng vòng và cùng
+	// chỗ chạy job với site; trả tên đã xoá. nil thì bỏ.
+	purgeDBs func(ctx context.Context, now time.Time) ([]string, error)
 	// onRound (có thể nil) được gọi sau mỗi vòng; ran false là vòng bị bỏ.
 	onRound func(ran bool)
 }
@@ -55,6 +59,9 @@ func (s *Server) newTrashTimer() *trashTimer {
 		purge: func(ctx context.Context, now time.Time) ([]core.PurgeResult, error) {
 			// Không cần sự kiện: job nào cũng đã vào Journal (Lịch sử).
 			return s.apiSites().PurgeExpired(ctx, now, nil)
+		},
+		purgeDBs: func(ctx context.Context, now time.Time) ([]string, error) {
+			return s.apiDBs().PurgeExpired(ctx, now, nil)
 		},
 	}
 }
@@ -96,9 +103,21 @@ func (t *trashTimer) round(ctx context.Context) bool {
 	// chừng vì serve đang tắt là để máy dở dang (DB đã xoá, file còn). Đổi
 	// lại, tắt serve chờ vòng đang chạy xong (vài giây mỗi site).
 	res, err := t.purge(context.WithoutCancel(ctx), s.now())
+	var dbs []string
+	var dbErr error
+	if t.purgeDBs != nil {
+		dbs, dbErr = t.purgeDBs(context.WithoutCancel(ctx), s.now())
+	}
 	s.api.release()
 	if err != nil {
 		slog.Error("thùng rác: dọn site hết hạn", "err", err)
+	}
+	if dbErr != nil {
+		// Lỗi đã gom tên từng DB; DB xoá được vẫn có trong dbs.
+		slog.Error("thùng rác: dọn DB rời hết hạn", "err", dbErr)
+	}
+	for _, name := range dbs {
+		s.auditAs(context.WithoutCancel(ctx), auditIPTimer, auditPurgeExpired, name, "ok", "")
 	}
 	for _, r := range res {
 		result := "ok"
@@ -111,7 +130,7 @@ func (t *trashTimer) round(ctx context.Context) bool {
 		}
 		s.auditAs(context.WithoutCancel(ctx), auditIPTimer, auditPurgeExpired, r.Domain.String(), result, r.Report.Job.ID)
 	}
-	if len(res) > 0 {
+	if len(res) > 0 || len(dbs) > 0 {
 		// Site đã xoá hẳn: kiểm nhẹ lại mọi thứ (web server, PHP-FPM sau reload).
 		s.kick("")
 	}

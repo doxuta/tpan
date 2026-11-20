@@ -174,9 +174,15 @@ func apiGroupResults(rs []store.StoredResult) map[string][]checks.Result {
 // check_results (health định kỳ ghi), không chạy lúc gọi: Bảng điều khiển gọi
 // trang này thường xuyên, chạy lại mọi phép kiểm mỗi lần thì chậm và tốn tải.
 // ?refresh=1 (nút "Kiểm lại") chạy health đầy đủ trước rồi mới đọc.
+//
+// M13: mọi phần lọc theo chủ ở truy vấn. User thường không thấy phần máy
+// (Machine, StackChecks, TPANChecks rỗng) mà thấy Quota; ?refresh=1 của họ bị
+// bỏ qua (chạy health đầy đủ là việc của admin, quyết định 12).
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if r.URL.Query().Get("refresh") == "1" {
+	id := who(r)
+	scope := scopeOf(r)
+	if r.URL.Query().Get("refresh") == "1" && id.IsAdmin() {
 		if _, err := s.healthRunner().Run(ctx, health.Options{Full: true}); err != nil {
 			apiFail(w, r, err)
 			return
@@ -187,22 +193,22 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	sites, err := s.deps.Store.Sites(ctx)
+	sites, err := s.deps.Store.SitesOf(ctx, scope)
 	if err != nil {
 		apiFail(w, r, err)
 		return
 	}
-	jobs, err := s.deps.Store.Jobs(ctx, apiOverviewJobs)
+	jobs, err := s.deps.Store.JobsOf(ctx, scope, "", apiOverviewJobs)
 	if err != nil {
 		apiFail(w, r, err)
 		return
 	}
-	results, err := s.deps.Store.CheckResults(ctx)
+	results, err := s.deps.Store.CheckResultsOf(ctx, scope)
 	if err != nil {
 		apiFail(w, r, err)
 		return
 	}
-	incs, err := s.deps.Store.Incidents(ctx, true, 0)
+	incs, err := s.deps.Store.IncidentsOf(ctx, scope, true, 0)
 	if err != nil {
 		apiFail(w, r, err)
 		return
@@ -213,15 +219,26 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		Stack:       StackSummary{Installed: cfg.PHPVersion != "", Web: string(cfg.Web), PHPVersion: cfg.PHPVersion},
 		Sites:       make([]SiteRow, len(sites)),
 		Jobs:        apiNonNil(jobs),
-		StackChecks: apiNonNil(groups[""]),
-		TPANChecks:  apiNonNil(groups[store.TargetTPAN]),
+		StackChecks: []checks.Result{},
+		TPANChecks:  []checks.Result{},
 		Incidents:   apiNonNil(incs),
 		LastRun:     s.apiLastRun(ctx),
 	}
-	// Số liệu máy đo trước, một mình: CPU% là phần bận giữa hai lần đọc
-	// /proc/stat, mà đọc access.log (tail) bên dưới cũng là tải. Đo song song thì
-	// Bảng điều khiển thấy CPU bận vì chính tpan (thấy trên máy ảo ở e2e M3).
-	ov.Machine = s.apiMachine(ctx)
+	if id.IsAdmin() {
+		ov.StackChecks = apiNonNil(groups[""])
+		ov.TPANChecks = apiNonNil(groups[store.TargetTPAN])
+		// Số liệu máy đo trước, một mình: CPU% là phần bận giữa hai lần đọc
+		// /proc/stat, mà đọc access.log (tail) bên dưới cũng là tải. Đo song song
+		// thì Bảng điều khiển thấy CPU bận vì chính tpan (thấy trên máy ảo ở e2e M3).
+		ov.Machine = s.apiMachine(ctx)
+	} else {
+		sum, err := s.apiAccounts().Summary(ctx, id.Name)
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		ov.Quota = &Quota{Package: sum.Limits, Usage: sum.Usage}
+	}
 	var wg sync.WaitGroup
 	for i, st := range sites {
 		ov.Sites[i] = SiteRow{Site: st, Checks: apiNonNil(groups[st.Domain.String()])}
@@ -285,7 +302,7 @@ func (s *Server) handleIncidents(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = n
 	}
-	incs, err := s.deps.Store.Incidents(r.Context(), openOnly, limit)
+	incs, err := s.deps.Store.IncidentsOf(r.Context(), scopeOf(r), openOnly, limit)
 	if err != nil {
 		apiFail(w, r, err)
 		return

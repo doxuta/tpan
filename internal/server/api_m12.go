@@ -127,6 +127,24 @@ func (s *Server) handlePHP(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
+	// M13: mỗi bản PHP liệt kê site đang dùng nó; user thường chỉ thấy site của
+	// mình. Lọc trên bản chép: list có thể là bản đệm dùng chung.
+	mine, err := s.ownedDomains(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	if mine != nil {
+		for i := range list.Versions {
+			var own []string
+			for _, d := range list.Versions[i].Sites {
+				if mine[d] {
+					own = append(own, d)
+				}
+			}
+			list.Versions[i].Sites = apiNonNil(own)
+		}
+	}
 	list.Versions = apiNonNil(list.Versions)
 	writeJSON(w, http.StatusOK, list)
 }

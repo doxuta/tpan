@@ -308,8 +308,8 @@ type DatabaseRow struct {
 	Collation string             `json:"collation"`
 	Note      string             `json:"note,omitempty"`
 	Suspended account.Suspension `json:"suspended,omitempty"`
-	// Status: "active" hoặc "trashed" (DB rời trong thùng rác; DB của site
-	// trong thùng rác vẫn là "active" vì DB còn nguyên).
+	// Status: "active" hoặc "trashed" (DB rời trong thùng rác, hoặc DB của
+	// site đang ở thùng rác: DB còn nguyên nhưng user DB bị khoá).
 	Status string `json:"status"`
 }
 

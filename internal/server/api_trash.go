@@ -19,9 +19,11 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -59,8 +61,9 @@ func (s *Server) handleTrashPurge(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// trashOverview đọc số ngày giữ và các site đang ở thùng rác.
-func (s *Server) trashOverview(ctx context.Context) (TrashOverview, error) {
+// trashOverview đọc số ngày giữ, các site và DB rời đang ở thùng rác của
+// scope (rỗng là của mọi người, scopeOf).
+func (s *Server) trashOverview(ctx context.Context, scope string) (TrashOverview, error) {
 	sites := s.apiSites()
 	days, err := sites.TrashDays(ctx)
 	if err != nil {
@@ -70,11 +73,27 @@ func (s *Server) trashOverview(ctx context.Context) (TrashOverview, error) {
 	if err != nil {
 		return TrashOverview{}, err
 	}
-	return TrashOverview{Days: days, Sites: apiNonNil(list)}, nil
+	ov := TrashOverview{Days: days, Sites: []site.Site{}, DBs: []account.Database{}}
+	for _, st := range list {
+		// Store luôn ghi chủ (rỗng thành admin), nên so thẳng được.
+		if scope == "" || st.Owner == scope {
+			ov.Sites = append(ov.Sites, st)
+		}
+	}
+	dbs, err := s.deps.Store.StandaloneDBs(ctx, scope)
+	if err != nil {
+		return TrashOverview{}, err
+	}
+	for _, db := range dbs {
+		if db.Status == account.DBTrashed {
+			ov.DBs = append(ov.DBs, db)
+		}
+	}
+	return ov, nil
 }
 
 func (s *Server) handleTrash(w http.ResponseWriter, r *http.Request) {
-	ov, err := s.trashOverview(r.Context())
+	ov, err := s.trashOverview(r.Context(), scopeOf(r))
 	if err != nil {
 		apiFail(w, r, err)
 		return
@@ -99,7 +118,7 @@ func (s *Server) handleTrashSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, action, target, "ok", "")
-	ov, err := s.trashOverview(r.Context())
+	ov, err := s.trashOverview(r.Context(), scopeOf(r))
 	if err != nil {
 		apiFail(w, r, err)
 		return
@@ -124,7 +143,9 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	in := core.ApplyInput{Sites: list, Prune: body.Prune}
+	// M13: user thường chỉ chạm site của mình (core coi site của người khác như
+	// không tồn tại, site mới thuộc người gọi); admin là mọi site.
+	in := core.ApplyInput{Sites: list, Prune: body.Prune, Scope: scopeOf(r)}
 	// Nhật ký ghi số dòng chứ không ghi từng domain: lô tới 500 site, và từng
 	// site đã có trong job (sự kiện unit.done).
 	target := fmt.Sprintf("%d site", len(list))
@@ -229,7 +250,7 @@ func firstJobOnly(onEvent func(engine.Event)) func(engine.Event) {
 // handleExport trả sites.yaml dựng từ trạng thái hiện tại (mọi site active),
 // dạng file tải về.
 func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
-	f, err := s.apiSites().Export(r.Context())
+	f, err := s.apiSites().ExportScope(r.Context(), scopeOf(r))
 	if err != nil {
 		apiFail(w, r, err)
 		return

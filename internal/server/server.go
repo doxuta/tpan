@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
+	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/health"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/store"
@@ -38,10 +39,15 @@ func Run(ctx context.Context, o RunOptions) error {
 	if o.Deps.Store != nil {
 		// Health định kỳ (mục 6.7) sống cùng tiến trình serve. Dựng trước khi
 		// nghe để mọi request thấy s.sched (Kick sau mỗi job).
-		s.sched = &health.Scheduler{Runner: s.healthRunner(), Busy: s.healthBusy}
 		// ctx riêng: Run có thể trả về khi ctx ngoài còn sống (nghe cổng lỗi),
 		// lúc đó vẫn phải dừng được bộ hẹn giờ.
 		sctx, cancel := context.WithCancel(ctx)
+		s.sched = &health.Scheduler{
+			Runner: s.healthRunner(), Busy: s.healthBusy,
+			// M13: đo dung lượng của từng user cùng vòng health, tối đa mỗi giờ
+			// một lần (diskTimer.after).
+			OnReport: func(health.Report) { s.disk.after(sctx, s) },
+		}
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
@@ -95,6 +101,8 @@ type Server struct {
 	sched *health.Scheduler
 	// phpNotes đệm ghi chú của GET /api/v1/php (api_m12.go). Zero value dùng được.
 	phpNotes phpNotes
+	// disk nhớ lần đo dung lượng gần nhất (api_m13.go). Zero value dùng được.
+	disk diskTimer
 }
 
 func (s *Server) now() time.Time {
@@ -116,8 +124,11 @@ func (s *Server) auditAs(ctx context.Context, ip, action, target, result, jobID 
 	if s.deps.Store == nil {
 		return
 	}
+	// Actor (M13): guard gắn người thật đang thao tác vào ctx (engine.WithActor);
+	// bộ hẹn giờ không có ai nên rỗng.
 	err := s.deps.Store.AddAudit(ctx, store.AuditEntry{
 		Time: s.now(), IP: ip, Action: action, Target: target, Result: result, JobID: jobID,
+		Actor: engine.ActorFrom(ctx),
 	})
 	if err != nil {
 		slog.Error("ghi nhật ký", "action", action, "err", err)
@@ -135,7 +146,8 @@ func clientIP(r *http.Request) string {
 }
 
 // NewHandler ghép API và giao diện web vào một handler. Tách riêng để test được
-// mà không cần mở cổng thật. Bảng đường dẫn và ý nghĩa: types.go, types_m5.go.
+// mà không cần mở cổng thật. Bảng đường dẫn và luật: routes.go; ý nghĩa:
+// types.go, types_m5.go...
 func NewHandler(d Deps, dist fs.FS) http.Handler {
 	return newServer(d).handler(dist)
 }
@@ -151,90 +163,8 @@ func newServer(d Deps) *Server {
 
 func (s *Server) handler(dist fs.FS) http.Handler {
 	mux := http.NewServeMux()
-	// Công khai.
-	mux.HandleFunc("GET /api/v1/health", handleHealth)
-	mux.HandleFunc("POST /api/v1/login", s.handleLogin)
-	mux.HandleFunc("POST /api/v1/logout", s.handleLogout)
-	mux.HandleFunc("GET /api/v1/session", s.handleSession)
-
-	// Cần phiên đăng nhập.
-	auth := s.requireSession
-	mux.Handle("POST /api/v1/account/password", auth(s.handlePasswordChange))
-	mux.Handle("GET /api/v1/account/sessions", auth(s.handleSessions))
-	mux.Handle("DELETE /api/v1/account/sessions/{id}", auth(s.handleSessionDelete))
-
-	mux.Handle("GET /api/v1/overview", auth(s.handleOverview))
-	mux.Handle("GET /api/v1/machine", auth(s.handleMachine))
-	mux.Handle("GET /api/v1/stack", auth(s.handleStack))
-	mux.Handle("GET /api/v1/checks", auth(s.handleChecks))
-	mux.Handle("GET /api/v1/sites", auth(s.handleSites))
-	mux.Handle("POST /api/v1/sites", auth(s.handleSiteCreate))
-	mux.Handle("GET /api/v1/sites/{domain}", auth(s.handleSite))
-	mux.Handle("DELETE /api/v1/sites/{domain}", auth(s.handleSiteDelete))
-	mux.Handle("GET /api/v1/jobs", auth(s.handleJobs))
-	mux.Handle("GET /api/v1/jobs/{id}", auth(s.handleJob))
-	mux.Handle("GET /api/v1/jobs/{id}/events", auth(s.handleJobEvents))
-	mux.Handle("GET /api/v1/databases", auth(s.handleDatabases))
-	// M5: SSL và trang bảo mật (types_m5.go).
-	mux.Handle("GET /api/v1/ssl", auth(s.handleSSL))
-	mux.Handle("POST /api/v1/ssl/settings", auth(s.handleSSLSettings))
-	mux.Handle("POST /api/v1/sites/{domain}/ssl", auth(s.handleSiteSSL))
-	mux.Handle("GET /api/v1/security", auth(s.handleSecurity))
-	mux.Handle("POST /api/v1/security/ufw", auth(s.handleSecurityUFW))
-	mux.Handle("POST /api/v1/security/fail2ban", auth(s.handleSecurityFail2ban))
-
-	// Health (M4, api_health.go).
-	mux.Handle("GET /api/v1/incidents", auth(s.handleIncidents))
-	mux.Handle("GET /api/v1/incidents/{id}", auth(s.handleIncident))
-	mux.Handle("POST /api/v1/fixes", auth(s.handleFix))
-	mux.Handle("POST /api/v1/files/accept", auth(s.handleAcceptFile))
-	mux.Handle("POST /api/v1/health/run", auth(s.handleHealthRun))
-	mux.Handle("GET /api/v1/sites/{domain}/traffic", auth(s.handleSiteTraffic))
-	mux.Handle("GET /api/v1/sites/{domain}/log", auth(s.handleSiteLog))
-	// M7: Plan chờ duyệt và cổng agent (plans_types.go, api_plans.go).
-	mux.Handle("GET /api/v1/plans", auth(s.handlePlans))
-	mux.Handle("GET /api/v1/plans/{id}", auth(s.handlePlan))
-	mux.Handle("POST /api/v1/plans/{id}/approve", auth(s.handlePlanApprove))
-	mux.Handle("POST /api/v1/plans/{id}/reject", auth(s.handlePlanReject))
-	mux.Handle("GET /api/v1/agent", auth(s.handleAgent))
-	// M6: thùng rác và hàng loạt (types_m6.go, api_trash.go).
-	mux.Handle("POST /api/v1/sites/{domain}/restore", auth(s.handleSiteRestore))
-	mux.Handle("GET /api/v1/trash", auth(s.handleTrash))
-	mux.Handle("POST /api/v1/trash/settings", auth(s.handleTrashSettings))
-	mux.Handle("DELETE /api/v1/trash/{domain}", auth(s.handleTrashPurge))
-	mux.Handle("POST /api/v1/apply", auth(s.handleApply))
-	mux.Handle("GET /api/v1/export", auth(s.handleExport))
-	// M8: AI trong panel (ai_types.go, api_ai.go).
-	mux.Handle("GET /api/v1/ai/brain", auth(s.handleAIBrain))
-	mux.Handle("POST /api/v1/ai/preview", auth(s.handleAIPreview))
-	mux.Handle("POST /api/v1/ai/ask", auth(s.handleAIAsk))
-	mux.Handle("GET /api/v1/ai/sessions", auth(s.handleAISessions))
-	mux.Handle("GET /api/v1/ai/sessions/{id}", auth(s.handleAISession))
-	mux.Handle("GET /api/v1/ai/sessions/{id}/turns/{seq}/events", auth(s.handleAITurnEvents))
-	mux.Handle("POST /api/v1/ai/views", auth(s.handleAIView))
-	// M12: phiên bản và cập nhật (types_m12.go, api_m12.go).
-	mux.Handle("GET /api/v1/php", auth(s.handlePHP))
-	mux.Handle("POST /api/v1/php/install", auth(s.handlePHPInstall))
-	mux.Handle("POST /api/v1/php/remove", auth(s.handlePHPRemove))
-	mux.Handle("POST /api/v1/sites/{domain}/php", auth(s.handleSitePHP))
-	mux.Handle("GET /api/v1/updates", auth(s.handleUpdates))
-	mux.Handle("POST /api/v1/updates", auth(s.handleUpdateApply))
-	mux.Handle("POST /api/v1/updates/auto", auth(s.handleUpdateAuto))
-	mux.Handle("POST /api/v1/mariadb/upgrade", auth(s.handleMariaDBUpgrade))
-	// M10: chuyển LEMP ⇄ LAMP (types_m10.go, api_m10.go).
-	mux.Handle("POST /api/v1/stack/switch", auth(s.handleStackSwitch))
-	// M9: backup, cron, thao tác DB (types_m9.go, api_m9.go).
-	mux.Handle("GET /api/v1/backups", auth(s.handleBackups))
-	mux.Handle("POST /api/v1/sites/{domain}/backups", auth(s.handleSiteBackup))
-	mux.Handle("POST /api/v1/backups/{id}/restore", auth(s.handleBackupRestore))
-	mux.Handle("POST /api/v1/backups/settings", auth(s.handleBackupSettings))
-	mux.Handle("GET /api/v1/cron", auth(s.handleCron))
-	mux.Handle("POST /api/v1/databases/{domain}/password", auth(s.handleDBPassword))
-	mux.Handle("POST /api/v1/databases/{domain}/dump", auth(s.handleDBDump))
-	mux.Handle("POST /api/v1/databases/{domain}/import", auth(s.handleDBImport))
-
-	mux.HandleFunc("/api/", handleAPINotFound)
-	mux.Handle("/", spa(dist))
+	// Mọi đường dẫn và luật của nó ở routes.go; mount panic với route quên luật.
+	s.mount(mux, s.routes(dist))
 	// secure thêm header bảo mật và chặn CSRF cho mọi request (auth.go).
 	return s.secure(mux)
 }

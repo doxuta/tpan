@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"slices"
 
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
@@ -91,6 +92,15 @@ func (s *Server) handleSSL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apiFail(w, r, err)
 		return
+	}
+	// M13: core.SSL.List không lọc theo chủ; lọc theo tập site của người gọi.
+	mine, err := s.ownedDomains(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	if mine != nil {
+		rows = slices.DeleteFunc(rows, func(x core.SSLSiteRow) bool { return !mine[x.Domain.String()] })
 	}
 	writeJSON(w, http.StatusOK, SSLOverview{Config: cfg, Sites: apiNonNil(rows)})
 }

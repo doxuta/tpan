@@ -6,7 +6,7 @@ package server
 //
 // Luật truy cập của từng route (public, any, owner:<đối tượng>, admin) ghi ở
 // docs/thay-doi/M13.md, mục "Luật của từng route", và trong bảng route của
-// server.go. Mặc định là cấm: route không khai luật thì server từ chối khởi động.
+// routes.go. Mặc định là cấm: route không khai luật thì server từ chối khởi động.
 //
 // Đường dẫn mới (đổi máy thì nhận ?dry_run=1 và trả engine.Preview; chạy thật
 // trả JobStarted, như mọi thao tác khác):

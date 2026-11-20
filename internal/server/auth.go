@@ -5,7 +5,6 @@ package server
 // truy vấn nằm ở internal/store/auth.go.
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -15,10 +14,14 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 	"unicode/utf8"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/buildinfo"
+	"github.com/doxuta/tpan/internal/core"
+	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/store"
 )
@@ -63,10 +66,10 @@ func newAuthState(*Server) *authState {
 	return &authState{cop: http.NewCrossOriginProtection()}
 }
 
-// authCtxKey là khoá context giữ phiên của request đã qua requireSession.
+// authCtxKey là khoá context giữ phiên của request đã qua guard (routes.go).
 type authCtxKey struct{}
 
-// authSessionOf trả phiên mà requireSession đã gắn vào request.
+// authSessionOf trả phiên mà guard đã gắn vào request.
 func authSessionOf(r *http.Request) (store.Session, bool) {
 	ss, ok := r.Context().Value(authCtxKey{}).(store.Session)
 	return ss, ok
@@ -94,21 +97,51 @@ func (s *Server) secure(h http.Handler) http.Handler {
 	})
 }
 
-// requireSession chỉ cho request có phiên hợp lệ đi qua; không có thì 401.
-func (s *Server) requireSession(h http.HandlerFunc) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ss, ok, err := s.authCurrent(r)
-		if err != nil {
-			authInternal(w, "đọc phiên", err)
-			return
+// authResolve đọc phiên của request và dựng danh tính (M13): user của phiên
+// phải còn trong bảng users và đang active, không thì xoá phiên và coi như
+// chưa đăng nhập (khoá user là đăng xuất ngay, kể cả phiên chưa bị huỷ kịp).
+// Phiên "xem như" (ViewAs): Name, Role là của user được xem, ViewedBy là admin
+// thật; admin đó không còn vai admin thì cũng xoá phiên, user được xem không
+// còn thì bỏ "xem như" và quay về chính admin.
+//
+// Danh tính của user thường luôn dựng từ một dòng users có thật, nên Name
+// không bao giờ rỗng (scopeOf dựa vào điều này).
+func (s *Server) authResolve(r *http.Request) (store.Session, account.Identity, bool, error) {
+	ss, ok, err := s.authCurrent(r)
+	if err != nil || !ok {
+		return store.Session{}, account.Identity{}, false, err
+	}
+	ctx := r.Context()
+	st := s.deps.Store
+	drop := func() (store.Session, account.Identity, bool, error) {
+		return store.Session{}, account.Identity{}, false, st.DeleteSessionByToken(ctx, ss.TokenSHA256)
+	}
+	u, found, err := st.User(ctx, ss.UserName)
+	if err != nil {
+		return store.Session{}, account.Identity{}, false, err
+	}
+	if !found || u.Name == "" || u.Status != account.Active {
+		return drop()
+	}
+	id := account.Identity{Name: u.Name, Role: u.Role}
+	if ss.ViewAs == "" {
+		return ss, id, true, nil
+	}
+	if u.Role != account.RoleAdmin {
+		return drop()
+	}
+	v, found, err := st.User(ctx, ss.ViewAs)
+	if err != nil {
+		return store.Session{}, account.Identity{}, false, err
+	}
+	if !found || v.Name == "" {
+		if err := st.SetViewAs(ctx, ss.TokenSHA256, ""); err != nil {
+			return store.Session{}, account.Identity{}, false, err
 		}
-		if !ok {
-			writeError(w, http.StatusUnauthorized, "unauthorized", i18n.T(
-				"Chưa đăng nhập hoặc phiên đã hết hạn.", "Not logged in, or the session has expired."))
-			return
-		}
-		h(w, r.WithContext(context.WithValue(r.Context(), authCtxKey{}, ss)))
-	})
+		ss.ViewAs = ""
+		return ss, id, true, nil
+	}
+	return ss, account.Identity{Name: v.Name, Role: v.Role, ViewedBy: u.Name}, true, nil
 }
 
 // authCurrent tìm phiên của request theo cookie. Phiên quá 12 giờ không dùng
@@ -251,30 +284,60 @@ func (s *Server) authFailed(w http.ResponseWriter, r *http.Request, ip, action s
 		"Sai mật khẩu.", "Wrong password."))
 }
 
-// authCheckPassword so pw với hash quản trị trong DB. Chưa có hash (chưa chạy
-// tpan setup) thì trả 503 và done=true.
-func (s *Server) authCheckPassword(w http.ResponseWriter, r *http.Request, pw string) (ok, done bool) {
-	hash, set, err := s.deps.Store.AdminPasswordHash(r.Context())
+// authDummy là một hash argon2id thật của một chuỗi ngẫu nhiên, tính một lần.
+// Đăng nhập bằng tên không có thật vẫn chạy argon2 trên hash này, để thời gian
+// trả lời không cho biết tên nào tồn tại. Phải là hash thật: VerifyPassword trả
+// lỗi ngay với hash hỏng, mà trả nhanh chính là lộ.
+var authDummy struct {
+	once sync.Once
+	hash string
+	err  error
+}
+
+func authDummyHash() (string, error) {
+	authDummy.once.Do(func() {
+		authDummy.hash, authDummy.err = store.HashPassword(hex.EncodeToString(authRandom(16)))
+	})
+	return authDummy.hash, authDummy.err
+}
+
+// authCheckPassword so pw với hash của user name. Không có user đó thì vẫn so
+// với hash giả (cùng thời gian) và trả ok=false. User admin chưa có hash (chưa
+// chạy tpan setup) thì trả 503 và done=true.
+func (s *Server) authCheckPassword(w http.ResponseWriter, r *http.Request, name, pw string) (ok, done bool) {
+	hash, found, err := s.deps.Store.PasswordHashOf(r.Context(), name)
 	if err != nil {
 		authInternal(w, "đọc hash mật khẩu", err)
 		return false, true
 	}
-	if !set {
+	if !found && name == account.AdminName {
 		writeError(w, http.StatusServiceUnavailable, "not_set_up", i18n.T(
 			"Chưa có mật khẩu quản trị. Chạy trên máy chủ: sudo tpan setup",
 			"There is no admin password yet. Run on the server: sudo tpan setup"))
 		return false, true
+	}
+	if !found {
+		if hash, err = authDummyHash(); err != nil {
+			authInternal(w, "dựng hash giả", err)
+			return false, true
+		}
 	}
 	ok, err = store.VerifyPassword(hash, pw)
 	if err != nil {
 		authInternal(w, "kiểm mật khẩu", err)
 		return false, true
 	}
-	return ok, false
+	return ok && found, false
 }
 
+// authMaxName: tên dài hơn mọi tên hợp lệ (32 ký tự) thì không cần hỏi DB,
+// nhưng vẫn đi qua hash giả như tên không có thật.
+const authMaxName = 64
+
 // handleLogin: POST /api/v1/login.
-// Thứ tự: IP đang khoá thì từ chối ngay (không tốn argon2), rồi mới so mật khẩu.
+// Thứ tự: IP đang khoá thì từ chối ngay (không tốn argon2), rồi mới so mật
+// khẩu (tên lạ cũng tốn argon2 như tên thật), rồi mới xem user có bị khoá:
+// chỉ người biết đúng mật khẩu mới biết được tài khoản đang bị khoá.
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	st := s.deps.Store
 	if st == nil {
@@ -289,12 +352,34 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if s.authLocked(w, r, ip) {
 		return
 	}
-	ok, done := s.authCheckPassword(w, r, req.Password)
+	name := req.Name
+	if name == "" {
+		name = account.AdminName // thói quen và script cũ chỉ gửi mật khẩu (mục 6.12)
+	}
+	if len(name) > authMaxName {
+		name = "\x00" // không có user nào tên này: đi đường hash giả
+	}
+	ok, done := s.authCheckPassword(w, r, name, req.Password)
 	if done {
 		return
 	}
 	if !ok {
+		// Không ghi tên đã gõ vào nhật ký: người ta hay gõ nhầm mật khẩu vào ô tên.
 		s.authFailed(w, r, ip, "login.fail")
+		return
+	}
+	u, found, err := st.User(r.Context(), name)
+	if err != nil {
+		authInternal(w, "đọc user", err)
+		return
+	}
+	// Từ đây nhật ký ghi tên người đăng nhập (đã đúng mật khẩu nên là tên thật).
+	r = r.WithContext(engine.WithActor(r.Context(), name))
+	if !found || u.Status != account.Active {
+		s.audit(r, "login", name, core.CodeUserSuspended, "")
+		writeError(w, http.StatusForbidden, core.CodeUserSuspended, i18n.T(
+			"Tài khoản "+name+" đang bị tạm khoá. Liên hệ quản trị viên.",
+			"Account "+name+" is suspended. Contact the administrator."))
 		return
 	}
 	if err := st.ClearLoginFailures(r.Context(), ip); err != nil {
@@ -313,13 +398,14 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		ID:          hex.EncodeToString(authRandom(8)),
 		IP:          ip,
 		Created:     now,
+		UserName:    name,
 	}
 	if err := st.CreateSession(r.Context(), ss); err != nil {
 		authInternal(w, "tạo phiên", err)
 		return
 	}
 	authSetCookie(w, r, token, 0)
-	s.audit(r, "login", "", "ok", "")
+	s.audit(r, "login", name, "ok", "")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -336,7 +422,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 			authInternal(w, "xoá phiên", err)
 			return
 		}
-		s.audit(r, "logout", ss.ID, "ok", "")
+		s.audit(r.WithContext(engine.WithActor(r.Context(), ss.UserName)), "logout", ss.ID, "ok", "")
 	}
 	authSetCookie(w, r, "", -1)
 	w.WriteHeader(http.StatusNoContent)
@@ -345,8 +431,14 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 // handleSession: GET /api/v1/session. Công khai: giao diện hỏi để biết hiện
 // màn đăng nhập hay vào thẳng.
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
+	s.writeSessionInfo(w, r)
+}
+
+// writeSessionInfo trả SessionInfo của request (GET /session, và sau khi vào
+// hay thoát "xem như").
+func (s *Server) writeSessionInfo(w http.ResponseWriter, r *http.Request) {
 	info := SessionInfo{Demo: s.deps.Demo}
-	ss, ok, err := s.authCurrent(r)
+	ss, id, ok, err := s.authResolve(r)
 	if err != nil {
 		authInternal(w, "đọc phiên", err)
 		return
@@ -356,6 +448,7 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 		info.Hostname = s.deps.Hostname
 		info.Version = buildinfo.Version
 		info.Expires = ss.LastSeen.Add(authIdle)
+		info.User = &id
 	}
 	writeJSON(w, http.StatusOK, info)
 }
@@ -379,7 +472,8 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 	if s.authLocked(w, r, ip) {
 		return
 	}
-	ok, done := s.authCheckPassword(w, r, req.Current)
+	// Mật khẩu của chính người đăng nhập (phiên "xem như" đã bị guard chặn POST).
+	ok, done := s.authCheckPassword(w, r, cur.UserName, req.Current)
 	if done {
 		return
 	}
@@ -392,7 +486,7 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		authInternal(w, "băm mật khẩu mới", err)
 		return
 	}
-	if err := s.deps.Store.ChangeAdminPassword(r.Context(), hash, cur.TokenSHA256, s.now()); err != nil {
+	if err := s.deps.Store.ChangeUserPassword(r.Context(), cur.UserName, hash, cur.TokenSHA256, s.now()); err != nil {
 		authInternal(w, "đổi mật khẩu", err)
 		return
 	}
@@ -400,11 +494,11 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleSessions: GET /api/v1/account/sessions. Phiên đã hết hạn mà chưa bị
-// dọn thì không hiện.
+// handleSessions: GET /api/v1/account/sessions. Chỉ phiên của chính người
+// đăng nhập (M13). Phiên đã hết hạn mà chưa bị dọn thì không hiện.
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 	cur, _ := authSessionOf(r)
-	list, err := s.deps.Store.Sessions(r.Context())
+	list, err := s.deps.Store.SessionsOf(r.Context(), cur.UserName)
 	if err != nil {
 		authInternal(w, "đọc danh sách phiên", err)
 		return
@@ -427,7 +521,8 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSessionDelete(w http.ResponseWriter, r *http.Request) {
 	cur, _ := authSessionOf(r)
 	id := r.PathValue("id")
-	err := s.deps.Store.DeleteSessionByID(r.Context(), id)
+	// Chỉ phiên của mình: phiên của người khác ra cùng 404 như id không có.
+	err := s.deps.Store.DeleteSessionOf(r.Context(), cur.UserName, id)
 	if errors.Is(err, store.ErrNotFound) {
 		s.audit(r, "session.delete", id, "not_found", "")
 		writeError(w, http.StatusNotFound, "session_not_found", i18n.T(

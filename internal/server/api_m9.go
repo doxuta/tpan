@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -52,7 +53,8 @@ func (s *Server) handleBackups(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	items, err := b.List(r.Context(), domain)
+	// M13: lọc theo cột owner của dòng backup (backup sống lâu hơn site đã xoá hẳn).
+	items, err := s.deps.Store.BackupsOf(r.Context(), scopeOf(r), domain)
 	if err != nil {
 		apiFail(w, r, err)
 		return
@@ -124,6 +126,20 @@ func (s *Server) handleBackupRestore(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, fmt.Errorf("backup %s có domain %q không hợp lệ trong tpan.db: %w", id, row.Domain, err))
 		return
 	}
+	// M13: guard đã kiểm user là chủ của bản backup, nhưng backup sống lâu hơn
+	// site: site của A đã xoá hẳn, B tạo lại cùng domain, thì bản của A không
+	// được ghi đè site của B. User thường còn phải là chủ của site hiện tại.
+	if scope := scopeOf(r); scope != "" {
+		owner, found, err := s.deps.Store.SiteOwner(r.Context(), d.String())
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		if found && owner != scope {
+			refused(id, backupNotFound(id))
+			return
+		}
+	}
 	// Kick đúng site: mã nguồn và DB vừa đổi, health kiểm nó ngay.
 	s.planJobKick(w, r, jobOpts{action: action, target: d.String(), kick: d.String()}, func(ctx context.Context) (apiPlan, error) {
 		return b.PrepareRestore(ctx, d, id)
@@ -154,6 +170,15 @@ func (s *Server) handleCron(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apiFail(w, r, err)
 		return
+	}
+	// M13: core.Cron.List không lọc theo chủ; lọc theo tập site của người gọi.
+	mine, err := s.ownedDomains(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	if mine != nil {
+		ov.Sites = slices.DeleteFunc(ov.Sites, func(c core.CronEntry) bool { return !mine[c.Domain] })
 	}
 	ov.Sites = apiNonNil(ov.Sites)
 	writeJSON(w, http.StatusOK, ov)

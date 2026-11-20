@@ -69,6 +69,8 @@ type jobResult struct {
 	secret *AdminSecret
 	// secrets: mật khẩu của các site vừa tạo trong job hàng loạt (POST /apply).
 	secrets []AdminSecret
+	// dbSecret: mật khẩu DB rời vừa tạo hoặc vừa đổi (M13); chỉ đặt khi job thành công.
+	dbSecret *DBSecret
 }
 
 type jobFunc func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error)
@@ -115,6 +117,7 @@ func (a *apiState) run(id string) *jobRun {
 type heldSecret struct {
 	one  *AdminSecret
 	many []AdminSecret
+	db   *DBSecret // M13: JobDetail.DBSecret
 }
 
 // takeSecret trả mật khẩu của job rồi xoá khỏi bộ nhớ: lần sau không còn.
@@ -168,10 +171,12 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, o jobOpts, fn 
 	}
 
 	a.wg.Go(func() {
-		res, err := fn(context.Background(), onEvent)
+		// ctx của job giữ giá trị của request (người chạy, engine.WithActor của
+		// guard: job ghi cột actor) nhưng không bị huỷ theo request.
+		res, err := fn(ar.Context(), onEvent)
 		a.mu.Lock()
-		if (res.secret != nil || len(res.secrets) > 0) && run.id != "" {
-			a.secrets[run.id] = heldSecret{one: res.secret, many: res.secrets}
+		if (res.secret != nil || len(res.secrets) > 0 || res.dbSecret != nil) && run.id != "" {
+			a.secrets[run.id] = heldSecret{one: res.secret, many: res.secrets, db: res.dbSecret}
 		}
 		delete(a.runs, run.id)
 		a.busy = false
@@ -239,7 +244,11 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	in := core.SiteInput{Domain: d, Title: body.Title, Email: email}
+	owner, ok := s.siteCreateOwner(w, r, d, body.Owner)
+	if !ok {
+		return
+	}
+	in := core.SiteInput{Domain: d, Title: body.Title, Email: email, Owner: owner}
 	sites := s.apiSites()
 
 	if apiDryRun(r) {

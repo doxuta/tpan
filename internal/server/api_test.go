@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
@@ -42,6 +43,11 @@ func apiNewEnv(t *testing.T) *apiEnv {
 		t.Fatalf("mở store: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
+	// M13: máy đã chạy tpan setup luôn có user admin; tạo site, apply, backup
+	// kiểm hạn mức gói của chủ (mặc định admin) nên cần dòng này.
+	if err := st.SetAdminPasswordHash(context.Background(), "x"); err != nil {
+		t.Fatalf("tạo user admin: %v", err)
+	}
 	e := &apiEnv{f: system.NewFake(), st: st, dbPath: dbPath, now: time.Date(2026, 11, 19, 8, 0, 0, 0, time.UTC)}
 	e.s = &Server{deps: Deps{Sys: e.f, Store: st, Hostname: "vps-test", Now: e.clock}}
 	e.s.api = newAPIState(e.s)
@@ -106,6 +112,9 @@ func apiCall(h http.HandlerFunc, method, target, body string, pathValues ...stri
 	}
 	r := httptest.NewRequest(method, target, rd)
 	r.RemoteAddr = "192.0.2.10:40000"
+	// Gọi thẳng handler, không qua guard (routes.go): gắn danh tính admin như
+	// dòng lệnh. Lớp phân quyền có test riêng (authz_test.go).
+	r = r.WithContext(context.WithValue(r.Context(), identityKey{}, account.Root))
 	for i := 0; i+1 < len(pathValues); i += 2 {
 		r.SetPathValue(pathValues[i], pathValues[i+1])
 	}
@@ -428,10 +437,12 @@ func TestAPIReadOnly(t *testing.T) {
 	}
 
 	e.f.Handle([]string{"mariadb", "-N", "-B"}, func(system.Cmd) system.Result {
-		return system.Result{Stdout: site.LayoutOf(apiDomain(t, "a.example.com")).DB + "\t3\t49152\n"}
+		// M13: core.DBs.List đọc thêm charset, collation (năm cột).
+		return system.Result{Stdout: site.LayoutOf(apiDomain(t, "a.example.com")).DB + "\t3\t49152\tutf8mb4\tutf8mb4_unicode_ci\n"}
 	})
 	dbs := apiDecode[[]DatabaseRow](t, apiCall(e.s.handleDatabases, "GET", "/", ""), 200)
-	if len(dbs) != 1 || dbs[0].Domain != "a.example.com" || dbs[0].Tables != 3 || dbs[0].SizeBytes != 49152 || dbs[0].User != dbs[0].DB {
+	if len(dbs) != 1 || dbs[0].Domain != "a.example.com" || dbs[0].Tables != 3 || dbs[0].SizeBytes != 49152 || dbs[0].User != dbs[0].DB ||
+		dbs[0].Kind != core.DBKindSite || dbs[0].Owner != "admin" || dbs[0].Charset != "utf8mb4" || dbs[0].Status != "active" {
 		t.Errorf("databases = %+v", dbs)
 	}
 }

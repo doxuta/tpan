@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -77,7 +78,10 @@ func (s *Server) apiSites() *core.Sites {
 	return &core.Sites{
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
 		Settings: st, Store: st, Journal: st, Backups: st,
-		WPHash: s.deps.WPHash,
+		// Accounts (M13): thiếu thì tạo site bỏ qua hạn mức gói và không kiểm
+		// chủ có thật, đang active.
+		Accounts: st,
+		WPHash:   s.deps.WPHash,
 	}
 }
 
@@ -104,11 +108,18 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 		case validate.CodeDomainInvalid, validate.CodeEmailInvalid, "title_invalid", "ssl_server_invalid",
 			"sites_file_invalid", "trash_days_invalid", "apply_empty", "domain_duplicate", "prune_empty",
 			// M9: số bản giữ, giờ backup sai là lỗi đầu vào.
-			"backup_keep_invalid", "backup_at_invalid":
+			"backup_keep_invalid", "backup_at_invalid",
+			// M13: tên, mật khẩu, vai, giới hạn gói, charset, ghi chú sai.
+			"args_invalid", "password_too_short", "note_invalid", core.CodeCollationInvalid,
+			validate.CodeUserNameInvalid, validate.CodeUserNameReserved,
+			validate.CodePackageNameInvalid, validate.CodeDBNameInvalid:
 			status = http.StatusBadRequest
 		case "site_not_found",
 			// M9: id backup không có (hoặc không thuộc site đó) là "không có".
-			"backup_not_found":
+			"backup_not_found",
+			// M13: lời 404 của guard (routes.go) và của core.
+			"job_not_found", "incident_not_found",
+			core.CodeUserNotFound, core.CodePackageNotFound, core.CodeDBNotFound:
 			status = http.StatusNotFound
 		}
 		return status, ErrorBody{Error: ErrorDetail{Code: re.Code, Message: re.Message, Checks: re.Checks}}
@@ -173,7 +184,18 @@ func (s *Server) handleStack(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, st)
 }
 
+// handleChecks trả phép kiểm chung của máy. User thường không thấy phần máy
+// (mục 6.12): chỉ trạng thái cài đặt, không chạy phép kiểm nào.
 func (s *Server) handleChecks(w http.ResponseWriter, r *http.Request) {
+	if !who(r).IsAdmin() {
+		cfg, err := s.apiStack().Config(r.Context())
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, core.Health{Installed: cfg.PHPVersion != "", Config: cfg, Results: []checks.Result{}})
+		return
+	}
 	h, err := s.apiStack().Health(r.Context())
 	if err != nil {
 		apiFail(w, r, err)
@@ -185,8 +207,9 @@ func (s *Server) handleChecks(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- site
 
+// handleSites: lọc theo chủ ngay ở truy vấn (store.SitesOf).
 func (s *Server) handleSites(w http.ResponseWriter, r *http.Request) {
-	list, err := s.apiSites().List(r.Context())
+	list, err := s.deps.Store.SitesOf(r.Context(), scopeOf(r))
 	if err != nil {
 		apiFail(w, r, err)
 		return
@@ -212,17 +235,26 @@ func (s *Server) handleSite(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, info)
 }
 
+// handleDatabases: DB của site và DB rời, lọc theo chủ (core.DBs.List).
 func (s *Server) handleDatabases(w http.ResponseWriter, r *http.Request) {
-	dbs, err := s.apiSites().Databases(r.Context())
+	dbs, err := s.apiDBs().List(r.Context(), scopeOf(r))
 	if err != nil {
 		apiFail(w, r, err)
 		return
 	}
 	out := make([]DatabaseRow, len(dbs))
 	for i, d := range dbs {
-		out[i] = DatabaseRow{Domain: d.Domain, DB: d.DB, User: d.User, SizeBytes: d.SizeBytes, Tables: d.Tables}
+		out[i] = databaseRow(d)
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+func databaseRow(d core.Database) DatabaseRow {
+	return DatabaseRow{
+		Domain: d.Domain, DB: d.DB, User: d.User, SizeBytes: d.SizeBytes, Tables: d.Tables,
+		Kind: d.Kind, Owner: d.Owner, Charset: d.Charset, Collation: d.Collation, Note: d.Note,
+		Suspended: d.Suspended, Status: d.Status,
+	}
 }
 
 // ---------------------------------------------------------------- job
@@ -239,7 +271,18 @@ func (s *Server) handleJobs(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = n
 	}
-	jobs, err := s.deps.Store.Jobs(r.Context(), limit)
+	// M13: lọc theo chủ; admin thêm ?user= để lọc theo người chạy (cột "Ai
+	// làm" của màn Lịch sử). User thường gửi ?user= thì bỏ qua: họ chỉ thấy
+	// job của mình dù ai chạy.
+	actor := ""
+	if v := r.URL.Query().Get("user"); v != "" && who(r).IsAdmin() {
+		if _, err := validate.ParseUserName(v); err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		actor = v
+	}
+	jobs, err := s.deps.Store.JobsOf(r.Context(), scopeOf(r), actor, limit)
 	if err != nil {
 		apiFail(w, r, err)
 		return
@@ -276,9 +319,11 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d := JobDetail{Job: job, Events: apiNonNil(evs)}
-	if job.Status != engine.JobRunning {
+	// Phiên "xem như" chỉ đọc: không được lấy mất mật khẩu hiện một lần của
+	// user (admin mở job vừa xong của A lúc đang xem như A thì A mất mật khẩu).
+	if job.Status != engine.JobRunning && !who(r).ReadOnly() {
 		sec := s.api.takeSecret(id)
-		d.Secret, d.Secrets = sec.one, sec.many
+		d.Secret, d.Secrets, d.DBSecret = sec.one, sec.many, sec.db
 	}
 	writeJSON(w, http.StatusOK, d)
 }
