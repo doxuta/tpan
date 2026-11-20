@@ -631,7 +631,7 @@ Ba thành phần của stack khác nhau về chuyện "nhiều phiên bản":
 - **Đổi bản PHP có thêm bước chờ socket** (mục 6.11 ý 3 có "kiểm socket"; lúc đầu Plan bỏ bước này, máy ảo cho thấy phải có): thứ tự thật là ghi pool bản mới, reload, chờ socket mới (tối đa 20 giây), ghi vhost, reload web server, kiểm HTTP đạt hai lần liên tiếp, gỡ pool bản cũ.
 - **Kiểm chứng của `update.apply` và `mariadb.upgrade` chỉ có phép kiểm của stack (và MariaDB)**; phép kiểm từng site do health đầy đủ chạy ngay sau job (CLI và API). Lý do: gói đã nâng không hạ về được, nên một site hỏng từ trước không được làm job "lỗi" rồi kéo hoàn tác các bước khác. Mục 6.11 nói "chạy lại toàn bộ health ... site nào đang đạt mà sau cập nhật không đạt thì mở sự cố": đúng như vậy.
 - **Nâng MariaDB: kho mới không hoàn tác, settings ghi bằng một bước ngay sau khi nâng gói** (không đợi job thành công): bước nào sau điểm đó lỗi thì máy vẫn đang chạy dòng mới, kho và settings phải nói đúng.
-- **Không có API cho self-update** (mục 9 nói mỗi lệnh có endpoint): thay file chạy từ chính panel cắt job đang chạy; màn Cập nhật hiện lệnh để tự gõ.
+- **Không có API cho self-update** (mục 9 nói mỗi lệnh có endpoint): thay file chạy từ chính panel cắt job đang chạy; màn Cập nhật hiện lệnh để tự gõ. *Từ M15 đã có nút và API, chạy qua một đơn vị systemd tạm: mục 6.14.*
 - **Lệnh CLI mới ngoài mục 9**: `tpan php remove <bản>`, `tpan update auto`, `tpan mariadb upgrade --to <dòng>`, `tpan self-update --rollback|--url`, cờ `--web-source`, `--db-source`, `--db-line` của `stack install`. API mới ở `internal/server/types_m12.go`.
 - **Kho của Ondřej Surý là `packages.sury.org`** (mục 16 ghi PPA trên Launchpad đang được chuyển về đây), ghim theo gói (dưới đây).
 
@@ -907,6 +907,53 @@ Ghi nhận, chưa đổi:
 - Trên máy cài mới bằng `stack install`, file `99-tpan.ini` và drop-in của bản PHP mặc định không vào sổ `managed_files` (bước được mô tả trước khi biết bản PHP; cùng giới hạn với `tpan-idle.conf` từ M12), nên không có dòng "lệch" cho hai file đó. `php.opcache` tự so nội dung file ini; drop-in thì chỉ được kiểm qua hiệu lực (`ProtectProc` của tiến trình đang chạy). Máy đã chạy harden thì cả hai file nằm trong sổ.
 - Site ở `day-du`: hai dòng gỡ biến ở vhost bị chính `ProxyFCGISetEnvIf` trong `.htaccess` đặt lại, nên L4 và L9 còn mở (L3 thì đã chặn). Đó là lý do health luôn cảnh báo với chế độ này.
 - Lệnh shell do PHP gọi vẫn đọc được mọi file mà quyền Linux cho phép (ví dụ `/etc/hostname`, tên các thư mục trong `/var/www`); L7 chỉ chặn nhìn tiến trình. Lồng theo site (mục "Để sau") mới đóng phần này.
+
+### 6.14 Nút cập nhật TPAN trong panel (M15)
+
+Yêu cầu của chủ dự án ngày 21/11/2026, sau khi phát hành v0.2.0: cập nhật TPAN ngay trong panel (màn Cài đặt), không phải SSH vào máy gõ `tpan self-update`. Lệnh CLI giữ nguyên hành vi; mục này thêm đường đi từ giao diện tới đúng Plan đó.
+
+**Vì sao trước đây không có nút, và cách giải.** Plan `self.update` kết thúc bằng `systemctl restart tpan`. Khi restart một dịch vụ, systemd dừng mọi tiến trình trong cgroup của dịch vụ đó. Job chạy trong `tpan serve`, hay bất kỳ lệnh nào `tpan serve` tự gọi, đều nằm trong cgroup ấy, nên bị dừng ở đúng bước restart. Đã thử trên máy ảo (`docs/bang-chung/M15-thu-co-che.log`, phần 1): bước restart báo `context canceled`, engine hoàn tác (trả file cũ về), dòng nhật ký không ghi được, panel restart một lần vô ích và vẫn ở bản cũ.
+
+Cách giải: panel không tự chạy Plan. Nó nhờ systemd khởi một **đơn vị tạm** (transient unit) bằng `systemd-run`. Đơn vị tạm là một dịch vụ systemd tạo lúc chạy, không có file `.service` trên đĩa; tiến trình của nó là con của PID 1 và nằm ở cgroup riêng (`/system.slice/tpan-self-update.service`), nên `systemctl restart tpan` không đụng tới nó (cùng file log, phần 2: job thành công, `audit` có dòng, panel lên bản mới và trả 200).
+
+```
+trình duyệt ── POST /api/v1/self/update ──▶ tpan serve (tpan.service)
+                                              │  core.SelfUpdate.Start: ghi "đang chạy" vào settings
+                                              ▼
+      systemd-run --unit tpan-self-update --collect \
+          /usr/local/bin/tpan internal self-update
+                                              │  cgroup riêng
+                                              ▼
+      core.SelfUpdate.Run: Plan self.update như CLI
+        tải + kiểm sha256 → thay file (giữ tpan.old) → systemctl restart tpan → tpan version
+        rồi ghi kết quả vào settings (update.self_last) và audit
+```
+
+**Các quyết định.**
+
+1. **Tên đơn vị cố định `tpan-self-update` là cái khoá "chỉ một lượt cùng lúc".** systemd từ chối khởi đơn vị thứ hai cùng tên (`Unit tpan-self-update.service was already loaded or has a fragment file`, mã thoát 1). Trước khi khởi, `Start` hỏi `systemctl is-active tpan-self-update.service`; đang `active` thì API trả 409 `self_update_running`. Hai người bấm cùng tích tắc thì người thứ hai nhận cùng mã đó từ lỗi của `systemd-run`.
+2. **`--collect`.** Không có cờ này, một lượt lỗi để đơn vị nằm lại ở trạng thái `failed` và chặn mọi lượt sau cho tới khi ai đó gõ `systemctl reset-failed` (file log, phần 3). Có `--collect` thì systemd dọn đơn vị dù nó thành công hay lỗi. Log của lượt chạy vẫn đọc được bằng `journalctl -u tpan-self-update` sau khi đơn vị đã dọn.
+3. **Dòng lệnh của đơn vị tạm là hằng.** Không có chữ nào từ request đi vào argv: ai bấm và từ IP nào được `Start` ghi vào settings (`update.self_last`), lệnh nội bộ đọc lại từ đó. API không đọc thân request; nguồn tải là settings `update.self_url` hoặc hằng `core.DefaultSelfURL`, như CLI. Lệnh chạy bằng argv qua `system.System`, không shell.
+4. **Lệnh nội bộ `tpan internal self-update [--rollback]`** (ẩn khỏi help) là thứ đơn vị tạm chạy. Nó chạy đúng Plan của `tpan self-update` rồi làm thêm hai việc CLI không làm: ghi kết quả (bản cũ, bản mới, thành công hay lỗi và vì sao, lúc nào, job nào, ai bấm) vào settings `update.self_last`, và ghi dòng `audit` có người bấm, IP và `<bản cũ> -> <bản mới>`. Lúc bấm, API cũng ghi một dòng `audit` kết quả `started`.
+5. **Kết quả nằm ở settings để màn đọc lại sau restart.** `GET /api/v1/self` trả `last` (lượt gần nhất). Trạng thái: `running`, `ok`, `same` (bản tải về trùng bản đang chạy, không thay gì), `failed` (job hỏng và đã hoàn tác: file chạy cũ còn nguyên, lý do nguyên văn ở `error`, ví dụ sai sha256). Lượt còn ghi `running` mà đơn vị tạm không còn chạy quá 15 giây thì API trả `interrupted` (đơn vị bị giết, máy tắt giữa chừng).
+6. **"Kiểm bản mới" là bản xem trước** (`POST /api/v1/self/update?dry_run=1`): hai lệnh `curl` tới nguồn tải, không tải file chạy. `SHA256SUMS` cho biết sha256 mà file tải về sẽ phải khớp; so với sha256 của file đang cài là biết có bản khác hay không. Tên bản mới đọc từ file `VERSION` ở nguồn tải (`make release` ghi file này từ M15; bản phát hành cũ không có thì màn chỉ nói "có bản khác"). Đã là bản mới nhất thì không có nút chạy. Dòng phiên bản cuối trang tự kiểm với `auto=1`: máy chủ dùng lại lần kiểm chưa quá 6 giờ (kể cả lần lỗi), nên tối đa một lần ra mạng mỗi 6 giờ; lỗi mạng thì im lặng.
+7. **Quay về bản trước** cùng cơ chế (`POST /api/v1/self/rollback`). Lõi từ chối trước khi đổi file nếu biết chắc không lùi được: `PrepareRollback` chạy `tpan.old site list` (lệnh chỉ đọc, mở `tpan.db` như dịch vụ sẽ mở); file cũ không mở được DB thì từ chối `self_rollback_db` kèm chính câu file cũ in ra. Đã thử: v0.1.2 trên DB bản 1400 in `DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn`, mã 1; v0.2.0 mã 0. Điều kiện này áp cho cả `tpan self-update --rollback` ở CLI: nó đóng chỗ hở ghi ở mục 6.12 (rollback báo thành công trong khi dịch vụ khởi động lại liên tục).
+8. **Panel đang có job thì không cho bấm** (409 `job_running`): job đó sẽ bị cắt khi panel restart. Job của CLI đang chạy thì lượt cập nhật chờ khoá toàn cục như mọi lệnh CLI.
+9. **Giao diện sống qua lần restart.** Sau khi bấm, màn hỏi lại `GET /api/v1/session` vài giây một lần (route công khai, trả `version`); mất kết nối lúc panel restart không phải lỗi. `version` đổi là đã lên: báo "đã lên <bản>", mời tải lại trang (mã giao diện trong trình duyệt còn là của bản cũ), và nếu `GET /api/v1/security/isolation` báo `needs_harden` thì đưa nút sang "Áp bản vá cô lập". `last.status` là `failed` thì hiện lý do. Quá 3 phút không có kết quả: hiện lệnh gỡ tay (`journalctl -u tpan-self-update`, `sudo tpan self-update --rollback`). Phiên đăng nhập nằm trong `tpan.db` nên cookie cũ dùng tiếp được sau restart.
+10. **Vị trí.** Khối "Phiên bản và cập nhật" ở màn Cài đặt (chỉ admin thấy), và khối (d) của màn Cập nhật dùng lại đúng thành phần đó. Dòng phiên bản cuối trang là liên kết tới khối, có chấm nhỏ khi lần kiểm gần nhất thấy bản mới.
+11. **Chế độ `--demo`** không có gì để cập nhật: "Kiểm bản mới" chạy trên máy giả (để xem được giao diện), còn chạy thật trả 409 `demo_no_self_update`.
+
+**API** (cả bốn chỉ admin, kiểu ở `internal/server/types_m15.go`):
+
+```
+GET  /api/v1/self                           → SelfState: version, url, has_old, busy, last, check
+POST /api/v1/self/update?dry_run=1[&auto=1] → SelfState kèm lần kiểm vừa làm
+POST /api/v1/self/update                    → 202 {run}
+POST /api/v1/self/rollback?dry_run=1        → {current, old}
+POST /api/v1/self/rollback                  → 202 {run}
+```
+
+**Không làm ở mốc này.** Tự cập nhật theo lịch (bản lớn không bao giờ tự nhảy, mục 6.11). Sao lưu `tpan.db` trước khi lên bản mới (đường lùi khi cấu trúc DB đã đổi vẫn là bản sao do người vận hành tự giữ). Chữ ký số cho bản phát hành (kiểm toàn vẹn vẫn là sha256 lấy qua https từ cùng nguồn, như CLI). Kiểm `tpan.service` còn sống sau restart rồi tự lùi: bản mới khởi động lỗi thì màn hết 3 phút và hiện lệnh gỡ tay.
 
 ## 7. Thao tác hàng loạt
 
@@ -1282,6 +1329,7 @@ Kịch bản `make e2e` (bắt đầu bằng `scripts/vm.sh reset`):
 15. `tpan update` trên máy ảo có gói đang chờ → sau cập nhật toàn bộ health vẫn đạt.
 16. Hai user hai gói: user A không thấy và không đụng được site, DB, job của B (404); vượt gói bị từ chối; tạm khoá site ra 403 rồi mở ra 200; tạm khoá DB làm chặng DB xám rồi mở lại đạt; tạm khoá user thì không đăng nhập được và mọi site của họ ra 403, mở khoá trả về đúng như trước; máy đang chạy bản cũ nâng lên vẫn đăng nhập được bằng `admin` cũ (`scripts/e2e-m13.sh`).
 17. (M14) Hai site A và B, trên nginx rồi trên Apache: chạy lại chín phép thử L1 đến L9 của mục 6.13 với A là site bị chiếm → cả chín "bị chặn"; các phép "đã thử, không lộ" vẫn đạt; hai site vẫn 200 và permalink chạy. Rồi từ máy sạch: cài v0.1.2, tạo hai site, cập nhật lên bản mới, `tpan security harden`, chạy lại bộ phép thử.
+18. (M15) Cài v0.2.0 từ bản phát hành, lên bản của nhánh bằng `tpan self-update` của chính v0.2.0; đặt một "bản mới" ở máy chủ tải trên loopback rồi gọi `POST /api/v1/self/update` như giao diện gọi → panel restart, cookie cũ còn dùng được, `GET /api/v1/session` trả bản mới, `audit` có dòng; gọi lần hai khi lượt trước đang chạy → 409; nguồn tải có `SHA256SUMS` sai → file chạy cũ còn nguyên, `last.status` là `failed` kèm lý do; `POST /api/v1/self/rollback` → về bản trước; đặt file v0.1.2 làm `tpan.old` → rollback bị từ chối `self_rollback_db` (`scripts/e2e-m15.sh`).
 
 Thứ tự bắt buộc: unit test xanh → e2e xanh trên máy ảo → mới chạy trên VPS. **Không chạy thử lần đầu trên VPS.**
 
@@ -1306,6 +1354,7 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M12** ✅ | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
 | **M13** ✅ | Nhiều người dùng (mục 6.12): bảng `users`, `packages`, `databases`; đăng nhập bằng tên; phân quyền mặc định là cấm ở mọi route; tạm khoá user, site, DB; DB rời; sửa charset; màn Người dùng, Gói, xem như user; CLI `tpan user`, `tpan package`, `site suspend`, `db add/edit/suspend/rm`; giao diện lọc theo vai | test phân quyền duyệt mọi route với ba vai đạt; e2e bước 16 trên máy ảo từ máy sạch: hai user hai gói, user A không thấy và không đụng được site, DB, job của B (404), vượt gói bị từ chối, tạm khoá site ra 403 rồi mở lại ra 200, tạm khoá DB làm chặng DB xám rồi mở lại đạt, tạm khoá user thì không đăng nhập được và mọi site của họ ra 403, mở khoá trả về đúng như trước; máy đang chạy bản cũ nâng lên vẫn đăng nhập được bằng tài khoản `admin` cũ |
 | **M14** ✅ | Cô lập sâu giữa các site và định tuyến có bằng chứng (mục 6.13): file ini OPcache và drop-in `ProtectProc` cho từng bản PHP; `disable_symlinks` trong vhost nginx; vhost Apache gỡ `PHP_VALUE`/`PHP_ADMIN_VALUE` và ba chế độ `.htaccess` (`an-toan`, `tat`, `day-du`) kèm quét chỉ thị; log theo nhóm của site; `Isolated` năm phép thử; phép kiểm `web.hardened`, `web.htaccess`, `log.perm`, `php.opcache`, `php.protectproc`, `web.server_name.unique`, `web.default.rejects`; `tpan security harden`, `tpan site set --htaccess`, `tpan route explain`; ma trận cô lập trên màn Bảo mật | `make check` xanh; e2e bước 17 trên máy ảo sạch, **cả hai stack**, hai site: chín phép thử L1 đến L9 đều cho kết quả "bị chặn" (L8: health chỉ đúng file trùng), các phép "đã thử, không lộ" của nghiên cứu vẫn đạt, WordPress hai site 200, permalink chạy; e2e nâng cấp: cài v0.1.2, tạo hai site, cập nhật lên bản mới, chạy `tpan security harden`, rồi chạy lại bộ phép thử; `docs/giai-thich/14-m14-co-lap-va-dinh-tuyen.md` có phần "vì sao nginx đứng trước"; README, mục 5 và 6.8 cập nhật |
+| **M15** | Nút cập nhật TPAN trong panel (mục 6.14): API chỉ admin khởi đơn vị systemd tạm `tpan-self-update` chạy `tpan internal self-update`; "Kiểm bản mới" là bản xem trước (sha256 sẽ kiểm, tên bản từ file `VERSION`); kết quả ghi vào settings và `audit`; quay về bản trước cùng cơ chế, lõi từ chối khi file cũ không mở được DB; khối "Phiên bản và cập nhật" ở màn Cài đặt và màn Cập nhật; dòng phiên bản cuối trang có chấm khi có bản mới | `make check` xanh, test phân quyền phủ route mới; e2e bước 18 trên máy ảo: cài v0.2.0 từ bản phát hành, lên bản của nhánh, gọi API cập nhật như giao diện gọi: panel restart, phiên đăng nhập cũ còn dùng được, phiên bản đổi, `audit` có dòng; sai sha256 thì file cũ còn nguyên và có lỗi đọc được; quay về chạy được; ảnh khối mới (sáng, tối); `docs/giai-thich/15-m15-nut-cap-nhat.md` |
 
 M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7, và M12 cần health của M4), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc. M1 đến M3 làm nối tiếp; từ M4 các mốc chạy song song theo lượt, mỗi mốc một worktree, một nhánh `moc/M<n>`, một máy ảo, rồi được ghép vào `dev` (mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`). Migration của mốc `n` đánh số từ `n*100` đến `n*100+99`; bảng `schema_migrations` ghi từng bản đã áp, nên ghép mốc không theo thứ tự số vẫn không sót bản nào.
 
@@ -1313,7 +1362,7 @@ M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc �
 
 Để sau, rút ra từ M14 (chi tiết ở mục 3 của `docs/thay-doi/M14-nghien-cuu.md`):
 
-- **Lồng theo site (ứng viên M15).** Mỗi site một dịch vụ PHP-FPM riêng do systemd quản, với `ProtectSystem=strict`, `TemporaryFileSystem=/var/www:ro` + `BindPaths=<thư mục site>`, `PrivateTmp`, `ProtectProc=invisible`, `MemoryMax`, `CPUQuota`, `TasksMax`. Bản thử (`t5`) cho thấy: `ls /var/www` chỉ thấy site của mình, `/tmp` riêng, OPcache riêng, script cấp phát 400 MB bị giết ở trần 200 MB còn site vẫn sống (cần `OOMPolicy=continue`), vòng lặp CPU chậm đi 2,5 lần ở `CPUQuota=50%`. Giá: khoảng 32 MB RAM cho mỗi site kể cả lúc không có khách. Hợp để gắn vào gói của M13 (trần RAM, CPU theo gói).
+- **Lồng theo site (ứng viên cho một mốc sau; số M15 đã dùng cho nút cập nhật, mục 6.14).** Mỗi site một dịch vụ PHP-FPM riêng do systemd quản, với `ProtectSystem=strict`, `TemporaryFileSystem=/var/www:ro` + `BindPaths=<thư mục site>`, `PrivateTmp`, `ProtectProc=invisible`, `MemoryMax`, `CPUQuota`, `TasksMax`. Bản thử (`t5`) cho thấy: `ls /var/www` chỉ thấy site của mình, `/tmp` riêng, OPcache riêng, script cấp phát 400 MB bị giết ở trần 200 MB còn site vẫn sống (cần `OOMPolicy=continue`), vòng lặp CPU chậm đi 2,5 lần ở `CPUQuota=50%`. Giá: khoảng 32 MB RAM cho mỗi site kể cả lúc không có khách. Hợp để gắn vào gói của M13 (trần RAM, CPU theo gói).
 - Tên phụ của site (`www.`), chuyển hướng: hiện `www.<domain>` rơi vào vhost mặc định.
 - `tpan isolation probe` (mục 6.13): chưa làm ở M14. `scripts/e2e-m14/tan-cong.sh` làm đúng việc đó trên máy ảo test; đưa nó thành một Plan của panel là việc để sau.
 - Stack thứ ba "nginx đứng trước Apache": đem `.htaccess` trở lại sau nginx, nên phải đi cùng các chế độ `.htaccess` của mục 6.13.
