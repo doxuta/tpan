@@ -32,6 +32,12 @@ export type ScreenEntry = {
   menu?: MenuSpec;
   /** Vẽ không có khung trang (thanh đầu, menu), ví dụ trang đăng nhập. */
   bare?: boolean;
+  /**
+   * M13: màn chỉ dành cho vai admin. User thường không thấy mục menu, và gõ thẳng
+   * đường dẫn thì thấy trang "không có quyền" (main.tsx bọc màn bằng AdminOnly).
+   * Đây chỉ là phần giao diện: quyền thật do luật của route ở server giữ.
+   */
+  admin?: boolean;
 };
 
 const activeSites = (o: Overview) => o.sites.filter((r) => r.site.status === "active").length;
@@ -94,29 +100,45 @@ export const screens: ScreenEntry[] = [
     menu: { label: "jobs", group: "may" },
   },
   { path: "/jobs/:id", load: () => import("./screens/lich-su").then((m) => m.JobDetail) },
-  { path: "/plans", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanList) },
-  { path: "/plans/:id", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanDetail) },
+  { path: "/plans", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanList), admin: true },
+  { path: "/plans/:id", load: () => import("./screens/plan-cho-duyet").then((m) => m.PlanDetail), admin: true },
   {
     path: "/stack",
     load: () => import("./screens/stack").then((m) => m.default),
     menu: { label: "stack", group: "may" },
+    admin: true,
   },
   {
     path: "/updates",
     load: () => import("./screens/cap-nhat").then((m) => m.default),
     menu: { label: "updates", group: "may" },
+    admin: true,
   },
   {
     path: "/security",
     load: () => import("./screens/bao-mat").then((m) => m.default),
     menu: { label: "security", group: "may" },
+    admin: true,
   },
   {
     path: "/ai",
     load: () => import("./screens/phien-ai").then((m) => m.SessionList),
     menu: { label: "aiSessions", group: "ai" },
+    admin: true,
   },
-  { path: "/ai/:id", load: () => import("./screens/phien-ai").then((m) => m.SessionDetail) },
+  { path: "/ai/:id", load: () => import("./screens/phien-ai").then((m) => m.SessionDetail), admin: true },
+  {
+    path: "/users",
+    load: () => import("./screens/nguoi-dung").then((m) => m.default),
+    menu: { label: "users", group: "taiKhoan" },
+    admin: true,
+  },
+  {
+    path: "/packages",
+    load: () => import("./screens/goi").then((m) => m.default),
+    menu: { label: "packages", group: "taiKhoan" },
+    admin: true,
+  },
   {
     path: "/settings",
     load: () => import("./screens/cai-dat").then((m) => m.default),

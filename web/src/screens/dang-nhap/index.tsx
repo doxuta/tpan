@@ -28,6 +28,7 @@ const resetCommand = "sudo tpan admin passwd";
 
 type Failure =
   | { kind: "wrong" }
+  | { kind: "suspended" }
   | { kind: "locked"; retryAfter: number | null; message: string }
   | { kind: "notSetUp" }
   | { kind: "noSession" }
@@ -43,6 +44,8 @@ export default function DangNhap() {
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
 
+  // Để trống tên là "admin" (máy một người dùng trước M13 chỉ có tài khoản này).
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -59,7 +62,7 @@ export default function DangNhap() {
     setBusy(true);
     setFailure(null);
     try {
-      await post<void>("/api/v1/login", { password });
+      await post<void>("/api/v1/login", { name: name.trim(), password });
       // Đọc lại phiên: nếu logged_in thì dòng Navigate ở trên tự chạy.
       await qc.invalidateQueries({ queryKey: queryKeys.session });
       const s = qc.getQueryData<{ logged_in: boolean }>(queryKeys.session);
@@ -70,6 +73,9 @@ export default function DangNhap() {
         setFailure({ kind: "wrong" });
         setPassword("");
         input.current?.focus();
+      } else if (code === "user_suspended") {
+        setFailure({ kind: "suspended" });
+        setPassword("");
       } else if (code === "login_locked") {
         setLockedAt(Date.now());
         setFailure({ kind: "locked", retryAfter: err instanceof ApiError ? err.retryAfter : null, message: errorMessage(err, lang) });
@@ -117,11 +123,24 @@ export default function DangNhap() {
       <form onSubmit={submit} className="mt-[20px]">
         <Card>
           <Field
+            id="ten-dang-nhap"
+            type="text"
+            label={t.nameLabel}
+            hint={t.nameHint}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <div className="mt-[16px]" />
+          <Field
             ref={input}
             id="mat-khau"
             type="password"
             label={t.passwordLabel}
             autoComplete="current-password"
+            // Giữ thói quen cũ: mở trang là gõ mật khẩu luôn (tên để trống là admin).
             autoFocus
             required
             value={password}
@@ -141,6 +160,7 @@ export default function DangNhap() {
         <h2 className="m-0 text-[16px] font-semibold">{t.forgotTitle}</h2>
         <p className="mt-[6px] mb-[6px] text-[14px] text-muted">{t.forgotBody}</p>
         <MonoText bold>{resetCommand}</MonoText>
+        <p className="mt-[10px] mb-0 text-[14px] text-muted">{t.forgotUser}</p>
       </section>
 
       {session.data?.demo && (
@@ -159,6 +179,9 @@ function FailureNote({ failure, t, lang, lockedAt, failLabel }: { failure: Failu
   switch (failure.kind) {
     case "wrong":
       body = t.wrongPassword;
+      break;
+    case "suspended":
+      body = t.suspended;
       break;
     case "locked":
       body = failure.retryAfter === null ? failure.message : lockedText(t, lang, lockedAt, failure.retryAfter);

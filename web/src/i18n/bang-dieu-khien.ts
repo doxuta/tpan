@@ -45,6 +45,8 @@ const vi = {
   stationLabel: (domain: string, stage: string) => `${domain} · ${stage}`,
   httpLabel: (domain: string, code: string | null) => `${domain} · HTTP ${code ?? "chưa có mã"}`,
   httpNone: "chưa có mã",
+  // Site tạm khoá (M13): một dòng xám dưới hàng, nói ga xám là do khoá chứ không phải do hỏng.
+  suspendedLine: "Tạm khoá: khách vào site thấy trang 403. Các ga PHP, WordPress, DB không kiểm vì đang tắt.",
   failLine: (stage: string, summary: string, shared: boolean) => `Hỏng ở ${stage}: ${summary}` + (shared ? " · lỗi của tầng dùng chung" : ""),
   // Dòng số request dưới tên site. short vừa cột 180 px (≥ là "ít nhất"), full cho trình đọc màn hình và tooltip.
   trafficShort: (requests: string, errors: string, partial: boolean) => `${partial ? "≥ " : ""}${requests} req · ${errors} 5xx`,
@@ -55,6 +57,21 @@ const vi = {
   panelClose: "Đóng bằng chứng",
   noChecks: "Chưa có phép kiểm nào cho chặng này, nên chưa nói được đạt hay hỏng.",
   sharedTag: "dùng chung cả máy",
+
+  // User thường (M13): hạn mức gói thay cho số liệu máy
+  summaryUser: "Đường đi request của các site của bạn, sự cố đang mở và hạn mức gói.",
+  quotaTitle: (pkg: string) => `Hạn mức gói ${pkg}`,
+  quotaSites: "SITE",
+  quotaDBs: "DB RỜI",
+  quotaDisk: "DUNG LƯỢNG",
+  quotaUnlimited: "không giới hạn",
+  quotaOf: (limit: string) => `trên ${limit} · vạch 80%`,
+  quotaFull: (limit: string) => `đã đủ ${limit}, chưa tạo thêm được`,
+  quotaOver: (limit: string) => `vượt ${limit}, chưa tạo thêm được`,
+  quotaDiskNotMeasured: "chưa đo",
+  quotaDiskNotMeasuredSub: "đo mỗi giờ",
+  quotaBackups: (limit: string) => `Backup tối đa mỗi site: ${limit}`,
+  quotaHint: "Cần thêm chỗ thì nhờ quản trị viên nâng gói.",
 
   // Máy
   machineTitle: "Máy",
@@ -141,6 +158,7 @@ export const strings = defineStrings(vi, {
   stationLabel: (domain, stage) => `${domain} · ${stage}`,
   httpLabel: (domain, code) => `${domain} · HTTP ${code ?? "no code"}`,
   httpNone: "no code",
+  suspendedLine: "Suspended: visitors get a 403 page. The PHP, WordPress and DB stations are not checked because they are switched off.",
   failLine: (stage, summary, shared) => `Failed at ${stage}: ${summary}` + (shared ? " · shared-layer failure" : ""),
   trafficShort: (requests, errors, partial) => `${partial ? "≥ " : ""}${requests} req · ${errors} 5xx`,
   trafficFull: (requests, errors, partial) => `${partial ? "At least " : ""}${requests} requests, ${errors} 5xx errors in the last hour`,
@@ -149,6 +167,20 @@ export const strings = defineStrings(vi, {
   panelClose: "Close evidence",
   noChecks: "There is no check for this stage yet, so it cannot say pass or fail.",
   sharedTag: "shared by the whole machine",
+
+  summaryUser: "The request path of your sites, open incidents and your package limits.",
+  quotaTitle: (pkg) => `Limits of package ${pkg}`,
+  quotaSites: "SITES",
+  quotaDBs: "STANDALONE DBS",
+  quotaDisk: "DISK",
+  quotaUnlimited: "unlimited",
+  quotaOf: (limit) => `of ${limit} · mark at 80%`,
+  quotaFull: (limit) => `full at ${limit}, cannot create more`,
+  quotaOver: (limit) => `over ${limit}, cannot create more`,
+  quotaDiskNotMeasured: "not measured",
+  quotaDiskNotMeasuredSub: "measured every hour",
+  quotaBackups: (limit) => `Max backups per site: ${limit}`,
+  quotaHint: "Need more room? Ask an admin to raise your package.",
 
   machineTitle: "Machine",
   cpu: "CPU",

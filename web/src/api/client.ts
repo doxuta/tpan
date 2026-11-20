@@ -110,6 +110,8 @@ export function del<T>(path: string): Promise<T> {
 export function errorMessage(err: unknown, lang: Lang): string {
   const t = khung[lang];
   if (err instanceof ApiError) {
+    // Phiên "xem như" chỉ đọc (mục 6.12): câu riêng chỉ cách thoát, thay cho câu chung của máy chủ.
+    if (err.code === "read_only_view") return t.readOnlyView;
     if (err.body) return tx(err.body.error.message, lang) || t.errorHttp(err.status);
     return err.status === 0 ? t.errorNetwork : t.errorHttp(err.status);
   }

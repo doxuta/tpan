@@ -5,13 +5,14 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useAi } from "../../ai/AiProvider";
+import { useWho } from "../../api/m13-users";
 import type { CheckResult } from "../../api/types";
 import { Button } from "../../components/Button";
 import { CommandBlock } from "../../components/CommandBlock";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { StatusMark } from "../../components/StatusMark";
+import { useStatusName } from "../../components/useStatusName";
 import { tx, useLang, useStrings } from "../../i18n";
-import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/site";
 
 /** Id hợp lệ cho aria-controls: id phép kiểm có dấu ":" và "." nên đổi hết ký tự lạ. */
@@ -27,9 +28,10 @@ type Props = {
 
 export function CheckItem({ check, open, onToggle }: Props) {
   const t = useStrings(strings);
-  const k = useStrings(khung);
+  const statusName = useStatusName();
   const { lang } = useLang();
   const { openAI } = useAi();
+  const { isAdmin } = useWho(); // user thường không có AI (mục 6.12): không có nút "Giải thích"
   const panelId = checkPanelId(check.id);
   const cause = tx(check.cause, lang);
   const fix = check.manual_fix ?? [];
@@ -48,7 +50,7 @@ export function CheckItem({ check, open, onToggle }: Props) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-medium">
-            <span className="sr-only">{k.status[check.status]}: </span>
+            <span className="sr-only">{statusName(check.status, check.suspended)}: </span>
             {tx(check.title, lang)}
           </span>
           <span className="block text-muted">{tx(check.summary, lang)}</span>
@@ -79,7 +81,7 @@ export function CheckItem({ check, open, onToggle }: Props) {
             </Link>
           )}
           {/* Phép kiểm không đạt: ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
-          {(check.status === "fail" || check.status === "warn") && (
+          {isAdmin && (check.status === "fail" || check.status === "warn") && (
             <div>
               <Button
                 title={t.explainHint}

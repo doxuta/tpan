@@ -23,3 +23,19 @@ export function worstStatus(list: readonly CheckResult[]): Status {
 export function checksOfStage(checks: readonly CheckResult[], stage: Stage): CheckResult[] {
   return checks.filter((c) => c.stage === stage);
 }
+
+/** Dấu của một nhóm phép kiểm: trạng thái xấu nhất, và có phải xám vì tạm khoá (M13) chứ không phải vì chưa kiểm được. */
+export type Mark = { status: Status; suspended: boolean };
+
+/**
+ * Xám vì tạm khoá khi mọi phép kiểm "chưa kiểm được" trong nhóm đều mang cờ
+ * suspended. Nhóm không có phép kiểm nào thì theo cả site (siteSuspended):
+ * site đang khoá mà chặng không có gì để kiểm là đúng ý. Trạng thái khác
+ * (đạt, cảnh báo, lỗi) không bao giờ là "tạm khoá": trang tạm khoá sai thì vẫn đỏ.
+ */
+export function worstMark(list: readonly CheckResult[], siteSuspended = false): Mark {
+  const status = worstStatus(list);
+  if (status !== "unknown") return { status, suspended: false };
+  const gray = list.filter((c) => c.status === "unknown");
+  return { status, suspended: gray.length > 0 ? gray.every((c) => c.suspended === true) : siteSuspended };
+}

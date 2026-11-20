@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
+import { useWho } from "../../api/m13-users";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { Backup, BackupsOverview, BackupSettingsRequest, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -42,6 +43,8 @@ export default function Backups() {
   const q = useQuery({ queryKey: backupsKey, queryFn: () => get<BackupsOverview>(backupsPath) });
   // Cùng khoá overview với khung trang: không gọi thêm API. Cho biết site nào đang chạy, đang ở thùng rác.
   const overview = useOverview();
+  // Cài đặt lịch và số bản giữ (POST /backups/settings) là route chỉ admin.
+  const { isAdmin } = useWho();
 
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState<{ req: Req; preview: Preview } | null>(null);
@@ -131,13 +134,15 @@ export default function Backups() {
             />
           </section>
 
-          <BackupSettingsForm
-            key={`${q.data.settings.keep}|${q.data.settings.at}`}
-            settings={q.data.settings}
-            pending={pendingReq?.action === "settings"}
-            anyPending={dry.isPending}
-            onPreview={(body) => ask({ action: "settings", body })}
-          />
+          {isAdmin && (
+            <BackupSettingsForm
+              key={`${q.data.settings.keep}|${q.data.settings.at}`}
+              settings={q.data.settings}
+              pending={pendingReq?.action === "settings"}
+              anyPending={dry.isPending}
+              onPreview={(body) => ask({ action: "settings", body })}
+            />
+          )}
 
           {dry.isError && asked && (
             <div ref={resultRef} tabIndex={-1} className="pt-[20px] outline-offset-0">

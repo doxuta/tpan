@@ -4,10 +4,11 @@ import { defineStrings } from "./index";
 
 const vi = {
   title: "Cài đặt",
-  summary: "Mật khẩu quản trị, các phiên đang đăng nhập, ngôn ngữ, sáng hoặc tối, AI và bộ não.",
+  summary: "Mật khẩu của bạn, các phiên đang đăng nhập, ngôn ngữ, sáng hoặc tối, AI và bộ não.",
+  summaryUser: "Mật khẩu của bạn, các phiên đang đăng nhập, ngôn ngữ, sáng hoặc tối.",
 
-  // Mật khẩu quản trị
-  pwHeading: "Mật khẩu quản trị",
+  // Mật khẩu của tài khoản đang đăng nhập (M13: mỗi user một mật khẩu)
+  pwHeading: "Mật khẩu của bạn",
   pwIntro: (min: number) => `Mật khẩu mới dài ít nhất ${min} ký tự. Đổi xong, mọi phiên khác bị đăng xuất.`,
   pwCurrent: "Mật khẩu hiện tại",
   pwNew: "Mật khẩu mới",
@@ -80,9 +81,10 @@ const vi = {
 
 export const strings = defineStrings(vi, {
   title: "Settings",
-  summary: "Admin password, active sessions, language, light or dark, AI and brain.",
+  summary: "Your password, active sessions, language, light or dark, AI and brain.",
+  summaryUser: "Your password, active sessions, language, light or dark.",
 
-  pwHeading: "Admin password",
+  pwHeading: "Your password",
   pwIntro: (min) => `The new password must be at least ${min} characters. After the change, every other session is logged out.`,
   pwCurrent: "Current password",
   pwNew: "New password",

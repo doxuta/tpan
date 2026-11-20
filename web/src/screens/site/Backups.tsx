@@ -33,7 +33,8 @@ const shownCount = 5;
 
 type Req = { action: "create" } | { action: "restore"; backup: Backup };
 
-export function Backups({ domain, active }: { domain: string; active: boolean }) {
+/** restoreBlocked (M13): lý do không khôi phục được (site đang tạm khoá); có thì các nút Khôi phục vô hiệu. */
+export function Backups({ domain, active, restoreBlocked }: { domain: string; active: boolean; restoreBlocked?: string }) {
   const t = useStrings(strings);
   const b = useStrings(backupStrings);
   const k = useStrings(khung);
@@ -102,6 +103,11 @@ export function Backups({ domain, active }: { domain: string; active: boolean })
         )}
       </div>
       <p className="mt-0 mb-[12px] max-w-[720px] text-[13px] text-muted">{active ? t.bkHint : t.bkTrashed}</p>
+      {restoreBlocked && (
+        <p id="khoi-phuc-bi-chan" className="mt-0 mb-[12px] max-w-[720px] text-[13px] text-muted">
+          {restoreBlocked}
+        </p>
+      )}
 
       {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
       {q.isError && (
@@ -138,7 +144,11 @@ export function Backups({ domain, active }: { domain: string; active: boolean })
                   }
                   if (!active) return null;
                   return (
-                    <Button aria-label={t.bkRestoreFor(formatWhen(x.created, lang))} disabled={dry.isPending} onClick={() => ask({ action: "restore", backup: x })}>
+                    <Button
+                      aria-label={t.bkRestoreFor(formatWhen(x.created, lang))}
+                      aria-describedby={restoreBlocked ? "khoi-phuc-bi-chan" : undefined}
+                      disabled={dry.isPending || restoreBlocked !== undefined}
+                      onClick={() => ask({ action: "restore", backup: x })}>
                       {pending?.action === "restore" && pending.backup.id === x.id ? t.bkPreviewing : t.bkRestore}
                     </Button>
                   );

@@ -7,10 +7,11 @@
 
 import type { CheckResult, Stage, Status } from "../../api/types";
 import { StatusMark } from "../../components/StatusMark";
+import { useStatusName } from "../../components/useStatusName";
 import { useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/site";
-import { checksOfStage, routeStages, worstStatus } from "./route";
+import { checksOfStage, routeStages, worstMark } from "./route";
 
 /** Id của nhóm phép kiểm ứng với một ga, để ga trỏ tới (aria-controls) và chuyển focus tới. */
 export function stageGroupId(stage: Stage): string {
@@ -41,12 +42,15 @@ type Props = {
   /** Ga vừa được bấm (gạch chân tên ga). */
   selected: Stage | null;
   onSelect: (stage: Stage) => void;
+  /** M13: site đang tạm khoá. Chặng không có phép kiểm nào thì xám "tạm khoá" thay vì "chưa kiểm được". */
+  suspended?: boolean;
 };
 
-export function RouteMap({ domain, checks, selected, onSelect }: Props) {
+export function RouteMap({ domain, checks, selected, onSelect, suspended = false }: Props) {
   const t = useStrings(strings);
   const k = useStrings(khung);
-  const states = routeStages.map((stage) => ({ stage, status: worstStatus(checksOfStage(checks, stage)) }));
+  const statusName = useStatusName();
+  const states = routeStages.map((stage) => ({ stage, ...worstMark(checksOfStage(checks, stage), suspended) }));
   const firstFail = states.findIndex((s) => s.status === "fail");
 
   // Đoạn j nằm giữa ga j-1 và ga j (j = 0 là đoạn trước ga đầu, j = 6 là đoạn sau ga cuối).
@@ -70,7 +74,7 @@ export function RouteMap({ domain, checks, selected, onSelect }: Props) {
                 type="button"
                 aria-controls={stageGroupId(s.stage)}
                 aria-current={on ? "true" : undefined}
-                aria-label={k.statusLabel(name, k.status[s.status])}
+                aria-label={k.statusLabel(name, statusName(s.status, s.suspended))}
                 onClick={() => onSelect(s.stage)}
                 className="group block w-full bg-transparent p-0 text-center"
               >

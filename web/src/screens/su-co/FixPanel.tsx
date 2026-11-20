@@ -11,6 +11,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { useAi } from "../../ai/AiProvider";
 import { post } from "../../api/client";
+import { useWho } from "../../api/m13-users";
 import type { AcceptFileRequest, CheckResult, FixRequest, Incident, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
 import { CommandBlock } from "../../components/CommandBlock";
@@ -34,6 +35,8 @@ export function FixPanel({ incident, live }: Props) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const { openAI } = useAi();
+  // Sửa tự động, nhận bản sửa tay và hỏi AI là route chỉ admin (docs/thay-doi/M13.md): user thường chỉ có sửa tay.
+  const { isAdmin } = useWho();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -81,9 +84,9 @@ export function FixPanel({ incident, live }: Props) {
       <h2 id="cach-sua" className="m-0 pt-[26px] pb-[4px] text-[16px] font-semibold">
         {t.fixHeading}
       </h2>
-      <p className="m-0 pb-[10px] text-muted">{t.fixHint}</p>
+      <p className="m-0 pb-[10px] text-muted">{isAdmin ? t.fixHint : t.fixHintUser}</p>
 
-      {autoFix && (
+      {isAdmin && autoFix && (
         <Option heading={t.autoHeading} id="sua-tu-dong">
           <p className="m-0 text-muted">{t.autoBody}</p>
           {isDrift && <p className="mt-[6px] mb-0 text-muted">{t.autoDrift}</p>}
@@ -123,7 +126,7 @@ export function FixPanel({ incident, live }: Props) {
         )}
       </Option>
 
-      {isDrift && driftPath && (
+      {isAdmin && isDrift && driftPath && (
         <Option heading={t.acceptHeading} id="nhan-ban-sua-tay">
           <p className="m-0 text-muted">{t.acceptBody}</p>
           <p className="mt-[6px] mb-0">
@@ -151,22 +154,24 @@ export function FixPanel({ incident, live }: Props) {
       )}
 
       {/* Hỏi AI: cùng lối vào với nút "Chẩn đoán" ở đầu trang. Ngăn AI mở ra ở bước xem trước, người xem rồi tự gửi. */}
-      <Option heading={t.aiHeading} id="hoi-ai">
-        <p className="m-0 text-muted">{t.aiBody}</p>
-        <div className="pt-[10px]">
-          <Button
-            onClick={() =>
-              openAI({
-                mode: "diagnose",
-                question: t.diagnoseQuestion(tx(incident.title, lang)),
-                pointer: { kind: "incident", ref: String(incident.id), label: tx(incident.title, lang) },
-              })
-            }
-          >
-            {t.aiButton}
-          </Button>
-        </div>
-      </Option>
+      {isAdmin && (
+        <Option heading={t.aiHeading} id="hoi-ai">
+          <p className="m-0 text-muted">{t.aiBody}</p>
+          <div className="pt-[10px]">
+            <Button
+              onClick={() =>
+                openAI({
+                  mode: "diagnose",
+                  question: t.diagnoseQuestion(tx(incident.title, lang)),
+                  pointer: { kind: "incident", ref: String(incident.id), label: tx(incident.title, lang) },
+                })
+              }
+            >
+              {t.aiButton}
+            </Button>
+          </div>
+        </Option>
+      )}
     </section>
   );
 }

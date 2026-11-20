@@ -1,41 +1,43 @@
-// Màn Cơ sở dữ liệu (mục 6.9 của KE-HOACH.md): bảng kẻ mảnh các cơ sở dữ liệu
-// của site (GET /api/v1/databases), mỗi hàng ba việc: Đổi mật khẩu, Xuất .sql,
-// Nhập từ một bản đã xuất. Cả ba đi đúng ba chặng như màn Thùng rác (màn mẫu
-// để theo): bấm nút → gọi ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy
-// → máy chủ trả job_id, chuyển tới /jobs/:id. Cùng lúc chỉ mở một việc nên cả
-// ba dùng chung một cặp mutation và một chỗ hiện bản xem trước. Site trong
-// thùng rác chỉ cho xuất: đổi mật khẩu và nhập sẽ ghi vào wp-config.php và DB
-// của một site đã ngừng chạy.
+// Màn Cơ sở dữ liệu (mục 6.9 và 6.12 của KE-HOACH.md): bảng kẻ mảnh mọi cơ sở
+// dữ liệu (GET /api/v1/databases), gồm DB đi kèm site và DB rời (M13).
+//
+//   DB của site: Đổi mật khẩu, Xuất .sql, Nhập từ bản đã xuất (M9), Đổi charset,
+//                Tạm khoá / Mở khoá (admin).
+//   DB rời:      Sửa (charset có xem trước, ghi chú lưu ngay), Đổi mật khẩu,
+//                Tạm khoá / Mở khoá (admin), Xoá (vào thùng rác).
+//
+// Mọi việc đi đúng ba chặng như màn Thùng rác (màn mẫu để theo): bấm nút → gọi
+// ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy → máy chủ trả job_id,
+// chuyển tới /jobs/:id. Ba chặng nằm trong hook usePreviewedOp nên cùng lúc chỉ
+// mở một việc. Site trong thùng rác chỉ cho xuất: đổi mật khẩu và nhập sẽ ghi vào
+// wp-config.php và DB của một site đã ngừng chạy. Site đang tạm khoá chưa nhập
+// được (máy chủ từ chối site_suspended: nhập ghi lại pool PHP).
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
-import { errorMessage, get, post } from "../../api/client";
-import { queryKeys, useOverview } from "../../api/queries";
-import type { Backup, DatabaseRow, DBImportRequest, JobStarted, Preview } from "../../api/types";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router";
+import { errorMessage, get } from "../../api/client";
+import { useIdentity } from "../../api/m13-dbs";
+import { useOverview } from "../../api/queries";
+import type { Backup, DatabaseRow } from "../../api/types";
 import { Button } from "../../components/Button";
 import { DomainText } from "../../components/DomainText";
 import { MonoText } from "../../components/MonoText";
+import { usePreviewedOp } from "../../components/PreviewedOp";
 import { ScreenHeader } from "../../components/ScreenHeader";
-import { TableList } from "../../components/TableList";
+import { SuspendTag } from "../../components/SuspendTag";
+import { TableList, type Column } from "../../components/TableList";
+import { Tag } from "../../components/Tag";
 import { useLang, useStrings, type Lang } from "../../i18n";
 import { strings } from "../../i18n/co-so-du-lieu";
 import { strings as khung } from "../../i18n/khung";
+import { strings as chung } from "../../i18n/m13-chung";
 import { backupsKey } from "../backup/model";
-import { PlanReview } from "../duyet-plan";
-import { ErrorNote } from "../site/ErrorNote";
-import { formatWhen } from "../thung-rac/model";
+import { formatWhen, trashKey } from "../thung-rac/model";
+import { CreateDialog } from "./CreateDialog";
+import { EditPanel } from "./EditPanel";
 import { ImportPicker } from "./ImportPicker";
-import { databasesKey, databasesPath, dbOpPath } from "./model";
-
-/** Việc đang hỏi: đủ để gọi cả hai chặng (xem trước và chạy) và để chữ nói đúng việc. */
-type Req =
-  | { action: "password"; row: DatabaseRow }
-  | { action: "dump"; row: DatabaseRow }
-  | { action: "import"; row: DatabaseRow; backup: Backup };
-
-const pathOf = (r: Req) => dbOpPath(r.row.domain, r.action);
-const bodyOf = (r: Req): DBImportRequest | undefined => (r.action === "import" ? { backup_id: r.backup.id } : undefined);
+import { databasesKey, databasesPath, rowOp, type RowAction } from "./model";
 
 /** Byte thành KB, MB hoặc GB, một số lẻ, dấu thập phân theo ngôn ngữ. */
 function formatSize(bytes: number, lang: Lang): string {
@@ -58,74 +60,163 @@ function Min({ w, children }: { w: string; children: ReactNode }) {
 export default function CoSoDuLieu() {
   const t = useStrings(strings);
   const k = useStrings(khung);
+  const m = useStrings(chung);
   const { lang } = useLang();
-  const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { isAdmin } = useIdentity();
   const q = useQuery({ queryKey: databasesKey, queryFn: () => get<DatabaseRow[]>(databasesPath) });
-  // Cùng khoá overview với khung trang: không gọi thêm API. Cho biết site nào đang ở thùng rác.
+  // Cùng khoá overview với khung trang: không gọi thêm API. Cho biết site nào đang ở thùng rác hay tạm khoá.
   const overview = useOverview();
-  const trashed = useMemo(() => new Set((overview.data?.sites ?? []).filter((r) => r.site.status === "trashed").map((r) => r.site.domain)), [overview.data]);
-
-  /** Site đang chọn nguồn nhập (chặng trước khi có bản xem trước). */
-  const [picking, setPicking] = useState<DatabaseRow | null>(null);
-  const [open, setOpen] = useState<{ req: Req; preview: Preview } | null>(null);
-  /** Việc vừa bấm: để chữ nút và lỗi nói đúng việc. */
-  const [asked, setAsked] = useState<Req | null>(null);
-  const resultRef = useRef<HTMLDivElement>(null);
-
-  const dry = useMutation({
-    mutationFn: (req: Req) => post<Preview>(`${pathOf(req)}?dry_run=1`, bodyOf(req)),
-    onSuccess: (preview, req) => setOpen({ req, preview }),
-  });
-  const run = useMutation({
-    mutationFn: (req: Req) => post<JobStarted>(pathOf(req), bodyOf(req)),
-    onSuccess: (job) => {
-      // Dung lượng, danh sách bản xuất và số đếm ở menu đều đổi sau job.
-      void qc.invalidateQueries({ queryKey: databasesKey });
-      void qc.invalidateQueries({ queryKey: backupsKey });
-      void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
-    },
-  });
-
-  // Có bản xem trước, lỗi hoặc ô chọn nguồn nhập mới thì đưa người dùng tới đó, vì chúng nằm dưới bảng.
-  const shown = open ?? (dry.isError ? asked : null) ?? picking;
-  useEffect(() => {
-    if (shown) {
-      resultRef.current?.scrollIntoView({ block: "start" });
-      resultRef.current?.focus();
+  const siteState = useMemo(() => {
+    const trashed = new Set<string>();
+    const suspended = new Set<string>();
+    for (const r of overview.data?.sites ?? []) {
+      if (r.site.status === "trashed") trashed.add(r.site.domain);
+      if (r.site.suspended) suspended.add(r.site.domain);
     }
-  }, [shown]);
+    return { trashed, suspended };
+  }, [overview.data]);
 
-  function ask(req: Req) {
-    setOpen(null);
-    run.reset();
-    setAsked(req);
-    dry.mutate(req);
+  // Dung lượng, danh sách bản xuất, thùng rác và số đếm ở menu đều đổi sau job.
+  const op = usePreviewedOp([databasesKey, backupsKey, trashKey]);
+  const [creating, setCreating] = useState(false);
+  /** Khối đang mở dưới bảng: chọn bản nhập (DB của site) hoặc Sửa, Đổi charset. Theo tên DB để dữ liệu luôn mới. */
+  const [view, setView] = useState<{ kind: "import" | "edit"; db: string } | null>(null);
+
+  const rows = q.data ?? [];
+  const viewRow = view ? rows.find((r) => r.db === view.db) : undefined;
+
+  function act(action: RowAction, row: DatabaseRow, extra?: { backup?: Backup }) {
+    if (action !== "import") setView(null);
+    void op.ask(rowOp(t, action, row, { ...extra, when: extra?.backup ? formatWhen(extra.backup.created, lang) : undefined }));
+  }
+  function open(kind: "import" | "edit", row: DatabaseRow) {
+    op.close();
+    setView({ kind, db: row.db });
+  }
+  function closeAll() {
+    op.close();
+    setView(null);
   }
 
-  function close() {
-    setOpen(null);
-    setAsked(null);
-    setPicking(null);
-    dry.reset();
-    run.reset();
+  const btn = (action: RowAction, row: DatabaseRow, label: string, aria: string) => (
+    <Button aria-label={aria} disabled={op.pending} onClick={() => act(action, row)}>
+      {op.busy(`${action}:${row.db}`) ? m.previewing : label}
+    </Button>
+  );
+
+  /** Việc của một hàng. Ba việc đầu của DB site là của M9 và giữ nguyên. */
+  function actions(r: DatabaseRow): ReactNode {
+    const site = r.kind === "site";
+    const trashed = r.status === "trashed" || (site && siteState.trashed.has(r.domain));
+    const siteSuspended = site && siteState.suspended.has(r.domain);
+    const lock = isAdmin ? btn(r.suspended ? "unsuspend" : "suspend", r, r.suspended ? t.unsuspend : t.suspend, r.suspended ? t.unsuspendFor(r.db) : t.suspendFor(r.db)) : null;
+
+    if (!site) {
+      if (trashed) {
+        return (
+          <span className="text-[13px] text-muted">
+            {t.inTrashDb} <Link to="/trash">{t.trashedLink}</Link>
+          </span>
+        );
+      }
+      return (
+        <span className="flex min-w-[150px] flex-wrap items-center gap-[8px]">
+          <Button aria-label={t.editFor(r.db)} disabled={op.pending} onClick={() => open("edit", r)}>
+            {t.edit}
+          </Button>
+          {btn("password", r, t.password, t.passwordForDb(r.db))}
+          {lock}
+          {btn("trash", r, t.trash, t.trashFor(r.db))}
+        </span>
+      );
+    }
+    return (
+      <span className="flex min-w-[150px] flex-wrap items-center gap-[8px]">
+        {!trashed && btn("password", r, t.password, t.passwordFor(r.domain))}
+        {btn("dump", r, t.dump, t.dumpFor(r.domain))}
+        {!trashed && (
+          <Button aria-label={t.importFor(r.domain)} disabled={op.pending || siteSuspended} onClick={() => open("import", r)}>
+            {t.importOpen}
+          </Button>
+        )}
+        {!trashed && (
+          <Button aria-label={t.charsetFor(r.domain)} disabled={op.pending} onClick={() => open("edit", r)}>
+            {t.charset}
+          </Button>
+        )}
+        {!trashed && lock}
+        {trashed && (
+          <span className="text-[13px] text-muted">
+            {t.trashedLead}
+            <Link to="/trash">{t.trashedLink}</Link>
+            {t.trashedTail}
+          </span>
+        )}
+        {siteSuspended && !trashed && <span className="basis-full text-[13px] text-muted">{t.importBlocked}</span>}
+      </span>
+    );
   }
 
-  function pickImport(row: DatabaseRow) {
-    close();
-    setPicking(row);
-  }
-
-  const pending = dry.isPending ? asked : null;
-  const busy = (action: Req["action"], domain: string) => pending?.action === action && pending.row.domain === domain;
-
-  const errorHeading = (r: Req): string =>
-    r.action === "password" ? t.passwordErrorHeading(r.row.domain) : r.action === "dump" ? t.dumpErrorHeading(r.row.domain) : t.importErrorHeading(r.row.domain);
-
-  /** Lời nói rõ điều gì sẽ xảy ra, đặt trên bản xem trước (chữ đậm, không dấu đỏ: đỏ chỉ dành cho tình trạng máy). */
-  const warningOf = (r: Req): string =>
-    r.action === "password" ? t.passwordWarning(r.row.db, r.row.domain) : r.action === "dump" ? t.dumpWarning(r.row.db) : t.importWarning(r.row.domain, formatWhen(r.backup.created, lang));
+  const columns: Column<DatabaseRow>[] = [
+    {
+      // DB và user chung một cột (thường cùng tên): bảng bớt một cột rộng, vừa khung khi cửa sổ hẹp.
+      header: t.colDbUser,
+      cell: (r) => (
+        <Min w="min-w-[216px]">
+          <span className="flex flex-wrap items-baseline gap-x-[10px] gap-y-[4px]">
+            <MonoText>{r.db}</MonoText>
+            {r.suspended && <SuspendTag how={r.suspended} />}
+          </span>
+          {r.user === r.db ? (
+            <span className="block text-[12px] text-muted">{t.sameUser}</span>
+          ) : (
+            <span className="block">
+              <MonoText>{r.user}</MonoText>
+            </span>
+          )}
+          {r.note && <span className="mt-[2px] block max-w-[320px] text-[13px] text-muted [overflow-wrap:anywhere]">{r.note}</span>}
+        </Min>
+      ),
+    },
+    {
+      header: t.colType,
+      cell: (r) =>
+        r.kind === "site" ? (
+          <Min w="min-w-[130px]">
+            <span className="block text-[13px]">{t.kindSite}</span>
+            <Link to={`/sites/${encodeURIComponent(r.domain)}`} className="font-mono text-[13px]">
+              <DomainText domain={r.domain} />
+            </Link>
+          </Min>
+        ) : (
+          <Tag>{t.kindStandalone}</Tag>
+        ),
+    },
+    ...(isAdmin ? [{ header: m.colOwner, className: "font-mono text-[13px]", cell: (r: DatabaseRow) => r.owner } satisfies Column<DatabaseRow>] : []),
+    {
+      header: t.colCharset,
+      cell: (r) =>
+        r.charset ? (
+          <Min w="min-w-[130px]">
+            <span className="block font-mono text-[13px]">{r.charset}</span>
+            <span className="block font-mono text-[12px] text-muted">{r.collation}</span>
+          </Min>
+        ) : (
+          <span className="text-muted">{t.none}</span>
+        ),
+    },
+    {
+      header: t.colSize,
+      className: "text-right whitespace-nowrap tabular-nums",
+      cell: (r) => (r.size_bytes < 0 ? <span className="text-muted">{t.unreadable}</span> : formatSize(r.size_bytes, lang)),
+    },
+    {
+      header: t.colTables,
+      className: "text-right whitespace-nowrap tabular-nums",
+      cell: (r) => (r.tables < 0 ? <span className="text-muted">{t.unreadable}</span> : r.tables),
+    },
+    { header: t.colAction, className: "pr-0", cell: actions },
+  ];
 
   return (
     <>
@@ -142,121 +233,47 @@ export default function CoSoDuLieu() {
         )}
         {q.isSuccess && (
           <>
+            <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pb-[14px]">
+              <h2 className="m-0 text-[16px] font-semibold">{t.listHeading(rows.length)}</h2>
+              <Button variant="primary" onClick={() => setCreating(true)}>
+                {t.createButton}
+              </Button>
+            </div>
             <TableList
               caption={t.tableName}
-              rows={q.data}
+              rows={rows}
               rowKey={(r) => r.db}
               empty={
                 <>
                   {t.emptyText} <Link to="/sites/new">{t.emptyLink}</Link>
                 </>
               }
-              columns={[
-                {
-                  // DB và user chung một cột (thường cùng tên): bảng bớt một cột rộng, vừa khung khi cửa sổ hẹp.
-                  header: t.colDbUser,
-                  cell: (r) => (
-                    <Min w="min-w-[216px]">
-                      <MonoText>{r.db}</MonoText>
-                      {r.user === r.db ? (
-                        <span className="block text-[12px] text-muted">{t.sameUser}</span>
-                      ) : (
-                        <span className="block">
-                          <MonoText>{r.user}</MonoText>
-                        </span>
-                      )}
-                    </Min>
-                  ),
-                },
-                {
-                  header: t.colSite,
-                  cell: (r) => (
-                    <Min w="min-w-[130px]">
-                      <Link to={`/sites/${encodeURIComponent(r.domain)}`} className="font-mono text-[13px]">
-                        <DomainText domain={r.domain} />
-                      </Link>
-                    </Min>
-                  ),
-                },
-                {
-                  header: t.colSize,
-                  className: "text-right whitespace-nowrap tabular-nums",
-                  cell: (r) => (r.size_bytes < 0 ? <span className="text-muted">{t.unreadable}</span> : formatSize(r.size_bytes, lang)),
-                },
-                {
-                  header: t.colTables,
-                  className: "text-right whitespace-nowrap tabular-nums",
-                  cell: (r) => (r.tables < 0 ? <span className="text-muted">{t.unreadable}</span> : r.tables),
-                },
-                {
-                  header: t.colAction,
-                  className: "pr-0",
-                  cell: (r) => {
-                    const locked = dry.isPending;
-                    const inTrash = trashed.has(r.domain);
-                    return (
-                      <span className="flex min-w-[150px] flex-wrap items-center gap-[8px]">
-                        {!inTrash && (
-                          <Button aria-label={t.passwordFor(r.domain)} disabled={locked} onClick={() => ask({ action: "password", row: r })}>
-                            {busy("password", r.domain) ? t.previewing : t.password}
-                          </Button>
-                        )}
-                        <Button aria-label={t.dumpFor(r.domain)} disabled={locked} onClick={() => ask({ action: "dump", row: r })}>
-                          {busy("dump", r.domain) ? t.previewing : t.dump}
-                        </Button>
-                        {!inTrash && (
-                          <Button aria-label={t.importFor(r.domain)} disabled={locked} onClick={() => pickImport(r)}>
-                            {t.importOpen}
-                          </Button>
-                        )}
-                        {inTrash && (
-                          <span className="text-[13px] text-muted">
-                            {t.trashedLead}
-                            <Link to="/trash">{t.trashedLink}</Link>
-                            {t.trashedTail}
-                          </span>
-                        )}
-                      </span>
-                    );
-                  },
-                },
-              ]}
+              columns={columns}
             />
             <p className="mt-[16px] mb-0 max-w-[720px] text-[13px] text-muted">{t.hint}</p>
+            <p className="mt-[8px] mb-0 max-w-[720px] text-[13px] text-muted">{t.hintM13}</p>
 
-            {picking && !open && !dry.isError && (
-              <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
+            {view?.kind === "import" && viewRow?.kind === "site" && !op.hasPreview && (
+              <div tabIndex={-1} className="outline-offset-0">
                 <ImportPicker
-                  key={picking.domain}
-                  domain={picking.domain}
-                  pending={pending?.action === "import"}
-                  anyPending={dry.isPending}
-                  onPreview={(backup) => ask({ action: "import", row: picking, backup })}
-                  onCancel={close}
+                  key={viewRow.domain}
+                  domain={viewRow.domain}
+                  pending={op.busy(`import:${viewRow.db}`)}
+                  anyPending={op.pending}
+                  onPreview={(backup) => act("import", viewRow, { backup })}
+                  onCancel={closeAll}
                 />
               </div>
             )}
 
-            {dry.isError && asked && (
-              <div ref={resultRef} tabIndex={-1} className="pt-[26px] outline-offset-0">
-                <ErrorNote error={dry.error} heading={errorHeading(asked)} checksHeading={t.checksHeading} />
-                <div className="pt-[12px]">
-                  <Button onClick={close}>{k.cancel}</Button>
-                </div>
-              </div>
-            )}
+            {view?.kind === "edit" && viewRow && !op.hasPreview && <EditPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
 
-            {open && (
-              <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
-                <p role="alert" className="m-0 max-w-[720px] pt-[26px] font-semibold">
-                  {warningOf(open.req)}
-                </p>
-                <PlanReview preview={open.preview} onRun={() => run.mutate(open.req)} running={run.isPending} error={run.error} onCancel={close} />
-              </div>
-            )}
+            {op.panel}
           </>
         )}
       </div>
+
+      <CreateDialog open={creating} onOpenChange={setCreating} op={op} />
     </>
   );
 }

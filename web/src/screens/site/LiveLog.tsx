@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useAi } from "../../ai/AiProvider";
 import { subscribeSiteLog } from "../../api/client";
+import { useWho } from "../../api/m13-users";
 import type { LogFile } from "../../api/types";
 import { Button } from "../../components/Button";
 import { SegmentButton } from "../../components/SegmentButton";
@@ -40,6 +41,7 @@ export function LiveLog({ domain }: { domain: string }) {
   // đẩy dòng cũ ra khỏi 500 dòng giữ lại, chỉ số sẽ trôi sang dòng khác.
   const [selected, setSelected] = useState<number | null>(null);
   const { openAI } = useAi();
+  const { isAdmin } = useWho(); // user thường không có AI (mục 6.12): không có nút "Giải thích"
 
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true); // người dùng đang ở cuối thì tự cuộn theo dòng mới
@@ -150,20 +152,22 @@ export function LiveLog({ domain }: { domain: string }) {
           </Button>
         )}
         {/* Dòng log là chữ không tin cậy: chỉ đi vào câu hỏi như chữ thường, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
-        <Button
-          disabled={selectedLine === undefined}
-          title={t.explainHint}
-          onClick={() =>
-            selectedLine !== undefined &&
-            openAI({
-              mode: "explain",
-              question: t.explainLogQuestion,
-              pointer: { kind: "log_line", ref: `${domain}/${file}`, text: selectedLine, label: t.explainLogLabel(t.logFiles[file]) },
-            })
-          }
-        >
-          {t.explainLogButton}
-        </Button>
+        {isAdmin && (
+          <Button
+            disabled={selectedLine === undefined}
+            title={t.explainHint}
+            onClick={() =>
+              selectedLine !== undefined &&
+              openAI({
+                mode: "explain",
+                question: t.explainLogQuestion,
+                pointer: { kind: "log_line", ref: `${domain}/${file}`, text: selectedLine, label: t.explainLogLabel(t.logFiles[file]) },
+              })
+            }
+          >
+            {t.explainLogButton}
+          </Button>
+        )}
         <span aria-live="polite" className="min-w-0 flex-[1_1_240px] text-[13px] text-muted [overflow-wrap:anywhere]">
           {status}
         </span>

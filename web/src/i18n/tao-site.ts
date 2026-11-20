@@ -19,6 +19,9 @@ const vi = {
   emailLabel: "Email quản trị",
   emailHint: "Tài khoản quản trị WordPress dùng email này. Mật khẩu của nó hiện một lần sau khi tạo xong.",
   emailRequired: "Nhập email quản trị, ví dụ admin@example.com.",
+  ownerLabel: "Chủ site",
+  ownerHint: "Site thuộc user này và tính vào gói của họ. Mặc định là chính bạn.",
+  ownerSelf: (name: string) => `${name} (bạn)`,
 
   preview: "Xem trước",
   previewing: "Đang dựng bản xem trước…",
@@ -67,6 +70,9 @@ export const strings = defineStrings(vi, {
   emailLabel: "Admin email",
   emailHint: "The WordPress admin account uses this email. Its password is shown once, after the site is created.",
   emailRequired: "Enter the admin email, for example admin@example.com.",
+  ownerLabel: "Site owner",
+  ownerHint: "The site belongs to this user and counts against their package. It defaults to you.",
+  ownerSelf: (name) => `${name} (you)`,
 
   preview: "Preview",
   previewing: "Building the preview…",

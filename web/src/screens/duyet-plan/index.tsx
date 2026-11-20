@@ -4,7 +4,7 @@
 // Không có route riêng: màn Tạo site và thao tác Xoá site nhúng component này
 // với Preview lấy từ ?dry_run=1.
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { errorMessage } from "../../api/client";
 import type { FileChange, Preview, StepPreview } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -38,6 +38,8 @@ export function PlanReview({ preview, onRun, running = false, error, onCancel }:
   const { lang } = useLang();
   const { tips } = useTips();
   const [confirming, setConfirming] = useState(false);
+  // Trang site có thể mở hai bản xem trước cùng lúc (Tạm khoá và Đưa vào thùng rác): id phải riêng từng bản.
+  const headingId = useId();
 
   const toRun = preview.steps.filter((s) => !s.done);
   const skipped = preview.steps.length - toRun.length;
@@ -49,8 +51,8 @@ export function PlanReview({ preview, onRun, running = false, error, onCancel }:
   const press = () => (dangerous.length > 0 ? setConfirming(true) : onRun());
 
   return (
-    <section aria-labelledby="plan-heading" className="pt-[26px]">
-      <h2 id="plan-heading" className="m-0 text-[16px] font-semibold">
+    <section aria-labelledby={headingId} className="pt-[26px]">
+      <h2 id={headingId} className="m-0 text-[16px] font-semibold">
         {t.heading}: {tx(preview.title, lang)}
       </h2>
       <p className="mt-[6px] mb-0 text-muted">{t.summary}</p>

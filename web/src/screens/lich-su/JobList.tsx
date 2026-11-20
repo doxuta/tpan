@@ -4,8 +4,10 @@
 // "hoàn tác" là việc của M6 nên chưa có.
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router";
 import { errorMessage, get } from "../../api/client";
+import { useUsers, useWho } from "../../api/m13-users";
 import type { Job } from "../../api/types";
 import { Button } from "../../components/Button";
 import { MonoText } from "../../components/MonoText";
@@ -13,18 +15,29 @@ import { ScreenHeader } from "../../components/ScreenHeader";
 import { tx, useLang, useStrings, type Lang } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/lich-su";
+import { SelectField } from "../dang-nhap/SelectField";
 import { formatDateTime, formatDuration } from "./format";
 import { elapsedMs } from "./jobModel";
 
 const listLimit = 100;
 
+// Bề rộng các cột của hàng (và của dòng nhãn cột ngay trên nó) để hai bên thẳng cột.
+const wId = "flex-[0_0_72px]";
+const wWhen = "flex-[0_0_110px]";
+const wWho = "flex-[0_0_104px]";
+const wResult = "flex-[0_1_220px]";
+
 export function JobList() {
   const t = useStrings(strings);
   const k = useStrings(khung);
   const { lang } = useLang();
+  const { isAdmin } = useWho();
+  // Ô lọc theo người chạy (?user=) chỉ có với admin: user thường chỉ thấy job của mình.
+  const [user, setUser] = useState("");
+  const users = useUsers(isAdmin);
   const jobs = useQuery({
-    queryKey: ["jobs"],
-    queryFn: () => get<Job[]>(`/api/v1/jobs?limit=${listLimit}`),
+    queryKey: ["jobs", user],
+    queryFn: () => get<Job[]>(`/api/v1/jobs?limit=${listLimit}${user ? `&user=${encodeURIComponent(user)}` : ""}`),
     // Có job đang chạy thì đọc lại để thấy nó xong; không thì thôi.
     refetchInterval: (q) => (q.state.data?.some((j) => j.status === "running") ? 3000 : false),
   });
@@ -32,6 +45,18 @@ export function JobList() {
   return (
     <>
       <ScreenHeader title={t.title} summary={t.summary} />
+      {isAdmin && (
+        <div className="max-w-[360px] pt-[20px]">
+          <SelectField id="loc-nguoi-lam" label={t.filterLabel} hint={t.filterHint} value={user} onChange={(e) => setUser(e.target.value)}>
+            <option value="">{t.filterAll}</option>
+            {users.data?.map((u) => (
+              <option key={u.user.name} value={u.user.name}>
+                {u.user.name}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+      )}
       <section aria-label={t.listLabel} className="pt-[26px]">
         {jobs.isPending && <p className="m-0 text-muted">{k.loading}</p>}
         {jobs.isError && (
@@ -42,13 +67,23 @@ export function JobList() {
             </div>
           </div>
         )}
-        {jobs.data && jobs.data.length === 0 && <p className="m-0 border-t border-hair py-[10px] text-muted">{t.empty}</p>}
+        {jobs.data && jobs.data.length === 0 && <p className="m-0 border-t border-hair py-[10px] text-muted">{user ? t.emptyFiltered : t.empty}</p>}
         {jobs.data && jobs.data.length > 0 && (
+          <>
+            {/* Nhãn cột chỉ để nhìn (mỗi ô "Ai làm" của hàng có nhãn riêng cho trình đọc màn hình); ẩn ở màn hẹp vì hàng xuống dòng. */}
+            <div aria-hidden="true" className="hidden gap-x-[16px] pb-[6px] font-mono text-[11px] tracking-[0.08em] text-muted sm:flex">
+              <span className={wId}>{t.colJob}</span>
+              <span className={wWhen}>{t.colWhen}</span>
+              <span className="min-w-0 flex-[1_1_200px]">{t.colWhat}</span>
+              <span className={wWho}>{t.colWho}</span>
+              <span className={wResult}>{t.colResult}</span>
+            </div>
           <ul className="m-0 list-none p-0">
             {jobs.data.map((j) => (
               <JobRow key={j.id} job={j} lang={lang} />
             ))}
           </ul>
+          </>
         )}
       </section>
     </>
@@ -62,14 +97,19 @@ function JobRow({ job, lang }: { job: Job; lang: Lang }) {
   const result = ms === null ? status : t.statusWithTime(status, formatDuration(ms, t, lang));
   return (
     <li className="flex flex-wrap items-baseline gap-x-[16px] gap-y-[4px] border-t border-hair py-[10px]">
-      <span className="flex-[0_0_72px] font-mono text-[12px] text-muted">{job.id.slice(0, 8)}</span>
-      <span title={job.started} className="flex-[0_0_110px] font-mono text-[12px] text-muted">
+      <span className={`${wId} font-mono text-[12px] text-muted`}>{job.id.slice(0, 8)}</span>
+      <span title={job.started} className={`${wWhen} font-mono text-[12px] text-muted`}>
         {formatDateTime(job.started, lang)}
       </span>
       <span className="min-w-0 flex-[1_1_200px]">
         <TitleWithTarget title={tx(job.title, lang)} target={job.target} />
       </span>
-      <span className="flex-[0_1_220px] text-[13px] text-muted">{result}</span>
+      {/* Ai làm: user TPAN đã chạy; rỗng là dòng lệnh, MCP hay bộ hẹn giờ. */}
+      <span className={`${wWho} min-w-0 font-mono text-[12px] break-all ${job.actor ? "" : "text-muted"}`}>
+        <span className="sr-only">{t.whoLabel}: </span>
+        {job.actor || t.whoCli}
+      </span>
+      <span className={`${wResult} text-[13px] text-muted`}>{result}</span>
       <Link to={`/jobs/${encodeURIComponent(job.id)}`} aria-label={t.evidenceOf(job.id)} className="inline-flex min-h-[44px] items-center text-[13px] sm:min-h-0">
         {t.evidenceLink}
       </Link>

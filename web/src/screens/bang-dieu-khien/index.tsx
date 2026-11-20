@@ -8,6 +8,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { errorMessage, post } from "../../api/client";
+import { useWho } from "../../api/m13-users";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { HealthReport, Status } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -19,6 +20,7 @@ import { strings as khung } from "../../i18n/khung";
 import { History } from "./History";
 import { Machine } from "./Machine";
 import { checksWith, fmtWhen } from "./model";
+import { QuotaBlock } from "./Quota";
 import { RouteMap } from "./RouteMap";
 import { Side } from "./Side";
 import { TpanChecks } from "./TpanChecks";
@@ -29,6 +31,7 @@ export default function BangDieuKhien() {
   const t = useStrings(strings);
   const kt = useStrings(khung);
   const { lang } = useLang();
+  const { isAdmin } = useWho();
   const qc = useQueryClient();
   const q = useOverview();
   const o = q.data;
@@ -51,7 +54,7 @@ export default function BangDieuKhien() {
   return (
     <div className="flex flex-wrap gap-x-[40px]">
       <div className="min-w-0 flex-[999_1_560px]">
-        <ScreenHeader title={t.title} summary={summary} />
+        <ScreenHeader title={t.title} summary={isAdmin ? summary : t.summaryUser} />
 
         {q.isPending && <p className="mt-[24px] mb-0 text-muted">{kt.loading}</p>}
         {!o && q.isError && (
@@ -70,9 +73,12 @@ export default function BangDieuKhien() {
             <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
               <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
                 <h2 className="m-0 text-[16px] font-semibold">{t.mapTitle}</h2>
-                <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
-                  {recheck.isPending ? t.rechecking : t.recheck}
-                </Button>
+                {/* POST /health/run chỉ dành cho admin (docs/thay-doi/M13.md): user thường vẫn thấy sự cố của mình nhưng không bấm kiểm lại. */}
+                {isAdmin && (
+                  <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
+                    {recheck.isPending ? t.rechecking : t.recheck}
+                  </Button>
+                )}
               </div>
               <ul aria-label={t.legend} className="m-0 flex list-none flex-wrap gap-x-[18px] gap-y-[8px] p-0">
                 {legend.map((s) => (
@@ -89,13 +95,20 @@ export default function BangDieuKhien() {
               </p>
             )}
             <RouteMap o={o} />
-            <Machine m={o.machine} />
-            <TpanChecks checks={o.tpan_checks} />
+            {/* User thường: hạn mức gói thay cho số liệu máy, và không có khối TPAN tự kiểm (mục 6.12). */}
+            {isAdmin ? (
+              <>
+                <Machine m={o.machine} />
+                <TpanChecks checks={o.tpan_checks} />
+              </>
+            ) : (
+              o.quota && <QuotaBlock quota={o.quota} />
+            )}
             <History jobs={o.jobs} />
           </>
         )}
       </div>
-      {o && <Side o={o} />}
+      {o && <Side o={o} admin={isAdmin} />}
     </div>
   );
 }

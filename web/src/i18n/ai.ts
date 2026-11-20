@@ -108,6 +108,11 @@ const vi = {
   paletteCloseAi: "Đóng ngăn AI",
   paletteAsk: (q: string) => `Hỏi AI: ${q}`,
   paletteAskHint: "xem trước rồi gửi",
+  // User thường không có AI (mục 6.12): thanh lệnh chỉ để mở màn.
+  paletteHintUser: "Gõ tên màn rồi Enter. ↑ ↓ để đổi dòng, Esc để đóng.",
+  paletteInputUser: "Gõ tên màn cần mở",
+  palettePlaceholderUser: "Gõ tên màn cần mở…",
+  paletteNone: "Không có màn nào khớp.",
 };
 
 export const strings = defineStrings(vi, {
@@ -204,4 +209,8 @@ export const strings = defineStrings(vi, {
   paletteCloseAi: "Close the AI drawer",
   paletteAsk: (q) => `Ask AI: ${q}`,
   paletteAskHint: "preview, then send",
+  paletteHintUser: "Type a screen name, then Enter. Up and down change the row, Esc closes.",
+  paletteInputUser: "Type the name of a screen to open",
+  palettePlaceholderUser: "Type the name of a screen to open…",
+  paletteNone: "No screen matches.",
 });

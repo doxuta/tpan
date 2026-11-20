@@ -12,6 +12,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { ApiError, post } from "../../api/client";
+import { useIdentity } from "../../api/m13-dbs";
+import { useUsers } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, SiteCreate } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -48,7 +50,7 @@ export default function TaoSite() {
   );
 }
 
-type Field = "domain" | "title" | "email";
+type Field = "domain" | "title" | "email" | "owner";
 
 // Mã lỗi của máy chủ ứng với ô nhập nào. Mã khác (stack chưa cài, job đang
 // chạy, điều kiện chưa đạt...) không thuộc ô nào nên hiện cạnh nút.
@@ -58,6 +60,9 @@ const fieldOfCode: Record<string, Field> = {
   site_trashed: "domain",
   title_invalid: "title",
   email_invalid: "email",
+  // M13: chủ không có hoặc đang bị khoá. Hạn mức gói (quota_*) không thuộc ô nào nên hiện cạnh nút, kèm câu từ chối của máy chủ.
+  user_not_found: "owner",
+  user_suspended: "owner",
 };
 
 const inputClass =
@@ -72,6 +77,12 @@ function OneSite() {
   const [domain, setDomain] = useState("");
   const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
+  // M13: chỉ admin chọn chủ. Rỗng là chính mình; user thường không có ô này và máy chủ tự đặt chủ là người gọi.
+  const { isAdmin, name: me } = useIdentity();
+  const users = useUsers(isAdmin);
+  const [ownerSel, setOwnerSel] = useState("");
+  const owner = ownerSel || me;
+  const owners = (users.data ?? []).filter((u) => u.user.status === "active").map((u) => u.user.name);
   /** Lỗi nhập thiếu, bắt ngay ở trình duyệt để khỏi gọi máy chủ chỉ để nghe "thiếu". */
   const [missing, setMissing] = useState<Field | null>(null);
   /** Nội dung đã gửi đi xem trước. "Chạy" gửi đúng bản này. */
@@ -119,7 +130,7 @@ function OneSite() {
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const body: SiteCreate = { domain: domain.trim(), title: title.trim(), email: email.trim() };
+    const body: SiteCreate = { domain: domain.trim(), title: title.trim(), email: email.trim(), ...(isAdmin && owner !== me ? { owner } : {}) };
     const empty: Field | null = body.domain === "" ? "domain" : body.email === "" ? "email" : null;
     setMissing(empty);
     if (empty) {
@@ -195,6 +206,41 @@ function OneSite() {
             placeholder: "admin@example.com",
             className: `${inputClass} font-mono text-[13px]`,
           })}
+          {isAdmin && (
+            <div>
+              <label htmlFor="o-owner" className="mb-[4px] block font-medium">
+                {t.ownerLabel}
+              </label>
+              <p id="h-owner" className="mt-0 mb-[6px] text-[13px] text-muted">
+                {t.ownerHint}
+              </p>
+              <select
+                id="o-owner"
+                name="owner"
+                value={owner}
+                onChange={(e) => edit(setOwnerSel, "owner")(e.target.value)}
+                aria-describedby={`h-owner${fieldError("owner") ? " e-owner" : ""}`}
+                aria-invalid={fieldError("owner") ? true : undefined}
+                className={`${inputClass} font-mono text-[13px]`}
+              >
+                {/* Danh sách chưa tải xong hoặc lỗi: vẫn có đúng một lựa chọn là chính mình, nên tạo site cho mình không bị chặn. */}
+                {!owners.includes(me) && <option value={me}>{t.ownerSelf(me)}</option>}
+                {owners.map((n) => (
+                  <option key={n} value={n}>
+                    {n === me ? t.ownerSelf(n) : n}
+                  </option>
+                ))}
+              </select>
+              {fieldError("owner") && (
+                <div id="e-owner" role="alert" className="mt-[8px] flex items-start gap-[10px]">
+                  <span className="flex h-[21px] w-[20px] flex-none items-center justify-center">
+                    <StatusMark status="fail" />
+                  </span>
+                  <span className="font-medium">{fieldError("owner")}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         {apiErr && !errField && (
           <div className="pt-[16px]">

@@ -2,6 +2,7 @@
 // đang đăng nhập, ngôn ngữ, sáng hoặc tối, mục "AI và bộ não" (M8), và mục
 // Agent và MCP (M7).
 
+import { useWho } from "../../api/m13-users";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { SegmentButton } from "../../components/SegmentButton";
 import { useLang, useStrings, type Lang } from "../../i18n";
@@ -18,10 +19,11 @@ export default function CaiDat() {
   const k = useStrings(khung);
   const { lang, setLang } = useLang();
   const { theme, choice, setTheme } = useTheme();
+  const { isAdmin } = useWho();
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
+      <ScreenHeader title={t.title} summary={isAdmin ? t.summary : t.summaryUser} />
       <MatKhau />
       <Phien />
 
@@ -57,8 +59,13 @@ export default function CaiDat() {
         {choice === "system" && <p className="mt-[10px] mb-0 text-muted">{t.themeSystemNow(theme === "dark")}</p>}
       </section>
 
-      <BoNao />
-      <Agent />
+      {/* AI, bộ não và MCP chỉ dành cho admin (mục 6.12): user thường không thấy hai mục này. */}
+      {isAdmin && (
+        <>
+          <BoNao />
+          <Agent />
+        </>
+      )}
     </>
   );
 }

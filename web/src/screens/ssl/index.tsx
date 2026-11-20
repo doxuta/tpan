@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
+import { useWho } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, SSLOverview, SSLSiteRow } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -31,6 +32,7 @@ export default function SSLScreen() {
   const { lang } = useLang();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { isAdmin } = useWho();
   const q = useQuery({ queryKey: sslKey, queryFn: () => get<SSLOverview>("/api/v1/ssl") });
 
   const [open, setOpen] = useState<Open | null>(null);
@@ -87,7 +89,8 @@ export default function SSLScreen() {
       )}
       {q.isSuccess && (
         <>
-          <Settings config={q.data.config} />
+          {/* POST /ssl/settings là route chỉ admin. */}
+          {isAdmin && <Settings config={q.data.config} />}
 
           <section aria-labelledby="ssl-sites">
             <h2 id="ssl-sites" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">

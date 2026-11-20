@@ -17,6 +17,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
 import { post, subscribeAITurn } from "../api/client";
+import { useWho } from "../api/m13-users";
 import type { AIChipKey, AIEvent, AIPointer, AITurnStatus, AIView, AskInput, AskStarted } from "../api/types";
 import { useLang } from "../i18n";
 import { viewLabel } from "./views";
@@ -118,6 +119,8 @@ function applyEvent(t: TurnView, ev: AIEvent): TurnView {
 export function AiProvider({ children }: { children: ReactNode }) {
   const { lang } = useLang();
   const location = useLocation();
+  // Mọi route /ai/... trả 403 cho user thường (mục 6.12): không gọi chúng.
+  const { isAdmin } = useWho();
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<AiMode>("ask");
@@ -141,8 +144,9 @@ export function AiProvider({ children }: { children: ReactNode }) {
     if (lastPath.current === path) return; // đổi ngôn ngữ cũng chạy lại effect này
     lastPath.current = path;
     setPaths((p) => (p.at(-1) === path ? p : [...p, path].slice(-trailMax)));
+    if (!isAdmin) return;
     post("/api/v1/ai/views", { path, label: viewLabel(path, lang) } satisfies AIView).catch(() => {});
-  }, [location.pathname, lang]);
+  }, [location.pathname, lang, isAdmin]);
 
   // Rời Layout (đăng xuất) thì thôi nghe lượt đang chạy.
   useEffect(() => () => stop.current?.(), []);

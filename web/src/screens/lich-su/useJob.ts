@@ -20,7 +20,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { get, subscribeJobEvents } from "../../api/client";
-import type { AdminSecret, JobDetail, JobEvent } from "../../api/types";
+import type { AdminSecret, DBSecret, JobDetail, JobEvent } from "../../api/types";
 
 // ---- secret: giữ trong bộ nhớ, ngoài cache ----
 
@@ -55,9 +55,29 @@ export function useAdminSecret(id: string): { secrets: AdminSecret[]; dismiss: (
   return { secrets: list, dismiss: (index) => setSecrets(id, list.filter((_, i) => i !== index)) };
 }
 
+// M13: mật khẩu DB rời vừa tạo hoặc vừa đổi (JobDetail.db_secret) cũng chỉ có ở một
+// lần GET sau khi job xong, nên giữ y như trên: ngoài cache, trong bộ nhớ của
+// module, tới khi người dùng bấm "Đã lưu, ẩn đi".
+const dbSecrets = new Map<string, DBSecret>();
+
+function setDbSecret(id: string, s: DBSecret | null) {
+  if (s) dbSecrets.set(id, s);
+  else dbSecrets.delete(id);
+  for (const l of listeners) l();
+}
+
+export function useDbSecret(id: string): { secret: DBSecret | null; dismiss: () => void } {
+  const secret = useSyncExternalStore(
+    subscribeSecrets,
+    () => dbSecrets.get(id) ?? null,
+    () => null,
+  );
+  return { secret, dismiss: () => setDbSecret(id, null) };
+}
+
 // ---- job ----
 
-type JobBase = Omit<JobDetail, "secret" | "secrets">;
+type JobBase = Omit<JobDetail, "secret" | "secrets" | "db_secret">;
 
 export type StreamState = "idle" | "live" | "lost";
 
@@ -74,6 +94,7 @@ export function useJob(id: string) {
       const d = await get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
       const list = [...(d.secret ? [d.secret] : []), ...(d.secrets ?? [])];
       if (list.length > 0) setSecrets(id, list);
+      if (d.db_secret) setDbSecret(id, d.db_secret);
       return { job: d.job, events: d.events };
     },
     // Tiến độ đi qua SSE, không đọc lại theo thời gian hay khi chuyển tab: mỗi lần GET

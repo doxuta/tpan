@@ -26,9 +26,11 @@ type Props = {
   version: string;
   /** SiteInfo.socket; vắng khi máy chủ chưa trả. */
   socket?: string;
+  /** M13: lý do không đổi bản PHP được (site hay user DB đang khoá). Có thì nút vô hiệu và lý do hiện ngay dưới. */
+  blocked?: string;
 };
 
-export function PhpBlock({ domain, version, socket }: Props) {
+export function PhpBlock({ domain, version, socket, blocked }: Props) {
   const t = useStrings(strings);
   const k = useStrings(khung);
   const { lang } = useLang();
@@ -128,10 +130,16 @@ export function PhpBlock({ domain, version, socket }: Props) {
                   run.reset();
                   dry.mutate({ version: value });
                 }}
-                disabled={dry.isPending || run.isPending || value === version}>
+                aria-describedby={blocked ? "php-bi-chan" : undefined}
+                disabled={dry.isPending || run.isPending || value === version || blocked !== undefined}>
                 {dry.isPending ? t.phpPreviewing : t.phpChange}
               </Button>
             </div>
+            {blocked && (
+              <p id="php-bi-chan" className="mt-[10px] mb-0 max-w-[720px] text-[13px] text-muted">
+                {blocked}
+              </p>
+            )}
             <p className="mt-[10px] mb-0 max-w-[720px] text-muted">{t.phpHint}</p>
           </>
         ))}

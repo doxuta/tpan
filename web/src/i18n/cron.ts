@@ -42,6 +42,8 @@ const vi = {
   evidenceLabel: (d: string, exit: number) => `BẰNG CHỨNG · ${d} · MÃ THOÁT ${exit}`,
   emptyOutput: "Lệnh không in gì ra (nó chạy với --quiet), nên chỉ có dòng lệnh ở trên.",
   skippedNote: "Bị bỏ qua vì site không còn đang chạy.",
+  skippedSuspended: "Bị bỏ qua vì site đang tạm khoá.",
+  suspendedWhy: "Site đang tạm khoá nên cron của nó tắt (file cron đã đổi tên .suspended). Mở khoá site ở trang site thì cron chạy lại.",
 
   // Site không bật
   notEnabled: "không bật",
@@ -108,6 +110,8 @@ export const strings = defineStrings(vi, {
   evidenceLabel: (d, exit) => `EVIDENCE · ${d} · EXIT CODE ${exit}`,
   emptyOutput: "The command prints nothing (it runs with --quiet), so only the command line is shown above.",
   skippedNote: "Skipped because the site is no longer running.",
+  skippedSuspended: "Skipped because the site is suspended.",
+  suspendedWhy: "The site is suspended, so its cron is off (the cron file is renamed .suspended). Unsuspend the site on its page and the cron runs again.",
 
   notEnabled: "off",
   trashedLead: "The site is in the trash, so its cron file was removed. Restore the site from the ",

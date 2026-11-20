@@ -4,6 +4,7 @@
 
 import type { CheckResult, Overview, SiteRow, Stage, Status, Traffic } from "../../api/types";
 import type { Lang } from "../../i18n";
+import { worstMark } from "../site/route";
 
 /** Sáu ga trên một tuyến, theo thứ tự đường đi của request (mục 1 của GIAO-DIEN.md). */
 export const stationStages = ["dns", "tls", "web", "php", "wordpress", "db"] as const;
@@ -18,13 +19,16 @@ export type Item = { check: CheckResult; shared: boolean };
  */
 export type Line = "solid" | "dashed" | "split";
 
-export type Cell = { stage: StationStage; status: Status; items: Item[]; line: Line };
+/** suspended (M13): ga xám vì tạm khoá chứ không phải vì chưa kiểm được; chỉ có nghĩa khi status là "unknown". */
+export type Cell = { stage: StationStage; status: Status; suspended: boolean; items: Item[]; line: Line };
 
 export type Route = {
   domain: string;
+  /** M13: site đang tạm khoá (Site.suspended). */
+  suspended: boolean;
   cells: Cell[];
   /** Cột HTTP lấy từ phép kiểm chặng e2e. code null: chưa có mã (chưa gọi được, hoặc chưa có phép kiểm). */
-  http: { code: string | null; status: Status; items: Item[] };
+  http: { code: string | null; status: Status; suspended: boolean; items: Item[] };
   /** Chặng hỏng đầu tiên trên tuyến này, để viết dòng "Hỏng ở ..." dưới hàng. */
   broken: { stage: Stage; item: Item } | null;
   /** Request và 5xx một giờ qua của site; không có khi server chưa đọc được. */
@@ -54,26 +58,31 @@ export function buildRoute(row: SiteRow, shared: CheckResult[]): Route {
     ...row.checks.filter((c) => c.stage === stage).map((check) => ({ check, shared: false })),
   ];
 
+  const siteSuspended = Boolean(row.site.suspended);
+  // Cùng cách tính với trang site (worstMark): xám "tạm khoá" khi mọi phép kiểm chưa kiểm được đều mang cờ suspended.
+  const markOf = (items: Item[]) => worstMark(items.map((i) => i.check), siteSuspended);
+
   const cells: Cell[] = [];
   let broken: Route["broken"] = null;
   for (const stage of stationStages) {
     const items = itemsOf(stage);
-    const status = worst(items);
+    const { status, suspended } = markOf(items);
     // Từ ga hỏng trở đi nét luôn đứt, kể cả ga sau đó đạt; ga "chưa kiểm được" đứt ở chính nó.
     const line: Line = broken ? "dashed" : status === "fail" ? "split" : status === "unknown" ? "dashed" : "solid";
     if (!broken && status === "fail") {
       broken = { stage, item: items.find((i) => i.check.status === "fail")! };
     }
-    cells.push({ stage, status, items, line });
+    cells.push({ stage, status, suspended, items, line });
   }
 
   const httpItems = itemsOf("e2e");
-  const http = { code: httpCode(httpItems), status: worst(httpItems), items: httpItems };
+  const httpMark = markOf(httpItems);
+  const http = { code: httpCode(httpItems), status: httpMark.status, suspended: httpMark.suspended, items: httpItems };
   // Chỉ phép kiểm cuối hỏng (ví dụ trả 200 nhưng không phải WordPress): sáu ga đều ổn mà site vẫn hỏng, nên phải nói ra.
   if (!broken && http.status === "fail") {
     broken = { stage: "e2e", item: httpItems.find((i) => i.check.status === "fail")! };
   }
-  return { domain: row.site.domain, cells, http, broken, traffic: row.traffic };
+  return { domain: row.site.domain, suspended: siteSuspended, cells, http, broken, traffic: row.traffic };
 }
 
 export type Entry = { check: CheckResult; /** null: phép kiểm của cả máy. */ domain: string | null };

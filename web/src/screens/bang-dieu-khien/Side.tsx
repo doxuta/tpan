@@ -56,7 +56,7 @@ function Where({ domain, stage, size }: { domain: string | null; stage: Stage; s
 }
 
 /** Sự cố theo hợp đồng: target "" là máy và stack, "tpan" là chính tpan, còn lại là domain của site. */
-function Incident({ inc }: { inc: IncidentData }) {
+function Incident({ inc, admin }: { inc: IncidentData; admin: boolean }) {
   const t = useStrings(strings);
   const kt = useStrings(khung);
   const at = useStrings(agent);
@@ -81,7 +81,8 @@ function Incident({ inc }: { inc: IncidentData }) {
           {t.openIncident}
         </Link>
       </div>
-      <ClaudeCommand prompt={at.diagnoseCheck(tx(inc.title, lang), domain ?? at.thisMachine)} />
+      {/* Lệnh nhờ Claude Code chẩn đoán là phần AI: chỉ admin (mục 6.12). */}
+      {admin && <ClaudeCommand prompt={at.diagnoseCheck(tx(inc.title, lang), domain ?? at.thisMachine)} />}
     </Card>
   );
 }
@@ -119,7 +120,7 @@ function Warning({ e }: { e: Entry }) {
   );
 }
 
-export function Side({ o }: { o: Overview }) {
+export function Side({ o, admin }: { o: Overview; admin: boolean }) {
   const t = useStrings(strings);
   const warns = checksWith(o, "warn");
   return (
@@ -130,7 +131,7 @@ export function Side({ o }: { o: Overview }) {
         ) : (
           <div className="flex flex-col gap-[12px]">
             {o.incidents.map((inc) => (
-              <Incident key={inc.id} inc={inc} />
+              <Incident key={inc.id} inc={inc} admin={admin} />
             ))}
           </div>
         )}
@@ -149,7 +150,8 @@ export function Side({ o }: { o: Overview }) {
           </div>
         )}
       </Block>
-      <PendingPlans />
+      {/* Plan do AI hoặc agent đề xuất: chỉ admin thấy và duyệt (GET /plans là route admin). */}
+      {admin && <PendingPlans />}
     </aside>
   );
 }

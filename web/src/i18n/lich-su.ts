@@ -13,6 +13,19 @@ const vi = {
   evidenceLink: "bằng chứng",
   evidenceOf: (id: string) => `Bằng chứng của job ${id}`,
 
+  // Cột "Ai làm" (M13): user đã chạy job; job chạy từ dòng lệnh, MCP, bộ hẹn giờ không có tên.
+  colJob: "MÃ JOB",
+  colWhen: "GIỜ",
+  colWhat: "VIỆC",
+  colWho: "AI LÀM",
+  colResult: "KẾT QUẢ",
+  whoLabel: "Ai làm",
+  whoCli: "dòng lệnh",
+  filterLabel: "Lọc theo người làm",
+  filterAll: "Mọi người",
+  filterHint: "Chỉ lọc theo user của TPAN; việc chạy từ dòng lệnh không có tên nên không nằm trong kết quả lọc.",
+  emptyFiltered: "Người này chưa chạy việc nào.",
+
   // ---- trạng thái job ----
   status: {
     running: "đang chạy",
@@ -125,6 +138,18 @@ export const strings = defineStrings(vi, {
   listLabel: "Jobs that ran",
   evidenceLink: "evidence",
   evidenceOf: (id) => `Evidence for job ${id}`,
+
+  colJob: "JOB ID",
+  colWhen: "TIME",
+  colWhat: "ACTION",
+  colWho: "BY",
+  colResult: "RESULT",
+  whoLabel: "Done by",
+  whoCli: "CLI",
+  filterLabel: "Filter by who did it",
+  filterAll: "Everyone",
+  filterHint: "This filters by TPAN user only; jobs run from the command line have no name, so they are not in a filtered list.",
+  emptyFiltered: "This user has not run anything yet.",
 
   status: {
     running: "running",

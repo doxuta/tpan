@@ -13,6 +13,7 @@ import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { Tag } from "../../components/Tag";
+import { useStatusName } from "../../components/useStatusName";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bang-dieu-khien";
 import { strings as khung } from "../../i18n/khung";
@@ -38,6 +39,7 @@ function Track({ kind }: { kind: Line }) {
 export function RouteMap({ o }: { o: Overview }) {
   const t = useStrings(strings);
   const kt = useStrings(khung);
+  const statusName = useStatusName();
   const { lang } = useLang();
   const panelId = useId();
   const [open, setOpen] = useState<Open | null>(null);
@@ -125,7 +127,7 @@ export function RouteMap({ o }: { o: Overview }) {
                           data-key={k}
                           aria-expanded={isOpen}
                           aria-controls={isOpen ? panelId : undefined}
-                          aria-label={kt.statusLabel(t.stationLabel(r.domain, t.stage[c.stage]), kt.status[c.status])}
+                          aria-label={kt.statusLabel(t.stationLabel(r.domain, t.stage[c.stage]), statusName(c.status, c.suspended))}
                           onClick={() => toggle(r.domain, c.stage)}
                           className={`relative block h-[44px] min-w-0 hover:bg-pre ${isOpen ? "bg-pre" : ""}`}
                         >
@@ -139,11 +141,16 @@ export function RouteMap({ o }: { o: Overview }) {
                   </div>
                   <HttpCell route={r} open={open} keyOf={keyOf} panelId={panelId} onToggle={() => toggle(r.domain, "e2e")} />
                 </div>
-                {r.broken && (
+                {r.broken ? (
                   // sticky + bề rộng 100cqw (phần nhìn thấy của khung cuộn): ở màn hẹp dòng này nằm trọn trong tầm mắt, không phải cuộn ngang mới đọc được.
                   <p className="sticky left-0 m-0 box-border w-[100cqw] pb-[12px] text-[13px] font-medium text-fail-text sm:pl-[180px]">
                     {t.failLine(t.stage[r.broken.stage], tx(r.broken.item.check.summary, lang), r.broken.item.shared)}
                   </p>
+                ) : (
+                  r.suspended && (
+                    // Site tạm khoá: dòng xám (không đỏ) nói ga xám là do khoá, như trang site.
+                    <p className="sticky left-0 m-0 box-border w-[100cqw] pb-[12px] text-[13px] text-muted sm:pl-[180px]">{t.suspendedLine}</p>
+                  )
                 )}
               </li>
             ))}
@@ -193,7 +200,8 @@ function HttpCell({ route, open, keyOf, panelId, onToggle }: { route: Route; ope
   const t = useStrings(strings);
   const { code } = route.http;
   // Mã khác 200 có nền --fail (mục 6); phép kiểm cuối hỏng dù mã là 200 cũng vậy, kẻo màu đỏ bị giấu.
-  const bad = (code !== null && code !== "200") || route.http.status === "fail";
+  // Site tạm khoá trả 403 là đúng ý (M13): chỉ phép kiểm hỏng mới tô đỏ.
+  const bad = (code !== null && code !== "200" && !route.suspended) || route.http.status === "fail";
   const chip = bad ? "bg-fail text-on-fail" : "text-muted";
 
   if (route.http.items.length === 0) {
@@ -220,6 +228,7 @@ function HttpCell({ route, open, keyOf, panelId, onToggle }: { route: Route; ope
 function Panel({ id, domain, stage, items, onClose }: { id: string; domain: string; stage: Open["stage"]; items: Item[]; onClose: () => void }) {
   const t = useStrings(strings);
   const kt = useStrings(khung);
+  const statusName = useStatusName();
   const { lang } = useLang();
   const root = useRef<HTMLDivElement>(null);
 
@@ -248,7 +257,7 @@ function Panel({ id, domain, stage, items, onClose }: { id: string; domain: stri
         {items.map(({ check, shared }) => (
           <div key={`${shared ? "s" : "x"}:${check.id}`} className="mt-[14px] border-t border-hair pt-[12px]">
             <div className="flex items-center gap-[10px]">
-              <StatusMark status={check.status} label={kt.statusLabel(tx(check.title, lang), kt.status[check.status])} />
+              <StatusMark status={check.status} label={kt.statusLabel(tx(check.title, lang), statusName(check.status, check.suspended))} />
               <span className="font-medium">{tx(check.title, lang)}</span>
               {shared && <Tag>{t.sharedTag}</Tag>}
             </div>

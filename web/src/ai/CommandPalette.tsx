@@ -10,12 +10,16 @@
 // Dòng "Hỏi AI: <câu>" luôn nằm cuối danh sách khi đã gõ chữ, nên câu hỏi nào
 // cũng có đường tới ngăn AI, kể cả câu tình cờ chứa tên một lệnh.
 //
+// User thường (M13, mục 6.12) cũng có thanh lệnh nhưng chỉ để mở màn: không màn
+// của admin, không lệnh ngăn AI, không dòng "Hỏi AI".
+//
 // Mẫu bàn phím theo kiểu combobox: focus ở ô nhập, dòng đang chọn được báo qua
 // aria-activedescendant.
 
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router";
+import { useWho } from "../api/m13-users";
 import { useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/ai";
 import { screens } from "../routes";
@@ -39,6 +43,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const t = useStrings(strings);
   const { lang } = useLang();
   const ai = useAi();
+  // User thường (mục 6.12): không thấy màn của admin, không có lệnh AI và dòng "Hỏi AI".
+  const { isAdmin } = useWho();
   const navigate = useNavigate();
   const wide = useWide();
   const listId = useId();
@@ -57,7 +63,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const commands = useMemo<Command[]>(() => {
     // Mọi màn không có tham số trong đường dẫn: mở được mà không cần biết domain hay id.
     const routes = screens
-      .filter((s) => s.load !== undefined && !s.bare && !s.path.includes(":"))
+      .filter((s) => s.load !== undefined && !s.bare && !s.path.includes(":") && (isAdmin || !s.admin))
       .map<Command>((s) => {
         const name = viewLabel(s.path, lang);
         return {
@@ -84,8 +90,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         }
       },
     };
-    return [toggleAi, ...routes];
-  }, [lang, t, wide, ai, navigate]);
+    return isAdmin ? [toggleAi, ...routes] : routes;
+  }, [lang, t, wide, ai, navigate, isAdmin]);
 
   const text = query.trim();
   const options = useMemo<Command[]>(() => {
@@ -94,7 +100,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       const hay = fold(`${c.label} ${c.hint}`);
       return words.every((w) => hay.includes(w));
     });
-    if (!text) return hit;
+    if (!text || !isAdmin) return hit;
     const ask: Command = {
       id: "hoi-ai",
       label: t.paletteAsk(text),
@@ -105,7 +111,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       },
     };
     return [...hit, ask];
-  }, [commands, text, t, ai]);
+  }, [commands, text, t, ai, isAdmin]);
 
   // Gõ chữ khác thì danh sách đổi: về dòng đầu. Không có lệnh nào khớp thì dòng đầu chính là "Hỏi AI".
   useEffect(() => setActive(0), [text]);
@@ -124,6 +130,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
+    if (options.length === 0) return; // user thường gõ chữ không khớp màn nào
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActive((a) => (a + 1) % options.length);
@@ -150,18 +157,18 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           className="fixed top-[12vh] left-1/2 z-[70] w-[min(560px,calc(100vw-32px))] max-h-[calc(100vh-24vh)] -translate-x-1/2 overflow-y-auto border border-ink bg-surface text-ink"
         >
           <RadixDialog.Title className="sr-only">{t.paletteTitle}</RadixDialog.Title>
-          <RadixDialog.Description className="sr-only">{t.paletteHint}</RadixDialog.Description>
+          <RadixDialog.Description className="sr-only">{isAdmin ? t.paletteHint : t.paletteHintUser}</RadixDialog.Description>
           <input
             type="text"
             role="combobox"
-            aria-label={t.paletteInput}
+            aria-label={isAdmin ? t.paletteInput : t.paletteInputUser}
             aria-expanded="true"
             aria-controls={listId}
             aria-activedescendant={options.length > 0 ? optionId(active) : undefined}
             aria-autocomplete="list"
             autoComplete="off"
             spellCheck={false}
-            placeholder={t.palettePlaceholder}
+            placeholder={isAdmin ? t.palettePlaceholder : t.palettePlaceholderUser}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
@@ -185,6 +192,11 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               </li>
             ))}
           </ul>
+          {options.length === 0 && (
+            <p role="status" className="m-0 px-[14px] py-[12px] text-[14px] text-muted">
+              {t.paletteNone}
+            </p>
+          )}
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>

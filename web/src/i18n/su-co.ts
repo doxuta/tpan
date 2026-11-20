@@ -88,6 +88,8 @@ const vi = {
   // ---- ba cách sửa ----
   fixHeading: "Cách sửa",
   fixHint: "Chọn cách bạn muốn. Máy chỉ đổi khi bạn duyệt bản xem trước.",
+  // User thường (mục 6.12) chỉ có cách sửa tay: sửa tự động, nhận bản sửa tay và hỏi AI là việc của admin.
+  fixHintUser: "Các lệnh dưới đây chạy trên máy chủ. Đưa chúng cho người quản trị máy chủ.",
 
   autoHeading: "Sửa tự động",
   autoBody: "TPAN dựng một Plan từ các bước có sẵn. Bạn xem từng bước trước khi máy đổi.",
@@ -201,6 +203,7 @@ export const strings = defineStrings(vi, {
 
   fixHeading: "Ways to fix it",
   fixHint: "Pick the way you prefer. The machine only changes when you approve the preview.",
+  fixHintUser: "The commands below run on the server. Give them to whoever administers the server.",
 
   autoHeading: "Automatic fix",
   autoBody: "TPAN builds a plan from steps it already has. You see every step before the machine changes.",

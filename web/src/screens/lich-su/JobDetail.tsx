@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { useParams } from "react-router";
 import { useAi } from "../../ai/AiProvider";
 import { errorMessage } from "../../api/client";
+import { useWho } from "../../api/m13-users";
 import type { CheckResult } from "../../api/types";
 import { Button } from "../../components/Button";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
@@ -17,9 +18,10 @@ import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/lich-su";
 import { formatClock, formatDateTime, formatDuration } from "./format";
 import { buildView, elapsedMs, type Block, type JobView } from "./jobModel";
+import { DbSecretBox } from "../../components/DbSecretBox";
 import { SecretBox } from "./SecretBox";
 import { UnitTable } from "./UnitTable";
-import { useAdminSecret, useJob } from "./useJob";
+import { useAdminSecret, useDbSecret, useJob } from "./useJob";
 
 type T = (typeof strings)["vi"];
 
@@ -35,6 +37,7 @@ export function JobDetail() {
   const { id = "" } = useParams();
   const { query, job, events, running, stream, reconnect } = useJob(id);
   const { secrets, dismiss } = useAdminSecret(id);
+  const dbSecret = useDbSecret(id);
   const view = useMemo(() => buildView(events), [events]);
   const now = useNow(running);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -94,6 +97,7 @@ export function JobDetail() {
       {secrets.map((s, i) => (
         <SecretBox key={s.url} secret={s} many={secrets.length > 1} focus={i === 0} onDismiss={() => dismiss(i)} />
       ))}
+      {dbSecret.secret && <DbSecretBox secret={dbSecret.secret} onDismiss={dbSecret.dismiss} />}
 
       <dl className="m-0 mt-[26px] grid grid-cols-2 gap-x-[16px] gap-y-[12px] border-t border-hair pt-[14px] sm:flex sm:flex-wrap sm:gap-x-[32px]">
         <Fact label={t.fieldStatus}>{statusText}</Fact>
@@ -102,6 +106,9 @@ export function JobDetail() {
         </Fact>
         <Fact label={t.fieldTarget}>
           <MonoText>{job.target}</MonoText>
+        </Fact>
+        <Fact label={t.colWho}>
+          <span className={`font-mono text-[13px] ${job.actor ? "" : "text-muted"}`}>{job.actor || t.whoCli}</span>
         </Fact>
         <Fact label={t.fieldStarted}>
           <span title={job.started} className="font-mono text-[13px]">
@@ -254,6 +261,7 @@ type BlockItemProps = {
 function BlockItem({ domId, jobId, label, block, text, mark, open, onToggle, lang }: BlockItemProps) {
   const t = useStrings(strings);
   const { openAI } = useAi();
+  const { isAdmin } = useWho();
   const ms = block.ended ? elapsedMs(block.started, block.ended) : null;
   return (
     <li className="border-t border-hair">
@@ -282,7 +290,8 @@ function BlockItem({ domId, jobId, label, block, text, mark, open, onToggle, lan
         <div id={`${domId}-panel`} className="pb-[12px]">
           <BlockLog block={block} />
           {/* Chỉ bước hỏng: ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
-          {block.state === "failed" && (
+          {/* User thường không có ngăn AI (mục 6.12), nên không có nút này. */}
+          {isAdmin && block.state === "failed" && (
             <div className="mt-[10px]">
               <Button
                 title={t.explainStepHint}

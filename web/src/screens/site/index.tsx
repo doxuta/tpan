@@ -7,18 +7,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { siteSuspendPath, useIdentity } from "../../api/m13-dbs";
 import { ApiError, del, errorMessage, get } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { JobStarted, Preview, SiteInfo, Stage } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
 import { DomainText } from "../../components/DomainText";
 import { MonoText } from "../../components/MonoText";
+import { usePreviewedOp, type Op } from "../../components/PreviewedOp";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { StatusMark } from "../../components/StatusMark";
-import { TableList } from "../../components/TableList";
+import { SuspendTag } from "../../components/SuspendTag";
+import { TableList, type Column } from "../../components/TableList";
 import { Tag } from "../../components/Tag";
+import { useStatusName } from "../../components/useStatusName";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
+import { strings as chung } from "../../i18n/m13-chung";
 import { strings } from "../../i18n/site";
 import { PlanReview } from "../duyet-plan";
 import { Backups } from "./Backups";
@@ -28,7 +33,8 @@ import { LiveLog } from "./LiveLog";
 import { formatDate, formatTime } from "./format";
 import { PhpBlock } from "./PhpBlock";
 import { Legend, RouteMap, stageGroupId } from "./RouteMap";
-import { checksOfStage, routeStages, stageOrder, worstStatus } from "./route";
+import { checksOfStage, routeStages, stageOrder, worstMark } from "./route";
+import { SuspendBlock } from "./SuspendBlock";
 import { Traffic } from "./Traffic";
 
 const sitePath = (domain: string) => `/api/v1/sites/${encodeURIComponent(domain)}`;
@@ -40,13 +46,84 @@ const linkClass = "font-mono text-[13px] text-ink no-underline hover:text-ink ho
 export function SiteList() {
   const t = useStrings(strings);
   const k = useStrings(khung);
+  const m = useStrings(chung);
+  const statusName = useStatusName();
   const { lang } = useLang();
   const overview = useOverview();
+  const { isAdmin } = useIdentity();
+  // Tạm khoá và mở khoá từ bảng: xem trước rồi chạy, bản xem trước nằm dưới bảng.
+  const op = usePreviewedOp([]);
 
   // Trạng thái chung của site lấy từ phép kiểm trong overview (cùng truy vấn với menu, không gọi thêm).
   const rows = (overview.data?.sites ?? [])
     .filter((r) => r.site.status === "active")
     .sort((a, b) => a.site.domain.localeCompare(b.site.domain));
+  type Row = (typeof rows)[number];
+
+  const suspendOp = (d: string, on: boolean): Op => ({
+    id: `${on ? "suspend" : "unsuspend"}:${d}`,
+    method: "POST",
+    path: siteSuspendPath(d, on),
+    warning: on ? t.suspendWarning(d) : t.unsuspendWarning(d),
+    errorHeading: on ? t.suspendErrorHeading(d) : t.unsuspendErrorHeading(d),
+  });
+
+  // Cột Chủ và cột Việc (Tạm khoá, Mở khoá) chỉ admin thấy: máy chủ cũng từ chối user thường, ẩn ở đây để khỏi có nút bấm không được.
+  const columns: Column<Row>[] = [
+    {
+      header: t.colDomain,
+      className: "min-w-[160px]",
+      cell: (r) => (
+        <span className="flex flex-wrap items-baseline gap-x-[10px] gap-y-[4px]">
+          <Link to={`/sites/${encodeURIComponent(r.site.domain)}`} className={linkClass}>
+            <DomainText domain={r.site.domain} />
+          </Link>
+          {r.site.suspended && <SuspendTag how={r.site.suspended} />}
+          {r.site.db_suspended && <SuspendTag how={r.site.db_suspended} label={m.dbLocked} />}
+        </span>
+      ),
+    },
+    ...(isAdmin ? [{ header: m.colOwner, className: "font-mono text-[13px]", cell: (r: Row) => r.site.owner } satisfies Column<Row>] : []),
+    {
+      header: t.colStatus,
+      className: "w-[170px]",
+      cell: (r) => {
+        const mark = worstMark(r.checks, Boolean(r.site.suspended));
+        const name = statusName(mark.status, mark.suspended);
+        return (
+          <Link
+            to={`/sites/${encodeURIComponent(r.site.domain)}`}
+            aria-label={t.statusLink(r.site.domain, name)}
+            className="inline-flex items-center gap-[8px] text-ink no-underline hover:text-ink hover:underline"
+          >
+            <span className="flex h-[20px] w-[20px] items-center justify-center">
+              <StatusMark status={mark.status} />
+            </span>
+            {name}
+          </Link>
+        );
+      },
+    },
+    { header: t.colPhp, className: "w-[80px] font-mono text-[13px]", cell: (r) => r.site.php_version },
+    { header: t.colCreated, className: "w-[130px] whitespace-nowrap tabular-nums", cell: (r) => formatDate(r.site.created, lang) },
+    ...(isAdmin
+      ? [
+          {
+            header: t.colAction,
+            className: "pr-0",
+            cell: (r: Row) => {
+              const d = r.site.domain;
+              const on = !r.site.suspended;
+              return (
+                <Button aria-label={on ? t.suspendFor(d) : t.unsuspendFor(d)} disabled={op.pending} onClick={() => void op.ask(suspendOp(d, on))}>
+                  {op.busy(`${on ? "suspend" : "unsuspend"}:${d}`) ? m.previewing : on ? t.suspend : t.unsuspend}
+                </Button>
+              );
+            },
+          } satisfies Column<Row>,
+        ]
+      : []),
+  ];
 
   return (
     <>
@@ -75,40 +152,10 @@ export function SiteList() {
               <Link to="/sites/new">{t.emptyLink}</Link>
             </>
           }
-          columns={[
-            {
-              header: t.colDomain,
-              className: "min-w-[160px]",
-              cell: (r) => (
-                <Link to={`/sites/${encodeURIComponent(r.site.domain)}`} className={linkClass}>
-                  <DomainText domain={r.site.domain} />
-                </Link>
-              ),
-            },
-            {
-              header: t.colStatus,
-              className: "w-[170px]",
-              cell: (r) => {
-                const status = worstStatus(r.checks);
-                return (
-                  <Link
-                    to={`/sites/${encodeURIComponent(r.site.domain)}`}
-                    aria-label={t.statusLink(r.site.domain, k.status[status])}
-                    className="inline-flex items-center gap-[8px] text-ink no-underline hover:text-ink hover:underline"
-                  >
-                    <span className="flex h-[20px] w-[20px] items-center justify-center">
-                      <StatusMark status={status} />
-                    </span>
-                    {k.status[status]}
-                  </Link>
-                );
-              },
-            },
-            { header: t.colPhp, className: "w-[80px] font-mono text-[13px]", cell: (r) => r.site.php_version },
-            { header: t.colCreated, className: "w-[130px] whitespace-nowrap tabular-nums", cell: (r) => formatDate(r.site.created, lang) },
-          ]}
+          columns={columns}
         />
       )}
+      {op.panel}
     </>
   );
 }
@@ -154,10 +201,18 @@ export function SiteDetail() {
 function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo; updatedAt: number }) {
   const t = useStrings(strings);
   const k = useStrings(khung);
+  const m = useStrings(chung);
+  const statusName = useStatusName();
   const { lang } = useLang();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { isAdmin } = useIdentity();
   const checks = info.checks;
+  // M13: site hay user DB đang khoá. Việc cần pool PHP của site (đổi PHP, đưa vào thùng rác) bị máy chủ từ chối; nút vô hiệu kèm lý do, khỏi để người dùng bấm rồi mới nghe từ chối.
+  const siteSuspended = Boolean(info.site.suspended);
+  const dbSuspended = Boolean(info.site.db_suspended);
+  const phpBlocked = siteSuspended ? t.blockedSite : dbSuspended ? t.blockedDb : undefined;
+  const trashBlocked = siteSuspended ? t.blockedTrashSite : dbSuspended ? t.blockedTrashDb : undefined;
 
   // ---- ga và phép kiểm ----
   const [selected, setSelected] = useState<Stage | null>(null);
@@ -245,6 +300,9 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
         {info.web && <Tag>{info.web}</Tag>}
         <Tag>{k.php(info.site.php_version)}</Tag>
         {info.site.status === "trashed" && <Tag>{t.trashed}</Tag>}
+        {info.site.suspended && <SuspendTag how={info.site.suspended} />}
+        {info.site.db_suspended && <SuspendTag how={info.site.db_suspended} label={m.dbLocked} />}
+        {isAdmin && <Tag>{m.ownerLabel(info.site.owner)}</Tag>}
       </div>
 
       <section aria-labelledby="tuyen">
@@ -254,10 +312,12 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
           </h2>
           <Legend />
         </div>
-        <RouteMap domain={domain} checks={checks} selected={selected} onSelect={select} />
+        <RouteMap domain={domain} checks={checks} selected={selected} onSelect={select} suspended={siteSuspended} />
         {firstFail?.c && (
           <p className="mt-[10px] mb-0 text-[13px] font-medium text-fail-text">{t.failedAt(t.stages[firstFail.s], tx(firstFail.c.summary, lang))}</p>
         )}
+        {/* Site tạm khoá: một dòng xám (không đỏ) nói các chặng xám là do khoá, không phải do hỏng. */}
+        {siteSuspended && !firstFail?.c && <p className="mt-[10px] mb-0 text-[13px] text-muted">{t.suspendedLine}</p>}
         <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px] pt-[12px]">
           <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
             {recheck.isPending ? t.rechecking : t.recheck}
@@ -286,17 +346,18 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
         ) : (
           groups.map((stage) => {
             const list = checksOfStage(checks, stage);
+            const mark = worstMark(list, siteSuspended);
             return (
               <div key={stage} className="border-t border-hair pt-[12px]">
                 <h3 id={stageGroupId(stage)} tabIndex={-1} className="m-0 flex items-center gap-[8px] font-mono text-[11px] font-normal tracking-[0.08em] text-muted uppercase">
                   <span className="flex h-[20px] w-[20px] items-center justify-center">
-                    <StatusMark status={worstStatus(list)} />
+                    <StatusMark status={mark.status} />
                   </span>
                   {t.stages[stage]}
-                  <span className="sr-only">: {k.status[worstStatus(list)]}</span>
+                  <span className="sr-only">: {statusName(mark.status, mark.suspended)}</span>
                 </h3>
                 {list.length === 0 ? (
-                  <p className="mt-[6px] mb-[12px] pl-[28px] text-muted">{t.noChecksInStage}</p>
+                  <p className="mt-[6px] mb-[12px] pl-[28px] text-muted">{siteSuspended ? t.noChecksSuspended : t.noChecksInStage}</p>
                 ) : (
                   <ul className="m-0 mt-[2px] list-none p-0">
                     {list.map((c) => (
@@ -312,9 +373,11 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
 
       {hasLogs && <LiveLog domain={domain} />}
 
-      {hasLogs && <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} />}
+      {hasLogs && <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} blocked={phpBlocked} />}
 
-      <Backups domain={domain} active={info.site.status === "active"} />
+      <Backups domain={domain} active={info.site.status === "active"} restoreBlocked={siteSuspended ? t.blockedSite : undefined} />
+
+      {info.site.status === "active" && <SuspendBlock site={info.site} admin={isAdmin} />}
 
       <section aria-labelledby="ten-duong-dan">
         <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[6px] pt-[26px] pb-[10px]">
@@ -357,10 +420,15 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
             {t.deleteHintTail}
           </p>
           <div className="pt-[12px]">
-            <Button onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending}>
+            <Button onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending || trashBlocked !== undefined} aria-describedby={trashBlocked ? "xoa-bi-chan" : undefined}>
               {dry.isPending ? t.deletePreviewing : t.delete}
             </Button>
           </div>
+          {trashBlocked && (
+            <p id="xoa-bi-chan" className="mt-[10px] mb-0 max-w-[720px] text-[13px] text-muted">
+              {trashBlocked}
+            </p>
+          )}
           {dry.isError && (
             <div className="pt-[12px]">
               <ErrorNote error={dry.error} heading={t.deleteFailed} />

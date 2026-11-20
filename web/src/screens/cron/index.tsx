@@ -32,11 +32,13 @@ export default function Cron() {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
 
   const trashed = useMemo(() => new Set((overview.data?.sites ?? []).filter((r) => r.site.status === "trashed").map((r) => r.site.domain)), [overview.data]);
+  // M13: site đang tạm khoá (kèm nguồn khoá). Cron của nó tắt có chủ ý, không phải thiếu file.
+  const suspended = useMemo(() => new Map((overview.data?.sites ?? []).flatMap((r) => (r.site.suspended ? [[r.site.domain, r.site.suspended] as const] : []))), [overview.data]);
 
   const sites = q.data?.sites ?? [];
   const opened = sites.find((c) => c.domain === openDomain && c.last);
-  // Site trong thùng rác không có file cron là đúng ý (đã gỡ khi bỏ vào thùng rác), nên không nhắc chạy lại `site add`.
-  const missing = sites.filter((c) => !c.enabled && !trashed.has(c.domain));
+  // Site trong thùng rác hay đang tạm khoá không có file cron là đúng ý (đã gỡ hoặc đổi tên .suspended), nên không nhắc chạy lại `site add`.
+  const missing = sites.filter((c) => !c.enabled && !trashed.has(c.domain) && !suspended.has(c.domain));
 
   return (
     <>
@@ -58,7 +60,7 @@ export default function Cron() {
               {t.sitesHeading}
             </h2>
             <p className={hintClass}>{t.sitesHint}</p>
-            <CronSiteTable items={sites} trashed={trashed} openDomain={opened?.domain ?? null} onToggle={(d) => setOpenDomain((cur) => (cur === d ? null : d))} />
+            <CronSiteTable items={sites} trashed={trashed} suspended={suspended} openDomain={opened?.domain ?? null} onToggle={(d) => setOpenDomain((cur) => (cur === d ? null : d))} />
             {opened?.last && (
               <div id="cron-evidence" className="pt-[14px]">
                 <EvidenceBlock evidence={[{ command: opened.command, exit_code: opened.last.exit_code, output: opened.last.output }]} label={t.evidenceLabel(opened.domain, opened.last.exit_code)} />

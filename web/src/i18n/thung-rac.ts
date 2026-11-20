@@ -5,11 +5,11 @@ import { defineStrings } from "./index";
 
 const vi = {
   title: "Thùng rác",
-  summary: "Site đã xoá nằm ở đây, khôi phục được cho tới hạn xoá hẳn.",
+  summary: "Site và DB rời đã xoá nằm ở đây, khôi phục được cho tới hạn xoá hẳn.",
 
   // Số ngày giữ
   retentionHeading: "Số ngày giữ",
-  retentionLabel: "Giữ site đã xoá trong (ngày)",
+  retentionLabel: "Giữ site và DB đã xoá trong (ngày)",
   retentionHint: "Từ 0 đến 365. Số mới chỉ áp cho site xoá sau lúc đổi; site đã nằm trong thùng rác giữ nguyên hạn cũ. Đặt 0 thì site xoá về sau hết hạn ngay và bị dọn ở lượt dọn kế tiếp (mỗi giờ một lần).",
   retentionInvalid: "Nhập số nguyên từ 0 đến 365.",
   retentionCurrent: (n: number) => (n === 1 ? "Đang giữ 1 ngày." : `Đang giữ ${n} ngày.`),
@@ -43,14 +43,27 @@ const vi = {
   purgeErrorHeading: (d: string) => `Chưa dựng được bản xem trước xoá hẳn ${d}`,
   checksHeading: "Điều kiện chưa đạt",
   purgeWarning: (d: string) => `Xoá hẳn ${d} làm mất cơ sở dữ liệu và toàn bộ file của site. Không hoàn tác được. Muốn giữ lại thì bấm Quay lại và chọn Khôi phục.`,
+
+  // ---- M13: DB rời ----
+  dbHeading: "DB rời trong thùng rác",
+  dbTableName: "DB rời trong thùng rác",
+  colDbName: "Tên DB",
+  dbEmpty: "Chưa có DB rời nào trong thùng rác. DB rời bạn xoá ở màn Cơ sở dữ liệu sẽ nằm ở đây cho tới hạn xoá hẳn.",
+  restoreDbFor: (n: string) => `Khôi phục DB ${n}`,
+  purgeDbFor: (n: string) => `Xoá hẳn DB ${n}`,
+  restoreDbWarning: (n: string) => `Khôi phục ${n}: TPAN tạo lại DB, nhập lại file .sql đã xuất và mở khoá user DB. Mật khẩu user DB vẫn là mật khẩu cũ.`,
+  purgeDbWarning: (n: string) => `Xoá hẳn ${n} làm mất dữ liệu của DB và cả file .sql trong thùng rác, kèm user DB. Không hoàn tác được. Muốn giữ lại thì bấm Quay lại và chọn Khôi phục.`,
+  restoreDbErrorHeading: (n: string) => `Chưa dựng được bản xem trước khôi phục DB ${n}`,
+  purgeDbErrorHeading: (n: string) => `Chưa dựng được bản xem trước xoá hẳn DB ${n}`,
+  retentionUser: (n: number) => (n === 1 ? "Thùng rác giữ site và DB đã xoá 1 ngày." : `Thùng rác giữ site và DB đã xoá ${n} ngày.`) + " Chỉ admin đổi được số ngày này.",
 };
 
 const en: typeof vi = {
   title: "Trash",
-  summary: "Deleted sites stay here and can be restored until they are permanently deleted.",
+  summary: "Deleted sites and standalone databases stay here and can be restored until they are permanently deleted.",
 
   retentionHeading: "Retention",
-  retentionLabel: "Keep deleted sites for (days)",
+  retentionLabel: "Keep deleted sites and databases for (days)",
   retentionHint:
     "From 0 to 365. The new number applies only to sites deleted after the change; sites already in the trash keep their old deadline. With 0, sites deleted from then on expire at once and are cleared on the next sweep (once an hour).",
   retentionInvalid: "Enter a whole number from 0 to 365.",
@@ -83,6 +96,18 @@ const en: typeof vi = {
   purgeErrorHeading: (d) => `Could not build the permanent deletion preview for ${d}`,
   checksHeading: "Conditions not met",
   purgeWarning: (d) => `Permanently deleting ${d} destroys the database and every file of the site. It cannot be undone. To keep the site, press Go back and choose Restore.`,
+
+  dbHeading: "Standalone databases in the trash",
+  dbTableName: "Standalone databases in the trash",
+  colDbName: "DB name",
+  dbEmpty: "No standalone database in the trash. One you delete on the Databases screen will wait here until its permanent deletion.",
+  restoreDbFor: (n) => `Restore the database ${n}`,
+  purgeDbFor: (n) => `Permanently delete the database ${n}`,
+  restoreDbWarning: (n) => `Restoring ${n}: TPAN recreates the DB, imports the exported .sql file again and unlocks the DB user. The DB user keeps its old password.`,
+  purgeDbWarning: (n) => `Permanently deleting ${n} destroys the database data, the .sql file in the trash and the DB user. It cannot be undone. To keep it, press Go back and choose Restore.`,
+  restoreDbErrorHeading: (n) => `Could not build the restore preview for the database ${n}`,
+  purgeDbErrorHeading: (n) => `Could not build the permanent deletion preview for the database ${n}`,
+  retentionUser: (n) => (n === 1 ? "The trash keeps deleted sites and databases for 1 day." : `The trash keeps deleted sites and databases for ${n} days.`) + " Only an admin can change this.",
 };
 
 export const strings = defineStrings(vi, en);

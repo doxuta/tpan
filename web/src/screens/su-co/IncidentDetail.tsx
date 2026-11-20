@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { useAi } from "../../ai/AiProvider";
 import { ApiError, errorMessage, get, post } from "../../api/client";
+import { useWho } from "../../api/m13-users";
 import type { CheckResult, IncidentDetail as IncidentDetailData, Job, HealthReport } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
@@ -77,6 +78,8 @@ function DetailView({ data }: { data: IncidentDetailData }) {
   const { lang } = useLang();
   const qc = useQueryClient();
   const { openAI } = useAi();
+  // "Kiểm lại" (POST /health/run) và chẩn đoán bằng AI chỉ dành cho admin; user thường vẫn đọc sự cố của site mình.
+  const { isAdmin } = useWho();
   const { incident: inc, current, jobs } = data;
 
   const isOpen = !inc.closed;
@@ -129,38 +132,40 @@ function DetailView({ data }: { data: IncidentDetailData }) {
         </Fact>
       </dl>
 
-      <div className="pt-[14px]">
-        <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px]">
-          {isOpen && (
-            <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
-              {recheck.isPending ? t.rechecking : t.recheck}
+      {isAdmin && (
+        <div className="pt-[14px]">
+          <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px]">
+            {isOpen && (
+              <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
+                {recheck.isPending ? t.rechecking : t.recheck}
+              </Button>
+            )}
+            {/* Sự cố đã đóng cũng chẩn đoán được ("vì sao nó xảy ra"). Ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
+            <Button
+              title={t.diagnoseHint}
+              onClick={() =>
+                openAI({
+                  mode: "diagnose",
+                  question: t.diagnoseQuestion(tx(inc.title, lang)),
+                  pointer: { kind: "incident", ref: String(inc.id), label: tx(inc.title, lang) },
+                })
+              }
+            >
+              {t.diagnose}
             </Button>
-          )}
-          {/* Sự cố đã đóng cũng chẩn đoán được ("vì sao nó xảy ra"). Ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
-          <Button
-            title={t.diagnoseHint}
-            onClick={() =>
-              openAI({
-                mode: "diagnose",
-                question: t.diagnoseQuestion(tx(inc.title, lang)),
-                pointer: { kind: "incident", ref: String(inc.id), label: tx(inc.title, lang) },
-              })
-            }
-          >
-            {t.diagnose}
-          </Button>
-          {isOpen && (
-            <span aria-live="polite" className="text-[13px] text-muted">
-              {recheck.isSuccess ? t.rechecked(formatClock(recheck.data.finished, lang)) : t.recheckHint}
-            </span>
+            {isOpen && (
+              <span aria-live="polite" className="text-[13px] text-muted">
+                {recheck.isSuccess ? t.rechecked(formatClock(recheck.data.finished, lang)) : t.recheckHint}
+              </span>
+            )}
+          </div>
+          {isOpen && recheck.isError && (
+            <div className="pt-[12px]">
+              <ErrorNote error={recheck.error} heading={t.recheckFailed} />
+            </div>
           )}
         </div>
-        {isOpen && recheck.isError && (
-          <div className="pt-[12px]">
-            <ErrorNote error={recheck.error} heading={t.recheckFailed} />
-          </div>
-        )}
-      </div>
+      )}
 
       <section aria-labelledby="chuyen-gi">
         <h2 id="chuyen-gi" className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">

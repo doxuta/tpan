@@ -12,7 +12,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import "./styles.css";
 import { queryClient } from "./api/queries";
 import { LangProvider, useLang } from "./i18n";
-import { Layout, NotFound } from "./Layout";
+import { AdminOnly, Layout, NotFound } from "./Layout";
 import { screens } from "./routes";
 import { TipsProvider } from "./tips";
 
@@ -20,18 +20,34 @@ import { TipsProvider } from "./tips";
 // (HydrateFallback). Việc tải chỉ mất một nhịp nên để trống, khỏi chớp chữ.
 const Blank = () => null;
 
-function route(path: string, load: () => Promise<ComponentType>): RouteObject {
-  return { path, lazy: { Component: load }, HydrateFallback: Blank };
+type Loaded = (typeof screens)[number] & { load: () => Promise<ComponentType> };
+
+function route(s: Loaded): RouteObject {
+  // Màn của admin: user thường gõ thẳng đường dẫn thì thấy trang "không có quyền"
+  // thay vì một màn chỉ toàn lỗi 403 (server vẫn là nơi chặn thật).
+  const load = s.admin
+    ? async () => {
+        const Screen = await s.load();
+        return function AdminScreen() {
+          return (
+            <AdminOnly>
+              <Screen />
+            </AdminOnly>
+          );
+        };
+      }
+    : s.load;
+  return { path: s.path, lazy: { Component: load }, HydrateFallback: Blank };
 }
 
-const withScreen = screens.filter((s) => s.load !== undefined) as Array<(typeof screens)[number] & { load: () => Promise<ComponentType> }>;
+const withScreen = screens.filter((s) => s.load !== undefined) as Loaded[];
 
 const router = createBrowserRouter([
-  ...withScreen.filter((s) => s.bare).map((s) => route(s.path, s.load)),
+  ...withScreen.filter((s) => s.bare).map(route),
   {
     Component: Layout,
     HydrateFallback: Blank,
-    children: [...withScreen.filter((s) => !s.bare).map((s) => route(s.path, s.load)), { path: "*", Component: NotFound }],
+    children: [...withScreen.filter((s) => !s.bare).map(route), { path: "*", Component: NotFound }],
   },
 ]);
 

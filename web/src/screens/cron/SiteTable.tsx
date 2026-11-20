@@ -7,9 +7,10 @@
 // nào đang mở, màn hiện EvidenceBlock ngay dưới bảng.
 
 import { Link } from "react-router";
-import type { CronEntry } from "../../api/types";
+import type { CronEntry, Suspension } from "../../api/types";
 import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
+import { SuspendTag } from "../../components/SuspendTag";
 import { TableList } from "../../components/TableList";
 import { Tag } from "../../components/Tag";
 import { useLang, useStrings, type Lang } from "../../i18n";
@@ -22,6 +23,8 @@ type Props = {
   items: CronEntry[];
   /** Domain đang trong thùng rác: để nói đúng vì sao file cron không có. */
   trashed: ReadonlySet<string>;
+  /** M13: domain đang tạm khoá. File cron của site khoá đã đổi tên .suspended, nên hiện "tạm khoá" thay cho gợi ý chạy lại site add. */
+  suspended: ReadonlyMap<string, Suspension>;
   /** Domain đang mở output (một lúc một hàng). */
   openDomain: string | null;
   onToggle: (domain: string) => void;
@@ -51,7 +54,7 @@ function durationText(t: Strings, ns: number, lang: Lang): string {
   return t.durationMin(d.m, d.s);
 }
 
-export function CronSiteTable({ items, trashed, openDomain, onToggle }: Props) {
+export function CronSiteTable({ items, trashed, suspended, openDomain, onToggle }: Props) {
   const t = useStrings(strings);
   const k = useStrings(khung);
   const { lang } = useLang();
@@ -98,7 +101,7 @@ export function CronSiteTable({ items, trashed, openDomain, onToggle }: Props) {
                   </span>
                   <span>{word}</span>
                   {run.status === "fail" && <span className="font-mono text-[12px] text-fail-text">{t.exitCode(run.exit_code)}</span>}
-                  {run.status === "skipped" && <span className="text-[13px] text-muted">{t.skippedNote}</span>}
+                  {run.status === "skipped" && <span className="text-[13px] text-muted">{suspended.has(c.domain) ? t.skippedSuspended : t.skippedNote}</span>}
                 </span>
                 <span className="font-mono text-[12px] whitespace-nowrap text-muted">
                   {formatWhen(run.started, lang)} · {durationText(t, run.duration_ns, lang)}
@@ -120,6 +123,7 @@ export function CronSiteTable({ items, trashed, openDomain, onToggle }: Props) {
         {
           header: t.colFile,
           cell: (c) => {
+            const how = suspended.get(c.domain);
             if (c.enabled) {
               return (
                 <span className="flex flex-col items-start gap-[4px]">
@@ -132,9 +136,11 @@ export function CronSiteTable({ items, trashed, openDomain, onToggle }: Props) {
             }
             return (
               <span className="flex flex-col items-start gap-[6px]">
-                <Tag>{t.notEnabled}</Tag>
+                {how ? <SuspendTag how={how} /> : <Tag>{t.notEnabled}</Tag>}
                 <span className="text-[13px] text-muted">
-                  {trashed.has(c.domain) ? (
+                  {how ? (
+                    t.suspendedWhy
+                  ) : trashed.has(c.domain) ? (
                     <>
                       {t.trashedLead}
                       <Link to="/trash">{t.trashedLink}</Link>
