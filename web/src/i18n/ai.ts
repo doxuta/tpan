@@ -12,6 +12,7 @@ const vi = {
 
   // ---- đầu ngăn ----
   drawerLabel: "Ngăn AI",
+  launcher: "Hỏi AI",
   title: "Hỏi AI",
   close: "Đóng ngăn AI",
   newSession: "Phiên mới",
@@ -41,6 +42,8 @@ const vi = {
 
   // ---- ngữ cảnh gửi kèm ----
   chipsHeading: "NGỮ CẢNH GỬI KÈM",
+  chipsCount: (n: number) => `${n} mục`,
+  readCount: (n: number) => `Đã đọc ${n} mục dữ liệu trên máy`,
   chipShow: (label: string) => `Xem nội dung “${label}” sẽ gửi`,
   chipRemove: (label: string) => `Bỏ “${label}” khỏi ngữ cảnh`,
   chipRestore: (label: string) => `Gửi lại “${label}” kèm câu hỏi`,
@@ -115,6 +118,7 @@ export const strings = defineStrings(vi, {
   askAiHint: "Open or close the AI drawer",
 
   drawerLabel: "AI drawer",
+  launcher: "Ask AI",
   title: "Ask AI",
   close: "Close the AI drawer",
   newSession: "New session",
@@ -142,6 +146,8 @@ export const strings = defineStrings(vi, {
   claudePrompt: (question) => (question ? `Use the tpan tools: ${question}` : "Use the tpan tools to look at what is open on the panel (current_view) and tell me what needs attention."),
 
   chipsHeading: "CONTEXT SENT ALONG",
+  chipsCount: (n) => `${n} ${n === 1 ? "item" : "items"}`,
+  readCount: (n) => `Read ${n} ${n === 1 ? "item" : "items"} of machine data`,
   chipShow: (label) => `Show what “${label}” will send`,
   chipRemove: (label) => `Leave “${label}” out of the context`,
   chipRestore: (label) => `Send “${label}” with the question again`,

@@ -68,14 +68,22 @@ export function AiDrawer() {
   const ai = useAi();
   const t = useStrings(strings);
   const wide = useWide();
-  if (!ai.open) return null;
+  if (!ai.open) return <Launcher />;
 
   if (wide) {
+    // Khung chat nổi kiểu Messenger: cỡ cố định ở góc dưới bên phải, không chiếm
+    // cột của trang và không phình theo nội dung; chữ dài thì cuộn bên trong khung.
     return (
-      <aside id="ngan-ai" aria-label={t.drawerLabel} className="min-w-0 flex-[1_1_400px] pt-[24px]" onKeyDown={(e) => e.key === "Escape" && ai.setOpen(false)}>
+      <div
+        id="ngan-ai"
+        role="dialog"
+        aria-label={t.drawerLabel}
+        className="fixed right-[16px] bottom-[16px] z-40 flex h-[min(640px,calc(100dvh-32px))] w-[400px] max-w-[calc(100vw-32px)]"
+        onKeyDown={(e) => e.key === "Escape" && ai.setOpen(false)}
+      >
         <ReturnFocus />
-        <Panel overlay={false} className="sticky top-[16px] max-h-[calc(100vh-32px)]" />
-      </aside>
+        <Panel overlay={false} className="h-full w-full" />
+      </div>
     );
   }
   return (
@@ -88,6 +96,25 @@ export function AiDrawer() {
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>
+  );
+}
+
+/** Nút nổi góc dưới bên phải khi khung chat đang đóng: bấm là mở, như bong bóng chat. */
+function Launcher() {
+  const ai = useAi();
+  const t = useStrings(strings);
+  return (
+    <button
+      type="button"
+      onClick={() => ai.setOpen(true)}
+      className="fixed right-[16px] bottom-[16px] z-40 inline-flex h-[48px] items-center gap-[8px] border border-ink bg-ink px-[16px] text-[14px] font-medium text-on-ink hover:opacity-90"
+    >
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 5h16v11H9l-5 4z" />
+      </svg>
+      {t.launcher}
+      {ai.running && <span className="ml-[2px] font-mono text-[12px]">…</span>}
+    </button>
   );
 }
 
@@ -133,16 +160,9 @@ function Panel({ overlay, className }: { overlay: boolean; className: string }) 
 
   return (
     <section className={`flex min-h-0 flex-col border border-card-border bg-surface ${className}`}>
-      <div className="flex flex-none flex-wrap items-center gap-x-[12px] gap-y-[8px] border-b border-hair py-[12px] pr-[12px] pl-[18px]">
+      <div className="flex flex-none flex-wrap items-center gap-x-[12px] gap-y-[6px] border-b border-hair py-[10px] pr-[12px] pl-[18px]">
         {overlay ? <RadixDialog.Title asChild>{heading}</RadixDialog.Title> : heading}
-        <span className="ml-auto flex items-center gap-[8px] font-mono text-[12px] text-muted">
-          {brain.isPending ? null : (
-            <>
-              <StatusMark status={ready ? "pass" : "unknown"} label={b ? (ready ? t.brainOn : t.brainOff) : t.brainUnknown} />
-              <span>{b ? (ready ? t.brainOnText(b.host, b.model) : t.brainOffText) : t.brainUnknownText}</span>
-            </>
-          )}
-        </span>
+        <span className="flex-1" />
         {ai.turns.length > 0 && (
           <button type="button" title={t.newSessionHint} disabled={ai.running} onClick={ai.reset} className={buttonClass("secondary")}>
             {t.newSession}
@@ -157,6 +177,20 @@ function Panel({ overlay, className }: { overlay: boolean; className: string }) 
         >
           <CloseIcon size={16} />
         </button>
+        {/* Tình trạng bộ não: một dòng riêng dưới tiêu đề, cắt "…" khi tên máy dài; tooltip có câu đầy đủ. */}
+        {!brain.isPending && (
+          <span className="flex min-w-0 basis-full items-center gap-[8px] font-mono text-[12px] text-muted">
+            <StatusMark status={ready ? "pass" : "unknown"} label={b ? (ready ? t.brainOn : t.brainOff) : t.brainUnknown} />
+            {(() => {
+              const s = b ? (ready ? t.brainOnText(b.host, b.model) : t.brainOffText) : t.brainUnknownText;
+              return (
+                <span title={s} className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                  {s}
+                </span>
+              );
+            })()}
+          </span>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -264,10 +298,32 @@ function Context({ preview, loading, error }: { preview: AskPreview | undefined;
   const [shown, setShown] = useState<AIChipKey | null>(null);
   const [full, setFull] = useState(false);
   const chip = preview?.chips.find((c) => c.key === shown);
+  // Mở sẵn khi chưa hỏi gì (người hỏi lần đầu thấy AI sẽ nhận gì); hỏi xong câu
+  // đầu thì gập lại thành một dòng để chỗ cho cuộc trò chuyện. Bấm dòng đó để mở lại.
+  const hasTurns = ai.turns.length > 0;
+  const [open, setOpen] = useState(!hasTurns);
+  useEffect(() => {
+    if (hasTurns) setOpen(false);
+  }, [hasTurns]);
+  const sent = preview ? preview.chips.filter((c) => !c.omitted).length : null;
 
   return (
-    <div className="border-b border-hair px-[18px] py-[14px]">
-      <p className={`${monoLabel} mb-[8px]`}>{t.chipsHeading}</p>
+    <div className={`border-b border-hair px-[18px] ${open ? "pt-[10px] pb-[14px]" : "py-[4px]"}`}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="ai-ngu-canh"
+        onClick={() => setOpen(!open)}
+        className="flex min-h-[36px] w-full items-center gap-[8px] bg-transparent p-0 text-left font-mono text-[11px] tracking-[0.08em] text-muted hover:text-ink"
+      >
+        <span aria-hidden="true" className={`inline-block transition-transform ${open ? "rotate-90" : ""}`}>
+          ▸
+        </span>
+        <span>{t.chipsHeading}</span>
+        {sent !== null && <span className="normal-case tracking-normal">· {t.chipsCount(sent)}</span>}
+      </button>
+      {open && (
+      <div id="ai-ngu-canh" className="mt-[6px]">
       {preview && (
         <ul className="m-0 flex list-none flex-wrap gap-[6px] p-0">
           {preview.chips.map((c) => (
@@ -298,6 +354,8 @@ function Context({ preview, loading, error }: { preview: AskPreview | undefined;
             </div>
           )}
         </div>
+      )}
+      </div>
       )}
     </div>
   );
@@ -341,9 +399,12 @@ function Transcript() {
   const ai = useAi();
   const end = useRef<HTMLDivElement>(null);
 
-  // Lượt đang chạy thì cuộn theo chữ mới; chỉ cuộn khung của ngăn, không cuộn cả trang.
+  // Lượt đang chạy thì cuộn theo chữ mới; lúc lượt vừa xong cuộn thêm một lần,
+  // vì nút "Đi tới" và Plan đề xuất chỉ hiện sau khi câu trả lời đã chốt.
+  const wasRunning = useRef(false);
   useEffect(() => {
-    if (ai.running) end.current?.scrollIntoView({ block: "end" });
+    if (ai.running || wasRunning.current) end.current?.scrollIntoView({ block: "end" });
+    wasRunning.current = ai.running;
   }, [ai.turns, ai.running]);
 
   return (
@@ -373,29 +434,40 @@ function TurnBlock({ turn }: { turn: TurnView }) {
   const links = turn.status === "running" || refused ? [] : extractLinks(turn.answer, lang);
 
   return (
-    <div className="flex flex-col gap-[18px]">
-      <div>
-        <p className={monoLabel}>{t.you}</p>
-        <p className="m-0 text-[14px] leading-[1.5] whitespace-pre-wrap [overflow-wrap:anywhere]">{turn.question}</p>
+    <div className="flex flex-col gap-[10px]">
+      {/* Câu của bạn: khung nền --pre lệch phải, như tin nhắn đã gửi; nhãn ẩn chỉ cho trình đọc màn hình. */}
+      <div className="flex justify-end">
+        <div className="max-w-[85%] bg-pre px-[12px] py-[8px]">
+          <span className="sr-only">{t.you}: </span>
+          <p className="m-0 text-[14px] leading-[1.5] whitespace-pre-wrap [overflow-wrap:anywhere]">{turn.question}</p>
+        </div>
       </div>
 
-      {tools.length > 0 && (
-        <div>
-          <p className={monoLabel}>{t.read}</p>
-          <ul className="m-0 list-none border-b border-hair p-0">
-            {tools.map((it) => (
-              <ToolRow key={it.key} item={it} />
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Phần của AI: vạch trái màu --ink, nhãn "AI" một lần, rồi việc đã đọc (gập) và câu trả lời. */}
+      <div className="flex flex-col gap-[8px] border-l-2 border-ink pl-[12px]">
+        <p className={`${monoLabel} m-0`}>{t.answer}</p>
 
-      {!refused && (turn.answer || turn.status === "running") && (
-        <div>
-          <p className={monoLabel}>{t.answer}</p>
-          {turn.answer ? <AnswerText text={turn.answer} /> : <p className="m-0 text-[13px] text-muted">{t.working}</p>}
-        </div>
-      )}
+        {tools.length > 0 && (
+          <details className="group">
+            <summary className="flex min-h-[28px] cursor-pointer list-none items-center gap-[8px] text-[12px] text-muted hover:text-ink [&::-webkit-details-marker]:hidden">
+              <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">
+                ▸
+              </span>
+              {t.readCount(tools.length)}
+              {tools.some((it) => it.failed) && <span>· {t.toolFailed}</span>}
+            </summary>
+            <ul className="m-0 mt-[4px] list-none border-b border-hair p-0">
+              {tools.map((it) => (
+                <ToolRow key={it.key} item={it} />
+              ))}
+            </ul>
+          </details>
+        )}
+
+        {!refused && (turn.answer || turn.status === "running") && (
+          <div>{turn.answer ? <AnswerText text={turn.answer} /> : <p className="m-0 text-[13px] text-muted">{t.working}</p>}</div>
+        )}
+      </div>
 
       {turn.status === "refused" && (
         <p role="status" className="m-0 border border-ink p-[12px] text-[14px]">
