@@ -168,6 +168,7 @@ Các trạng thái của thành phần bấm được:
 - Đang chọn bằng bàn phím: viền ngoài 2 px màu `--link`, cách 2 px. Không bao giờ tắt viền này.
 - Vô hiệu: chữ `--muted`, viền `--hair`, con trỏ không đổi thành bàn tay.
 - Ở màn hẹp dưới 640 px, nút cao 44 px để bấm được bằng ngón tay.
+- Chữ dữ liệu bấm-là-chép (domain, đường dẫn, mã job, sha) không phải nút: hàng bảng giữ gọn, nhưng ở màn hẹp vùng bấm tối thiểu 24 × 24 px (WCAG 2.2 bậc AA, tiêu chí 2.5.8). Mức 44 px là bậc AAA, chỉ áp cho nút.
 
 Cuộc trò chuyện trong ngăn AI:
 

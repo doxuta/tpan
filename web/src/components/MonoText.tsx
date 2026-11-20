@@ -26,7 +26,8 @@ export function MonoText({ children, size = 13, muted = false, bold = false }: P
         title={t.copy}
         onClick={() => copy(children)}
         className={
-          `select-text break-all text-left font-mono ${size === 12 ? "text-[12px]" : "text-[13px]"} ` +
+          // Màn hẹp: vùng bấm tối thiểu 24 × 24 px (WCAG 2.2 AA, 2.5.8; GIAO-DIEN.md).
+          `max-sm:min-h-[24px] max-sm:min-w-[24px] select-text break-all text-left font-mono ${size === 12 ? "text-[12px]" : "text-[13px]"} ` +
           `${muted ? "text-muted" : "text-ink"} ${bold ? "font-semibold" : ""} hover:underline`
         }
       >

@@ -42,7 +42,7 @@ function Sha({ sha }: { sha: string }) {
         title={t.shaTitle}
         aria-label={t.shaCopy(sha)}
         onClick={() => copy(sha)}
-        className="font-mono text-[12px] text-muted hover:text-ink hover:underline"
+        className="font-mono text-[12px] text-muted hover:text-ink hover:underline max-sm:min-h-[24px] max-sm:min-w-[24px]"
       >
         {shortSha(sha)}
       </button>
