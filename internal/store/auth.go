@@ -167,6 +167,10 @@ type Session struct {
 	IP          string
 	Created     time.Time
 	LastSeen    time.Time
+	// UserName là user TPAN sở hữu phiên (M13); rỗng khi tạo thì ghi "admin".
+	UserName string
+	// ViewAs là user mà admin đang "xem như" (phiên chỉ đọc); rỗng là bình thường.
+	ViewAs string
 }
 
 func scanSession(r rowScanner) (Session, error) {
@@ -174,7 +178,7 @@ func scanSession(r rowScanner) (Session, error) {
 		ss              Session
 		created, lastAt string
 	)
-	if err := r.Scan(&ss.TokenSHA256, &ss.ID, &ss.IP, &created, &lastAt); err != nil {
+	if err := r.Scan(&ss.TokenSHA256, &ss.ID, &ss.IP, &created, &lastAt, &ss.UserName, &ss.ViewAs); err != nil {
 		return Session{}, err
 	}
 	var err error
@@ -187,13 +191,19 @@ func scanSession(r rowScanner) (Session, error) {
 	return ss, nil
 }
 
-const sessionColumns = "token_sha256, id, ip, created_at, last_seen_at"
+const sessionColumns = "token_sha256, id, ip, created_at, last_seen_at, user_name, view_as"
 
 // CreateSession ghi một phiên mới (Created = LastSeen = thời điểm của ss.Created).
+// UserName rỗng thì là "admin".
 func (s *Store) CreateSession(ctx context.Context, ss Session) error {
+	// Phiên của bản v0.1.x và mã gọi chưa biết tới user đều là của admin.
+	user := ss.UserName
+	if user == "" {
+		user = adminName
+	}
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO sessions ("+sessionColumns+") VALUES (?, ?, ?, ?, ?)",
-		ss.TokenSHA256, ss.ID, ss.IP, fmtTime(ss.Created), fmtTime(ss.Created))
+		"INSERT INTO sessions ("+sessionColumns+") VALUES (?, ?, ?, ?, ?, ?, ?)",
+		ss.TokenSHA256, ss.ID, ss.IP, fmtTime(ss.Created), fmtTime(ss.Created), user, ss.ViewAs)
 	if err != nil {
 		return fmt.Errorf("tạo phiên %s: %w", ss.ID, err)
 	}
@@ -223,24 +233,35 @@ func (s *Store) TouchSession(ctx context.Context, tokenSHA256 string, now time.T
 	return nil
 }
 
-// Sessions trả mọi phiên, phiên dùng gần nhất trước.
+// Sessions trả mọi phiên của mọi user, phiên dùng gần nhất trước.
 func (s *Store) Sessions(ctx context.Context) ([]Session, error) {
+	return s.sessionsWhere(ctx, "đọc danh sách phiên", "")
+}
+
+// SessionsOf chỉ trả phiên của user name (màn Tài khoản không được lộ phiên
+// của người khác). Phiên admin đang "xem như" name không tính: nó là của admin.
+func (s *Store) SessionsOf(ctx context.Context, name string) ([]Session, error) {
+	return s.sessionsWhere(ctx, "đọc phiên của "+name, name)
+}
+
+func (s *Store) sessionsWhere(ctx context.Context, what, user string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT "+sessionColumns+" FROM sessions ORDER BY last_seen_at DESC, id")
+		"SELECT "+sessionColumns+" FROM sessions WHERE (? = '' OR user_name = ?) ORDER BY last_seen_at DESC, id",
+		user, user)
 	if err != nil {
-		return nil, fmt.Errorf("đọc danh sách phiên: %w", err)
+		return nil, fmt.Errorf("%s: %w", what, err)
 	}
 	defer func() { _ = rows.Close() }()
 	out := []Session{}
 	for rows.Next() {
 		ss, err := scanSession(rows)
 		if err != nil {
-			return nil, fmt.Errorf("đọc dòng phiên: %w", err)
+			return nil, fmt.Errorf("%s: đọc dòng: %w", what, err)
 		}
 		out = append(out, ss)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("đọc danh sách phiên: %w", err)
+		return nil, fmt.Errorf("%s: %w", what, err)
 	}
 	return out, nil
 }
@@ -267,22 +288,91 @@ func (s *Store) DeleteSessionByID(ctx context.Context, id string) error {
 	return nil
 }
 
-// ChangeAdminPassword ghi hash mới và xoá mọi phiên trừ phiên keepTokenSHA256
-// (người vừa đổi mật khẩu), trong một transaction.
+// DeleteSessionOf xoá phiên theo mã ngắn, CHỈ khi phiên đó thuộc user name:
+// user không được đăng xuất phiên của người khác dù đoán được id. Không có
+// hoặc không thuộc user thì ErrNotFound (cùng một lỗi để không lộ id có tồn tại).
+func (s *Store) DeleteSessionOf(ctx context.Context, name, id string) error {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM sessions WHERE id = ? AND user_name = ?", id, name)
+	if err != nil {
+		return fmt.Errorf("xoá phiên %s của %s: %w", id, name, err)
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return fmt.Errorf("xoá phiên %s của %s: %w", id, name, err)
+	} else if n == 0 {
+		return fmt.Errorf("phiên %s của %s: %w", id, name, ErrNotFound)
+	}
+	return nil
+}
+
+// SetViewAs đặt (hoặc gỡ, khi viewAs rỗng) user mà phiên đang "xem như".
+// Không có phiên thì ErrNotFound.
+func (s *Store) SetViewAs(ctx context.Context, tokenSHA256, viewAs string) error {
+	res, err := s.db.ExecContext(ctx, "UPDATE sessions SET view_as = ? WHERE token_sha256 = ?", viewAs, tokenSHA256)
+	if err != nil {
+		return fmt.Errorf("đặt xem-như cho phiên: %w", err)
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return fmt.Errorf("đặt xem-như cho phiên: %w", err)
+	} else if n == 0 {
+		return fmt.Errorf("phiên: %w", ErrNotFound)
+	}
+	return nil
+}
+
+// PasswordHashOf trả hash mật khẩu của user name (đăng nhập theo tên);
+// ok=false khi không có user đó.
+func (s *Store) PasswordHashOf(ctx context.Context, name string) (hash string, ok bool, err error) {
+	err = s.db.QueryRowContext(ctx, "SELECT password_hash FROM users WHERE name = ?", name).Scan(&hash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("đọc hash mật khẩu của %s: %w", name, err)
+	}
+	return hash, true, nil
+}
+
+// ChangeAdminPassword là ChangeUserPassword cho user "admin". Khác một điểm giữ
+// từ trước M13: máy chưa có dòng admin thì tạo luôn (như SetAdminPasswordHash)
+// thay vì báo không tìm thấy.
 func (s *Store) ChangeAdminPassword(ctx context.Context, hash, keepTokenSHA256 string, now time.Time) error {
+	return s.changePassword(ctx, adminName, hash, keepTokenSHA256, now, true)
+}
+
+// ChangeUserPassword ghi hash mới cho user name và huỷ mọi phiên của user đó
+// (kể cả phiên admin đang "xem như" họ) trừ phiên keepTokenSHA256 (người vừa
+// đổi mật khẩu), trong một transaction. Không có user thì ErrNotFound.
+func (s *Store) ChangeUserPassword(ctx context.Context, name, hash, keepTokenSHA256 string, now time.Time) error {
+	return s.changePassword(ctx, name, hash, keepTokenSHA256, now, false)
+}
+
+func (s *Store) changePassword(ctx context.Context, name, hash, keep string, now time.Time, upsertAdmin bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("đổi mật khẩu: %w", err)
+		return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, upsertAdminSQL, adminName, hash, fmtTime(now)); err != nil {
-		return fmt.Errorf("đổi mật khẩu: %w", err)
+	if upsertAdmin {
+		_, err = tx.ExecContext(ctx, upsertAdminSQL, name, hash, fmtTime(now))
+	} else {
+		var res sql.Result
+		if res, err = tx.ExecContext(ctx, "UPDATE users SET password_hash = ? WHERE name = ?", hash, name); err == nil {
+			if n, rerr := res.RowsAffected(); rerr != nil {
+				err = rerr
+			} else if n == 0 {
+				return fmt.Errorf("đổi mật khẩu: user %s: %w", name, ErrNotFound)
+			}
+		}
 	}
-	if _, err := tx.ExecContext(ctx, "DELETE FROM sessions WHERE user_name = ? AND token_sha256 <> ?", adminName, keepTokenSHA256); err != nil {
-		return fmt.Errorf("đổi mật khẩu: huỷ phiên khác: %w", err)
+	if err != nil {
+		return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM sessions WHERE (user_name = ? OR view_as = ?) AND token_sha256 <> ?", name, name, keep); err != nil {
+		return fmt.Errorf("đổi mật khẩu của %s: huỷ phiên khác: %w", name, err)
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("đổi mật khẩu: %w", err)
+		return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)
 	}
 	return nil
 }

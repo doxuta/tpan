@@ -65,10 +65,13 @@ func (s *Store) AddBackup(ctx context.Context, b Backup) (Backup, error) {
 		b.Created = s.now()
 	}
 	b.Created = b.Created.UTC()
+	// owner (M13): chủ của site cùng domain lúc này; không có site (backup của
+	// site đã xoá, hay domain lạ) thì admin. Ghi vào dòng backup vì backup sống
+	// lâu hơn site.
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO backups ("+backupColumns+") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO backups ("+backupColumns+", owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT owner FROM sites WHERE domain = ?), 'admin'))",
 		b.ID, b.Domain, b.Kind, b.Reason, b.Path, b.Size, b.SHA256,
-		b.WPVersion, b.PHPVersion, b.JobID, fmtTime(b.Created))
+		b.WPVersion, b.PHPVersion, b.JobID, fmtTime(b.Created), b.Domain)
 	if err != nil {
 		return Backup{}, fmt.Errorf("thêm backup %s của %s: %w", b.ID, b.Domain, err)
 	}
@@ -92,11 +95,18 @@ func (s *Store) Backup(ctx context.Context, id string) (b Backup, ok bool, err e
 // Backups trả các dòng của domain (rỗng: mọi domain), mới nhất trước. rowid là
 // khoá phụ: hai bản cùng created_at thì bản chèn sau xếp trước.
 func (s *Store) Backups(ctx context.Context, domain string) ([]Backup, error) {
+	return s.BackupsOf(ctx, "", domain)
+}
+
+// BackupsOf là Backups chỉ lấy dòng có owner khớp (rỗng là mọi chủ). Lọc theo
+// cột owner của dòng backup, không join sites: backup của site đã xoá hẳn vẫn
+// thuộc về chủ cũ.
+func (s *Store) BackupsOf(ctx context.Context, owner, domain string) ([]Backup, error) {
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT "+backupColumns+` FROM backups WHERE (? = '' OR domain = ?)
-		 ORDER BY created_at DESC, rowid DESC`, domain, domain)
+		"SELECT "+backupColumns+` FROM backups WHERE (? = '' OR owner = ?) AND (? = '' OR domain = ?)
+		 ORDER BY created_at DESC, rowid DESC`, owner, owner, domain, domain)
 	if err != nil {
-		return nil, fmt.Errorf("đọc danh sách backup của %q: %w", domain, err)
+		return nil, fmt.Errorf("đọc danh sách backup của %q (chủ %q): %w", domain, owner, err)
 	}
 	defer func() { _ = rows.Close() }()
 	out := []Backup{}
@@ -111,6 +121,11 @@ func (s *Store) Backups(ctx context.Context, domain string) ([]Backup, error) {
 		return nil, fmt.Errorf("đọc danh sách backup của %q: %w", domain, err)
 	}
 	return out, nil
+}
+
+// BackupOwner trả chủ của backup (luật owner:backup của server); ok=false khi không có.
+func (s *Store) BackupOwner(ctx context.Context, id string) (owner string, ok bool, err error) {
+	return s.ownerOf(ctx, "SELECT owner FROM backups WHERE id = ?", "backup "+id, id)
 }
 
 // DeleteBackup xoá dòng; không có thì không lỗi (dọn bản cũ chạy lại được).

@@ -310,8 +310,20 @@ func scanStoredResult(r rowScanner) (StoredResult, error) {
 
 // CheckResults trả mọi kết quả, xếp theo target rồi id.
 func (s *Store) CheckResults(ctx context.Context) ([]StoredResult, error) {
+	return s.CheckResultsOf(ctx, "")
+}
+
+// ownedTarget là điều kiện SQL "target là site của owner (hoặc owner rỗng: tất
+// cả)", dùng chung cho kết quả và sự cố. Khi owner khác rỗng, phép kiểm của máy
+// (target ""), của stack và của tpan bị loại: chúng không thuộc ai ngoài admin.
+// Cần hai tham số: owner, owner.
+const ownedTarget = "(? = '' OR target IN (SELECT domain FROM sites WHERE owner = ?))"
+
+// CheckResultsOf là CheckResults chỉ lấy phép kiểm của site thuộc owner (rỗng là tất cả).
+func (s *Store) CheckResultsOf(ctx context.Context, owner string) ([]StoredResult, error) {
 	out := []StoredResult{}
-	err := queryEach(ctx, s.db, "SELECT "+resultColumns+" FROM check_results ORDER BY target, id",
+	err := queryEach(ctx, s.db,
+		"SELECT "+resultColumns+" FROM check_results WHERE "+ownedTarget+" ORDER BY target, id",
 		func(r rowScanner) error {
 			sr, err := scanStoredResult(r)
 			if err != nil {
@@ -319,9 +331,9 @@ func (s *Store) CheckResults(ctx context.Context) ([]StoredResult, error) {
 			}
 			out = append(out, sr)
 			return nil
-		})
+		}, owner, owner)
 	if err != nil {
-		return nil, fmt.Errorf("đọc kết quả phép kiểm: %w", err)
+		return nil, fmt.Errorf("đọc kết quả phép kiểm của %q: %w", owner, err)
 	}
 	return out, nil
 }
@@ -433,12 +445,19 @@ func getIncident(ctx context.Context, q querier, id int64) (Incident, error) {
 // Incidents trả sự cố mới nhất trước (theo opened_at, rồi id). openOnly chỉ
 // lấy sự cố đang mở. limit <= 0 là không giới hạn.
 func (s *Store) Incidents(ctx context.Context, openOnly bool, limit int) ([]Incident, error) {
+	return s.IncidentsOf(ctx, "", openOnly, limit)
+}
+
+// IncidentsOf là Incidents chỉ lấy sự cố của site thuộc owner (rỗng là tất cả).
+// Sự cố đã đóng vì "gone" (site xoá hẳn) không còn site nào để suy chủ nên chỉ
+// admin thấy.
+func (s *Store) IncidentsOf(ctx context.Context, owner string, openOnly bool, limit int) ([]Incident, error) {
 	if limit <= 0 {
 		limit = -1 // SQLite: LIMIT âm là không giới hạn
 	}
-	query := "SELECT " + incidentColumns + " FROM incidents"
+	query := "SELECT " + incidentColumns + " FROM incidents WHERE " + ownedTarget
 	if openOnly {
-		query += " WHERE closed_at IS NULL"
+		query += " AND closed_at IS NULL"
 	}
 	query += " ORDER BY opened_at DESC, id DESC LIMIT ?"
 	out := []Incident{}
@@ -449,14 +468,30 @@ func (s *Store) Incidents(ctx context.Context, openOnly bool, limit int) ([]Inci
 		}
 		out = append(out, inc)
 		return nil
-	}, limit)
+	}, owner, owner, limit)
 	if err != nil {
-		return nil, fmt.Errorf("đọc danh sách sự cố: %w", err)
+		return nil, fmt.Errorf("đọc danh sách sự cố của %q: %w", owner, err)
 	}
 	if err := loadJobs(ctx, s.db, out); err != nil {
 		return nil, fmt.Errorf("đọc job của sự cố: %w", err)
 	}
 	return out, nil
+}
+
+// IncidentOwner trả chủ của sự cố: chủ của site là target của nó. Sự cố của
+// máy, stack, tpan (hay của site đã xoá hẳn) trả "" và ok=true; chỉ admin được
+// xem. ok=false khi không có sự cố.
+func (s *Store) IncidentOwner(ctx context.Context, id int64) (owner string, ok bool, err error) {
+	var o sql.NullString
+	err = s.db.QueryRowContext(ctx,
+		`SELECT (SELECT owner FROM sites WHERE domain = i.target) FROM incidents i WHERE i.id = ?`, id).Scan(&o)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("đọc chủ của sự cố %d: %w", id, err)
+	}
+	return o.String, true, nil
 }
 
 // Incident trả một sự cố kèm Jobs; không có thì lỗi thoả errors.Is(err, ErrNotFound).

@@ -81,9 +81,17 @@ func (s *Store) Site(ctx context.Context, d validate.Domain) (site.Site, bool, e
 
 // Sites trả mọi site, xếp theo domain.
 func (s *Store) Sites(ctx context.Context) ([]site.Site, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT "+siteColumns+" FROM sites ORDER BY domain")
+	return s.SitesOf(ctx, "")
+}
+
+// SitesOf trả site của owner (rỗng là của mọi người), xếp theo domain. Lọc ngay
+// trong SQL: user thường không bao giờ nhận dữ liệu site của người khác ra tới
+// tầng server.
+func (s *Store) SitesOf(ctx context.Context, owner string) ([]site.Site, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT "+siteColumns+" FROM sites WHERE (? = '' OR owner = ?) ORDER BY domain", owner, owner)
 	if err != nil {
-		return nil, fmt.Errorf("đọc danh sách site: %w", err)
+		return nil, fmt.Errorf("đọc danh sách site của %q: %w", owner, err)
 	}
 	defer func() { _ = rows.Close() }()
 	out := []site.Site{}
@@ -95,9 +103,15 @@ func (s *Store) Sites(ctx context.Context) ([]site.Site, error) {
 		out = append(out, st)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("đọc danh sách site: %w", err)
+		return nil, fmt.Errorf("đọc danh sách site của %q: %w", owner, err)
 	}
 	return out, nil
+}
+
+// SiteOwner trả chủ của site theo domain (luật owner:site của server); ok=false
+// khi không có site đó. Site ở thùng rác vẫn có chủ.
+func (s *Store) SiteOwner(ctx context.Context, domain string) (owner string, ok bool, err error) {
+	return s.ownerOf(ctx, "SELECT owner FROM sites WHERE domain = ?", "site "+domain, domain)
 }
 
 // SaveSite thêm mới hoặc ghi đè site cùng domain. Slug luôn ghi là

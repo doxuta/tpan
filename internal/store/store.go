@@ -436,12 +436,20 @@ func (s *Store) Job(ctx context.Context, id string) (engine.Job, error) {
 
 // Jobs trả các job mới nhất trước. limit <= 0 nghĩa là không giới hạn.
 func (s *Store) Jobs(ctx context.Context, limit int) ([]engine.Job, error) {
+	return s.JobsOf(ctx, "", "", limit)
+}
+
+// JobsOf là Jobs có lọc: owner khác rỗng chỉ lấy job của chủ đó (kể cả job
+// admin chạy trên site của họ, vì owner là chủ của đối tượng); actor khác rỗng
+// chỉ lấy job do user đó chạy (màn Lịch sử của admin). Cả hai rỗng là mọi job.
+func (s *Store) JobsOf(ctx context.Context, owner, actor string, limit int) ([]engine.Job, error) {
 	if limit <= 0 {
 		limit = -1 // SQLite: LIMIT âm là không giới hạn
 	}
 	// rowid làm khoá phụ để hai job cùng started_at có thứ tự ổn định (job tạo sau lên trước).
 	rows, err := s.db.QueryContext(ctx,
-		"SELECT "+jobColumns+" FROM jobs ORDER BY started_at DESC, rowid DESC LIMIT ?", limit)
+		"SELECT "+jobColumns+` FROM jobs WHERE (? = '' OR owner = ?) AND (? = '' OR actor = ?)
+		 ORDER BY started_at DESC, rowid DESC LIMIT ?`, owner, owner, actor, actor, limit)
 	if err != nil {
 		return nil, fmt.Errorf("đọc danh sách job: %w", err)
 	}
@@ -458,6 +466,11 @@ func (s *Store) Jobs(ctx context.Context, limit int) ([]engine.Job, error) {
 		return nil, fmt.Errorf("đọc danh sách job: %w", err)
 	}
 	return jobs, nil
+}
+
+// JobOwner trả chủ của job (luật owner:job của server); ok=false khi không có job.
+func (s *Store) JobOwner(ctx context.Context, id string) (owner string, ok bool, err error) {
+	return s.ownerOf(ctx, "SELECT owner FROM jobs WHERE id = ?", "job "+id, id)
 }
 
 // Events trả các sự kiện của job có Seq > afterSeq, Seq tăng dần. Truyền 0 để

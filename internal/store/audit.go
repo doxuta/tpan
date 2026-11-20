@@ -14,6 +14,8 @@ type AuditEntry struct {
 	Target string    `json:"target"`
 	Result string    `json:"result"` // "ok" hoặc mã lỗi
 	JobID  string    `json:"job_id"`
+	// Actor là user TPAN đã làm (M13); rỗng là dòng lệnh, MCP hoặc bộ hẹn giờ.
+	Actor string `json:"actor,omitempty"`
 }
 
 // AddAudit ghi một dòng nhật ký. Không bao giờ ghi mật khẩu: người gọi chỉ
@@ -23,8 +25,8 @@ func (s *Store) AddAudit(ctx context.Context, a AuditEntry) error {
 		return fmt.Errorf("ghi nhật ký: thiếu thao tác hoặc kết quả")
 	}
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO audit (time, ip, action, target, result, job_id) VALUES (?, ?, ?, ?, ?, ?)",
-		fmtTime(a.Time), a.IP, a.Action, a.Target, a.Result, a.JobID)
+		"INSERT INTO audit (time, ip, action, target, result, job_id, actor) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		fmtTime(a.Time), a.IP, a.Action, a.Target, a.Result, a.JobID, a.Actor)
 	if err != nil {
 		return fmt.Errorf("ghi nhật ký %s: %w", a.Action, err)
 	}
