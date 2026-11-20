@@ -475,7 +475,7 @@ func (s *Sites) newOwner(ctx context.Context, owner string) (string, error) {
 	if s.Accounts == nil {
 		return owner, nil
 	}
-	u, err := lookupUser(ctx, s.Accounts, owner)
+	u, _, err := ownerUser(ctx, s.Accounts, owner)
 	if err != nil {
 		return "", err
 	}
@@ -809,14 +809,12 @@ func (s *Sites) health(ctx context.Context, d validate.Domain) (Health, site.Sit
 	if !h.Installed {
 		return h, st, nil
 	}
-	php := st.PHPVersion
-	if php == "" {
-		php = cfg.PHPVersion
-	}
 	others, err := s.others(ctx, d)
 	if err != nil {
 		return Health{}, st, err
 	}
-	h.Results = checks.RunAll(ctx, s.Sys, siteChecks(cfg.Web, php, st.Layout(), others, st.SSL))
+	// Cùng bộ phép kiểm với health định kỳ (siteStateChecks): site hay DB
+	// đang tạm khoá thì các chặng bị bỏ hiện xám, không đỏ (M13).
+	h.Results = checks.RunAll(ctx, s.Sys, siteStateChecks(st, cfg, others, false))
 	return h, st, nil
 }

@@ -212,12 +212,9 @@ func (d *DBs) PrepareAdd(ctx context.Context, in DBInput) (*DBAdd, error) {
 		return nil, err
 	}
 	if d.Accounts != nil {
-		u, ok, err := d.Accounts.User(ctx, owner)
+		u, _, err := ownerUser(ctx, d.Accounts, owner)
 		if err != nil {
-			return nil, fmt.Errorf("đọc user %s: %w", owner, err)
-		}
-		if !ok {
-			return nil, refuse(CodeUserNotFound, i18n.T("không có user "+owner+" trong tpan", "tpan has no user "+owner))
+			return nil, err
 		}
 		if u.Status != account.Active {
 			return nil, refuse(CodeUserSuspended, i18n.T("user "+owner+" đang bị tạm khoá", "user "+owner+" is suspended"))

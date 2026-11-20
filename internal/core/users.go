@@ -86,6 +86,24 @@ func lookupUser(ctx context.Context, as AccountStore, name string) (account.User
 	return u, nil
 }
 
+// ownerUser như lookupUser nhưng hiểu "admin" chưa có dòng (máy chưa chạy
+// tpan setup: migration 1300 chỉ tạo dòng admin từ hash cũ) là admin active,
+// gói default không giới hạn, như mọi thứ có từ trước M13. implicit=true khi
+// đó, để người gọi bỏ qua phần cần dòng thật (Usage).
+func ownerUser(ctx context.Context, as AccountStore, name string) (u account.User, implicit bool, err error) {
+	u, ok, err := as.User(ctx, name)
+	if err != nil {
+		return account.User{}, false, fmt.Errorf("đọc user %q: %w", name, err)
+	}
+	if ok {
+		return u, false, nil
+	}
+	if name == account.AdminName {
+		return account.User{Name: name, Role: account.RoleAdmin, Package: account.DefaultPackage, Status: account.Active}, true, nil
+	}
+	return account.User{}, false, userNotFound(name)
+}
+
 // lookupPackage đọc gói theo tên đã kiểm; không có thì package_not_found.
 func lookupPackage(ctx context.Context, as AccountStore, name string) (account.Package, error) {
 	p, ok, err := as.Package(ctx, name)
@@ -926,9 +944,12 @@ func quotaCheck(ctx context.Context, as AccountStore, owner string, k QuotaKind,
 	if owner == "" {
 		owner = account.AdminName
 	}
-	u, err := lookupUser(ctx, as, owner)
+	u, implicit, err := ownerUser(ctx, as, owner)
 	if err != nil {
 		return err
+	}
+	if implicit {
+		return nil // admin chưa có dòng: gói default, không giới hạn
 	}
 	p, ok, err := as.Package(ctx, u.Package)
 	if err != nil {
