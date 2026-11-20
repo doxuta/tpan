@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import type { Overview, Traffic as TrafficData } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { DomainText } from "../../components/DomainText";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
@@ -86,11 +87,12 @@ export function RouteMap({ o }: { o: Overview }) {
     <>
       {/* Khung cuộn ngang riêng: cả trang không bao giờ cuộn ngang. */}
       {/* relative: span sr-only của dòng request không thoát khỏi khung cuộn; -m/p 4 px: chừa chỗ cho viền focus ở mép khung. */}
+      {/* min-w 660 px (mỗi ga còn đủ chỗ cho chữ WORDPRESS) và nhãn ga được xuống dòng ("WEB / SERVER"): bản đồ vừa khung nội dung khi cửa sổ trình duyệt hẹp hơn, ít phải cuộn ngang. */}
       <div className="@container relative -m-[4px] overflow-x-auto p-[4px]">
-        <div className="min-w-[700px] border-b border-hair">
+        <div className="min-w-[660px] border-b border-hair">
           <div aria-hidden="true" className="flex items-end pb-[8px] font-mono text-[11px] tracking-[0.08em] text-muted">
             <div className="w-[180px] flex-none">{t.colSite}</div>
-            <div className="grid flex-1 grid-cols-6 text-center whitespace-nowrap uppercase">
+            <div className="grid flex-1 grid-cols-6 text-center leading-[1.3] uppercase">
               {stationStages.map((s) => (
                 <div key={s}>{t.stage[s]}</div>
               ))}
@@ -101,14 +103,14 @@ export function RouteMap({ o }: { o: Overview }) {
             {routes.map((r) => (
               <li key={r.domain} className="border-t border-hair">
                 <div className="flex items-center">
-                  {/* Không overflow-hidden ở đây: nó cắt mất viền focus của liên kết; liên kết và dòng request tự cắt chữ bằng ellipsis. */}
-                  <div className="w-[180px] flex-none">
+                  {/* Không overflow-hidden ở đây: nó cắt mất viền focus của liên kết. Tên miền dài xuống dòng sau dấu chấm thay vì bị cắt "…"; dòng request vẫn cắt bằng ellipsis. */}
+                  <div className="w-[180px] flex-none py-[6px] pr-[8px]">
                     <Link
                       to={`/sites/${encodeURIComponent(r.domain)}`}
                       title={r.domain}
-                      className="block overflow-hidden font-mono text-[13px] text-ellipsis whitespace-nowrap text-ink no-underline hover:text-ink hover:underline"
+                      className="block font-mono text-[13px] leading-[1.35] text-ink no-underline hover:text-ink hover:underline"
                     >
-                      {r.domain}
+                      <DomainText domain={r.domain} />
                     </Link>
                     {r.traffic && <Traffic traffic={r.traffic} />}
                   </div>

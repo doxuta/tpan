@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import type { CheckResult, SSLSiteRow } from "../../api/types";
 import { Button } from "../../components/Button";
 import { CommandBlock } from "../../components/CommandBlock";
+import { DomainText } from "../../components/DomainText";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
@@ -82,8 +83,8 @@ export function SiteTable({ rows, pending, onIssue }: Props) {
               <Fragment key={domain}>
                 <tr className="border-t border-hair">
                   <td className="py-[10px] pr-[16px] align-baseline">
-                    <Link to={`/sites/${encodeURIComponent(domain)}`} className="block min-w-[170px] font-mono text-[13px] whitespace-nowrap">
-                      {domain}
+                    <Link to={`/sites/${encodeURIComponent(domain)}`} className="block min-w-[120px] font-mono text-[13px]">
+                      <DomainText domain={domain} />
                     </Link>
                   </td>
                   <td className="py-[10px] pr-[16px] align-baseline whitespace-nowrap">{r.ssl ? t.sslYes : t.sslNo}</td>
@@ -94,7 +95,7 @@ export function SiteTable({ rows, pending, onIssue }: Props) {
                         aria-expanded={isOpen}
                         aria-controls={panelId(domain)}
                         onClick={() => toggle(domain)}
-                        className="flex min-h-[44px] min-w-[260px] items-start gap-[10px] bg-transparent py-[2px] text-left text-ink sm:min-h-0"
+                        className="flex min-h-[44px] min-w-[200px] items-start gap-[10px] bg-transparent py-[2px] text-left text-ink sm:min-h-0"
                       >
                         <span className="flex h-[21px] w-[20px] flex-none items-center justify-center">
                           <StatusMark status={r.cert.status} />

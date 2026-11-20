@@ -11,6 +11,7 @@ import { ApiError, del, errorMessage, get } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { JobStarted, Preview, SiteInfo, Stage } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
+import { DomainText } from "../../components/DomainText";
 import { MonoText } from "../../components/MonoText";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { StatusMark } from "../../components/StatusMark";
@@ -77,10 +78,10 @@ export function SiteList() {
           columns={[
             {
               header: t.colDomain,
-              className: "min-w-[210px]",
+              className: "min-w-[160px]",
               cell: (r) => (
-                <Link to={`/sites/${encodeURIComponent(r.site.domain)}`} className={`${linkClass} whitespace-nowrap`}>
-                  {r.site.domain}
+                <Link to={`/sites/${encodeURIComponent(r.site.domain)}`} className={linkClass}>
+                  <DomainText domain={r.site.domain} />
                 </Link>
               ),
             },
