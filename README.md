@@ -10,7 +10,8 @@ Khác với panel kiểu "bấm là chạy", TPAN làm theo kiểu hộp kính:
 - Xem trước: mọi thao tác hiện danh sách bước, lệnh sẽ chạy và file sẽ ghi (có diff) trước khi chạy.
 - Hoàn tác: bước nào lỗi thì các bước đã chạy được gỡ lại theo thứ tự ngược; config luôn được kiểm (`nginx -t`, `apachectl configtest`) trước khi reload.
 - Kiểm chứng: thao tác kết thúc bằng bước kiểm và lưu bằng chứng (mã HTTP, socket, quyền file, hạn chứng chỉ).
-- Cô lập từng site: user Linux riêng, pool PHP-FPM riêng, DB và user DB riêng.
+- Cô lập từng site: user Linux riêng, pool PHP-FPM riêng, DB và user DB riêng. Thêm lớp chống "local attack" (một site bị chiếm lấn sang site khác trên cùng máy): OPcache kiểm quyền file, nginx không đi theo symlink khác chủ, `.htaccess` của Apache chỉ dùng được một danh sách chỉ thị chọn tay, log theo nhóm của site, PHP không thấy tiến trình của user khác. Chín đường tấn công đã chứng minh và cách chặn từng cái: mục 6.13 của [docs/KE-HOACH.md](docs/KE-HOACH.md).
+- Định tuyến có bằng chứng: `tpan route explain <domain>` lần đường đi của request từ cấu hình đang chạy (tên miền → vhost → root → socket → pool → user → `open_basedir`), mỗi chặng kèm lệnh và output; health báo khi một tên miền bị khai ở hai vhost.
 - Nhiều người dùng: tài khoản admin và khách hosting, gói hạn mức (số site, số DB, dung lượng, số backup), tạm khoá user, site, DB, DB rời không gắn với site. Phân quyền mặc định là cấm ở mọi route API; khách chỉ thấy đồ của mình.
 - Health theo đường đi request: DNS, TLS, web server, pool PHP, WordPress, DB. Site hỏng thì chỉ ra đúng chặng hỏng kèm bằng chứng và cách sửa.
 - AI không có tay: AI (tuỳ chọn, tắt mặc định) chỉ đọc và đề xuất một Plan; người duyệt trên bản xem trước rồi TPAN mới chạy. Bộ não là Claude Code trên máy của người vận hành, máy chủ không giữ khoá AI nào.
@@ -155,6 +156,11 @@ sudo tpan site rm shop.example.com             # vào thùng rác, khôi phục 
 sudo tpan health                               # mọi phép kiểm; mã thoát 1 khi có lỗi
 sudo tpan health shop.example.com --fix --dry-run
 
+# Cô lập giữa các site và định tuyến
+sudo tpan route explain shop.example.com       # request tới tên miền này đi đường nào, kèm lệnh và output từng chặng
+sudo tpan security harden --dry-run            # máy nâng từ bản cũ: xem bản vá cô lập sẽ đổi gì, rồi chạy không có --dry-run
+sudo tpan site set shop.example.com --htaccess an-toan   # chế độ .htaccess trên Apache: an-toan (mặc định), tat, day-du
+
 # SSL (Let's Encrypt, cần tên miền thật trỏ về máy)
 sudo tpan ssl issue shop.example.com --email admin@example.com   # mặc định là chứng chỉ thử (staging)
 sudo tpan ssl settings --staging=false                           # thử xong: từ giờ xin chứng chỉ thật
@@ -259,6 +265,8 @@ MIT, xem [LICENSE](LICENSE).
 TPAN is a small web server panel for one Ubuntu 24.04 VPS. It installs LEMP (nginx) or LAMP (apache) and hosts many WordPress sites on the same machine, each with its own Linux user, PHP-FPM pool and database. It ships as a single Go binary with a CLI, an HTTP API, a bilingual web UI (Vietnamese and English) and an MCP server for agents.
 
 It also hosts several customers: admin and customer accounts, quota packages (sites, databases, disk, backups), suspending a user, a site or a database, and standalone databases. Every API route declares who may call it and is denied by default; customers only see their own sites, databases, jobs and incidents.
+
+Sites are isolated against local attacks (one compromised site reaching into another on the same machine): OPcache validates file permissions, nginx does not follow symlinks owned by someone else, Apache `.htaccess` files are limited to a hand-picked directive list, logs are readable only by the site's own group, and PHP cannot see other users' processes. `tpan route explain <domain>` traces a request from the running configuration (domain → vhost → root → socket → pool → user → `open_basedir`) with the command and output for each hop. After updating from an older release, run `sudo tpan security harden`.
 
 Every operation shows a preview first (steps, commands, file diffs), rolls back on failure, and ends with a verification step that stores evidence. Health checks follow the request path (DNS, TLS, web server, PHP pool, WordPress, DB) and point at the broken hop. The optional AI only reads and proposes plans; a human approves them, and the AI runs as Claude Code on the operator's own machine, so the server holds no AI keys.
 

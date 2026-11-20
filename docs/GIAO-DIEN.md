@@ -255,6 +255,10 @@ Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới t
 | Cỡ | Size | Dung lượng file hoặc cơ sở dữ liệu. |
 | Màn | screen | "màn Backup" / "the Backups screen". Tên màn viết đúng như tên trong menu. "Trang" chỉ dùng cho trang của một site hoặc trang lỗi. |
 | Đăng xuất | Log out | |
+| Cô lập giữa các site | Isolation between sites | Khối trên màn Bảo mật (M14): ma trận site × site, ô là dấu trạng thái, bấm ô thì thấy bằng chứng. |
+| Áp bản vá cô lập | Apply isolation hardening | Nút và tên Plan của `tpan security harden`. |
+| Chế độ .htaccess | .htaccess mode | Ba giá trị `an-toan`, `tat`, `day-du` giữ nguyên ở cả hai bản, chữ mono. |
+| Đường đi của request | Request path | Nút "Request tới site này đi đường nào" / "Which way a request to this site goes"; mỗi mắt xích là một chặng. |
 | Bấm | Press | Nút và liên kết. Không dùng "click" trong chữ giao diện. |
 | Giờ giấc | `3 s`, `2 min 3 s`, `1 h 5 min`, `2 d` | Tiếng Anh viết số, cách một dấu cách, rồi đơn vị. |
 
