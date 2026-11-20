@@ -1,0 +1,39 @@
+== máy chủ: http://127.0.0.1:7070 vùng vn-thu-1 bucket tpan-thu (2026-11-20T19:17:43Z)
+
+--- 1. ghi, head, đọc lại, xoá một object nhỏ (tên có dấu cách, dấu tiếng Việt, ngoặc, &)
+ĐẠT: ghi, head (size=29 etag="e7d71e23846a450fa208adc82fd7fb6c"), đọc lại sha256 khớp, xoá, head sau xoá báo không có
+(thời gian 0.0s, đỉnh RAM VmHWM 6052 kB)
+
+--- 2. sai khoá bí mật: phải bị từ chối, có mã lỗi đọc được
+(thời gian 0.0s, đỉnh RAM VmHWM 5960 kB)
+LỖI: ghi: S3 trả 403 SignatureDoesNotMatch: The request signature we calculated does not match the signature you provided. Check your key and signing method.
+mã thoát 1
+
+--- 3. sai vùng: kho có kiểm vùng trong chữ ký không
+(thời gian 0.0s, đỉnh RAM VmHWM 5920 kB)
+LỖI: ghi: S3 trả 400 AuthorizationHeaderMalformed: The authorization header is malformed; the region 'us-west-9' is wrong; expecting 'vn-thu-1'
+mã thoát 1
+
+--- 4. bucket không có
+(thời gian 0.0s, đỉnh RAM VmHWM 5908 kB)
+LỖI: ghi: S3 trả 404 NoSuchBucket: The specified bucket does not exist.
+mã thoát 1
+
+--- 5. file 20 MiB, phần 8 MiB (3 phần): tải lên nhiều phần, tải về, so sha256
+đã tải lên thu/20m.bin (20971520 byte), sha256 8d454fff885acf4726972c36d3712ef12bd44187f2fc412a5784ad2ad007afc7
+(thời gian 0.1s, đỉnh RAM VmHWM 14692 kB)
+size=20971520 etag="a8dade0ff36597a3b51f90346f8dc713-3" tpan-sha256=
+(thời gian 0.0s, đỉnh RAM VmHWM 5784 kB)
+đã tải về thu/20m.bin (20971520 byte), sha256 8d454fff885acf4726972c36d3712ef12bd44187f2fc412a5784ad2ad007afc7
+(thời gian 0.0s, đỉnh RAM VmHWM 5860 kB)
+ĐẠT: sha256 khớp 8d454fff885acf4726972c36d3712ef12bd44187f2fc412a5784ad2ad007afc7
+
+--- 6. liệt kê và các lần tải dở
+    20971520  2026-11-20T19:17:43Z  thu/20m.bin
+(thời gian 0.0s, đỉnh RAM VmHWM 5860 kB)
+0 lần tải nhiều phần còn dở
+(thời gian 0.0s, đỉnh RAM VmHWM 5800 kB)
+
+--- 7. xoá
+(thời gian 0.0s, đỉnh RAM VmHWM 5836 kB)
+(thời gian 0.0s, đỉnh RAM VmHWM 5880 kB)

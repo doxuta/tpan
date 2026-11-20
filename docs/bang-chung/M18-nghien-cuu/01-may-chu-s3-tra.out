@@ -1,0 +1,75 @@
+== ngay tra: 2026-11-20T19:08:13Z, may: aarch64, Ubuntu 24.04.5 LTS
+
+== repo minio/minio
+archived=true disabled=false license=AGPL-3.0 pushed_at=2026-04-24T17:54:39Z stars=61248 description=MinIO is a high-performance, S3 compatible object store, open sourced under GNU AGPLv3 license.
+-- latest release of minio/minio
+tag=RELEASE.2025-10-15T17-29-55Z published_at=2025-10-16T19:33:51Z assets=0
+-- HEAD https://dl.min.io/server/minio/release/linux-arm64/minio
+  http=410 size=405 type=text/plain; charset=utf-8 last-modified=
+-- HEAD https://dl.min.io/client/mc/release/linux-arm64/mc
+  http=410 size=405 type=text/plain; charset=utf-8 last-modified=
+
+== repo seaweedfs/seaweedfs
+archived=false disabled=false license=Apache-2.0 pushed_at=2026-11-20T18:35:32Z stars=36167 description=SeaweedFS is a distributed storage system for object storage (S3), file systems, Iceberg table buckets, and Lance vector buckets, designed to handle billions of files with O(1) disk access and effortless horizontal scaling.
+-- latest release of seaweedfs/seaweedfs
+tag=4.54 published_at=2026-11-16T05:31:48Z assets=86
+  asset: linux_arm64.tar.gz 42960031 bytes
+  asset: linux_arm64.tar.gz.md5 33 bytes
+  asset: linux_arm64_large_disk.tar.gz 42958290 bytes
+  asset: linux_arm64_large_disk.tar.gz.md5 33 bytes
+  asset: weed-vector_linux_arm64.tar.gz 76764326 bytes
+  asset: weed-vector_linux_arm64.tar.gz.md5 65 bytes
+  asset: weed-volume_large_disk_linux_arm64.tar.gz 14185902 bytes
+  asset: weed-volume_large_disk_linux_arm64.tar.gz.md5 76 bytes
+  asset: weed-volume_linux_arm64.tar.gz 14184612 bytes
+  asset: weed-volume_linux_arm64.tar.gz.md5 65 bytes
+  asset: weed-worker_linux_arm64.tar.gz 79640598 bytes
+  asset: weed-worker_linux_arm64.tar.gz.md5 65 bytes
+
+== repo versity/versitygw
+archived=false disabled=false license=Apache-2.0 pushed_at=2026-11-20T13:17:32Z stars=3153 description=A simple to deploy but feature rich S3 object storage server for your filesystem
+-- latest release of versity/versitygw
+tag=v1.11.0 published_at=2026-11-06T23:00:44Z assets=13
+  asset: versitygw_1.11.0_linux_arm64.deb 31112292 bytes
+  asset: versitygw_1.11.0_linux_arm64.rpm 31630253 bytes
+  asset: versitygw_v1.11.0_Linux_arm64.tar.gz 31101185 bytes
+
+== repo rustfs/rustfs
+archived=false disabled=false license=Apache-2.0 pushed_at=2026-11-20T17:45:35Z stars=36324 description=RustFS is an open-source, S3-compatible high-performance object storage system supporting migration and coexistence with other S3-compatible platforms such as MinIO and Ceph.
+-- latest release of rustfs/rustfs
+tag=1.0.6 published_at=2026-11-15T23:26:57Z assets=24
+  asset: rustfs-linux-aarch64-gnu-latest.zip 119760716 bytes
+  asset: rustfs-linux-aarch64-gnu-v1.0.6.deb 84379050 bytes
+  asset: rustfs-linux-aarch64-gnu-v1.0.6.rpm 117134723 bytes
+  asset: rustfs-linux-aarch64-gnu-v1.0.6.zip 119760716 bytes
+  asset: rustfs-linux-aarch64-musl-latest.zip 100893223 bytes
+  asset: rustfs-linux-aarch64-musl-v1.0.6.deb 73270292 bytes
+  asset: rustfs-linux-aarch64-musl-v1.0.6.rpm 100640952 bytes
+  asset: rustfs-linux-aarch64-musl-v1.0.6.zip 100893223 bytes
+
+== repo rclone/rclone
+archived=false disabled=false license=MIT pushed_at=2026-11-20T11:40:01Z stars=61136 description="rsync for cloud storage" - Google Drive, S3, Dropbox, Backblaze B2, One Drive, Swift, Hubic, Wasabi, Google Cloud Storage, Azure Blob, Azure Files, Yandex Files
+-- latest release of rclone/rclone
+tag=v1.76.0 published_at=2026-11-06T16:29:59Z assets=51
+  asset: rclone-v1.76.0-linux-arm64.deb 29839130 bytes
+  asset: rclone-v1.76.0-linux-arm64.rpm 30720078 bytes
+  asset: rclone-v1.76.0-linux-arm64.zip 29231141 bytes
+
+== repo deuxfleurs-org/garage
+archived=false disabled=false license=AGPL-3.0 pushed_at=2026-11-17T17:12:46Z stars=4908 description=(Mirror) S3-compatible object store for small self-hosted geo-distributed deployments. Main repo: https://git.deuxfleurs.fr/Deuxfleurs/garage
+-- HEAD https://garagehq.deuxfleurs.fr/download/
+  http=200 size=28016 type=text/html; charset=utf-8 last-modified=Sat, 24 Oct 2026 15:18:21 GMT
+-- garage _releases.json (trang tai chinh thuc)
+  https://garagehq.deuxfleurs.fr/_releases/39ac034de55c7040b61a08ecb95c58afa983501c/aarch64-unknown-linux-musl/garage
+  https://garagehq.deuxfleurs.fr/_releases/8ddb0dd485cf8290b7e3462f5614ca6d858ea8c3/aarch64-unknown-linux-musl/garage
+  https://garagehq.deuxfleurs.fr/_releases/4b1a7fb5e3c2f6a58780165955e49d8e24a1d018/aarch64-unknown-linux-musl/garage
+  https://garagehq.deuxfleurs.fr/_releases/7bbc8fec504cbfff21210a435d36cb2051e031a9/aarch64-unknown-linux-musl/garage
+  https://garagehq.deuxfleurs.fr/_releases/b8f301a61d633354762918ca63eb5fc02de52f5f/aarch64-unknown-linux-musl/garage
+
+== goi apt cua Ubuntu 24.04 (apt-cache policy)
+rclone:	 Candidate: 1.60.1+dfsg-3ubuntu0.24.04.6
+s3cmd:	 Candidate: 2.4.0-2
+awscli:	 Candidate: (none)
+
+== gioi han API GitHub con lai
+core remaining=27 / 60

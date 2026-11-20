@@ -1,0 +1,140 @@
+bash docs/bang-chung/M18-nghien-cuu/09-dung-lai-may-thu.sh
+
+=== 0. máy cũ: chép tpan.db (backup create --all) và gom file cần mang đi (02:29:15)
+backup --all rc=0
+a.m18.example /var/lib/tpan/backups/a.m18.example/a.m18.example-20261120-192915.tar.gz 6446cfe3bce10109ecaa3bf6640f81308575e7d75d693372b4dd1194a082ca9d
+b.m18.example /var/lib/tpan/backups/b.m18.example/b.m18.example-20261120-192918.tar.gz c6b1b8326619b3eed5239ff5025a11b06c7bb0dc5e92f4ac9e3b44fe46b328e7
+total 70440
+-rw-r--r-- 1 root root 35619507 Nov 21 02:29 a.m18.example-20261120-192915.tar.gz
+-rw-r--r-- 1 root root 35622457 Nov 21 02:29 b.m18.example-20261120-192918.tar.gz
+-rw-r--r-- 1 root root      304 Nov 21 02:29 danh-sach.txt
+-rw-r--r-- 1 root root   880640 Nov 21 02:29 tpan.db
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.m18.example                            active   8.3   không 2026-11-21 02:27 admin          -
+b.m18.example                            active   8.3   không 2026-11-21 02:28 admin          -
+tpan-m18
+192.168.252.24 fd4b:5324:b51a:dc21:5054:ff:fee5:3f39 
+total 140880
+-rw-r--r--@ 1 xuantai  staff  35619507 Nov 21 02:29 a.m18.example-20261120-192915.tar.gz
+-rw-r--r--@ 1 xuantai  staff  35622457 Nov 21 02:29 b.m18.example-20261120-192918.tar.gz
+-rw-r--r--@ 1 xuantai  staff       304 Nov 21 02:29 danh-sach.txt
+-rw-r--r--@ 1 xuantai  staff    880640 Nov 21 02:29 tpan.db
+
+=== 1. máy mới: tạo từ user-data có lệnh cuối lỗi (thử cách cloud-init báo lỗi) (02:29:21)
+multipass launch trả về mã 0 sau 33 giây
+status: error
+extended_status: error - done
+boot_status_code: enabled-by-generator
+last_update: Thu, 01 Jan 1970 00:00:24 +0000
+detail: DataSourceNoCloud [seed=/dev/vda]
+errors:
+	- ('scripts_user', RuntimeError('Runparts: 1 failures (runcmd) in 1 attempted commands'))
+recoverable_errors:
+WARNING:
+	- Failed to run module scripts_user (scripts in /var/lib/cloud/instance/scripts)
+	- Running module scripts_user (<module 'cloudinit.config.cc_scripts_user' from '/usr/lib/python3/dist-packages/cloudinit/config/cc_scripts_user.py'>) failed
+ma thoat cua cloud-init status: 1
+{
+ "v1": {
+  "datasource": "DataSourceNoCloud [seed=/dev/vda]",
+  "errors": [
+   "('scripts_user', RuntimeError('Runparts: 1 failures (runcmd) in 1 attempted commands'))"
+  ]
+ }
+}
+682:2026-11-20 19:29:53,364 - cc_scripts_user.py[WARNING]: Failed to run module scripts_user (scripts in /var/lib/cloud/instance/scripts)
+684:2026-11-20 19:29:53,364 - log_util.py[WARNING]: Running module scripts_user (<module 'cloudinit.config.cc_scripts_user' from '/usr/lib/python3/dist-packages/cloudinit/config/cc_scripts_user.py'>) failed
+tpan-m18-ci
+192.168.252.26 fd4b:5324:b51a:dc21:5054:ff:fe67:98d 
+
+=== 2. máy mới: cài tpan, tpan setup (02:29:54)
+tpan v0.2.0-1-g025edb6-dirty (commit 025edb6, build 2026-11-20T19:25:37Z)
+setup rc=0: succeeded
+
+=== 3. máy mới: thay tpan.db bằng bản sao của máy cũ (02:29:55)
+active
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.m18.example                            active   8.3   không 2026-11-21 02:27 admin          -
+b.m18.example                            active   8.3   không 2026-11-21 02:28 admin          -
+Web server:  nginx (nguồn ubuntu)
+PHP:         8.3 (nguồn ubuntu)
+MariaDB:     nguồn ubuntu
+Đã cài:      rồi
+Dịch vụ:
+  [lỗi] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx không chạy (trạng thái: inactive)
+      Nguyên nhân: Dịch vụ đã dừng hoặc bị lỗi khi khởi động. Xem log của nó để biết vì sao.
+      Sửa tay (gõ trên máy này, thư mục nào cũng được):
+
+=== 4. máy mới: tpan stack install (web lấy từ settings của tpan.db cũ) (02:29:56)
+stack rc=0 sau 39 giay
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 27.9%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+
+=== 5. máy mới: tạo lại từng site trên dòng đã có trong tpan.db (tpan site add chạy lại) (02:30:35)
+a.m18.example: site add rc=0 sau 15 giay
+  Tên:           admin
+  Mật khẩu:      •••• (đã che khi lưu bằng chứng; máy ảo này đã bị xoá)
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+a.m18.example: HTTP 200
+b.m18.example: site add rc=0 sau 5 giay
+  Tên:           admin
+  Mật khẩu:      •••• (đã che khi lưu bằng chứng; máy ảo này đã bị xoá)
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+b.m18.example: HTTP 200
+
+=== 6. máy mới: chép file backup về đúng đường dẫn ghi trong tpan.db, rồi tpan backup restore (02:30:55)
+/var/lib/tpan/backups/a.m18.example/a.m18.example-20261120-192915.tar.gz: OK
+/var/lib/tpan/backups/b.m18.example/b.m18.example-20261120-192918.tar.gz: OK
+ID               DOMAIN                         LOẠI LÝ DO                  CỠ LÚC TẠO          FILE
+8ebcc252524ac289 b.m18.example                  full manual           34.0 MiB 2026-11-21 02:29 /var/lib/tpan/backups/b.m18.example/b.m18.example-20261120-192918.tar.gz
+70ddde93f3e4083c a.m18.example                  full manual           34.0 MiB 2026-11-21 02:29 /var/lib/tpan/backups/a.m18.example/a.m18.example-20261120-192915.tar.gz
+9160a18335a9d02f b.m18.example                  full manual           34.0 MiB 2026-11-21 02:28 /var/lib/tpan/backups/b.m18.example/b.m18.example-20261120-192811.tar.gz
+0fd41f67779df5c3 a.m18.example                  full manual           34.0 MiB 2026-11-21 02:28 /var/lib/tpan/backups/a.m18.example/a.m18.example-20261120-192809.tar.gz
+a.m18.example: backup restore rc=0 sau 8 giay
+  [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_a_m18_example_b7fb07 0750, access.log và error.log là root:tp_a_m18_example_b7fb07 0640
+  [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+  [đạt] Site a.m18.example không chạm được vào file, log và socket của site b.m18.example: Bị từ chối như mong đợi: tp_a_m18_example_b7fb07 không chạm được vào file, log và socket của b.m18.example (5 phép thử)
+  [đạt] Site b.m18.example không chạm được vào file, log và socket của site a.m18.example: Bị từ chối như mong đợi: tp_b_m18_example_3e1430 không chạm được vào file, log và socket của a.m18.example (5 phép thử)
+b.m18.example: backup restore rc=0 sau 7 giay
+  [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_b_m18_example_3e1430 0750, access.log và error.log là root:tp_b_m18_example_3e1430 0640
+  [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+  [đạt] Site b.m18.example không chạm được vào file, log và socket của site a.m18.example: Bị từ chối như mong đợi: tp_b_m18_example_3e1430 không chạm được vào file, log và socket của a.m18.example (5 phép thử)
+  [đạt] Site a.m18.example không chạm được vào file, log và socket của site b.m18.example: Bị từ chối như mong đợi: tp_a_m18_example_b7fb07 không chạm được vào file, log và socket của b.m18.example (5 phép thử)
+
+=== 7. máy mới: site có trả 200 với đúng nội dung của máy cũ không (02:31:11)
+a.m18.example: HTTP 200
+dau.txt: dau cua a.m18.example
+Bai cua a.m18.example truoc khi mat may
+b.m18.example: HTTP 200
+dau.txt: dau cua b.m18.example
+Bai cua b.m18.example truoc khi mat may
+
+  #2 [php] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy (service.active:php8.3-fpm) lý do: pass
+  #3 [db] Dịch vụ mariadb đang chạy và tự bật cùng máy (service.active:mariadb) lý do: pass
+  #4 [db] Cổng 3306 chỉ nghe ở 127.0.0.1 (port.localonly:3306) lý do: pass
+  #5 [web] Site mặc định của nginx đóng kết nối request lạ (http.default:nginx) lý do: pass
+  #6 [machine] WP-CLI có sẵn, đúng quyền và đúng mã sha512 (wpcli.binary:wp) lý do: pass
+  #7 [web] Request mang tên miền lạ bị vhost mặc định từ chối (web.default.rejects) lý do: pass
+  #8 [machine] File /etc/cron.d/tpan-a_m18_example_b7fb07 còn đúng như tpan đã ghi (drift:/etc/cron.d/tpan-a_m18_example_b7fb07) lý do: pass
+  #9 [machine] File /etc/cron.d/tpan-b_m18_example_3e1430 còn đúng như tpan đã ghi (drift:/etc/cron.d/tpan-b_m18_example_3e1430) lý do: pass
+  #10 [machine] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi (drift:/etc/logrotate.d/tpan-sites) lý do: pass
+  #11 [machine] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi (drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf) lý do: pass
+  #12 [web] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi (drift:/etc/nginx/sites-available/tpan-default.conf) lý do: pass
+  #14 [web] Vhost của site có, do tpan quản lý và đang được bật (web.vhost:a.m18.example) lý do: pass
+  #15 [php] Socket của pool PHP có, đúng chủ và đúng quyền (php.socket:a.m18.example) lý do: pass
+  #16 [wordpress] wp-config.php có quyền 0600 và đúng chủ (wp.config:a.m18.example) lý do: pass
+  #17 [e2e] Gọi HTTP vào site trả 200 và đúng là WordPress của site (http.site:a.m18.example) lý do: pass
+  #18 [web] Log của site không đọc được bởi site khác (log.perm:a.m18.example) lý do: pass
+  #19 [web] File /etc/nginx/sites-available/tpan-a.m18.example.conf còn đúng như tpan đã ghi (drift:/etc/nginx/sites-available/tpan-a.m18.example.conf) lý do: pass
+  #20 [php] File /etc/php/8.3/fpm/pool.d/tpan-a_m18_example_b7fb07.conf còn đúng như tpan đã ghi (drift:/etc/php/8.3/fpm/pool.d/tpan-a_m18_example_b7fb07.conf) lý do: pass
+  #21 [web] Vhost của site có, do tpan quản lý và đang được bật (web.vhost:b.m18.example) lý do: pass
+  #22 [php] Socket của pool PHP có, đúng chủ và đúng quyền (php.socket:b.m18.example) lý do: pass
+  #23 [wordpress] wp-config.php có quyền 0600 và đúng chủ (wp.config:b.m18.example) lý do: pass
+  #24 [e2e] Gọi HTTP vào site trả 200 và đúng là WordPress của site (http.site:b.m18.example) lý do: pass
+  #25 [web] Log của site không đọc được bởi site khác (log.perm:b.m18.example) lý do: pass
+  #26 [web] File /etc/nginx/sites-available/tpan-b.m18.example.conf còn đúng như tpan đã ghi (drift:/etc/nginx/sites-available/tpan-b.m18.example.conf) lý do: pass
+  #27 [php] File /etc/php/8.3/fpm/pool.d/tpan-b_m18_example_3e1430.conf còn đúng như tpan đã ghi (drift:/etc/php/8.3/fpm/pool.d/tpan-b_m18_example_3e1430.conf) lý do: pass
+
+=== 8. dọn: xoá máy ảo phụ (02:31:16)
