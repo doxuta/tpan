@@ -165,6 +165,8 @@ export type Site = {
   suspended_at?: string;
   /** M13: có khi user DB của site đang khoá. */
   db_suspended?: Suspension;
+  /** M14: chế độ .htaccess của site (chỉ có tác dụng trên Apache). Server cũ không gửi. */
+  htaccess?: "an-toan" | "tat" | "day-du";
 };
 
 export type Layout = {
@@ -177,6 +179,9 @@ export type Layout = {
   tmp: string;
   wp_config: string;
   log_dir: string;
+  /** M14: access.log và error.log của site. */
+  access_log?: string;
+  error_log?: string;
   php_error_log: string;
   pool: string;
   socket: string;

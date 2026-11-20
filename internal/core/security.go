@@ -46,6 +46,10 @@ type Security struct {
 	Sys system.System
 	// Journal nhận job và sự kiện khi Execute; nil chỉ hợp lệ khi xem trước.
 	Journal engine.Journal
+	// Settings và Sites chỉ PrepareHarden (M14, types_m14.go) cần: stack đang
+	// dùng web server nào, và danh sách site để ghi lại vhost, quyền log.
+	Settings Settings
+	Sites    SiteStore
 }
 
 // SecurityStatus là nội dung trang bảo mật: checks.SecurityChecks(PanelPort).
