@@ -406,7 +406,9 @@ const isoSocketDir = "/run/php"
 type isoProbe struct {
 	flag, target string
 	what, risk   i18n.Text
-	fix          []string
+	// hint (có thể rỗng) là câu nói thêm vào nguyên nhân khi phép này lọt.
+	hint i18n.Text
+	fix  []string
 }
 
 // Isolated kiểm cô lập từ site from sang site to (M14, mục 6.13 của
@@ -470,8 +472,14 @@ func Isolated(from, to site.Layout) Check {
 			what: i18n.T("đọc được access.log", "can read access.log"),
 			risk: i18n.T("đọc được IP khách và URL kèm tham số của site kia", "read the other site's visitor IPs and URLs with their parameters"),
 			// Quyền log do tpan đặt (thư mục root:<nhóm của site> 0750), nên
-			// cách sửa là để tpan đặt lại chứ không chmod tay từng file.
-			fix: []string{line("ls", "-ld", logDir, to.AccessLog), line("sudo", "tpan", "health", "--fix")}},
+			// cách sửa là để tpan đặt lại chứ không chmod tay từng file. Máy
+			// nâng từ bản trước M14 gặp đúng phép này ở mọi thao tác trên site
+			// cũ (log của site kia còn 0755) cho tới khi chạy Plan "Áp bản vá cô
+			// lập", nên lời nhắn chỉ thẳng sang lệnh đó (đo trên máy ảo, e2e
+			// nâng cấp của M14: trước đây chỉ ghi "tpan health --fix").
+			hint: i18n.T("Log của site kia chưa có quyền theo nhóm của site: thường là máy vừa nâng từ bản tpan cũ mà chưa áp bản vá cô lập. Chạy `"+m14Harden+"` một lần là đặt lại quyền log của mọi site.",
+				"The other site's logs do not have per-site group modes yet: usually the machine was just upgraded from an older tpan and the isolation hardening has not been applied. Running `"+m14Harden+"` once resets the log modes of every site."),
+			fix: []string{line("ls", "-ld", logDir, to.AccessLog), m14Harden}},
 	}
 	// Dấu * để shell mở rộng ra mọi bản PHP; không qua line() vì line() đặt nó trong nháy.
 	poolGlob := "/etc/php/*/fpm/pool.d/" + to.Pool + ".conf"
@@ -560,10 +568,14 @@ func Isolated(from, to site.Layout) Check {
 		case len(leaked) > 0:
 			var vi, en, riskVi, riskEn []string
 			fix := []string{line("id", from.User)}
+			var hintVi, hintEn string
 			for _, p := range leaked {
 				vi, en = append(vi, p.what.Vi), append(en, p.what.En)
 				riskVi, riskEn = append(riskVi, p.risk.Vi), append(riskEn, p.risk.En)
 				fix = append(fix, p.fix...)
+				if p.hint.Vi != "" {
+					hintVi, hintEn = hintVi+" "+p.hint.Vi, hintEn+" "+p.hint.En
+				}
 			}
 			// Cuối cùng là các lệnh kiểm lại: đúng những phép thử vừa lọt.
 			for _, p := range leaked {
@@ -572,8 +584,8 @@ func Isolated(from, to site.Layout) Check {
 			return b.bad(Fail,
 				i18n.T(from.User+" CHẠM ĐƯỢC vào site "+toDom+" ("+strings.Join(vi, "; ")+"): hai site không còn cô lập",
 					from.User+" CAN reach site "+toDom+" ("+strings.Join(en, "; ")+"): the two sites are no longer isolated"),
-				i18n.T("Quyền của site kia quá rộng (other có quyền đọc, ghi hay duyệt), hoặc user của site này nằm trong nhóm www-data hay nhóm của site kia. Một site bị chiếm sẽ: "+strings.Join(riskVi, "; ")+".",
-					"The other site's modes are too open ('other' can read, write or search), or this site's user is in the www-data group or in the other site's group. A compromised site could: "+strings.Join(riskEn, "; ")+"."),
+				i18n.T("Quyền của site kia quá rộng (other có quyền đọc, ghi hay duyệt), hoặc user của site này nằm trong nhóm www-data hay nhóm của site kia. Một site bị chiếm sẽ: "+strings.Join(riskVi, "; ")+"."+hintVi,
+					"The other site's modes are too open ('other' can read, write or search), or this site's user is in the www-data group or in the other site's group. A compromised site could: "+strings.Join(riskEn, "; ")+"."+hintEn),
 				fix, evs...)
 		case unclear:
 			return b.unknown(i18n.T("không thử được: lệnh test trả mã "+strconv.Itoa(unclearCode)+" kèm lỗi, không phải câu trả lời \"bị từ chối\"",

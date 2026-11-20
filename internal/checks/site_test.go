@@ -511,7 +511,9 @@ func TestIsolated(t *testing.T) {
 			{probes[0], "đọc được wp-config.php", "chmod 600 " + b.WPConfig},
 			{probes[1], "vào được thư mục " + b.Dir, "chmod 2750 " + b.Dir},
 			{probes[2], "ghi được vào " + b.Public, "chmod 2750 " + b.Public},
-			{probes[3], "đọc được access.log", "sudo tpan health --fix"},
+			// Log lọt là thứ mọi thao tác trên site cũ gặp sau khi nâng từ bản
+			// trước M14: lời nhắn phải chỉ sang Plan "Áp bản vá cô lập".
+			{probes[3], "đọc được access.log", "sudo tpan security harden"},
 			{probes[4], "ghi được vào socket PHP-FPM " + sock, "grep -n '^listen' /etc/php/*/fpm/pool.d/" + b.Pool + ".conf"},
 		}
 		for _, c := range cases {
@@ -525,6 +527,12 @@ func TestIsolated(t *testing.T) {
 			}
 			if !containsStr(r.ManualFix, c.fix) || r.ManualFix[0] != "id "+a.User {
 				t.Errorf("%s: ManualFix = %q", c.probe, r.ManualFix)
+			}
+			// Chỉ phép log nhắc tới harden (trong nguyên nhân, cả hai ngôn ngữ);
+			// bốn phép còn lại không liên quan tới bản vá cô lập.
+			harden := "sudo tpan security harden"
+			if isLog := c.probe == probes[3]; strings.Contains(r.Cause.Vi, harden) != isLog || strings.Contains(r.Cause.En, harden) != isLog {
+				t.Errorf("%s: Cause = %q / %q", c.probe, r.Cause.Vi, r.Cause.En)
 			}
 			if want := "runuser -u " + a.User + " -- test " + c.probe; lastFix(r) != want {
 				t.Errorf("%s: ManualFix cuối = %q, muốn %q", c.probe, lastFix(r), want)

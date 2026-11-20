@@ -277,6 +277,30 @@ func TestCommandErrors(t *testing.T) {
 			t.Error("máy không về như cũ")
 		}
 	})
+	// Dịch vụ vừa chết liên tục thì systemd chặn start trong một khoảng (start
+	// rate limit) và `enable --now` không khởi động lại được: Apply xoá bộ đếm
+	// bằng reset-failed TRƯỚC khi bật, và lỗi của reset-failed (unit chưa từng
+	// được nạp) không làm hỏng bước.
+	t.Run("Service: reset-failed chạy trước enable, lỗi của nó được bỏ qua", func(t *testing.T) {
+		m := newMachine(t)
+		m.units["nginx"] = unitState{}
+		m.failCmd([]string{"systemctl", "reset-failed"}, 1, "Failed to reset failed state of unit nginx.service: Unit nginx.service not loaded.")
+		if err := (&Service{Unit: "nginx"}).Apply(ctx, m); err != nil {
+			t.Fatalf("Apply: %v", err)
+		}
+		var got []string
+		for _, c := range ranStrings(m.Ran()) {
+			if !strings.Contains(c, " is-") {
+				got = append(got, c)
+			}
+		}
+		if want := []string{"systemctl reset-failed nginx", "systemctl enable --now nginx"}; !reflect.DeepEqual(got, want) {
+			t.Errorf("lệnh = %q, muốn %q", got, want)
+		}
+		if u := m.units["nginx"]; !u.Active || !u.Enabled {
+			t.Errorf("dịch vụ chưa được bật: %+v", u)
+		}
+	})
 	t.Run("Dir: tạo lỗi thì xoá thư mục cha đã tạo", func(t *testing.T) {
 		m := newMachine(t)
 		before := m.whole()

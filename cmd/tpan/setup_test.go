@@ -99,7 +99,9 @@ func TestSetupLanDauVaChayLai(t *testing.T) {
 			cmds = append(cmds, cmd.String())
 		}
 	}
-	if !reflect.DeepEqual(cmds, []string{"systemctl daemon-reload", "systemctl enable --now tpan.service"}) {
+	// reset-failed trước enable: xoá bộ đếm start rate limit mà một file chạy
+	// cũ chết liên tục để lại (steps.Service.Apply).
+	if !reflect.DeepEqual(cmds, []string{"systemctl daemon-reload", "systemctl reset-failed tpan.service", "systemctl enable --now tpan.service"}) {
 		t.Fatalf("lệnh: %v", cmds)
 	}
 

@@ -229,6 +229,11 @@ func (s *Service) enableCmd() system.Cmd {
 	return system.Cmd{Name: "systemctl", Args: []string{"enable", "--now", s.Unit}}
 }
 
+// resetCmd xoá trạng thái failed và bộ đếm start rate limit của unit (xem Apply).
+func (s *Service) resetCmd() system.Cmd {
+	return system.Cmd{Name: "systemctl", Args: []string{"reset-failed", s.Unit}}
+}
+
 func (s *Service) Info() engine.StepInfo {
 	return engine.StepInfo{
 		ID:    "service:" + s.Unit,
@@ -237,7 +242,7 @@ func (s *Service) Info() engine.StepInfo {
 			"Gói đã cài nhưng dịch vụ không chạy thì site không trả lời. Không bật khi khởi động thì sau lần khởi động lại máy, mọi site chết cho tới khi có người vào bật tay.",
 			"An installed package whose service is not running answers nothing. If it is not enabled at boot, every site is down after the next reboot until someone starts it by hand.",
 		),
-		Commands: []string{s.enableCmd().String()},
+		Commands: []string{s.resetCmd().String(), s.enableCmd().String()},
 	}
 }
 
@@ -278,6 +283,14 @@ func (s *Service) Apply(ctx context.Context, sys system.System) error {
 	if err != nil {
 		return err
 	}
+	// Dịch vụ vừa chết liên tục (ví dụ sau `tpan self-update --rollback`: file
+	// chạy cũ không mở được tpan.db của bản mới) thì systemd chặn mọi lần start
+	// trong StartLimitIntervalSec ("Start request repeated too quickly"), kể cả
+	// khi nguyên nhân đã hết, và `enable --now` vẫn thoát 0 trong khi dịch vụ
+	// nằm ở trạng thái failed (đo trên máy ảo, e2e nâng cấp của M13 chạy lại ở
+	// M14). reset-failed xoá bộ đếm đó. Lỗi của nó bỏ qua: unit chưa từng được
+	// nạp thì systemd báo "not loaded", và khi đó cũng không có bộ đếm nào.
+	_, _ = sys.Run(ctx, s.resetCmd())
 	if res, err := sys.Run(ctx, s.enableCmd()); err != nil {
 		// enable --now có thể đã bật mà start lỗi: trả về như cũ cho sạch.
 		err = withStdout(fmt.Errorf("bật dịch vụ %s: %w", s.Unit, err), res)
