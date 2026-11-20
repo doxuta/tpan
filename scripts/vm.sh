@@ -7,6 +7,7 @@
 #   scripts/vm.sh shell     mở shell trong máy ảo
 #   scripts/vm.sh exec ...  chạy một lệnh trong máy ảo
 #   scripts/vm.sh root ...  chạy một lệnh trong máy ảo bằng quyền root
+#   scripts/vm.sh push <file> <đích>   chép một file từ Mac vào máy ảo
 #   scripts/vm.sh ip        in IP của máy ảo
 #   scripts/vm.sh ssh-key <file .pub>   thêm khoá công khai vào ~ubuntu/.ssh/authorized_keys
 #                           của máy ảo (không thêm trùng), để SSH thẳng từ Mac vào máy ảo
@@ -104,6 +105,15 @@ case "$cmd" in
   shell) multipass shell "$VM" ;;
   exec) vm_exec "$@" ;;
   root) vm_exec sudo "$@" ;;
+  push)
+    # Chép một file từ Mac vào máy ảo (script thử, file chạy thử). Đích là
+    # đường dẫn trong máy ảo mà user ubuntu ghi được; thư mục cha tự tạo.
+    src="${1:-}"
+    dst="${2:-}"
+    [ -f "$src" ] && [ -n "$dst" ] || { echo "Cách dùng: scripts/vm.sh push <file trên Mac> <đường dẫn trong máy ảo>" >&2; exit 2; }
+    multipass exec "$VM" -- mkdir -p "$(dirname "$dst")" </dev/null
+    multipass transfer "$src" "$VM:$dst" </dev/null
+    ;;
   ip) multipass info "$VM" --format json | jq -r --arg vm "$VM" '.info[$vm].ipv4[0]' ;;
   ssh-key)
     # Bắt buộc đưa đường dẫn: script không tự đọc ~/.ssh của máy cá nhân.
@@ -126,5 +136,5 @@ case "$cmd" in
       if grep -qxF -- "$k" "$f"; then echo "Khoá đã có trong $f, không thêm."; else printf "%s\n" "$k" >>"$f"; echo "Đã thêm khoá vào $f."; fi' <"$key"
     ;;
   down) multipass stop "$VM" ;;
-  *) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
