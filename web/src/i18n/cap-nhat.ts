@@ -56,17 +56,7 @@ const vi = {
   mariaUpgradeButton: (line: string) => `Nâng lên ${line}`,
   mariaNone: "Không có dòng nào để nâng. Có thể MariaDB đã ở dòng LTS mới nhất, hoặc TPAN không hỏi được kho của MariaDB vì máy không ra được mạng.",
 
-  // (d) Chính TPAN
-  selfHeading: "Cập nhật chính TPAN",
-  selfVersion: "BẢN ĐANG CHẠY",
-  selfUrl: "NGUỒN TẢI",
-  selfWhy:
-    "Trang này không có nút cập nhật TPAN: thay file chạy ngay từ panel sẽ cắt luôn job đang chạy, kể cả chính job cập nhật. " +
-    "Hãy gõ lệnh dưới đây trên máy.",
-  selfCommands: "Lệnh để tự gõ",
-  selfDry: "Lệnh đầu chỉ cho xem sẽ tải gì, chưa thay gì.",
-  selfRun: "Lệnh thứ hai tải bản mới, kiểm checksum, thay file chạy và khởi động lại dịch vụ, giữ bản cũ lại.",
-  selfRollback: "Lệnh thứ ba quay về bản cũ đã giữ lại.",
+  // (d) Chính TPAN: khối "Phiên bản và cập nhật" dùng chung với màn Cài đặt, chuỗi ở phien-ban.ts.
 };
 
 export const strings = defineStrings(vi, {
@@ -120,15 +110,4 @@ export const strings = defineStrings(vi, {
   mariaEol: (date) => `support ends ${date}`,
   mariaUpgradeButton: (line) => `Upgrade to ${line}`,
   mariaNone: "There is no series to upgrade to. MariaDB may already be on the latest LTS series, or TPAN could not ask the MariaDB repository because this machine has no network.",
-
-  selfHeading: "Updating TPAN itself",
-  selfVersion: "RUNNING VERSION",
-  selfUrl: "DOWNLOAD SOURCE",
-  selfWhy:
-    "This page has no button to update TPAN: replacing the running file from the panel would cut the job that is running, including the update job itself. " +
-    "Type the commands below on the machine.",
-  selfCommands: "Commands to type yourself",
-  selfDry: "The first command only shows what it would download; nothing is replaced.",
-  selfRun: "The second command downloads the new version, checks the checksum, replaces the running file and restarts the service, keeping the old one.",
-  selfRollback: "The third command goes back to the old version that was kept.",
 });
