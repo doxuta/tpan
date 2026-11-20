@@ -36,7 +36,8 @@ type AccountStore interface {
 	UpdateUser(ctx context.Context, u account.User) error
 	// SetUserPassword đổi hash và huỷ mọi phiên của user đó, trong một transaction.
 	SetUserPassword(ctx context.Context, name, passwordHash string) error
-	// DeleteSessionsOf huỷ mọi phiên của user (kể cả phiên admin đang "xem như" user đó).
+	// DeleteSessionsOf huỷ mọi phiên của user; phiên admin đang "xem như" user đó
+	// chỉ thoát chế độ xem như, admin không bị đăng xuất.
 	DeleteSessionsOf(ctx context.Context, name string) error
 	// DeleteUser xoá dòng user và phiên của họ. Job, audit cũ giữ nguyên tên.
 	DeleteUser(ctx context.Context, name string) error

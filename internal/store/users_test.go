@@ -140,16 +140,56 @@ func TestSetUserPasswordHuyPhienCuaUserVaPhienXemNhu(t *testing.T) {
 	for _, ss := range left {
 		ids[ss.ID] = true
 	}
-	if len(left) != 2 || !ids["ad"] || !ids["binh1"] {
-		t.Errorf("chỉ phiên của an và phiên xem-như-an bị huỷ, còn lại %+v", left)
+	if len(left) != 3 || !ids["ad"] || !ids["binh1"] || !ids["adx"] {
+		t.Errorf("chỉ phiên của an bị huỷ (phiên admin xem như an vẫn còn), còn lại %+v", left)
+	}
+	if ss, err := s.SessionByToken(ctx, "ad-xem-an"); err != nil || ss.UserName != "admin" || ss.ViewAs != "" {
+		t.Errorf("phiên admin đang xem như an phải còn và thoát xem như: %+v, %v", ss, err)
 	}
 
 	// User lạ: lỗi và không huỷ gì.
 	if err := s.SetUserPassword(ctx, "khong-co", "$x"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("user lạ: %v, muốn ErrNotFound", err)
 	}
-	if left, _ := s.Sessions(ctx); len(left) != 2 {
+	if left, _ := s.Sessions(ctx); len(left) != 3 {
 		t.Errorf("lỗi mà vẫn huỷ phiên: %+v", left)
+	}
+}
+
+// TestHuyPhienGiuPhienAdminXemNhu: khoá (DeleteSessionsOf), đổi mật khẩu
+// (SetUserPassword), xoá (DeleteUser) user X huỷ phiên của X nhưng không đăng
+// xuất admin đang "xem như" X: phiên đó chỉ thoát xem như (e2e M13 trên máy ảo
+// thấy admin bị đăng xuất khi user đang được xem bị khoá).
+func TestHuyPhienGiuPhienAdminXemNhu(t *testing.T) {
+	ops := map[string]func(*Store, context.Context) error{
+		"DeleteSessionsOf": func(s *Store, ctx context.Context) error { return s.DeleteSessionsOf(ctx, "an") },
+		"SetUserPassword":  func(s *Store, ctx context.Context) error { return s.SetUserPassword(ctx, "an", "$moi") },
+		"DeleteUser":       func(s *Store, ctx context.Context) error { return s.DeleteUser(ctx, "an") },
+	}
+	for name, op := range ops {
+		t.Run(name, func(t *testing.T) {
+			s, _ := openTemp(t)
+			ctx := context.Background()
+			addUser(t, s, "an", account.RoleUser)
+			for _, ss := range []Session{
+				{TokenSHA256: "an1", ID: "an1", IP: "192.0.2.1", Created: t0, UserName: "an"},
+				{TokenSHA256: "ad-xem-an", ID: "adx", IP: "192.0.2.2", Created: t0, UserName: "admin", ViewAs: "an"},
+			} {
+				if err := s.CreateSession(ctx, ss); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := op(s, ctx); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.SessionByToken(ctx, "an1"); !errors.Is(err, ErrNotFound) {
+				t.Errorf("phiên của an còn: %v", err)
+			}
+			ss, err := s.SessionByToken(ctx, "ad-xem-an")
+			if err != nil || ss.UserName != "admin" || ss.ViewAs != "" {
+				t.Errorf("phiên admin phải còn, view_as rỗng: %+v, %v", ss, err)
+			}
+		})
 	}
 }
 
