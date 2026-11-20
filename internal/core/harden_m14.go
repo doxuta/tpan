@@ -2,23 +2,456 @@ package core
 
 // M14 (mục 6.13 của docs/KE-HOACH.md): Plan "Áp bản vá cô lập" và Plan đổi
 // chế độ .htaccess của một site. Hợp đồng (điều kiện đầu, các bước, kiểm
-// chứng) ghi ở types_m14.go. Thân hàm do thợ đợt 2 viết.
+// chứng) ghi ở types_m14.go.
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/checks"
+	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/htaccess"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/steps"
+	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
+// ---------------------------------------------------------------- .htaccess
+
+// htaccessMaxLines là số dòng "<file>:<dòng>: <chỉ thị>" tối đa in trong lời
+// từ chối. Một plugin có thể rải .htaccess ra hàng trăm thư mục; người đọc cần
+// vài chục dòng đầu để biết phải sửa gì, không cần cả nghìn dòng trên terminal.
+const htaccessMaxLines = 50
+
 // PrepareHtaccess: xem types_m14.go.
 func (s *Sites) PrepareHtaccess(ctx context.Context, d validate.Domain, mode site.HtaccessMode) (*Planned, error) {
-	_, _, _ = ctx, d, mode
-	return nil, notImplementedM14("site.htaccess")
+	// mode đến từ CLI và API. Giá trị lạ lọt tới template thì rơi vào bản
+	// an-toan trong khi bảng sites ghi một chuỗi vô nghĩa, nên chặn ở đây.
+	if _, err := site.ParseHtaccessMode(string(mode)); err != nil {
+		return nil, fmt.Errorf("đổi chế độ .htaccess: %w", err)
+	}
+	st, err := s.find(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	dom := d.String()
+	if st.Status != site.Active {
+		return nil, refuse("site_not_active", i18n.T(
+			"site "+dom+" đang ở trạng thái "+string(st.Status)+"; chỉ đổi chế độ .htaccess cho site đang chạy (active)",
+			"site "+dom+" is "+string(st.Status)+"; the .htaccess mode can only be changed for an active site"))
+	}
+	// Site tạm khoá đang dùng vhost bản tạm khoá (không có khối AllowOverride
+	// nào): không có gì để ghi lại và không có site nào trả 200 để kiểm.
+	if err := refuseSuspendedPool(st); err != nil {
+		return nil, err
+	}
+	cfg, err := s.stack(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.Web != Apache {
+		return nil, refuse(CodeHtaccessNotApache, i18n.T(
+			"stack đang chạy "+stackName(cfg.Web)+", mà nginx không đọc .htaccess nên chế độ này chưa có tác dụng gì. Chỉ đổi được khi stack là Apache (chuyển bằng: sudo tpan stack switch --to apache)",
+			"the stack runs "+stackName(cfg.Web)+", and nginx does not read .htaccess, so this mode has no effect yet. It can only be changed on an Apache stack (switch with: sudo tpan stack switch --to apache)"))
+	}
+	cur := st.Htaccess.OrDefault()
+	if cur == mode {
+		return nil, refuse(CodeHtaccessSame, i18n.T(
+			"site "+dom+" đã ở chế độ .htaccess "+string(mode)+"; không đổi gì",
+			"site "+dom+" is already in .htaccess mode "+string(mode)+"; nothing to change"))
+	}
+	l := st.Layout()
+	if mode == site.HtaccessSafe {
+		// Quét TRƯỚC khi dựng Plan: một chỉ thị ngoài danh sách làm Apache trả
+		// 500 cho cả site ngay khi vhost mới được nạp. Nói trước rẻ hơn hoàn tác.
+		found, _, err := checks.ScanHtaccess(ctx, s.Sys, l)
+		if err != nil {
+			return nil, fmt.Errorf("quét .htaccess của %s trước khi chuyển sang %s (chưa quét được thì chưa biết site có báo 500 không): %w", dom, mode, err)
+		}
+		if len(found) > 0 {
+			return nil, htaccessBlocked(dom, found)
+		}
+	}
+
+	next := st
+	next.Htaccess = mode
+	var ss []engine.Step
+	// Rời "tat": Apache bắt đầu đọc .htaccess và vhost thôi có FallbackResource,
+	// nên thiếu file này thì mọi permalink /%postname%/ là 404. Ghi trước vhost
+	// để lúc vhost mới được nạp file đã nằm đó. Có rồi thì để nguyên.
+	if cur == site.HtaccessOff {
+		ht, err := htaccessIfMissing(s.Sys, l, l.Public)
+		if err != nil {
+			return nil, err
+		}
+		if ht != nil {
+			ss = append(ss, ht)
+		}
+	}
+	// Đúng một đường ghi vhost (siteVhost): site có SSL ra bản 443, không thì
+	// bản cổng 80, cả hai theo chế độ mới.
+	vhost, err := siteVhost(next, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("dựng vhost của %s theo chế độ %s: %w", dom, mode, err)
+	}
+	ss = append(ss, vhost...)
+	// DB của site đang khoá thì không có phép gọi nào trả 200 được (siteHTTP nil).
+	http := siteHTTP(next)
+	if http != nil {
+		// Như mở khoá site và php.use: `systemctl reload apache2` trả về trước
+		// khi cấu hình mới có hiệu lực, nên chờ hai lần đạt liên tiếp. Site không
+		// trả lời đúng (một .htaccess mà phép quét không lường được) thì dừng ở
+		// đây và hoàn tác, thay vì để site báo lỗi cho khách.
+		ss = append(ss, &midCheck{
+			id:    "site.htaccess.check:" + dom,
+			check: http,
+			need:  2,
+			title: i18n.T("Kiểm "+dom+" trả 200 ở chế độ .htaccess "+string(mode), "Check that "+dom+" answers 200 in .htaccess mode "+string(mode)),
+			why: i18n.T(
+				"Apache nạp vhost mới trong nền, sau khi lệnh reload đã trả về. Bước này chờ tới khi site trả lời đúng; không được thì job dừng ở đây và hoàn tác: vhost về lại chế độ "+string(cur)+".",
+				"Apache loads the new vhost in the background, after the reload command has returned. This step waits until the site answers correctly; if it never does the job stops here and rolls back: the vhost goes back to mode "+string(cur)+"."),
+		})
+	}
+
+	verify := []checks.Check{checks.VhostHardened(string(cfg.Web), l, mode), webConfigCheck(cfg.Web)}
+	// Ở day-du phép này luôn là cảnh báo (site ghi được cấu hình Apache): không
+	// kiểm gì, health vẫn nhắc.
+	if mode != site.HtaccessFull {
+		verify = append(verify, checks.HtaccessDirectives(l, mode))
+	}
+	if http != nil {
+		verify = append(verify, http)
+	}
+	plan := engine.Plan{
+		Kind:   "site.htaccess",
+		Target: dom,
+		Title: i18n.T(
+			"Đổi chế độ .htaccess của "+dom+" từ "+string(cur)+" sang "+string(mode),
+			"Change the .htaccess mode of "+dom+" from "+string(cur)+" to "+string(mode)),
+		Steps:  ss,
+		Verify: verify,
+	}
+	return newPlanned(s.Sys, s.Journal, plan, func(ctx context.Context, _ engine.Report) error {
+		if err := saveHtaccess(ctx, s.Store, d, mode); err != nil {
+			return fmt.Errorf("%w (vhost đã đổi xong; chạy lại `sudo tpan site set %s --htaccess %s` để ghi nốt: các bước đã đúng được bỏ qua)", err, dom, mode)
+		}
+		return nil
+	}), nil
 }
+
+// saveHtaccess đọc lại dòng của site rồi chỉ đổi cột htaccess: giữa lúc dựng
+// Plan và lúc job xong, dòng có thể đã đổi trường khác (như markSuspended).
+func saveHtaccess(ctx context.Context, store SiteStore, d validate.Domain, mode site.HtaccessMode) error {
+	st, ok, err := store.Site(ctx, d)
+	if err == nil && !ok {
+		err = errors.New("site không còn trong bảng sites")
+	}
+	if err == nil {
+		st.Htaccess = mode
+		err = store.SaveSite(ctx, st)
+	}
+	if err != nil {
+		return fmt.Errorf("ghi chế độ .htaccess %s của site %s: %w", mode, d, err)
+	}
+	return nil
+}
+
+// htaccessBlocked là lời từ chối chuyển sang an-toan: từng dòng
+// "<file>:<dòng>: <chỉ thị>" rồi hai lối ra.
+func htaccessBlocked(dom string, found []htaccess.Finding) *RefusedError {
+	vi, en := htaccessLines(found)
+	n := strconv.Itoa(len(found))
+	return refuse(CodeHtaccessBlocked, i18n.T(
+		"không chuyển "+dom+" sang chế độ an-toan được: .htaccess của site có "+n+" chỗ nằm ngoài danh sách chỉ thị cho phép, và Apache sẽ trả 500 cho mọi request dưới thư mục chứa file đó:\n"+vi+
+			"\nHai lối ra: (1) sửa hoặc xoá các dòng trên rồi chạy lại; (2) để site ở chế độ day-du (sudo tpan site set "+dom+" --htaccess day-du) và nhận cảnh báo đi kèm trong health.",
+		dom+" cannot be switched to mode an-toan: the site's .htaccess has "+n+" entries outside the allowed directive list, and Apache would answer 500 to every request under the directory holding that file:\n"+en+
+			"\nTwo ways out: (1) fix or delete the lines above, then run again; (2) leave the site in mode day-du (sudo tpan site set "+dom+" --htaccess day-du) and accept the warning that health shows for it."))
+}
+
+// htaccessLines in mỗi Finding thành một dòng "<file>:<dòng>: <chỉ thị>", tối
+// đa htaccessMaxLines dòng. File không đọc được (Line 0, htaccess.Scan đếm từ
+// 1) không có số dòng. Tên file và chỉ thị do user của site đặt, nên ký tự điều
+// khiển bị đổi trước khi in ra terminal và giao diện.
+func htaccessLines(found []htaccess.Finding) (vi, en string) {
+	var a, b []string
+	for i, f := range found {
+		if i == htaccessMaxLines {
+			rest := strconv.Itoa(len(found) - i)
+			a, b = append(a, "... và "+rest+" dòng nữa"), append(b, "... and "+rest+" more")
+			break
+		}
+		file := cleanCtl(f.File)
+		if f.Line == 0 {
+			a, b = append(a, file+": "+cleanCtl(f.Directive)), append(b, file+": (unreadable)")
+			continue
+		}
+		ln := file + ":" + strconv.Itoa(f.Line) + ": " + cleanCtl(f.Directive)
+		a, b = append(a, ln), append(b, ln)
+	}
+	return strings.Join(a, "\n"), strings.Join(b, "\n")
+}
+
+// ------------------------------------------------------------------- harden
+
+// hardenUnscanned là Finding.Directive của site mà Plan "Áp bản vá cô lập"
+// không quét được .htaccess (find lỗi vì một thư mục user của site không vào
+// được, chẳng hạn). Chưa quét được thì chưa biết chế độ an-toan có làm site
+// báo 500 không, nên site đó được giữ ở day-du thay vì chặn bản vá của cả máy.
+const hardenUnscanned = "(không quét được)"
 
 // PrepareHarden: xem types_m14.go.
 func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
-	_ = ctx
-	return nil, notImplementedM14("security.harden")
+	if s.Settings == nil || s.Sites == nil {
+		return nil, errors.New("security.harden: thiếu Settings hoặc Sites")
+	}
+	cfg, err := (&Sites{Settings: s.Settings}).stack(ctx)
+	if err != nil {
+		return nil, err
+	}
+	all, err := s.Sites.Sites(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("đọc danh sách site: %w", err)
+	}
+	var active []site.Site
+	for _, st := range all {
+		if st.Status == site.Active {
+			active = append(active, st)
+		}
+	}
+	wrap := func(err error) error { return fmt.Errorf("dựng Plan áp bản vá cô lập: %w", err) }
+
+	// Nhóm 1: file ini OPcache và drop-in ProtectProc cho mọi bản PHP đang cài.
+	// Mỗi bản tự kiểm, reload và restart dịch vụ của riêng nó.
+	versions, err := phpInstalled(s.Sys)
+	if err != nil {
+		return nil, err
+	}
+	var ss []engine.Step
+	for _, v := range versions {
+		h, err := steps.PHPHardening(v)
+		if err != nil {
+			return nil, wrap(err)
+		}
+		ss = append(ss, h...)
+	}
+
+	// Nhóm 2: logrotate (bản nginx gửi HUP). Trước nhóm 3: khi thư mục log đã
+	// là 0750 thì lần xoay log kế tiếp phải đi theo file mới này.
+	lr, err := logrotateStep(cfg.Web)
+	if err != nil {
+		return nil, wrap(err)
+	}
+	ss = append(ss, lr)
+
+	// Nhóm 3: quyền log của mọi site active, kể cả site tạm khoá (log của nó
+	// vẫn nằm trên đĩa và vẫn có IP của khách).
+	for _, st := range active {
+		ss = append(ss, steps.SiteLogs(st.Layout())...)
+	}
+
+	// Nhóm 4: quyết định chế độ .htaccess. Chỉ đọc; kết quả đi vào bản ghi
+	// trong active để nhóm 5 ghi vhost theo đúng chế độ đã quyết. Trên nginx
+	// vẫn quét và chuyển: cột htaccess được dùng khi máy chuyển sang Apache.
+	h := &Harden{Switched: []string{}, Kept: []HtaccessKept{}}
+	for i, st := range active {
+		// Site tạm khoá: vhost của nó là bản tạm khoá, không quét, không đổi.
+		if st.Suspended != account.NotSuspended || st.Htaccess.OrDefault() != site.HtaccessFull {
+			continue
+		}
+		l := st.Layout()
+		found, _, err := checks.ScanHtaccess(ctx, s.Sys, l)
+		if cerr := ctx.Err(); cerr != nil {
+			return nil, wrap(cerr)
+		}
+		if err != nil {
+			found = []htaccess.Finding{{File: l.Public, Directive: hardenUnscanned + " " + cleanCtl(err.Error())}}
+		}
+		if len(found) > 0 {
+			h.Kept = append(h.Kept, HtaccessKept{Domain: st.Domain.String(), Findings: found})
+			continue
+		}
+		active[i].Htaccess = site.HtaccessSafe
+		h.Switched = append(h.Switched, st.Domain.String())
+	}
+
+	// Nhóm 5: ghi lại vhost của mọi site active qua siteVhost (site tạm khoá ra
+	// bản tạm khoá như cũ), bỏ reload của từng bước, rồi kiểm cú pháp và reload
+	// web server đúng một lần.
+	var vhosts []engine.Step
+	for _, st := range active {
+		v, err := siteVhost(st, cfg)
+		if err != nil {
+			return nil, wrap(fmt.Errorf("vhost của %s: %w", st.Domain, err))
+		}
+		vhosts = append(vhosts, v...)
+	}
+	if len(vhosts) > 0 {
+		cr, err := steps.WebReload(string(cfg.Web))
+		if err != nil {
+			return nil, wrap(err)
+		}
+		reload := &hardenReload{ConfigReload: cr, watch: steps.WithoutReload(vhosts)}
+		for _, v := range vhosts {
+			ss = append(ss, &hardenWrite{Step: v, reload: reload})
+		}
+		ss = append(ss, reload)
+	}
+
+	// Kiểm chứng: bộ của stack cộng các phép cấp máy của M14 (Stack.Checks đã
+	// gồm cả hai), rồi từng site. Không chạy cả bộ siteChecks: một site hỏng ở
+	// chặng không liên quan (DB, mã nguồn) không được kéo hoàn tác bản vá của
+	// cả máy; health đầy đủ chạy sau job và mở sự cố cho nó.
+	verify, _, err := (&Stack{Sys: s.Sys, Settings: s.Settings, Sites: s.Sites, WPCLISHA512: s.WPCLISHA512}).Checks(ctx)
+	if err != nil {
+		return nil, wrap(err)
+	}
+	for i, st := range active {
+		l := st.Layout()
+		verify = append(verify, checks.LogPerms(l))
+		// Vhost tạm khoá không trỏ vào public nên không có dòng chặn nào.
+		if st.Suspended == account.NotSuspended {
+			verify = append(verify, checks.VhostHardened(string(cfg.Web), l, st.Htaccess))
+		}
+		// siteHTTP: 403 đúng trang tạm khoá cho site tạm khoá, nil khi DB của
+		// site đang khoá. retryCheck vì reload trả về trước khi cấu hình mới có
+		// hiệu lực.
+		if c := siteHTTP(st); c != nil {
+			verify = append(verify, retryCheck{c: c})
+		}
+		for _, o := range active[i+1:] {
+			verify = append(verify, checks.Isolated(l, o.Layout()), checks.Isolated(o.Layout(), l))
+		}
+	}
+
+	plan := engine.Plan{
+		Kind:   "security.harden",
+		Target: "isolation",
+		Title:  i18n.T("Áp bản vá cô lập", "Apply the isolation hardening"),
+		Steps:  ss,
+		Verify: verify,
+	}
+	switched := h.Switched
+	h.Planned = newPlanned(s.Sys, s.Journal, plan, func(ctx context.Context, _ engine.Report) error {
+		var errs []error
+		for _, dom := range switched {
+			d, err := validate.ParseDomain(dom)
+			if err == nil {
+				err = saveHtaccess(ctx, s.Sites, d, site.HtaccessSafe)
+			}
+			errs = append(errs, err)
+		}
+		if err := errors.Join(errs...); err != nil {
+			return fmt.Errorf("%w (máy đã đổi xong; chạy lại `sudo tpan security harden` để ghi nốt: các bước đã đúng được bỏ qua)", err)
+		}
+		return nil
+	})
+	return h, nil
+}
+
+// hardenReload là bước kiểm cú pháp rồi reload web server MỘT lần cho mọi bước
+// ghi vhost của Plan "Áp bản vá cô lập" (mục 7: reload một lần). Khác
+// steps.ConfigReload trần ở hai chỗ:
+//
+//   - Check đạt khi không bước ghi vhost nào còn việc, nên chạy lại Plan trên
+//     máy đã đúng thì bước này được bỏ qua, không reload thừa. ConfigReload luôn
+//     reload vì job hàng loạt biết chắc nó vừa ghi file.
+//   - Job lỗi sau khi đã reload: engine hoàn tác ngược thứ tự, tức là bước này
+//     trước rồi mới tới các bước ghi vhost. Reload ở Undo của bước này thì web
+//     server nạp lại đúng cấu hình MỚI (file cũ chưa về). Vì vậy việc nạp lại
+//     nằm ở bước ghi vhost được hoàn tác SAU CÙNG (hardenWrite.Undo).
+type hardenReload struct {
+	*steps.ConfigReload
+	// watch là các bước ghi vhost (đã bỏ Reload) mà bước này nạp thay.
+	watch []engine.Step
+
+	// written: số bước ghi vhost đã Apply trong job này và chưa bị hoàn tác.
+	// loaded: web server đã nạp các file đó. Không cần khoá: engine chạy và
+	// hoàn tác các bước của một Plan lần lượt.
+	written int
+	loaded  bool
+}
+
+var (
+	_ engine.Step = (*hardenReload)(nil)
+	_ engine.Step = (*hardenWrite)(nil)
+)
+
+func (r *hardenReload) Info() engine.StepInfo {
+	info := r.ConfigReload.Info()
+	unit := r.Service
+	info.Title = i18n.T(
+		"Kiểm cấu hình rồi nạp lại "+unit+" một lần cho mọi vhost vừa ghi",
+		"Check the configuration and reload "+unit+" once for every vhost just written")
+	info.Why = i18n.T(
+		"Các bước trước chỉ ghi file vhost, chưa nạp. Bỏ bước này thì "+unit+" vẫn chạy vhost cũ, tức là chưa dòng chặn nào có hiệu lực. Nạp một lần cho mọi site thay vì mỗi site một lần, và kiểm cú pháp trước để một file sai không làm "+unit+" nạp hỏng.",
+		"The earlier steps only wrote the vhost files. Without this step "+unit+" keeps running the old vhosts, so none of the guard lines is in effect. It reloads once for all sites instead of once per site, and checks the syntax first so a bad file never reaches "+unit+".")
+	info.NoUndo = i18n.T(
+		"Bước này không có gì để trả lại. Khi job lỗi, các bước ghi vhost trả file cũ về, rồi "+unit+" được kiểm và nạp lại một lần nữa.",
+		"This step has nothing to give back. When the job fails, the vhost steps put the old files back, then "+unit+" is checked and reloaded once more.")
+	return info
+}
+
+// Check: trong lúc job chạy, có bước ghi vhost đã Apply thì đạt khi đã reload.
+// Chưa bước nào ghi (xem trước, hoặc mọi vhost đã đúng): đạt khi không bước ghi
+// vhost nào còn việc.
+func (r *hardenReload) Check(ctx context.Context, sys system.System) (bool, error) {
+	if r.written > 0 {
+		return r.loaded, nil
+	}
+	for _, w := range r.watch {
+		if done, err := w.Check(ctx, sys); err != nil || !done {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+func (r *hardenReload) Apply(ctx context.Context, sys system.System) error {
+	if err := r.again(ctx, sys); err != nil {
+		return err
+	}
+	r.loaded = true
+	return nil
+}
+
+// again kiểm cú pháp rồi reload bằng một ConfigReload mới (bước đó giữ cờ
+// riêng cho Check của nó, ở đây không dùng).
+func (r *hardenReload) again(ctx context.Context, sys system.System) error {
+	return (&steps.ConfigReload{Service: r.Service, Test: r.Test, Reload: r.Reload}).Apply(ctx, sys)
+}
+
+// hardenWrite bọc một bước ghi vhost đã bỏ Reload: đếm bước đã ghi cho
+// hardenReload, và khi bước cuối cùng được hoàn tác (mọi file cũ đã về) mà web
+// server đã nạp cấu hình mới thì kiểm cú pháp và reload lại, để thứ đang chạy
+// khớp với thứ trên đĩa. Info và Check đi thẳng tới bước gốc.
+type hardenWrite struct {
+	engine.Step
+	reload *hardenReload
+}
+
+func (w *hardenWrite) Apply(ctx context.Context, sys system.System) error {
+	if err := w.Step.Apply(ctx, sys); err != nil {
+		return err
+	}
+	w.reload.written++
+	return nil
+}
+
+func (w *hardenWrite) Undo(ctx context.Context, sys system.System) error {
+	err := w.Step.Undo(ctx, sys)
+	// Đếm cả khi Undo lỗi: engine vẫn hoàn tác các bước còn lại, và lần hoàn
+	// tác cuối phải nạp lại những file đã về được (có kiểm cú pháp trước).
+	r := w.reload
+	r.written--
+	if r.written > 0 || !r.loaded {
+		return err
+	}
+	r.loaded = false
+	return errors.Join(err, r.again(ctx, sys))
 }

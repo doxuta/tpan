@@ -50,6 +50,9 @@ type Security struct {
 	// dùng web server nào, và danh sách site để ghi lại vhost, quyền log.
 	Settings Settings
 	Sites    SiteStore
+	// WPCLISHA512 rỗng thì kiểm chứng của PrepareHarden so WP-CLI với mã đã
+	// ghim (như Stack). Test và chế độ demo đặt sha512 của file giả.
+	WPCLISHA512 string
 }
 
 // SecurityStatus là nội dung trang bảo mật: checks.SecurityChecks(PanelPort).

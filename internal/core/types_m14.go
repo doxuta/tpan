@@ -2,8 +2,7 @@ package core
 
 // Hợp đồng M14 (đợt 0): cô lập sâu giữa các site và định tuyến có bằng chứng
 // (mục 6.13 của docs/KE-HOACH.md). Kiểu và chữ ký ở đây là thứ server, CLI và
-// giao diện dựa vào; thân hàm do thợ đợt 2 viết (harden_m14.go, route_m14.go).
-// Cho tới lúc đó mọi hàm trả RefusedError "not_implemented".
+// giao diện dựa vào; thân hàm nằm ở harden_m14.go và route_m14.go.
 
 import (
 	"github.com/doxuta/tpan/internal/checks"
@@ -36,10 +35,6 @@ const (
 	// CodeHtaccessSame: site đã ở đúng chế độ được yêu cầu.
 	CodeHtaccessSame = "htaccess_same"
 )
-
-func notImplementedM14(what string) *RefusedError {
-	return refuse("not_implemented", i18n.T(what+": chưa làm (M14)", what+": not implemented yet (M14)"))
-}
 
 // ---------------------------------------------------------------- .htaccess
 

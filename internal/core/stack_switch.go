@@ -47,7 +47,9 @@ package core
 //        steps.SiteHtaccess khi <public>/.htaccess CHƯA có (đọc lúc Prepare);
 //        có rồi thì để nguyên (WordPress tự ghi lại đoạn của nó). Site dựng
 //        trên nginx không có .htaccess: thiếu nó thì trang chủ vẫn 200 nhưng
-//        mọi permalink /%postname%/ là 404 trên Apache.
+//        mọi permalink /%postname%/ là 404 trên Apache. M14: site ở chế độ
+//        .htaccess "tat" thì không ghi (Apache không đọc file đó, permalink
+//        nằm trong vhost).
 //     e. File /etc/logrotate.d/tpan-sites theo web server mới
 //        (templates.LogrotateSites), Test `logrotate -d`.
 //  3. steps.WebSwap{From: webUnit(cũ), To: webUnit(to)} (mục 6.6 bước 3).
@@ -382,7 +384,9 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 			return nil, fmt.Errorf("dựng vhost của %s: %w", st.Domain, err)
 		}
 		ss = append(ss, v...)
-		if cfg.Web != Apache {
+		// Chế độ "tat" (M14, mục 6.13): Apache không đọc .htaccess của site,
+		// permalink nằm trong vhost (FallbackResource), nên tpan không ghi file này.
+		if cfg.Web != Apache || st.Htaccess.OrDefault() == site.HtaccessOff {
 			continue
 		}
 		l := st.Layout()
@@ -414,8 +418,10 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 // rác khi khôi phục; bước luôn ghi vào l.Public. Site dựng trên nginx không có
 // .htaccess: thiếu nó thì trang chủ vẫn 200 mà mọi permalink /%postname%/ là
 // 404 trên Apache. Có rồi thì để nguyên: WordPress tự ghi lại đoạn của nó.
-// Dùng khi chuyển sang Apache (site active) và khi khôi phục trên Apache một
-// site đã vào thùng rác lúc còn chạy nginx (trash.go).
+// Dùng khi chuyển sang Apache (site active), khi khôi phục trên Apache một
+// site đã vào thùng rác lúc còn chạy nginx (trash.go), và khi một site rời chế
+// độ .htaccess "tat" (harden_m14.go). Người gọi tự bỏ qua site ở chế độ "tat":
+// hàm này không biết chế độ của site.
 func htaccessIfMissing(sys system.System, l site.Layout, public string) (engine.Step, error) {
 	_, err := sys.Stat(public + "/.htaccess")
 	switch {

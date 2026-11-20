@@ -210,7 +210,9 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 	// Site vào thùng rác lúc còn chạy nginx rồi stack chuyển sang Apache
 	// (stack switch chỉ ghi .htaccess cho site active): thiếu .htaccess thì mọi
 	// permalink là 404. Ghi ngay sau khi chuyển thư mục về, trước vhost.
-	if cfg.Web == Apache {
+	// Chế độ "tat" (M14, mục 6.13): Apache không đọc .htaccess của site,
+	// permalink nằm trong vhost, nên không ghi.
+	if cfg.Web == Apache && st.Htaccess.OrDefault() != site.HtaccessOff {
 		ht, err := htaccessIfMissing(s.Sys, l, site.TrashDir(l)+"/public")
 		if err != nil {
 			return nil, err
