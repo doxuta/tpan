@@ -21,6 +21,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -62,7 +63,27 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if err != nil {
 		return nil, err
 	}
-	return siteChecks(cfg.Web, php, st.Layout(), others, st.SSL), nil
+	return append(siteEdgeChecks(st.Layout(), st.SSL), siteChecks(cfg.Web, php, st.Layout(), others, st.SSL)...), nil
+}
+
+// siteEdgeChecks là hai chặng đầu của đường đi request mà chỉ health xét: DNS,
+// và TLS khi site chưa xin SSL (site có SSL thì TLSCert đã nằm trong
+// siteChecks). Không đưa vào kiểm chứng sau thao tác: DNS do nhà cung cấp tên
+// miền quản lý, hỏng ở đó không được làm hoàn tác một lần đổi web server.
+//   - Site chưa có SSL: thiếu bản ghi A, thiếu chứng chỉ là Warn (checks.Soft):
+//     việc còn phải làm, không phải sự cố.
+//   - Site có SSL: thiếu bản ghi A là Fail (gia hạn chứng chỉ sẽ hỏng).
+//
+// DNS là phép kiểm nặng (gọi resolver, có thể chờ timeout): chạy mỗi giờ, khi
+// gõ `tpan health` và khi bấm kiểm lại, không ở vòng 5 phút (mục 6.7).
+func siteEdgeChecks(l site.Layout, ssl bool) []checks.Check {
+	if ssl {
+		return []checks.Check{checks.Heavy(checks.DNSPointsHere(l))}
+	}
+	return []checks.Check{
+		checks.Heavy(checks.Soft(checks.DNSPointsHere(l))),
+		checks.Soft(checks.TLSCert(l)),
+	}
 }
 
 // Tên các cách sửa tự động (giá trị của checks.Result.AutoFix). Đối tượng
@@ -89,6 +110,11 @@ const (
 	// Phép kiểm DBAccess Fail vì lý do khác (sai mật khẩu, mất DB) thì Plan
 	// này không đổi gì và kiểm chứng vẫn Fail: job lỗi, người dùng sửa tay.
 	FixDBUnlock = "db.unlock"
+	// "tls.cert:<domain>" Fail (site đã có SSL mà chứng chỉ mất, hỏng, sắp
+	// hết hạn): xin lại chứng chỉ bằng đúng Plan của `tpan ssl issue`, kể cả
+	// điều kiện đầu (email, DNS). Site chưa từng xin SSL chỉ có Warn nên không
+	// có nút này: xin chứng chỉ lần đầu là một quyết định, không phải sửa lỗi.
+	FixSSLIssue = "ssl.issue"
 )
 
 // AutoFixName trả tên cách sửa tự động cho r, rỗng khi không có (Pass,
@@ -125,6 +151,8 @@ func AutoFixName(r checks.Result) string {
 		return FixWPConfigPerm
 	case "db.access":
 		return FixDBUnlock
+	case "tls.cert":
+		return FixSSLIssue
 	}
 	return ""
 }
@@ -159,6 +187,9 @@ type Fix struct {
 	Plan    engine.Plan
 
 	fixes *Fixes
+	// ssl có khi Name là FixSSLIssue: Execute đi qua SSLIssue.Execute để job
+	// thành công thì bảng sites ghi site.SSL = true như `tpan ssl issue`.
+	ssl *SSLIssue
 }
 
 // Prepare dựng Plan sửa cho r theo r.AutoFix (gọi lại AutoFixName(r) nếu
@@ -173,12 +204,32 @@ func (f *Fixes) Prepare(ctx context.Context, r checks.Result) (*Fix, error) {
 	if name == "" || (r.AutoFix != "" && r.AutoFix != name) {
 		return nil, noAutoFix(r.ID)
 	}
+	if name == FixSSLIssue {
+		return f.sslIssue(ctx, r)
+	}
 	plan, err := f.plan(ctx, name, r)
 	if err != nil {
 		return nil, err
 	}
 	plan.Kind = "fix." + name
 	return &Fix{CheckID: r.ID, Name: name, Plan: plan, fixes: f}, nil
+}
+
+// sslIssue dựng sửa "ssl.issue": dùng nguyên SSL.PrepareIssue (điều kiện đầu,
+// Plan, kiểm chứng) để sửa tự động và `tpan ssl issue` là một việc. Lời từ
+// chối của nó (thiếu email, DNS chưa trỏ về) đi thẳng ra người dùng.
+func (f *Fixes) sslIssue(ctx context.Context, r checks.Result) (*Fix, error) {
+	_, obj, _ := strings.Cut(r.ID, ":")
+	d, err := validate.ParseDomain(obj)
+	if err != nil {
+		return nil, noAutoFix(r.ID)
+	}
+	issue, err := (&SSL{Sys: f.Sys, Settings: f.Settings, Store: f.Store, Journal: f.Journal}).PrepareIssue(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	issue.Plan.Kind = "fix." + FixSSLIssue
+	return &Fix{CheckID: r.ID, Name: FixSSLIssue, Plan: issue.Plan, fixes: f, ssl: issue}, nil
 }
 
 // Preview xem trước Plan sửa (engine.Preview, có diff cho file).
@@ -192,6 +243,10 @@ func (x *Fix) Execute(ctx context.Context, onEvent func(engine.Event)) (engine.R
 	f := x.fixes
 	if f.Journal == nil {
 		return engine.Report{}, errors.New("sửa tự động: thiếu Journal, không ghi được lịch sử job")
+	}
+	if x.ssl != nil {
+		x.ssl.Plan = x.Plan
+		return x.ssl.Execute(ctx, onEvent)
 	}
 	rep, err := engine.New(f.Sys, engine.Options{Journal: f.Journal, OnEvent: onEvent}).Execute(ctx, x.Plan)
 	if err != nil {

@@ -468,6 +468,12 @@ Phép kiểm của một site xếp theo **đường đi của request**, để 
 | DB | MariaDB `active`, user của site đăng nhập được, DB tồn tại | "Error establishing a database connection" |
 | Đầu cuối | gọi `http(s)://<domain>/` ngay trên máy → 200 và đúng là WordPress | bất kỳ lỗi nào ở trên |
 
+DNS và TLS (sửa 20/11/2026; trước đó hai chặng này không có phép kiểm nào cho site chưa xin SSL nên luôn hiện "chưa kiểm được"):
+
+- **DNS** (`dns.a`) là phép kiểm nặng (mỗi giờ, khi gõ `tpan health`, khi bấm kiểm lại). Site chưa xin SSL: thiếu bản ghi A là **cảnh báo** (`checks.Soft`), vì đó là việc còn phải làm chứ chưa phải sự cố; site đã có SSL: thiếu bản ghi A là **lỗi** (gia hạn sẽ hỏng). tpan không sửa được DNS (bản ghi nằm ở nhà cung cấp tên miền, mục 1 không làm DNS server), nên nguyên nhân nói đủ cách sửa: tạo bản ghi A cho đúng tên, trỏ về IPv4 của máy (in luôn địa chỉ trên card mạng, kèm lưu ý VPS sau NAT).
+- **TLS** (`tls.cert`): site chưa xin SSL có cảnh báo "chưa có chứng chỉ" kèm lệnh `tpan ssl issue <domain>` và liên kết tới màn SSL; không có sửa tự động, vì xin chứng chỉ lần đầu là một quyết định (cần email, DNS, tốn lượt Let's Encrypt). Site đã có SSL mà chứng chỉ mất, hỏng hay sắp hết hạn: lỗi, sửa tự động `ssl.issue` chạy đúng Plan của `tpan ssl issue` (cùng điều kiện đầu, cùng lời từ chối).
+- Hai chặng này chỉ nằm trong health, không nằm trong kiểm chứng sau thao tác: DNS hỏng ở nhà cung cấp không được làm hoàn tác một lần đổi web server.
+
 Phép kiểm chung của máy: đĩa (cảnh báo 80%, lỗi 90%), RAM và swap, ba dịch vụ, cổng đang mở, log có được rotate không, tường lửa.
 
 Phép kiểm của **chính TPAN**: `PRAGMA integrity_check` của SQLite, chỗ trống ở `/var/lib/tpan`, hạn chứng chỉ của panel, bộ hẹn giờ còn chạy, có job nào treo, quyền của file config, tuổi bản sao lưu gần nhất của `tpan.db`.

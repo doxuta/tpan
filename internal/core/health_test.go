@@ -41,6 +41,9 @@ func TestAutoFixName(t *testing.T) {
 		{"web.vhost:shop.example.com", checks.Pass, ""},
 		{"wp.config:shop.example.com", checks.Fail, FixWPConfigPerm},
 		{"db.access:shop.example.com", checks.Fail, FixDBUnlock},
+		{"tls.cert:shop.example.com", checks.Fail, FixSSLIssue},
+		{"tls.cert:shop.example.com", checks.Warn, ""}, // site chưa xin SSL: không phải sửa lỗi
+		{"dns.a:shop.example.com", checks.Fail, ""},    // DNS nằm ở nhà cung cấp tên miền
 		{"disk.usage:/", checks.Fail, ""},
 		{"http.site:shop.example.com", checks.Fail, ""},
 		{"memory:ram", checks.Fail, ""},
@@ -586,5 +589,43 @@ func TestSiteFilesSSLVhost(t *testing.T) {
 		if has := strings.Contains(vhost, "listen 443"); has != ssl {
 			t.Errorf("ssl=%v: vhost có cổng 443 = %v", ssl, has)
 		}
+	}
+}
+
+// Chặng DNS và TLS của health: site chưa xin SSL có cả hai, ở dạng cảnh báo
+// (Soft); site có SSL chỉ thêm DNS (TLSCert đã nằm trong siteChecks), ở dạng
+// lỗi thật. DNS luôn là phép kiểm nặng.
+func TestSiteEdgeChecks(t *testing.T) {
+	l := site.Site{Domain: mustDomain(t, "shop.example.com"), Status: site.Active}.Layout()
+	ids := func(cs []checks.Check) string {
+		var out []string
+		for i, r := range checks.RunAll(context.Background(), system.NewFake(), cs) {
+			out = append(out, fmt.Sprintf("%s heavy=%v", r.ID, checks.IsHeavy(cs[i])))
+		}
+		return strings.Join(out, ", ")
+	}
+	if got, want := ids(siteEdgeChecks(l, false)), "dns.a:shop.example.com heavy=true, tls.cert:shop.example.com heavy=false"; got != want {
+		t.Errorf("chưa SSL: %s, muốn %s", got, want)
+	}
+	if got, want := ids(siteEdgeChecks(l, true)), "dns.a:shop.example.com heavy=true"; got != want {
+		t.Errorf("có SSL: %s, muốn %s", got, want)
+	}
+	// Chưa có chứng chỉ, site chưa SSL: cảnh báo kèm cách sửa, không phải lỗi.
+	r := checks.RunAll(context.Background(), system.NewFake(), siteEdgeChecks(l, false)[1:])[0]
+	if r.Status != checks.Warn || len(r.ManualFix) == 0 {
+		t.Errorf("TLS site chưa SSL: %s, ManualFix %v; muốn warn có cách sửa", r.Status, r.ManualFix)
+	}
+}
+
+// Sửa tự động "ssl.issue" đi đúng đường của `tpan ssl issue`: chưa có email
+// cho Let's Encrypt thì từ chối với cùng mã, không dựng Plan riêng.
+func TestFixSSLIssueUsesSSLPrepare(t *testing.T) {
+	e := newFixEnv(t, Nginx, "shop.example.com")
+	_, err := e.f.Prepare(ctx, checks.Result{ID: "tls.cert:shop.example.com", Status: checks.Fail})
+	if refusedCode(t, err) != "acme_email_missing" {
+		t.Errorf("muốn acme_email_missing, được %v", err)
+	}
+	if _, err := e.f.Prepare(ctx, checks.Result{ID: "tls.cert:shop.example.com", Status: checks.Warn}); refusedCode(t, err) != "no_auto_fix" {
+		t.Errorf("site chưa SSL (Warn) không được tự xin chứng chỉ: %v", err)
 	}
 }

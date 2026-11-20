@@ -68,6 +68,9 @@ func demoHealth(t *testing.T, ctx context.Context, sys system.System, st *store.
 			case checks.Fail:
 				failed = append(failed, x.ID)
 			case checks.Warn, checks.Unknown:
+				if demoExpectedWarn(x) {
+					continue
+				}
 				warned = append(warned, string(x.Status)+" "+x.ID+": "+x.Summary.Vi)
 			}
 		}

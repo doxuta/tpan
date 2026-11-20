@@ -31,6 +31,9 @@ func TestHealthRunOnDemo(t *testing.T) {
 			case checks.Fail:
 				failed = append(failed, x.ID)
 			case checks.Warn, checks.Unknown:
+				if demoExpectedWarn(x) {
+					continue
+				}
 				warned = append(warned, string(x.Status)+" "+x.ID+": "+x.Summary.Vi)
 			}
 		}
@@ -92,4 +95,11 @@ func TestDemoTail(t *testing.T) {
 	if err != nil || !strings.Contains(res.Stdout, l.SocketFor("8.3")) {
 		t.Errorf("error.log của %s: %q, %v", siteWiki, res.Stdout, err)
 	}
+}
+
+// demoExpectedWarn: cảnh báo có chủ ý của máy demo. Shop và wiki chưa xin SSL
+// (màn SSL có nút xin để bấm thử), nên chặng TLS của hai site đó là "chưa có
+// chứng chỉ" ở dạng cảnh báo. Mọi cảnh báo khác vẫn làm test hỏng.
+func demoExpectedWarn(x checks.Result) bool {
+	return x.Status == checks.Warn && (x.ID == "tls.cert:shop.example.net" || x.ID == "tls.cert:"+siteWiki)
 }

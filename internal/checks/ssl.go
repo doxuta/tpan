@@ -176,10 +176,26 @@ func DNSPointsHere(l site.Layout) Check {
 		showIP := line("ip", "-o", "addr", "show", "scope", "global")
 		recheck := line("getent", "ahostsv4", dom)
 		if len(a4) == 0 {
+			// Nói luôn địa chỉ để trỏ về: tpan không sửa được DNS (bản ghi nằm ở
+			// nhà cung cấp tên miền), nên câu này là toàn bộ cách sửa.
+			target := i18n.T("địa chỉ IP public của máy", "the machine's public IP address")
+			if ipRes.ExitCode == 0 {
+				var v4 []netip.Addr
+				for _, a := range sslMachineAddrs(ipRes.Stdout) {
+					if a.Is4() {
+						v4 = append(v4, a)
+					}
+				}
+				if len(v4) > 0 {
+					ips := sslJoinAddrs(v4)
+					target = i18n.T("IP public của máy (card mạng có: "+ips+"; VPS sau NAT thì lấy IP public ở trang quản lý VPS)",
+						"the machine's public IP (network cards have: "+ips+"; behind NAT use the public IP from the VPS control panel)")
+				}
+			}
 			return b.bad(Fail,
 				i18n.T(dom+" chưa có bản ghi A", dom+" has no A record"),
-				i18n.T("Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. Vào nơi quản lý DNS của tên miền, tạo bản ghi A trỏ về địa chỉ IP của máy, rồi chờ vài phút.",
-					"The domain does not point anywhere yet, or the record has not reached this machine. In the domain's DNS panel create an A record pointing to the machine's IP address, then wait a few minutes."),
+				i18n.T("Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. tpan không tự sửa được: bản ghi nằm ở nơi quản lý DNS của tên miền. Vào đó tạo bản ghi A cho "+dom+" trỏ về "+target.Vi+", rồi chờ vài phút và bấm kiểm lại.",
+					"The domain does not point anywhere yet, or the record has not reached this machine. tpan cannot fix this itself: the record lives in the domain's DNS panel. Create an A record for "+dom+" pointing to "+target.En+", then wait a few minutes and check again."),
 				[]string{showIP, recheck}, ev4, ev6, evIP)
 		}
 		if ipRes.ExitCode != 0 {

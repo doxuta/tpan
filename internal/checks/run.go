@@ -55,6 +55,20 @@ func IsHeavy(c Check) bool {
 	return ok
 }
 
+// Soft hạ kết quả Fail của c xuống Warn, giữ nguyên ID, nguyên nhân và lệnh
+// sửa tay. Dùng cho chặng chưa bắt buộc với site: site chưa xin SSL thì thiếu
+// bản ghi A hay thiếu chứng chỉ là việc còn phải làm, không phải sự cố (Warn
+// không mở sự cố, không làm `tpan health` thoát 1).
+func Soft(c Check) Check {
+	return checkFunc(func(ctx context.Context, sys system.System) Result {
+		r := c.Run(ctx, sys)
+		if r.Status == Fail {
+			r.Status = Warn
+		}
+		return r
+	})
+}
+
 // Lazy dựng phép kiểm thật ở lúc Run, không phải lúc gọi Lazy. Lý do: Plan
 // "cài stack" được dựng trước khi apt cài php-fpm nên chưa biết bản PHP; fn đọc
 // nó từ nơi đã lưu (settings) sau khi bước dò bản đã chạy. fn được gọi lại ở

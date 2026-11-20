@@ -48,6 +48,7 @@ const vi = {
   noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
   cause: "NGUYÊN NHÂN",
   manualFix: "SỬA TAY",
+  sslLink: "Xin chứng chỉ ở màn SSL",
 
   // ---- số request một giờ qua ----
   trafficHeading: "Request một giờ qua",
@@ -200,6 +201,7 @@ export const strings = defineStrings(vi, {
   noEvidence: "This check did not record any command.",
   cause: "CAUSE",
   manualFix: "FIX BY HAND",
+  sslLink: "Get a certificate on the SSL screen",
 
   trafficHeading: "Requests in the last hour",
   trafficRequests: "REQUESTS",

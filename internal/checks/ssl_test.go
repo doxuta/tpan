@@ -78,6 +78,40 @@ func TestDNSPointsHere(t *testing.T) {
 	}
 }
 
+// Không có bản ghi A: tpan không sửa được DNS, nên nguyên nhân phải nói đủ để
+// người dùng tự sửa: tạo bản ghi A cho đúng tên, trỏ về đúng IP của máy.
+func TestDNSPointsHereNoAShowsTarget(t *testing.T) {
+	l := siteLayout(t, "shop.example.com")
+	r := DNSPointsHere(l).Run(bg(), dnsFake("", 2, "", 2, ipOut, 0))
+	for _, want := range []string{"bản ghi A cho shop.example.com", "203.0.113.7"} {
+		if !strings.Contains(r.Cause.Vi, want) {
+			t.Errorf("Cause = %q, muốn có %q", r.Cause.Vi, want)
+		}
+	}
+	if strings.Contains(r.Cause.Vi, "2001:db8::7") {
+		t.Errorf("bản ghi A chỉ nhận IPv4, Cause lại có IPv6: %q", r.Cause.Vi)
+	}
+}
+
+// Soft: Fail thành Warn, giữ nguyên mọi thứ khác; Pass, Unknown không đổi.
+func TestSoft(t *testing.T) {
+	l := siteLayout(t, "shop.example.com")
+	hard := DNSPointsHere(l).Run(bg(), dnsFake("", 2, "", 2, ipOut, 0))
+	soft := Soft(DNSPointsHere(l)).Run(bg(), dnsFake("", 2, "", 2, ipOut, 0))
+	if hard.Status != Fail || soft.Status != Warn {
+		t.Fatalf("Status: gốc %s, Soft %s; muốn fail, warn", hard.Status, soft.Status)
+	}
+	if soft.ID != hard.ID || soft.Cause != hard.Cause || len(soft.ManualFix) != len(hard.ManualFix) {
+		t.Errorf("Soft đổi thứ khác ngoài Status: %+v", soft)
+	}
+	if r := Soft(DNSPointsHere(l)).Run(bg(), dnsFake(a4Mine, 0, "", 2, ipOut, 0)); r.Status != Pass {
+		t.Errorf("Soft của Pass = %s", r.Status)
+	}
+	if IsHeavy(Soft(DNSPointsHere(l))) || !IsHeavy(Heavy(Soft(DNSPointsHere(l)))) {
+		t.Error("Heavy(Soft(c)) phải là phép kiểm nặng, Soft(c) thì không")
+	}
+}
+
 func TestDNSPointsHereCommands(t *testing.T) {
 	l := siteLayout(t, "shop.example.com")
 	f := dnsFake(a4Mine, 0, "", 2, ipOut, 0)

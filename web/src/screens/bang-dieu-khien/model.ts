@@ -36,7 +36,7 @@ export type Route = {
 // được" vì cảnh báo là điều đã biết chắc.
 const rank: Record<Status, number> = { pass: 0, unknown: 1, warn: 2, fail: 3 };
 
-/** Trạng thái của một chặng. Chưa có phép kiểm nào (DNS, TLS ở M3) là "chưa kiểm được". */
+/** Trạng thái của một chặng. Chưa có phép kiểm nào (ví dụ DNS trước lần kiểm nặng đầu tiên) là "chưa kiểm được". */
 export function worst(items: Item[]): Status {
   if (items.length === 0) return "unknown";
   return items.reduce<Status>((w, i) => (rank[i.check.status] > rank[w] ? i.check.status : w), "pass");

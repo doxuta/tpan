@@ -3,6 +3,7 @@
 // các điều kiện chưa đạt của một lần từ chối.
 
 import { useState } from "react";
+import { Link } from "react-router";
 import { useAi } from "../../ai/AiProvider";
 import type { CheckResult } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -70,6 +71,12 @@ export function CheckItem({ check, open, onToggle }: Props) {
               <div className="mb-[6px] font-mono text-[11px] tracking-[0.08em] text-muted">{t.manualFix}</div>
               <CommandBlock commands={fix} />
             </div>
+          )}
+          {/* TLS chưa đạt: nút xin chứng chỉ nằm ở màn SSL (có xem trước Plan), dẫn thẳng tới đó. */}
+          {check.id.startsWith("tls.cert:") && check.status !== "pass" && (
+            <Link to="/ssl" className="self-start">
+              {t.sslLink}
+            </Link>
           )}
           {/* Phép kiểm không đạt: ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
           {(check.status === "fail" || check.status === "warn") && (
