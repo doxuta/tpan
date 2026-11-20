@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/store"
@@ -455,4 +456,99 @@ func TestRunBoLechHtaccess(t *testing.T) {
 	if _, ok := targets(t, e.run(t, Options{Full: true}))["drift:"+p]; ok {
 		t.Error(".htaccess không được có phép kiểm lệch")
 	}
+}
+
+// M13: site tạm khoá. Sự cố đang mở của chặng bị thay (php.socket) đóng với lý
+// do "gone" (lần đầy đủ, hoặc ngay lần chạy cho riêng site sau job); kết quả
+// "tạm khoá" là Unknown nên không mở sự cố nào; mở khoá thì kết quả "tạm khoá"
+// cũ bị dọn ngay ở lần chạy cho riêng site, không nằm lại tới lần đầy đủ.
+func TestRunSiteTamKhoa(t *testing.T) {
+	ctx := context.Background()
+	for _, o := range []Options{{Full: true}, {Domain: dA}} {
+		t.Run(map[bool]string{true: "đầy đủ", false: "một site"}[o.Full], func(t *testing.T) {
+			e := newEnv(t, true)
+			e.run(t, Options{Full: true})
+			if !openFor(t, e, "php.socket:"+dA) {
+				t.Fatal("cần sự cố php.socket của site a đang mở (máy giả không có socket)")
+			}
+
+			sa, _, err := e.st.Site(ctx, dom(t, dA))
+			if err != nil {
+				t.Fatal(err)
+			}
+			sa.Suspended = account.SuspendSelf
+			if err := e.st.SaveSite(ctx, sa); err != nil {
+				t.Fatal(err)
+			}
+			e.now = t0.Add(time.Hour)
+			rep := e.run(t, o)
+			if openFor(t, e, "php.socket:"+dA) {
+				t.Error("sự cố php.socket của site đã khoá vẫn mở")
+			}
+			gone := false
+			for _, inc := range rep.Changes.Closed {
+				gone = gone || (inc.CheckID == "php.socket:"+dA && inc.CloseReason == "gone")
+			}
+			if !gone {
+				t.Errorf("không đóng sự cố php.socket với lý do gone: %+v", rep.Changes.Closed)
+			}
+			for _, inc := range rep.Changes.Opened {
+				if strings.HasPrefix(inc.CheckID, "suspended.") {
+					t.Errorf("kết quả tạm khoá mở sự cố: %s", inc.CheckID)
+				}
+			}
+			ids := storedIDs(t, e)
+			for _, id := range []string{"suspended.php:", "suspended.wordpress:", "suspended.db:", "http.suspended:"} {
+				if !ids[id+dA] {
+					t.Errorf("thiếu kết quả %s", id+dA)
+				}
+			}
+			if ids["php.socket:"+dA] || ids["http.site:"+dA] {
+				t.Error("còn kết quả của phép kiểm thường cho site khoá")
+			}
+
+			sa.Suspended = account.NotSuspended
+			if err := e.st.SaveSite(ctx, sa); err != nil {
+				t.Fatal(err)
+			}
+			e.now = t0.Add(2 * time.Hour)
+			e.run(t, Options{Domain: dA})
+			ids = storedIDs(t, e)
+			for id := range ids {
+				if strings.HasPrefix(id, "suspended.") || strings.HasPrefix(id, "http.suspended:") {
+					t.Errorf("mở khoá rồi mà còn kết quả %s", id)
+				}
+			}
+			if !ids["php.socket:"+dA] || !ids["wp.checksums:"+dB] {
+				t.Error("dọn nhầm kết quả của phép kiểm còn dùng")
+			}
+		})
+	}
+}
+
+func openFor(t *testing.T, e *env, id string) bool {
+	t.Helper()
+	open, err := e.st.Incidents(context.Background(), true, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, inc := range open {
+		if inc.CheckID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func storedIDs(t *testing.T, e *env) map[string]bool {
+	t.Helper()
+	rs, err := e.st.CheckResults(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]bool{}
+	for _, r := range rs {
+		out[r.ID] = true
+	}
+	return out
 }

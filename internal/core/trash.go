@@ -35,6 +35,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -178,6 +179,12 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 	st, err := s.findTrashed(ctx, d)
 	if err != nil {
 		return nil, err
+	}
+	// M13 (quyết định 7): khôi phục ghi lại pool và mở khoá user DB, nên với
+	// một dòng còn cờ tạm khoá thì đó là mở khoá lén. Đưa vào thùng rác đã bị
+	// từ chối khi còn khoá (PrepareRemove), nên đây là chốt chặn cho dòng lạ.
+	if st.Suspended != account.NotSuspended || st.DBSuspended != account.NotSuspended {
+		return nil, refuseSuspendedTrash(st)
 	}
 	cfg, err := s.stack(ctx)
 	if err != nil {

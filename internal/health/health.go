@@ -14,6 +14,7 @@ package health
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -168,6 +169,14 @@ func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 		}
 	}
 
+	if o.Domain != "" && len(plan) == 1 {
+		tr, err := r.forgetSwapped(ctx, plan[0].target, seen, now())
+		if err != nil {
+			return Report{}, err
+		}
+		mergeTransition(&rep.Changes, tr)
+	}
+
 	if o.Full && o.Domain == "" {
 		// Chỉ lần đầy đủ mới biết trọn bộ phép kiểm đang tồn tại; lần nhẹ thiếu
 		// wp.checksums, lần một site thiếu mọi thứ khác, prune lúc đó là xoá nhầm.
@@ -182,6 +191,50 @@ func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 	}
 	rep.Finished = now()
 	return rep, nil
+}
+
+// swappedKinds là các loại phép kiểm nhẹ của một site có thể biến mất khỏi bộ
+// phép kiểm khi site đổi trạng thái: tạm khoá, mở khoá, khoá DB (M13), hay
+// xin SSL (http.site thành https.site và http.redirect). Không có loại nặng
+// (wp.checksums, dns.a): lần chạy nhẹ cho một site vốn không chạy chúng, nên
+// "không thấy" không có nghĩa là "không còn".
+var swappedKinds = map[string]bool{
+	"php.socket": true, "wp.config": true, "db.access": true,
+	"http.site": true, "https.site": true, "http.redirect": true, "http.suspended": true,
+}
+
+// forgetSwapped dọn kết quả cũ của site domain ngay sau lần chạy cho riêng
+// site đó (lần health chạy sau mỗi job): kết quả của phép kiểm không còn trong
+// bộ (php.socket sau khi tạm khoá, suspended.php sau khi mở khoá) bị xoá, sự
+// cố đang mở của nó đóng với lý do "gone". Không dọn thì chúng nằm lại tới
+// lần chạy đầy đủ kế tiếp (tối đa 1 giờ): sau khi mở khoá, bản đồ tuyến vẫn
+// xám vì kết quả "tạm khoá" cũ (Unknown) xấu hơn kết quả đạt mới.
+//
+// Chỉ đụng loại trong swappedKinds và "suspended.*" có đối tượng đúng domain;
+// lệch file, cô lập, phép kiểm nặng để lần chạy đầy đủ lo như trước.
+// ponytail: dùng PruneResults với danh sách giữ = mọi kết quả đang có trừ
+// phần dọn, nên một lần chạy khác ghi kết quả mới đúng lúc giữa hai câu này
+// có thể bị đóng sự cố oan (lần chạy sau mở lại). Nâng cấp: hàm store xoá
+// đúng danh sách ID trong một transaction.
+func (r *Runner) forgetSwapped(ctx context.Context, domain string, seen map[string]bool, now time.Time) (store.Transition, error) {
+	stored, err := r.Store.CheckResults(ctx)
+	if err != nil {
+		return store.Transition{}, err
+	}
+	keep := make([]string, 0, len(stored))
+	drop := false
+	for _, s := range stored {
+		kind, obj, _ := strings.Cut(s.ID, ":")
+		if !seen[s.ID] && obj == domain && (swappedKinds[kind] || strings.HasPrefix(kind, "suspended.")) {
+			drop = true
+			continue
+		}
+		keep = append(keep, s.ID)
+	}
+	if !drop {
+		return store.Transition{}, nil
+	}
+	return r.Store.PruneResults(ctx, keep, now)
 }
 
 // Scheduler chạy Runner theo lịch trong `tpan serve`.

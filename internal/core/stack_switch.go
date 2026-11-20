@@ -94,6 +94,7 @@ import (
 	"io/fs"
 	"slices"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -181,17 +182,25 @@ func (s *Switch) Prepare(ctx context.Context, to WebServer) (*Planned, error) {
 	// Bước 3, 4: đổi web server, rồi kiểm từng site trên web server mới.
 	ss = append(ss, &steps.WebSwap{From: from, To: unit})
 	for _, st := range active {
+		check := siteHTTP(st)
+		if check == nil {
+			continue
+		}
 		dom := st.Domain.String()
+		wantVi, wantEn := "200", "200"
+		if st.Suspended != account.NotSuspended {
+			wantVi, wantEn = "403 (trang tạm khoá)", "403 (suspension page)"
+		}
 		ss = append(ss, &midCheck{
 			id:    "stack.switch.check:" + dom,
-			check: siteHTTP(st),
+			check: check,
 			// Hai lần đạt liên tiếp như php.use: lần gọi đầu ngay sau start chưa
 			// chắc đã là cấu hình cuối cùng (worker mới vừa nhận việc).
 			need:  2,
-			title: i18n.T("Kiểm "+dom+" trả 200 qua "+unit, "Check that "+dom+" answers 200 through "+unit),
+			title: i18n.T("Kiểm "+dom+" trả "+wantVi+" qua "+unit, "Check that "+dom+" answers "+wantEn+" through "+unit),
 			why: i18n.T(
-				from+" chỉ bị tắt hẳn khi mọi site đã chạy được trên "+unit+". Site không trả 200 thì job dừng ở đây và hoàn tác: "+unit+" dừng, "+from+" chạy lại với đúng các file cũ.",
-				from+" is only turned off for good once every site works on "+unit+". If the site does not answer 200 the job stops here and rolls back: "+unit+" stops and "+from+" starts again with exactly its old files."),
+				from+" chỉ bị tắt hẳn khi mọi site đã chạy được trên "+unit+". Site không trả lời đúng thì job dừng ở đây và hoàn tác: "+unit+" dừng, "+from+" chạy lại với đúng các file cũ.",
+				from+" is only turned off for good once every site works on "+unit+". If the site does not answer correctly the job stops here and rolls back: "+unit+" stops and "+from+" starts again with exactly its old files."),
 		})
 	}
 
@@ -219,7 +228,10 @@ func (s *Switch) Prepare(ctx context.Context, to WebServer) (*Planned, error) {
 	}
 	verify := []checks.Check{checks.Service(unit, checks.StageWeb), config, checks.HTTPDefault(string(to))}
 	for _, st := range active {
-		verify = append(verify, checks.VhostEnabled(string(to), st.Layout()), siteHTTP(st))
+		verify = append(verify, checks.VhostEnabled(string(to), st.Layout()))
+		if c := siteHTTP(st); c != nil {
+			verify = append(verify, c)
+		}
 	}
 
 	plan := engine.Plan{
@@ -255,8 +267,19 @@ func (s *Switch) Prepare(ctx context.Context, to WebServer) (*Planned, error) {
 	return newPlanned(s.Sys, s.Journal, plan, after), nil
 }
 
-// siteHTTP là phép kiểm đầu cuối của site: https khi site có SSL.
+// siteHTTP là phép kiểm đầu cuối của site: https khi site có SSL. M13: site
+// tạm khoá thì 403 đúng trang tạm khoá (siteVhost ghi bản tạm khoá cho nó);
+// DB của site đang khoá thì nil (không kiểm HTTP): WordPress báo lỗi kết nối
+// DB với mọi web server, và một site đã biết là không trả 200 không được chặn
+// hay kéo hoàn tác lần chuyển web server của mọi site khác. VhostEnabled của
+// site đó vẫn nằm trong kiểm chứng.
 func siteHTTP(st site.Site) checks.Check {
+	switch {
+	case st.Suspended != account.NotSuspended:
+		return checks.HTTPSuspended(st.Layout(), st.SSL)
+	case st.DBSuspended != account.NotSuspended:
+		return nil
+	}
 	if st.SSL {
 		return checks.HTTPSSite(st.Layout())
 	}
@@ -267,9 +290,11 @@ func siteHTTP(st site.Site) checks.Check {
 // server cũ. Một site hỏng sẵn thì bước kiểm giữa chừng chắc chắn lỗi và cả
 // job hoàn tác; nói trước rẻ hơn.
 func (s *Switch) sitesAnswer(ctx context.Context, active []site.Site) error {
-	cs := make([]checks.Check, len(active))
-	for i, st := range active {
-		cs[i] = siteHTTP(st)
+	var cs []checks.Check
+	for _, st := range active {
+		if c := siteHTTP(st); c != nil {
+			cs = append(cs, c)
+		}
 	}
 	var failed []checks.Result
 	for _, r := range checks.RunAll(ctx, s.Sys, cs) {

@@ -10,12 +10,14 @@ package core
 //  3. steps.ACMEProbe (thử đường HTTP; bỏ qua khi chứng chỉ đã đúng).
 //  4. steps.CertbotCert (Server theo SSLConfig.ServerURL).
 //  5. steps.DefaultSSL(web): site mặc định 443 (và mod ssl của Apache).
-//  6. steps.SiteVhostSSL: vhost có 443, cổng 80 chuyển hướng.
+//  6. siteVhost với SSL: vhost có 443, cổng 80 chuyển hướng (M13: site đang
+//     tạm khoá ra bản tạm khoá có 443, cổng 80 không chuyển hướng).
 //  7. steps.WPSiteURL https://<d>.
 //  8. File hook gia hạn /etc/letsencrypt/renewal-hooks/deploy/tpan (0755,
 //     templates.RenewHook("/usr/local/bin/tpan")).
-//  9. Kiểm chứng: checks.SiteChecksSSL, Service certbot.timer,
-//     checks.CertRenewDryRun(l, server tuỳ chỉnh nếu có).
+//  9. Kiểm chứng: checks.SiteChecksSSL (site tạm khoá: TLSCert, VhostEnabled,
+//     http.suspended), Service certbot.timer, checks.CertRenewDryRun(l, server
+//     tuỳ chỉnh nếu có).
 // Job thành công thì ghi site.SSL = true vào bảng sites.
 
 import (
@@ -26,6 +28,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -223,6 +226,12 @@ func (s *SSL) PrepareIssue(ctx context.Context, d validate.Domain) (*SSLIssue, e
 	if st.Status != site.Active {
 		return nil, fmt.Errorf("site %s có trạng thái lạ %q trong DB", d, st.Status)
 	}
+	// M13: site tạm khoá vẫn xin được (vhost tạm khoá cho thử thách ACME đi
+	// qua, và vhost 443 ghi qua siteVhost nên ra bản tạm khoá có 443). DB của
+	// site đang khoá thì không: bước WPSiteURL ghi địa chỉ site vào DB.
+	if err := refuseDBSuspended(st); err != nil {
+		return nil, err
+	}
 	stack, err := sites.stack(ctx)
 	if err != nil {
 		return nil, err
@@ -268,15 +277,18 @@ func (s *SSL) PrepareIssue(ctx context.Context, d validate.Domain) (*SSLIssue, e
 	if php == "" {
 		php = stack.PHPVersion
 	}
-	plan, err := sslPlan(string(stack.Web), php, l, email, cfg)
+	plan, err := sslPlan(stack, php, st, email, cfg)
 	if err != nil {
 		return nil, err
 	}
 	return &SSLIssue{Site: st, Layout: l, Config: cfg, Preconditions: results, Plan: plan, ssl: s}, nil
 }
 
-// sslPlan dựng Plan "site.ssl" đúng thứ tự ở đầu file.
-func sslPlan(web, php string, l site.Layout, email validate.Email, cfg SSLConfig) (engine.Plan, error) {
+// sslPlan dựng Plan "site.ssl" đúng thứ tự ở đầu file. Vhost 443 ghi qua
+// siteVhost (M13): site đang tạm khoá ra bản tạm khoá có 443, và kiểm chứng
+// đòi 403 đúng trang tạm khoá ở cả hai cổng thay cho bộ phép kiểm của site thường.
+func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, cfg SSLConfig) (engine.Plan, error) {
+	web, l := string(stack.Web), st.Layout()
 	d := l.Domain.String()
 	wrap := func(err error) error { return fmt.Errorf("dựng Plan SSL cho %s: %w", d, err) }
 
@@ -292,7 +304,9 @@ func sslPlan(web, php string, l site.Layout, email validate.Email, cfg SSLConfig
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
-	vhost, err := steps.SiteVhostSSL(l, web, php, acmeRoot)
+	next := st
+	next.SSL, next.PHPVersion = true, php
+	vhost, err := siteVhost(next, stack)
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
@@ -314,6 +328,9 @@ func sslPlan(web, php string, l site.Layout, email validate.Email, cfg SSLConfig
 	)
 
 	verify := checks.SiteChecksSSL(web, php, l)
+	if st.Suspended != account.NotSuspended {
+		verify = append([]checks.Check{checks.TLSCert(l), checks.VhostEnabled(web, l)}, suspendedChecks(next)...)
+	}
 	verify = append(verify,
 		checks.Service("certbot.timer", checks.StageTLS),
 		// Chỉ server tuỳ chỉnh: không có --server thì certbot --dry-run luôn

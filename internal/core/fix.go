@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -47,6 +48,11 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 	case FixPHPRestart:
 		st, err := f.activeSite(ctx, r.ID, obj)
 		if err != nil {
+			return engine.Plan{}, err
+		}
+		// Site tạm khoá không có pool: khởi động lại PHP-FPM không tạo được
+		// socket của nó, và kiểm chứng PoolSocket chắc chắn hỏng.
+		if err := refuseSuspendedPool(st); err != nil {
 			return engine.Plan{}, err
 		}
 		l := st.Layout()
@@ -92,6 +98,11 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 	case FixDBUnlock:
 		st, err := f.activeSite(ctx, r.ID, obj)
 		if err != nil {
+			return engine.Plan{}, err
+		}
+		// DB đang tạm khoá có chủ ý (M13): mở khoá user DB ở đây là mở khoá
+		// lén, từ một kết quả db.access cũ còn nằm trong DB.
+		if err := refuseDBSuspended(st); err != nil {
 			return engine.Plan{}, err
 		}
 		l := st.Layout()
@@ -225,14 +236,18 @@ func (f *Fixes) stackPlan(cfg StackConfig) (engine.Plan, error) {
 }
 
 // siteFiles trả các Step File tpan ghi cho site st với web server hiện tại:
-// pool, vhost, và .htaccess khi là Apache.
+// pool, vhost, và .htaccess khi là Apache. Site tạm khoá (M13) không có pool:
+// file pool đã đổi tên .suspended, và ghi lại nó là mở khoá lén.
 func siteFiles(cfg StackConfig, st site.Site) ([]*steps.File, error) {
 	l := st.Layout()
-	pool, err := steps.SitePool(l, sitePHP(st, cfg))
-	if err != nil {
-		return nil, err
+	var ss []engine.Step
+	if st.Suspended == account.NotSuspended {
+		pool, err := steps.SitePool(l, sitePHP(st, cfg))
+		if err != nil {
+			return nil, err
+		}
+		ss = append(ss, pool)
 	}
-	ss := []engine.Step{pool}
 	vhost, err := siteVhost(st, cfg)
 	if err != nil {
 		return nil, err
@@ -277,6 +292,10 @@ func (f *Fixes) managedFile(ctx context.Context, cfg StackConfig, path string) (
 				return file, nil
 			}
 		}
+	}
+	// Trang tạm khoá chung (M13): không thuộc site nào, cũng không thuộc stack.
+	if page := steps.SuspendedPageFile(); page.Path == path {
+		return page, nil
 	}
 	plan, err := f.stackPlan(cfg)
 	if err != nil {
@@ -384,9 +403,17 @@ func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj strin
 // phát hiện lệch phải dùng đúng bản này; dùng bản cổng 80 cho site có SSL là
 // ghi đè vhost 443 và làm site mất HTTPS. Web server lấy từ cfg; bản PHP là
 // của site (sitePHP), để vhost trỏ đúng socket của pool site đang dùng (M12).
+//
+// M13: đây là chỗ DUY NHẤT chọn giữa bản thường, bản 443 và bản tạm khoá
+// (site.Suspended khác rỗng; có 443 khi site.SSL). Chuyển LEMP ⇄ LAMP, sửa tự
+// động của health, xin SSL đều đi qua đây, nên không đường nào lén ghi vhost
+// thường cho một site đang khoá.
 func siteVhost(st site.Site, cfg StackConfig) ([]engine.Step, error) {
 	web, php := string(cfg.Web), sitePHP(st, cfg)
-	if st.SSL {
+	switch {
+	case st.Suspended != account.NotSuspended:
+		return steps.SiteVhostSuspended(st.Layout(), web, acmeRoot, st.SSL)
+	case st.SSL:
 		return steps.SiteVhostSSL(st.Layout(), web, php, acmeRoot)
 	}
 	return steps.SiteVhost(st.Layout(), web, php, acmeRoot)

@@ -1,0 +1,61 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Vhost Nginx của site example.com khi đang TẠM KHOÁ, bản đã có chứng chỉ: cả
+# cổng 80 lẫn 443 trả 403 kèm trang tạm khoá chung của tpan. Cổng 80 không
+# chuyển sang https (chuyển rồi cũng chỉ gặp 403); nó vẫn phục vụ thử thách
+# Let's Encrypt để chứng chỉ gia hạn được. Không trỏ tới mã nguồn hay pool PHP
+# của site.
+
+server {
+    # Không có default_server: request không khớp tên nào rơi vào tpan-default.
+    listen 80;
+    listen [::]:80;
+    server_name example.com;
+
+    access_log /var/log/tpan/sites/example.com/access.log;
+    error_log /var/log/tpan/sites/example.com/error.log;
+
+    # Gia hạn chứng chỉ đi qua cổng 80 (certbot --webroot).
+    # ^~: khớp tiền tố này thì Nginx không xét location nào khác bên dưới.
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/tpan/acme;
+    }
+
+    # error_page không có "=" thì giữ nguyên mã 403, chỉ thay thân bằng trang tạm khoá.
+    error_page 403 /tpan-suspended.html;
+
+    # internal: chỉ error_page tới được; gọi thẳng từ ngoài thì 404.
+    location = /tpan-suspended.html {
+        internal;
+        root /var/lib/tpan/suspended;
+    }
+
+    location / {
+        return 403;
+    }
+}
+
+server {
+    # "ssl" ở dòng listen là cách bật TLS của Nginx 1.24 (Ubuntu 24.04).
+    # Không có default_server: request lạ vào 443 rơi vào tpan-default-ssl.
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name example.com;
+
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    access_log /var/log/tpan/sites/example.com/access.log;
+    error_log /var/log/tpan/sites/example.com/error.log;
+
+    error_page 403 /tpan-suspended.html;
+
+    location = /tpan-suspended.html {
+        internal;
+        root /var/lib/tpan/suspended;
+    }
+
+    location / {
+        return 403;
+    }
+}

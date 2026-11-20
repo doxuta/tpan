@@ -211,6 +211,14 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 			"site "+d.String()+" đang ở trạng thái "+string(st.Status)+"; chỉ đổi bản PHP cho site đang chạy (active)",
 			"site "+d.String()+" is "+string(st.Status)+"; the PHP version can only be changed for an active site"))
 	}
+	// M13: site tạm khoá không có pool (ghi pool bản mới là mở khoá lén); DB
+	// của site đang khoá thì bước kiểm site trả 200 chắc chắn hỏng.
+	if err := refuseSuspendedPool(st); err != nil {
+		return nil, err
+	}
+	if err := refuseDBSuspended(st); err != nil {
+		return nil, err
+	}
 	cfg, err := sites.stack(ctx)
 	if err != nil {
 		return nil, err

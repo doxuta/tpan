@@ -16,6 +16,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
@@ -79,12 +80,23 @@ func (c *Cron) Run(ctx context.Context, d validate.Domain) (CronRun, error) {
 	}
 	start := c.now()
 	run := CronRun{Domain: d.String(), Started: start.UTC()}
-	if st.Status != site.Active {
+	switch {
+	case st.Status != site.Active:
 		// Site trong thùng rác: user Linux của nó bị khoá bằng hạn tài khoản,
 		// nhưng root gọi runuser bỏ qua hạn đó, nên phải chặn ở đây.
 		run.Status = CronSkipped
 		run.Output = "site " + d.String() + " is not active (" + string(st.Status) + "), skipped"
-	} else {
+	case st.Suspended != account.NotSuspended:
+		// M13: file cron đã đổi tên .suspended nên cron không gọi tới đây;
+		// chặn thêm cho lần gọi tay hay file cron sót (khoá giữa chừng).
+		run.Status = CronSkipped
+		run.Output = "site " + d.String() + " is suspended, skipped"
+	case st.DBSuspended != account.NotSuspended:
+		// DB đang khoá thì wp cron chắc chắn lỗi kết nối DB: ghi "skipped"
+		// thay vì một dòng "fail" mỗi 5 phút cho điều đã biết.
+		run.Status = CronSkipped
+		run.Output = "site " + d.String() + " database is suspended, skipped"
+	default:
 		rctx, cancel := context.WithTimeout(ctx, cronTimeout)
 		res, err := c.Sites.Sys.Run(rctx, cronCmd(st.Layout()))
 		cancel()

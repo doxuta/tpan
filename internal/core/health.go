@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
@@ -55,15 +56,66 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if cfg.Web == "" || cfg.PHPVersion == "" {
 		return nil, nil
 	}
-	php := st.PHPVersion
-	if php == "" {
-		php = cfg.PHPVersion
-	}
 	others, err := s.others(ctx, d)
 	if err != nil {
 		return nil, err
 	}
-	return append(siteEdgeChecks(st.Layout(), st.SSL), siteChecks(cfg.Web, php, st.Layout(), others, st.SSL)...), nil
+	return append(siteEdgeChecks(st.Layout(), st.SSL), siteStateChecks(st, cfg, others, false)...), nil
+}
+
+// siteStateChecks là bộ phép kiểm của site theo trạng thái tạm khoá (M13, mục
+// 6.12). Dùng cho health (Sites.Checks) và cho kiểm chứng của mở khoá site, để
+// hai chỗ cùng một định nghĩa:
+//
+//   - Site tạm khoá: TLSCert (khi có SSL), VhostEnabled, một kết quả "tạm
+//     khoá" (checks.SuspendedStage) cho mỗi chặng PHP, WordPress, DB, rồi
+//     http.suspended (403 đúng trang tạm khoá) ở chặng đầu cuối. Không có phép
+//     kiểm cô lập: cô lập hai chiều với site này vẫn nằm trong bộ của mỗi site
+//     còn lại (others gồm cả site đang khoá).
+//   - DB của site đang khoá (site không khoá): như site thường, trừ chặng DB
+//     và đầu cuối là "tạm khoá": WordPress báo lỗi kết nối DB là điều đã biết,
+//     không phải sự cố.
+//   - Còn lại: siteChecks như trước M13.
+//
+// verify=true (kiểm chứng sau thao tác): bỏ các kết quả "tạm khoá", vì chúng
+// không kiểm gì. Các chặng DNS, TLS khi chưa có SSL (siteEdgeChecks) chỉ health
+// thêm, như trước.
+func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify bool) []checks.Check {
+	web, php, l := string(cfg.Web), sitePHP(st, cfg), st.Layout()
+	var cs []checks.Check
+	hold := func(stage checks.Stage, db bool) {
+		if !verify {
+			cs = append(cs, checks.SuspendedStage(stage, l, db))
+		}
+	}
+	switch {
+	case st.Suspended != account.NotSuspended:
+		if st.SSL {
+			cs = append(cs, checks.TLSCert(l))
+		}
+		cs = append(cs, checks.VhostEnabled(web, l))
+		hold(checks.StagePHP, false)
+		hold(checks.StageWordPress, false)
+		hold(checks.StageDB, false)
+		return append(cs, checks.HTTPSuspended(l, st.SSL))
+	case st.DBSuspended != account.NotSuspended:
+		if st.SSL {
+			cs = append(cs, checks.TLSCert(l))
+		}
+		cs = append(cs,
+			checks.VhostEnabled(web, l),
+			checks.PoolSocket(l, php),
+			checks.Heavy(checks.WPChecksums(l)),
+			checks.WPConfigPerm(l),
+		)
+		hold(checks.StageDB, true)
+		hold(checks.StageEndToEnd, true)
+		for _, o := range others {
+			cs = append(cs, checks.Isolated(l, o), checks.Isolated(o, l))
+		}
+		return cs
+	}
+	return siteChecks(cfg.Web, php, l, others, st.SSL)
 }
 
 // siteEdgeChecks là hai chặng đầu của đường đi request mà chỉ health xét: DNS,
