@@ -1,0 +1,16 @@
+true: mã 0
+   LoadState=not-found Result=success ExecMainCode=0 ExecMainStatus=0
+exit 3: mã 3
+   LoadState=loaded Result=exit-code ExecMainCode=1 ExecMainStatus=3
+tự chết vì SIGTERM: mã 255
+   LoadState=loaded Result=signal ExecMainCode=2 ExecMainStatus=15
+tự chết vì SIGPIPE: mã 0
+   LoadState=not-found Result=success ExecMainCode=0 ExecMainStatus=0
+TimeoutStartSec=2 với sleep 30: mã 1 sau 2.331214236 giây (sleep còn chạy: 0)
+   LoadState=loaded Result=timeout ExecMainCode=2 ExecMainStatus=15
+vượt RAM: mã 1
+   LoadState=loaded Result=oom-kill ExecMainCode=2 ExecMainStatus=9
+stdin + stdout + stderr với oneshot: vao / loi
+wp trong lồng với oneshot: http://a.example.com
+thời gian true: .029265560 giây
+sau khi dọn: A HTTP 200

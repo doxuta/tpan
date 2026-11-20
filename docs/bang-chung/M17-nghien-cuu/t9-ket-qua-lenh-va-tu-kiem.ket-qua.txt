@@ -1,0 +1,50 @@
+A: HTTP 200
+
+## a. Kết quả của lệnh (không --collect)
+true: mã 0
+   unit tpan-cage-a_example_com_7653e4-run-ok.service: LoadState=not-found ActiveState=inactive Result=success ExecMainCode=0 ExecMainStatus=0
+exit 3: mã 3
+   unit tpan-cage-a_example_com_7653e4-run-e3.service: LoadState=loaded ActiveState=failed Result=exit-code ExecMainCode=1 ExecMainStatus=3
+vượt RAM: mã 1
+   unit tpan-cage-a_example_com_7653e4-run-oom.service: LoadState=loaded ActiveState=failed Result=oom-kill ExecMainCode=2 ExecMainStatus=9
+quá giờ: mã 1
+   unit tpan-cage-a_example_com_7653e4-run-to.service: LoadState=loaded ActiveState=failed Result=timeout ExecMainCode=2 ExecMainStatus=15
+tự chết vì SIGTERM: mã 0
+   unit tpan-cage-a_example_com_7653e4-run-sig.service: LoadState=not-found ActiveState=inactive Result=success ExecMainCode=0 ExecMainStatus=0
+Failed to find executable khong-co-lenh-nay: No such file or directory
+không có chương trình: mã 1
+   unit tpan-cage-a_example_com_7653e4-run-nf.service: LoadState=not-found ActiveState=inactive Result=success ExecMainCode=0 ExecMainStatus=0
+unit hỏng còn lại: 3
+sau reset-failed 'tpan-cage-a_example_com_7653e4-run-*': 0 unit
+dịch vụ PHP không bị reset nhầm: active
+
+## b. Tự kiểm hàng rào bằng lệnh argv
+  id -un                                                     -> mã 0 [tp_a_example_com_7653e4 ]
+  ls -A /var/www                                             -> mã 0 [a.example.com ]
+  ls -A /tmp                                                 -> mã 0 [ ]
+  ls -A /run                                                 -> mã 0 [mysqld systemd ]
+  find /proc -maxdepth 1 -type d -regex /proc/[0-9]+ ! -user tp_a_example_com_7653e4 -> mã 0 [ ]
+  getent passwd                                              -> mã 0 [root:x:0:0:root:/root:/bin/bash www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin tp_a_example_com_7653e4:x]
+  test -w /etc                                               -> mã 1 [ ]
+  test -w /usr                                               -> mã 1 [ ]
+  test -w /var/www/a.example.com/public                      -> mã 0 [ ]
+  test -e /etc/nginx/nginx.conf                              -> mã 1 [ ]
+  ls /etc/php/8.3/fpm/pool.d                                 -> mã 2 [/usr/bin/ls: cannot open directory '/etc/php/8.3/fpm/pool.d': Permission denied ]
+  ls /etc/php/8.4/fpm/pool.d                                 -> mã 2 [/usr/bin/ls: cannot open directory '/etc/php/8.4/fpm/pool.d': Permission denied ]
+  ls /etc/php/8.3/fpm/conf.d                                 -> mã 0 [10-mysqlnd.ini 10-opcache.ini 10-pdo.ini 15-xml.ini 20-calendar.ini 20-ctype.ini 20-curl.ini 20-dom.ini 20-exi]
+  ls /var/log/tpan/sites                                     -> mã 0 [a.example.com ]
+  ls /sys/fs/cgroup                                          -> mã 2 [/usr/bin/ls: cannot open directory '/sys/fs/cgroup': Permission denied ]
+  cat /proc/1/cmdline                                        -> mã 1 [/usr/bin/cat: /proc/1/cmdline: No such file or directory ]
+  ps -eo user=                                               -> mã 0 [tp_a_example_com_7653e4 tp_a_example_com_7653e4 tp_a_example_com_7653e4 ]
+  getent group www-data trong lồng: www-data:x:33:
+
+## c. systemctl try-restart, socket đang tắt thì không bật lên
+Stopping 'tpan-cage-a_example_com_7653e4-php.service', but its triggering units are still active:
+tpan-cage-a_example_com_7653e4-php.socket
+try-restart khi dịch vụ đang ngủ: dịch vụ inactive (vẫn ngủ là đúng)
+try-restart khi đang chạy: MainPID 10590 -> 10597, A: HTTP 200
+phiên bản systemd: 255 | cgroup v2: co
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200
