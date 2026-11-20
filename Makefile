@@ -55,7 +55,14 @@ lint: ## go vet + golangci-lint
 	go vet ./...
 	golangci-lint run
 
-check: lint test ## Chạy hết kiểm tra trước khi commit
+# Test logic thuần của giao diện: các file *.test.ts cạnh mã, chạy thẳng bằng
+# Node (từ bản 22.18 Node tự bỏ phần kiểu của TypeScript, không cần build). File
+# được test chỉ import kiểu (`import type`), nên không cần trình đóng gói.
+WEB_TESTS ?= web/src/**/*.test.ts
+test-web: ## Chạy test logic thuần của giao diện (node --test)
+	node --test "$(WEB_TESTS)"
+
+check: lint test test-web ## Chạy hết kiểm tra trước khi commit
 	cd web && pnpm typecheck
 	bash scripts/install_test.sh
 
