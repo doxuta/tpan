@@ -138,7 +138,9 @@ type SelfRollbackPreview struct {
 //   - curl <base>/VERSION (tuỳ có; lỗi nào cũng coi như không có, Latest rỗng).
 //     Nội dung chỉ nhận một dòng khớp ^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$, vì
 //     nó đến từ mạng và được in lên màn hình; không khớp thì coi như không có.
-// rồi đọc TpanBin tính sha256 để điền UpToDate. Phần gọi curl và đọc
+// rồi đọc TpanBin tính sha256 để điền UpToDate (máy không có file ở TpanBin,
+// như máy giả của --demo, thì chỉ so tên bản). Khi lỗi, SelfCheck trả về vẫn
+// có Current, URL, Asset để màn nói được "đang chạy bản nào, hỏi ở đâu". Phần gọi curl và đọc
 // SHA256SUMS dùng lại mã của steps/self.go (checkSelfBase, selfCurl,
 // parseSums) qua một hàm công khai mới ở đó:
 //
@@ -184,11 +186,14 @@ type SelfRollbackPreview struct {
 //     systemd-run ... /usr/local/bin/tpan internal self-update --rollback
 //     --collect để lượt lỗi không nằm lại ở trạng thái failed và chặn lượt sau
 //     (M15-thu-co-che.log, phần 3). systemd-run trả về ngay khi đơn vị đã khởi.
+//     Chữ mô tả là một trong hai hằng (cập nhật, quay về) để journal gọi đúng
+//     tên lượt chạy.
 //  6. systemd-run lỗi: stderr có "already loaded" thì từ chối CodeSelfBusy
 //     (hai người bấm cùng lúc), còn lại CodeSelfStart kèm stderr. Cả hai
 //     trường hợp ghi lại SettingSelfLast như trước bước 4 (xoá dấu "running"
 //     vừa ghi: trả giá trị cũ, hoặc Status SelfFailed kèm Error nếu trước đó
-//     chưa có gì).
+//     chưa có gì). Chỉ ghi lại khi settings còn đúng là dấu vừa ghi: lượt đang
+//     chạy của người kia có thể vừa ghi kết quả của nó vào đó.
 //
 //	func (s *SelfUpdate) Start(ctx context.Context, action, actor, ip string, now time.Time) (SelfRun, error)
 //
@@ -206,8 +211,11 @@ type SelfRollbackPreview struct {
 //     SelfFailed, Error là Report.Job.Error (rỗng thì err.Error()).
 //  6. Finished = now(); ghi SettingSelfLast bằng context.WithoutCancel(ctx):
 //     kết quả phải được ghi kể cả khi lượt chạy bị ngắt.
-// Trả SelfRun đã ghi và Report (cho CLI in). Lỗi trả về chỉ khi không ghi
-// được kết quả hoặc không mở được gì cả; job hỏng không phải lỗi của Run.
+// Trả SelfRun đã ghi và Report (cho CLI in). Job hỏng không phải lỗi của Run
+// (xem SelfRun.Status). Lỗi trả về có ba trường hợp: chưa làm được gì (action
+// lạ, không đọc được settings; SelfRun rỗng); Plan bị từ chối lúc dựng (kết
+// quả failed ĐÃ ghi, và chính *RefusedError được trả kèm để người gọi lấy mã
+// từ chối cho audit); job đã chạy nhưng không ghi được kết quả.
 // Audit do người gọi (cmd/tpan) ghi: Action "self.update" | "self.rollback",
 // Target "<From> -> <To>", Result là Status ("ok", "same") hoặc trạng thái
 // job khi hỏng, IP và Actor lấy từ SelfRun.
