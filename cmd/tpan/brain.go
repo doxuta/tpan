@@ -45,9 +45,12 @@ var (
 // và LC_ALL=C), nên phải chuyển tay đúng thứ cần: HOME để claude tìm đăng
 // nhập và ssh tìm khoá, PATH để tìm được claude (thường ở ~/.local/bin hay
 // thư mục của Homebrew), USER và LOGNAME để tìm đúng mục đăng nhập trong
-// Keychain của macOS, TMPDIR vì macOS đặt thư mục tạm riêng cho từng user.
+// Keychain của macOS, TMPDIR vì macOS đặt thư mục tạm riêng cho từng user,
+// SSH_AUTH_SOCK để ssh (của tpan brain và của claude khi gọi tpan mcp) dùng
+// được ssh-agent: khoá có passphrase chỉ nằm trong agent, thiếu biến này thì
+// ssh với BatchMode=yes báo "Permission denied (publickey)".
 // Không chuyển gì khác: claude không cần biết thêm về máy của bạn.
-var brainEnvKeys = []string{"HOME", "PATH", "USER", "LOGNAME", "TMPDIR"}
+var brainEnvKeys = []string{"HOME", "PATH", "USER", "LOGNAME", "TMPDIR", "SSH_AUTH_SOCK"}
 
 func brainEnv() []string {
 	var env []string

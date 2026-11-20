@@ -139,6 +139,15 @@ func TestBrainChuaDangNhap(t *testing.T) {
 	}
 }
 
+// Khoá SSH có passphrase chỉ dùng được qua ssh-agent: thiếu SSH_AUTH_SOCK thì
+// ssh của tpan brain bị từ chối dù ssh gõ tay vào được.
+func TestBrainEnvSSHAgent(t *testing.T) {
+	t.Setenv("SSH_AUTH_SOCK", "/tmp/agent.sock")
+	if !slices.Contains(brainEnv(), "SSH_AUTH_SOCK=/tmp/agent.sock") {
+		t.Errorf("brainEnv thiếu SSH_AUTH_SOCK: %v", brainEnv())
+	}
+}
+
 func TestSSHArgs(t *testing.T) {
 	got := strings.Join(sshArgs([]string{"-oPort=2222"}, "ubuntu@example.com", "sudo", "-n", "tpan", "brain-link"), " ")
 	want := "-oPort=2222 -o BatchMode=yes ubuntu@example.com sudo -n tpan brain-link"
