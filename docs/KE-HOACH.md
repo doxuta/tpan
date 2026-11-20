@@ -255,9 +255,14 @@ Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và kh�
 
 /var/www/<domain>/public/           mã nguồn site (document root)
 /var/www/<domain>/tmp/              upload tạm, session PHP của riêng site
-/var/log/tpan/sites/<domain>/       access.log, error.log, php-error.log (thư mục thuộc root:root, 0755,
-                                    để logrotate không phải đổi tên file trong thư mục do user của site
-                                    kiểm soát; php-error.log thuộc user của site để PHP ghi được)
+/var/log/tpan/sites/<domain>/       access.log, error.log, php-error.log (thư mục thuộc root:<nhóm của site>,
+                                    0750: chủ là root để logrotate không phải đổi tên file trong thư mục do
+                                    user của site kiểm soát, nhóm của site để site khác không đọc được log
+                                    (M14, mục 6.13); access.log và error.log là root:<nhóm của site> 0640;
+                                    php-error.log thuộc user của site để PHP ghi được)
+
+/etc/php/<ver>/fpm/conf.d/99-tpan.ini                    OPcache kiểm quyền file, khoá API (M14)
+/etc/systemd/system/php<ver>-fpm.service.d/tpan.conf     ProtectProc=invisible (M14)
 
 /etc/nginx/sites-available/tpan-<domain>.conf    (+ symlink ở sites-enabled)
 /etc/apache2/sites-available/tpan-<domain>.conf  (+ symlink ở sites-enabled)
@@ -526,6 +531,7 @@ Trang chỉ đọc là chính, mỗi mục một dòng trạng thái kèm lệnh
 - fail2ban cho sshd: nút cài và bật.
 - SSH: root có đăng nhập được không, còn cho mật khẩu không. **Chỉ cảnh báo**, không tự sửa, vì sửa sai là mất đường vào máy.
 - Có swap không, có gói bảo mật chờ cập nhật không, cổng panel có mở ra internet không.
+- (M14) Khối "Cô lập giữa các site": ma trận site × site, các phép kiểm cấp máy của mục 6.13, chế độ `.htaccess` của từng site Apache, và nút "Áp bản vá cô lập" (`tpan security harden`).
 
 ### 6.9 Cơ sở dữ liệu
 
@@ -663,6 +669,67 @@ Không có ô gõ SQL và không có phpMyAdmin (mục 1).
 **CLI.** `tpan user add|list|info|edit|passwd|suspend|unsuspend|rm`, `tpan package add|list|edit|rm`, `tpan site add --owner`, `tpan site suspend|unsuspend`, `tpan db add|edit|suspend|unsuspend|rm`. Mọi lệnh đổi máy có `--dry-run` và `--yes`. `tpan apply -f` nhận thêm `owner` trong file.
 
 **Audit.** Thêm cột tên user vào `audit` và `jobs`; màn Lịch sử có cột "Ai làm" và lọc theo user (admin).
+
+### 6.13 Cô lập sâu giữa các site và định tuyến có bằng chứng (M14)
+
+Thêm ngày 20/11/2026 sau buổi training, từ hai câu hỏi: vì sao nhiều website trên cùng một panel mà request không đi nhầm thư mục mã nguồn, và panel chống thế nào khi một site bị chiếm rồi lấn sang site khác trên cùng máy (local attack). Phần nghiên cứu (đã thử gì trên máy ảo, kết quả, cách chặn nào đã thử) nằm ở `docs/thay-doi/M14-nghien-cuu.md`; script và output gốc ở `docs/bang-chung/M14-nghien-cuu/`. Mục này là đặc tả rút ra từ đó.
+
+Quy ước: "A" là site đã bị chiếm (kẻ tấn công chạy được PHP dưới user của A), "B" là nạn nhân. Chín lỗ đã chứng minh trên TPAN v0.1.2:
+
+| # | Đường tấn công | Stack | Trước M14 | Chặn bằng |
+|---|---|---|---|---|
+| L1 | OPcache dùng chung giữa các pool: PHP của A `include` `wp-config.php` của B lúc file đang nằm trong cache | cả hai | lấy được hằng `DB_PASSWORD` của B, dù `open_basedir` và quyền file đều cấm | `opcache.validate_permission=1` |
+| L2 | `opcache_get_status()`, `opcache_reset()` gọi từ A | cả hai | liệt kê được đường dẫn file của B, xoá được cache của mọi site | `opcache.restrict_api` |
+| L3 | `.htaccess` của A: `SetEnv PHP_ADMIN_VALUE "open_basedir=/"` | Apache | `open_basedir` của pool A thành `/` | vhost gỡ `PHP_VALUE`, `PHP_ADMIN_VALUE` |
+| L4 | `.htaccess` của A: `SetHandler` sang socket FPM của B kèm `ProxyFCGISetEnvIf` | Apache | mã do A viết chạy dưới user của B | danh sách chỉ thị cho phép trong `.htaccess` |
+| L5 | symlink trong thư mục của A trỏ sang file của B, gọi qua nginx | nginx | file `640` của B bị trả về, kể cả mã nguồn PHP dưới tên `.txt` | `disable_symlinks if_not_owner` |
+| L6 | đọc `access.log`, `error.log` của site khác | cả hai | đọc được (IP khách, URL kèm tham số) | thư mục log theo nhóm của site |
+| L7 | PHP gọi lệnh shell rồi `ps` | cả hai | thấy tiến trình và dòng lệnh của mọi user | `ProtectProc=invisible` |
+| L8 | ai đó thêm tay một vhost trùng `server_name` của site | nginx | tên miền trả trang lạ, `nginx -t` vẫn mã 0, health không chỉ ra nguyên nhân | phép kiểm `web.server_name.unique` |
+| L9 | `.htaccess` của A: `Options FollowSymLinks` rồi symlink sang file của B | Apache | file `640` của B bị trả về (tìm ra lúc lập hợp đồng M14, `t9` trong thư mục bằng chứng) | `Options` trong `.htaccess` giới hạn theo từng tuỳ chọn |
+
+Nguyên tắc: mỗi mục dưới đây đóng một dòng của bảng, và e2e chạy lại đúng phép thử đó trên máy ảo: trước bản vá thì lộ, sau thì không.
+
+**OPcache (L1, L2).** Mỗi bản PHP đang cài có một file do TPAN quản: `/etc/php/<bản>/fpm/conf.d/99-tpan.ini`, nội dung `opcache.validate_permission=1` và `opcache.restrict_api=/usr/local/lib/tpan/opcache-api/` (đường dẫn không tồn tại, không site nào nằm dưới nó). Dòng đầu là chú thích `; Do tpan quản lý…` như file pool. Ghi lúc cài stack, lúc thêm một bản PHP, và trong Plan "Áp bản vá cô lập". Sau khi ghi: `php-fpm<bản> -t` rồi reload dịch vụ (reload là đủ). Health, mỗi bản PHP một phép `php.opcache:<bản>`: file còn đúng nội dung và `php-fpm<bản> -i` cho `opcache.validate_permission => On`. Sai là **lỗi**, có sửa tự động.
+
+**nginx: symlink (L5).** Mọi vhost nginx của site có `disable_symlinks if_not_owner from=$document_root;` ở cấp `server` (bản cổng 80 và khối cổng 443). Symlink của site trỏ vào file của chính nó vẫn chạy. Vhost mặc định và bản tạm khoá (không có `root` ở cấp `server`) không đổi.
+
+**Apache: `.htaccess` (L3, L4, L9).** Mọi vhost Apache của site có, ở cấp `VirtualHost`:
+
+```
+ProxyFCGISetEnvIf "true" !PHP_VALUE
+ProxyFCGISetEnvIf "true" !PHP_ADMIN_VALUE
+```
+
+Khối `<Directory "<public>">` theo **chế độ `.htaccess`** của site (cột `sites.htaccess`):
+
+- `an-toan` (mặc định cho site mới): `AllowOverride Options=Indexes,MultiViews,SymLinksIfOwnerMatch` và một dòng `AllowOverrideList` với đúng 55 tên chọn tay (hằng `htaccess.Allowed`): `<Files <FilesMatch <IfModule <If <Else <ElseIf <Limit <LimitExcept <RequireAll <RequireAny <RequireNone RewriteEngine RewriteRule RewriteCond RewriteBase RewriteOptions Require Order Allow Deny Satisfy AuthType AuthName AuthUserFile AuthGroupFile AuthBasicProvider Header RequestHeader ExpiresActive ExpiresByType ExpiresDefault FileETag AddType AddEncoding AddCharset AddDefaultCharset AddOutputFilterByType AddOutputFilter SetOutputFilter SetEnv SetEnvIf SetEnvIfNoCase UnsetEnv BrowserMatch BrowserMatchNoCase DirectoryIndex ErrorDocument Redirect RedirectMatch RedirectPermanent RedirectTemp LimitRequestBody ServerSignature AddLanguage DefaultLanguage`. Danh sách không có `SetHandler`, `AddHandler`, `RemoveHandler`, `Action`, `ProxyFCGISetEnvIf`, `ProxyFCGIBackendType` (L4) và không có `Options` (L9: chỉ thị `Options` đi qua `AllowOverride Options=...`, nên `.htaccess` vẫn viết được `Options -Indexes` nhưng `Options FollowSymLinks` thì Apache báo 500). Có test đếm số tên ≤ 64 và test "không chứa" các tên cấm. Apache chỉ nhận tối đa 64 tên trên một dòng `AllowOverrideList`, phần thừa bị bỏ lặng lẽ và dòng sau thay dòng trước, nên danh sách không sinh tự động.
+- `tat`: `AllowOverride None`, không có `AllowOverrideList`, permalink bằng `FallbackResource /index.php` trong vhost. TPAN không ghi `.htaccess` cho site ở chế độ này.
+- `day-du`: `AllowOverride All` như trước M14. Chỉ admin đặt được. Health của site luôn có một **cảnh báo** nói rõ: site này ghi được cấu hình Apache và, nếu bị chiếm, có thể chạy mã dưới user của site khác.
+
+Đổi chế độ: `tpan site set <domain> --htaccess an-toan|tat|day-du` và trên trang site (chỉ hiện khi stack là Apache), là một Plan có xem trước. Trước khi chuyển một site sang `an-toan`, TPAN quét mọi `.htaccess` dưới `public` (dưới user của site, bỏ `wp-content/uploads` vì vhost đã đặt `AllowOverride None` ở đó) và liệt kê chỉ thị không nằm trong danh sách. Có thì Plan từ chối và in từng dòng (file, số dòng, chỉ thị) kèm hai lối ra: sửa `.htaccess`, hoặc để site ở `day-du` và nhận cảnh báo. Lý do: một chỉ thị ngoài danh sách làm cả site báo 500. Health của site Apache ở chế độ `an-toan` quét như trên (`web.htaccess:<domain>`); có chỉ thị ngoài danh sách là **lỗi** với đúng dòng gây lỗi (thường là plugin vừa ghi thêm).
+
+Site có từ trước M14 mang chế độ `day-du` (migration 1400 nói đúng thực tế trên đĩa) cho tới khi Plan "Áp bản vá cô lập" chuyển nó.
+
+**Log (L6).** Thư mục `/var/log/tpan/sites/<domain>`: `root:<nhóm của site>`, `0750`. `access.log`, `error.log`: `root:<nhóm của site>`, `0640`, tạo sẵn lúc tạo site để web server không tự tạo với `0644`. `php-error.log` giữ nguyên. Site đọc được log của chính nó; trình xem log của panel đọc bằng root nên không đổi. Vì worker nginx (`www-data`) không còn đi qua được thư mục log, postrotate của logrotate nhánh nginx gửi `HUP` thay cho `USR1`: tiến trình chính (root) mở lại file rồi sinh worker mới (đo ở `t8`: với `USR1` log mới vẫn rơi vào `access.log.1`). Health: `log.perm:<domain>`, sai là **lỗi**, có sửa tự động.
+
+**/proc (L7).** Mỗi bản PHP có drop-in `/etc/systemd/system/php<bản>-fpm.service.d/tpan.conf` với `ProtectProc=invisible`. Ghi xong: `daemon-reload` rồi restart dịch vụ (đổi không gian mount cần restart). Có trong Plan cài stack, thêm bản PHP và "Áp bản vá cô lập". Health: `php.protectproc:<bản>` đọc `systemctl show php<bản>-fpm -p ProtectProc`; khác `invisible` là **cảnh báo** (quyền file vẫn giữ), có sửa tự động. Không gắn lại `/proc` của cả máy.
+
+**Phép kiểm cô lập mở rộng.** `checks.Isolated(from, to)` trước đây chỉ có `test -r wp-config.php`. Giờ có năm phép thử dưới user của `from`, mỗi phép một dòng bằng chứng: không đọc được `wp-config.php` của `to`, không vào được thư mục của `to` (`test -x`), không ghi được vào `public` của `to` (`test -w`), không đọc được `access.log` của `to`, không ghi được vào socket FPM của `to`. Một phép lọt là **lỗi**. Luật cũ giữ nguyên: mã 1 chỉ tin khi stderr rỗng, và đích phải tồn tại thì "bị từ chối" mới có nghĩa. Phép kiểm `web.hardened:<domain>` nói vhost của site có đủ các dòng chặn ở trên không (phép kiểm lệch chỉ so file với bản TPAN đã ghi, nên vhost do bản TPAN cũ ghi vẫn "không lệch").
+
+Màn Bảo mật có khối "Cô lập giữa các site": ma trận site × site (đạt, lỗi, chưa rõ), bấm một ô thì thấy lệnh và output. Dưới ma trận là các phép kiểm cấp máy (`php.opcache`, `php.protectproc`, hai phép định tuyến dưới đây) và chế độ `.htaccess` của từng site Apache.
+
+**Định tuyến (L8).**
+
+- Phép kiểm `web.server_name.unique` (bộ của stack): đọc `nginx -T` hoặc `apache2ctl -S`, tìm mọi tên miền của site TPAN xuất hiện ở hơn một `server`/`VirtualHost` trên cùng cổng, hoặc trong file không phải vhost của chính site đó. Có là **lỗi**, nêu hai file và số dòng; sửa tay (TPAN không xoá file nó không ghi).
+- Phép kiểm `web.default.rejects`: gọi vào `127.0.0.1:80` với `Host: tpan-<ngẫu nhiên>.invalid`. Đạt khi nginx đóng kết nối không trả gì, hoặc Apache trả 403. Có site bật SSL thì thêm cổng 443: bắt tay TLS với tên lạ phải bị từ chối (nginx) hoặc request bị 403 (Apache).
+- `tpan route explain <domain>` và `GET /api/v1/sites/{domain}/route`: in chuỗi "tên miền → vhost (file, dòng `server_name`) → `root` → socket → pool → user → `open_basedir` → gọi thật", mỗi mắt xích kèm lệnh đã chạy và output, lần từ cấu hình đang chạy chứ không từ điều TPAN nghĩ nó đã ghi. Trang site có nút "Request tới site này đi đường nào" mở đúng kết quả đó. Quyền: chủ của site hoặc admin.
+
+**Site đã có và nâng cấp từ bản cũ.** Sau khi cập nhật lên bản có M14, `tpan health` báo các site cũ thiếu dòng chặn trong vhost (`web.hardened`), sai quyền log (`log.perm`), và máy thiếu file ini, drop-in (`php.opcache`, `php.protectproc`). Một Plan gộp **"Áp bản vá cô lập"** (`tpan security harden`, nút trên màn Bảo mật) làm hết: ghi file ini và drop-in cho mọi bản PHP, ghi lại file logrotate, đặt quyền log, quét `.htaccess` của từng site (sạch thì chuyển sang `an-toan`; vướng thì giữ `day-du` và báo tên site kèm dòng vướng), ghi lại vhost của mọi site, kiểm cú pháp, reload một lần, chạy lại phép kiểm. Hoàn tác được như mọi Plan. Site tạo sau M14 có sẵn mọi thứ.
+
+**`tpan isolation probe`** (làm sau cùng, cắt được nếu thiếu thời gian): lệnh cho admin, `tpan isolation probe --from <site A> --to <site B>`. Đặt các file thử tên ngẫu nhiên vào một thư mục con tên ngẫu nhiên của A, chạy lại các phép thử L1, L2, L5, L7 (và L3, L4, L9 nếu stack là Apache) theo kiểu không phá (chỉ in CÓ/KHÔNG và tên user, không in bí mật), xoá file thử, in bảng. Là một Plan có xem trước, ghi `audit`. Không chạy trong health định kỳ. Mục đích: cho người xem thấy từng đường tấn công bị chặn trên chính máy của họ.
+
+**Vì sao nginx là stack mặc định** (điểm rút ra từ nghiên cứu): trên stack nginx không có file cấu hình web server nào do site ghi được, nên L3, L4, L9 không tồn tại. Apache có `.htaccess`, và mọi thứ cho `.htaccess` làm được là thứ một site bị chiếm làm được.
 
 ## 7. Thao tác hàng loạt
 
@@ -943,6 +1010,9 @@ tpan php list | install <bản> | use <domain> <bản>
 tpan update [--check]              gói của stack: xem có gì mới, hoặc cập nhật
 tpan self-update                   cập nhật chính tpan
 tpan health [<domain>] [--fix]
+tpan security status | ufw | fail2ban | harden          (harden: áp bản vá cô lập của M14, mục 6.13)
+tpan site set <domain> --htaccess an-toan|tat|day-du    (M14, chỉ có tác dụng trên Apache)
+tpan route explain <domain>                             (M14: request tới tên miền này đi đường nào)
 tpan plan list | show <id> | approve <id> | reject <id>
 tpan mcp [--session ID]            chạy MCP server qua stdio (gọi qua SSH từ máy cá nhân)
 tpan brain <máy> [--model M]       chạy trên máy cá nhân: nối Claude Code vào panel của <máy>
@@ -1033,6 +1103,7 @@ Kịch bản `make e2e` (bắt đầu bằng `scripts/vm.sh reset`):
 13. Chạy `tpan brain` với một lệnh `claude` giả: câu hỏi gửi từ API của panel đi hết một vòng, Plan đề xuất nằm ở trạng thái chờ duyệt, máy **không** đổi gì. Cho `claude` giả khai thêm công cụ `Bash` ở sự kiện `init`: phiên bị từ chối.
 14. Cài thêm một bản PHP, chuyển site 1 sang bản đó trong lúc một vòng lặp `curl` gọi site liên tục → không request nào lỗi; site 2 vẫn ở bản cũ.
 15. `tpan update` trên máy ảo có gói đang chờ → sau cập nhật toàn bộ health vẫn đạt.
+17. (M14) Hai site A và B, trên nginx rồi trên Apache: chạy lại chín phép thử L1 đến L9 của mục 6.13 với A là site bị chiếm → cả chín "bị chặn"; các phép "đã thử, không lộ" vẫn đạt; hai site vẫn 200 và permalink chạy. Rồi từ máy sạch: cài v0.1.2, tạo hai site, cập nhật lên bản mới, `tpan security harden`, chạy lại bộ phép thử.
 
 Thứ tự bắt buộc: unit test xanh → e2e xanh trên máy ảo → mới chạy trên VPS. **Không chạy thử lần đầu trên VPS.**
 
@@ -1056,10 +1127,17 @@ Mỗi mốc kết thúc bằng ba thứ: test xanh, bằng chứng chạy trên 
 | **M11** ✅ | `install.sh` (nhận file chạy có sẵn trên máy, hoặc tải từ bản phát hành), gói phát hành tạo tại máy bằng `make release` (đăng lên GitHub là việc của chủ dự án khi mở repo, mục 18), README có ảnh, rà hai ngôn ngữ | cài lên máy ảo sạch bằng một lệnh rồi tạo được site. Repo đang để riêng tư nên lệnh tải thẳng từ GitHub chỉ chạy được sau khi repo mở công khai; trước đó chép file chạy sang máy đích rồi chạy `install.sh` tại chỗ |
 | **M12** ✅ | Phiên bản và cập nhật: nhiều bản PHP theo site, chọn nguồn nginx và dòng MariaDB lúc cài, màn Cập nhật, bản vá bảo mật tự động, nâng MariaDB, `tpan self-update` | e2e bước 14 và 15; nâng MariaDB trên một bản sao của máy ảo, dữ liệu của các site còn nguyên |
 | **M13** | Nhiều người dùng (mục 6.12): bảng `users`, `packages`, `databases`; đăng nhập bằng tên; phân quyền mặc định là cấm ở mọi route; tạm khoá user, site, DB; DB rời; sửa charset; màn Người dùng, Gói, xem như user; CLI `tpan user`, `tpan package`, `site suspend`, `db add/edit/suspend/rm`; giao diện lọc theo vai | test phân quyền duyệt mọi route với ba vai đạt; e2e bước 16 trên máy ảo từ máy sạch: hai user hai gói, user A không thấy và không đụng được site, DB, job của B (404), vượt gói bị từ chối, tạm khoá site ra 403 rồi mở lại ra 200, tạm khoá DB làm chặng DB xám rồi mở lại đạt, tạm khoá user thì không đăng nhập được và mọi site của họ ra 403, mở khoá trả về đúng như trước; máy đang chạy bản cũ nâng lên vẫn đăng nhập được bằng tài khoản `admin` cũ |
+| **M14** | Cô lập sâu giữa các site và định tuyến có bằng chứng (mục 6.13): file ini OPcache và drop-in `ProtectProc` cho từng bản PHP; `disable_symlinks` trong vhost nginx; vhost Apache gỡ `PHP_VALUE`/`PHP_ADMIN_VALUE` và ba chế độ `.htaccess` (`an-toan`, `tat`, `day-du`) kèm quét chỉ thị; log theo nhóm của site; `Isolated` năm phép thử; phép kiểm `web.hardened`, `web.htaccess`, `log.perm`, `php.opcache`, `php.protectproc`, `web.server_name.unique`, `web.default.rejects`; `tpan security harden`, `tpan site set --htaccess`, `tpan route explain`; ma trận cô lập trên màn Bảo mật | `make check` xanh; e2e bước 17 trên máy ảo sạch, **cả hai stack**, hai site: chín phép thử L1 đến L9 đều cho kết quả "bị chặn" (L8: health chỉ đúng file trùng), các phép "đã thử, không lộ" của nghiên cứu vẫn đạt, WordPress hai site 200, permalink chạy; e2e nâng cấp: cài v0.1.2, tạo hai site, cập nhật lên bản mới, chạy `tpan security harden`, rồi chạy lại bộ phép thử; `docs/giai-thich/14-m14-co-lap-va-dinh-tuyen.md` có phần "vì sao nginx đứng trước"; README, mục 5 và 6.8 cập nhật |
 
 M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc độc lập với nhau (riêng M8 cần cổng MCP của M7, và M12 cần health của M4), nên thứ tự trên đổi được. Thiếu thời gian thì bỏ bớt mốc. M1 đến M3 làm nối tiếp; từ M4 các mốc chạy song song theo lượt, mỗi mốc một worktree, một nhánh `moc/M<n>`, một máy ảo, rồi được ghép vào `dev` (mục 6 của `agent-dev/CHAY-NHIEU-AGENT.md`). Migration của mốc `n` đánh số từ `n*100` đến `n*100+99`; bảng `schema_migrations` ghi từng bản đã áp, nên ghép mốc không theo thứ tự số vẫn không sót bản nào.
 
 Để sau: tách đặc quyền, clone site sang staging, đọc trạng thái pool PHP-FPM qua FastCGI, quản lý nhiều máy, gửi thông báo ra ngoài (Discord, email), cron chạy lệnh tuỳ ý, biểu đồ thống kê dài ngày.
+
+Để sau, rút ra từ M14 (chi tiết ở mục 3 của `docs/thay-doi/M14-nghien-cuu.md`):
+
+- **Lồng theo site (ứng viên M15).** Mỗi site một dịch vụ PHP-FPM riêng do systemd quản, với `ProtectSystem=strict`, `TemporaryFileSystem=/var/www:ro` + `BindPaths=<thư mục site>`, `PrivateTmp`, `ProtectProc=invisible`, `MemoryMax`, `CPUQuota`, `TasksMax`. Bản thử (`t5`) cho thấy: `ls /var/www` chỉ thấy site của mình, `/tmp` riêng, OPcache riêng, script cấp phát 400 MB bị giết ở trần 200 MB còn site vẫn sống (cần `OOMPolicy=continue`), vòng lặp CPU chậm đi 2,5 lần ở `CPUQuota=50%`. Giá: khoảng 32 MB RAM cho mỗi site kể cả lúc không có khách. Hợp để gắn vào gói của M13 (trần RAM, CPU theo gói).
+- Tên phụ của site (`www.`), chuyển hướng: hiện `www.<domain>` rơi vào vhost mặc định.
+- Stack thứ ba "nginx đứng trước Apache": đem `.htaccess` trở lại sau nginx, nên phải đi cùng các chế độ `.htaccess` của mục 6.13.
 
 ## 14. Quy ước làm việc
 
