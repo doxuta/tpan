@@ -58,7 +58,8 @@ export function RouteMap({ domain, checks, selected, onSelect }: Props) {
   const seg = (j: number) => (dashed(j) ? "border-dashed border-line-dash" : "border-solid border-line");
 
   return (
-    <div className="overflow-x-auto">
+    // -m/p 4 px: chừa chỗ cho viền focus của nút ga (nút sát mép khung cuộn), bố cục không đổi.
+    <div className="relative -m-[4px] overflow-x-auto p-[4px]">
       <ol aria-label={t.routeLabel(domain)} className="m-0 grid min-w-[600px] list-none grid-cols-6 border-b border-hair p-0">
         {states.map((s, i) => {
           const name = t.stages[s.stage];

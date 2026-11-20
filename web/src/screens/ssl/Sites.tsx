@@ -48,8 +48,9 @@ export function SiteTable({ rows, pending, onIssue }: Props) {
     );
   }
 
+  // relative và -mx/px 4 px: như TableList (sr-only không kéo trang cuộn ngang, viền focus không bị cắt).
   return (
-    <div className="overflow-x-auto">
+    <div className="relative -mx-[4px] overflow-x-auto px-[4px]">
       <table className="w-full border-collapse text-left">
         <caption className="sr-only">{t.tableName}</caption>
         <thead>

@@ -85,7 +85,8 @@ export function RouteMap({ o }: { o: Overview }) {
   return (
     <>
       {/* Khung cuộn ngang riêng: cả trang không bao giờ cuộn ngang. */}
-      <div className="@container overflow-x-auto">
+      {/* relative: span sr-only của dòng request không thoát khỏi khung cuộn; -m/p 4 px: chừa chỗ cho viền focus ở mép khung. */}
+      <div className="@container relative -m-[4px] overflow-x-auto p-[4px]">
         <div className="min-w-[700px] border-b border-hair">
           <div aria-hidden="true" className="flex items-end pb-[8px] font-mono text-[11px] tracking-[0.08em] text-muted">
             <div className="w-[180px] flex-none">{t.colSite}</div>
@@ -100,7 +101,8 @@ export function RouteMap({ o }: { o: Overview }) {
             {routes.map((r) => (
               <li key={r.domain} className="border-t border-hair">
                 <div className="flex items-center">
-                  <div className="w-[180px] flex-none overflow-hidden">
+                  {/* Không overflow-hidden ở đây: nó cắt mất viền focus của liên kết; liên kết và dòng request tự cắt chữ bằng ellipsis. */}
+                  <div className="w-[180px] flex-none">
                     <Link
                       to={`/sites/${encodeURIComponent(r.domain)}`}
                       title={r.domain}

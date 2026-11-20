@@ -35,8 +35,11 @@ type Props<T> = {
 
 export function TableList<T>({ columns, rows, rowKey, empty, caption }: Props<T>) {
   if (rows.length === 0) return <p className="border-t border-hair py-[10px] text-muted">{empty}</p>;
+  // relative: span sr-only (absolute) trong ô bảng phải bị khung cuộn cắt, nếu
+  // không nó kéo cả trang cuộn ngang ở 390 px. -mx/px 4 px: chừa chỗ cho viền
+  // focus (2 px, cách 2 px) của liên kết ở cột đầu và cột cuối, bố cục không đổi.
   return (
-    <div className="overflow-x-auto">
+    <div className="relative -mx-[4px] overflow-x-auto px-[4px]">
       <table className="w-full border-collapse text-left">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>

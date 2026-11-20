@@ -165,7 +165,8 @@ function StepItem({ n, step, tips }: { n: number; step: StepPreview; tips: boole
     <li className={`border-t border-hair py-[14px] ${done ? "text-muted" : ""}`}>
       <div className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[4px]">
         <span className="font-mono text-[12px] text-muted">{t.stepNumber(n)}</span>
-        <h4 className={`m-0 min-w-0 flex-[1_1_240px] text-[14px] font-semibold ${done ? "text-muted" : ""}`}>{tx(info.title, lang)}</h4>
+        {/* overflow-wrap: tên bước hay chứa đường dẫn dài không có chỗ ngắt, ở 390 px chữ tràn khỏi hàng. */}
+        <h4 className={`m-0 min-w-0 flex-[1_1_240px] text-[14px] font-semibold [overflow-wrap:anywhere] ${done ? "text-muted" : ""}`}>{tx(info.title, lang)}</h4>
         {info.danger && !done && <Tag>{t.danger}</Tag>}
         {done && <span className="text-[13px]">{t.willSkip}</span>}
       </div>

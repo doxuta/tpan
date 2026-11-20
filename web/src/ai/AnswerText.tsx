@@ -15,8 +15,13 @@ import { linkPattern, resolveLink } from "./views";
 
 const tokenPattern = new RegExp(`\\*\\*([^*\\n]+)\\*\\*|\`([^\`\\n]+)\`|${linkPattern.source}`, "g");
 
-export function AnswerText({ text }: { text: string }) {
+// AI (và bộ não demo) hay bọc liên kết kiểu Markdown: [blog.example.com](tpan:site/blog.example.com).
+// Bỏ phần bọc để chỉ còn tpan:..., nếu không chữ hiện ra là "[blog.example.com](Trang site blog.example.com)".
+const mdLink = /\[[^\]\n]*\]\((tpan:[^)\s]+)\)/g;
+
+export function AnswerText({ text: raw }: { text: string }) {
   const { lang } = useLang();
+  const text = raw.replace(mdLink, "$1");
   const nodes: ReactNode[] = [];
   let last = 0;
   for (const m of text.matchAll(tokenPattern)) {
