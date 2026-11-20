@@ -14,6 +14,14 @@
 #
 # Đổi tên hoặc cấu hình máy ảo bằng biến môi trường TPAN_VM, TPAN_VM_IMAGE,
 # TPAN_VM_CPUS, TPAN_VM_MEM, TPAN_VM_DISK.
+#
+# TPAN_VM_CAPTURE=1 (cho script e2e chạy không có người ngồi xem): exec và root
+# không cho output chảy thẳng qua `multipass exec` nữa. Output ghi vào file
+# trong máy ảo rồi lấy về bằng `multipass transfer` sau khi lệnh xong. Lý do:
+# `multipass exec` trên Mac có lúc treo giữa chừng khi output dài (tiến trình
+# trong máy ảo đã xong, output về Mac bị cắt giữa dòng, lệnh trên Mac không bao
+# giờ trả về; gặp ở e2e M6 và M14). Mã thoát, stdin và việc tách stdout/stderr
+# giữ nguyên; chỉ khác là output hiện ra một lần ở cuối thay vì chảy dần.
 set -euo pipefail
 
 # Chưa đặt TPAN_VM thì đọc tên máy ảo từ file .tpan-vm ở gốc repo (mỗi worktree
@@ -34,6 +42,30 @@ exists() { multipass info "$VM" >/dev/null 2>&1; }
 has_snapshot() {
   multipass list --snapshots 2>/dev/null |
     awk -v vm="$VM" -v snap="$SNAP" '$1 == vm && $2 == snap { found = 1 } END { exit !found }'
+}
+
+# vm_exec <lệnh...>: chạy lệnh trong máy ảo (xem TPAN_VM_CAPTURE ở đầu file).
+vm_exec() {
+  if [ "${TPAN_VM_CAPTURE:-}" != 1 ]; then
+    multipass exec "$VM" -- "$@"
+    return
+  fi
+  local merged=0 rc
+  # Người gọi gộp 2>&1 (stdout và stderr là cùng một file hay pipe) thì ghi
+  # chung một file để giữ đúng thứ tự dòng; không thì ghi riêng hai file.
+  [ /dev/stdout -ef /dev/stderr ] && merged=1
+  # File 0600 ở nhà của user ubuntu, lần chạy sau ghi đè. Không đổi umask của
+  # chính lệnh: sudo gộp umask của người gọi vào umask của lệnh root.
+  # shellcheck disable=SC2016
+  rc="$(multipass exec "$VM" -- bash -c 'm=$1; shift; f=$HOME/.vm-cap; (umask 077; : >"$f"; : >"$f.err")
+    if [ "$m" = 1 ]; then "$@" >"$f" 2>&1; else "$@" >"$f" 2>"$f.err"; fi; echo "vm-cap-rc=$?"' _ "$merged" "$@" | tr -d '\r' | sed -n 's/^vm-cap-rc=//p' | tail -1)" || true
+  if [ -z "$rc" ]; then
+    echo "scripts/vm.sh: không chạy được lệnh trong máy ảo $VM (multipass exec lỗi)" >&2
+    return 255
+  fi
+  multipass transfer "$VM:/home/ubuntu/.vm-cap" - </dev/null
+  [ "$merged" = 1 ] || multipass transfer "$VM:/home/ubuntu/.vm-cap.err" - </dev/null >&2
+  return "$rc"
 }
 
 cmd="${1:-help}"
@@ -70,8 +102,8 @@ case "$cmd" in
     multipass exec "$VM" -- tpan version </dev/null
     ;;
   shell) multipass shell "$VM" ;;
-  exec) multipass exec "$VM" -- "$@" ;;
-  root) multipass exec "$VM" -- sudo "$@" ;;
+  exec) vm_exec "$@" ;;
+  root) vm_exec sudo "$@" ;;
   ip) multipass info "$VM" --format json | jq -r --arg vm "$VM" '.info[$vm].ipv4[0]' ;;
   ssh-key)
     # Bắt buộc đưa đường dẫn: script không tự đọc ~/.ssh của máy cá nhân.

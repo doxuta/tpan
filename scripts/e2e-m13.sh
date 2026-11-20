@@ -15,9 +15,12 @@
 #      bản mới (make release) phục vụ từ máy chủ HTTP loopback trong máy ảo
 #   U3 sau khi khởi động lại: cookie cũ vẫn dùng được; login chỉ có mật khẩu
 #      đạt; site cũ có chủ admin; hash mật khẩu giữ nguyên; tpan user list có
-#      admin; tpan admin passwd chạy, mật khẩu mới đăng nhập được
+#      admin; tpan admin passwd chạy, mật khẩu mới đăng nhập được; (từ M14)
+#      health chỉ còn ba loại lỗi cô lập của M14 và `tpan security harden`
+#      đưa về không còn lỗi
 #   U4 `tpan self-update --rollback`: ghi nguyên output, rồi bản cũ từ chối
-#      tpan.db đã có migration 1300 (đúng thiết kế, quyết định 3 của docs/KE-HOACH.md mục 6.12)
+#      tpan.db của bản mới (đúng thiết kế, quyết định 3 của docs/KE-HOACH.md mục
+#      6.12; bản migration cao nhất đọc từ internal/store/migrations)
 #   U5 đưa máy về bản mới bằng install.sh của gói mới (file chạy có sẵn)
 #
 # CHÍNH (chinh), từ máy sạch:
@@ -84,6 +87,8 @@ PEBBLE_DIR=/etc/tpan-e2e-pebble
 ACME_ROOT=/var/lib/tpan/acme
 PORT=18713
 OLD_VER=v0.1.1
+# Bản migration cao nhất của cây (tên file lớn nhất trong internal/store/migrations).
+NEW_MIG="$(find internal/store/migrations -name '[0-9]*_*.sql' -exec basename {} \; | sed 's/_.*//' | sort -n | tail -1)"
 # Gói v0.1.1 đã phát hành nằm ở dist/release/v0.1.1 của repo chính (dist/ không
 # vào git); worktree chưa có thì chép sang. Đặt OLD_PKG để chỉ chỗ khác.
 OLD_PKG="${OLD_PKG:-$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/../dist/release/$OLD_VER}"
@@ -674,8 +679,20 @@ part_u3() {
   ok "đăng nhập tên admin + mật khẩu mới: 204" code_is 204
   api "$JAR_ADM" GET /api/v1/users
   ok "GET /users 200" code_is 200
+
+  # M14 (mục 6.13 của docs/KE-HOACH.md): máy nâng từ bản trước M14 thiếu file
+  # ini OPcache, quyền log theo nhóm và dòng chặn trong vhost cho tới khi chạy
+  # Plan "Áp bản vá cô lập". Trước M14 chỗ này chỉ khẳng định "health không có
+  # Fail"; giờ là: chỉ có đúng ba loại lỗi đó, và harden đưa về không còn lỗi.
+  section "U3: (M14) tpan security harden trên máy vừa nâng"
+  health_json
+  ok "health sau khi nâng: có lỗi, và chỉ thuộc ba loại của M14 (php.opcache, log.perm, web.hardened)" hq '[.groups[].results[] | select(.status == "fail") | .id | split(":")[0]] | (length > 0 and ((. - ["php.opcache", "log.perm", "web.hardened"]) | length == 0))'
+  vroot tpan security harden --yes
+  ok "tpan security harden thoát 0, job thành công" job_ok
   health_json
   ok "health không có Fail" no_fail
+  page "$UPD"
+  ok "$UPD vẫn 200 sau harden" is200
   part_end U3
 }
 
@@ -692,9 +709,11 @@ part_u4() {
   vroot journalctl -u tpan --no-pager -o cat -n 15
   # Câu thật của v0.1.1 (store.migrate khi bản DB lớn hơn bản lớn nhất nó
   # biết), khác câu docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13") trích ở quyết định 3.
-  ok "journal của tpan: bản cũ từ chối tpan.db có migration 1300, dịch vụ khởi động lại liên tục" bash -c 'grep -qF "DB ở bản 1300, tpan này chỉ biết tới bản 900" <<<"$1" && grep -qF "status=1/FAILURE" <<<"$1"' _ "$OUT"
+  # Từ M14 bản cao nhất trong tpan.db là 1400 (migration thêm cột sites.htaccess);
+  # trước đó là 1300 của M13. Lời từ chối của bản cũ in bản cao nhất nó gặp.
+  ok "journal của tpan: bản cũ từ chối tpan.db của bản mới (migration $NEW_MIG), dịch vụ khởi động lại liên tục" bash -c 'grep -qF "DB ở bản $2, tpan này chỉ biết tới bản 900" <<<"$1" && grep -qF "status=1/FAILURE" <<<"$1"' _ "$OUT" "$NEW_MIG"
   vroot tpan site list
-  ok "tpan site list ($OLD_VER) từ chối: DB ở bản 1300, tpan này chỉ biết tới bản 900" bash -c '[ "$2" != 0 ] && grep -qF "DB ở bản 1300, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn" <<<"$1"' _ "$OUT" "$RC"
+  ok "tpan site list ($OLD_VER) từ chối: DB ở bản $NEW_MIG, tpan này chỉ biết tới bản 900" bash -c '[ "$2" != 0 ] && grep -qF "DB ở bản $3, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn" <<<"$1"' _ "$OUT" "$RC" "$NEW_MIG"
   run curl -sS -m 5 --cacert "$TMPD/cert.pem" -o /dev/null -w '%{http_code}\n' "$BASE/api/v1/health"
   ok "panel không trả lời (dịch vụ không mở được tpan.db)" rc_not 0
   part_end U4
