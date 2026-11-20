@@ -51,7 +51,7 @@ Danh sách màn nên xem:
 - Sites, trang một site, tạo site (xem trước Plan rồi chạy, theo dõi từng bước).
 - Sự cố, Health, một job lỗi (nút "Giải thích").
 - Plans: danh sách, một Plan ở ba trạng thái chờ, đã chạy, đã từ chối.
-- Backup, Cron, Thùng rác, PHP, Cập nhật, Cài đặt (khối bộ não, Agent và MCP).
+- Backup, Cron, Thùng rác, PHP, Cập nhật, Cài đặt (khối bộ não, Agent và MCP; khối "Phiên bản và cập nhật" của M15: bấm "Kiểm bản mới", mở hộp hỏi lại của "Cập nhật lên" và "Quay về bản trước").
 - Ngăn AI: so với `ngan-ai-sang.html`. Bỏ từng nhãn ngữ cảnh, bấm "xem trước thứ sẽ gửi", hỏi một câu, xem chữ hiện dần.
 - Thanh lệnh: `Cmd+K`, gõ, mũi tên, Enter, Esc.
 - Khối lệnh: bấm biểu tượng chép phải hiện dấu ✓; dán vào terminal không có dấu `$` ở đầu; lệnh cần quyền root có `sudo`.
@@ -669,6 +669,43 @@ Trên panel: màn Bảo mật có khối "Cô lập giữa các site" (ma trận
 
 Không chạy `scripts/e2e-m14/tan-cong.sh` trên VPS: bộ phép thử tấn công chỉ dành cho máy ảo test.
 
+### 3.10b. Cập nhật TPAN bằng nút trong panel (M15)
+
+Từ bản có M15, panel tự cập nhật được: màn **Cài đặt**, khối "Phiên bản và cập nhật" (màn Cập nhật có cùng khối đó). Vì sao trước đây không có nút và nút chạy thế nào: `docs/giai-thich/15-m15-nut-cap-nhat.md`. Đã chạy thật trên máy ảo (`docs/bang-chung/M15.log`, 200 khẳng định đạt; bấm thật bằng trình duyệt ở `M15-giao-dien-that.log`), chưa chạy trên VPS.
+
+**Lần đầu vẫn phải gõ lệnh.** VPS đang chạy v0.2.0 chưa có nút. Lên bản có M15 bằng đường cũ (`sudo tpan self-update --dry-run`, rồi `--yes`), từ đó về sau mới dùng nút.
+
+Thử trên VPS, khi đã có một bản phát hành mới hơn bản đang chạy:
+
+1. Đăng nhập bằng `admin`, mở Cài đặt, kéo tới "Phiên bản và cập nhật" (hoặc bấm dòng `TPAN v...` ở cuối trang; dòng đó có một ô vuông nhỏ khi có bản mới).
+2. Bấm "Kiểm bản mới". Đọc bản xem trước: bản đang chạy, bản mới nhất, nguồn tải, file sẽ tải, sha256 sẽ kiểm. Đối chiếu sha256 với file `SHA256SUMS` trên trang release nếu muốn chắc.
+3. Sao lưu DB của panel trước, phòng khi bản mới đổi cấu trúc DB (khi đó nút quay về sẽ từ chối, và bản sao này là đường lùi):
+
+```bash
+sudo cp -a /var/lib/tpan/tpan.db /var/lib/tpan/tpan.db.truoc-khi-len
+```
+
+4. Bấm "Cập nhật lên <bản>", đọc hộp hỏi lại, xác nhận. Màn hiện "Đang cập nhật TPAN…" rồi "Đã lên <bản>" sau vài giây. Bấm "Tải lại trang".
+5. Kiểm trên máy:
+
+```bash
+tpan version
+```
+
+```bash
+sudo journalctl -u tpan-self-update --no-pager -n 30
+```
+
+```bash
+sudo tpan health
+```
+
+Quá 3 phút màn chưa báo xong thì nó tự hiện ba lệnh gỡ tay; gõ theo thứ tự đó và gửi mình output.
+
+Thử "Quay về bản trước" chỉ khi bản mới không đổi cấu trúc DB. Nếu đã đổi, máy chủ từ chối ngay ở hộp xem trước với mã `self_rollback_db` và không đổi gì: đó là hành vi đúng, không phải lỗi.
+
+Xem bằng mắt giúp mình, vì máy không tự kiểm được: khối này ở sáng, tối, tiếng Anh, 390 px, chỉ dùng bàn phím (Tab tới nút, Enter, Esc đóng hộp); và ô vuông "có bản mới" ở cuối trang có đủ thấy không. Ở chế độ demo (mục 1) khối chạy được tới hộp hỏi lại; bấm xác nhận thì máy chủ trả lời "bản demo không có gì để cập nhật", đúng ý.
+
 ### 3.11. Gửi lại cho mình
 
 Dừng ghi (`exit`), che tên miền và IP như ở 3.0, rồi gửi file `~/tpan-vps-che.log` (lấy về Mac bằng `scp <user>@<IP>:tpan-vps-che.log .`). Mình đọc, đối chiếu với kết quả máy ảo, ghi vào `docs/bang-chung/` và đánh dấu các tiêu chí còn treo (chứng chỉ staging M5, `install.sh` trên amd64 M11).
@@ -717,7 +754,7 @@ make release
 ls dist/release/v0.1.0/
 ```
 
-Chờ thấy đủ bốn file: `tpan-linux-amd64`, `tpan-linux-arm64`, `install.sh`, `SHA256SUMS`. Tạo release trên GitHub, đính kèm cả bốn:
+Chờ thấy đủ năm file: `tpan-linux-amd64`, `tpan-linux-arm64`, `install.sh`, `SHA256SUMS`, và từ M15 thêm `VERSION` (một dòng ghi tên bản; nút "Kiểm bản mới" trong panel đọc file này để nói được bản mới nhất là bản nào, thiếu nó thì panel chỉ nói "có bản khác"). Tạo release trên GitHub, đính kèm tất cả (dấu `*` trong lệnh dưới lấy hết):
 
 ```bash
 gh release create v0.1.0 dist/release/v0.1.0/* --title "TPAN v0.1.0" --notes "Bản đầu tiên. Cài: xem README."

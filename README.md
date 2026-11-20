@@ -125,7 +125,7 @@ sudo ./install.sh --web nginx        # hoặc --web apache
 4. Bật lịch backup: `sudo tpan backup settings --keep 5 --at 03:30`. Máy mới chưa có bản sao lưu nào của `tpan.db`, nên trang Sự cố và `tpan health` sẽ cảnh báo `tpan.backup:db` cho tới khi có (đó là cảnh báo thật, không phải lỗi).
 5. Tạo site đầu tiên ở màn **Site → Tạo site**, hoặc bằng CLI ở phần dưới. Xin HTTPS ở màn **SSL**: mặc định là chứng chỉ thử (staging) của Let's Encrypt, không tốn hạn mức nhưng trình duyệt chưa tin; thử xong thì tắt Staging và bấm "Xin lại" để có chứng chỉ thật.
 
-Cập nhật lên bản mới: `sudo tpan self-update --dry-run` để xem trước, `sudo tpan self-update --yes` để cập nhật (giữ bản cũ, quay lại bằng `--rollback`).
+Cập nhật lên bản mới: trong panel, màn **Cài đặt**, khối "Phiên bản và cập nhật" (chỉ admin thấy). Bấm "Kiểm bản mới" để xem trước (bản mới nhất, nguồn tải, sha256 sẽ kiểm), rồi "Cập nhật lên <bản>". Panel khởi động lại trong tích tắc, phiên đăng nhập giữ nguyên, các site không bị đụng tới; bản cũ được giữ lại và có nút "Quay về bản trước". Nút này có từ bản sau v0.2.0; máy đang chạy v0.2.0 trở về trước thì lên lần đầu bằng dòng lệnh: `sudo tpan self-update --dry-run` để xem trước, `sudo tpan self-update --yes` để cập nhật (giữ bản cũ, quay lại bằng `--rollback`). Hai đường chạy cùng một kế hoạch: tải, kiểm sha256, thay file chạy, khởi động lại dịch vụ.
 
 Quên mật khẩu: trên máy chủ chạy `sudo tpan admin passwd` (user `admin`) hoặc `sudo tpan user passwd <tên>` (user khác). Lệnh sinh mật khẩu mới và huỷ mọi phiên của user đó; `admin passwd` còn gỡ mọi IP đang bị khoá.
 
@@ -273,7 +273,7 @@ Every operation shows a preview first (steps, commands, file diffs), rolls back 
 
 The screenshots above come from `tpan serve --demo`, a fake machine with sample data.
 
-Install on a clean Ubuntu 24.04 VPS: `curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx`. Or run `make release`, copy `dist/release/<version>/` to the server, then `sudo ./install.sh --web nginx`. Then open `https://<server>:8443`, compare the certificate's SHA-256 fingerprint with the one `tpan setup` printed, and log in with the admin password shown once. Forgot it: `sudo tpan admin passwd`. Update to the latest release with `sudo tpan self-update --yes` (`--rollback` goes back). With `--private` the panel listens on 127.0.0.1 only; reach it through `ssh -L 8443:127.0.0.1:8443 <server>`.
+Install on a clean Ubuntu 24.04 VPS: `curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx`. Or run `make release`, copy `dist/release/<version>/` to the server, then `sudo ./install.sh --web nginx`. Then open `https://<server>:8443`, compare the certificate's SHA-256 fingerprint with the one `tpan setup` printed, and log in with the admin password shown once. Forgot it: `sudo tpan admin passwd`. Update to the latest release from the panel (Settings, "Version and updates": check, preview, update, go back; admin only, available after v0.2.0) or with `sudo tpan self-update --yes` (`--rollback` goes back). With `--private` the panel listens on 127.0.0.1 only; reach it through `ssh -L 8443:127.0.0.1:8443 <server>`.
 
 TPAN runs as root and changes system configuration. Use it only on a clean, dedicated VPS, and try it in a VM first. Every command accepts `--lang en`.
 
