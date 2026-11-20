@@ -6,9 +6,9 @@
 // checks...) thì ErrorNote hiện câu của nó ngay dưới nút. Lệnh tương đương để
 // tự gõ nằm trong CommandBlock, có --dry-run nên chỉ xem trước.
 
+import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, StackStatus, StackSwitchBody } from "../../api/types";
@@ -51,7 +51,7 @@ export function Switch() {
 function Loaded({ status }: { status: StackStatus }) {
   const t = useStrings(strings);
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   const current = status.config.web;
   const installed = status.installed && (current === "nginx" || current === "apache");
   const target: StackSwitchBody["to"] = current === "nginx" ? "apache" : "nginx";
@@ -71,7 +71,9 @@ function Loaded({ status }: { status: StackStatus }) {
       void qc.invalidateQueries({ queryKey: stackKey });
       void qc.invalidateQueries({ queryKey: phpKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
 

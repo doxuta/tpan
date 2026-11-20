@@ -8,7 +8,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
+import { useJobTracker } from "../../components/JobTracker";
 import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, PHPList, PHPSupport, PHPVersionRow, Preview } from "../../api/types";
@@ -48,7 +49,7 @@ export function Php() {
 function Loaded({ list }: { list: PHPList }) {
   const t = useStrings(strings);
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   // Go có thể trả null cho danh sách rỗng.
   const versions = list.versions ?? [];
   const names = { ubuntu: t.sourceUbuntu, sury: t.sourcePhpSury };
@@ -69,7 +70,9 @@ function Loaded({ list }: { list: PHPList }) {
       void qc.invalidateQueries({ queryKey: phpKey });
       void qc.invalidateQueries({ queryKey: stackKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
 

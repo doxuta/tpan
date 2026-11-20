@@ -7,9 +7,9 @@
 // lại vì bước bật ufw nguy hiểm) → POST thật trả job_id → chuyển tới /jobs/:id.
 // Hai dòng SSH chỉ cảnh báo, không có nút: sửa sai là mất đường vào máy.
 
+import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { CheckResult, JobStarted, Preview, SecurityStatus } from "../../api/types";
@@ -83,7 +83,7 @@ type ResultsProps = {
 function Results({ results, refetching, refetchFailed, onRecheck }: ResultsProps) {
   const t = useStrings(strings);
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
 
   const [open, setOpen] = useState<Set<string>>(() => new Set(results.filter((c) => c.status === "fail" || c.status === "warn").map((c) => c.id)));
   const toggle = (id: string) =>
@@ -110,7 +110,9 @@ function Results({ results, refetching, refetchFailed, onRecheck }: ResultsProps
     onSuccess: (job) => {
       void qc.invalidateQueries({ queryKey: securityKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setPreview(null);
     },
   });
 

@@ -12,7 +12,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
+import { useJobTracker } from "../../components/JobTracker";
 import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { Backup, BackupsOverview, JobStarted, Preview } from "../../api/types";
@@ -39,7 +40,7 @@ export function Backups({ domain, active }: { domain: string; active: boolean })
   const k = useStrings(khung);
   const { lang } = useLang();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   // Khoá bắt đầu bằng backupsKey: màn invalidate backupsKey sau job thì khoá này cũng được tính lại.
   const q = useQuery({ queryKey: [...backupsKey, domain], queryFn: () => get<BackupsOverview>(`${backupsPath}?domain=${encodeURIComponent(domain)}`) });
 
@@ -58,7 +59,9 @@ export function Backups({ domain, active }: { domain: string; active: boolean })
     onSuccess: (job) => {
       void qc.invalidateQueries({ queryKey: backupsKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
 

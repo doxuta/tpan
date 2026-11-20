@@ -13,6 +13,7 @@ import { machineStatus, useOverview, useSession } from "./api/queries";
 import type { Overview, StackSummary } from "./api/types";
 import { AiDrawer } from "./ai/AiDrawer";
 import { AiProvider, useAi } from "./ai/AiProvider";
+import { JobTrackerProvider } from "./components/JobTracker";
 import { CommandPalette } from "./ai/CommandPalette";
 import { drawerShortcut, paletteKbd, paletteShortcut } from "./ai/platform";
 import { buttonClass } from "./components/Button";
@@ -52,7 +53,9 @@ export function Layout() {
 
   return (
     <AiProvider>
-      <Shell t={t} hostname={session.data.hostname ?? ""} demo={session.data.demo} overview={overview.data} />
+      <JobTrackerProvider>
+        <Shell t={t} hostname={session.data.hostname ?? ""} demo={session.data.demo} overview={overview.data} />
+      </JobTrackerProvider>
     </AiProvider>
   );
 }

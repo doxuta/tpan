@@ -10,9 +10,9 @@
 // checks, ví dụ nothing_to_update, mariadb_not_newer) thì ErrorNote hiện câu
 // của nó ngay dưới nút đã bấm.
 
+import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, UpdateStatus } from "../../api/types";
@@ -55,7 +55,7 @@ export default function UpdatesScreen() {
 function Loaded({ status }: { status: UpdateStatus }) {
   const t = useStrings(strings);
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
 
   /** Việc đang xem trước và bản xem trước của nó. "Chạy" gửi đúng việc này. */
   const [open, setOpen] = useState<{ action: Action; preview: Preview } | null>(null);
@@ -70,7 +70,9 @@ function Loaded({ status }: { status: UpdateStatus }) {
     onSuccess: (job) => {
       void qc.invalidateQueries({ queryKey: updatesKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
 

@@ -9,7 +9,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
+import { useJobTracker } from "../../components/JobTracker";
 import { errorMessage, get, post } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { Backup, DatabaseRow, DBImportRequest, JobStarted, Preview } from "../../api/types";
@@ -60,7 +61,7 @@ export default function CoSoDuLieu() {
   const k = useStrings(khung);
   const { lang } = useLang();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   const q = useQuery({ queryKey: databasesKey, queryFn: () => get<DatabaseRow[]>(databasesPath) });
   // Cùng khoá overview với khung trang: không gọi thêm API. Cho biết site nào đang ở thùng rác.
   const overview = useOverview();
@@ -84,7 +85,9 @@ export default function CoSoDuLieu() {
       void qc.invalidateQueries({ queryKey: databasesKey });
       void qc.invalidateQueries({ queryKey: backupsKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
 
