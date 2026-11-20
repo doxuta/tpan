@@ -346,10 +346,14 @@ func TestSSLBadParams(t *testing.T) {
 		"thiếu domain": tamper(func(l *site.Layout) { l.Domain = validate.Domain{} }),
 	}
 	gens := map[string]func(site.Layout, string) ([]byte, error){
-		"nginx SSL":   php83(NginxSiteSSL),
-		"apache SSL":  php83(apacheSiteSSL),
-		"SiteVhost n": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "nginx", "8.3", r, true, site.HtaccessSafe) },
-		"SiteVhost a": func(l site.Layout, r string) ([]byte, error) { return SiteVhost(l, "apache", "8.3", r, true, site.HtaccessSafe) },
+		"nginx SSL":  php83(NginxSiteSSL),
+		"apache SSL": php83(apacheSiteSSL),
+		"SiteVhost n": func(l site.Layout, r string) ([]byte, error) {
+			return SiteVhost(l, "nginx", "8.3", r, true, site.HtaccessSafe)
+		},
+		"SiteVhost a": func(l site.Layout, r string) ([]byte, error) {
+			return SiteVhost(l, "apache", "8.3", r, true, site.HtaccessSafe)
+		},
 	}
 	for name, l := range bad {
 		for g, gen := range gens {

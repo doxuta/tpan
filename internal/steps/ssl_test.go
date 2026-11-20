@@ -717,7 +717,9 @@ func TestSiteVhostSSL(t *testing.T) {
 	lc := lifecycle{
 		name:  "SiteVhostSSL nginx ghi đè cổng 80",
 		setup: port80,
-		step:  func() engine.Step { return webStepsOK(t)(SiteVhostSSL(l, "nginx", "8.3", sslWebroot, site.HtaccessSafe))[0] },
+		step: func() engine.Step {
+			return webStepsOK(t)(SiteVhostSSL(l, "nginx", "8.3", sslWebroot, site.HtaccessSafe))[0]
+		},
 	}
 	t.Run(lc.name, lc.run)
 }
