@@ -107,7 +107,7 @@ func TestDryRunJSONAndEnglish(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &pv); err != nil {
 		t.Fatalf("stdout không phải JSON của Preview: %v\n%s", err, out)
 	}
-	if pv.Kind != "stack.install" || pv.Target != "apache" || len(pv.Steps) != 17 {
+	if pv.Kind != "stack.install" || pv.Target != "apache" || len(pv.Steps) != 19 {
 		t.Errorf("Preview = %s/%s, %d bước", pv.Kind, pv.Target, len(pv.Steps))
 	}
 

@@ -137,7 +137,8 @@ func newMachine() *machine {
 func (m *machine) installFiles() {
 	for _, d := range []string{
 		"/etc/nginx/sites-available", "/etc/nginx/sites-enabled",
-		"/etc/php/" + phpVer + "/fpm/pool.d", "/etc/mysql/mariadb.conf.d", "/etc/logrotate.d",
+		"/etc/php/" + phpVer + "/fpm/pool.d", "/etc/php/" + phpVer + "/fpm/conf.d", "/etc/systemd/system",
+		"/etc/mysql/mariadb.conf.d", "/etc/logrotate.d",
 		"/var/lib/tpan/acme", "/var/cache/tpan", "/var/www", "/var/log/tpan/sites", "/usr/local/bin",
 	} {
 		m.SetDir(d, 0o755, rootOwner)
@@ -280,7 +281,11 @@ func (m *machine) handlers() {
 
 	// Phép kiểm cô lập: dưới user của site này, đọc wp-config.php của site kia
 	// phải bị từ chối. Máy giả luôn từ chối, như máy thật khi quyền đúng.
-	m.Handle([]string{"test", "-r"}, func(system.Cmd) system.Result { return exit(1, "", "") })
+	// M14 (mục 6.13) thêm bốn phép thử: vào thư mục (-x), ghi vào public và
+	// socket PHP-FPM (-w), đọc access.log (-r).
+	for _, flag := range []string{"-r", "-x", "-w"} {
+		m.Handle([]string{"test", flag}, func(system.Cmd) system.Result { return exit(1, "", "") })
+	}
 
 	// Dịch vụ trong m.units luôn chạy và tự bật. Dịch vụ khác thì không có.
 	m.Handle([]string{"systemctl"}, func(c system.Cmd) system.Result {
@@ -301,6 +306,16 @@ func (m *machine) handlers() {
 			return exit(1, "disabled\n", "")
 		}
 		return okResult // reload, restart, enable... của dịch vụ khác: không đổi gì
+	})
+	// M14 (mục 6.13): `systemctl show <unit> -p ProtectProc --value`, lệnh mà
+	// bước steps.PHPProtectProc và phép kiểm php.protectproc dùng. Trả lời
+	// theo drop-in tpan.conf đang có trên máy giả; chưa đặt thì "default".
+	m.Handle([]string{"systemctl", "show"}, func(c system.Cmd) system.Result {
+		b, _ := m.ReadFile("/etc/systemd/system/" + c.Args[1] + ".service.d/tpan.conf")
+		if strings.Contains(string(b), "\nProtectProc=invisible\n") {
+			return exit(0, "invisible\n", "")
+		}
+		return exit(0, "default\n", "")
 	})
 	// reload, restart php<bản>-fpm của mọi bản PHP (M12: nhiều bản song song).
 	// Dịch vụ khác: không đổi gì, như handler chung ở trên.

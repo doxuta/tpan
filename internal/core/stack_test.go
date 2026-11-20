@@ -114,6 +114,9 @@ var (
 		"mariadb.secure:localhost",
 		"php.detect:/etc/php",
 		"php.idle:<bản>",
+		// M14: file ini OPcache rồi drop-in ProtectProc, ngay sau pool tpan-idle.
+		"php.harden.opcache:<bản>",
+		"php.harden.proc:<bản>",
 		"dir:/var/lib/tpan",
 		"dir:/var/lib/tpan/acme",
 	}

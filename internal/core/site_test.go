@@ -295,8 +295,13 @@ func newSiteSim(t *testing.T) *siteSim {
 		return ok
 	})
 
-	// Isolated: dưới user của site này, đọc wp-config.php của site kia bị từ chối.
-	m.Handle([]string{"test", "-r"}, func(system.Cmd) system.Result { return exit(1, "", "") })
+	// Isolated: dưới user của site này, đọc wp-config.php và access.log của
+	// site kia (-r), vào thư mục của nó (-x), ghi vào public và socket PHP-FPM
+	// của nó (-w) đều bị từ chối. Ba cờ này là đủ năm phép thử của M14
+	// (checks/m14_types.go); cờ khác không có handler nên vẫn lộ ra là "lọt".
+	for _, flag := range []string{"-r", "-x", "-w"} {
+		m.Handle([]string{"test", flag}, func(system.Cmd) system.Result { return exit(1, "", "") })
+	}
 
 	// PHP-FPM reload: mỗi file pool trong pool.d có một socket, pool đã gỡ thì mất socket.
 	m.Handle([]string{"systemctl", "reload", "php8.3-fpm"}, func(system.Cmd) system.Result {
@@ -606,6 +611,10 @@ func TestSiteAddPlanOrder(t *testing.T) {
 				"dir:/var/www/shop.example.com/public",
 				"dir:/var/www/shop.example.com/tmp",
 				"dir:/var/log/tpan/sites/shop.example.com",
+				// M14 (lỗ L6): access.log và error.log tạo sẵn với nhóm của
+				// site, trước khi vhost được ghi.
+				"owned-file:/var/log/tpan/sites/shop.example.com/access.log",
+				"owned-file:/var/log/tpan/sites/shop.example.com/error.log",
 				"owned-file:/var/log/tpan/sites/shop.example.com/php-error.log",
 				"mariadb.site-db:shop.example.com",
 				"file:/etc/php/8.3/fpm/pool.d/" + l.Pool + ".conf",

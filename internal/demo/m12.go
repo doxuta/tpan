@@ -262,6 +262,8 @@ func (x *m12) install(c system.Cmd) system.Result {
 			continue
 		}
 		x.SetDir(dir, 0o755, rootOwner)
+		// M14: conf.d của gói, chỗ bước PHPHardeningINI ghi 99-tpan.ini.
+		x.SetDir("/etc/php/"+v+"/fpm/conf.d", 0o755, rootOwner)
 		x.SetFile(dir+"/www.conf", []byte("[www]\nuser = www-data\ngroup = www-data\nlisten = /run/php/php"+v+"-fpm.sock\npm = dynamic\npm.max_children = 5\n"), 0o644, rootOwner)
 		x.SetFile("/usr/sbin/php-fpm"+v, []byte("ELF php-fpm giả\n"), 0o755, rootOwner)
 		x.setUnit("php"+v+"-fpm", true)

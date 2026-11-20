@@ -417,9 +417,76 @@ func TestSiteDirs(t *testing.T) {
 		for _, s := range SiteDirs(l) {
 			ids = append(ids, s.Info().ID)
 		}
-		want := []string{"dir:" + l.Dir, "dir:" + l.Public, "dir:" + l.Tmp, "dir:" + l.LogDir, "owned-file:" + l.PHPErrorLog}
+		want := []string{
+			"dir:" + l.Dir, "dir:" + l.Public, "dir:" + l.Tmp,
+			"dir:" + l.LogDir, "owned-file:" + l.AccessLog, "owned-file:" + l.ErrorLog, "owned-file:" + l.PHPErrorLog,
+		}
 		if !reflect.DeepEqual(ids, want) {
 			t.Errorf("thứ tự %v, muốn %v", ids, want)
+		}
+	})
+
+	t.Run("SiteLogs là đúng bốn bước log ở cuối SiteDirs", func(t *testing.T) {
+		var ids []string
+		for _, s := range SiteLogs(l) {
+			ids = append(ids, s.Info().ID)
+		}
+		want := []string{"dir:" + l.LogDir, "owned-file:" + l.AccessLog, "owned-file:" + l.ErrorLog, "owned-file:" + l.PHPErrorLog}
+		if !reflect.DeepEqual(ids, want) {
+			t.Errorf("thứ tự %v, muốn %v", ids, want)
+		}
+	})
+
+	// Site có từ trước M14: thư mục log root:root 0755, access.log và error.log
+	// do web server tự tạo với 0644 và đã có nội dung. SiteLogs siết quyền mà
+	// không mất dòng log nào; Undo trả đúng quyền cũ.
+	t.Run("SiteLogs trên site cũ: siết quyền, giữ nội dung, Undo về như cũ", func(t *testing.T) {
+		m := userMachine(t)
+		m.SetDir(l.LogDir, 0o755, system.Root)
+		m.SetFile(l.AccessLog, []byte("192.0.2.1 - - GET /\n"), 0o644, system.Root)
+		m.SetFile(l.ErrorLog, []byte("lỗi cũ\n"), 0o644, system.Root)
+		m.SetFile(l.PHPErrorLog, []byte("PHP Warning\n"), 0o640, own)
+		before := m.whole()
+
+		ss := SiteLogs(l)
+		for _, s := range ss {
+			done, err := s.Check(ctx, m)
+			if err != nil {
+				t.Fatalf("Check %s: %v", s.Info().ID, err)
+			}
+			if done != (s.Info().ID == "owned-file:"+l.PHPErrorLog) {
+				t.Errorf("Check %s = %v trên site cũ", s.Info().ID, done)
+			}
+			if !done {
+				if err := s.Apply(ctx, m); err != nil {
+					t.Fatalf("Apply %s: %v", s.Info().ID, err)
+				}
+			}
+		}
+		grp := system.Owner{User: "root", Group: l.User}
+		snap := m.Snapshot()
+		want := map[string]system.FakeEntry{
+			l.LogDir:      {Mode: fs.ModeDir | 0o750, Owner: grp},
+			l.AccessLog:   {Mode: 0o640, Owner: grp, Data: "192.0.2.1 - - GET /\n"},
+			l.ErrorLog:    {Mode: 0o640, Owner: grp, Data: "lỗi cũ\n"},
+			l.PHPErrorLog: {Mode: 0o640, Owner: own, Data: "PHP Warning\n"},
+		}
+		for p, w := range want {
+			if got := snap[p]; got != w {
+				t.Errorf("%s = %+v, muốn %+v", p, got, w)
+			}
+		}
+		if len(m.Ran()) != 0 {
+			t.Errorf("SiteLogs chạy lệnh: %v", ranStrings(m.Ran()))
+		}
+
+		for _, s := range slices.Backward(ss[:3]) {
+			if err := s.Undo(ctx, m); err != nil {
+				t.Fatalf("Undo %s: %v", s.Info().ID, err)
+			}
+		}
+		if !reflect.DeepEqual(before, m.whole()) {
+			t.Errorf("sau Undo máy khác trước:\n%v\n%v", before, m.whole())
 		}
 	})
 
@@ -430,10 +497,13 @@ func TestSiteDirs(t *testing.T) {
 		}
 		snap := m.Snapshot()
 		want := map[string]system.FakeEntry{
-			l.Dir:         {Mode: fs.ModeDir | fs.ModeSetgid | 0o750, Owner: web},
-			l.Public:      {Mode: fs.ModeDir | fs.ModeSetgid | 0o750, Owner: web},
-			l.Tmp:         {Mode: fs.ModeDir | 0o700, Owner: own},
-			l.LogDir:      {Mode: fs.ModeDir | 0o755, Owner: system.Root},
+			l.Dir:    {Mode: fs.ModeDir | fs.ModeSetgid | 0o750, Owner: web},
+			l.Public: {Mode: fs.ModeDir | fs.ModeSetgid | 0o750, Owner: web},
+			l.Tmp:    {Mode: fs.ModeDir | 0o700, Owner: own},
+			// M14 (lỗ L6): log theo nhóm riêng của site, "khác" không có quyền gì.
+			l.LogDir:      {Mode: fs.ModeDir | 0o750, Owner: system.Owner{User: "root", Group: l.User}},
+			l.AccessLog:   {Mode: 0o640, Owner: system.Owner{User: "root", Group: l.User}},
+			l.ErrorLog:    {Mode: 0o640, Owner: system.Owner{User: "root", Group: l.User}},
 			l.PHPErrorLog: {Mode: 0o640, Owner: own},
 		}
 		for p, w := range want {

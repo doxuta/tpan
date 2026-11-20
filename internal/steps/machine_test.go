@@ -20,10 +20,14 @@ import (
 type machine struct {
 	*system.FakeSystem
 
-	mu      sync.Mutex
-	pkgs    map[string]bool
-	units   map[string]unitState
-	mods    map[string]bool
+	mu    sync.Mutex
+	pkgs  map[string]bool
+	units map[string]unitState
+	mods  map[string]bool
+	// procs là ProtectProc mà systemd đang giữ cho từng dịch vụ, đọc từ drop-in
+	// tpan.conf ở lần daemon-reload gần nhất (M14). Nằm trong state() để test
+	// Undo thấy được "gỡ file mà quên daemon-reload".
+	procs   map[string]string
 	db      dbState
 	phar    []byte // nội dung curl "tải" về
 	updates int
@@ -44,6 +48,7 @@ func newMachine(t *testing.T) *machine {
 		pkgs:       map[string]bool{},
 		units:      map[string]unitState{},
 		mods:       map[string]bool{},
+		procs:      map[string]string{},
 		phar:       fakePhar,
 	}
 	ok := system.Result{}
@@ -111,6 +116,21 @@ func newMachine(t *testing.T) *machine {
 		return ok
 	})
 
+	m.Handle([]string{"systemctl", "daemon-reload"}, func(system.Cmd) system.Result {
+		m.daemonReload()
+		return ok
+	})
+	// Dạng lệnh: systemctl show <unit> -p ProtectProc --value. Chưa đặt thì
+	// in "default".
+	m.Handle([]string{"systemctl", "show"}, func(c system.Cmd) system.Result {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if v, found := m.procs[c.Args[1]]; found {
+			return exit(0, v+"\n", "")
+		}
+		return exit(0, "default\n", "")
+	})
+
 	m.Handle([]string{"a2query", "-m"}, func(c system.Cmd) system.Result {
 		m.mu.Lock()
 		defer m.mu.Unlock()
@@ -168,6 +188,29 @@ func newMachine(t *testing.T) *machine {
 	return m
 }
 
+// daemonReload làm việc của `systemctl daemon-reload` cho phần máy giả quan
+// tâm: đọc lại ProtectProc từ mọi drop-in <unit>.service.d/tpan.conf đang có.
+// Cũng dùng trong setup của test để máy giả bắt đầu ở trạng thái "systemd đã
+// đọc các file đặt sẵn".
+func (m *machine) daemonReload() {
+	const dir, tail = "/etc/systemd/system/", ".service.d/tpan.conf"
+	procs := map[string]string{}
+	for p, e := range m.Snapshot() {
+		unit, isDropIn := strings.CutSuffix(strings.TrimPrefix(p, dir), tail)
+		if !strings.HasPrefix(p, dir) || !isDropIn {
+			continue
+		}
+		for _, line := range strings.Split(e.Data, "\n") {
+			if v, found := strings.CutPrefix(line, "ProtectProc="); found {
+				procs[unit] = v
+			}
+		}
+	}
+	m.mu.Lock()
+	m.procs = procs
+	m.mu.Unlock()
+}
+
 // fakePhar là nội dung curl giả "tải" về.
 var fakePhar = []byte("<?php // wp-cli giả\n")
 
@@ -182,7 +225,7 @@ func b2i(b bool) int {
 func (m *machine) state() any {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return []any{maps.Clone(m.pkgs), maps.Clone(m.units), maps.Clone(m.mods), m.db}
+	return []any{maps.Clone(m.pkgs), maps.Clone(m.units), maps.Clone(m.mods), maps.Clone(m.procs), m.db}
 }
 
 // whole là hệ thống file giả cộng trạng thái dịch vụ, để so trước và sau Undo.
@@ -202,7 +245,7 @@ func readOnly(c system.Cmd) bool {
 	case "dpkg-query", "a2query":
 		return true
 	case "systemctl":
-		return c.Args[0] == "is-active" || c.Args[0] == "is-enabled"
+		return c.Args[0] == "is-active" || c.Args[0] == "is-enabled" || c.Args[0] == "show"
 	case "mariadb":
 		return string(c.Stdin) == mariadbStateSQL
 	}

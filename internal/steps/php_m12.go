@@ -196,14 +196,11 @@ func (s *PHPIdlePool) Undo(ctx context.Context, sys system.System) error {
 
 // phpReloadIfActive chỉ reload khi php<v>-fpm đang chạy: reload một dịch vụ
 // đang tắt thì systemctl lỗi, mà bước này không có việc bật dịch vụ.
-// is-active trả mã khác 0 cho "không chạy" (xem Service.state).
+// Câu hỏi "đang chạy không" nằm ở phpActive (harden_m14.go).
 func phpReloadIfActive(ctx context.Context, sys system.System, v string, reload *system.Cmd, what string) error {
-	unit := "php" + v + "-fpm"
-	if _, err := sys.Run(ctx, system.Cmd{Name: "systemctl", Args: []string{"is-active", unit}}); err != nil {
-		if _, ok := isExit(err); ok {
-			return nil
-		}
-		return fmt.Errorf("hỏi systemd trạng thái %s: %w", unit, err)
+	active, err := phpActive(ctx, sys, v)
+	if err != nil || !active {
+		return err
 	}
 	return runReload(ctx, sys, reload, what)
 }

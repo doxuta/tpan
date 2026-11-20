@@ -266,20 +266,52 @@ func (s *SiteUserAbsent) Undo(context.Context, system.System) error { return nil
 // ================================================================== SiteDirs
 
 // SiteDirs trả các bước dựng thư mục của site theo mục 5, đúng thứ tự: thư mục
-// cha trước thư mục con, thư mục log trước file log.
+// cha trước thư mục con, thư mục log trước file log (SiteLogs).
 func SiteDirs(l site.Layout) []engine.Step {
 	web := system.Owner{User: l.User, Group: site.WebGroup}
 	own := system.Owner{User: l.User, Group: l.User}
-	return []engine.Step{
+	return append([]engine.Step{
 		// 2750: web server đọc qua nhóm www-data; setgid để file PHP tạo ra
 		// (ảnh tải lên) mang nhóm www-data; "khác" không có quyền gì.
 		&Dir{Path: l.Dir, Perm: fs.ModeSetgid | 0o750, Owner: web},
 		&Dir{Path: l.Public, Perm: fs.ModeSetgid | 0o750, Owner: web},
 		// Upload tạm và session PHP: chỉ user của site, web server cũng không đọc.
 		&Dir{Path: l.Tmp, Perm: 0o700, Owner: own},
-		// Thư mục log thuộc root để logrotate không phải đổi tên file trong
-		// thư mục do user của site kiểm soát (mục 5).
-		&Dir{Path: l.LogDir, Perm: 0o755, Owner: system.Root},
+	}, SiteLogs(l)...)
+}
+
+// SiteLogs trả các bước quyền log của site (lỗ L6, mục 6.13), đúng thứ tự:
+// thư mục log rồi ba file log. Dùng trong SiteDirs (site mới) và trong Plan
+// "Áp bản vá cô lập" (site có từ trước M14).
+//
+// Trước M14 thư mục log là root:root 0755 và web server tự tạo access.log,
+// error.log với 0644: user của site nào cũng đọc được log của site khác (IP
+// khách, URL kèm tham số). Giờ:
+//
+//   - Thư mục root:<nhóm của site> 0750. Nhóm là nhóm riêng của user site
+//     (useradd --user-group tạo cùng tên), nên site đọc được log của chính nó,
+//     site khác thì không vào được thư mục. Chủ vẫn là root để logrotate không
+//     phải đổi tên file trong thư mục do user của site kiểm soát (user đó có
+//     thể đặt symlink để lừa root ghi đè file khác).
+//   - access.log, error.log root:<nhóm của site> 0640, tạo sẵn (rỗng) TRƯỚC
+//     khi vhost được ghi: web server mở file có sẵn và giữ nguyên quyền; để nó
+//     tự tạo thì file ra 0644. Tiến trình chính của web server chạy bằng root
+//     nên vẫn ghi được.
+//   - php-error.log như cũ: thuộc user của site để PHP ghi được.
+//
+// OwnedFile giữ nguyên nội dung file đã có, chỉ sửa quyền và chủ, nên chạy
+// trên site đang có log thì không mất dòng nào.
+func SiteLogs(l site.Layout) []engine.Step {
+	grp := system.Owner{User: "root", Group: l.User}
+	own := system.Owner{User: l.User, Group: l.User}
+	webWhy := i18n.T(
+		"Web server ghi log truy cập và log lỗi của site vào file này. Để web server tự tạo thì file ra quyền 0644 và user của mọi site khác đọc được (IP khách, URL kèm tham số); tạo sẵn với nhóm của site và quyền 0640 thì chỉ root và chính site đó đọc được.",
+		"The web server writes the site's access and error log to this file. If the web server creates it, the file gets mode 0644 and every other site's user can read it (visitor IPs, URLs with their parameters); created in advance with the site's group and mode 0640, only root and the site itself can read it.",
+	)
+	return []engine.Step{
+		&Dir{Path: l.LogDir, Perm: 0o750, Owner: grp},
+		&OwnedFile{Path: l.AccessLog, Perm: 0o640, Owner: grp, Why: webWhy},
+		&OwnedFile{Path: l.ErrorLog, Perm: 0o640, Owner: grp, Why: webWhy},
 		&OwnedFile{Path: l.PHPErrorLog, Perm: 0o640, Owner: own},
 	}
 }
@@ -287,12 +319,14 @@ func SiteDirs(l site.Layout) []engine.Step {
 // ================================================================= OwnedFile
 
 // OwnedFile đảm bảo một file có, đúng quyền và chủ, không quan tâm nội dung.
-// Dùng cho file log mà chương trình khác ghi (php-error.log): File của M1 so
-// nội dung nên sẽ ghi đè log.
+// Dùng cho file log mà chương trình khác ghi (php-error.log, và từ M14 là
+// access.log, error.log): File của M1 so nội dung nên sẽ ghi đè log.
 type OwnedFile struct {
 	Path  string
 	Perm  fs.FileMode
 	Owner system.Owner
+	// Why rỗng thì dùng câu nói về file log do PHP ghi (cách dùng trước M14).
+	Why i18n.Text
 
 	created   bool
 	prevPerm  fs.FileMode
@@ -307,10 +341,10 @@ func (s *OwnedFile) Info() engine.StepInfo {
 	return engine.StepInfo{
 		ID:    "owned-file:" + s.Path,
 		Title: i18n.T("Tạo "+s.Path+" với đúng quyền và chủ", "Create "+s.Path+" with the right mode and owner"),
-		Why: i18n.T(
+		Why: orText(s.Why, i18n.T(
 			"Chương trình chạy dưới user của site (PHP) ghi vào file này nhưng không được tạo file trong thư mục của root. Thiếu file hoặc sai chủ thì lỗi PHP không được ghi lại, lúc site hỏng không có gì để xem.",
 			"A program running as the site's user (PHP) writes to this file but may not create files in root's directory. If the file is missing or has the wrong owner, PHP errors are lost and there is nothing to read when the site breaks.",
-		),
+		)),
 	}
 }
 

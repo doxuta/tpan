@@ -305,9 +305,17 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 	// tpan-idle.conf không vào sổ file tpan quản lý (health không báo được nó bị
 	// sửa tay; phép kiểm php.www_pool vẫn thấy nó có hay không). Nâng cấp: engine
 	// gọi lại Info() của bước vừa Apply trước khi RecordFile.
+	//
+	// M14 (mục 6.13): ngay sau đó là hai file cô lập của bản PHP này, cùng con
+	// trỏ php: file ini của OPcache (lỗ L1, L2; chỉ reload) rồi drop-in
+	// ProtectProc (lỗ L7; restart, lúc này chưa có site nào nên không ai bị
+	// ngắt). Cùng giới hạn về sổ file như trên; phép kiểm php.opcache so nội
+	// dung file ini nên vẫn thấy nó bị sửa tay.
 	ss = append(ss,
 		&steps.DetectPHP{Result: detected},
 		&steps.PHPIdlePool{Version: php, Render: templates.PHPIdlePool},
+		&steps.PHPHardeningINI{Version: php},
+		&steps.PHPProtectProc{Version: php},
 	)
 
 	// Bước 5: thư mục trạng thái và webroot ACME, rồi site mặc định. 0755 để

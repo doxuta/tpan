@@ -220,7 +220,8 @@ func TestPHPInstallPlan(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := []string{"apt.update:lists", pkgs("8.3"), "php.idle:8.3", "service:php8.3-fpm"}
+		// M14: hai bước cô lập đứng sau pool tpan-idle, trước bước Service.
+		want := []string{"apt.update:lists", pkgs("8.3"), "php.idle:8.3", "php.harden.opcache:8.3", "php.harden.proc:8.3", "service:php8.3-fpm"}
 		if got := stepIDs(pl.Plan); !reflect.DeepEqual(got, want) {
 			t.Errorf("bước = %q; muốn %q", got, want)
 		}
@@ -236,7 +237,7 @@ func TestPHPInstallPlan(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := []string{"apt.repo:sury", "hosts.block:" + suryTelemetryHost, pkgs("8.4"), "php.idle:8.4", "service:php8.4-fpm"}
+		want := []string{"apt.repo:sury", "hosts.block:" + suryTelemetryHost, pkgs("8.4"), "php.idle:8.4", "php.harden.opcache:8.4", "php.harden.proc:8.4", "service:php8.4-fpm"}
 		if got := stepIDs(pl.Plan); !reflect.DeepEqual(got, want) {
 			t.Errorf("bước = %q; muốn %q", got, want)
 		}

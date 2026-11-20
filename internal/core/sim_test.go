@@ -135,6 +135,17 @@ func newSim(t *testing.T) *sim {
 		m.units[unit] = u
 		return ok
 	})
+	// M14: `systemctl show <unit> -p ProtectProc --value` (bước
+	// steps.PHPProtectProc và phép kiểm php.protectproc). Máy giả trả lời theo
+	// drop-in tpan.conf đang có trên đĩa; chưa đặt thì "default". Phần "phải
+	// daemon-reload thì systemd mới đọc" đã có test ở gói steps.
+	m.Handle([]string{"systemctl", "show"}, func(c system.Cmd) system.Result {
+		b, _ := m.ReadFile("/etc/systemd/system/" + c.Args[1] + ".service.d/tpan.conf")
+		if strings.Contains(string(b), "\nProtectProc=invisible\n") {
+			return exit(0, "invisible\n", "")
+		}
+		return exit(0, "default\n", "")
+	})
 
 	m.Handle([]string{"a2query", "-m"}, func(c system.Cmd) system.Result {
 		m.mu.Lock()
@@ -211,6 +222,10 @@ func (m *sim) install(p string) {
 	switch p {
 	case "php-fpm":
 		m.SetDir("/etc/php/8.3/fpm/pool.d", 0o755, system.Root)
+		// M14: conf.d của gói (chỗ ghi 99-tpan.ini) và thư mục unit của
+		// systemd (chỗ đặt drop-in), máy Ubuntu nào cũng có.
+		m.SetDir("/etc/php/8.3/fpm/conf.d", 0o755, system.Root)
+		m.SetDir("/etc/systemd/system", 0o755, system.Root)
 		m.units["php8.3-fpm"] = on
 	case "mariadb-server":
 		m.SetDir("/etc/mysql/mariadb.conf.d", 0o755, system.Root)
@@ -235,7 +250,7 @@ func readOnly(c system.Cmd) bool {
 	case "dpkg-query", "a2query", "ss":
 		return true
 	case "systemctl":
-		return c.Args[0] == "is-active" || c.Args[0] == "is-enabled"
+		return c.Args[0] == "is-active" || c.Args[0] == "is-enabled" || c.Args[0] == "show"
 	case "mariadb":
 		return strings.HasPrefix(strings.TrimSpace(string(c.Stdin)), "SELECT")
 	}

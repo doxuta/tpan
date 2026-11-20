@@ -11,6 +11,7 @@ import (
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/templates"
 )
 
 const osReleaseNoble = "NAME=\"Ubuntu\"\nID=ubuntu\nVERSION_ID=\"24.04\"\nVERSION_CODENAME=noble\n"
@@ -212,6 +213,42 @@ func TestStackInstallIdlePool(t *testing.T) {
 	}
 	if r := checkByID(rep.Checks, "php.www_pool:8.3"); r == nil || r.Status != checks.Pass {
 		t.Errorf("kiểm chứng php.www_pool:8.3 = %+v", r)
+	}
+}
+
+// M14 (mục 6.13): cài stack ghi file ini OPcache và drop-in ProtectProc của
+// bản PHP vừa dò được, rồi restart PHP-FPM sau daemon-reload (drop-in chỉ có
+// hiệu lực với dịch vụ khởi động sau khi systemd đọc nó).
+func TestStackInstallHardening(t *testing.T) {
+	s, m, _ := newTestStack(t)
+	in, err := s.PrepareInstall(ctx, Nginx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep, err := in.Execute(ctx, nil)
+	if err != nil || rep.Job.Status != engine.JobSucceeded {
+		t.Fatalf("Execute: %v %s %s", err, rep.Job.Status, rep.Job.Error)
+	}
+	for p, want := range map[string][]byte{
+		templates.PHPHardeningINIPath("8.3"): templates.PHPHardeningINI(),
+		templates.PHPDropInPath("8.3"):       templates.PHPDropIn(),
+	} {
+		if got, err := m.ReadFile(p); err != nil || string(got) != string(want) {
+			t.Errorf("%s: %v\n%s", p, err, got)
+		}
+	}
+	var ran []string
+	for _, c := range m.Ran() {
+		ran = append(ran, c.String())
+	}
+	reload, restart := slices.Index(ran, "systemctl daemon-reload"), slices.Index(ran, "systemctl restart php8.3-fpm")
+	if reload < 0 || restart < reload {
+		t.Errorf("daemon-reload ở %d, restart php8.3-fpm ở %d; muốn restart sau daemon-reload", reload, restart)
+	}
+	// Hai bước mới đứng ngay sau pool tpan-idle và dùng đúng bản đã dò.
+	ids := stepIDs(in.Plan)
+	if i := slices.Index(ids, "php.idle:8.3"); i < 0 || !slices.Equal(ids[i+1:i+3], []string{"php.harden.opcache:8.3", "php.harden.proc:8.3"}) {
+		t.Errorf("thứ tự bước sau khi dò bản PHP: %q", ids)
 	}
 }
 

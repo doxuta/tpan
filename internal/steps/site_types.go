@@ -35,8 +35,10 @@ package steps
 //	//   Dir{l.Dir,    2750, l.User:www-data}
 //	//   Dir{l.Public, 2750, l.User:www-data}
 //	//   Dir{l.Tmp,    0700, l.User:l.User}
-//	//   Dir{l.LogDir, 0755, root:root}
-//	//   OwnedFile{l.PHPErrorLog, 0640, l.User:l.User}
+//	//   rồi các bước của SiteLogs (M14, m14_types.go): thư mục log
+//	//   root:l.User 0750, access.log và error.log root:l.User 0640,
+//	//   php-error.log l.User:l.User 0640. Trước M14 thư mục log là root:root
+//	//   0755 và chỉ php-error.log được tạo sẵn.
 //	// (2750 là fs.ModeSetgid|0o750.) Dùng lại steps.Dir của M1.
 //	func SiteDirs(l site.Layout) []engine.Step
 //

@@ -12,7 +12,8 @@ package core
 //     /etc/hosts (suryTelemetryHost trong repos.go).
 //  2. AptInstall php<bản>-fpm và đúng bộ extension ở mục 3 (php<bản>-cli,
 //     -mysql, -curl, -gd, -mbstring, -xml, -zip, -intl).
-//  3. steps.PHPIdlePool cho bản đó (gỡ pool www của gói, thêm tpan-idle).
+//  3. steps.PHPIdlePool cho bản đó (gỡ pool www của gói, thêm tpan-idle), rồi
+//     steps.PHPHardening (M14, mục 6.13: file ini OPcache, drop-in ProtectProc).
 //  4. Service php<bản>-fpm.
 //  Kiểm chứng: dịch vụ php<bản>-fpm active, `php-fpm<bản> -t`,
 //  checks.PHPPoolWWWAbsent(bản). Từ chối php_version_invalid (không dạng 8.3),
@@ -177,11 +178,22 @@ func (p *PHP) PrepareInstall(ctx context.Context, version string) (*Planned, err
 	}
 	v := version
 	unit := "php" + v + "-fpm"
+	// M14 (mục 6.13): file ini OPcache và drop-in ProtectProc của bản mới, để
+	// site đầu tiên chuyển sang bản này đã được cô lập như ở bản mặc định.
+	// Đứng TRƯỚC bước Service: gói vừa cài thường đã tự chạy dịch vụ, khi đó
+	// bước drop-in restart nó (chưa site nào dùng bản này nên không ai bị ngắt);
+	// còn nếu dịch vụ chưa chạy thì bước Service khởi động nó khi systemd đã
+	// đọc drop-in. Cả hai đường, xong Plan là dịch vụ chạy với ProtectProc.
+	harden, err := steps.PHPHardening(v)
+	if err != nil {
+		return nil, fmt.Errorf("dựng Plan cài PHP %s: %w", v, err)
+	}
 	ss = append(ss,
 		&steps.AptInstall{Packages: pkgs},
 		&steps.PHPIdlePool{Version: &v, Render: templates.PHPIdlePool},
-		&steps.Service{Unit: unit},
 	)
+	ss = append(ss, harden...)
+	ss = append(ss, &steps.Service{Unit: unit})
 	plan := engine.Plan{
 		Kind:   "php.install",
 		Target: version,
