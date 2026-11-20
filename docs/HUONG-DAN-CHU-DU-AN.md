@@ -631,6 +631,44 @@ curl -s -o /dev/null -w '%{http_code}\n' --resolve thu.<domain>:80:127.0.0.1 htt
 
 Ra `403`. Mở lại bằng `sudo tpan site unsuspend thu.<domain> --yes`, chạy lại `curl` ra `200`. Khoá cả user: `sudo tpan user suspend khach_thu --yes` (cửa sổ ẩn danh bị đăng xuất, site ra 403), `sudo tpan user unsuspend khach_thu --yes`. Dọn: `sudo tpan user trash-all khach_thu --yes`, `sudo tpan trash purge thu.<domain> --yes`, `sudo tpan user rm khach_thu --yes`, `sudo tpan package rm thu --yes`.
 
+### 3.10a. Sau khi nâng lên bản có M14: áp bản vá cô lập
+
+Bản M14 siết cô lập giữa các site (mục 6.13 của `docs/KE-HOACH.md`). Site tạo bằng bản mới có sẵn mọi thứ. Site có từ trước thì chưa: vhost của nó thiếu dòng chặn, thư mục log còn mở, PHP-FPM chưa có file ini và drop-in mới. Vì vậy **việc đầu tiên sau `tpan self-update` là chạy harden**. Cho tới lúc đó, `tpan health` báo lỗi `php.opcache`, `log.perm`, `web.hardened`, và mọi thao tác trên site cũ (đổi bản PHP, khôi phục backup, tạo site mới cạnh site cũ) bị hoàn tác ở bước kiểm chứng; đó là thiết kế, không phải hỏng. Đường này đã chạy thật trên máy ảo từ v0.1.2, cả nginx lẫn Apache (`docs/bang-chung/M14-nang-cap.log`).
+
+Xem trước: lệnh in từng bước, và với stack Apache thì in site nào sẽ chuyển sang chế độ `.htaccess` `an-toan`, site nào bị giữ ở `day-du` kèm đúng dòng `.htaccess` gây vướng.
+
+```bash
+sudo tpan security harden --dry-run
+```
+
+Có một bước ghi "NGUY HIỂM": khởi động lại PHP-FPM, request PHP đang chạy bị ngắt khoảng một giây. Chạy thật:
+
+```bash
+sudo tpan security harden --yes
+```
+
+Kiểm:
+
+```bash
+sudo tpan health
+```
+
+Không còn dòng `[lỗi]` nào của ba loại trên. Trên Apache, site bị giữ `day-du` còn một dòng `[cảnh báo]` về `.htaccess`: site đó vẫn ghi được cấu hình Apache, nên nếu bị chiếm nó còn lấn được sang site khác. Muốn đóng: sửa dòng `.htaccess` mà bản xem trước đã chỉ, rồi
+
+```bash
+sudo tpan site set <domain> --htaccess an-toan
+```
+
+Xem một request tới site đi đường nào, kèm lệnh và output của từng chặng (dùng được khi người review hỏi "sao request không đi nhầm site"):
+
+```bash
+sudo tpan route explain <domain> --evidence
+```
+
+Trên panel: màn Bảo mật có khối "Cô lập giữa các site" (ma trận site × site, nút "Áp bản vá cô lập"); trang site có nút "Request tới site này đi đường nào". Hai chỗ này chưa ai xem bằng mắt: xem theo mục 1 (`make dev-api` + `make dev-web`).
+
+Không chạy `scripts/e2e-m14/tan-cong.sh` trên VPS: bộ phép thử tấn công chỉ dành cho máy ảo test.
+
 ### 3.11. Gửi lại cho mình
 
 Dừng ghi (`exit`), che tên miền và IP như ở 3.0, rồi gửi file `~/tpan-vps-che.log` (lấy về Mac bằng `scp <user>@<IP>:tpan-vps-che.log .`). Mình đọc, đối chiếu với kết quả máy ảo, ghi vào `docs/bang-chung/` và đánh dấu các tiêu chí còn treo (chứng chỉ staging M5, `install.sh` trên amd64 M11).
