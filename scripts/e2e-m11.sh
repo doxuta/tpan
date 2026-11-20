@@ -285,11 +285,13 @@ health_check() {
   printf 'Số phép kiểm: %s; không pass: %s\n' "$(jq '[.groups[].results[]] | length' <<<"$HJ" 2>/dev/null)" "$(jq '[.groups[].results[] | select(.status != "pass")] | length' <<<"$HJ" 2>/dev/null)"
 }
 # health_all_pass: mọi phép kiểm (kể cả nhóm tpan: đã chạy tpan setup) đều pass.
-health_all_pass() { jq -e '([.groups[].results[]] | length) > 0 and ([.groups[].results[] | select(.status != "pass")] | length == 0)' <<<"$HJ" >/dev/null 2>&1; }
+# Cảnh báo DNS (dns.a) và TLS (tls.cert) là có chủ ý trên máy ảo: tên miền thử
+# không có bản ghi A thật, site chưa xin SSL (mục 6.7).
+health_all_pass() { jq -e '([.groups[].results[]] | length) > 0 and ([.groups[].results[] | select(.status != "pass" and ((.status == "warn" and (.id | test("^(dns[.]a|tls[.]cert):"))) | not))] | length == 0)' <<<"$HJ" >/dev/null 2>&1; }
 # health_fresh_pass: như trên, trừ đúng một ngoại lệ có chủ ý trên máy mới cài:
 # tpan.backup:db là warn "chưa có bản sao lưu tpan.db nào" (internal/checks/m9.go:
 # máy mới cài chưa sao lưu lần nào là tình trạng có thật). Không có Fail nào.
-health_fresh_pass() { jq -e '([.groups[].results[]] | length) > 0 and ([.groups[].results[] | select(.status != "pass") | "\(.id) \(.status)"] - ["tpan.backup:db warn"] | length == 0)' <<<"$HJ" >/dev/null 2>&1; }
+health_fresh_pass() { jq -e '([.groups[].results[]] | length) > 0 and ([.groups[].results[] | select(.status != "pass" and ((.status == "warn" and (.id | test("^(dns[.]a|tls[.]cert):"))) | not)) | "\(.id) \(.status)"] - ["tpan.backup:db warn"] | length == 0)' <<<"$HJ" >/dev/null 2>&1; }
 health_has_group() { jq -e --arg g "$1" '[.groups[] | select(.target == $g) | .results[]] | length > 0' <<<"$HJ" >/dev/null 2>&1; }
 
 # service_checks <web unit>: tpan.service và stack đang chạy.
