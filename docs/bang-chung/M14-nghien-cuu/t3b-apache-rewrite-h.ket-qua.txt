@@ -1,0 +1,8 @@
+## Chưa chặn (vhost gốc của TPAN): RewriteRule [H=socket B, E=PHP_ADMIN_VALUE]
+  GET A/qua.php -> File not found. 
+## Đã chặn: thêm 2 dòng gỡ biến vào vhost (chưa cần danh sách cho phép)
+Syntax OK
+  GET A/qua.php -> HTTP 404 | thân: File not found. 
+  trang chủ B: <!DOCTYPE html> <html lang="en-US"> <hea
+Syntax OK
+đã trả về

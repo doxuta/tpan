@@ -1,0 +1,57 @@
+## 0. Môi trường
+Server version: Apache/2.4.58 (Ubuntu)
+PHP 8.3.6 (cli) (built: Nov 18 2026 23:42:07) (NTS)
+tpan v0.1.2 (commit d6675d0, build 2026-11-20T09:01:34Z)
+site A: a.example.com user=tp_a_example_com_7653e4 | site B: b.example.com user=tp_b_example_com_cd59d5 | socket B: /run/php/tpan-b_example_com_cd59d5-8.3.sock
+drwxr-s--- 4 tp_a_example_com_7653e4 www-data 4096 Nov 20 16:43 /var/www/a.example.com
+drwxr-s--- 5 tp_a_example_com_7653e4 www-data 4096 Nov 20 16:43 /var/www/a.example.com/public
+-rw------- 1 tp_b_example_com_cd59d5 www-data 3480 Nov 20 16:43 /var/www/b.example.com/public/wp-config.php
+
+## 1. Nền: user A chạm thẳng vào site B (mong đợi: cả ba bị từ chối)
+cat: /var/www/b.example.com/public/wp-config.php: Permission denied
+  đọc wp-config của B: mã 1
+ls: cannot open directory '/var/www/b.example.com': Permission denied
+  liệt kê thư mục B: mã 2
+touch: cannot touch '/var/www/b.example.com/public/x-cua-a': Permission denied
+  ghi vào public của B: mã 1
+
+## 2. Log của site B
+total 4
+-rw-r--r-- 1 root                    root                    342 Nov 20 16:43 access.log
+-rw-r--r-- 1 root                    root                      0 Nov 20 16:43 error.log
+-rw-r----- 1 tp_b_example_com_cd59d5 tp_b_example_com_cd59d5   0 Nov 20 16:43 php-error.log
+  user A đọc access.log của B: mã 0 (0 = đọc được)
+
+## 3. /proc
+rw,nosuid,nodev,noexec,relatime
+  user A thấy tiến trình của các user:
+    111 root
+      4 ubuntu
+      3 www-data
+      1 tp_a_example_com_7653e4
+      1 systemd-timesync
+      1 systemd-resolve
+
+## 4. Cấu hình và socket
+  user A đọc file pool của B: mã 0 (0 = đọc được)
+  user A ghi được socket FPM của B: mã 1 (1 = không)
+
+## 5. Symlink qua Apache (TPAN đặt Options SymLinksIfOwnerMatch)
+  GET /lay.txt -> HTTP 403
+
+## 6. .htaccess của A tự nới open_basedir của chính pool A
+  trước: user=tp_a_example_com_7653e4 | open_basedir=/var/www/a.example.com/ | doc /etc/hostname: KHONG
+  sau khi thêm 1 dòng SetEnv vào .htaccess: user=tp_a_example_com_7653e4 | open_basedir=/ | doc /etc/hostname: CO
+
+## 7. .htaccess của A gửi request sang pool của B, kèm cấu hình PHP do A chọn
+  GET http://a.example.com/qua.php -> MA DO A VIET dang chay duoi user: tp_b_example_com_cd59d5 | doc duoc wp-config.php cua B: CO
+
+
+## 7b. A đã gỡ đoạn trên khỏi .htaccess. Khách vào trang chủ của B bây giờ nhận gì?
+  GET http://b.example.com/ -> MA DO A VIET dang chay duoi user: tp_b_example_com_cd59d5 | doc duoc wp-config.php cua B: CO
+
+  (cấu hình A bơm vào nằm lại trong tiến trình PHP của B cho tới khi tiến trình đó thoát)
+  sau khi khởi động lại PHP-FPM: GET http://b.example.com/ -> HTTP 200
+
+## 9. Dọn
+đã dọn

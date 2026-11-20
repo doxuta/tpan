@@ -1,0 +1,24 @@
+## 1. Dựng hai site giả: isoa và isob (2750, chủ <site>:www-data như TPAN)
+total 4
+-rw-r----- 1 isob www-data 30 Nov 20 16:29 config-plugin.php
+
+## 2. User của site A đọc thẳng file của site B (mong đợi: bị từ chối)
+cat: /srv/lab-iso/isob/public/config-plugin.php: Permission denied
+mã thoát: 1
+
+## 3. Site A (giả sử đã bị chiếm) tạo symlink trong thư mục của chính nó
+lrwxrwxrwx 1 isoa www-data 42 Nov 20 16:29 /srv/lab-iso/isoa/public/lay.txt -> /srv/lab-iso/isob/public/config-plugin.php
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+## 4. Gọi qua nginx KHÔNG có disable_symlinks (nginx chạy dưới www-data)
+API_KEY_CUA_SITE_B=bi-mat-123
+  <- HTTP 200
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+## 5. Gọi lại SAU KHI thêm: disable_symlinks if_not_owner from=$document_root;
+lay.txt     -> HTTP 403
+index.html  -> HTTP 200 (file thật của site A vẫn chạy)
+2026/11/20 16:29:08 [error] 239450#239450: *5 openat() "/srv/lab-iso/isoa/public/lay.txt" failed (40: Too many levels of symbolic links), client: 127.0.0.1, server: _, request: "GET /lay.txt HTTP/1.1", host: "127.0.0.1:8081"
+
+## 6. Dọn dẹp
+đã dọn

@@ -1,0 +1,30 @@
+## 0. Pool và dịch vụ
+tpan-a_example_com_7653e4.conf
+tpan-b_example_com_cd59d5.conf
+tpan-idle.conf
+ProtectProc=default
+6.8.0-147-generic
+systemd 255 (255.4-1ubuntu8.18)
+
+## 1. Thư mục log của B: root:<nhóm của B> 0750, file 0640
+  trước: drwxr-xr-x root:root /var/log/tpan/sites/b.example.com
+  trước: -rw-r--r-- root:root /var/log/tpan/sites/b.example.com/access.log
+  sau:   drwxr-x--- root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com
+  sau:   -rw-r----- root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log
+  nginx còn ghi access.log: 56 -> 57 dòng
+  user A đọc access.log của B: mã 1 (1 = bị từ chối)
+  user B đọc access.log của chính mình: mã 0
+  PHP của B còn ghi php-error.log: 1 dòng
+  logrotate chạy thử (không đổi gì): 6 dòng lỗi
+rotating pattern: /var/log/tpan/sites/*/access.log /var/log/tpan/sites/*/error.log  after 1 days (14 rotations)
+considering log /var/log/tpan/sites/a.example.com/error.log
+considering log /var/log/tpan/sites/b.example.com/error.log
+  sau khi xoay vòng thật: -rw-r----- www-data:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log
+  sau khi xoay vòng thật: -rw-r----- root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log.1
+  user A đọc access.log mới của B: mã 1
+
+## 2. reload (không restart) có nhận opcache.validate_permission không
+  sau reload: validate_permission=1
+
+## Trả về như cũ
+đã trả về

@@ -1,0 +1,44 @@
+## 0. Dịch vụ riêng của A: active
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+  WordPress của A qua dịch vụ riêng: HTTP 200 | của B (FPM chung): HTTP 200
+
+## 1. Site nhìn thấy gì qua lệnh shell
+ A (trong lồng):
+   user=tp_a_example_com_7653e4
+   ls /var/www: a.example.com
+   so tien trinh cua user khac nhin thay: 0
+   ghi duoc /etc/thu: KHONG
+   ls /tmp: []
+ B (FPM chung, như TPAN hiện nay):
+   user=tp_b_example_com_cd59d5
+   ls /var/www: a.example.com b.example.com html
+   so tien trinh cua user khac nhin thay: 119
+   ghi duoc /etc/thu: KHONG
+   ls /tmp: [bisect.sh snap-private-tmp systemd-private-43912196df4f42e2978a0a04aca25153-ModemManager.service-PGa7E6 systemd-private-43912196df4f42e2978a0a04aca25153-polkit.service-LjZwAX systemd-private-43912196df4f42e2978a0a04aca25153-systemd-logind.service-x8Xbk8]
+
+## 2. OPcache: A include wp-config.php của B (không bật validate_permission)
+  include wp-config.php cua B: khong lay duoc
+
+## 3. Trần RAM 200M: script cố cấp phát 400 MB
+  A (trong lồng): HTTP 502 | <html> <head><title>502 Bad Gateway</title></head> <body>
+  B (FPM chung):  HTTP 200 | da cap phat 400 MB 
+Nov 20 16:56:45 tpan-nc kernel: oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=/,mems_allowed=0,oom_memcg=/system.slice/tpan-nc-php-a.service,task_memcg=/system.slice/tpan-nc-php-a.servic
+Nov 20 16:56:45 tpan-nc kernel: Memory cgroup out of memory: Killed process 36292 (php-fpm8.3) total-vm:415760kB, anon-rss:177828kB, file-rss:12032kB, shmem-rss:640kB, UID:999 pgtables:608kB oom_score
+  WordPress của A sau đó: HTTP 200
+
+## 4. Trần CPU 50%: cùng một vòng lặp
+  A (trong lồng, CPUQuota=50%): 1.5 giay
+  B (FPM chung):                0.6 giay
+
+## 5. Tốn thêm bao nhiêu RAM cho một site
+MemoryCurrent=33173504 MemoryPeak=209715200 TasksCurrent=1 
+     31.7 MB  php-fpm: master process (/etc/php/8.3/fpm/php-fpm.conf)
+     31.7 MB  php-fpm: master process (/etc/tpan-nc/fpm-a.conf)
+
+## 6. Chạy lệnh cho site (WP-CLI, cron) trong cùng kiểu lồng bằng systemd-run
+  user=tp_a_example_com_7653e4 | ls /var/www: a.example.com  | tiến trình của user khác: 0
+  wp option get siteurl: http://a.example.com
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+  sau khi dọn: A HTTP 200, B HTTP 200

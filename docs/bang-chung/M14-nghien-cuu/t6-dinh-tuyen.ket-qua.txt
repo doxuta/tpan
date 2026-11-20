@@ -1,0 +1,51 @@
+## 1. Cùng một IP 127.0.0.1, chỉ đổi header Host
+  Host: a.example.com                -> HTTP 200, site A
+  Host: b.example.com                -> HTTP 200, site B
+  Host: A.EXAMPLE.COM                -> HTTP 200, site A
+  Host: a.example.com.               -> HTTP 200, site A
+  Host: a.example.com:80             -> HTTP 301, không ai
+  Host: www.a.example.com            -> HTTP 000, không ai
+  Host: khongco.vn                   -> HTTP 000, không ai
+  Host: 127.0.0.1                    -> HTTP 000, không ai
+  không gửi Host (HTTP/1.0): 0 byte trả về
+  (HTTP 000 = nginx đóng kết nối không trả gì, tức mã 444 trong vhost mặc định)
+
+## 2. Bảng định tuyến nginx đang dùng
+  tpan-a.example.com.conf: server_name a.example.com;
+  tpan-a.example.com.conf: root /var/www/a.example.com/public;
+  tpan-a.example.com.conf: root /var/lib/tpan/acme;
+  tpan-a.example.com.conf: fastcgi_pass unix:/run/php/tpan-a_example_com_7653e4-8.3.sock;
+  /etc/nginx/fastcgi_params: fastcgi_param  SERVER_NAME        $server_name;
+  tpan-b.example.com.conf: server_name b.example.com;
+  tpan-b.example.com.conf: root /var/www/b.example.com/public;
+  tpan-b.example.com.conf: root /var/lib/tpan/acme;
+  tpan-b.example.com.conf: fastcgi_pass unix:/run/php/tpan-b_example_com_cd59d5-8.3.sock;
+  tpan-default.conf: # Site mặc định của Nginx: hứng mọi request không khớp server_name của site nào.
+  tpan-default.conf: # default_server: server này nhận request khi không có server_name nào khớp.
+  tpan-default.conf: listen 80 default_server;
+  tpan-default.conf: listen [::]:80 default_server;
+  tpan-default.conf: server_name _;
+  tpan-default.conf: root /var/lib/tpan/acme;
+
+## 3. Ai đó thêm tay một vhost trùng tên miền của site A (ngoài TPAN)
+  nginx -t: mã thoát 0 | cảnh báo: 1 dòng 'conflicting server name'
+  2026/11/20 16:58:31 [warn] 36535#36535: conflicting server name "a.example.com" on 0.0.0.0:80, ignored
+  Host: a.example.com                -> HTTP 200, TRANG LẠ (không phải site A)
+  tpan health có thấy không:
+   [đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
+   == Site a.example.com ==
+   [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: a.example.com chưa có bản ghi A
+       Nguyên nhân: Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. tpan không tự sửa được: bản ghi nằm ở nơi quản lý DNS của tên miền. Vào
+         sudo getent ahostsv4 a.example.com
+   (hết)
+  Host: a.example.com                -> HTTP 200, site A
+[cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: a.example.com chưa có bản ghi A
+[cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho a.example.com
+[lỗi] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Trả 200 nhưng trang không phải WordPress
+[cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: b.example.com chưa có bản ghi A
+[cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho b.example.com
+[cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+--- tổng:
+      sudo ls /var/lib/tpan/backups/_tpan
+
+8 đạt, 1 cảnh báo

@@ -1,0 +1,10 @@
+## Vhost gốc của TPAN
+  /lay   -> HTTP 404 | <!DOCTYPE html> <html lang="en-US"> <head> 	<meta charset="U
+  /nguon -> HTTP 404 | <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"> <html><head> <title
+## Thêm vào vhost của A: <Directory /var/www> Require all denied (đặt trước khối Directory của chính site)
+Syntax OK
+  /lay   -> HTTP 404 | <!DOCTYPE html> <html lang="en-US"> <head> 	<meta charset="U
+  /nguon -> HTTP 404 | <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"> <html><head> <title
+  trang chủ A còn chạy: HTTP 200 | file tĩnh của A: HTTP 200
+Syntax OK
+đã trả về

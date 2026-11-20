@@ -1,0 +1,42 @@
+Chạy ngày 20/11/2026 trên máy ảo tpan-m14 (Ubuntu 24.04, nginx 1.24.0), bản tpan c0243ad, stack nginx,
+hai site a.example.com và b.example.com:  scripts/vm.sh root bash -s < t8-log-usr1-hay-hup.sh
+
+## 0. truoc
+drwxr-xr-x root:root /var/log/tpan/sites/b.example.com
+-rw-r--r-- root:root /var/log/tpan/sites/b.example.com/access.log
+-rw-r--r-- root:root /var/log/tpan/sites/b.example.com/error.log
+-rw-r----- tp_b_example_com_cd59d5:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/php-error.log
+sau reload: access.log 3 dong
+
+## 1. logrotate -f voi postrotate USR1 (ban hien tai)
+28:        # Gửi USR1 cho tiến trình chính của Nginx để nó mở lại file log, không
+32:        [ ! -f /run/nginx.pid ] || kill -USR1 "$(cat /run/nginx.pid)"
+-rw-r----- www-data:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log
+-rw-r----- root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log.1
+access.log: 0 dong | access.log.1: 6 dong
+x1..x3 nam o dau: access.log=0 access.log.1=3
+nginx error log (may):
+2026/11/20 17:11:10 [notice] 9748#9748: using inherited sockets from "5;6;"
+2026/11/20 17:11:46 [emerg] 13753#13753: open() "/var/log/tpan/sites/b.example.com/access.log" failed (13: Permission denied)
+2026/11/20 17:11:46 [emerg] 13753#13753: open() "/var/log/tpan/sites/b.example.com/error.log" failed (13: Permission denied)
+2026/11/20 17:11:46 [emerg] 13752#13752: open() "/var/log/tpan/sites/b.example.com/access.log" failed (13: Permission denied)
+2026/11/20 17:11:46 [emerg] 13752#13752: open() "/var/log/tpan/sites/b.example.com/error.log" failed (13: Permission denied)
+
+## 2. gui HUP (reload) roi goi tiep
+y1,y2 nam o dau: access.log=2 access.log.1=0
+
+## 3. dat lai chu root, logrotate -f voi postrotate HUP
+-rw-r----- root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log
+-rw-r----- root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log.1
+-rw-r----- root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com/access.log.2.gz
+z1,z2 nam o dau: access.log=2 access.log.1=0
+nginx error log (may):
+2026/11/20 17:11:46 [emerg] 13753#13753: open() "/var/log/tpan/sites/b.example.com/error.log" failed (13: Permission denied)
+2026/11/20 17:11:46 [emerg] 13752#13752: open() "/var/log/tpan/sites/b.example.com/access.log" failed (13: Permission denied)
+2026/11/20 17:11:46 [emerg] 13752#13752: open() "/var/log/tpan/sites/b.example.com/error.log" failed (13: Permission denied)
+user B doc access.log cua minh: ma 0
+
+Kết luận: thư mục log root:<nhóm site> 0750 thì worker nginx (www-data) không tự mở lại được file log khi
+nhận USR1 (phải đi qua thư mục), nên sau khi xoay vòng log mới vẫn rơi vào access.log.1 và tiến trình chính
+đổi chủ access.log sang www-data. Gửi HUP thì tiến trình chính (root) mở file rồi sinh worker mới thừa kế
+file đã mở: log ghi đúng access.log, chủ file giữ nguyên root. Postrotate của nhánh nginx phải dùng HUP.

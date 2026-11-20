@@ -1,0 +1,15 @@
+## Cấu hình OPcache của PHP-FPM 8.3
+opcache.enable => On => On
+opcache.restrict_api => no value => no value
+opcache.revalidate_freq => 2 => 2
+opcache.validate_permission => Off => Off
+opcache.validate_root => Off => Off
+
+## 1. Từ site A gọi API của OPcache
+  goi duoc opcache_get_status; thay 494 file cua site B (vi du: /var/www/b.example.com/public/wp-includes/ai-client/adapters/class-wp-ai-client-discovery-strategy.php)
+
+## 2. Từ site A include wp-config.php của B (B vừa có khách nên file đang nằm trong cache)
+  open_basedir còn nguyên:  open_basedir=/var/www/a.example.com/ -> include wp-config.php cua B: LAY DUOC hang DB_PASSWORD
+  open_basedir đã nới (lần 1): 	  open_basedir đã nới (lần 2): 	  open_basedir đã nới (lần 3): 	
+## Dọn
+đã dọn, đã khởi động lại PHP-FPM

@@ -1,0 +1,45 @@
+## 0. Môi trường
+nginx version: nginx/1.24.0 (Ubuntu)
+PHP 8.3.6 (cli) (built: Nov 18 2026 23:42:07) (NTS)
+user A=tp_a_example_com_7653e4, user B=tp_b_example_com_cd59d5
+
+## 1. Log của site B dưới nginx
+-rw-r--r-- 1 root                    root                    2863 Nov 20 16:53 access.log
+-rw-r--r-- 1 root                    root                       0 Nov 20 16:43 error.log
+-rw-r----- 1 tp_b_example_com_cd59d5 tp_b_example_com_cd59d5    0 Nov 20 16:43 php-error.log
+  user A đọc access.log của B: mã 0 (0 = đọc được)
+
+## 2. Symlink qua nginx trên vhost thật của TPAN
+ Vhost gốc:
+  file thường của B (640, nhóm www-data): HTTP 200 | NOI_DUNG_RIENG_CUA_B 
+  mã nguồn PHP của B qua tên .txt:        HTTP 200 | <?php $khoa = "KHOA_API_TRONG_MA_NGUON_CUA_B"; 
+  wp-config.php của B (600):              HTTP 403
+  symlink của A trỏ vào file của chính A: HTTP 200
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+ Sau khi thêm vào vhost: disable_symlinks if_not_owner from=$document_root;
+  file thường của B (640, nhóm www-data): HTTP 404 | <!DOCTYPE html> <html lang="en-US"> <hea
+  mã nguồn PHP của B qua tên .txt:        HTTP 404 | <!DOCTYPE html> <html lang="en-US"> <head> 	<meta charset="U
+  wp-config.php của B (600):              HTTP 404
+  symlink của A trỏ vào file của chính A: HTTP 200
+  trang chủ A: HTTP 200 | file tĩnh: HTTP 200 | trang WP 404: HTTP 404
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+## 3. OPcache (cấu hình mặc định, không có .htaccess nào)
+  mặc định: open_basedir=/var/www/a.example.com/ -> include wp-config.php cua B: LAY DUOC hang DB_PASSWORD
+  sau khi đặt opcache.validate_permission=1: open_basedir=/var/www/a.example.com/ -> include wp-config.php cua B: khong lay duoc
+
+## 4. .user.ini của A cố nới open_basedir
+  open_basedir=/var/www/a.example.com/ | doc /etc/hostname bang PHP: KHONG
+
+## 5. open_basedir không quản tiến trình con: PHP gọi lệnh shell
+  disable_functions=[]
+  doc /etc/hostname bang shell_exec: CO
+  ls /var/www: a.example.com b.example.com html
+  so tien trinh cua user khac nhin thay: 117
+
+## 6. Thêm ProtectProc=invisible cho dịch vụ PHP-FPM (drop-in systemd)
+  so tien trinh cua user khac nhin thay: 0
+  trang chủ A/B: HTTP 200 / 200
+
+## Dọn
+đã dọn

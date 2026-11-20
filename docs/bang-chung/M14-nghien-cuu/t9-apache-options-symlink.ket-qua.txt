@@ -1,0 +1,48 @@
+Chạy ngày 20/11/2026 trên máy ảo tpan-m14 (Ubuntu 24.04), bản tpan c0243ad, stack Apache (sau tpan stack switch --to apache),
+hai site a.example.com và b.example.com:  scripts/vm.sh root bash -s < t9-apache-options-symlink.sh
+
+## 0. Vhost goc (AllowOverride All)
+Server version: Apache/2.4.58 (Ubuntu)
+  khong co gi them:            GET /lay.txt -> HTTP 403
+  Options +FollowSymLinks:     GET /lay.txt -> HTTP 403 | <!DOCTYPE HTML PUBLIC "-//IETF | trang chu: HTTP 200
+  Options FollowSymLinks:      GET /lay.txt -> HTTP 200 | trang chu: HTTP 200
+  Options -Indexes:            trang chu: HTTP 200 | permalink la: HTTP 404
+  Options +SymLinksIfOwnerMatch -MultiViews: trang chu: HTTP 200 | /lay.txt: HTTP 403
+  Options All:                 GET /lay.txt -> HTTP 200 | trang chu: HTTP 200
+[Fri Nov 20 17:17:58.467451 2026] [core:error] [pid 15361:tid 257529006911776] [client <IP>:41952] AH00037: Symbolic link not allowed or link target not accessible: /var/www/a.example.com/public/
+
+## 1. AllowOverride None + AllowOverrideList co Options (dac ta 2.3)
+Syntax OK
+  khong co gi them:            GET /lay.txt -> HTTP 403
+  Options +FollowSymLinks:     GET /lay.txt -> HTTP 403 | <!DOCTYPE HTML PUBLIC "-//IETF | trang chu: HTTP 200
+  Options FollowSymLinks:      GET /lay.txt -> HTTP 200 | trang chu: HTTP 200
+  Options -Indexes:            trang chu: HTTP 200 | permalink la: HTTP 404
+  Options +SymLinksIfOwnerMatch -MultiViews: trang chu: HTTP 200 | /lay.txt: HTTP 403
+  Options All:                 GET /lay.txt -> HTTP 200 | trang chu: HTTP 200
+[Fri Nov 20 17:17:59.792741 2026] [core:error] [pid 15962:tid 257529474642208] [client <IP>:45406] AH00037: Symbolic link not allowed or link target not accessible: /var/www/a.example.com/public/
+
+## 2. AllowOverride Options=Indexes,MultiViews,SymLinksIfOwnerMatch + AllowOverrideList KHONG co Options
+Syntax OK
+  khong co gi them:            GET /lay.txt -> HTTP 403
+  Options +FollowSymLinks:     GET /lay.txt -> HTTP 500 | <!DOCTYPE HTML PUBLIC "-//IETF | trang chu: HTTP 500
+  Options FollowSymLinks:      GET /lay.txt -> HTTP 500 | trang chu: HTTP 500
+  Options -Indexes:            trang chu: HTTP 200 | permalink la: HTTP 404
+  Options +SymLinksIfOwnerMatch -MultiViews: trang chu: HTTP 200 | /lay.txt: HTTP 403
+  Options All:                 GET /lay.txt -> HTTP 500 | trang chu: HTTP 500
+[Fri Nov 20 17:18:01.057405 2026] [core:alert] [pid 16143:tid 257529483096352] [client <IP>:45538] /var/www/a.example.com/public/.htaccess: Option All not allowed here
+  chi thi khac con chay (Header set): 1
+  SetHandler van bi chan: HTTP 500
+
+## 3. AllowOverride None + AllowOverrideList KHONG co Options
+Syntax OK
+  khong co gi them:            GET /lay.txt -> HTTP 403
+  Options +FollowSymLinks:     GET /lay.txt -> HTTP 500 | <!DOCTYPE HTML PUBLIC "-//IETF | trang chu: HTTP 500
+  Options FollowSymLinks:      GET /lay.txt -> HTTP 500 | trang chu: HTTP 500
+  Options -Indexes:            trang chu: HTTP 500 | permalink la: HTTP 500
+  Options +SymLinksIfOwnerMatch -MultiViews: trang chu: HTTP 500 | /lay.txt: HTTP 500
+  Options All:                 GET /lay.txt -> HTTP 500 | trang chu: HTTP 500
+[Fri Nov 20 17:18:02.247285 2026] [core:alert] [pid 16390:tid 257528570966304] [client <IP>:45670] /var/www/a.example.com/public/.htaccess: Options not allowed here
+
+## Tra ve nhu cu
+Syntax OK
+da tra ve

@@ -1,0 +1,33 @@
+## Cách chặn 1: vhost của A dùng danh sách cho phép + gỡ PHP_VALUE/PHP_ADMIN_VALUE
+  số chỉ thị cho phép trong .htaccess: 56
+Syntax OK
+
+## a. WordPress còn chạy không
+  trang chủ: HTTP 200   |   đường dẫn đẹp không có thật (/khong-co/): HTTP 404 (404 do WordPress trả = rewrite còn chạy: 120)
+
+## b. .htaccess thêm: SetEnv PHP_ADMIN_VALUE "open_basedir=/"
+  user=tp_a_example_com_7653e4 | open_basedir=/var/www/a.example.com/
+
+## c. .htaccess dùng ProxyFCGISetEnvIf (cách tấn công ở t1 mục 7)
+  GET A/qua.php -> HTTP 500 | trang chủ A: HTTP 500 | trang chủ B: HTTP 200
+[Fri Nov 20 16:51:01.159056 2026] [core:alert] [pid 33153:tid 260659149271328] [client 127.0.0.1:43512] /var/www/a.example.com/public/.htaccess: SetHandler not allowed in <Files> context
+
+## d. Chỉ dùng chỉ thị còn được phép: SetHandler + SetEnv, rồi RewriteRule [P,E=]
+  SetHandler sang socket B: HTTP 500 | thân: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"> <html><head> <title>500 Inter
+  RewriteRule [P] sang socket B: HTTP 500 | mã của A có chạy không: 0 | B trả trang của chính nó: 1
+  trang chủ B sau các lần thử: <!DOCTYPE html> <html lang="en-US"> <head> 	<meta charset="U
+
+## e. Chỉ thị mà plugin WordPress hay ghi vào .htaccess
+  trang chủ A: HTTP 200 | có header X-Thu: 1
+[Fri Nov 20 16:51:01.387152 2026] [proxy:warn] [pid 33153:tid 260658603946272] [client 127.0.0.1:43534] AH01144: No protocol handler was valid for the URL /qua2 (scheme 'unix'). If you are using a DSO version of mod_prox
+
+## Cách chặn 2: OPcache kiểm quyền file và khoá API
+  opcache_get_status: bi chan
+  lần 1: include wp-config.php cua B: khong lay duoc
+  lần 2: include wp-config.php cua B: khong lay duoc
+  lần 3: include wp-config.php cua B: khong lay duoc
+  WordPress của A và B còn chạy: HTTP 200 / 200
+
+## Trả máy về như cũ
+Syntax OK
+đã trả về
