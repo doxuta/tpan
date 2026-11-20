@@ -10,6 +10,19 @@ package templates
 // .htaccess, logrotate của nginx gửi HUP) nằm ngay trong các template cũ; hợp
 // đồng của chúng ở m14_types.go.
 
+// NginxSymlinkGuard là dòng chặn symlink của vhost nginx (không kèm thụt lề):
+// nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích (lỗ
+// L5). Template dùng đúng chuỗi này; checks.VhostHardened so "có chứa".
+const NginxSymlinkGuard = "disable_symlinks if_not_owner from=$document_root;"
+
+// ApacheFCGIGuards là hai dòng gỡ biến của vhost Apache (không kèm thụt lề):
+// PHP-FPM nhận PHP_VALUE và PHP_ADMIN_VALUE từ web server và cho chúng đè cả
+// php_admin_value của pool, nên .htaccess đặt được open_basedir=/ (lỗ L3).
+var ApacheFCGIGuards = []string{
+	`ProxyFCGISetEnvIf "true" !PHP_VALUE`,
+	`ProxyFCGISetEnvIf "true" !PHP_ADMIN_VALUE`,
+}
+
 // OPcacheAPIDir là giá trị của opcache.restrict_api: chỉ script nằm dưới đường
 // dẫn này mới gọi được opcache_get_status(), opcache_reset()... Đường dẫn cố ý
 // KHÔNG tồn tại và không site nào nằm dưới nó, nên không site nào gọi được.

@@ -49,14 +49,10 @@ package templates
 //    site-apache-tat.golden, site-apache-day-du.golden (và hai bản -ssl tương
 //    ứng). Test: dòng AllowOverrideList có đúng len(htaccess.Allowed) tên.
 //
-// 3. Hằng dấu nhận biết, để phép kiểm checks.VhostHardened so "có chứa" mà
-//    không chép chuỗi ở hai nơi (thợ đợt 1 khai trong site.go và dùng chính
-//    chúng trong test của template):
-//
-//	// NginxSymlinkGuard là dòng chặn symlink của vhost nginx (không kèm thụt lề).
-//	const NginxSymlinkGuard = "disable_symlinks if_not_owner from=$document_root;"
-//	// ApacheFCGIGuards là hai dòng gỡ biến của vhost Apache (không kèm thụt lề).
-//	var ApacheFCGIGuards = []string{`ProxyFCGISetEnvIf "true" !PHP_VALUE`, `ProxyFCGISetEnvIf "true" !PHP_ADMIN_VALUE`}
+// 3. Hằng dấu nhận biết NginxSymlinkGuard và ApacheFCGIGuards (đã khai ở
+//    m14.go): phép kiểm checks.VhostHardened so "có chứa" với chính chúng.
+//    Test của template khẳng định vhost sinh ra chứa đúng các chuỗi đó, để
+//    template và phép kiểm không lệch nhau.
 //
 // 4. Logrotate (logrotate-sites.tmpl), nhánh nginx: postrotate gửi HUP thay cho
 //    USR1:

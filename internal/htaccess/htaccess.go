@@ -93,7 +93,45 @@ type Finding struct {
 // Scan không hiểu ngữ nghĩa của các chỉ thị khác: một chỉ thị có tên trong
 // Allowed mà tham số sai thì Apache vẫn báo 500, và việc đó để phép kiểm HTTP bắt.
 func Scan(file string, content []byte) []Finding {
-	// Hợp đồng M14 (đợt 0): thân hàm do thợ đợt 1 viết.
-	_, _ = file, content
-	return nil
+	var out []Finding
+	lines := strings.Split(string(content), "\n")
+	for i := 0; i < len(lines); i++ {
+		start := i + 1
+		ln := strings.TrimRight(lines[i], "\r")
+		// Nối dòng: Apache bỏ dấu "\" cuối dòng rồi ghép dòng sau vào.
+		for strings.HasSuffix(ln, `\`) && i+1 < len(lines) {
+			i++
+			ln = strings.TrimSuffix(ln, `\`) + strings.TrimRight(lines[i], "\r")
+		}
+		fields := strings.Fields(ln)
+		if len(fields) == 0 || strings.HasPrefix(fields[0], "#") || strings.HasPrefix(fields[0], "</") {
+			continue
+		}
+		name := fields[0]
+		if strings.HasPrefix(name, "<") {
+			name = strings.TrimSuffix(name, ">") // "<Tên>" không có tham số
+		}
+		if strings.EqualFold(name, "Options") {
+			for _, arg := range fields[1:] {
+				opt := strings.TrimLeft(arg, "+-")
+				if !strings.EqualFold(opt, "None") && !containsFold(AllowedOptions, opt) {
+					out = append(out, Finding{File: file, Line: start, Directive: name + " " + opt})
+				}
+			}
+			continue
+		}
+		if !containsFold(Allowed, name) {
+			out = append(out, Finding{File: file, Line: start, Directive: name})
+		}
+	}
+	return out
+}
+
+func containsFold(list []string, s string) bool {
+	for _, x := range list {
+		if strings.EqualFold(x, s) {
+			return true
+		}
+	}
+	return false
 }
