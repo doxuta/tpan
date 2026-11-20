@@ -98,6 +98,7 @@ import (
 	"github.com/doxuta/tpan/internal/health"
 	"github.com/doxuta/tpan/internal/monitor"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -153,6 +154,9 @@ type ErrorDetail struct {
 
 // LoginRequest: chỉ có một tài khoản quản trị nên không có tên đăng nhập.
 type LoginRequest struct {
+	// Name là tên đăng nhập (M13). Rỗng thì hiểu là "admin", để thói quen và
+	// script cũ chỉ gửi mật khẩu vẫn chạy (mục 6.12).
+	Name     string `json:"name"`
 	Password string `json:"password"`
 }
 
@@ -165,6 +169,9 @@ type SessionInfo struct {
 	Hostname string    `json:"hostname,omitempty"`
 	Version  string    `json:"version,omitempty"`
 	Expires  time.Time `json:"expires,omitzero"`
+	// User là người đang đăng nhập (M13): tên, vai, và ViewedBy khi admin
+	// đang "xem như" user này (phiên chỉ đọc). nil khi chưa đăng nhập.
+	User *account.Identity `json:"user,omitempty"`
 }
 
 type PasswordChange struct {
@@ -190,6 +197,9 @@ type SiteCreate struct {
 	Domain string `json:"domain"`
 	Title  string `json:"title"`
 	Email  string `json:"email"`
+	// Owner (M13): chủ của site mới. Chỉ admin được đặt; rỗng là chính người
+	// gọi. User thường gửi tên khác mình thì bị từ chối (forbidden).
+	Owner string `json:"owner,omitempty"`
 }
 
 // JobStarted: job đã bắt đầu chạy nền.
@@ -208,6 +218,9 @@ type JobDetail struct {
 	// Secrets: như Secret nhưng cho job hàng loạt (M6, POST /apply), một dòng
 	// cho mỗi site vừa cài WordPress. Hiện một lần rồi bỏ.
 	Secrets []AdminSecret `json:"secrets,omitempty"`
+	// DBSecret (M13): mật khẩu của DB rời vừa tạo hoặc vừa đổi mật khẩu; như
+	// Secret, chỉ ở lần GET đầu tiên sau khi job thành công.
+	DBSecret *DBSecret `json:"db_secret,omitempty"`
 }
 
 type AdminSecret struct {
@@ -267,6 +280,9 @@ type Overview struct {
 	Incidents []store.Incident `json:"incidents"`
 	// LastRun là lần health chạy đầy đủ gần nhất; zero khi chưa bao giờ.
 	LastRun time.Time `json:"last_run,omitzero"`
+	// Quota (M13) chỉ có khi người gọi là user thường: gói và phần đã dùng,
+	// hiện thay cho số liệu máy (Machine, StackChecks, TPANChecks khi đó rỗng).
+	Quota *Quota `json:"quota,omitempty"`
 }
 
 // StackSummary là các nhãn stack trên thanh đầu trang: "LEMP", "nginx",
@@ -284,6 +300,17 @@ type DatabaseRow struct {
 	User      string `json:"user"`
 	SizeBytes int64  `json:"size_bytes"` // -1 khi không đọc được
 	Tables    int    `json:"tables"`     // -1 khi không đọc được
+	// Từ M13. Kind "site" (DB đi kèm site, Domain có giá trị) hoặc "standalone"
+	// (DB rời, Domain rỗng). Owner chỉ admin thấy có ích nhưng luôn có.
+	Kind      string             `json:"kind"`
+	Owner     string             `json:"owner"`
+	Charset   string             `json:"charset"`
+	Collation string             `json:"collation"`
+	Note      string             `json:"note,omitempty"`
+	Suspended account.Suspension `json:"suspended,omitempty"`
+	// Status: "active" hoặc "trashed" (DB rời trong thùng rác; DB của site
+	// trong thùng rác vẫn là "active" vì DB còn nguyên).
+	Status string `json:"status"`
 }
 
 // ---- health (M4) ----

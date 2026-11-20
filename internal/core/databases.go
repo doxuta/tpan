@@ -11,6 +11,8 @@ package core
 
 import (
 	"context"
+
+	"github.com/doxuta/tpan/internal/account"
 	"regexp"
 	"strconv"
 	"strings"
@@ -25,6 +27,14 @@ type Database struct {
 	User      string // user DB trùng tên DB (mục 5): 'tp_<slug>'@'localhost'
 	SizeBytes int64  // -1 khi không đọc được
 	Tables    int    // -1 khi không đọc được
+	// Từ M13 (DBs.List điền). Kind "site" hoặc "standalone" (Domain rỗng).
+	Kind      string
+	Owner     string
+	Charset   string
+	Collation string
+	Note      string
+	Suspended account.Suspension
+	Status    string // "active" | "trashed"
 }
 
 // databaseNameRe là lớp chặn cuối trước khi tên DB đi vào chuỗi SQL. Tên lấy

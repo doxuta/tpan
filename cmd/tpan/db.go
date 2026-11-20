@@ -71,7 +71,7 @@ func dbListCmd(e *env) *cobra.Command {
 			}
 			rows := make([]dbRow, len(list))
 			for i, d := range list {
-				rows[i] = dbRow(d)
+				rows[i] = dbRow{Domain: d.Domain, DB: d.DB, User: d.User, SizeBytes: d.SizeBytes, Tables: d.Tables}
 			}
 			if asJSON {
 				return writeJSON(e.stdout, rows)

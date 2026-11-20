@@ -77,6 +77,9 @@ type Sites struct {
 	// tpan.db, test) thì xoá hẳn vẫn backup nhưng không ghi được dòng: Execute
 	// trả lỗi kèm đường dẫn file để người ghi nhận bằng tay.
 	Backups BackupStore
+	// Accounts (M13) là bảng users, packages: kiểm hạn mức gói khi tạo site.
+	// nil (test, xem trước khi máy chưa có tpan.db) thì không kiểm hạn mức.
+	Accounts AccountStore
 }
 
 func (s *Sites) now() time.Time {
@@ -135,6 +138,10 @@ type SiteInput struct {
 	// Title rỗng thì dùng domain.
 	Title string
 	Email validate.Email
+	// Owner (M13) là chủ của site mới; rỗng là account.AdminName. Chạy lại một
+	// site đã có thì bỏ qua (không đổi chủ ở đây). Kiểm hạn mức gói của Owner
+	// khi Sites.Accounts khác nil.
+	Owner string
 }
 
 // checkSiteTitle kiểm tiêu đề site: UTF-8 hợp lệ, không ký tự điều khiển (kể

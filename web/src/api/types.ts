@@ -46,6 +46,8 @@ export type CheckResult = {
   cause?: Text;
   manual_fix?: string[];
   auto_fix?: string;
+  /** M13: chặng không kiểm vì site hay DB đang tạm khoá; status luôn "unknown", vẽ xám với nhãn "tạm khoá". */
+  suspended?: boolean;
 };
 
 // ---- Engine: Plan, job, sự kiện (internal/engine) ----
@@ -95,6 +97,10 @@ export type Job = {
   started: string;
   finished?: string;
   error?: string;
+  /** M13: user TPAN đã chạy job; không có khi chạy từ dòng lệnh, MCP, bộ hẹn giờ. */
+  actor?: string;
+  /** M13: chủ của đối tượng job chạm vào. */
+  owner?: string;
 };
 
 export type EventKind =
@@ -134,6 +140,8 @@ export type JobDetail = {
   secret?: AdminSecret;
   /** M6: như secret, cho job hàng loạt (POST /apply), một dòng mỗi site. */
   secrets?: AdminSecret[];
+  /** M13: mật khẩu DB rời vừa tạo hoặc vừa đổi. Hiện một lần. */
+  db_secret?: DBSecret;
 };
 
 // ---- Site (internal/site, internal/core) ----
@@ -150,6 +158,13 @@ export type Site = {
   trashed_at?: string;
   /** M6: hạn xoá hẳn khi site ở thùng rác. */
   purge_at?: string;
+  /** M13: chủ của site (tên user TPAN). */
+  owner: string;
+  /** M13: có khi site đang tạm khoá. */
+  suspended?: Suspension;
+  suspended_at?: string;
+  /** M13: có khi user DB của site đang khoá. */
+  db_suspended?: Suspension;
 };
 
 export type Layout = {
@@ -182,7 +197,8 @@ export type SiteInfo = {
   checks: CheckResult[];
 };
 
-export type SiteCreate = { domain: string; title: string; email: string };
+/** owner (M13): chỉ admin gửi; không có là chính người gọi. */
+export type SiteCreate = { domain: string; title: string; email: string; owner?: string };
 
 // ---- Stack (internal/core) ----
 
@@ -253,6 +269,8 @@ export type Overview = {
   incidents: Incident[];
   /** M4: lần health chạy đầy đủ gần nhất (RFC 3339); không có khi chưa bao giờ. */
   last_run?: string;
+  /** M13: chỉ có với user thường; khi đó machine, stack_checks, tpan_checks rỗng. */
+  quota?: Quota;
 };
 
 export type DatabaseRow = {
@@ -262,11 +280,20 @@ export type DatabaseRow = {
   /** -1 khi không đọc được. */
   size_bytes: number;
   tables: number;
+  /** M13: "site" (DB đi kèm site, domain có giá trị) hoặc "standalone" (DB rời, domain rỗng). */
+  kind: "site" | "standalone";
+  owner: string;
+  charset: string;
+  collation: string;
+  note?: string;
+  suspended?: Suspension;
+  status: "active" | "trashed";
 };
 
 // ---- Đăng nhập, tài khoản ----
 
-export type LoginRequest = { password: string };
+/** name (M13): rỗng là "admin". */
+export type LoginRequest = { name: string; password: string };
 
 export type SessionInfo = {
   logged_in: boolean;
@@ -274,6 +301,8 @@ export type SessionInfo = {
   hostname?: string;
   version?: string;
   expires?: string;
+  /** M13: người đang đăng nhập; không có khi chưa đăng nhập. */
+  user?: Identity;
 };
 
 export type PasswordChange = { current: string; new: string };
@@ -426,7 +455,8 @@ export type SecurityStatus = { results: CheckResult[] };
 
 // ---- Thùng rác và hàng loạt (M6, internal/server/types_m6.go) ----
 
-export type TrashOverview = { days: number; sites: Site[] };
+/** dbs (M13): DB rời trong thùng rác. */
+export type TrashOverview = { days: number; sites: Site[]; dbs: StandaloneDB[] };
 
 export type TrashSettings = { days: number };
 
@@ -748,3 +778,78 @@ export type CronEntry = {
 
 /** GET /api/v1/cron (core.CronOverview). */
 export type CronOverview = { sites: CronEntry[]; backup: BackupSettings; backup_file?: string };
+
+// ---- M13: nhiều người dùng, gói, tạm khoá, DB rời (internal/server/types_m13.go) ----
+
+export type Role = "admin" | "user";
+export type UserStatus = "active" | "suspended";
+/** Vì sao bị tạm khoá: "self" là khoá riêng, "user" là khoá theo user chủ. */
+export type Suspension = "self" | "user";
+
+/** account.Identity. viewed_by có khi admin đang "xem như" user này (phiên chỉ đọc). */
+export type Identity = { name: string; role: Role; viewed_by?: string };
+
+export type User = {
+  name: string;
+  full_name: string;
+  email: string;
+  role: Role;
+  package: string;
+  status: UserStatus;
+  created: string;
+  suspended_at?: string;
+  suspend_reason?: string;
+};
+
+/** 0 ở mọi giới hạn là không giới hạn. */
+export type Package = {
+  name: string;
+  max_sites: number;
+  max_dbs: number;
+  disk_mb: number;
+  max_backups: number;
+  created: string;
+};
+
+/** disk_bytes -1 khi chưa đo lần nào. */
+export type Usage = { sites: number; dbs: number; disk_bytes: number; disk_measured?: string };
+
+export type UserRow = { user: User; limits: Package; usage: Usage; over_quota: boolean };
+export type UserCreate = {
+  name: string;
+  full_name: string;
+  email: string;
+  role: Role;
+  package: string;
+  /** Không có thì tpan sinh và trả về một lần trong UserCreated.password. */
+  password?: string;
+};
+export type UserCreated = { user: UserRow; password?: string };
+export type UserEdit = { full_name?: string; email?: string; role?: Role; package?: string };
+export type PasswordSet = { password?: string };
+export type PasswordSetResult = { password?: string };
+export type SuspendRequest = { reason?: string };
+
+export type PackageRow = { package: Package; users: number };
+export type Quota = { package: Package; usage: Usage };
+
+export type Collation = { charset: string; collation: string; default: boolean };
+export type DBCreate = { owner?: string; name: string; charset?: string; collation?: string; note?: string };
+export type DBEdit = { charset?: string; collation?: string; note?: string };
+export type DBCharset = { charset: string; collation: string };
+export type DBSecret = { db: string; user: string; password: string };
+
+/** account.Database: một DB rời (trong thùng rác thì status "trashed"). */
+export type StandaloneDB = {
+  name: string;
+  owner: string;
+  charset: string;
+  collation: string;
+  note: string;
+  status: "active" | "trashed";
+  suspended?: Suspension;
+  suspended_at?: string;
+  created: string;
+  trashed_at?: string;
+  purge_at?: string;
+};

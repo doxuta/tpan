@@ -77,6 +77,11 @@ type ApplyItem struct {
 type ApplyInput struct {
 	Sites []ApplySite
 	Prune bool
+	// Scope (M13): rỗng là mọi site (dòng lệnh, admin). Có tên user thì chỉ
+	// site của user đó được tính là "đã có" và bị Prune; site mới thuộc user đó,
+	// và dòng có domain thuộc người khác thì Refused (site_not_found, như không
+	// tồn tại, để không dò được tên site của người khác). Mục 6.12.
+	Scope string
 }
 
 // Apply là một lần áp danh sách đã qua điều kiện đầu. Dùng cho đúng một lần

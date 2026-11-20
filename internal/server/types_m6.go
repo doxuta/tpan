@@ -30,6 +30,7 @@ package server
 // một job của API, không được thì bỏ vòng), giống health bỏ vòng khi đang có job.
 
 import (
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/site"
 )
@@ -39,6 +40,8 @@ type TrashOverview struct {
 	// Days là số ngày giữ đang đặt (core.Sites.TrashDays).
 	Days  int         `json:"days"`
 	Sites []site.Site `json:"sites"`
+	// DBs (M13): DB rời đang ở thùng rác (Status trashed), lọc theo chủ.
+	DBs []account.Database `json:"dbs"`
 }
 
 // TrashSettings là thân của POST /api/v1/trash/settings.
