@@ -735,7 +735,7 @@ main_run() {
 
   section "nhật ký audit và log dịch vụ"
   vroot python3 -c 'import sqlite3; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); [print(*r) for r in c.execute("SELECT time, ip, action, target, result, job_id FROM audit ORDER BY id")]'
-  ok "audit có login.fail, locked, admin.passwd, login, site.add job_running, site.rm" bash -c 'for a in "<mac> login.fail" " locked" "cli admin.passwd" "login  ok" "site.add c.example.com job_running" "site.rm b.example.com ok"; do grep -qF -- "$a" <<<"$1" || { echo "thiếu: $a"; exit 1; }; done' _ "$OUT"
+  ok "audit có login.fail, locked, admin.passwd, login, site.add job_running, site.rm" bash -c 'for a in "<mac> login.fail" " locked" "cli admin.passwd" "login admin ok" "site.add c.example.com job_running" "site.rm b.example.com ok"; do grep -qF -- "$a" <<<"$1" || { echo "thiếu: $a"; exit 1; }; done' _ "$OUT"
   "$VM" root journalctl -u tpan --no-pager -o short-iso >"$TMPD/journal" 2>&1
   printf '\nLog của tpan.service: %s dòng; "database is locked": %s; level=ERROR: %s\n' "$(wc -l <"$TMPD/journal" | tr -d ' ')" \
     "$(grep -c 'database is locked' "$TMPD/journal")" "$(grep -c 'level=ERROR' "$TMPD/journal")"
