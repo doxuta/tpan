@@ -581,7 +581,7 @@ Mình đã rà repo (20/11/2026):
   1. Chấp nhận (nhiều người làm vậy).
   2. Viết lại lịch sử để thay bằng email ẩn của GitHub (`<số>+<tên>@users.noreply.github.com`, xem ở GitHub → Settings → Emails). Việc này đổi mã mọi commit, phải đẩy đè (`--force`) lên `dev` và `main`. Muốn làm thì bảo mình, mình làm và kiểm trước khi đẩy.
   Dù chọn cách nào, từ nay nên bật "Keep my email addresses private" và đặt `git config user.email` thành email ẩn.
-- **Giấy phép**: repo chưa có file `LICENSE`. Không có giấy phép thì người khác xem được nhưng về luật không được dùng hay sửa. Phổ biến cho công cụ kiểu này: MIT (thoải mái nhất) hoặc AGPL-3.0 (ai sửa và chạy dịch vụ thì phải công khai mã). Chọn một, mình thêm file.
+- **Giấy phép**: đã chọn MIT (file `LICENSE` ở gốc repo). Ai cũng được dùng, sửa, bán lại, miễn giữ dòng bản quyền; tác giả không chịu trách nhiệm nếu phần mềm gây hỏng hóc.
 
 ### 4.2. Tạo bản phát hành
 

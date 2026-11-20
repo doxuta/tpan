@@ -214,3 +214,7 @@ The screenshots above come from `tpan serve --demo`, a fake machine with sample 
 Install: run `make release`, copy `dist/release/<version>/` to the server, then `sudo ./install.sh --web nginx`. A one-line `curl -fsSL <BASE>/install.sh | sudo bash -s -- --web nginx` works only once the repository is public and has a release. Then open `https://<server>:8443`, compare the certificate's SHA-256 fingerprint with the one `tpan setup` printed, and log in with the admin password shown once. Forgot it: `sudo tpan admin passwd`. With `--private` the panel listens on 127.0.0.1 only; reach it through `ssh -L 8443:127.0.0.1:8443 <server>`.
 
 TPAN runs as root and changes system configuration. Use it only on a clean, dedicated VPS, and try it in a VM first. Every command accepts `--lang en`.
+
+## Giấy phép
+
+MIT, xem [LICENSE](LICENSE).
