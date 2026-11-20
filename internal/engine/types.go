@@ -143,6 +143,29 @@ type Job struct {
 	Finished time.Time `json:"finished,omitzero"`
 	// Error là lỗi đầu tiên làm job dừng, rỗng nếu thành công.
 	Error string `json:"error,omitempty"`
+	// Actor là user TPAN đã chạy job (M13), lấy từ ctx bằng ActorFrom lúc tạo
+	// job. Rỗng: dòng lệnh, MCP hoặc bộ hẹn giờ (đều chạy bằng root).
+	Actor string `json:"actor,omitempty"`
+	// Owner là user sở hữu đối tượng job chạm vào (M13). Engine không đặt;
+	// store tự suy lúc ghi job (chủ của site hay DB có tên trùng Target, không
+	// có thì Actor, không có nữa thì admin) và đọc ra khi liệt kê.
+	Owner string `json:"owner,omitempty"`
+}
+
+// actorKey là khoá context giữ Actor.
+type actorKey struct{}
+
+// WithActor gắn tên user TPAN đang thao tác vào ctx, để mọi job tạo bên dưới
+// (qua core, không phải truyền tay qua từng hàm) ghi đúng người chạy. Server
+// gắn ở middleware đăng nhập; dòng lệnh không gắn.
+func WithActor(ctx context.Context, name string) context.Context {
+	return context.WithValue(ctx, actorKey{}, name)
+}
+
+// ActorFrom đọc tên đã gắn bằng WithActor; rỗng nếu không có.
+func ActorFrom(ctx context.Context) string {
+	s, _ := ctx.Value(actorKey{}).(string)
+	return s
 }
 
 // EventKind là loại sự kiện trong một job.

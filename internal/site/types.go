@@ -12,6 +12,7 @@ package site
 import (
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -132,6 +133,16 @@ type Site struct {
 	TrashedAt time.Time `json:"trashed_at,omitzero"`
 	// PurgeAt là hạn xoá hẳn khi site ở thùng rác (M6); zero khi không ở đó.
 	PurgeAt time.Time `json:"purge_at,omitzero"`
+	// Owner là tên user TPAN chủ của site (M13). Site có từ trước M13 thuộc
+	// account.AdminName. Rỗng chỉ ở bản ghi chưa lưu; store ghi rỗng thành admin.
+	Owner string `json:"owner"`
+	// Suspended khác rỗng khi site đang tạm khoá (M13, mục 6.12): vhost là bản
+	// "tạm khoá", pool và cron đã đổi tên .suspended. Giá trị nói vì sao bị khoá.
+	Suspended   account.Suspension `json:"suspended,omitempty"`
+	SuspendedAt time.Time          `json:"suspended_at,omitzero"`
+	// DBSuspended khác rỗng khi user DB của site đang ACCOUNT LOCK (M13). Tách
+	// khỏi Suspended: khoá DB và khoá site là hai thao tác riêng.
+	DBSuspended account.Suspension `json:"db_suspended,omitempty"`
 }
 
 // Layout trả tên và đường dẫn của site.

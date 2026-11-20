@@ -81,4 +81,9 @@ type Result struct {
 	// AutoFix là tên cách sửa tự động, để core dựng Plan sửa (M4). Rỗng là không
 	// có. Là tên chứ không phải Plan, vì checks không được import engine.
 	AutoFix string `json:"auto_fix,omitempty"`
+
+	// Suspended (M13): chặng này không được kiểm vì site hay DB đang tạm khoá
+	// (mục 6.12). Luôn đi với Status Unknown, nên không mở hay đóng sự cố;
+	// giao diện vẽ vòng xám với nhãn "tạm khoá" thay vì "chưa kiểm được".
+	Suspended bool `json:"suspended,omitempty"`
 }

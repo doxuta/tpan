@@ -301,11 +301,18 @@ func (s *Store) Settings(ctx context.Context) (map[string]string, error) {
 
 // CreateJob ghi một job mới (engine.Journal).
 func (s *Store) CreateJob(ctx context.Context, job engine.Job) error {
+	// owner (M13): người gọi đặt sẵn thì dùng; không thì chủ của site hay DB
+	// rời trùng tên với Target, rồi tới Actor, cuối cùng là admin. Suy ở đây,
+	// một chỗ, thay vì bắt mọi ca sử dụng của core tự truyền chủ vào engine.
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO jobs (id, kind, target, title_vi, title_en, status, started_at, finished_at, error)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO jobs (id, kind, target, title_vi, title_en, status, started_at, finished_at, error, actor, owner)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''),
+		   (SELECT owner FROM sites WHERE domain = ?),
+		   (SELECT owner FROM databases WHERE name = ?),
+		   NULLIF(?, ''), 'admin'))`,
 		job.ID, job.Kind, job.Target, job.Title.Vi, job.Title.En, string(job.Status),
-		fmtTime(job.Started), nullTime(job.Finished), job.Error)
+		fmtTime(job.Started), nullTime(job.Finished), job.Error, job.Actor,
+		job.Owner, job.Target, job.Target, job.Actor)
 	if err != nil {
 		return fmt.Errorf("tạo job %s: %w", job.ID, err)
 	}
@@ -390,7 +397,7 @@ func (s *Store) ForgetFile(ctx context.Context, path string) error {
 // rowScanner là phần chung của *sql.Row và *sql.Rows để dùng một hàm đọc Job.
 type rowScanner interface{ Scan(dest ...any) error }
 
-const jobColumns = "id, kind, target, title_vi, title_en, status, started_at, finished_at, error"
+const jobColumns = "id, kind, target, title_vi, title_en, status, started_at, finished_at, error, actor, owner"
 
 func scanJob(r rowScanner) (engine.Job, error) {
 	var (
@@ -399,7 +406,7 @@ func scanJob(r rowScanner) (engine.Job, error) {
 		started  string
 		finished sql.NullString
 	)
-	if err := r.Scan(&j.ID, &j.Kind, &j.Target, &j.Title.Vi, &j.Title.En, &status, &started, &finished, &j.Error); err != nil {
+	if err := r.Scan(&j.ID, &j.Kind, &j.Target, &j.Title.Vi, &j.Title.En, &status, &started, &finished, &j.Error, &j.Actor, &j.Owner); err != nil {
 		return engine.Job{}, err
 	}
 	j.Status = engine.JobStatus(status)

@@ -10,11 +10,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
-const siteColumns = "domain, status, php_version, ssl, created_at, trashed_at, purge_at"
+const siteColumns = "domain, status, php_version, ssl, created_at, trashed_at, purge_at, owner, suspended, suspended_at, db_suspended"
 
 // siteScan đọc một dòng sites. Dữ liệu DB cũng không tin mù: domain đi lại
 // qua validate.ParseDomain, slug suy lại từ domain (cột slug chỉ để DB chặn
@@ -22,10 +23,11 @@ const siteColumns = "domain, status, php_version, ssl, created_at, trashed_at, p
 func siteScan(r rowScanner) (site.Site, error) {
 	var (
 		domain, status, php, created string
+		owner, susp, dbSusp          string
 		ssl                          int
-		trashed, purge               sql.NullString
+		trashed, purge, suspAt       sql.NullString
 	)
-	if err := r.Scan(&domain, &status, &php, &ssl, &created, &trashed, &purge); err != nil {
+	if err := r.Scan(&domain, &status, &php, &ssl, &created, &trashed, &purge, &owner, &susp, &suspAt, &dbSusp); err != nil {
 		return site.Site{}, err
 	}
 	d, err := validate.ParseDomain(domain)
@@ -33,11 +35,19 @@ func siteScan(r rowScanner) (site.Site, error) {
 		return site.Site{}, fmt.Errorf("domain %q trong DB không hợp lệ: %w", domain, err)
 	}
 	s := site.Site{
-		Domain:     d,
-		Slug:       validate.SlugOf(d),
-		Status:     site.Status(status),
-		PHPVersion: php,
-		SSL:        ssl != 0,
+		Domain:      d,
+		Slug:        validate.SlugOf(d),
+		Status:      site.Status(status),
+		PHPVersion:  php,
+		SSL:         ssl != 0,
+		Owner:       owner,
+		Suspended:   account.Suspension(susp),
+		DBSuspended: account.Suspension(dbSusp),
+	}
+	if suspAt.Valid {
+		if s.SuspendedAt, err = parseTime(suspAt.String); err != nil {
+			return site.Site{}, fmt.Errorf("site %s: %w", d, err)
+		}
 	}
 	if s.Created, err = parseTime(created); err != nil {
 		return site.Site{}, fmt.Errorf("site %s: %w", d, err)
@@ -98,16 +108,24 @@ func (s *Store) SaveSite(ctx context.Context, st site.Site) error {
 		return errors.New("lưu site: thiếu domain")
 	}
 	// Ghi đè là ghi đè cả dòng: người gọi đọc Site ra, sửa, rồi lưu lại nên
-	// Created đã mang giá trị cũ.
+	// Created đã mang giá trị cũ. Owner rỗng (mã có từ trước M13 dựng Site
+	// không có chủ) thì là admin, như mọi site cũ.
+	owner := st.Owner
+	if owner == "" {
+		owner = adminName
+	}
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO sites (domain, slug, status, php_version, ssl, created_at, trashed_at, purge_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO sites (domain, slug, status, php_version, ssl, created_at, trashed_at, purge_at,
+		                    owner, suspended, suspended_at, db_suspended)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT (domain) DO UPDATE SET
 		   slug = excluded.slug, status = excluded.status, php_version = excluded.php_version,
 		   ssl = excluded.ssl, created_at = excluded.created_at, trashed_at = excluded.trashed_at,
-		   purge_at = excluded.purge_at`,
+		   purge_at = excluded.purge_at, owner = excluded.owner, suspended = excluded.suspended,
+		   suspended_at = excluded.suspended_at, db_suspended = excluded.db_suspended`,
 		st.Domain.String(), validate.SlugOf(st.Domain).String(), string(st.Status), st.PHPVersion,
-		siteBool(st.SSL), fmtTime(st.Created), nullTime(st.TrashedAt), nullTime(st.PurgeAt))
+		siteBool(st.SSL), fmtTime(st.Created), nullTime(st.TrashedAt), nullTime(st.PurgeAt),
+		owner, string(st.Suspended), nullTime(st.SuspendedAt), string(st.DBSuspended))
 	if err != nil {
 		return fmt.Errorf("lưu site %s: %w", st.Domain, err)
 	}
