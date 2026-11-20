@@ -28,7 +28,8 @@ export function ErrorNote({ error, heading, checksHeading, omitMessage = false }
       </span>
       <div className="min-w-0 flex-1">
         {heading && <p className="m-0 font-semibold">{heading}</p>}
-        {!omitMessage && <p className="m-0">{errorMessage(error, lang)}</p>}
+        {/* pre-line: lời từ chối nhiều dòng (htaccess_blocked liệt kê từng "file:dòng: chỉ thị") giữ nguyên chỗ xuống dòng. */}
+        {!omitMessage && <p className="m-0 whitespace-pre-line [overflow-wrap:anywhere]">{errorMessage(error, lang)}</p>}
         {checks.length > 0 && (
           <div className="mt-[10px]">
             {checksHeading && <div className="mb-[2px] font-mono text-[11px] tracking-[0.08em] text-muted uppercase">{checksHeading}</div>}

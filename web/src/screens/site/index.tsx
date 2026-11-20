@@ -2,7 +2,9 @@
 //   /sites         danh sách site, bảng kẻ mảnh như "Lịch sử máy"
 //   /sites/:domain một site: tuyến đường đi request, phép kiểm kèm bằng chứng,
 //                  tên và đường dẫn, kiểm lại, đưa site vào thùng rác (qua bản
-//                  xem trước; M6: DELETE không còn xoá hẳn, xoá hẳn ở màn Thùng rác)
+//                  xem trước; M6: DELETE không còn xoá hẳn, xoá hẳn ở màn Thùng rác).
+//                  M14: "Request tới site này đi đường nào" (RouteExplain) và
+//                  chế độ .htaccess khi web server là Apache (HtaccessBlock)
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -31,7 +33,9 @@ import { CheckItem } from "./CheckItem";
 import { ErrorNote } from "./ErrorNote";
 import { LiveLog } from "./LiveLog";
 import { formatDate, formatTime } from "./format";
+import { HtaccessBlock } from "./HtaccessBlock";
 import { PhpBlock } from "./PhpBlock";
+import { RouteExplain } from "./RouteExplain";
 import { Legend, RouteMap, stageGroupId } from "./RouteMap";
 import { checksOfStage, routeStages, stageOrder, worstMark } from "./route";
 import { SuspendBlock } from "./SuspendBlock";
@@ -332,6 +336,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
             <ErrorNote error={recheck.error} heading={t.recheckFailed} />
           </div>
         )}
+        {/* M14: lần đường đi từ cấu hình đang chạy. Chưa cài stack hoặc site trong thùng rác thì máy chủ từ chối, nên không hiện nút. */}
+        {hasLogs && <RouteExplain domain={domain} />}
       </section>
 
       {/* Log và số request đọc file log của site: chưa cài stack hoặc site trong thùng rác thì không có gì để đọc. */}
@@ -374,6 +380,11 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
       {hasLogs && <LiveLog domain={domain} />}
 
       {hasLogs && <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} blocked={phpBlocked} />}
+
+      {/* M14: chế độ .htaccess chỉ có nghĩa trên Apache. Server cũ không gửi trường htaccess thì cũng chưa có API đổi chế độ: không hiện khối. */}
+      {info.web === "apache" && info.site.status === "active" && info.site.htaccess && (
+        <HtaccessBlock domain={domain} mode={info.site.htaccess} blocked={siteSuspended ? t.htBlockedSite : undefined} />
+      )}
 
       <Backups domain={domain} active={info.site.status === "active"} restoreBlocked={siteSuspended ? t.blockedSite : undefined} />
 

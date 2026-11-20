@@ -187,6 +187,41 @@ const vi = {
   blockedDb: "User DB của site đang khoá. Mở khoá DB trước: WordPress không vào được DB nên kiểm chứng của việc này chắc chắn hỏng.",
   blockedTrashSite: "Site đang tạm khoá nên chưa đưa vào thùng rác được: khôi phục từ thùng rác sẽ mở khoá lén. Mở khoá trước rồi mới xoá.",
   blockedTrashDb: "User DB của site đang khoá nên chưa đưa site vào thùng rác được. Mở khoá DB trước rồi mới xoá.",
+
+  // ---- M14: đường đi thật của request (mục 6.13) ----
+  traceButton: "Request tới site này đi đường nào",
+  traceAgain: "Chạy lại",
+  traceRunning: "Đang lần đường đi…",
+  traceClose: "Đóng",
+  traceHint:
+    "Lần từ cấu hình đang chạy trên máy, không từ điều TPAN nghĩ nó đã ghi: vhost nào nhận tên miền, root, socket, pool, user, open_basedir, rồi gọi thật. Chỉ đọc, không đổi gì trên máy.",
+  traceLabel: "ĐƯỜNG ĐI LẦN TỪ CẤU HÌNH ĐANG CHẠY",
+  traceListLabel: (domain: string) => `Các chặng request tới ${domain} đi qua, theo thứ tự`,
+  traceAt: (time: string) => `Lần lúc ${time}`,
+  traceFailed: "Chưa lần được đường đi của request",
+  traceEmpty: "Máy chủ không trả chặng nào. Bấm Chạy lại; vẫn vậy thì xem log của tpan.",
+  traceNoValue: "không tìm được",
+
+  // ---- M14: chế độ .htaccess (chỉ khi web server là Apache) ----
+  htHeading: "Chế độ .htaccess",
+  htCurrent: "Chế độ đang dùng",
+  htCurrentTag: "đang dùng",
+  htChoose: "Đổi sang chế độ",
+  htModes: {
+    "an-toan":
+      ".htaccess chỉ dùng được các chỉ thị trong danh sách cho phép (rewrite, chuyển hướng, header, cache, chặn truy cập). Đủ cho WordPress và phần lớn plugin. Một chỉ thị ngoài danh sách làm cả site báo 500.",
+    tat: "Apache không đọc .htaccess của site. Permalink của WordPress chạy bằng một dòng trong vhost. Chặt nhất, nhưng plugin nào cần .htaccess thì phần đó không chạy.",
+    "day-du":
+      ".htaccess viết được mọi chỉ thị của Apache. Site ghi được cấu hình Apache, nên nếu bị chiếm, nó có thể chạy mã dưới user của site khác. Health của site luôn có một cảnh báo.",
+  },
+  htAdminOnly: "Chỉ admin đặt được chế độ này.",
+  htDayDuWarn:
+    "day-du cho site này ghi cấu hình Apache qua .htaccess. Nếu site bị chiếm, kẻ tấn công có thể chạy mã dưới user của site khác trên máy, và health của site sẽ luôn có một cảnh báo. Chỉ chọn khi site cần một chỉ thị ngoài danh sách cho phép mà bạn chưa bỏ được.",
+  htPreview: "Xem trước",
+  htHint:
+    "Đổi chế độ là ghi lại vhost của site rồi reload Apache. Sang an-toan thì TPAN quét mọi .htaccess của site trước; gặp chỉ thị ngoài danh sách cho phép thì từ chối và chỉ ra từng dòng. Bấm là xem trước, chưa có gì đổi.",
+  htFailed: (mode: string) => `Chưa dựng được bản xem trước đổi sang ${mode}`,
+  htBlockedSite: "Site đang tạm khoá. Mở khoá site trước rồi mới đổi chế độ .htaccess.",
 };
 
 export const strings = defineStrings(vi, {
@@ -364,4 +399,37 @@ export const strings = defineStrings(vi, {
   blockedDb: "The site's database user is locked. Unsuspend the database first: WordPress cannot reach it, so this operation's verification is bound to fail.",
   blockedTrashSite: "The site is suspended, so it cannot go to the trash yet: restoring from the trash would quietly unsuspend it. Unsuspend it first, then delete.",
   blockedTrashDb: "The site's database user is locked, so the site cannot go to the trash yet. Unsuspend the database first, then delete.",
+
+  traceButton: "Which way a request to this site goes",
+  traceAgain: "Run again",
+  traceRunning: "Tracing the path…",
+  traceClose: "Close",
+  traceHint:
+    "Traced from the configuration that is running on the machine, not from what TPAN thinks it wrote: which vhost takes the domain, root, socket, pool, user, open_basedir, then a real request. Read-only; nothing on the machine changes.",
+  traceLabel: "PATH TRACED FROM THE RUNNING CONFIGURATION",
+  traceListLabel: (domain) => `The stages a request to ${domain} goes through, in order`,
+  traceAt: (time) => `Traced at ${time}`,
+  traceFailed: "Could not trace the path of the request",
+  traceEmpty: "The server returned no stages. Press Run again; if it stays empty, look at the tpan log.",
+  traceNoValue: "not found",
+
+  htHeading: ".htaccess mode",
+  htCurrent: "Mode in use",
+  htCurrentTag: "in use",
+  htChoose: "Change to mode",
+  htModes: {
+    "an-toan":
+      "Safe: .htaccess may only use the directives on the allow list (rewrite, redirects, headers, caching, access rules). Enough for WordPress and most plugins. One directive outside the list makes the whole site return 500.",
+    tat: "Off: Apache does not read the site's .htaccess. WordPress permalinks work through one line in the vhost. The strictest mode, but whatever a plugin needs .htaccess for stops working.",
+    "day-du":
+      "Full: .htaccess may use any Apache directive. The site can write Apache configuration, so if it is compromised it can run code as another site's user. The site's health always carries a warning.",
+  },
+  htAdminOnly: "Only an admin can set this mode.",
+  htDayDuWarn:
+    "day-du lets this site write Apache configuration through .htaccess. If the site is compromised, the attacker can run code as another site's user on this machine, and the site's health will always carry a warning. Choose it only when the site needs a directive outside the allow list that you cannot drop yet.",
+  htPreview: "Preview",
+  htHint:
+    "Changing the mode rewrites the site's vhost and reloads Apache. Before switching to an-toan, TPAN scans every .htaccess of the site; if it finds a directive outside the allow list it refuses and points to each line. Pressing the button shows a preview; nothing changes yet.",
+  htFailed: (mode) => `Could not build the preview to switch to ${mode}`,
+  htBlockedSite: "The site is suspended. Unsuspend it first, then change the .htaccess mode.",
 });
