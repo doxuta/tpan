@@ -295,7 +295,7 @@ func (s *Sites) applyBatch(cfg StackConfig, all []site.Site, trashed map[validat
 				Target:  l.Domain.String(),
 				Prepare: applySerial(mu, prep),
 				Finish:  []engine.Step{add.install},
-				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, l, others, add.Site.SSL),
+				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, l, others, add.Site.SSL, add.Site.Htaccess),
 			})
 		default:
 			trashes++

@@ -228,7 +228,7 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 		Target: d.String(),
 		Title:  i18n.T("Khôi phục site "+d.String()+" từ thùng rác", "Restore site "+d.String()+" from the trash"),
 		Steps:  ss,
-		Verify: siteChecks(cfg.Web, php, l, others, st.SSL),
+		Verify: siteChecks(cfg.Web, php, l, others, st.SSL, st.Htaccess),
 	}}, nil
 }
 

@@ -32,7 +32,7 @@ func (r *Runner) clock() func() time.Time {
 // lệch file (gắn vào site sở hữu file), rồi chính tpan. installed cho biết
 // stack đã cài chưa.
 func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, installed bool, err error) {
-	stack := &core.Stack{Sys: r.Sys, Settings: r.Store, WPCLISHA512: r.WPCLISHA512}
+	stack := &core.Stack{Sys: r.Sys, Settings: r.Store, WPCLISHA512: r.WPCLISHA512, Sites: r.Store}
 	sites := &core.Sites{Sys: r.Sys, Settings: r.Store, Store: r.Store}
 
 	stackChecks, installed, err := stack.Checks(ctx)

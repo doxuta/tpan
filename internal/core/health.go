@@ -38,7 +38,53 @@ func (s *Stack) Checks(ctx context.Context) (cs []checks.Check, installed bool, 
 		return nil, false, nil
 	}
 	_, sha := s.wpcli()
-	return stackChecks(cfg.Web, func() string { return cfg.PHPVersion }, sha), true, nil
+	cs = stackChecks(cfg.Web, func() string { return cfg.PHPVersion }, sha)
+	more, err := s.isolationChecks(ctx, cfg)
+	if err != nil {
+		return nil, false, err
+	}
+	return append(cs, more...), true, nil
+}
+
+// isolationChecks là các phép kiểm cấp máy của M14 (mục 6.13) mà chỉ health
+// xét, vì chúng cần biết cả máy đang có gì: OPcache và ProtectProc của các bản
+// PHP ngoài bản mặc định (bản mặc định đã nằm trong stackChecks), tên miền
+// trùng giữa các vhost, và vhost mặc định từ chối tên lạ (thêm cổng 443 khi có
+// site bật SSL). Sites nil (lệnh chỉ cần phép kiểm của stack) thì bỏ hai phép
+// định tuyến.
+func (s *Stack) isolationChecks(ctx context.Context, cfg StackConfig) ([]checks.Check, error) {
+	var cs []checks.Check
+	if s.Sys != nil {
+		vers, err := phpInstalled(s.Sys)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range vers {
+			if v != cfg.PHPVersion {
+				cs = append(cs, checks.OPcacheHardened(v), checks.PHPProtectProc(v))
+			}
+		}
+	}
+	if s.Sites == nil {
+		return cs, nil
+	}
+	all, err := s.Sites.Sites(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var layouts []site.Layout
+	ssl := false
+	for _, st := range all {
+		if st.Status != site.Active {
+			continue
+		}
+		layouts = append(layouts, st.Layout())
+		ssl = ssl || st.SSL
+	}
+	return append(cs,
+		checks.ServerNameUnique(string(cfg.Web), layouts),
+		checks.DefaultRejects(string(cfg.Web), ssl),
+	), nil
 }
 
 // Checks trả bộ phép kiểm của site d (siteChecks: đường đi request, rồi cô
@@ -93,7 +139,7 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify
 		if st.SSL {
 			cs = append(cs, checks.TLSCert(l))
 		}
-		cs = append(cs, checks.VhostEnabled(web, l))
+		cs = append(cs, checks.VhostEnabled(web, l), checks.LogPerms(l))
 		hold(checks.StagePHP, false)
 		hold(checks.StageWordPress, false)
 		hold(checks.StageDB, false)
@@ -108,6 +154,7 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify
 			checks.Heavy(checks.WPChecksums(l)),
 			checks.WPConfigPerm(l),
 		)
+		cs = append(cs, siteHardeningChecks(cfg.Web, l, st.Htaccess)...)
 		hold(checks.StageDB, true)
 		hold(checks.StageEndToEnd, true)
 		for _, o := range others {
@@ -115,7 +162,7 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify
 		}
 		return cs
 	}
-	return siteChecks(cfg.Web, php, l, others, st.SSL)
+	return siteChecks(cfg.Web, php, l, others, st.SSL, st.Htaccess)
 }
 
 // siteEdgeChecks là hai chặng đầu của đường đi request mà chỉ health xét: DNS,
@@ -181,6 +228,10 @@ func AutoFixName(r checks.Result) string {
 		if kind == "drift" {
 			return FixFileRewrite
 		}
+		// M14: ProtectProc thiếu chỉ là cảnh báo nhưng có sửa tự động (mục 6.13).
+		if kind == "php.protectproc" {
+			return FixPHPHarden
+		}
 		return ""
 	default: // Pass, Unknown: không có gì để sửa, hoặc chưa biết sửa gì.
 		return ""
@@ -205,6 +256,14 @@ func AutoFixName(r checks.Result) string {
 		return FixDBUnlock
 	case "tls.cert":
 		return FixSSLIssue
+	case "php.opcache":
+		return FixPHPHarden
+	case "log.perm":
+		return FixLogPerms
+	case "web.hardened":
+		// Vhost thiếu dòng chặn của M14: ghi lại vhost của riêng site đó từ
+		// template hiện tại, theo chế độ .htaccess đang lưu (Fixes.vhostRewrite).
+		return FixWebRewrite
 	}
 	return ""
 }

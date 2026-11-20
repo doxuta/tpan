@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/templates"
 )
 
 // sim là FakeSystem cộng các handler giả lập một máy Ubuntu 24.04: dpkg, apt,
@@ -29,6 +31,11 @@ type sim struct {
 	mods    map[string]bool
 	ss      string // output của `ss -tlnH`/`ss -tlnpH` ngoài cổng 3306
 	updates int
+	// protect (M14): dịch vụ đang chạy với ProtectProc=invisible. Ghi lúc dịch
+	// vụ được khởi động (restart, enable): systemd chỉ dựng /proc riêng
+	// cho dịch vụ vào lúc đó, nên drop-in ghi xong mà chưa restart thì chưa có
+	// hiệu lực.
+	protect map[string]bool
 	// onUpdate khác nil thì được gọi lúc `apt-get update` chạy; trả mã thoát.
 	onUpdate func() int
 }
@@ -50,6 +57,7 @@ func newSim(t *testing.T) *sim {
 		pkgs:       map[string]bool{},
 		units:      map[string]unitState{},
 		mods:       map[string]bool{},
+		protect:    map[string]bool{},
 	}
 	m.SetFile("/etc/os-release", []byte("NAME=\"Ubuntu\"\nID=ubuntu\nVERSION_ID=\"24.04\"\n"), 0o644, system.Root)
 	m.SetDisk("/", system.DiskUsage{Total: 100 << 30, Free: 60 << 30})
@@ -125,26 +133,40 @@ func newSim(t *testing.T) *sim {
 			return exit(1, "disabled\n", "")
 		case "enable":
 			u.enabled, u.active = true, true
+			// Lúc khởi động, dịch vụ nhận drop-in đang có trên đĩa.
+			m.protect[unit] = m.hasProtectProc(unit)
 		case "disable":
 			u.enabled = false
 		case "stop":
 			u.active = false
-		default: // reload, restart
+		case "restart":
+			m.protect[unit] = m.hasProtectProc(unit)
+			return ok
+		default: // reload, daemon-reload
 			return ok
 		}
 		m.units[unit] = u
 		return ok
 	})
 	// M14: `systemctl show <unit> -p ProtectProc --value` (bước
-	// steps.PHPProtectProc và phép kiểm php.protectproc). Máy giả trả lời theo
-	// drop-in tpan.conf đang có trên đĩa; chưa đặt thì "default". Phần "phải
-	// daemon-reload thì systemd mới đọc" đã có test ở gói steps.
+	// steps.PHPProtectProc và phép kiểm php.protectproc). "invisible" chỉ khi
+	// drop-in tpan.conf đang có trên đĩa VÀ dịch vụ đã được khởi động lại sau
+	// khi có nó; không thì "default". Nhờ vậy test phân biệt được Plan có
+	// restart với Plan chỉ ghi file.
 	m.Handle([]string{"systemctl", "show"}, func(c system.Cmd) system.Result {
-		b, _ := m.ReadFile("/etc/systemd/system/" + c.Args[1] + ".service.d/tpan.conf")
-		if strings.Contains(string(b), "\nProtectProc=invisible\n") {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if m.protect[c.Args[1]] && m.hasProtectProc(c.Args[1]) {
 			return exit(0, "invisible\n", "")
 		}
 		return exit(0, "default\n", "")
+	})
+	// M14: `php-fpm8.3 -i` (phép kiểm php.opcache). PHP đọc mọi file ini rồi in
+	// giá trị sau khi gộp, mỗi khoá một dòng "khoá => đang dùng => gốc". Máy
+	// giả chỉ in On khi 99-tpan.ini có đúng nội dung tpan ghi, để test phân
+	// biệt được máy đã siết với máy chưa siết.
+	m.Handle([]string{"php-fpm8.3", "-i"}, func(system.Cmd) system.Result {
+		return exit(0, fakePHPInfo(m.FakeSystem, "8.3"), "")
 	})
 
 	m.Handle([]string{"a2query", "-m"}, func(c system.Cmd) system.Result {
@@ -212,6 +234,26 @@ func newSim(t *testing.T) *sim {
 		return ok
 	})
 	return m
+}
+
+// hasProtectProc: drop-in của tpan cho dịch vụ unit đang có trên đĩa.
+func (m *sim) hasProtectProc(unit string) bool {
+	b, _ := m.ReadFile("/etc/systemd/system/" + unit + ".service.d/tpan.conf")
+	return strings.Contains(string(b), "\nProtectProc=invisible\n")
+}
+
+// fakePHPInfo là output của `php-fpm<bản> -i` trên máy giả f: vài dòng đầu
+// của phpinfo dạng chữ và hai dòng OPcache mà checks.OPcacheHardened đọc, đúng
+// định dạng PHP in thật. Chưa có file ini của tpan (hoặc nội dung khác) thì in
+// giá trị mặc định của PHP: Off và "no value".
+func fakePHPInfo(f *system.FakeSystem, version string) string {
+	perm, api := "Off", "no value"
+	if b, err := f.ReadFile(templates.PHPHardeningINIPath(version)); err == nil && bytes.Equal(b, templates.PHPHardeningINI()) {
+		perm, api = "On", templates.OPcacheAPIDir
+	}
+	return "phpinfo()\nPHP Version => " + version + ".6\n\nZend OPcache\n\nOpcode Caching => Up and Running\n" +
+		"opcache.restrict_api => " + api + " => " + api + "\n" +
+		"opcache.validate_permission => " + perm + " => " + perm + "\n"
 }
 
 // install giả lập những gì apt để lại trên máy sau khi cài một gói. Gọi khi

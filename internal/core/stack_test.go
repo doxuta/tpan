@@ -162,8 +162,10 @@ func TestPlanOrder(t *testing.T) {
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("thứ tự bước:\ncó    %q\nmuốn  %q", got, want)
 			}
-			if len(in.Plan.Verify) != 11 {
-				t.Errorf("Verify có %d phép kiểm, muốn 11", len(in.Plan.Verify))
+			// 11 phép của các mốc trước, cộng hai phép của M14 cho bản PHP mặc
+			// định: php.opcache và php.protectproc.
+			if len(in.Plan.Verify) != 13 {
+				t.Errorf("Verify có %d phép kiểm, muốn 13", len(in.Plan.Verify))
 			}
 		})
 	}
@@ -421,7 +423,7 @@ func TestFullInstall(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !h.Installed || len(h.Results) != 11 {
+			if !h.Installed || len(h.Results) != 13 {
 				t.Fatalf("Health: installed=%v, %d kết quả", h.Installed, len(h.Results))
 			}
 			for _, r := range h.Results {

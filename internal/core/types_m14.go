@@ -6,13 +6,10 @@ package core
 // Cho tới lúc đó mọi hàm trả RefusedError "not_implemented".
 
 import (
-	"context"
-
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/htaccess"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
-	"github.com/doxuta/tpan/internal/validate"
 )
 
 // Tên cách sửa tự động mới (AutoFixName, Fixes.plan).
@@ -62,10 +59,8 @@ func notImplementedM14(what string) *RefusedError {
 // pháp Apache, HtaccessDirectives (trừ khi nó chắc chắn Warn ở day-du), và
 // HTTPSite (bản SSL khi site có SSL). Job thành công thì lưu Htaccess mới vào
 // bảng sites. Ai được đặt day-du (chỉ admin) do server quyết, core không biết vai.
-func (s *Sites) PrepareHtaccess(ctx context.Context, d validate.Domain, mode site.HtaccessMode) (*Planned, error) {
-	_, _, _ = ctx, d, mode
-	return nil, notImplementedM14("site.htaccess")
-}
+//
+//	func (s *Sites) PrepareHtaccess(ctx context.Context, d validate.Domain, mode site.HtaccessMode) (*Planned, error)   // thân ở harden_m14.go
 
 // ------------------------------------------------------------------- harden
 
@@ -110,10 +105,8 @@ type Harden struct {
 // HTTPSite (hoặc HTTPSuspended), cô lập hai chiều. Job thành công thì lưu
 // Htaccess mới của các site trong Switched. Chạy lại khi mọi thứ đã đúng thì
 // mọi bước được bỏ qua.
-func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
-	_ = ctx
-	return nil, notImplementedM14("security.harden")
-}
+//
+//	func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error)   // thân ở harden_m14.go
 
 // ------------------------------------------------------------ route explain
 
@@ -168,10 +161,8 @@ type RouteTrace struct {
 // SSL, hoặc HTTPSuspended, theo trạng thái site). Site tạm khoá: dừng sau
 // chặng vhost với một câu nói site đang tạm khoá, rồi chặng http.
 // Site không có hoặc ở thùng rác: lỗi như find. Stack chưa cài: từ chối.
-func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace, error) {
-	_, _ = ctx, d
-	return RouteTrace{}, notImplementedM14("route.explain")
-}
+//
+//	func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace, error)   // thân ở route_m14.go
 
 // ------------------------------------------------------- ma trận cô lập
 

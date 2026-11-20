@@ -300,14 +300,36 @@ func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Layout, e
 // siteChecks là bộ phép kiểm của một site, dùng chung cho kiểm chứng sau khi
 // tạo và cho health (mục 6.7): SiteChecks theo đường đi của request (bản SSL
 // khi site đã có chứng chỉ: cổng 80 giờ trả 301), rồi cô lập hai chiều với
-// từng site còn lại.
-func siteChecks(web WebServer, php string, l site.Layout, others []site.Layout, ssl bool) []checks.Check {
+// từng site còn lại. M14 (mục 6.13): thêm các phép kiểm cô lập sâu của riêng
+// site (siteHardeningChecks) theo chế độ .htaccess mode của nó.
+func siteChecks(web WebServer, php string, l site.Layout, others []site.Layout, ssl bool, mode site.HtaccessMode) []checks.Check {
 	cs := checks.SiteChecks(string(web), php, l)
 	if ssl {
 		cs = checks.SiteChecksSSL(string(web), php, l)
 	}
+	cs = append(cs, siteHardeningChecks(web, l, mode)...)
 	for _, o := range others {
 		cs = append(cs, checks.Isolated(l, o), checks.Isolated(o, l))
+	}
+	return cs
+}
+
+// siteHardeningChecks là các phép kiểm cô lập sâu của riêng một site đang phục
+// vụ (M14, mục 6.13): quyền log, dòng chặn trong vhost, và .htaccess theo chế
+// độ khi web server là Apache. Site tạm khoá chỉ có LogPerms (vhost tạm khoá
+// không trỏ vào public nên không có gì để chặn): siteStateChecks tự thêm.
+//
+// Các phép này nằm trong kiểm chứng của mọi Plan chạm vào site, như phần còn
+// lại của siteChecks. Hệ quả cho máy nâng từ bản trước M14: site cũ chưa qua
+// `tpan security harden` thì các phép này lỗi, nên thao tác trên site đó bị
+// hoàn tác cho tới khi chạy harden. Lời nhắn của từng phép kiểm chỉ sang lệnh đó.
+func siteHardeningChecks(web WebServer, l site.Layout, mode site.HtaccessMode) []checks.Check {
+	cs := []checks.Check{
+		checks.LogPerms(l),
+		checks.VhostHardened(string(web), l, mode),
+	}
+	if web == Apache {
+		cs = append(cs, checks.HtaccessDirectives(l, mode))
 	}
 	return cs
 }
@@ -455,7 +477,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if err != nil {
 		return nil, err
 	}
-	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, l, others, rec.SSL)
+	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, l, others, rec.SSL, rec.Htaccess)
 	return &SiteAdd{
 		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan,
 		sites: s, adminPassword: adminPw, install: install,

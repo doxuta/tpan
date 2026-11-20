@@ -317,7 +317,7 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 		Target: dom,
 		Title:  i18n.T("Chuyển "+dom+" từ PHP "+old+" sang "+version, "Move "+dom+" from PHP "+old+" to "+version),
 		Steps:  ss,
-		Verify: siteChecks(cfg.Web, version, l, others, st.SSL),
+		Verify: siteChecks(cfg.Web, version, l, others, st.SSL, st.Htaccess),
 	}
 	after := func(ctx context.Context, _ engine.Report) error {
 		if err := p.Sites.SaveSite(ctx, next); err != nil {

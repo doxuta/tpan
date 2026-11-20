@@ -79,10 +79,38 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 			Verify: []checks.Check{checks.Drift(obj, hex.EncodeToString(sum[:]), checks.DriftStage(obj))},
 		}, nil
 	case FixWebRewrite:
-		if kind == "web.vhost" {
+		if kind == "web.vhost" || kind == "web.hardened" {
 			return f.vhostRewrite(ctx, cfg, r.ID, obj)
 		}
 		return f.webRewrite(ctx, cfg, r.ID, kind)
+	case FixPHPHarden:
+		// obj là bản PHP, lấy từ ID của phép kiểm: kiểm dạng trước khi nó đi
+		// vào đường dẫn và tên dịch vụ.
+		if err := checkPHPVersion(obj); err != nil {
+			return engine.Plan{}, noAutoFix(r.ID)
+		}
+		ss, err := steps.PHPHardening(obj)
+		if err != nil {
+			return engine.Plan{}, err
+		}
+		return engine.Plan{
+			Target: obj,
+			Title:  i18n.T("Siết OPcache và /proc của PHP-FPM "+obj, "Harden OPcache and /proc for PHP-FPM "+obj),
+			Steps:  ss,
+			Verify: []checks.Check{checks.OPcacheHardened(obj), checks.PHPProtectProc(obj)},
+		}, nil
+	case FixLogPerms:
+		st, err := f.activeSite(ctx, r.ID, obj)
+		if err != nil {
+			return engine.Plan{}, err
+		}
+		l := st.Layout()
+		return engine.Plan{
+			Target: l.Domain.String(),
+			Title:  i18n.T("Đặt lại quyền thư mục và file log của "+obj, "Reset the log directory and file permissions of "+obj),
+			Steps:  steps.SiteLogs(l),
+			Verify: []checks.Check{checks.LogPerms(l)},
+		}, nil
 	case FixWPConfigPerm:
 		st, err := f.activeSite(ctx, r.ID, obj)
 		if err != nil {
@@ -391,11 +419,17 @@ func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj strin
 	if cfg.Web == Apache {
 		config = checks.ApacheConfig()
 	}
+	verify := []checks.Check{checks.VhostEnabled(string(cfg.Web), l), config}
+	// M14: vhost thường phải mang các dòng chặn (web.hardened cũng sửa bằng
+	// Plan này). Vhost tạm khoá không trỏ vào public nên không có dòng nào.
+	if st.Suspended == account.NotSuspended {
+		verify = append(verify, checks.VhostHardened(string(cfg.Web), l, st.Htaccess))
+	}
 	return engine.Plan{
 		Target: obj,
 		Title:  i18n.T("Ghi lại và bật lại vhost của "+obj, "Rewrite and re-enable the vhost of "+obj),
 		Steps:  ss,
-		Verify: []checks.Check{checks.VhostEnabled(string(cfg.Web), l), config},
+		Verify: verify,
 	}, nil
 }
 

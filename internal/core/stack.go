@@ -122,6 +122,9 @@ type Stack struct {
 	// Journal nhận job và sự kiện khi Execute; CLI đặt là chính store.
 	// nil chỉ hợp lệ khi xem trước.
 	Journal engine.Journal
+	// Sites (M14) chỉ Checks cần: danh sách site để kiểm tên miền trùng giữa
+	// các vhost. nil thì Checks bỏ hai phép kiểm định tuyến.
+	Sites SiteStore
 	// Bản WP-CLI và sha512 của nó. Rỗng thì dùng steps.DefaultWPCLI*. Test đặt
 	// sha512 của một file giả, vì không thể tải bản thật.
 	WPCLIVersion string
@@ -471,6 +474,10 @@ func stackChecks(web WebServer, php func() string, wpSHA string) []checks.Check 
 		checks.Disk("/"),
 		// Cuối danh sách để thứ tự các phép kiểm của M1 không đổi.
 		lazy(checks.PHPPoolWWWAbsent),
+		// M14 (mục 6.13): OPcache kiểm quyền file, PHP-FPM không thấy tiến
+		// trình của user khác.
+		lazy(checks.OPcacheHardened),
+		lazy(checks.PHPProtectProc),
 	}
 }
 
