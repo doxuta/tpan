@@ -577,7 +577,9 @@ Dừng ghi (`exit`), che tên miền và IP như ở 3.0, rồi gửi file `~/tp
 
 ---
 
-## 4. Phát hành và mở repo công khai (khi bạn muốn)
+## 4. Phát hành và mở repo công khai
+
+**Đã làm 20/11/2026**: `v0.1.0` đã phát hành, repo đã công khai, lịch sử git đã dùng email ẩn, giấy phép MIT. Phần dưới giữ lại làm mẫu cho bản sau (bỏ bước viết lại lịch sử).
 
 ### 4.1. Biết trước khi quyết
 

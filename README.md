@@ -51,6 +51,12 @@ TPAN chạy bằng quyền root và sửa cấu hình hệ thống (gói apt, ng
 
 ## Cài đặt
 
+Cài nhanh trên một VPS Ubuntu 24.04 sạch, từ bản phát hành mới nhất trên GitHub:
+
+```bash
+curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx
+```
+
 Script cài là `scripts/install.sh`. Nó đặt file chạy vào `/usr/local/bin/tpan`, chạy `tpan setup` (thư mục, chứng chỉ tự ký, DB, mật khẩu quản trị, dịch vụ systemd), rồi nếu có `--web` thì chạy `tpan stack install`. Chạy lại được: thứ gì đã đúng thì không đổi.
 
 Các cờ, lấy từ `bash scripts/install.sh --help`:
@@ -94,10 +100,10 @@ sudo ./install.sh --web nginx        # hoặc --web apache
 ### Cách 2: một lệnh từ bản phát hành
 
 ```bash
-curl -fsSL <BASE>/install.sh | sudo bash -s -- --web nginx
+curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx
 ```
 
-`<BASE>` là địa chỉ chứa `install.sh`, `tpan-linux-<arch>` và `SHA256SUMS`; địa chỉ mặc định của bản phát hành in trong `bash scripts/install.sh --help`. Cách này chỉ chạy được khi repo đã công khai và đã có bản phát hành. Repo hiện để riêng tư, nên bây giờ dùng cách 1.
+Tải `install.sh`, `tpan-linux-<arch>` và `SHA256SUMS` từ bản phát hành mới nhất trên GitHub. Muốn tải từ chỗ khác (bản tự đóng gói, máy chủ nội bộ) thì thay địa chỉ bằng `<BASE>/install.sh` và thêm `--from <BASE>`.
 
 ### Sau khi cài
 
@@ -215,7 +221,7 @@ Every operation shows a preview first (steps, commands, file diffs), rolls back 
 
 The screenshots above come from `tpan serve --demo`, a fake machine with sample data.
 
-Install: run `make release`, copy `dist/release/<version>/` to the server, then `sudo ./install.sh --web nginx`. A one-line `curl -fsSL <BASE>/install.sh | sudo bash -s -- --web nginx` works only once the repository is public and has a release. Then open `https://<server>:8443`, compare the certificate's SHA-256 fingerprint with the one `tpan setup` printed, and log in with the admin password shown once. Forgot it: `sudo tpan admin passwd`. With `--private` the panel listens on 127.0.0.1 only; reach it through `ssh -L 8443:127.0.0.1:8443 <server>`.
+Install on a clean Ubuntu 24.04 VPS: `curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx`. Or run `make release`, copy `dist/release/<version>/` to the server, then `sudo ./install.sh --web nginx`. Then open `https://<server>:8443`, compare the certificate's SHA-256 fingerprint with the one `tpan setup` printed, and log in with the admin password shown once. Forgot it: `sudo tpan admin passwd`. With `--private` the panel listens on 127.0.0.1 only; reach it through `ssh -L 8443:127.0.0.1:8443 <server>`.
 
 TPAN runs as root and changes system configuration. Use it only on a clean, dedicated VPS, and try it in a VM first. Every command accepts `--lang en`.
 
