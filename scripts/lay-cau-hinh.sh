@@ -52,8 +52,9 @@ make vm-reset
 make vm-deploy
 VM_IP="$(scripts/vm.sh ip)"
 
-# setup in mật khẩu quản trị: không cần ở đây, bỏ output.
-vroot tpan setup >/dev/null
+# setup in mật khẩu quản trị: không cần ở đây, bỏ output. Đọc qua ống chứ không
+# chuyển hướng sang /dev/null: multipass exec treo khi stdout là /dev/null.
+vroot tpan setup --yes | wc -l >/dev/null
 vroot tpan stack install --web nginx --yes
 vroot tpan site add "$D" --yes
 vroot tpan security ufw --yes

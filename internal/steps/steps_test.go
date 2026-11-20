@@ -639,7 +639,7 @@ func TestInfo(t *testing.T) {
 	if got := (&File{Path: "/x", Danger: true}).Info().Danger; !got {
 		t.Error("File.Danger không đi vào Info")
 	}
-	if got := all[1].Info().Commands; !reflect.DeepEqual(got, []string{"apt-get install -y nginx curl"}) {
+	if got := all[1].Info().Commands; !reflect.DeepEqual(got, []string{"apt-get install -y -o DPkg::Lock::Timeout=300 nginx curl"}) {
 		t.Errorf("Commands của AptInstall: %v", got)
 	}
 }

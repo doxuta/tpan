@@ -164,8 +164,12 @@ func (s *AptInstall) validate() error {
 	return nil
 }
 
+// cmd chờ khoá dpkg tối đa 5 phút (aptLock): VPS vừa tạo có unattended-upgrades
+// giữ khoá, thiếu tuỳ chọn này thì `tpan stack install` (và install.sh) lỗi
+// ngay "Could not get lock /var/lib/dpkg/lock-frontend" (gặp 20/11/2026 khi cài
+// trên máy ảo vừa khởi động).
 func (s *AptInstall) cmd() system.Cmd {
-	return system.Cmd{Name: "apt-get", Args: append([]string{"install", "-y"}, s.Packages...)}
+	return aptGet([]string{"install", "-y"}, s.Packages...)
 }
 
 func (s *AptInstall) Info() engine.StepInfo {
