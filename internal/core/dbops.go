@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -55,6 +56,25 @@ func dbSite(ctx context.Context, b *Backups, d validate.Domain, allowTrashed boo
 			"site "+d.String()+" is in the trash; restore it first with: sudo tpan site restore "+d.String()))
 	}
 	return site.Site{}, fmt.Errorf("site %s có trạng thái lạ %q trong DB", d, st.Status)
+}
+
+// dbNotSuspended (M13) từ chối đổi mật khẩu và nhập DB khi site hay DB của
+// site đang tạm khoá: cả hai kiểm chứng bằng WP-CLI đăng nhập DB và site trả
+// 200, mà site tạm khoá trả 403 (pool đã tắt) còn user DB khoá thì không đăng
+// nhập được, nên job luôn hỏng và bị hoàn tác. Xuất DB thì vẫn được (root).
+func dbNotSuspended(st site.Site) error {
+	d := st.Domain.String()
+	if st.Suspended != account.NotSuspended {
+		return refuse(CodeSiteSuspended, i18n.T(
+			"site "+d+" đang tạm khoá; mở khoá trước bằng: sudo tpan site unsuspend "+d,
+			"site "+d+" is suspended; unsuspend it first with: sudo tpan site unsuspend "+d))
+	}
+	if st.DBSuspended != account.NotSuspended {
+		return refuse(CodeDBSuspended, i18n.T(
+			"DB của site "+d+" đang tạm khoá; mở khoá trước bằng: sudo tpan db unsuspend "+d,
+			"the database of "+d+" is suspended; unsuspend it first with: sudo tpan db unsuspend "+d))
+	}
+	return nil
 }
 
 // dbDumpPath là file xuất mới trong thư mục backup của site. suffix phân biệt
@@ -223,6 +243,9 @@ func (b *Backups) PrepareDBPassword(ctx context.Context, d validate.Domain) (*Pl
 	if err != nil {
 		return nil, err
 	}
+	if err := dbNotSuspended(st); err != nil {
+		return nil, err
+	}
 	pw, err := sitePassword()
 	if err != nil {
 		return nil, err
@@ -279,6 +302,9 @@ func dbBackupNotFound(d validate.Domain, id string) *RefusedError {
 func (b *Backups) PrepareDBImport(ctx context.Context, d validate.Domain, id string) (*Planned, error) {
 	st, err := dbSite(ctx, b, d, false)
 	if err != nil {
+		return nil, err
+	}
+	if err := dbNotSuspended(st); err != nil {
 		return nil, err
 	}
 	l := st.Layout()

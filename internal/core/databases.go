@@ -11,12 +11,12 @@ package core
 
 import (
 	"context"
-
-	"github.com/doxuta/tpan/internal/account"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -113,6 +113,109 @@ func parseDatabaseStats(out string) map[string]databaseStat {
 			continue
 		}
 		m[f[0]] = databaseStat{tables: n, size: size}
+	}
+	return m
+}
+
+// Kind của một dòng Database (M13).
+const (
+	DBKindSite       = "site"
+	DBKindStandalone = "standalone"
+)
+
+// List là DB của site và DB rời của owner (rỗng là của mọi người), cho màn
+// Cơ sở dữ liệu. Thay cho Sites.Databases ở server. Như Databases: dung lượng,
+// số bảng, charset và collation đọc bằng đúng một câu SQL; MariaDB không trả
+// lời thì các cột đó là -1 (charset của DB rời lấy từ bảng databases), không
+// báo lỗi cả màn. DB rời trong thùng rác đã bị DROP nên luôn là -1.
+func (d *DBs) List(ctx context.Context, owner string) ([]Database, error) {
+	out := []Database{}
+	if d.Sites != nil {
+		all, err := d.Sites.Sites(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("đọc danh sách site: %w", err)
+		}
+		for _, st := range all {
+			if owner != "" && st.Owner != owner {
+				continue
+			}
+			l := st.Layout()
+			out = append(out, Database{
+				Domain: st.Domain.String(), DB: l.DB, User: l.DB, SizeBytes: -1, Tables: -1,
+				Kind: DBKindSite, Owner: st.Owner, Suspended: st.DBSuspended, Status: string(st.Status),
+			})
+		}
+	}
+	if d.Store != nil {
+		all, err := d.Store.StandaloneDBs(ctx, owner)
+		if err != nil {
+			return nil, fmt.Errorf("đọc danh sách DB rời: %w", err)
+		}
+		for _, db := range all {
+			out = append(out, Database{
+				DB: db.Name, User: db.Name, SizeBytes: -1, Tables: -1, Kind: DBKindStandalone,
+				Owner: db.Owner, Charset: db.Charset, Collation: db.Collation, Note: db.Note,
+				Suspended: db.Suspended, Status: string(db.Status),
+			})
+		}
+	}
+	var names []string
+	for _, r := range out {
+		if databaseNameRe.MatchString(r.DB) {
+			names = append(names, r.DB)
+		}
+	}
+	if len(names) == 0 {
+		return out, nil
+	}
+	res, err := d.Sys.Run(ctx, system.Cmd{Name: "mariadb", Args: []string{"-N", "-B"}, Stdin: []byte(databaseListSQL(names))})
+	if err != nil {
+		return out, nil
+	}
+	stats := parseDatabaseList(res.Stdout)
+	for i := range out {
+		if st, ok := stats[out[i].DB]; ok {
+			out[i].Tables, out[i].SizeBytes = st.tables, st.size
+			out[i].Charset, out[i].Collation = st.charset, st.collation
+		}
+	}
+	return out, nil
+}
+
+// databaseListSQL như databaseSizeSQL, thêm charset và collation mặc định của
+// DB (SCHEMATA). Năm cột: tên, số bảng, byte, charset, collation.
+func databaseListSQL(names []string) string {
+	quoted := make([]string, len(names))
+	for i, n := range names {
+		quoted[i] = "'" + n + "'"
+	}
+	return "SELECT s.SCHEMA_NAME, COUNT(t.TABLE_NAME), COALESCE(SUM(t.DATA_LENGTH + t.INDEX_LENGTH), 0), " +
+		"s.DEFAULT_CHARACTER_SET_NAME, s.DEFAULT_COLLATION_NAME " +
+		"FROM information_schema.SCHEMATA s " +
+		"LEFT JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = s.SCHEMA_NAME AND t.TABLE_TYPE IN ('BASE TABLE', 'SYSTEM VERSIONED') " +
+		"WHERE s.SCHEMA_NAME IN (" + strings.Join(quoted, ", ") + ") " +
+		"GROUP BY s.SCHEMA_NAME, s.DEFAULT_CHARACTER_SET_NAME, s.DEFAULT_COLLATION_NAME;\n"
+}
+
+type databaseListStat struct {
+	databaseStat
+	charset, collation string
+}
+
+// parseDatabaseList đọc năm cột của databaseListSQL; dòng lạ thì bỏ.
+func parseDatabaseList(out string) map[string]databaseListStat {
+	m := map[string]databaseListStat{}
+	for line := range strings.Lines(out) {
+		f := strings.Split(strings.TrimRight(line, "\r\n"), "\t")
+		if len(f) != 5 {
+			continue
+		}
+		n, err1 := strconv.Atoi(f[1])
+		size, err2 := strconv.ParseInt(f[2], 10, 64)
+		if err1 != nil || err2 != nil {
+			continue
+		}
+		m[f[0]] = databaseListStat{databaseStat{tables: n, size: size}, f[3], f[4]}
 	}
 	return m
 }
