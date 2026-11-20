@@ -2,7 +2,7 @@
 
 Tài liệu này là bản đặc tả để viết code. Ai viết code (người hay AI) đều làm theo nó; chỗ nào thực tế khác với tài liệu thì sửa tài liệu trong cùng commit.
 
-Trạng thái: **cả 13 mốc M0 đến M12 xong phần chạy trên máy ảo** ngày 19 và 20/11/2026 (M1 đến M3 làm nối tiếp; từ M4 chạy song song theo ba lượt A: M4, M5, M7; B: M6, M8, M12; C: M9, M10; mỗi mốc trên nhánh riêng, ghép vào `dev` rồi chạy lại e2e trên `tpan-test`; M11 làm cuối). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Việc còn lại chỉ chủ dự án làm được (VPS, tên miền thật, Claude Code thật trên máy cá nhân, đăng bản phát hành, xem giao diện bằng mắt) nằm ở mục 18. Cùng ngày 19/11 đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2).
+Trạng thái: **cả 13 mốc M0 đến M12 xong phần chạy trên máy ảo** ngày 19 và 20/11/2026 (M1 đến M3 làm nối tiếp; từ M4 chạy song song theo ba lượt A: M4, M5, M7; B: M6, M8, M12; C: M9, M10; mỗi mốc trên nhánh riêng, ghép vào `dev` rồi chạy lại e2e trên `tpan-test`; M11 làm cuối). Bằng chứng ở `docs/bang-chung/`, giải thích ở `docs/giai-thich/`. Việc còn lại chỉ chủ dự án làm được (VPS, tên miền thật, Claude Code thật trên máy cá nhân, đăng bản phát hành, xem giao diện bằng mắt) nằm ở mục 18. Cùng ngày 19/11 đã chốt hai việc: hướng giao diện (bản "Tuyến", có sáng và tối, đặc tả ở `docs/GIAO-DIEN.md`) và bộ não AI (Claude Code của người vận hành, mục 8.2). Hồi quy cuối ngày 20/11/2026: cả 12 kịch bản e2e chạy lại trên bản cuối, mỗi kịch bản từ máy sạch, 2181 khẳng định đạt, 0 không đạt (`docs/bang-chung/hoi-quy-cuoi/TONG-KET.md`); rà giao diện 4 tổ hợp sáng, tối, VI, EN ở 1440 và 390 px (`docs/bang-chung/ra-giao-dien.md`).
 
 ## 1. TPAN là gì
 
