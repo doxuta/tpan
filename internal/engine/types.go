@@ -146,8 +146,8 @@ type Job struct {
 	// Actor là user TPAN đã chạy job (M13), lấy từ ctx bằng ActorFrom lúc tạo
 	// job. Rỗng: dòng lệnh, MCP hoặc bộ hẹn giờ (đều chạy bằng root).
 	Actor string `json:"actor,omitempty"`
-	// Owner là user sở hữu đối tượng job chạm vào (M13). Engine không đặt;
-	// store tự suy lúc ghi job (chủ của site hay DB có tên trùng Target, không
+	// Owner là user sở hữu đối tượng job chạm vào (M13). Engine chỉ đặt khi
+	// ctx có WithOwner; không thì store tự suy lúc ghi job (chủ của site hay DB có tên trùng Target, không
 	// có thì Actor, không có nữa thì admin) và đọc ra khi liệt kê.
 	Owner string `json:"owner,omitempty"`
 }
@@ -165,6 +165,22 @@ func WithActor(ctx context.Context, name string) context.Context {
 // ActorFrom đọc tên đã gắn bằng WithActor; rỗng nếu không có.
 func ActorFrom(ctx context.Context) string {
 	s, _ := ctx.Value(actorKey{}).(string)
+	return s
+}
+
+// ownerKey là khoá context giữ Owner.
+type ownerKey struct{}
+
+// WithOwner gắn chủ của job vào ctx, cho job tạo một thứ CHƯA có dòng trong
+// bảng (site mới, DB rời mới): lúc job được ghi, store chưa suy được chủ từ
+// Target, mà admin tạo hộ user khác thì chủ không phải người chạy.
+func WithOwner(ctx context.Context, name string) context.Context {
+	return context.WithValue(ctx, ownerKey{}, name)
+}
+
+// OwnerFrom đọc tên đã gắn bằng WithOwner; rỗng nếu không có.
+func OwnerFrom(ctx context.Context) string {
+	s, _ := ctx.Value(ownerKey{}).(string)
 	return s
 }
 

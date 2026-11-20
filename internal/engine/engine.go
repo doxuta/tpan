@@ -109,7 +109,7 @@ func (e *Engine) Execute(ctx context.Context, p Plan) (Report, error) {
 		jctx: context.WithoutCancel(ctx),
 		job: Job{
 			ID: id, Kind: p.Kind, Target: p.Target, Title: p.Title,
-			Status: JobRunning, Started: e.opts.Now(), Actor: ActorFrom(ctx),
+			Status: JobRunning, Started: e.opts.Now(), Actor: ActorFrom(ctx), Owner: OwnerFrom(ctx),
 		},
 	}
 	j := e.opts.Journal

@@ -173,7 +173,7 @@ func (e *Engine) ExecuteBatch(ctx context.Context, b Batch) (BatchReport, error)
 		jctx: context.WithoutCancel(ctx),
 		job: Job{
 			ID: id, Kind: b.Kind, Target: b.Target, Title: b.Title,
-			Status: JobRunning, Started: e.opts.Now(), Actor: ActorFrom(ctx),
+			Status: JobRunning, Started: e.opts.Now(), Actor: ActorFrom(ctx), Owner: OwnerFrom(ctx),
 		},
 	}
 	j := e.opts.Journal

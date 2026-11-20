@@ -218,6 +218,9 @@ type Planned struct {
 	sys     system.System
 	journal engine.Journal
 	after   func(ctx context.Context, rep engine.Report) error
+	// owner (M13) khác rỗng thì job ghi chủ này (engine.WithOwner): dùng cho
+	// Plan tạo một thứ chưa có dòng trong bảng lúc job bắt đầu (DB rời mới).
+	owner string
 }
 
 // newPlanned dựng Planned. journal nil chỉ dùng được cho Preview.
@@ -235,6 +238,9 @@ func (p *Planned) Preview(ctx context.Context) (engine.Preview, error) {
 func (p *Planned) Execute(ctx context.Context, onEvent func(engine.Event)) (engine.Report, error) {
 	if p.journal == nil {
 		return engine.Report{}, fmt.Errorf("%s: thiếu Journal, không ghi được lịch sử job", p.Plan.Kind)
+	}
+	if p.owner != "" {
+		ctx = engine.WithOwner(ctx, p.owner)
 	}
 	rep, err := engine.New(p.sys, engine.Options{Journal: p.journal, OnEvent: onEvent}).Execute(ctx, p.Plan)
 	if err != nil {
