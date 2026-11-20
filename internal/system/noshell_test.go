@@ -37,7 +37,10 @@ func TestNoShell(t *testing.T) {
 		}
 		if d.IsDir() {
 			switch d.Name() {
-			case ".git", "node_modules", "vendor":
+			// .claude: đồ nghề của agent, không nằm trong git (.git/info/exclude).
+			// Khi chạy nhiều mốc, worktree của mốc khác (hoặc bản chép của nó)
+			// nằm trong .claude/worktrees và mang cả cây mã của mốc đó.
+			case ".git", "node_modules", "vendor", ".claude":
 				return filepath.SkipDir
 			}
 			return nil
