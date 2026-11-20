@@ -127,6 +127,8 @@ func newMachine() *machine {
 	m.m12Setup()
 	// Sau m12Setup: m10.go thay các handler systemctl, apt-get install, curl, ss.
 	m.m10Setup()
+	// M14 (m14.go): php-fpm -i, nginx -T, apache2ctl -S.
+	m.m14Setup()
 	m.writeProc()
 	return m
 }
@@ -170,6 +172,8 @@ func (m *machine) installFiles() {
 	m.SetDisk("/", system.DiskUsage{Total: 80 << 30, Free: 46 << 30})
 	m.sslFiles()
 	m.securityFiles()
+	// M14 (m14.go): file ini OPcache và drop-in ProtectProc của bản PHP đã cài.
+	m.m14Files()
 
 	// Bộ đếm CPU khởi đầu: máy đã chạy hơn 12 ngày.
 	for i := range m.cpu {

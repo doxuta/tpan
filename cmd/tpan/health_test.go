@@ -14,6 +14,7 @@ import (
 	"github.com/doxuta/tpan/internal/health"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/templates"
 )
 
 // installedCLI là CLI trên một máy giả đã cài stack nginx + PHP 8.3, mọi dịch
@@ -28,6 +29,18 @@ func installedCLI(t *testing.T) (*cli, *atomic.Bool) {
 				t.Fatal(err)
 			}
 		}
+	})
+	// M14: stack cài bằng bản hiện tại thì OPcache và /proc của PHP-FPM đã được
+	// siết (Plan cài stack có hai bước đó). Máy giả này phải ở đúng trạng thái
+	// ấy, nếu không `health --fix` trong các test dưới sẽ sửa thêm hai thứ
+	// không liên quan tới điều test đang thử (nginx dừng).
+	c.fake.SetFile(templates.PHPHardeningINIPath("8.3"), templates.PHPHardeningINI(), 0o644, system.Root)
+	c.fake.Handle([]string{"php-fpm8.3", "-i"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: "opcache.restrict_api => " + templates.OPcacheAPIDir + " => " + templates.OPcacheAPIDir + "\n" +
+			"opcache.validate_permission => On => On\n"}
+	})
+	c.fake.Handle([]string{"systemctl", "show", "php8.3-fpm", "-p", "ProtectProc"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: "invisible\n"}
 	})
 	var down atomic.Bool
 	down.Store(true)
@@ -46,10 +59,17 @@ func installedCLI(t *testing.T) (*cli, *atomic.Bool) {
 
 // healthMutating là mutating() bỏ thêm các lệnh chỉ đọc mà phép kiểm của
 // health chạy: kiểm cú pháp (nginx -t, php-fpm -t) và gọi HTTP tới chính máy.
+// M14 thêm: PHP in cấu hình đã gộp (php-fpm -i), systemd in một thuộc tính
+// (systemctl show), web server in cấu hình đang nạp (nginx -T, apache2ctl -S),
+// và quét .htaccess (find không có -delete, head).
 func healthMutating(c *cli) []string {
 	var bad []string
 	for _, m := range c.mutating() {
-		if m == "nginx -t" || strings.HasPrefix(m, "php-fpm") && strings.HasSuffix(m, " -t") || strings.HasPrefix(m, "curl ") {
+		switch {
+		case m == "nginx -t", m == "nginx -T", m == "apache2ctl -S",
+			strings.HasPrefix(m, "php-fpm") && (strings.HasSuffix(m, " -t") || strings.HasSuffix(m, " -i")),
+			strings.HasPrefix(m, "curl "), strings.HasPrefix(m, "systemctl show "), strings.HasPrefix(m, "head "),
+			strings.HasPrefix(m, "find ") && !strings.Contains(m, "-delete"):
 			continue
 		}
 		bad = append(bad, m)

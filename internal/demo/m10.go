@@ -316,6 +316,10 @@ func (x *m10) curl(c system.Cmd) system.Result {
 	if res, ok := x.suspendedSite(c); ok {
 		return res
 	}
+	// M14 (m14.go): tên miền lạ tới cổng 443, phép thử của checks.DefaultRejects.
+	if res, ok := x.rejectTLS(c); ok {
+		return res
+	}
 	web := x.activeWeb()
 	resolve := argAfter(c.Args, "--resolve")
 	local := resolve != "" || slices.Contains(c.Args, "-w") ||
