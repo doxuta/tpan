@@ -203,6 +203,10 @@ Thử bản cài trên máy ảo trước khi đụng VPS: `make release`, chép
 
 ---
 
+## Giấy phép
+
+MIT, xem [LICENSE](LICENSE).
+
 ## English summary
 
 TPAN is a small web server panel for one Ubuntu 24.04 VPS. It installs LEMP (nginx) or LAMP (apache) and hosts many WordPress sites on the same machine, each with its own Linux user, PHP-FPM pool and database. It ships as a single Go binary with a CLI, an HTTP API, a bilingual web UI (Vietnamese and English) and an MCP server for agents.
@@ -215,6 +219,4 @@ Install: run `make release`, copy `dist/release/<version>/` to the server, then 
 
 TPAN runs as root and changes system configuration. Use it only on a clean, dedicated VPS, and try it in a VM first. Every command accepts `--lang en`.
 
-## Giấy phép
-
-MIT, xem [LICENSE](LICENSE).
+License: MIT, see [LICENSE](LICENSE).
