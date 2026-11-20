@@ -1,0 +1,68 @@
+$ tpan health
+
+
+== Máy và stack ==
+[đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.0%
+[đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 87.4% (3.3 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/apt/apt.conf.d/52tpan-unattended-upgrades còn đúng như tpan đã ghi: File /etc/apt/apt.conf.d/52tpan-unattended-upgrades đúng như tpan đã ghi
+[đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
+[đạt] File /etc/cron.d/tpan-backup còn đúng như tpan đã ghi: File /etc/cron.d/tpan-backup đúng như tpan đã ghi
+[đạt] File /etc/fail2ban/jail.d/tpan-sshd.conf còn đúng như tpan đã ghi: File /etc/fail2ban/jail.d/tpan-sshd.conf đúng như tpan đã ghi
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+[đạt] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi
+[đạt] File /etc/systemd/system/tpan.service còn đúng như tpan đã ghi: File /etc/systemd/system/tpan.service đúng như tpan đã ghi
+[đạt] File /etc/tpan/tls/cert.pem còn đúng như tpan đã ghi: File /etc/tpan/tls/cert.pem đúng như tpan đã ghi
+
+21 đạt
+
+== Site a.example.com ==
+[cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: a.example.com chưa có bản ghi A
+    Nguyên nhân: Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. tpan không tự sửa được: bản ghi nằm ở nơi quản lý DNS của tên miền. Vào đó tạo bản ghi A cho a.example.com trỏ về IP public của máy (card mạng có: <vm>; VPS sau NAT thì lấy IP public ở trang quản lý VPS), rồi chờ vài phút và bấm kiểm lại.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ip -o addr show scope global
+      sudo getent ahostsv4 a.example.com
+[cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho a.example.com
+    Nguyên nhân: Chưa xin chứng chỉ cho tên miền này, hoặc file bị xoá. Trình duyệt sẽ báo không an toàn (hoặc không vào được cổng 443).
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ls -l /etc/letsencrypt/live/a.example.com
+      sudo tpan ssl issue a.example.com
+      sudo certbot certificates --cert-name a.example.com
+[đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+[đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+[đạt] File /etc/nginx/sites-available/tpan-a.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-a.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf đúng như tpan đã ghi
+
+8 đạt, 2 cảnh báo
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.8 GiB
+[đạt] Chứng chỉ HTTPS của panel còn hạn: Chứng chỉ của panel còn 3652 ngày
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: /etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan có quyền 0700, chủ root:root: /etc/tpan: quyền 0700, chủ root:root đúng
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[đạt] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health vẫn chạy
+[cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+    Nguyên nhân: Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan backup create --all --yes
+      sudo tpan backup settings --at 03:30
+      sudo ls /var/lib/tpan/backups/_tpan
+
+8 đạt, 1 cảnh báo

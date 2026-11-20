@@ -1,0 +1,50 @@
+# /etc/logrotate.d/tpan-sites
+# quyền 644, chủ root:root, 2271 byte
+
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Xoay vòng log của các site do tpan quản lý: /var/log/tpan/sites/<domain>/*.log
+# Giữ 14 bản theo ngày, nén lại, để log không ăn hết đĩa.
+#
+# Không dùng chỉ thị su: thư mục log của mỗi site thuộc root:root, quyền 0755
+# (mục 5), nên logrotate chạy bằng root không phải đổi tên file trong một thư
+# mục do user của site kiểm soát. Nếu thư mục thuộc user của site, user đó có
+# thể đặt symlink để lừa root ghi đè file khác.
+
+# access.log và error.log do Nginx ghi: xoay xong phải báo cho nó mở lại
+# file mới, không thì nó cứ ghi vào file cũ đã đổi tên.
+/var/log/tpan/sites/*/access.log /var/log/tpan/sites/*/error.log {
+    daily
+    rotate 14
+    # Site mới chưa có log, hoặc log rỗng: bỏ qua thay vì báo lỗi hay tạo bản rỗng.
+    missingok
+    notifempty
+    compress
+    # Chưa nén bản vừa xoay: web server có thể còn ghi dở vào nó cho tới khi
+    # mở lại file; nén ở lần xoay sau.
+    delaycompress
+    # Tạo file mới cùng chủ và quyền với file cũ.
+    create
+    # Một lần postrotate cho tất cả site, không phải mỗi site một lần.
+    sharedscripts
+    postrotate
+        # Gửi USR1 cho tiến trình chính của Nginx để nó mở lại file log, không
+        # ngắt kết nối đang chạy. Không gọi init script của gói Ubuntu (gói của
+        # nginx.org không có); cả hai gói đều ghi /run/nginx.pid. Chưa có file
+        # pid (Nginx chưa chạy) thì bỏ qua, không báo lỗi.
+        [ ! -f /run/nginx.pid ] || kill -USR1 "$(cat /run/nginx.pid)"
+    endscript
+}
+
+# php-error.log do PHP-FPM ghi, dưới user của site. copytruncate: chép nội dung
+# sang file mới rồi cắt file gốc về 0, nên PHP-FPM không cần biết gì và không
+# cần reload. Đổi lại có thể mất vài dòng ghi đúng lúc cắt; log lỗi PHP chấp
+# nhận được. File gốc giữ nguyên chủ (user của site) nên PHP vẫn ghi được.
+/var/log/tpan/sites/*/php-error.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    copytruncate
+}

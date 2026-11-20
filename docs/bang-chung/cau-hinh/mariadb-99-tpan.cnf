@@ -1,0 +1,6 @@
+# /etc/mysql/mariadb.conf.d/99-tpan.cnf
+# quyền 644, chủ root:root, 101 byte
+
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+[mysqld]
+bind-address = 127.0.0.1

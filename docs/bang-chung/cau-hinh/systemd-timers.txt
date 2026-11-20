@@ -1,0 +1,24 @@
+$ systemctl list-timers --all --no-pager
+
+NEXT                             LEFT LAST                              PASSED UNIT                           ACTIVATES
+Fri 2026-11-20 11:49:16 +07  3min 10s -                                      - update-notifier-download.timer update-notifier-download.service
+Fri 2026-11-20 11:50:00 +07  3min 54s -                                      - sysstat-collect.timer          sysstat-collect.service
+Fri 2026-11-20 11:59:14 +07     13min -                                      - systemd-tmpfiles-clean.timer   systemd-tmpfiles-clean.service
+Fri 2026-11-20 12:09:00 +07     22min -                                      - phpsessionclean.timer          phpsessionclean.service
+Fri 2026-11-20 12:20:59 +07     34min Thu 2026-11-19 09:54:54 +07            - apt-daily-upgrade.timer        apt-daily-upgrade.service
+Fri 2026-11-20 12:28:37 +07     42min Thu 2026-11-19 10:04:58 +07            - fwupd-refresh.timer            fwupd-refresh.service
+Fri 2026-11-20 14:08:40 +07  2h 22min Thu 2026-11-19 09:54:54 +07            - motd-news.timer                motd-news.service
+Fri 2026-11-20 15:28:19 +07  3h 42min -                                      - certbot.timer                  certbot.service
+Fri 2026-11-20 15:33:21 +07  3h 47min Thu 2026-11-19 09:54:54 +07            - man-db.timer                   man-db.service
+Fri 2026-11-20 20:08:49 +07        8h Thu 2026-11-19 09:54:54 +07            - apt-daily.timer                apt-daily.service
+Sat 2026-11-21 00:00:00 +07       12h Fri 2026-11-20 11:44:19 +07 1min 45s ago dpkg-db-backup.timer           dpkg-db-backup.service
+Sat 2026-11-21 00:00:00 +07       12h Fri 2026-11-20 11:44:19 +07 1min 45s ago logrotate.timer                logrotate.service
+Sat 2026-11-21 00:07:00 +07       12h -                                      - sysstat-summary.timer          sysstat-summary.service
+Sun 2026-11-22 03:10:49 +07 1 day 15h Thu 2026-11-19 09:54:54 +07            - e2scrub_all.timer              e2scrub_all.service
+Sun 2026-11-22 23:50:49 +07    2 days Thu 2026-11-19 09:54:54 +07            - update-notifier-motd.timer     update-notifier-motd.service
+Mon 2026-11-23 00:18:01 +07    2 days Thu 2026-11-19 09:54:54 +07            - fstrim.timer                   fstrim.service
+-                                   - -                                      - apport-autoreport.timer        apport-autoreport.service
+-                                   - -                                      - snapd.snap-repair.timer        snapd.snap-repair.service
+-                                   - -                                      - ua-timer.timer                 ua-timer.service
+
+19 timers listed.

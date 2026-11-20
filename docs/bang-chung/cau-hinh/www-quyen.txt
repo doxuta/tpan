@@ -1,0 +1,33 @@
+$ ls -la /var/www/a.example.com /var/www/a.example.com/public
+
+/var/www/a.example.com:
+total 16
+drwxr-s--- 4 tp_a_example_com_7653e4 www-data                4096 Nov 20 11:45 .
+drwxr-xr-x 4 root                    root                    4096 Nov 20 11:45 ..
+drwxr-s--- 5 tp_a_example_com_7653e4 www-data                4096 Nov 20 11:45 public
+drwx------ 2 tp_a_example_com_7653e4 tp_a_example_com_7653e4 4096 Nov 20 11:45 tmp
+
+/var/www/a.example.com/public:
+total 252
+drwxr-s---  5 tp_a_example_com_7653e4 www-data  4096 Nov 20 11:45 .
+drwxr-s---  4 tp_a_example_com_7653e4 www-data  4096 Nov 20 11:45 ..
+-rw-r-----  1 tp_a_example_com_7653e4 www-data   405 Feb  6  2020 index.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data 19903 Jan  1  2026 license.txt
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  7407 Jul  6 23:51 readme.html
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  7718 Jul  7 10:06 wp-activate.php
+drwxr-s---  9 tp_a_example_com_7653e4 www-data  4096 Nov 18 23:07 wp-admin
+-rw-r-----  1 tp_a_example_com_7653e4 www-data   351 Feb  6  2020 wp-blog-header.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  2323 Jun 14  2023 wp-comments-post.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  3339 Aug 12  2025 wp-config-sample.php
+-rw-------  1 tp_a_example_com_7653e4 www-data  3480 Nov 20 11:45 wp-config.php
+drwxr-s---  5 tp_a_example_com_7653e4 www-data  4096 Nov 20 11:45 wp-content
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  5617 Aug  3  2024 wp-cron.php
+drwxr-s--- 34 tp_a_example_com_7653e4 www-data 16384 Nov 18 23:07 wp-includes
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  2493 Apr 30  2025 wp-links-opml.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  3937 Mar 11  2024 wp-load.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data 52536 Aug 11 13:18 wp-login.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  8727 Apr  3  2025 wp-mail.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data 33152 Jul 23 00:21 wp-settings.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data 35093 Oct 28 21:50 wp-signup.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  5396 Jul 31 20:08 wp-trackback.php
+-rw-r-----  1 tp_a_example_com_7653e4 www-data  3205 Nov  8  2024 xmlrpc.php

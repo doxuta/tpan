@@ -23,13 +23,19 @@ VM_IP=""
 che() {
   sed -E \
     -e "s/${VM_IP//./\\.}/<vm>/g" \
-    -e "s/(define\( *'(DB_PASSWORD|AUTH_KEY|SECURE_AUTH_KEY|LOGGED_IN_KEY|NONCE_KEY|AUTH_SALT|SECURE_AUTH_SALT|LOGGED_IN_SALT|NONCE_SALT)', *')[^']*'/\1<đã che>'/" \
+    -e "s/(define\( *'[A-Z_]*(PASSWORD|KEY|SALT)[A-Z_]*', *')[^']*'/\1<đã che>'/" \
     -e "s/^(password[[:space:]]*=[[:space:]]*).*/\1<đã che>/"
 }
 
 # lay <tên file đích> <đường dẫn trên máy>: ghi quyền, chủ và nội dung file.
 lay() {
   local name=$1 path=$2
+  # File không có thì ghi rõ rồi đi tiếp, không dừng cả script vì một đường dẫn.
+  if ! vroot test -e "$path"; then
+    printf '# %s\n# không có file này trên máy\n' "$path" >"$OUT/$name"
+    printf 'KHÔNG CÓ %s\n' "$path"
+    return
+  fi
   {
     printf '# %s\n' "$path"
     vroot stat -c '# quyền %a, chủ %U:%G, %s byte' "$path"
@@ -48,6 +54,10 @@ chay() {
   printf 'đã chạy %s\n' "$*"
 }
 
+VM_IP="$(scripts/vm.sh ip)"
+# CHI_LAY=1: máy ảo đã ở đúng trạng thái (lần chạy trước dừng giữa chừng ở phần
+# chép file), chỉ chép lại file, không dựng lại máy.
+if [ "${CHI_LAY:-}" != 1 ]; then
 make vm-reset
 make vm-deploy
 VM_IP="$(scripts/vm.sh ip)"
@@ -56,22 +66,23 @@ VM_IP="$(scripts/vm.sh ip)"
 # chuyển hướng sang /dev/null: multipass exec treo khi stdout là /dev/null.
 vroot tpan setup --yes | wc -l >/dev/null
 vroot tpan stack install --web nginx --yes
-vroot tpan site add "$D" --yes
+vroot tpan site add "$D" --email admin@example.com --yes
 vroot tpan security ufw --yes
 vroot tpan security fail2ban --yes
 vroot tpan backup settings --keep 5 --at 03:30 --yes
 vroot tpan update auto --yes
+fi
 
 LUSER="$(vroot tpan site info "$D" --json | jq -r '.. | .user? // empty' | head -1)"
 
 lay nginx-vhost-site.conf "/etc/nginx/sites-available/tpan-$D.conf"
 lay nginx-default.conf /etc/nginx/sites-available/tpan-default.conf
-lay nginx-tpan.conf /etc/nginx/conf.d/tpan.conf
 chay nginx-sites-enabled.txt ls -l /etc/nginx/sites-enabled/
 chay php-fpm-pools.txt ls -l /etc/php/8.3/fpm/pool.d/
-lay php-fpm-pool-site.conf "$(vroot sh -c "ls /etc/php/8.3/fpm/pool.d/tpan-*.conf" | head -1)"
-lay wp-config.php "/var/www/$D/wp-config.php"
-chay www-quyen.txt ls -la "/var/www/$D"
+lay php-fpm-pool-site.conf "$(vroot sh -c "ls /etc/php/8.3/fpm/pool.d/tpan-*.conf" | grep -v idle | head -1)"
+lay php-fpm-pool-idle.conf /etc/php/8.3/fpm/pool.d/tpan-idle.conf
+lay wp-config.php "/var/www/$D/public/wp-config.php"
+chay www-quyen.txt ls -la "/var/www/$D" "/var/www/$D/public"
 lay mariadb-99-tpan.cnf /etc/mysql/mariadb.conf.d/99-tpan.cnf
 lay cron-site.txt "$(vroot sh -c "ls /etc/cron.d/tpan-* | grep -v backup" | head -1)"
 lay cron-backup.txt /etc/cron.d/tpan-backup

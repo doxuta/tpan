@@ -1,0 +1,16 @@
+$ ls -la /etc/tpan /var/lib/tpan
+
+/etc/tpan:
+total 12
+drwx------   3 root root 4096 Nov 20 11:44 .
+drwxr-xr-x 116 root root 4096 Nov 20 11:45 ..
+drwx------   2 root root 4096 Nov 20 11:44 tls
+
+/var/lib/tpan:
+total 4872
+drwxr-xr-x  3 root root    4096 Nov 20 11:44 .
+drwxr-xr-x 46 root root    4096 Nov 20 11:45 ..
+drwxr-xr-x  2 root root    4096 Nov 20 11:44 acme
+-rw-------  1 root root  819200 Nov 20 11:45 tpan.db
+-rw-------  1 root root   32768 Nov 20 11:46 tpan.db-shm
+-rw-------  1 root root 4124152 Nov 20 11:46 tpan.db-wal

@@ -1,0 +1,16 @@
+# /etc/systemd/system/tpan.service
+# quyền 644, chủ root:root, 359 byte
+
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+[Unit]
+Description=tpan panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/tpan serve --listen 0.0.0.0:8443 --tls-cert /etc/tpan/tls/cert.pem --tls-key /etc/tpan/tls/key.pem
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target

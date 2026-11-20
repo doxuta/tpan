@@ -1,0 +1,43 @@
+== 09:43:33 bắt đầu M1: scripts/e2e-m1.sh all
+   M1: mã thoát 0, đạt 104, không đạt 0, 311 giây
+== 09:48:44 bắt đầu M2: scripts/e2e-m2.sh all
+   M2: mã thoát 0, đạt 276, không đạt 0, 237 giây
+== 09:52:42 bắt đầu M3: scripts/e2e-m3.sh all
+   M3: mã thoát 1, đạt 150, không đạt 1, 105 giây
+== 09:54:26 bắt đầu M4: scripts/e2e-m4.sh all
+   M4: mã thoát 0, đạt 313, không đạt 0, 464 giây
+== 10:02:11 bắt đầu M5: scripts/e2e-m5.sh all
+== 10:07:19 bắt đầu M5: scripts/e2e-m5.sh all
+   M5: mã thoát 0, đạt 256, không đạt 0, 269 giây
+== 10:11:48 bắt đầu M3: scripts/e2e-m3.sh all
+   M3: mã thoát 0, đạt 151, không đạt 0, 99 giây
+== 10:13:27 bắt đầu M6: scripts/e2e-m6.sh all
+   M6: mã thoát 0, đạt 167, không đạt 0, 245 giây
+== 10:17:32 bắt đầu M7: scripts/e2e-m7.sh
+   M7: mã thoát 0, đạt 99, không đạt 0, 91 giây
+== 10:19:03 bắt đầu M8: scripts/e2e-m8.sh fake
+   M8: mã thoát 1, đạt 105, không đạt 1, 91 giây
+== 10:20:34 bắt đầu M8-real: scripts/e2e-m8.sh real
+   M8-real: mã thoát 143, đạt 5, không đạt 0, 39 giây
+== 10:21:13 bắt đầu M9: scripts/e2e-m9.sh all
+   M9: mã thoát 0, đạt 128, không đạt 0, 286 giây
+== 10:25:59 bắt đầu M10: scripts/e2e-m10.sh all
+   M10: mã thoát 1, đạt 266, không đạt 13, 594 giây
+== 10:35:53 bắt đầu M11: scripts/e2e-m11.sh all
+   M11: mã thoát 1, đạt 122, không đạt 5, 172 giây
+== 10:38:46 bắt đầu M12: scripts/e2e-m12.sh all
+   M12: mã thoát 0, đạt 175, không đạt 0, 436 giây
+== 10:46:01 bắt đầu API: scripts/e2e-api.sh
+   API: mã thoát 1, đạt 401, không đạt 1, 302 giây
+== 10:51:03 xong: M5 M3 M6 M7 M8 M8-real M9 M10 M11 M12 API
+== 10:51:27 bắt đầu M8: scripts/e2e-m8.sh fake
+   M8: mã thoát 0, đạt 106, không đạt 0, 94 giây
+== 10:53:01 bắt đầu M8-real: scripts/e2e-m8.sh real
+   M8-real: mã thoát 0, đạt 63, không đạt 0, 110 giây
+== 10:54:51 bắt đầu M10: scripts/e2e-m10.sh all
+   M10: mã thoát 0, đạt 279, không đạt 0, 600 giây
+== 11:04:51 bắt đầu M11: scripts/e2e-m11.sh all
+   M11: mã thoát 0, đạt 127, không đạt 0, 164 giây
+== 11:07:35 bắt đầu API: scripts/e2e-api.sh
+   API: mã thoát 0, đạt 402, không đạt 0, 407 giây
+== 11:14:22 xong: M8 M8-real M10 M11 API

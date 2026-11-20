@@ -1,0 +1,9 @@
+# /etc/apt/apt.conf.d/52tpan-unattended-upgrades
+# quyền 644, chủ root:root, 337 byte
+
+// # Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+//
+// Bản vá bảo mật tự cài mỗi ngày (unattended-upgrades). File này đọc sau
+// 20auto-upgrades và 50unattended-upgrades của Ubuntu nên giá trị ở đây thắng.
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";

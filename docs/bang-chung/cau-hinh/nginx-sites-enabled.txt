@@ -1,0 +1,5 @@
+$ ls -l /etc/nginx/sites-enabled/
+
+total 0
+lrwxrwxrwx 1 root root 50 Nov 20 11:45 tpan-a.example.com.conf -> /etc/nginx/sites-available/tpan-a.example.com.conf
+lrwxrwxrwx 1 root root 44 Nov 20 11:44 tpan-default.conf -> /etc/nginx/sites-available/tpan-default.conf

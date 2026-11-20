@@ -1,0 +1,5 @@
+$ ls -l /etc/php/8.3/fpm/pool.d/
+
+total 8
+-rw-r--r-- 1 root root 2137 Nov 20 11:45 tpan-a_example_com_7653e4.conf
+-rw-r--r-- 1 root root 1060 Nov 20 11:44 tpan-idle.conf

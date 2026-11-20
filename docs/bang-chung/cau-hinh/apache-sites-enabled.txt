@@ -1,0 +1,5 @@
+$ ls -l /etc/apache2/sites-enabled/
+
+total 0
+lrwxrwxrwx 1 root root 50 Nov 20 11:46 000-tpan-default.conf -> /etc/apache2/sites-available/000-tpan-default.conf
+lrwxrwxrwx 1 root root 52 Nov 20 11:46 tpan-a.example.com.conf -> /etc/apache2/sites-available/tpan-a.example.com.conf
