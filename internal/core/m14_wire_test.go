@@ -6,6 +6,8 @@ package core
 // đã có test ở gói checks và steps; ở đây chỉ thử chỗ nối.
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"slices"
 	"strings"
 	"testing"
@@ -210,13 +212,19 @@ func TestFixLogPermsM14(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.m.SetFile(l.AccessLog, []byte("dòng log cũ\n"), 0o644, system.Root)
+	// File logrotate của bản trước M14 (postrotate gửi USR1): Plan sửa quyền
+	// log phải ghi lại nó, không thì sau lần xoay vòng đầu nginx không mở lại
+	// được log trong thư mục 0750.
+	e.m.SetDir("/etc/logrotate.d", 0o755, system.Root)
+	e.m.SetFile(logrotateCnf, []byte("# bản cũ\nkill -USR1\n"), 0o644, system.Root)
 	r := e.recheck(t, fixDom, id)
 	if r.Status != checks.Fail || AutoFixName(r) != FixLogPerms {
 		t.Fatalf("quyền log sai: %s %q", r.Status, AutoFixName(r))
 	}
 	x := e.fix(t, r)
-	if want := stepIDs(engine.Plan{Steps: steps.SiteLogs(l)}); !slices.Equal(stepIDsOf(x), want) {
-		t.Errorf("bước %v, muốn %v (steps.SiteLogs)", stepIDsOf(x), want)
+	want := append([]string{"file:" + logrotateCnf}, stepIDs(engine.Plan{Steps: steps.SiteLogs(l)})...)
+	if !slices.Equal(stepIDsOf(x), want) {
+		t.Errorf("bước %v, muốn %v (file logrotate rồi steps.SiteLogs)", stepIDsOf(x), want)
 	}
 	if got := checkIDs(t, e.m, x.Plan.Verify); !slices.Equal(got, []string{id}) {
 		t.Errorf("Verify %v", got)
@@ -279,6 +287,12 @@ func TestFixVhostHardenedM14(t *testing.T) {
 				t.Fatal("vhost mới không có dòng chặn để gỡ: template đã đổi?")
 			}
 			e.m.SetFile(conf, []byte(old), 0o644, system.Root)
+			// Như trên máy nâng từ bản trước M14: sổ managed_files giữ đúng
+			// sha256 của vhost cũ. "Khớp sổ nhưng khác template" cũng là hình
+			// dạng của bản sửa tay đã nhận; với web.hardened vẫn phải ghi lại
+			// (trên máy ảo, bản đầu bỏ bước ghi và job hỏng ở kiểm chứng).
+			sum := sha256.Sum256([]byte(old))
+			e.f.Files = fileRecords{conf: hex.EncodeToString(sum[:])}
 
 			r := e.recheck(t, fixDom, id)
 			if r.Status != checks.Fail || AutoFixName(r) != FixWebRewrite {

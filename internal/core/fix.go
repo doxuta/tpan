@@ -105,10 +105,18 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 			return engine.Plan{}, err
 		}
 		l := st.Layout()
+		// File logrotate đi cùng quyền log: thư mục log 0750 mà postrotate của
+		// bản trước M14 còn gửi USR1 cho nginx thì sau lần xoay vòng đầu, worker
+		// không mở lại được file và log mới rơi vào access.log.1 (t8 ở
+		// docs/bang-chung/M14-nghien-cuu/). File đã đúng thì bước được bỏ qua.
+		lr, err := logrotateStep(cfg.Web)
+		if err != nil {
+			return engine.Plan{}, err
+		}
 		return engine.Plan{
 			Target: l.Domain.String(),
 			Title:  i18n.T("Đặt lại quyền thư mục và file log của "+obj, "Reset the log directory and file permissions of "+obj),
-			Steps:  steps.SiteLogs(l),
+			Steps:  append([]engine.Step{lr}, steps.SiteLogs(l)...),
 			Verify: []checks.Check{checks.LogPerms(l)},
 		}, nil
 	case FixWPConfigPerm:
@@ -411,8 +419,16 @@ func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj strin
 	}
 	// File vhost người dùng đã nhận bản sửa tay làm chuẩn thì giữ; bước
 	// symlink vẫn chạy nên vhost vẫn được bật lại.
-	if ss, err = f.dropAccepted(ctx, ss); err != nil {
-		return engine.Plan{}, err
+	//
+	// Trừ khi đang sửa web.hardened (M14): phép kiểm đó nói chính file vhost
+	// thiếu dòng chặn, nên phải ghi lại nó. Mà "khớp sha256 đã ghi nhưng khác
+	// template" cũng là hình dạng của một vhost do bản tpan cũ ghi (thấy trên
+	// máy ảo, nâng từ v0.1.2: dropAccepted bỏ bước ghi và job hỏng ở kiểm
+	// chứng). Bản xem trước hiện diff, người dùng thấy điều sẽ bị ghi đè.
+	if kind, _, _ := strings.Cut(id, ":"); kind != "web.hardened" {
+		if ss, err = f.dropAccepted(ctx, ss); err != nil {
+			return engine.Plan{}, err
+		}
 	}
 	l := st.Layout()
 	config := checks.NginxConfig()
