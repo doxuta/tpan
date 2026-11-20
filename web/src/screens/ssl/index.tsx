@@ -5,9 +5,9 @@
 // kèm checks: thiếu email, DNS chưa trỏ về...) thì hiện câu của nó và các phép
 // kiểm chưa đạt ngay dưới bảng.
 
+import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
@@ -31,8 +31,8 @@ export default function SSLScreen() {
   const k = useStrings(khung);
   const { lang } = useLang();
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const { isAdmin } = useWho();
+  const { track } = useJobTracker();
   const q = useQuery({ queryKey: sslKey, queryFn: () => get<SSLOverview>("/api/v1/ssl") });
 
   const [open, setOpen] = useState<Open | null>(null);
@@ -49,7 +49,9 @@ export default function SSLScreen() {
     onSuccess: (job) => {
       void qc.invalidateQueries({ queryKey: sslKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
 

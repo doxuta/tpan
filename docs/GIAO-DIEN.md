@@ -158,7 +158,7 @@ Tất cả đều góc vuông, viền 1 px, không bóng đổ.
 | Thanh số liệu | nhãn mono 11 px, số 24 px, một dòng phụ, rồi thanh cao 6 px: nền `--track`, phần đầy `--ink`, vạch ngưỡng 80% màu `--muted` |
 | Hàng lịch sử | mã job, giờ (mono, `--muted`), việc và đối tượng, kết quả (`--muted`), liên kết "bằng chứng" và "hoàn tác"; kẻ trên `--hair` |
 | Ô lệnh `⌘K` | một nút trông như ô nhập: biểu tượng kính lúp, dòng gợi ý màu `--muted`, phím tắt trong khung nhỏ |
-| Ngăn AI | một thẻ rộng chừng 400 px ở cột bên, giữ nguyên khi chuyển mục. Từ trên xuống: đầu ngăn (tên, tình trạng bộ não, nút đóng); "Ngữ cảnh gửi kèm" gồm các nhãn bỏ được và dòng "Bạn vừa đi qua"; cuộc trò chuyện; ô hỏi tiếp. Hình chuẩn: `ngan-ai-sang.html` |
+| Ngăn AI | khung chat nổi cỡ cố định 400 × 640 px (thấp hơn khi cửa sổ thấp) ở góc dưới bên phải, đè lên trang, không chiếm cột; đóng thì còn một nút "Hỏi AI" ở góc đó. Giữ nguyên khi chuyển mục. Từ trên xuống: đầu ngăn (tên, Phiên mới, nút đóng; dòng tình trạng bộ não); "Ngữ cảnh gửi kèm" gập thành một dòng sau câu hỏi đầu; cuộc trò chuyện (cuộn bên trong khung); ô hỏi tiếp luôn ở đáy. Đổi ngày 20/11/2026 từ thẻ ở cột bên, vì thẻ cột bên làm hẹp trang và phình theo nội dung. Màn hẹp: phủ toàn màn như cũ |
 | Thanh đầu trang | logo và tên TPAN (bấm là về Bảng điều khiển), tên máy, các nhãn stack, rồi dồn phải: ô lệnh, VI/EN, Sáng/Tối, công tắc "Gợi ý". Kẻ dưới dày 2 px màu `--ink` |
 | Menu chính | cột bên trái rộng 192 px, kẻ phải `--hair`. Mỗi mục cao 40 px, chữ 14 px. Mục đang mở có vạch trái 3 px màu `--ink`, nền `--surface`, chữ đậm 600 và `aria-current="page"`. Số đếm nằm sát phải, chữ mono 12 px màu `--muted`; riêng "Sự cố" khi có sự cố đang mở thì số nằm trên nền `--fail`, chữ `--on-fail`. Tên nhóm (MÁY, AI, TÀI KHOẢN) là nhãn mono 11 px |
 
@@ -172,7 +172,7 @@ Các trạng thái của thành phần bấm được:
 
 Cuộc trò chuyện trong ngăn AI:
 
-- Trình bày như một bản ghi, không dùng bong bóng chat. Mỗi đoạn mở bằng một nhãn mono: "BẠN", "AI ĐÃ ĐỌC", "AI".
+- Kiểu tin nhắn (đổi ngày 20/11/2026): câu của bạn là khung nền `--pre` lệch phải; phần của AI lệch trái, có vạch trái `--ink` và nhãn mono "AI". Các lần AI đọc dữ liệu gập thành một dòng "Đã đọc N mục dữ liệu trên máy", bấm để mở.
 - Mỗi lần AI đọc dữ liệu là một dòng: nhãn "ĐỌC", tên thứ được đọc, và liên kết "dữ liệu đã gửi" mở ra đúng bản đã che.
 - Plan được đề xuất là một khung viền `--ink` có nhãn "AI ĐỀ XUẤT" và nút chính "Mở bản xem trước".
 - "Đi tới" là các nút phụ dẫn sang mục khác; bấm thì chuyển mục, ngăn AI vẫn mở.
@@ -204,7 +204,9 @@ Bảng điều khiển (trang chủ):
 - Cột bên, từ trên xuống: "Sự cố đang mở"; "Cảnh báo"; "Chờ bạn duyệt". Khối nào không có gì thì ghi một dòng "Không có", không ẩn đi.
 - Bản đồ tuyến có bề rộng tối thiểu 700 px và nằm trong một khung cuộn ngang riêng; cả trang không bao giờ cuộn ngang.
 - Thẻ sự cố luôn có ba nút theo thứ tự: "Sửa tự động · xem trước N bước" (nút chính), "Sửa tay", "Hỏi AI".
-- Khi ngăn AI mở, nó nằm trên cùng của cột bên; ba khối kia xếp xuống dưới nó. Chuyển sang màn khác thì ngăn vẫn ở cột bên của màn đó.
+- Ngăn AI nổi ở góc dưới bên phải, không đẩy cột bên. Thẻ theo dõi job nằm ở góc dưới bên trái để không đè lên nhau.
+- Bấm chạy một thao tác thì ở lại màn đang dùng: thẻ theo dõi job ở góc dưới bên trái báo đang chạy, xong hay lỗi, có liên kết "Xem chi tiết" tới trang job; job xong thì dữ liệu trên màn tự tải lại. Riêng Tạo site vẫn chuyển sang trang job vì mật khẩu quản trị WordPress chỉ hiện một lần ở đó. Xoá một site từ trang của site đó thì về danh sách Site.
+- Bảng Site và Thùng rác có ô chọn từng hàng và ô chọn tất cả; chọn rồi thì hiện thanh "Đã chọn N" với việc hàng loạt (đưa vào thùng rác; khôi phục, xoá hẳn). Hộp hỏi lại liệt kê đúng các mục đã chọn; các mục chạy lần lượt, mỗi mục một job.
 
 Các màn khác dùng lại đúng các thành phần ở mục 6. Trang Site vẽ một tuyến duy nhất, ga to hơn và có tên ga bên dưới. Màn duyệt Plan trình bày như một pull request: tóm tắt, phạm vi ảnh hưởng, file thay đổi dạng diff, lệnh sẽ chạy. Dòng thêm và dòng bớt trong diff có dấu `+` và `−` ở đầu dòng, không chỉ khác màu. Các màn danh sách (Site, Cơ sở dữ liệu, Cron, Backup, Thùng rác) là bảng kẻ mảnh như "Lịch sử máy": không thẻ, không màu nền xen kẽ.
 

@@ -5,9 +5,9 @@
 // chuyển tới /jobs/:id. Cả ba dùng chung một cặp mutation và một chỗ hiện bản
 // xem trước, vì cùng lúc chỉ mở một việc.
 
+import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
 import { queryKeys, useOverview } from "../../api/queries";
@@ -39,7 +39,7 @@ export default function Backups() {
   const k = useStrings(khung);
   const { lang } = useLang();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   const q = useQuery({ queryKey: backupsKey, queryFn: () => get<BackupsOverview>(backupsPath) });
   // Cùng khoá overview với khung trang: không gọi thêm API. Cho biết site nào đang chạy, đang ở thùng rác.
   const overview = useOverview();
@@ -62,7 +62,9 @@ export default function Backups() {
       // Danh sách, cài đặt và số đếm ở menu đều đổi sau job.
       void qc.invalidateQueries({ queryKey: backupsKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
 

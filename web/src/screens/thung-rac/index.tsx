@@ -2,14 +2,16 @@
 // các DB rời đã xoá, mỗi cái có Khôi phục và Xoá hẳn, cùng khối đổi số ngày giữ
 // (chỉ admin). Hai việc kia đi đúng ba chặng như mọi thao tác: bấm nút → gọi
 // ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy → máy chủ trả job_id,
-// chuyển tới /jobs/:id. Ba chặng nằm trong hook usePreviewedOp. Xoá hẳn có thêm
+// ở lại trang và thẻ theo dõi job báo tiến độ. Ba chặng nằm trong hook usePreviewedOp. Xoá hẳn có thêm
 // một dòng cảnh báo mất dữ liệu trên bản xem trước; hộp hỏi lại lúc bấm chạy là
 // của PlanReview, hiện vì các bước xoá là Danger.
 
 import { useQuery } from "@tanstack/react-query";
-import { errorMessage, get } from "../../api/client";
+import type { ReactNode } from "react";
+import { del, errorMessage, get, post } from "../../api/client";
 import { dbSubPath, trashDbPath, useIdentity } from "../../api/m13-dbs";
-import type { TrashOverview } from "../../api/types";
+import type { JobStarted, TrashOverview } from "../../api/types";
+import { BulkBar, useSelection, type Selection } from "../../components/Bulk";
 import { Button } from "../../components/Button";
 import { usePreviewedOp, type Op } from "../../components/PreviewedOp";
 import { ScreenHeader } from "../../components/ScreenHeader";
@@ -58,7 +60,10 @@ export default function Trash() {
             <h2 id="trash-list" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
               {t.listHeading}
             </h2>
-            <TrashTable sites={q.data.sites ?? []} locked={op.pending} busy={op.busy} onAct={(a, d) => void op.ask(siteOp(a, d))} />
+            {/* Go trả null cho danh sách rỗng, nên sites có thể vắng. */}
+            <TrashBulk domains={(q.data.sites ?? []).map((x) => x.domain)}>
+              {(sel) => <TrashTable sites={q.data.sites ?? []} locked={op.pending} busy={op.busy} onAct={(a, d) => void op.ask(siteOp(a, d))} sel={sel} />}
+            </TrashBulk>
           </section>
 
           <section aria-labelledby="trash-dbs">
@@ -74,6 +79,40 @@ export default function Trash() {
           {op.panel}
         </>
       )}
+    </>
+  );
+}
+
+/** Khôi phục hay xoá hẳn nhiều site trong thùng rác một lần (mỗi site một job, lần lượt). */
+function TrashBulk({ domains, children }: { domains: string[]; children: (sel: Selection) => ReactNode }) {
+  const t = useStrings(strings);
+  const sel = useSelection(domains);
+  return (
+    <>
+      <BulkBar
+        sel={sel}
+        unit={t.unitSite}
+        actions={[
+          {
+            key: "restore",
+            label: t.bulkRestore,
+            confirmTitle: t.bulkRestoreTitle,
+            confirmBody: <p className="m-0">{t.bulkRestoreBody}</p>,
+            confirmLabel: t.bulkRestore,
+            run: (d) => post<JobStarted>(restorePath(d)),
+          },
+          {
+            key: "purge",
+            label: t.bulkPurge,
+            confirmTitle: t.bulkPurgeTitle,
+            // Chữ đậm, không đỏ: đỏ chỉ dành cho tình trạng máy (mục 2 của GIAO-DIEN.md).
+            confirmBody: <p className="m-0 font-semibold">{t.bulkPurgeBody}</p>,
+            confirmLabel: t.bulkPurge,
+            run: (d) => del<JobStarted>(purgePath(d)),
+          },
+        ]}
+      />
+      {children(sel)}
     </>
   );
 }

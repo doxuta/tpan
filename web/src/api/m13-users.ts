@@ -9,7 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useJobTracker } from "../components/JobTracker";
 import { del, get, post } from "./client";
 import { queryKeys, useSession } from "./queries";
 import type { Identity, Job, JobStarted, PackageRow, Preview, SessionInfo, UserRow } from "./types";
@@ -83,11 +83,11 @@ function send<T>(r: PlanRequest, dry: boolean): Promise<T> {
 
 /**
  * Ba chặng của mọi thao tác đổi máy (mục 10 của KE-HOACH.md): ask → bản xem
- * trước (open.preview, vẽ bằng PlanReview) → run → chuyển sang /jobs/:id.
+ * trước (open.preview, vẽ bằng PlanReview) → run → ở lại trang, thẻ theo dõi job báo tiến độ.
  */
 export function usePlanFlow() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   const [open, setOpen] = useState<{ req: PlanRequest; preview: Preview } | null>(null);
   const [asked, setAsked] = useState<PlanRequest | null>(null);
 
@@ -99,7 +99,10 @@ export function usePlanFlow() {
     mutationFn: (req: PlanRequest) => send<JobStarted>(req, false),
     onSuccess: (job) => {
       refreshAccounts(qc);
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
+      setAsked(null);
     },
   });
 

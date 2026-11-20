@@ -14,6 +14,7 @@ import { machineStatus, useOverview, useSession } from "./api/queries";
 import type { Overview, StackSummary } from "./api/types";
 import { AiDrawer } from "./ai/AiDrawer";
 import { AiProvider, useAi } from "./ai/AiProvider";
+import { JobTrackerProvider } from "./components/JobTracker";
 import { CommandPalette } from "./ai/CommandPalette";
 import { drawerShortcut, paletteKbd, paletteShortcut } from "./ai/platform";
 import { buttonClass } from "./components/Button";
@@ -57,7 +58,9 @@ export function Layout() {
     // nên thiếu provider là lỗi. Nhưng ngăn AI và nút hỏi AI chỉ vẽ cho admin; thanh lệnh
     // có cho cả hai vai (user thường chỉ thấy màn của mình). Provider không gọi API AI với user thường.
     <AiProvider>
-      <Shell t={t} hostname={session.data.hostname ?? ""} demo={session.data.demo} overview={overview.data} who={who} />
+      <JobTrackerProvider>
+        <Shell t={t} hostname={session.data.hostname ?? ""} demo={session.data.demo} overview={overview.data} who={who} />
+      </JobTrackerProvider>
     </AiProvider>
   );
 }

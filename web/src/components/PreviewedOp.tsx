@@ -13,7 +13,7 @@
 
 import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router";
+import { useJobTracker } from "./JobTracker";
 import { del, post } from "../api/client";
 import { queryKeys } from "../api/queries";
 import type { JobStarted, Preview } from "../api/types";
@@ -46,7 +46,7 @@ export function usePreviewedOp(invalidate: readonly QueryKey[]) {
   const k = useStrings(khung);
   const m = useStrings(chung);
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   const [open, setOpen] = useState<{ op: Op; preview: Preview } | null>(null);
   /** Việc vừa bấm: để chữ nút và lỗi nói đúng việc. */
   const [asked, setAsked] = useState<{ op: Op; quiet: boolean } | null>(null);
@@ -61,7 +61,10 @@ export function usePreviewedOp(invalidate: readonly QueryKey[]) {
     onSuccess: (job) => {
       for (const key of invalidate) void qc.invalidateQueries({ queryKey: key });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
+      setAsked(null);
     },
   });
 
