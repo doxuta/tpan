@@ -10,6 +10,7 @@
 package site
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
@@ -39,9 +40,14 @@ type Layout struct {
 	// WPConfig là Public/wp-config.php: chủ User, 0600.
 	WPConfig string `json:"wp_config"`
 
-	// LogDir là /var/log/tpan/sites/<domain>: root:root, 0755 (mục 5 giải
-	// thích vì sao không thuộc user của site).
+	// LogDir là /var/log/tpan/sites/<domain>: root:<nhóm của site>, 0750 (M14,
+	// mục 6.13: site khác không đọc được log; mục 5 giải thích vì sao chủ vẫn
+	// là root chứ không phải user của site).
 	LogDir string `json:"log_dir"`
+	// AccessLog, ErrorLog là LogDir/access.log và LogDir/error.log, do web
+	// server ghi: root:<nhóm của site>, 0640 (M14).
+	AccessLog string `json:"access_log"`
+	ErrorLog  string `json:"error_log"`
 	// PHPErrorLog là LogDir/php-error.log: chủ User, nhóm User, 0640, để PHP
 	// chạy dưới User ghi được.
 	PHPErrorLog string `json:"php_error_log"`
@@ -84,6 +90,8 @@ func LayoutOf(d validate.Domain) Layout {
 		Tmp:         dir + "/tmp",
 		WPConfig:    public + "/wp-config.php",
 		LogDir:      logDir,
+		AccessLog:   logDir + "/access.log",
+		ErrorLog:    logDir + "/error.log",
 		PHPErrorLog: logDir + "/php-error.log",
 		Pool:        pool,
 		NginxConf:   "/etc/nginx/sites-available/tpan-" + dom + ".conf",
@@ -109,6 +117,44 @@ func (l Layout) PoolConf(version string) string {
 // mới vừa tạo.
 func (l Layout) SocketFor(version string) string {
 	return "/run/php/" + l.Pool + "-" + version + ".sock"
+}
+
+// HtaccessMode là chế độ .htaccess của site trên stack Apache (M14, mục 6.13
+// của docs/KE-HOACH.md). Trên stack nginx không có .htaccess nên cột này chỉ
+// được dùng khi vhost Apache của site được ghi.
+type HtaccessMode string
+
+const (
+	// HtaccessSafe (mặc định cho site mới): AllowOverride None cộng một dòng
+	// AllowOverrideList với danh sách chỉ thị chọn tay (htaccess.Allowed), không
+	// có chỉ thị nào đổi được handler hay biến gửi sang PHP-FPM.
+	HtaccessSafe HtaccessMode = "an-toan"
+	// HtaccessOff: AllowOverride None, không đọc .htaccess; permalink bằng
+	// FallbackResource /index.php trong vhost. TPAN không ghi .htaccess.
+	HtaccessOff HtaccessMode = "tat"
+	// HtaccessFull: AllowOverride All như trước M14. Site ghi được cấu hình
+	// Apache nên health luôn cảnh báo. Site có từ trước M14 mang giá trị này
+	// (migration 1400) cho tới khi `tpan security harden` chuyển nó.
+	HtaccessFull HtaccessMode = "day-du"
+)
+
+// ParseHtaccessMode nhận đúng ba giá trị trên. Chuỗi rỗng là lỗi: người gọi
+// (CLI, API) phải nói rõ muốn chế độ nào.
+func ParseHtaccessMode(s string) (HtaccessMode, error) {
+	switch m := HtaccessMode(s); m {
+	case HtaccessSafe, HtaccessOff, HtaccessFull:
+		return m, nil
+	}
+	return "", fmt.Errorf("chế độ .htaccess %q không hợp lệ (nhận: %s, %s, %s)", s, HtaccessSafe, HtaccessOff, HtaccessFull)
+}
+
+// OrDefault trả HtaccessSafe khi m rỗng (bản ghi Site dựng trong mã, chưa qua
+// store), để template và phép kiểm không phải tự xử trường hợp rỗng.
+func (m HtaccessMode) OrDefault() HtaccessMode {
+	if m == "" {
+		return HtaccessSafe
+	}
+	return m
 }
 
 // Status là trạng thái của site trong bảng sites.
@@ -143,6 +189,9 @@ type Site struct {
 	// DBSuspended khác rỗng khi user DB của site đang ACCOUNT LOCK (M13). Tách
 	// khỏi Suspended: khoá DB và khoá site là hai thao tác riêng.
 	DBSuspended account.Suspension `json:"db_suspended,omitempty"`
+	// Htaccess là chế độ .htaccess của site (M14). Rỗng chỉ ở bản ghi chưa lưu
+	// và được hiểu là HtaccessSafe (OrDefault); store ghi rỗng thành an-toan.
+	Htaccess HtaccessMode `json:"htaccess"`
 }
 
 // Layout trả tên và đường dẫn của site.

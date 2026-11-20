@@ -51,7 +51,8 @@ func TestSiteThemVaDocRa(t *testing.T) {
 	}
 	want := in
 	want.Slug = validate.SlugOf(in.Domain)
-	want.Owner = "admin" // Owner rỗng lưu thành admin (M13)
+	want.Owner = "admin"              // Owner rỗng lưu thành admin (M13)
+	want.Htaccess = site.HtaccessSafe // Htaccess rỗng lưu thành an-toan (M14)
 	if got != want {
 		t.Errorf("đọc ra %+v, muốn %+v", got, want)
 	}

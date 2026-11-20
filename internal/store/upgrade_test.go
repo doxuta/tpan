@@ -14,6 +14,7 @@ import (
 	"testing/fstest"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/site"
 )
 
 // oldMigrations là các migration của v0.1.1: mọi file có số <= 900.
@@ -124,6 +125,17 @@ func TestNangCapTuV011(t *testing.T) {
 	st, ok, err := s.Site(ctx, siteDomain(t, "old.example.com"))
 	if err != nil || !ok || st.Owner != "admin" || st.Suspended != account.NotSuspended || st.DBSuspended != account.NotSuspended || !st.SSL {
 		t.Errorf("site cũ = %+v, %v, %v", st, ok, err)
+	}
+	// M14: site có từ trước mang chế độ .htaccess đúng như vhost đang có trên
+	// đĩa (AllowOverride All); lưu lại thì giữ nguyên, không tự thành an-toan.
+	if st.Htaccess != site.HtaccessFull {
+		t.Errorf("site cũ: htaccess = %q, muốn %q", st.Htaccess, site.HtaccessFull)
+	}
+	if err := s.SaveSite(ctx, st); err != nil {
+		t.Fatal(err)
+	}
+	if again, _, _ := s.Site(ctx, st.Domain); again.Htaccess != site.HtaccessFull {
+		t.Errorf("site cũ sau khi lưu lại: htaccess = %q, muốn giữ %q", again.Htaccess, site.HtaccessFull)
 	}
 	if o, ok, _ := s.SiteOwner(ctx, "old.example.com"); !ok || o != "admin" {
 		t.Errorf("SiteOwner = %q, %v", o, ok)
