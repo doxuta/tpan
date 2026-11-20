@@ -59,7 +59,7 @@ export function Layout() {
     // có cho cả hai vai (user thường chỉ thấy màn của mình). Provider không gọi API AI với user thường.
     <AiProvider>
       <JobTrackerProvider>
-        <Shell t={t} hostname={session.data.hostname ?? ""} demo={session.data.demo} overview={overview.data} who={who} />
+        <Shell t={t} hostname={session.data.hostname ?? ""} demo={session.data.demo} overview={overview.data} who={who} version={session.data.version ?? ""} />
       </JobTrackerProvider>
     </AiProvider>
   );
@@ -71,7 +71,7 @@ export function Layout() {
  * lần chuyển mục). Ngăn AI nằm ở đây, không trong màn nào, nên đi theo người
  * dùng qua mọi mục.
  */
-function Shell({ t, hostname, demo, overview, who }: { t: T; hostname: string; demo: boolean; overview?: Overview; who: Who }) {
+function Shell({ t, hostname, demo, overview, who, version }: { t: T; hostname: string; demo: boolean; overview?: Overview; who: Who; version: string }) {
   const ai = useAi();
   const [palette, setPalette] = useState(false);
   const admin = who.isAdmin;
@@ -109,6 +109,12 @@ function Shell({ t, hostname, demo, overview, who }: { t: T; hostname: string; d
           </main>
           {admin && <AiDrawer />}
         </div>
+        {/* Phiên bản đang chạy, lấy từ /api/v1/session: nhìn là biết máy này đã cập nhật chưa. */}
+        {version && (
+          <footer className="mt-[40px] border-t border-hair pt-[12px] font-mono text-[12px] text-muted">
+            TPAN {version}
+          </footer>
+        )}
         <CommandPalette open={palette} onOpenChange={setPalette} />
       </div>
     </>
