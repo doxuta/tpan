@@ -11,11 +11,16 @@ import (
 )
 
 // apiSecurity dựng ca sử dụng của trang bảo mật. System chờ khoá có hạn như
-// apiSites: ufw và fail2ban là job thay đổi máy như mọi job khác.
+// apiSites: ufw và fail2ban là job thay đổi máy như mọi job khác. Settings và
+// Sites là thứ Plan "Áp bản vá cô lập" (M14, api_m14.go) cần.
 func (s *Server) apiSecurity() *core.Security {
 	return &core.Security{
-		Sys:     jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
-		Journal: s.deps.Store,
+		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
+		Journal:  s.deps.Store,
+		Settings: s.deps.Store,
+		Sites:    s.deps.Store,
+		// Kiểm chứng của "Áp bản vá cô lập" có phép kiểm WP-CLI của stack.
+		WPCLISHA512: s.deps.WPCLISHA512,
 	}
 }
 

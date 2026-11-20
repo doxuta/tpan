@@ -271,10 +271,15 @@ func (m *machine) handlers() {
 	m.Handle([]string{"wp"}, m.wp)
 
 	// `find <public> -mindepth 1 -delete` (hoàn tác WPFiles) và
-	// `rm -r --one-file-system -- <dir>` (RemoveTree). Các find khác không đổi gì.
+	// `rm -r --one-file-system -- <dir>` (RemoveTree). `find ... -name .htaccess
+	// ... -print0` là lần quét .htaccess của M14 (m14.go). Các find khác không
+	// đổi gì.
 	m.Handle([]string{"find"}, func(c system.Cmd) system.Result {
 		if slices.Contains(c.Args, "-delete") {
 			m.removeUnder(c.Args[0], false)
+		}
+		if slices.Contains(c.Args, "-print0") && argAfter(c.Args, "-name") == ".htaccess" {
+			return m.findHtaccess(c)
 		}
 		return okResult
 	})

@@ -21,11 +21,26 @@ package demo
 //
 // `systemctl show ... -p ProtectProc` nằm ở machine.go, cạnh các handler
 // systemctl khác.
+//
+// Đợt 2 (route explain, ma trận cô lập, chế độ .htaccess):
+//
+//   - `tpan route explain` và nút "Request tới site này đi đường nào" không
+//     cần gì thêm: core.RouteExplain đọc `nginx -T` / `apache2ctl -S` ở trên
+//     rồi đọc file vhost và file pool mà core.Sites đã ghi lên máy giả;
+//   - ma trận cô lập đọc bảng check_results, do health của `tpan serve --demo`
+//     ghi ngay lần chạy đầu (phép kiểm cô lập trả lời ở machine.go: test -r,
+//     -x, -w luôn bị từ chối);
+//   - chế độ .htaccess: site mẫu tạo sau M14 nên mang an-toan; máy demo chạy
+//     nginx nên cột này chỉ hiện chế độ. `find ... -name .htaccess` và
+//     `head -c` trả lời theo file thật của máy giả, để lần quét .htaccess
+//     (đổi chế độ, Plan "Áp bản vá cô lập") thấy đúng nội dung khi demo đã
+//     chuyển sang Apache hoặc khi test đặt một .htaccess có chỉ thị cấm.
 
 import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -50,6 +65,42 @@ func (m *machine) m14Setup() {
 	}
 	m.Handle([]string{"nginx", "-T"}, m.nginxDump)
 	m.Handle([]string{"apache2ctl", "-S"}, m.apacheVhosts)
+	m.Handle([]string{"head", "-c"}, m.headFile)
+}
+
+// findHtaccess là `find <public> -name .htaccess ( -type f -o -type l )
+// -print0` của checks.ScanHtaccess: mọi file .htaccess đang có dưới thư mục
+// đó trên máy giả, ngăn nhau bằng byte 0. Không có handler này thì find trả
+// rỗng và lần quét của Plan "Áp bản vá cô lập" hay `site set --htaccess
+// an-toan` luôn "sạch", kể cả khi .htaccess của site có chỉ thị cấm.
+func (m *machine) findHtaccess(c system.Cmd) system.Result {
+	root := strings.TrimSuffix(c.Args[0], "/") + "/"
+	var found []string
+	for p := range m.Snapshot() {
+		if strings.HasPrefix(p, root) && strings.HasSuffix(p, "/.htaccess") {
+			found = append(found, p)
+		}
+	}
+	slices.Sort(found)
+	var b strings.Builder
+	for _, p := range found {
+		b.WriteString(p + "\x00")
+	}
+	return exit(0, b.String(), "")
+}
+
+// headFile là `head -c <n> -- <file>`: n byte đầu của file trên máy giả
+// (ScanHtaccess đọc từng .htaccess bằng lệnh này, dưới user của site).
+func (m *machine) headFile(c system.Cmd) system.Result {
+	file := c.Args[len(c.Args)-1]
+	data, err := m.ReadFile(file)
+	if err != nil {
+		return exit(1, "", "head: cannot open '"+file+"' for reading: No such file or directory\n")
+	}
+	if n, err := strconv.Atoi(argAfter(c.Args, "-c")); err == nil && n >= 0 && n < len(data) {
+		data = data[:n]
+	}
+	return exit(0, string(data), "")
 }
 
 // phpInfo là `php-fpm<bản> -i`: phpinfo dạng chữ, mỗi khoá một dòng

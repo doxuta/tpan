@@ -206,6 +206,13 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/dbs/{name}/restore", rule: ownerDB, h: s.handleDBRestore},
 		{pattern: "DELETE /api/v1/trash/dbs/{name}", rule: ownerDB, h: s.handleDBPurge},
 
+		// M14: cô lập sâu và định tuyến (types_m14.go, api_m14.go). /htaccess
+		// là owner:site, riêng mode "day-du" handler đòi admin.
+		{pattern: "GET /api/v1/sites/{domain}/route", rule: ownerSite, h: s.handleSiteRoute},
+		{pattern: "POST /api/v1/sites/{domain}/htaccess", rule: ownerSite, h: s.handleSiteHtaccess},
+		{pattern: "GET /api/v1/security/isolation", rule: adminOnly, h: s.handleIsolation},
+		{pattern: "POST /api/v1/security/harden", rule: adminOnly, h: s.handleSecurityHarden},
+
 		// Còn lại: đường dẫn API lạ là 404 JSON; mọi thứ khác là giao diện web
 		// (đã nhúng). Cũng nằm trong bảng để test duyệt đủ mọi mẫu của mux.
 		{pattern: "/api/", rule: public, h: handleAPINotFound},
