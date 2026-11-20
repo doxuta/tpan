@@ -17,10 +17,13 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -69,6 +72,57 @@ func (s *Server) ownedDomains(r *http.Request) (map[string]bool, error) {
 		m[st.Domain.String()] = true
 	}
 	return m, nil
+}
+
+// foreignCheck trả hàm cho biết một phép kiểm (theo ID) có nêu tên site của
+// người khác không, để giấu nó với user thường; admin thì nil (không giấu gì).
+// Phép kiểm cô lập "isolation:<x>:<y>" chạy cho mọi cặp site trên máy, bất kể
+// chủ, nên nằm trong kết quả health, phép kiểm của trang site và sự kiện job
+// site.add của A với tên, đường dẫn, user Linux của site B: không giấu thì A
+// dò được tên site của B (e2e M13 trên máy ảo thấy ở GET /overview, GET
+// /sites/{của A}, GET /jobs/{site.add của A}). Cặp mà cả hai site đều của
+// người gọi vẫn hiện.
+func (s *Server) foreignCheck(r *http.Request) (func(id string) bool, error) {
+	owned, err := s.ownedDomains(r)
+	if err != nil || owned == nil {
+		return nil, err
+	}
+	return func(id string) bool {
+		rest, ok := strings.CutPrefix(id, "isolation:")
+		if !ok {
+			return false
+		}
+		for d := range strings.SplitSeq(rest, ":") {
+			if !owned[d] {
+				return true
+			}
+		}
+		return false
+	}, nil
+}
+
+// keepChecks bỏ các kết quả hide giấu (hide nil: giữ hết).
+func keepChecks(rs []checks.Result, hide func(string) bool) []checks.Result {
+	if hide == nil {
+		return rs
+	}
+	return slices.DeleteFunc(rs, func(c checks.Result) bool { return hide(c.ID) })
+}
+
+// keepEvents bỏ sự kiện "check" của phép kiểm hide giấu.
+func keepEvents(evs []engine.Event, hide func(string) bool) []engine.Event {
+	if hide == nil {
+		return evs
+	}
+	return slices.DeleteFunc(evs, func(e engine.Event) bool { return e.Check != nil && hide(e.Check.ID) })
+}
+
+// keepIncidents bỏ sự cố của phép kiểm hide giấu.
+func keepIncidents(incs []store.Incident, hide func(string) bool) []store.Incident {
+	if hide == nil {
+		return incs
+	}
+	return slices.DeleteFunc(incs, func(i store.Incident) bool { return hide(i.CheckID) })
 }
 
 // apiReadOptionalJSON là apiReadJSON nhưng thân rỗng là giá trị zero: các lệnh

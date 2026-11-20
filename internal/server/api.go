@@ -231,7 +231,12 @@ func (s *Server) handleSite(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	info.Checks = apiNonNil(info.Checks)
+	hide, err := s.foreignCheck(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	info.Checks = apiNonNil(keepChecks(info.Checks, hide))
 	writeJSON(w, http.StatusOK, info)
 }
 
@@ -318,7 +323,12 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	d := JobDetail{Job: job, Events: apiNonNil(evs)}
+	hide, err := s.foreignCheck(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	d := JobDetail{Job: job, Events: apiNonNil(keepEvents(evs, hide))}
 	// Phiên "xem như" chỉ đọc: không được lấy mất mật khẩu hiện một lần của
 	// user (admin mở job vừa xong của A lúc đang xem như A thì A mất mật khẩu).
 	if job.Status != engine.JobRunning && !who(r).ReadOnly() {

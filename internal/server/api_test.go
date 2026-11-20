@@ -103,6 +103,12 @@ func apiDomain(t *testing.T, s string) validate.Domain {
 }
 
 // apiCall gọi handler h với request đã dựng; pathValues là cặp tên, giá trị.
+// asRoot gắn danh tính admin của dòng lệnh vào r, như apiCall: cho test gọi
+// thẳng handler với request tự dựng (không qua guard).
+func asRoot(r *http.Request) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), identityKey{}, account.Root))
+}
+
 func apiCall(h http.HandlerFunc, method, target, body string, pathValues ...string) *httptest.ResponseRecorder {
 	var rd *strings.Reader
 	if body != "" {

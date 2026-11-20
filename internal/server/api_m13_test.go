@@ -12,15 +12,19 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/validate"
 )
 
 // authzTrashedDB là một DB rời của A đang ở thùng rác.
@@ -297,5 +301,74 @@ func TestJobGhiNguoiChay(t *testing.T) {
 	})
 	if a := <-got; a != authzA {
 		t.Errorf("actor trong job = %q, muốn %q", a, authzA)
+	}
+}
+
+// TestCoLapKhongLoTenSiteNguoiKhac: phép kiểm cô lập "isolation:<x>:<y>" chạy
+// cho mọi cặp site, nên kết quả trên site của A nêu tên site của B. User
+// thường không được thấy chúng ở tổng quan, sự cố, chi tiết job và SSE (e2e
+// M13 trên máy ảo: A thấy tên site của B và của admin). Cặp cả hai site đều của
+// A vẫn hiện; admin thấy hết.
+func TestCoLapKhongLoTenSiteNguoiKhac(t *testing.T) {
+	e := newAuthzEnv(t)
+	h := e.s.handler(authzDist)
+	ctx := context.Background()
+	const a2, bSite = "a2.example.com", "b.example.com"
+	for _, x := range []struct{ d, owner string }{{a2, authzA}, {bSite, authzB}} {
+		d, err := validate.ParseDomain(x.d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := e.st.SaveSite(ctx, site.Site{Domain: d, Status: site.Active, PHPVersion: "8.3", Created: e.now, Owner: x.owner}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mine := "isolation:" + authzSite + ":" + a2
+	foreign := "isolation:" + authzSite + ":" + bSite
+	res := func(id string, st checks.Status) checks.Result {
+		return checks.Result{ID: id, Stage: checks.StageWordPress, Status: st, Title: i18n.T(id, id)}
+	}
+	// Phép cô lập với site của B hỏng: mở một sự cố trên site của A.
+	tr, err := e.st.RecordResults(ctx, authzSite, []checks.Result{res(mine, checks.Pass), res(foreign, checks.Fail)}, e.now)
+	if err != nil || len(tr.Opened) != 1 {
+		t.Fatalf("RecordResults: %+v, %v", tr, err)
+	}
+	inc := strconv.FormatInt(tr.Opened[0].ID, 10)
+	for i, id := range []string{mine, foreign} {
+		c := res(id, checks.Pass)
+		if err := e.st.AddEvent(ctx, engine.Event{JobID: authzJob, Seq: i + 1, Time: e.now, Kind: engine.EventCheck, Check: &c}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := e.st.AddEvent(ctx, engine.Event{JobID: authzJob, Seq: 3, Time: e.now, Kind: engine.EventJobDone, Message: "succeeded"}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, who := range []string{authzA, account.AdminName} {
+		admin := who == account.AdminName
+		c := e.cookies[who]
+		for _, path := range []string{"/api/v1/overview", "/api/v1/incidents", "/api/v1/jobs/" + authzJob, "/api/v1/jobs/" + authzJob + "/events"} {
+			rec := e.do(h, "GET", path, "", c)
+			body := rec.Body.String()
+			if rec.Code != 200 {
+				t.Fatalf("%s %s: %d %s", who, path, rec.Code, body)
+			}
+			if got := strings.Contains(body, bSite); got != admin {
+				t.Errorf("%s %s: có tên site của B = %v, muốn %v", who, path, got, admin)
+			}
+			// Cặp của chính A vẫn hiện (bộ lọc không giấu quá tay). Danh sách
+			// sự cố chỉ có sự cố của cặp với B.
+			if path != "/api/v1/incidents" && !strings.Contains(body, mine) {
+				t.Errorf("%s %s: mất phép cô lập %s", who, path, mine)
+			}
+		}
+		rec := e.do(h, "GET", "/api/v1/incidents/"+inc, "", c)
+		if want := map[bool]int{true: 200, false: 404}[admin]; rec.Code != want {
+			t.Errorf("%s GET /incidents/%s: %d, muốn %d", who, inc, rec.Code, want)
+		}
+	}
+	// SSE: sự kiện bị giấu không gửi nhưng job.done vẫn tới.
+	if body := e.do(h, "GET", "/api/v1/jobs/"+authzJob+"/events", "", e.cookies[authzA]).Body.String(); !strings.Contains(body, "event: job.done") || strings.Contains(body, "id: 2\n") {
+		t.Errorf("SSE của A: %s", body)
 	}
 }
