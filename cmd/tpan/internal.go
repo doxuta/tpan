@@ -38,5 +38,6 @@ func internalCmd(e *env) *cobra.Command {
 			return core.ReloadWeb(cmd.Context(), e.sys, settings)
 		},
 	})
+	c.AddCommand(internalSelfUpdateCmd(e))
 	return c
 }
