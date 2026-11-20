@@ -84,12 +84,21 @@ func checkSelfBase(base string) (string, error) {
 	return strings.TrimRight(base, "/"), nil
 }
 
+// checkSelfArch: bản phát hành chỉ có hai file, tpan-linux-amd64 và
+// tpan-linux-arm64. Arch được nối vào URL, nên chỉ nhận đúng hai chữ đó.
+func checkSelfArch(arch string) error {
+	if arch != "amd64" && arch != "arm64" {
+		return fmt.Errorf("kiến trúc %q không hỗ trợ (amd64 hoặc arm64)", arch)
+	}
+	return nil
+}
+
 func (s *SelfDownload) validate() (base string, err error) {
 	if base, err = checkSelfBase(s.Base); err != nil {
 		return "", err
 	}
-	if s.Arch != "amd64" && s.Arch != "arm64" {
-		return "", fmt.Errorf("kiến trúc %q không hỗ trợ (amd64 hoặc arm64)", s.Arch)
+	if err := checkSelfArch(s.Arch); err != nil {
+		return "", err
 	}
 	if err := checkPath("file tải về", s.Dest); err != nil {
 		return "", err
@@ -257,6 +266,49 @@ func (s *SelfDownload) Undo(_ context.Context, sys system.System) error {
 		return fmt.Errorf("tải bản tpan mới: %w", errNotApplied)
 	}
 	return s.prev.restore(sys)
+}
+
+// ================================================================== SelfLatest
+
+// selfVersionName là dạng tên bản được nhận từ file VERSION của gốc tải:
+// v0.2.0, v0.2.0-1-g025edb6, 1.0+build_5. Chữ này đến từ mạng và được in lên
+// màn hình của panel, nên chỉ nhận chữ, số và . + _ -, tối đa 64 ký tự.
+var selfVersionName = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$`)
+
+// selfLatestTimeout (giây) ngắn hơn lúc tải thật (30): đây là nút "Kiểm bản
+// mới" và lần tự kiểm của dòng phiên bản cuối trang, người dùng đang chờ.
+const selfLatestTimeout = "15"
+
+// SelfLatest hỏi gốc tải base xem bản đang phát hành là gì, không tải file
+// chạy (M15, mục 6.14 ý 6). Hai lệnh curl, không ghi gì vào máy:
+//   - <base>/SHA256SUMS, bắt buộc: sum là sha256 ghi cho tpan-linux-<arch>,
+//     tức là số mà file tải về sẽ phải khớp.
+//   - <base>/VERSION, tuỳ có (make release ghi file này từ M15): version là
+//     tên bản. Không tải được, hoặc nội dung không phải đúng một tên bản
+//     (trang lỗi HTML, nhiều dòng, ký tự lạ) thì version rỗng, không phải lỗi.
+//
+// base và arch được kiểm như SelfDownload trước khi chạy lệnh nào.
+func SelfLatest(ctx context.Context, sys system.System, base, arch string) (sum, version string, err error) {
+	if base, err = checkSelfBase(base); err != nil {
+		return "", "", err
+	}
+	if err := checkSelfArch(arch); err != nil {
+		return "", "", err
+	}
+	res, err := sys.Run(ctx, selfCurl(selfLatestTimeout, base+"/SHA256SUMS"))
+	if err != nil {
+		return "", "", fmt.Errorf("tải SHA256SUMS từ %s: %w", base, err)
+	}
+	if sum, err = parseSums(res.Stdout, "tpan-linux-"+arch); err != nil {
+		return "", "", fmt.Errorf("đọc SHA256SUMS từ %s: %w", base, err)
+	}
+	// VERSION chỉ để hiện tên; quyết định "có bản khác" dựa vào sha256 ở trên.
+	if res, err := sys.Run(ctx, selfCurl(selfLatestTimeout, base+"/VERSION")); err == nil {
+		if v := strings.TrimSpace(res.Stdout); selfVersionName.MatchString(v) {
+			version = v
+		}
+	}
+	return sum, version, nil
 }
 
 // ================================================================= SelfInstall

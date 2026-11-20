@@ -457,3 +457,113 @@ func TestSelfInstall(t *testing.T) {
 		}
 	})
 }
+
+// ================================================================== SelfLatest
+
+// latestFake: gốc tải trả SHA256SUMS (sums) và VERSION (version; versionCode
+// khác 0 là curl lỗi, ví dụ 22 khi máy chủ trả 404).
+func latestFake(sums, version string, versionCode int) *system.FakeSystem {
+	f := system.NewFake()
+	f.Handle([]string{"curl", "-fsSL", "--max-time", "15", "--proto-redir", "=https", selfBase + "/SHA256SUMS"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: sums}
+	})
+	f.Handle([]string{"curl", "-fsSL", "--max-time", "15", "--proto-redir", "=https", selfBase + "/VERSION"}, func(system.Cmd) system.Result {
+		return system.Result{Stdout: version, ExitCode: versionCode}
+	})
+	return f
+}
+
+func TestSelfLatest(t *testing.T) {
+	ctx := context.Background()
+	sumA, sumB := strings.Repeat("a", 64), strings.Repeat("b", 64)
+	sums := sumA + "  tpan-linux-amd64\n" + sumB + "  tpan-linux-arm64\n"
+
+	t.Run("đủ hai file", func(t *testing.T) {
+		f := latestFake(sums, "v1.2.3\n", 0)
+		sum, version, err := SelfLatest(ctx, f, selfBase+"/", "arm64")
+		if err != nil || sum != sumB || version != "v1.2.3" {
+			t.Fatalf("= %q, %q, %v", sum, version, err)
+		}
+		want := []string{
+			"curl -fsSL --max-time 15 --proto-redir =https " + selfBase + "/SHA256SUMS",
+			"curl -fsSL --max-time 15 --proto-redir =https " + selfBase + "/VERSION",
+		}
+		if got := ranStrings(f.Ran()); !reflect.DeepEqual(got, want) {
+			t.Errorf("lệnh = %q\nmuốn  %q", got, want)
+		}
+		if len(f.Snapshot()) != 1 {
+			t.Errorf("SelfLatest ghi vào máy: %v", f.Snapshot())
+		}
+	})
+
+	t.Run("thiếu VERSION", func(t *testing.T) {
+		f := latestFake(sums, "", 22)
+		sum, version, err := SelfLatest(ctx, f, selfBase, "amd64")
+		if err != nil || sum != sumA || version != "" {
+			t.Errorf("= %q, %q, %v", sum, version, err)
+		}
+	})
+
+	t.Run("VERSION lạ thì coi như không có", func(t *testing.T) {
+		bad := []string{
+			"",
+			"<html>404</html>",
+			"v1.2.3\nv1.2.4\n",
+			"v1.2.3; rm -rf /",
+			"$(id)",
+			"-v1",
+			"v1 2",
+			"bản-mới",
+			"v" + strings.Repeat("1", 64),
+		}
+		for _, v := range bad {
+			sum, version, err := SelfLatest(ctx, latestFake(sums, v, 0), selfBase, "amd64")
+			if err != nil || sum != sumA || version != "" {
+				t.Errorf("%q: = %q, %q, %v", v, sum, version, err)
+			}
+		}
+		// Khoảng trắng hai đầu được bỏ; chữ dài nhất còn nhận là 64 ký tự.
+		for _, v := range []string{"  v0.3.0-1-gabc1234 \r\n", "1.0+build_5", strings.Repeat("9", 64)} {
+			_, version, err := SelfLatest(ctx, latestFake(sums, v, 0), selfBase, "amd64")
+			if err != nil || version != strings.TrimSpace(v) {
+				t.Errorf("%q: = %q, %v", v, version, err)
+			}
+		}
+	})
+
+	t.Run("SHA256SUMS thiếu dòng hoặc không tải được", func(t *testing.T) {
+		f := latestFake(sumA+"  tpan-linux-amd64\n", "v1.2.3\n", 0)
+		if _, _, err := SelfLatest(ctx, f, selfBase, "arm64"); err == nil || !strings.Contains(err.Error(), "tpan-linux-arm64") {
+			t.Errorf("thiếu dòng: %v", err)
+		}
+		// SHA256SUMS hỏng thì không hỏi tiếp VERSION.
+		if n := len(f.Ran()); n != 1 {
+			t.Errorf("thiếu dòng mà vẫn chạy %d lệnh: %q", n, ranStrings(f.Ran()))
+		}
+		f = latestFake(sums, "v1.2.3\n", 0)
+		f.Handle([]string{"curl"}, func(system.Cmd) system.Result {
+			return system.Result{ExitCode: 22, Stderr: "curl: (22) The requested URL returned error: 404\n"}
+		})
+		f.Handle([]string{"curl", "-fsSL", "--max-time", "15", "--proto-redir", "=https", selfBase + "/SHA256SUMS"}, func(system.Cmd) system.Result {
+			return system.Result{ExitCode: 22, Stderr: "curl: (22) The requested URL returned error: 404\n"}
+		})
+		if _, _, err := SelfLatest(ctx, f, selfBase, "arm64"); err == nil || !strings.Contains(err.Error(), "SHA256SUMS") || !strings.Contains(err.Error(), "404") {
+			t.Errorf("404: %v", err)
+		}
+	})
+
+	t.Run("base hoặc arch sai thì không chạy lệnh nào", func(t *testing.T) {
+		for _, base := range []string{"", "http://example.com/x", "https://user:pw@example.com", "https://example.com/a b", "https://example.com/x?a=$(id)", "ftp://example.com", "https://example.com/x\n--output /etc/passwd"} {
+			f := latestFake(sums, "v1.2.3\n", 0)
+			if _, _, err := SelfLatest(ctx, f, base, "amd64"); err == nil || len(f.Ran()) != 0 {
+				t.Errorf("base %q: lỗi %v, lệnh %q", base, err, ranStrings(f.Ran()))
+			}
+		}
+		for _, arch := range []string{"", "386", "amd64/../x", "arm64 "} {
+			f := latestFake(sums, "v1.2.3\n", 0)
+			if _, _, err := SelfLatest(ctx, f, selfBase, arch); err == nil || len(f.Ran()) != 0 {
+				t.Errorf("arch %q: lỗi %v, lệnh %q", arch, err, ranStrings(f.Ran()))
+			}
+		}
+	})
+}
