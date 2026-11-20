@@ -103,6 +103,8 @@ type Server struct {
 	phpNotes phpNotes
 	// disk nhớ lần đo dung lượng gần nhất (api_m13.go). Zero value dùng được.
 	disk diskTimer
+	// selfCheck nhớ lần "Kiểm bản mới" gần nhất (api_m15.go). Zero value dùng được.
+	selfCheck selfChecks
 }
 
 func (s *Server) now() time.Time {
