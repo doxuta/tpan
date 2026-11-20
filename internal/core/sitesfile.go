@@ -15,6 +15,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/validate"
@@ -35,15 +36,19 @@ type SitesFile struct {
 type SitesDefaults struct {
 	AdminEmail string `yaml:"admin_email,omitempty" json:"admin_email,omitempty"`
 	SSL        bool   `yaml:"ssl,omitempty" json:"ssl,omitempty"`
+	// Owner (M13) là chủ của site mới; rỗng là admin (hoặc chính người gọi khi
+	// áp theo phạm vi một user, ApplyInput.Scope).
+	Owner string `yaml:"owner,omitempty" json:"owner,omitempty"`
 }
 
 // SitesEntry là một site trong file. Domain bắt buộc; Title rỗng thì dùng
-// domain; AdminEmail rỗng thì lấy Defaults; SSL nil thì lấy Defaults.
+// domain; AdminEmail, Owner rỗng thì lấy Defaults; SSL nil thì lấy Defaults.
 type SitesEntry struct {
 	Domain     string `yaml:"domain" json:"domain"`
 	Title      string `yaml:"title,omitempty" json:"title,omitempty"`
 	AdminEmail string `yaml:"admin_email,omitempty" json:"admin_email,omitempty"`
 	SSL        *bool  `yaml:"ssl,omitempty" json:"ssl,omitempty"`
+	Owner      string `yaml:"owner,omitempty" json:"owner,omitempty"`
 }
 
 // MaxSitesFile: trần kích thước file và số dòng, để một file lạ không làm
@@ -126,8 +131,8 @@ func ParseSitesFile(r io.Reader) (SitesFile, error) {
 // sitesFileHeader là dòng chú thích đầu file export. YAML bỏ qua dòng bắt đầu
 // bằng '#', nên đưa file này vào `tpan apply -f` vẫn đọc được.
 const sitesFileHeader = `# File này do "tpan export" sinh từ trạng thái hiện tại của máy.
-# Chỉ có domain và ssl: tpan không lưu title và admin_email của từng site,
-# nên hai trường đó không có ở đây. Muốn tạo site mới từ file này thì thêm
+# Chỉ có domain, ssl và owner (khi chủ không phải admin): tpan không lưu
+# title và admin_email của từng site, nên hai trường đó không có ở đây. Muốn tạo site mới từ file này thì thêm
 # admin_email (ở defaults hoặc từng dòng) và title nếu cần.
 `
 
@@ -189,6 +194,9 @@ func (f SitesFile) Resolve() ([]ApplySite, error) {
 		}
 		defEmail = e
 	}
+	if err := checkOwnerField(f.Defaults.Owner); err != nil {
+		return nil, lineErr("defaults.owner", err)
+	}
 
 	out := make([]ApplySite, 0, len(f.Sites))
 	seen := make(map[string]int, len(f.Sites)) // domain đã chuẩn hoá -> dòng đầu tiên
@@ -228,12 +236,29 @@ func (f SitesFile) Resolve() ([]ApplySite, error) {
 		if e.SSL != nil {
 			ssl = *e.SSL
 		}
+		owner := f.Defaults.Owner
+		if e.Owner != "" {
+			if err := checkOwnerField(e.Owner); err != nil {
+				return nil, lineErr(where, err)
+			}
+			owner = e.Owner
+		}
 		out = append(out, ApplySite{
-			Input: SiteInput{Domain: d, Title: e.Title, Email: email},
+			Input: SiteInput{Domain: d, Title: e.Title, Email: email, Owner: owner},
 			SSL:   ssl,
 		})
 	}
 	return out, nil
+}
+
+// checkOwnerField kiểm dạng tên chủ trong file (rỗng là không ghi). Có thật
+// hay không, có thuộc phạm vi người gọi không thì PrepareApply kiểm từng dòng.
+func checkOwnerField(s string) error {
+	if s == "" || s == account.AdminName {
+		return nil
+	}
+	_, err := validate.ParseUserName(s)
+	return err
 }
 
 // ApplySite là một dòng của file sau khi đã kiểm.
@@ -243,19 +268,32 @@ type ApplySite struct {
 }
 
 // Export dựng SitesFile từ trạng thái hiện tại: mọi site active, sắp theo
-// domain, chỉ domain và ssl (title và email không lưu trong tpan; mục 7 ghi
-// "export in ra file từ trạng thái hiện tại"). Site trong thùng rác không có.
+// domain, chỉ domain, ssl và owner (title và email không lưu trong tpan; mục 7
+// ghi "export in ra file từ trạng thái hiện tại"). Site trong thùng rác không có.
 func (s *Sites) Export(ctx context.Context) (SitesFile, error) {
+	return s.ExportScope(ctx, "")
+}
+
+// ExportScope là Export chỉ với site của user scope (rỗng là mọi site), cho
+// GET /api/v1/export của user thường (M13).
+//
+// owner chỉ in khi chủ không phải admin: file export của máy chỉ có admin (mọi
+// máy trước M13) giữ đúng như cũ, và file đó áp lại vẫn ra cùng chủ vì owner
+// rỗng là admin.
+func (s *Sites) ExportScope(ctx context.Context, scope string) (SitesFile, error) {
 	all, err := s.Store.Sites(ctx)
 	if err != nil {
 		return SitesFile{}, fmt.Errorf("đọc danh sách site để export: %w", err)
 	}
 	f := SitesFile{Sites: []SitesEntry{}}
 	for _, st := range all {
-		if st.Status != site.Active {
+		if st.Status != site.Active || (scope != "" && ownerOf(st) != scope) {
 			continue
 		}
 		e := SitesEntry{Domain: st.Domain.String()}
+		if o := ownerOf(st); o != account.AdminName {
+			e.Owner = o
+		}
 		if st.SSL {
 			t := true // chỉ ghi khi true: false là mặc định, ghi ra chỉ thêm nhiễu
 			e.SSL = &t

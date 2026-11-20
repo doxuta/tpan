@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
@@ -131,6 +132,18 @@ func (b *Backups) PrepareCreate(ctx context.Context, d validate.Domain, reason B
 	if err != nil {
 		return nil, err
 	}
+	// M13: hạn mức gói chỉ chặn backup bấm tay. Backup theo lịch được dọn
+	// theo gói (prune); bản tự backup trước khi xoá hẳn, khôi phục là lưới an
+	// toàn của mục 6.5, không bao giờ chặn.
+	if reason == ReasonManual && b.Sites.Accounts != nil {
+		n, err := b.fullCount(ctx, d.String())
+		if err != nil {
+			return nil, err
+		}
+		if err := quotaCheck(ctx, b.Sites.Accounts, ownerOf(st), QuotaBackups, d, n); err != nil {
+			return nil, err
+		}
+	}
 	l := st.Layout()
 	src := l.Dir
 	if st.Status == site.Trashed {
@@ -164,7 +177,53 @@ func (b *Backups) PrepareCreate(ctx context.Context, d validate.Domain, reason B
 	}), nil
 }
 
+// fullCount đếm bản backup đầy đủ của domain theo đúng cách prune đếm: bỏ
+// bản trước khi xoá hẳn (không chiếm chỗ trong Keep).
+func (b *Backups) fullCount(ctx context.Context, domain string) (int, error) {
+	if b.Store == nil {
+		return 0, nil
+	}
+	rows, err := b.Store.Backups(ctx, domain)
+	if err != nil {
+		return 0, fmt.Errorf("đếm backup của %s: %w", domain, err)
+	}
+	n := 0
+	for _, r := range rows {
+		if r.Domain == domain && r.Kind == BackupFull && r.Reason != ReasonBeforePurge {
+			n++
+		}
+	}
+	return n, nil
+}
+
+// maxBackups là max_backups của gói của chủ site domain (M13); 0 là không
+// giới hạn, cũng là khi không có bảng users (Accounts nil) hay site đã xoá hẳn.
+func (b *Backups) maxBackups(ctx context.Context, domain string) (int, error) {
+	as := b.Sites.Accounts
+	if as == nil {
+		return 0, nil
+	}
+	d, err := validate.ParseDomain(domain)
+	if err != nil {
+		return 0, nil
+	}
+	st, ok, err := b.Sites.Store.Site(ctx, d)
+	if err != nil || !ok {
+		return 0, err
+	}
+	u, ok, err := as.User(ctx, ownerOf(st))
+	if err != nil || !ok {
+		return 0, err
+	}
+	p, ok, err := as.Package(ctx, u.Package)
+	if err != nil || !ok {
+		return 0, err
+	}
+	return p.MaxBackups, nil
+}
+
 // prune dọn bản cũ của một domain: giữ Keep bản full và Keep bản sql mới nhất.
+// Gói của chủ có max_backups nhỏ hơn Keep thì bản full chỉ giữ chừng đó (M13).
 // Không bao giờ xoá bản ReasonBeforePurge (đường lùi duy nhất của site đã xoá
 // hẳn; chúng cũng không chiếm chỗ trong Keep) và không xoá các id trong protect
 // (bản vừa ghi, bản vừa dùng để khôi phục). File xoá trước, dòng sau: lỗi giữa
@@ -178,6 +237,15 @@ func (b *Backups) prune(ctx context.Context, domain string, protect ...string) e
 	if err != nil {
 		return err
 	}
+	// Đọc gói lỗi thì dừng, không dọn gì: dọn theo số đoán là xoá mất backup.
+	most, err := b.maxBackups(ctx, domain)
+	if err != nil {
+		return fmt.Errorf("dọn backup cũ của %s: đọc gói của chủ: %w", domain, err)
+	}
+	keep := map[BackupKind]int{BackupFull: set.Keep, BackupSQL: set.Keep}
+	if most > 0 && most < set.Keep {
+		keep[BackupFull] = most
+	}
 	rows, err := b.Store.Backups(ctx, domain)
 	if err != nil {
 		return fmt.Errorf("dọn backup cũ của %s: %w", domain, err)
@@ -189,7 +257,7 @@ func (b *Backups) prune(ctx context.Context, domain string, protect ...string) e
 			continue
 		}
 		seen[r.Kind]++
-		if seen[r.Kind] <= set.Keep || slices.Contains(protect, r.ID) {
+		if seen[r.Kind] <= keep[r.Kind] || slices.Contains(protect, r.ID) {
 			continue
 		}
 		if err := b.removeBackupFile(r.Path); err != nil {
@@ -372,6 +440,13 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 		return nil, refuse("site_trashed", i18n.T(
 			"site "+d.String()+" đang ở thùng rác; khôi phục site trước bằng: sudo tpan site restore "+d.String()+", rồi mới khôi phục backup",
 			"site "+d.String()+" is in the trash; restore the site first with: sudo tpan site restore "+d.String()+", then restore the backup"))
+	}
+	// M13, quyết định 8: kiểm chứng sau khôi phục cần PHP của site, mà site
+	// tạm khoá đã tắt pool; ghi lại pool để qua kiểm chứng là mở khoá lén.
+	if st.Suspended != account.NotSuspended {
+		return nil, refuse(CodeSiteSuspended, i18n.T(
+			"site "+d.String()+" đang tạm khoá; mở khoá trước (sudo tpan site unsuspend "+d.String()+") rồi mới khôi phục backup",
+			"site "+d.String()+" is suspended; unsuspend it first (sudo tpan site unsuspend "+d.String()+") before restoring a backup"))
 	}
 	cfg, err := b.Sites.stack(ctx)
 	if err != nil {

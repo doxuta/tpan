@@ -18,6 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -380,7 +381,15 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		default:
 			return nil, fmt.Errorf("site %s có trạng thái lạ %q trong DB", d, old.Status)
 		}
-		// Chạy lại: giữ bản PHP và ngày tạo của site (M12 cho mỗi site một bản PHP).
+		// M13, quyết định 8: chạy lại ghi pool PHP và vhost thường, tức là
+		// mở khoá lén một site đang tạm khoá.
+		if old.Suspended != account.NotSuspended {
+			return nil, refuse(CodeSiteSuspended, i18n.T(
+				"site "+d.String()+" đang tạm khoá; chạy lại sẽ bật lại PHP của nó. Mở khoá trước: sudo tpan site unsuspend "+d.String(),
+				"site "+d.String()+" is suspended; running it again would turn its PHP back on. Unsuspend it first: sudo tpan site unsuspend "+d.String()))
+		}
+		// Chạy lại: giữ bản PHP, ngày tạo và chủ của site (M12 cho mỗi site
+		// một bản PHP; M13 không đổi chủ ở đây).
 		if old.PHPVersion == "" {
 			return nil, fmt.Errorf("site %s trong DB không có bản PHP", d)
 		}
@@ -402,6 +411,9 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	} else {
 		if in.Email.IsZero() {
 			return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị (--email): site mới cần email cho tài khoản quản trị WordPress", "the admin email is missing (--email): a new site needs an email for its WordPress admin account"))
+		}
+		if rec.Owner, err = s.newOwner(ctx, in.Owner); err != nil {
+			return nil, err
 		}
 		vi, en, err := s.unmanaged(ctx, l)
 		if err != nil {
@@ -448,6 +460,31 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan,
 		sites: s, adminPassword: adminPw, install: install,
 	}, nil
+}
+
+// newOwner chọn và kiểm chủ của một site mới (M13): rỗng là admin; chủ phải
+// là user có thật, đang hoạt động, và còn chỗ trong gói. Accounts nil (test,
+// xem trước khi chưa có tpan.db) thì chỉ kiểm dạng tên.
+func (s *Sites) newOwner(ctx context.Context, owner string) (string, error) {
+	if owner == "" {
+		return account.AdminName, nil
+	}
+	if _, err := validate.ParseUserName(owner); err != nil && owner != account.AdminName {
+		return "", userNotFound(owner)
+	}
+	if s.Accounts == nil {
+		return owner, nil
+	}
+	u, err := lookupUser(ctx, s.Accounts, owner)
+	if err != nil {
+		return "", err
+	}
+	if u.Status != account.Active {
+		return "", refuse(CodeUserSuspended, i18n.T(
+			"user "+owner+" đang bị khoá; mở khoá user trước rồi mới tạo site cho họ",
+			"user "+owner+" is locked; unlock the user before creating a site for them"))
+	}
+	return owner, checkQuota(ctx, s.Accounts, owner, QuotaSites, validate.Domain{})
 }
 
 // addPlan dựng Plan "site.add" đúng thứ tự mục 6.2.
@@ -564,6 +601,11 @@ func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (Site
 	if s.Journal == nil {
 		return res, errors.New("tạo site: thiếu Journal, không ghi được lịch sử job")
 	}
+	// Site mới chưa có dòng trong bảng sites lúc job bắt đầu: ghi chủ vào job
+	// ngay, để admin tạo hộ thì user chủ vẫn thấy job tạo site của mình.
+	if !a.Rerun && a.Site.Owner != "" {
+		ctx = engine.WithOwner(ctx, a.Site.Owner)
+	}
 	rep, err := engine.New(s.Sys, engine.Options{Journal: s.Journal, OnEvent: onEvent}).Execute(ctx, a.Plan)
 	res.Report = rep
 	if err != nil {
@@ -611,6 +653,9 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 		return nil, refuse("site_trashed", i18n.T(
 			"site "+d.String()+" đã ở thùng rác; xoá hẳn bằng: sudo tpan trash purge "+d.String(),
 			"site "+d.String()+" is already in the trash; delete it for good with: sudo tpan trash purge "+d.String()))
+	}
+	if st.Suspended != account.NotSuspended || st.DBSuspended != account.NotSuspended {
+		return nil, refuseSuspendedTrash(st)
 	}
 	cfg, err := s.stack(ctx)
 	if err != nil {

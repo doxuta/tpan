@@ -286,3 +286,60 @@ func TestExportEmptyAndError(t *testing.T) {
 		t.Errorf("máy chưa có site: f=%+v err=%v; muốn danh sách rỗng không nil", f, err)
 	}
 }
+
+// ---------------------------------------------------------------- M13: owner
+
+func TestResolveOwnerM13(t *testing.T) {
+	out := resolveOK(t, `
+defaults:
+  owner: bob
+sites:
+  - domain: a.example.com
+  - domain: b.example.com
+    owner: carol
+`)
+	if out[0].Input.Owner != "bob" || out[1].Input.Owner != "carol" {
+		t.Errorf("owner = %q, %q", out[0].Input.Owner, out[1].Input.Owner)
+	}
+	for _, bad := range []string{"Bob", "tp_shop", "x$(id)"} {
+		f := parseOK(t, "sites:\n  - domain: a.example.com\n    owner: \""+bad+"\"\n")
+		_, err := f.Resolve()
+		if err == nil || !strings.Contains(err.Error(), "dòng 1") || strings.Contains(err.Error(), "$(id)") {
+			t.Errorf("owner %q: %v", bad, err)
+		}
+	}
+	if _, err := parseOK(t, "defaults:\n  owner: \"a b\"\nsites:\n  - domain: a.example.com\n").Resolve(); err == nil || !strings.Contains(err.Error(), "defaults.owner") {
+		t.Errorf("defaults.owner sai: %v", err)
+	}
+}
+
+func TestExportOwnerM13(t *testing.T) {
+	ctx := context.Background()
+	ms := newMemSites()
+	for _, s := range []site.Site{
+		{Domain: mustDomain(t, "a.example.com"), Status: site.Active, Owner: "bob"},
+		{Domain: mustDomain(t, "b.example.com"), Status: site.Active, Owner: "admin"},
+		{Domain: mustDomain(t, "c.example.com"), Status: site.Active},
+	} {
+		if err := ms.SaveSite(ctx, s); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := &Sites{Store: ms}
+	f, err := s.Export(ctx)
+	if err != nil || len(f.Sites) != 3 || f.Sites[0].Owner != "bob" || f.Sites[1].Owner != "" || f.Sites[2].Owner != "" {
+		t.Fatalf("owner chỉ in khi khác admin: %+v %v", f.Sites, err)
+	}
+	b, _ := f.Marshal()
+	out, err := parseOK(t, string(b)).Resolve()
+	if err != nil || out[0].Input.Owner != "bob" || out[1].Input.Owner != "" {
+		t.Errorf("export áp lại: %+v %v", out, err)
+	}
+	f, err = s.ExportScope(ctx, "bob")
+	if err != nil || len(f.Sites) != 1 || f.Sites[0].Domain != "a.example.com" {
+		t.Errorf("ExportScope bob: %+v %v", f.Sites, err)
+	}
+	if f, _ = s.ExportScope(ctx, "admin"); len(f.Sites) != 2 {
+		t.Errorf("ExportScope admin (chủ rỗng là admin): %+v", f.Sites)
+	}
+}

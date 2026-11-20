@@ -39,6 +39,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -146,12 +147,29 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 		stored[st.Domain] = st
 	}
 
+	// M13: Scope rỗng là mọi site (dòng lệnh, admin). Có tên thì chỉ site của
+	// user đó là "của mình": được bỏ qua, được prune; site của người khác như
+	// không tồn tại với người gọi.
+	scope := in.Scope
+	mine := func(st site.Site) bool { return scope == "" || ownerOf(st) == scope }
+	// pending đếm site mới đã nhận trong lô theo từng chủ: Usage của store
+	// chưa thấy chúng, nên hạn mức phải cộng thêm (dòng thừa thành Refused).
+	pending := map[string]int{}
+
 	a := &Apply{sites: s}
 	var creates []applyUnit
 	listed := make(map[validate.Domain]bool, len(in.Sites))
 	for _, as := range in.Sites {
 		d := as.Input.Domain
 		item := ApplyItem{Domain: d.String()}
+		owner := as.Input.Owner
+		if scope != "" && owner == "" {
+			owner = scope
+		}
+		if owner == "" {
+			owner = account.AdminName
+		}
+		as.Input.Owner = owner
 		var err error
 		switch st, found := stored[d]; {
 		case d.IsZero():
@@ -162,6 +180,16 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 			item, err = refusedItem(item, refuse("domain_duplicate", i18n.T(
 				"domain "+d.String()+" có hai lần trong danh sách",
 				"domain "+d.String()+" is listed twice")))
+		case scope != "" && owner != scope:
+			// Người gọi theo phạm vi chỉ tạo được site cho chính mình; với họ
+			// user khác như không tồn tại.
+			item, err = refusedItem(item, refuse(CodeUserNotFound, i18n.T(
+				"dòng của "+d.String()+" ghi owner khác tài khoản của bạn; bỏ owner hoặc ghi đúng tên của bạn",
+				"the line for "+d.String()+" names an owner other than your account; drop owner or use your own name")))
+		case found && !mine(st):
+			item, err = refusedItem(item, refuse("site_not_found", i18n.T(
+				"không tạo được site "+d.String()+" từ tài khoản này: domain đã được dùng",
+				"site "+d.String()+" cannot be created from this account: the domain is already in use")))
 		case found && st.Status == site.Active:
 			// Mục 7: site đã có thì bỏ qua, không chạy lại Plan (sửa lệch là
 			// việc của `tpan site add` hay health --fix).
@@ -170,12 +198,21 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 			// Chưa có, hoặc có mà không active (thùng rác): PrepareAdd kiểm
 			// đúng như `tpan site add` (email, tiêu đề, site_trashed, thứ của
 			// domain đã có trên máy) và dựng Plan.
+			if !found {
+				// PrepareAdd kiểm hạn mức theo Usage của store; ở đây cộng thêm
+				// các site mới đã nhận trước đó trong cùng lô.
+				if err = quotaCheck(ctx, s.Accounts, owner, QuotaSites, d, pending[owner]); err != nil {
+					item, err = refusedItem(item, err)
+					break
+				}
+			}
 			var add *SiteAdd
 			add, err = s.PrepareAdd(ctx, as.Input)
 			if err != nil {
 				item, err = refusedItem(item, err)
 				break
 			}
+			pending[owner]++
 			item.Action, item.SSL = ApplyCreate, as.SSL
 			creates = append(creates, applyUnit{add: add, ssl: as.SSL, email: as.Input.Email})
 		}
@@ -190,7 +227,7 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 	trashed := map[validate.Domain]bool{}
 	if in.Prune {
 		for _, st := range all {
-			if st.Status != site.Active || listed[st.Domain] {
+			if st.Status != site.Active || listed[st.Domain] || !mine(st) {
 				continue
 			}
 			item := ApplyItem{Domain: st.Domain.String(), Action: ApplyTrash}

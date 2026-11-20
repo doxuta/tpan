@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
@@ -974,5 +975,88 @@ func TestBackupList(t *testing.T) {
 	be.b.Store = nil
 	if none, err := be.b.List(ctx, ""); err != nil || none == nil || len(none) != 0 {
 		t.Errorf("không có store: %v %v", none, err)
+	}
+}
+
+// ================================================================ M13: hạn mức backup
+
+// bktOwn cho site dom thuộc bob, gói có max_backups = most.
+func (be *bktEnv) bktOwn(t *testing.T, dom string, most int) *usrStore {
+	t.Helper()
+	as := newUsrStore(be.sites, nil)
+	as.pkgs["b"] = account.Package{Name: "b", MaxBackups: most}
+	as.put(account.User{Name: account.AdminName, Role: account.RoleAdmin})
+	as.put(account.User{Name: "bob", Role: account.RoleUser, Package: "b"})
+	st, _, _ := be.sites.Site(ctx, mustDomain(t, dom))
+	st.Owner = "bob"
+	if err := be.sites.SaveSite(ctx, st); err != nil {
+		t.Fatal(err)
+	}
+	be.s.Accounts = as
+	return as
+}
+
+func TestBackupQuotaM13(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	d := mustDomain(t, dom)
+	be.bktOwn(t, dom, 2)
+	be.seedFull(t, dom, "20261101-000000", "a", "a", ReasonManual)
+	be.seedFull(t, dom, "20261001-000000", "p", "p", ReasonBeforePurge) // không tính
+	if _, err := be.b.PrepareCreate(ctx, d, ReasonManual); err != nil {
+		t.Fatalf("1/2 bản: %v", err)
+	}
+	be.seedFull(t, dom, "20261102-000000", "b", "b", ReasonSchedule)
+	if _, err := be.b.PrepareCreate(ctx, d, ReasonManual); refusedCode(t, err) != CodeQuotaBackups {
+		t.Errorf("2/2 bản, bấm tay: %v", err)
+	}
+	// Lịch và lưới an toàn của mục 6.5 không bao giờ bị chặn.
+	for _, r := range []BackupReason{ReasonSchedule, ReasonBeforePurge} {
+		if _, err := be.b.PrepareCreate(ctx, d, r); err != nil {
+			t.Errorf("%s bị chặn: %v", r, err)
+		}
+	}
+}
+
+func TestBackupPruneByPackageM13(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	be.bktOwn(t, dom, 2) // Keep mặc định 3, gói cho 2
+	l := site.LayoutOf(mustDomain(t, dom))
+	f1 := be.seedFull(t, dom, "20261101-000000", "1", "1", ReasonManual)
+	f2 := be.seedFull(t, dom, "20261102-000000", "2", "2", ReasonSchedule)
+	f3 := be.seedFull(t, dom, "20261103-000000", "3", "3", ReasonSchedule)
+	pg := be.seedFull(t, dom, "20261001-000000", "p", "p", ReasonBeforePurge)
+	s1 := be.seedFile(t, l, dom+"-db-20261101-000000.sql", []byte("1"), BackupSQL, ReasonManual, "20261101-000000")
+	s2 := be.seedFile(t, l, dom+"-db-20261102-000000.sql", []byte("2"), BackupSQL, ReasonManual, "20261102-000000")
+	s3 := be.seedFile(t, l, dom+"-db-20261103-000000.sql", []byte("3"), BackupSQL, ReasonManual, "20261103-000000")
+	if err := be.b.prune(ctx, dom); err != nil {
+		t.Fatal(err)
+	}
+	list, _ := be.b.List(ctx, dom)
+	var ids []string
+	for _, r := range list {
+		ids = append(ids, r.ID)
+	}
+	for _, keep := range []string{f2.ID, f3.ID, pg.ID, s1.ID, s2.ID, s3.ID} {
+		if !slices.Contains(ids, keep) {
+			t.Errorf("mất %s; còn %v", keep, ids)
+		}
+	}
+	if slices.Contains(ids, f1.ID) || be.exists(f1.Path) {
+		t.Errorf("bản full cũ nhất phải đi (giữ min(3, 2) = 2): %v", ids)
+	}
+}
+
+func TestBackupRestoreSuspendedM13(t *testing.T) {
+	const dom = "shop.example.com"
+	be := newBktEnv(t, dom)
+	d := mustDomain(t, dom)
+	src := be.seedFull(t, dom, "20261101-000000", "x", "x", ReasonManual)
+	st, _, _ := be.sites.Site(ctx, d)
+	st.Suspended = account.SuspendByUser
+	_ = be.sites.SaveSite(ctx, st)
+	if _, err := be.b.PrepareRestore(ctx, d, src.ID); refusedCode(t, err) != CodeSiteSuspended {
+		t.Errorf("khôi phục site đang khoá: %v", err)
 	}
 }

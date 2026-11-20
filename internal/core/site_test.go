@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
@@ -1136,5 +1137,87 @@ func TestSiteAddEmailOnlyForNewSite(t *testing.T) {
 	res, err := a.Execute(ctx, nil)
 	if err != nil || res.Report.Job.Status != engine.JobSucceeded || res.WPInstalled {
 		t.Fatalf("chạy lại: %v, %s, WPInstalled=%v", err, res.Report.Job.Status, res.WPInstalled)
+	}
+}
+
+// ---------------------------------------------------------------- M13: chủ, hạn mức, tạm khoá
+
+func TestSiteAddOwnerM13(t *testing.T) {
+	ue := newUsrEnv(t)
+	ue.as.pkgs["s1"] = account.Package{Name: "s1", MaxSites: 1}
+	in := ue.input(t, "new.example.com")
+
+	add, err := ue.s.PrepareAdd(ctx, in)
+	if err != nil || add.Site.Owner != account.AdminName {
+		t.Fatalf("chủ rỗng là admin: %+v %v", add, err)
+	}
+	in.Owner = "bob"
+	if add, err = ue.s.PrepareAdd(ctx, in); err != nil || add.Site.Owner != "bob" {
+		t.Fatalf("chủ bob: %v", err)
+	}
+	for _, c := range []struct {
+		owner, code string
+		mod         func()
+	}{
+		{"ghost", CodeUserNotFound, nil},
+		{"a; rm -rf /", CodeUserNotFound, nil},
+		{"bob", CodeUserSuspended, func() { ue.as.put(account.User{Name: "bob", Role: account.RoleUser, Status: account.Suspended}) }},
+		{"bob", CodeQuotaSites, func() {
+			ue.as.put(account.User{Name: "bob", Role: account.RoleUser, Package: "s1"})
+			ue.site(t, "old.example.com", "bob", nil)
+		}},
+	} {
+		if c.mod != nil {
+			c.mod()
+		}
+		in.Owner = c.owner
+		_, err := ue.s.PrepareAdd(ctx, in)
+		if got := refusedCode(t, err); got != c.code {
+			t.Errorf("chủ %q: %s, muốn %s", c.owner, got, c.code)
+		}
+		if strings.Contains(err.Error(), "rm -rf") {
+			t.Errorf("lời từ chối chép lại chuỗi lạ: %v", err)
+		}
+	}
+	// Không có bảng users: chỉ kiểm dạng tên.
+	ue.s.Accounts = nil
+	in.Owner = "ghost"
+	if add, err := ue.s.PrepareAdd(ctx, in); err != nil || add.Site.Owner != "ghost" {
+		t.Errorf("Accounts nil: %v", err)
+	}
+}
+
+func TestSiteRerunKeepsOwnerRefusesSuspendedM13(t *testing.T) {
+	ue := newUsrEnv(t)
+	ue.as.put(account.User{Name: "carol", Role: account.RoleUser})
+	ue.site(t, "c.example.com", "carol", nil)
+	in := ue.input(t, "c.example.com")
+	in.Owner = "bob"
+	add, err := ue.s.PrepareAdd(ctx, in)
+	if err != nil || !add.Rerun || add.Site.Owner != "carol" {
+		t.Fatalf("chạy lại giữ chủ cũ: %+v %v", add, err)
+	}
+	for _, how := range []account.Suspension{account.SuspendSelf, account.SuspendByUser} {
+		ue.site(t, "c.example.com", "carol", func(s *site.Site) { s.Suspended = how })
+		if _, err := ue.s.PrepareAdd(ctx, in); refusedCode(t, err) != CodeSiteSuspended {
+			t.Errorf("chạy lại site khoá %q: %v", how, err)
+		}
+	}
+}
+
+func TestSiteRemoveSuspendedM13(t *testing.T) {
+	ue := newUsrEnv(t)
+	d := mustDomain(t, "a.example.com")
+	ue.site(t, "a.example.com", "bob", func(s *site.Site) { s.Suspended = account.SuspendSelf })
+	if _, err := ue.s.PrepareRemove(ctx, d); refusedCode(t, err) != CodeSiteSuspended {
+		t.Errorf("site khoá vào thùng rác: %v", err)
+	}
+	ue.site(t, "a.example.com", "bob", func(s *site.Site) { s.DBSuspended = account.SuspendByUser })
+	if _, err := ue.s.PrepareRemove(ctx, d); refusedCode(t, err) != CodeDBSuspended {
+		t.Errorf("site có DB khoá vào thùng rác: %v", err)
+	}
+	ue.site(t, "a.example.com", "bob", nil)
+	if _, err := ue.s.PrepareRemove(ctx, d); err != nil {
+		t.Errorf("site không khoá: %v", err)
 	}
 }

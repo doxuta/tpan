@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
@@ -429,5 +430,56 @@ func TestApplySSLRefusalKeepsSite(t *testing.T) {
 	}
 	if v, _, _ := se.st.GetSetting(ctx, SettingSSLEmail); v != "admin@example.com" {
 		t.Errorf("ssl.email = %q; muốn email quản trị của site", v)
+	}
+}
+
+// ---------------------------------------------------------------- M13: phạm vi, chủ, hạn mức cả lô
+
+func TestApplyScopeQuotaM13(t *testing.T) {
+	ue := newUsrEnv(t)
+	ue.as.pkgs["s3"] = account.Package{Name: "s3", MaxSites: 3}
+	ue.as.put(account.User{Name: "bob", Role: account.RoleUser, Package: "s3"})
+	ue.as.put(account.User{Name: "carol", Role: account.RoleUser})
+	ue.site(t, "own.example.com", "bob", nil)
+	ue.site(t, "old.example.com", "bob", nil)
+	ue.site(t, "other.example.com", "carol", nil)
+	ue.site(t, "root.example.com", "", nil)
+
+	in := ue.applyList(t, "own.example.com", "other.example.com", "n1.example.com", "n2.example.com", "n3.example.com")
+	in[4].Input.Owner = "carol"
+	a, err := ue.s.PrepareApply(ctx, ApplyInput{Sites: in, Prune: true, Scope: "bob"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []ApplyItem{
+		{Domain: "own.example.com", Action: ApplySkip},
+		{Domain: "other.example.com", Action: ApplyRefused, Code: "site_not_found"},
+		{Domain: "n1.example.com", Action: ApplyCreate},
+		// 2 site đã có + n1 trong lô = 3/3.
+		{Domain: "n2.example.com", Action: ApplyRefused, Code: CodeQuotaSites},
+		{Domain: "n3.example.com", Action: ApplyRefused, Code: CodeUserNotFound},
+		// Prune chỉ chạm site của bob.
+		{Domain: "old.example.com", Action: ApplyTrash},
+	}
+	if len(a.Items) != len(want) {
+		t.Fatalf("Items = %+v", a.Items)
+	}
+	for i, w := range want {
+		if g := a.Items[i]; g.Domain != w.Domain || g.Action != w.Action || g.Code != w.Code {
+			t.Errorf("Items[%d] = %s %s %s; muốn %s %s %s", i, g.Domain, g.Action, g.Code, w.Domain, w.Action, w.Code)
+		}
+	}
+	if a.units[0].add == nil || a.units[0].add.Site.Owner != "bob" {
+		t.Errorf("site mới phải thuộc bob: %+v", a.units[0].add)
+	}
+
+	// Không phạm vi (admin): owner trong file được dùng, rỗng là admin.
+	in = ue.applyList(t, "x.example.com", "y.example.com")
+	in[0].Input.Owner = "carol"
+	if a, err = ue.s.PrepareApply(ctx, ApplyInput{Sites: in}); err != nil {
+		t.Fatal(err)
+	}
+	if len(a.units) != 2 || a.units[0].add.Site.Owner != "carol" || a.units[1].add.Site.Owner != account.AdminName {
+		t.Errorf("chủ theo file: %+v", a.Items)
 	}
 }

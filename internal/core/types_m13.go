@@ -16,7 +16,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
@@ -24,9 +23,6 @@ import (
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
-
-// errM13NotYet là thân tạm của đợt 0; thợ của đợt 1 thay bằng mã thật.
-var errM13NotYet = errors.New("M13: chưa làm")
 
 // AccountStore là phần store mà ca sử dụng user và gói cần. *store.Store thoả.
 type AccountStore interface {
@@ -114,6 +110,11 @@ type Accounts struct {
 	DBs     *DBs
 	Journal engine.Journal
 	Now     func() time.Time
+	// Hash băm mật khẩu (server, CLI gắn store.HashPassword) và Generate sinh
+	// mật khẩu khi người gọi để trống (store.GeneratePassword). Là trường vì
+	// core không import store; nil thì AddUser, SetPassword trả lỗi.
+	Hash     func(pw string) (string, error)
+	Generate func() string
 }
 
 // UserInput là đầu vào của "thêm user".
@@ -195,10 +196,3 @@ type Collation struct {
 	Collation string
 	Default   bool
 }
-
-// m13Links giữ các hàm nối giữa ba thợ của đợt 1 ở trạng thái "được dùng"
-// trong lúc thân còn tạm (linter unused). Thợ cuối cùng gọi thật cả sáu hàm
-// thì xoá biến này.
-var m13Links = []any{dbLockSteps, dbUnlockSteps, (*Sites).suspendSteps, (*Sites).unsuspendSteps, suspendedChecks, checkQuota}
-
-var _ = m13Links
