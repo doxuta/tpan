@@ -10,10 +10,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { siteSuspendPath, useIdentity } from "../../api/m13-dbs";
+import { useJobTracker } from "../../components/JobTracker";
 import { ApiError, del, errorMessage, get } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { JobStarted, Preview, SiteInfo, Stage } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
+import { BulkBar, SelectAll, SelectOne, useSelection } from "../../components/Bulk";
 import { DomainText } from "../../components/DomainText";
 import { MonoText } from "../../components/MonoText";
 import { usePreviewedOp, type Op } from "../../components/PreviewedOp";
@@ -73,7 +75,15 @@ export function SiteList() {
   });
 
   // Cột Chủ và cột Việc (Tạm khoá, Mở khoá) chỉ admin thấy: máy chủ cũng từ chối user thường, ẩn ở đây để khỏi có nút bấm không được.
+  const sel = useSelection(rows.map((r) => r.site.domain));
+
   const columns: Column<Row>[] = [
+    {
+      header: "chon",
+      headerCell: <SelectAll sel={sel} label={t.selectAll} />,
+      className: "w-[34px]",
+      cell: (r) => <SelectOne sel={sel} id={r.site.domain} label={t.selectOne(r.site.domain)} />,
+    },
     {
       header: t.colDomain,
       className: "min-w-[160px]",
@@ -146,6 +156,22 @@ export function SiteList() {
         </div>
       )}
       {overview.data && (
+        <BulkBar
+          sel={sel}
+          unit={t.unitSite}
+          actions={[
+            {
+              key: "trash",
+              label: t.bulkTrash,
+              confirmTitle: t.bulkTrashTitle,
+              confirmBody: <p className="m-0">{t.bulkTrashBody}</p>,
+              confirmLabel: t.bulkTrash,
+              run: (d) => del<JobStarted>(sitePath(d)),
+            },
+          ]}
+        />
+      )}
+      {overview.data && (
         <TableList
           caption={t.listCaption}
           rows={rows}
@@ -211,6 +237,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { isAdmin } = useIdentity();
+  const { track } = useJobTracker();
   const checks = info.checks;
   // M13: site hay user DB đang khoá. Việc cần pool PHP của site (đổi PHP, đưa vào thùng rác) bị máy chủ từ chối; nút vô hiệu kèm lý do, khỏi để người dùng bấm rồi mới nghe từ chối.
   const siteSuspended = Boolean(info.site.suspended);
@@ -271,7 +298,9 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
     mutationFn: () => del<JobStarted>(sitePath(domain)),
     onSuccess: (job) => {
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      void navigate("/sites");
     },
   });
   useEffect(() => {

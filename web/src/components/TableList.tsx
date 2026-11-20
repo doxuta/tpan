@@ -17,7 +17,10 @@
 import type { ReactNode } from "react";
 
 export type Column<T> = {
+  /** Tên cột, cũng là khoá React của cột. */
   header: string;
+  /** Hiện thay cho chữ ở đầu cột (ví dụ ô "chọn tất cả"); header vẫn là khoá. */
+  headerCell?: ReactNode;
   cell: (row: T) => ReactNode;
   /** Thêm class cho ô (độ rộng, canh phải...). */
   className?: string;
@@ -46,7 +49,7 @@ export function TableList<T>({ columns, rows, rowKey, empty, caption }: Props<T>
           <tr>
             {columns.map((c) => (
               <th key={c.header} scope="col" className={`pr-[16px] pb-[6px] font-mono text-[11px] font-normal tracking-[0.08em] text-muted uppercase ${c.className ?? ""}`}>
-                {c.header}
+                {c.headerCell ?? c.header}
               </th>
             ))}
           </tr>

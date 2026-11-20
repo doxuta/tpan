@@ -7,7 +7,7 @@ package core
 //	suspend.go  tạm khoá site (thợ "tạm khoá site")
 //	dbs.go      DB rời, sửa charset, tạm khoá DB (thợ "DB rời")
 //
-// Quyết định chung (lý do ở docs/thay-doi/M13.md):
+// Quyết định chung (lý do ở docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")):
 //   - core không biết vai. Ai được gọi gì là việc của server (luật của route);
 //     core chỉ nhận chủ (owner) đã được server quyết.
 //   - Site hay DB đang tạm khoá thì không đưa vào thùng rác được (site_suspended,
@@ -36,7 +36,8 @@ type AccountStore interface {
 	UpdateUser(ctx context.Context, u account.User) error
 	// SetUserPassword đổi hash và huỷ mọi phiên của user đó, trong một transaction.
 	SetUserPassword(ctx context.Context, name, passwordHash string) error
-	// DeleteSessionsOf huỷ mọi phiên của user (kể cả phiên admin đang "xem như" user đó).
+	// DeleteSessionsOf huỷ mọi phiên của user; phiên admin đang "xem như" user đó
+	// chỉ thoát chế độ xem như, admin không bị đăng xuất.
 	DeleteSessionsOf(ctx context.Context, name string) error
 	// DeleteUser xoá dòng user và phiên của họ. Job, audit cũ giữ nguyên tên.
 	DeleteUser(ctx context.Context, name string) error

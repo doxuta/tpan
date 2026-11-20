@@ -1,6 +1,6 @@
 # Việc chủ dự án tự làm: hướng dẫn từng bước
 
-Cả 13 mốc đã chạy trọn trên máy ảo. Còn bốn nhóm việc agent không được làm thay, vì luật của repo (AGENTS.md) cấm hoặc vì cần mắt người:
+Cả 14 mốc (M0 đến M13) đã chạy trọn trên máy ảo. Còn bốn nhóm việc agent không được làm thay, vì luật của repo (AGENTS.md) cấm hoặc vì cần mắt người:
 
 | Nhóm | Vì sao agent không làm | Cần gì | Thời gian |
 |---|---|---|---|
@@ -33,7 +33,7 @@ make dev-api
 make dev-web
 ```
 
-Mở http://localhost:5173. Mật khẩu demo in ở terminal của `make dev-api`.
+Mở http://localhost:5173. Mật khẩu demo in ở terminal của `make dev-api`: của `admin`, và từ M13 của hai khách hosting `khach_a`, `khach_b`. Đăng nhập lần lượt bằng admin rồi bằng `khach_a` để thấy hai kiểu panel: khách chỉ thấy site, DB, job của mình và hạn mức gói thay cho số liệu máy. Với admin, thử màn **Người dùng** (nút "Xem như user này" hiện dải màu và mọi nút đổi máy bị từ chối), màn **Gói**, nút **Tạm khoá** ở Site và Cơ sở dữ liệu, và site `lab.example.org` đang tạm khoá (tuyến xám trên bản đồ).
 
 Mở luôn các trang mẫu để so (bản đã chốt, giao diện phải giống):
 
@@ -581,7 +581,57 @@ sudo tpan mcp config --brain bridge && sudo systemctl restart tpan
 bin/tpan brain <user>@<IP>
 ```
 
-### 3.10. Gửi lại cho mình
+### 3.10. Nâng VPS lên bản có nhiều người dùng (M13, khi đã phát hành v0.2.0)
+
+VPS của bạn đang chạy v0.1.1. Bản M13 thêm bảng `users` và chuyển mật khẩu quản trị sang đó; đăng nhập bằng mật khẩu `admin` cũ vẫn được, phiên đang mở vẫn sống (đã chạy thật trên máy ảo từ gói v0.1.1, `docs/bang-chung/M13-nang-cap.log`).
+
+**Lùi về v0.1.1 sau khi đã nâng thì không được.** Trên máy ảo, `tpan self-update --rollback` báo thành công nhưng panel không lên lại, journal ghi `DB ở bản 1300, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn`. Vì vậy sao lưu `tpan.db` trước:
+
+```bash
+sudo cp -a /var/lib/tpan/tpan.db /var/lib/tpan/tpan.db.v011
+```
+
+Nâng (đường đã chạy thật trên máy ảo là `self-update`; chạy lại `install.sh` của gói mới cũng được):
+
+```bash
+sudo tpan self-update --dry-run
+```
+
+```bash
+sudo tpan self-update --yes
+```
+
+Kiểm: đăng nhập panel với ô tên để trống (hiểu là `admin`) và mật khẩu cũ; `sudo tpan user list` có `admin`; `sudo tpan site list` mọi site có chủ `admin`. Lỡ chạy `--rollback` mà panel chết thì cài lại bản mới bằng `install.sh` của gói v0.2.0 (DB còn nguyên).
+
+Thử nhiều người dùng (an toàn, chỉ đụng site thử):
+
+```bash
+sudo tpan package add thu --max-sites 1 --max-dbs 1
+```
+
+```bash
+sudo tpan user add khach_thu --package thu
+```
+
+Lệnh in mật khẩu một lần. Đăng nhập panel bằng `khach_thu` trong một cửa sổ ẩn danh: chỉ thấy panel trống của khách. Tạo một site thử cho khách (cần một tên miền con trỏ về VPS, hoặc dùng tên bất kỳ rồi xem bằng `curl --resolve`):
+
+```bash
+sudo tpan site add thu.<domain> --email <email> --owner khach_thu --yes
+```
+
+Tạm khoá site rồi mở lại:
+
+```bash
+sudo tpan site suspend thu.<domain> --yes
+```
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' --resolve thu.<domain>:80:127.0.0.1 http://thu.<domain>/
+```
+
+Ra `403`. Mở lại bằng `sudo tpan site unsuspend thu.<domain> --yes`, chạy lại `curl` ra `200`. Khoá cả user: `sudo tpan user suspend khach_thu --yes` (cửa sổ ẩn danh bị đăng xuất, site ra 403), `sudo tpan user unsuspend khach_thu --yes`. Dọn: `sudo tpan user trash-all khach_thu --yes`, `sudo tpan trash purge thu.<domain> --yes`, `sudo tpan user rm khach_thu --yes`, `sudo tpan package rm thu --yes`.
+
+### 3.11. Gửi lại cho mình
 
 Dừng ghi (`exit`), che tên miền và IP như ở 3.0, rồi gửi file `~/tpan-vps-che.log` (lấy về Mac bằng `scp <user>@<IP>:tpan-vps-che.log .`). Mình đọc, đối chiếu với kết quả máy ảo, ghi vào `docs/bang-chung/` và đánh dấu các tiêu chí còn treo (chứng chỉ staging M5, `install.sh` trên amd64 M11).
 

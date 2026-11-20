@@ -264,7 +264,7 @@ STATE_SCRIPT='
 sha256sum /usr/local/bin/tpan /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service
 stat -c "%a %U:%G %n" /usr/local/bin/tpan
 systemctl show -p MainPID -p ExecMainStartTimestamp -p ActiveState -p UnitFileState tpan
-python3 -c "import sqlite3, hashlib; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", hashlib.sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"
+python3 -c "import sqlite3, hashlib; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", hashlib.sha256(c.execute(\"SELECT password_hash FROM users WHERE name = ?\", (\"admin\",)).fetchone()[0].encode()).hexdigest()[:16])"
 echo "cây cấu hình (nginx, apache2, php, tpan, systemd):" $(find /etc/nginx /etc/apache2 /etc/php /etc/tpan /etc/systemd/system -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | cut -c1-16)
 echo "gói đã cài:" $(dpkg-query -W -f "\${Package} \${Version} \${db:Status-Status}\n" | sort | sha256sum | cut -c1-16)
 systemctl show -p MainPID nginx php8.3-fpm mariadb apache2 | tr "\n" " "; echo

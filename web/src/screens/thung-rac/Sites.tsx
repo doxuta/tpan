@@ -5,6 +5,7 @@
 import { Link } from "react-router";
 import { useIdentity } from "../../api/m13-dbs";
 import type { Site } from "../../api/types";
+import { SelectAll, SelectOne, type Selection } from "../../components/Bulk";
 import { Button } from "../../components/Button";
 import { MonoText } from "../../components/MonoText";
 import { TableList } from "../../components/TableList";
@@ -22,6 +23,8 @@ type Props = {
   /** Nút có khoá id (`restore:<domain>`, `purge:<domain>`) đang dựng bản xem trước: đổi chữ nút vừa bấm. */
   busy: (id: string) => boolean;
   onAct: (action: TrashAction, domain: string) => void;
+  /** Ô chọn cho thao tác hàng loạt (khôi phục, xoá hẳn nhiều site). */
+  sel: Selection;
 };
 
 /** Ô hạn xoá hẳn: ngày giờ, rồi "còn N ngày". Bảng site và bảng DB rời dùng chung. */
@@ -38,7 +41,7 @@ export function PurgeCell({ purgeAt }: { purgeAt?: string }) {
   );
 }
 
-export function TrashTable({ sites, locked, busy, onAct }: Props) {
+export function TrashTable({ sites, locked, busy, onAct, sel }: Props) {
   const t = useStrings(strings);
   const m = useStrings(chung);
   const { lang } = useLang();
@@ -56,6 +59,12 @@ export function TrashTable({ sites, locked, busy, onAct }: Props) {
         </>
       }
       columns={[
+        {
+          header: "chon",
+          headerCell: <SelectAll sel={sel} label={t.selectAll} />,
+          className: "w-[34px]",
+          cell: (s) => <SelectOne sel={sel} id={s.domain} label={t.selectOne(s.domain)} />,
+        },
         { header: t.colDomain, cell: (s) => <MonoText>{s.domain}</MonoText> },
         ...(isAdmin ? [{ header: m.colOwner, className: "font-mono text-[13px]", cell: (s: Site) => s.owner }] : []),
         { header: t.colTrashed, cell: (s) => <span className="font-mono text-[12px] whitespace-nowrap text-muted">{formatWhen(s.trashed_at, lang)}</span> },

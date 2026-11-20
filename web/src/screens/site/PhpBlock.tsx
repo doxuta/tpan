@@ -3,9 +3,9 @@
 // POST /api/v1/sites/{domain}/php?dry_run=1 → PlanReview → POST thật → /jobs/:id.
 // Danh sách bản đã cài lấy từ GET /api/v1/php, cùng khoá đệm với màn Stack.
 
+import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, PHPList, PHPVersionBody, Preview } from "../../api/types";
@@ -35,7 +35,7 @@ export function PhpBlock({ domain, version, socket, blocked }: Props) {
   const k = useStrings(khung);
   const { lang } = useLang();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   const list = useQuery({ queryKey: phpKey, queryFn: () => get<PHPList>("/api/v1/php") });
 
   // Chỉ bản đã cài mới chọn được. Go có thể trả null cho danh sách rỗng.
@@ -60,7 +60,9 @@ export function PhpBlock({ domain, version, socket, blocked }: Props) {
       void qc.invalidateQueries({ queryKey: ["site", domain] });
       void qc.invalidateQueries({ queryKey: phpKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setOpen(null);
     },
   });
   useEffect(() => {

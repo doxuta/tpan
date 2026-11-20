@@ -117,6 +117,9 @@ type sseStream struct {
 	rc   *http.ResponseController
 	last int  // Seq lớn nhất đã gửi
 	sent bool // đã gửi job.done
+	// hide (M13, foreignCheck): sự kiện "check" của phép kiểm bị giấu thì không
+	// gửi, nhưng last vẫn tiến qua nó (nối lại và job.done không lệch).
+	hide func(id string) bool
 }
 
 // send ghi các sự kiện có Seq > last, rồi flush một lần. Lỗi ghi nghĩa là
@@ -125,6 +128,10 @@ func (st *sseStream) send(evs []engine.Event) error {
 	n := 0
 	for _, ev := range evs {
 		if ev.Seq <= st.last || st.sent {
+			continue
+		}
+		if st.hide != nil && ev.Check != nil && st.hide(ev.Check.ID) {
+			st.last = ev.Seq
 			continue
 		}
 		data, err := json.Marshal(ev)
@@ -175,11 +182,16 @@ func (s *Server) handleJobEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	hide, err := s.foreignCheck(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
 	h := w.Header()
 	h.Set("Content-Type", "text/event-stream")
 	h.Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
-	st := &sseStream{w: w, rc: http.NewResponseController(w), last: after}
+	st := &sseStream{w: w, rc: http.NewResponseController(w), last: after, hide: hide}
 	// Gửi header ngay để EventSource ở trình duyệt chuyển sang "open".
 	if err := st.rc.Flush(); err != nil {
 		return

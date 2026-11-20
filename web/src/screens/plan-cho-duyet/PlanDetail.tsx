@@ -8,7 +8,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
+import { useJobTracker } from "../../components/JobTracker";
 import { ApiError, errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, PendingPlan } from "../../api/types";
@@ -62,7 +63,7 @@ function Body({ plan }: { plan: PendingPlan }) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
   const [changed, setChanged] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const idPath = encodeURIComponent(plan.id);
@@ -73,7 +74,8 @@ function Body({ plan }: { plan: PendingPlan }) {
     onSuccess: (job) => {
       void qc.invalidateQueries({ queryKey: plansKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
     },
     onError: (err) => {
       if (err instanceof ApiError && err.code === "plan_changed") setChanged(true);

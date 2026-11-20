@@ -213,6 +213,13 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
+	hide, err := s.foreignCheck(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	results = slices.DeleteFunc(results, func(sr store.StoredResult) bool { return hide != nil && hide(sr.ID) })
+	incs = keepIncidents(incs, hide)
 	groups := apiGroupResults(results)
 	ov := Overview{
 		Hostname:    s.deps.Hostname,
@@ -307,7 +314,12 @@ func (s *Server) handleIncidents(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, apiNonNil(incs))
+	hide, err := s.foreignCheck(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, apiNonNil(keepIncidents(incs, hide)))
 }
 
 func (s *Server) handleIncident(w http.ResponseWriter, r *http.Request) {
@@ -328,6 +340,15 @@ func (s *Server) handleIncident(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		apiFail(w, r, err)
+		return
+	}
+	hide, err := s.foreignCheck(r)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	if hide != nil && hide(inc.CheckID) {
+		notFound()
 		return
 	}
 	d := IncidentDetail{Incident: inc, Jobs: []engine.Job{}}

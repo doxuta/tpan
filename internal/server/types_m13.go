@@ -5,7 +5,7 @@ package server
 // web/src/api/types.ts (khối "M13"); đổi một bên thì đổi cả bên kia.
 //
 // Luật truy cập của từng route (public, any, owner:<đối tượng>, admin) ghi ở
-// docs/thay-doi/M13.md, mục "Luật của từng route", và trong bảng route của
+// docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13"), mục "Luật của từng route", và trong bảng route của
 // routes.go. Mặc định là cấm: route không khai luật thì server từ chối khởi động.
 //
 // Đường dẫn mới (đổi máy thì nhận ?dry_run=1 và trả engine.Preview; chạy thật

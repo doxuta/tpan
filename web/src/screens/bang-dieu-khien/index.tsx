@@ -73,7 +73,7 @@ export default function BangDieuKhien() {
             <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
               <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
                 <h2 className="m-0 text-[16px] font-semibold">{t.mapTitle}</h2>
-                {/* POST /health/run chỉ dành cho admin (docs/thay-doi/M13.md): user thường vẫn thấy sự cố của mình nhưng không bấm kiểm lại. */}
+                {/* POST /health/run chỉ dành cho admin (docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")): user thường vẫn thấy sự cố của mình nhưng không bấm kiểm lại. */}
                 {isAdmin && (
                   <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
                     {recheck.isPending ? t.rechecking : t.recheck}

@@ -85,7 +85,7 @@ func TestSSEFinishedJobReplay(t *testing.T) {
 	}
 
 	// Nối lại bằng Last-Event-ID và bằng ?after.
-	r := httptest.NewRequest("GET", "/", nil)
+	r := asRoot(httptest.NewRequest("GET", "/", nil))
 	r.SetPathValue("id", "job1")
 	r.Header.Set("Last-Event-ID", "1")
 	rec = httptest.NewRecorder()
@@ -112,6 +112,7 @@ func TestSSELive(t *testing.T) {
 	e := apiNewEnv(t)
 	next := sseStartScripted(t, e, "job2")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r = asRoot(r)
 		r.SetPathValue("id", "job2")
 		e.s.handleJobEvents(w, r)
 	}))
@@ -180,7 +181,7 @@ func TestSSEClientGone(t *testing.T) {
 	for _, id := range []string{"live", "other"} {
 		t.Run(id, func(t *testing.T) {
 			rctx, cancel := context.WithCancel(ctx)
-			r := httptest.NewRequest("GET", "/", nil).WithContext(rctx)
+			r := asRoot(httptest.NewRequest("GET", "/", nil).WithContext(rctx))
 			r.SetPathValue("id", id)
 			rec := httptest.NewRecorder()
 			returned := make(chan struct{})

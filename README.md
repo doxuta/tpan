@@ -11,6 +11,7 @@ Khác với panel kiểu "bấm là chạy", TPAN làm theo kiểu hộp kính:
 - Hoàn tác: bước nào lỗi thì các bước đã chạy được gỡ lại theo thứ tự ngược; config luôn được kiểm (`nginx -t`, `apachectl configtest`) trước khi reload.
 - Kiểm chứng: thao tác kết thúc bằng bước kiểm và lưu bằng chứng (mã HTTP, socket, quyền file, hạn chứng chỉ).
 - Cô lập từng site: user Linux riêng, pool PHP-FPM riêng, DB và user DB riêng.
+- Nhiều người dùng: tài khoản admin và khách hosting, gói hạn mức (số site, số DB, dung lượng, số backup), tạm khoá user, site, DB, DB rời không gắn với site. Phân quyền mặc định là cấm ở mọi route API; khách chỉ thấy đồ của mình.
 - Health theo đường đi request: DNS, TLS, web server, pool PHP, WordPress, DB. Site hỏng thì chỉ ra đúng chặng hỏng kèm bằng chứng và cách sửa.
 - AI không có tay: AI (tuỳ chọn, tắt mặc định) chỉ đọc và đề xuất một Plan; người duyệt trên bản xem trước rồi TPAN mới chạy. Bộ não là Claude Code trên máy của người vận hành, máy chủ không giữ khoá AI nào.
 
@@ -119,13 +120,13 @@ sudo ./install.sh --web nginx        # hoặc --web apache
 
 1. Lúc chạy, `tpan setup` in ra địa chỉ panel, dấu vân tay SHA-256 của chứng chỉ, và mật khẩu quản trị. Mật khẩu chỉ hiện một lần: lưu lại ngay.
 2. Mở `https://<IP của máy>:8443`. Trình duyệt sẽ cảnh báo vì chứng chỉ tự ký. Xem chi tiết chứng chỉ trong trình duyệt và so dấu vân tay SHA-256 với dòng `tpan setup` đã in. Khớp thì đúng là panel của bạn, lúc đó mới bỏ qua cảnh báo.
-3. Đăng nhập bằng mật khẩu vừa lưu.
+3. Đăng nhập với tên `admin` (để trống ô tên cũng được) và mật khẩu vừa lưu. Muốn cho khách hosting dùng panel thì tạo user ở màn **Người dùng** (chỉ admin thấy), mỗi user một gói hạn mức.
 4. Bật lịch backup: `sudo tpan backup settings --keep 5 --at 03:30`. Máy mới chưa có bản sao lưu nào của `tpan.db`, nên trang Sự cố và `tpan health` sẽ cảnh báo `tpan.backup:db` cho tới khi có (đó là cảnh báo thật, không phải lỗi).
 5. Tạo site đầu tiên ở màn **Site → Tạo site**, hoặc bằng CLI ở phần dưới. Xin HTTPS ở màn **SSL**: mặc định là chứng chỉ thử (staging) của Let's Encrypt, không tốn hạn mức nhưng trình duyệt chưa tin; thử xong thì tắt Staging và bấm "Xin lại" để có chứng chỉ thật.
 
 Cập nhật lên bản mới: `sudo tpan self-update --dry-run` để xem trước, `sudo tpan self-update --yes` để cập nhật (giữ bản cũ, quay lại bằng `--rollback`).
 
-Quên mật khẩu: trên máy chủ chạy `sudo tpan admin passwd`. Lệnh này sinh mật khẩu mới, huỷ mọi phiên đăng nhập và gỡ mọi IP đang bị khoá.
+Quên mật khẩu: trên máy chủ chạy `sudo tpan admin passwd` (user `admin`) hoặc `sudo tpan user passwd <tên>` (user khác). Lệnh sinh mật khẩu mới và huỷ mọi phiên của user đó; `admin passwd` còn gỡ mọi IP đang bị khoá.
 
 Chế độ riêng tư: cài với `--private` (hoặc chạy `sudo tpan setup --private`) thì panel chỉ nghe `127.0.0.1`, không mở cổng ra internet. Vào bằng đường hầm SSH từ máy của bạn:
 
@@ -170,13 +171,27 @@ sudo tpan php list
 sudo tpan php install 8.4
 sudo tpan php use shop.example.com 8.4
 
+# Người dùng và gói (khách hosting chỉ dùng panel, không có SSH hay FTP)
+sudo tpan package add co_ban --max-sites 2 --max-dbs 1 --disk-mb 2048 --max-backups 3
+sudo tpan user add khach_a --package co_ban --email khach@example.com   # in mật khẩu một lần
+sudo tpan user list
+sudo tpan site add shop.example.com --email admin@example.com --owner khach_a
+sudo tpan user suspend khach_a --reason "chưa thanh toán"   # khoá mọi site và DB rời của họ; unsuspend mở lại đúng những gì đã khoá
+sudo tpan site suspend shop.example.com        # site trả 403 kèm trang "đang tạm khoá"; site unsuspend để mở
+
+# DB rời (không gắn với site)
+sudo tpan db add shop --owner khach_a          # tạo DB và user DB khach_a_shop, in mật khẩu một lần
+sudo tpan db charset khach_a_shop --charset utf8mb4 --collation utf8mb4_unicode_ci
+sudo tpan db suspend khach_a_shop              # ACCOUNT LOCK và cắt kết nối; đối số có dấu chấm là DB của site
+sudo tpan db rm khach_a_shop                   # xuất .sql vào thùng rác rồi mới xoá; db restore để lấy lại
+
 # Cập nhật
 sudo tpan update --check                       # chỉ xem gói nào có bản mới
 sudo tpan update
 sudo tpan self-update --dry-run                # cập nhật chính tpan lên bản phát hành mới nhất
 ```
 
-Các lệnh khác: `tpan apply -f sites.yaml` và `tpan export` (nhiều site một lúc), `tpan trash`, `tpan db`, `tpan cron`, `tpan security`, `tpan plan`, `tpan mcp` (cho agent qua SSH), `tpan brain <ssh-đích>` (chạy trên máy cá nhân, nối Claude Code của bạn vào panel). Danh sách đủ: `tpan --help`.
+Các lệnh khác: `tpan apply -f sites.yaml` và `tpan export` (nhiều site một lúc, có `owner` cho từng site), `tpan trash`, `tpan db`, `tpan cron`, `tpan security`, `tpan plan`, `tpan mcp` (cho agent qua SSH), `tpan brain <ssh-đích>` (chạy trên máy cá nhân, nối Claude Code của bạn vào panel). Danh sách đủ: `tpan --help`.
 
 ## AI trong panel (tuỳ chọn)
 
@@ -231,8 +246,9 @@ Thử bản cài trên máy ảo trước khi đụng VPS: `make release`, chép
   - [10-m10-chuyen-web-server.md](docs/giai-thich/10-m10-chuyen-web-server.md): chuyển LEMP và LAMP tại chỗ
   - [11-m11-cai-dat-va-phat-hanh.md](docs/giai-thich/11-m11-cai-dat-va-phat-hanh.md): cài một lệnh và phát hành
   - [12-m12-phien-ban-va-cap-nhat.md](docs/giai-thich/12-m12-phien-ban-va-cap-nhat.md): phiên bản và cập nhật
+  - [13-m13-nhieu-nguoi-dung.md](docs/giai-thich/13-m13-nhieu-nguoi-dung.md): nhiều người dùng, gói, tạm khoá, DB rời
 - [docs/HUONG-DAN-CHU-DU-AN.md](docs/HUONG-DAN-CHU-DU-AN.md): thử từng phần trên VPS thật, từng lệnh một (stack, site, SSL, tường lửa, thùng rác, backup, AI).
-- [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M12.log`, và các lần chạy lại sau khi ghép).
+- [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M13.log`, và các lần chạy lại sau khi ghép).
 
 ## Giấy phép
 
@@ -241,6 +257,8 @@ MIT, xem [LICENSE](LICENSE).
 ## English summary
 
 TPAN is a small web server panel for one Ubuntu 24.04 VPS. It installs LEMP (nginx) or LAMP (apache) and hosts many WordPress sites on the same machine, each with its own Linux user, PHP-FPM pool and database. It ships as a single Go binary with a CLI, an HTTP API, a bilingual web UI (Vietnamese and English) and an MCP server for agents.
+
+It also hosts several customers: admin and customer accounts, quota packages (sites, databases, disk, backups), suspending a user, a site or a database, and standalone databases. Every API route declares who may call it and is denied by default; customers only see their own sites, databases, jobs and incidents.
 
 Every operation shows a preview first (steps, commands, file diffs), rolls back on failure, and ends with a verification step that stores evidence. Health checks follow the request path (DNS, TLS, web server, PHP pool, WordPress, DB) and point at the broken hop. The optional AI only reads and proposes plans; a human approves them, and the AI runs as Claude Code on the operator's own machine, so the server holds no AI keys.
 

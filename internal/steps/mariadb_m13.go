@@ -685,7 +685,7 @@ func (s *DBUserPassword) Undo(context.Context, system.System) error { return nil
 // ================================================================= DBTrashDump
 
 // DBTrashDump xuất DB rời Name ra account.DBTrashDump(Name) trước khi DROP
-// (mục 6.12, quyết định 13 ở docs/thay-doi/M13.md). Thư mục /var/lib/tpan/trash/db
+// (mục 6.12, quyết định 13 ở docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")). Thư mục /var/lib/tpan/trash/db
 // root 0700, file 0600. Check: chỉ true sau Apply của chính bước: một file
 // xuất cũ còn sót (lần vào thùng rác trước) không bao giờ được coi là bản xuất
 // của lần này, không thì DROP sẽ xoá dữ liệu mới mà chỉ còn bản cũ. Apply ghi

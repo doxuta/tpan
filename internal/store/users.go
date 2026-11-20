@@ -123,8 +123,8 @@ func needRow(res sql.Result, what, ctxMsg string) error {
 	return nil
 }
 
-// SetUserPassword đổi hash và huỷ mọi phiên của user (kể cả phiên admin đang
-// "xem như" họ) trong MỘT transaction: không bao giờ có lúc mật khẩu đã đổi
+// SetUserPassword đổi hash và huỷ mọi phiên của user (phiên admin đang "xem
+// như" họ thì thoát xem như, endSessionsOf) trong MỘT transaction: không bao giờ có lúc mật khẩu đã đổi
 // mà phiên cũ còn sống. Không có user thì ErrNotFound và không đổi gì.
 func (s *Store) SetUserPassword(ctx context.Context, name, passwordHash string) error {
 	return s.inTx(ctx, func(tx *sql.Tx) error {
@@ -135,29 +135,45 @@ func (s *Store) SetUserPassword(ctx context.Context, name, passwordHash string) 
 		if err := needRow(res, "user "+name, "đổi mật khẩu của "+name); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, deleteSessionsOfSQL, name, name); err != nil {
-			return fmt.Errorf("đổi mật khẩu của %s: huỷ phiên: %w", name, err)
+		if err := endSessionsOf(ctx, tx, name); err != nil {
+			return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)
 		}
 		return nil
 	})
 }
 
-const deleteSessionsOfSQL = "DELETE FROM sessions WHERE user_name = ? OR view_as = ?"
-
-// DeleteSessionsOf huỷ mọi phiên của user, kể cả phiên admin đang "xem như" họ.
-func (s *Store) DeleteSessionsOf(ctx context.Context, name string) error {
-	if _, err := s.db.ExecContext(ctx, deleteSessionsOfSQL, name, name); err != nil {
-		return fmt.Errorf("huỷ phiên của %s: %w", name, err)
+// endSessionsOf huỷ mọi phiên của user name, và đưa phiên admin đang "xem như"
+// name về phiên admin thường. Phiên đó là của admin, không phải của name: xoá
+// nó thì khoá, đổi mật khẩu hay xoá một user làm admin đang xem họ bị đăng
+// xuất (thấy trên máy ảo ở e2e M13). authResolve cũng làm đúng như vậy khi user
+// được xem không còn.
+func endSessionsOf(ctx context.Context, q querier, name string) error {
+	if _, err := q.ExecContext(ctx, "DELETE FROM sessions WHERE user_name = ?", name); err != nil {
+		return fmt.Errorf("huỷ phiên: %w", err)
+	}
+	if _, err := q.ExecContext(ctx, "UPDATE sessions SET view_as = '' WHERE view_as = ?", name); err != nil {
+		return fmt.Errorf("thoát xem như: %w", err)
 	}
 	return nil
+}
+
+// DeleteSessionsOf huỷ mọi phiên của user; phiên admin đang "xem như" họ thoát
+// chế độ xem như (không bị huỷ).
+func (s *Store) DeleteSessionsOf(ctx context.Context, name string) error {
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := endSessionsOf(ctx, tx, name); err != nil {
+			return fmt.Errorf("phiên của %s: %w", name, err)
+		}
+		return nil
+	})
 }
 
 // DeleteUser xoá dòng user và phiên của họ trong một transaction. Job, nhật ký
 // cũ giữ nguyên tên (không có khoá ngoại). Không có user thì ErrNotFound.
 func (s *Store) DeleteUser(ctx context.Context, name string) error {
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, deleteSessionsOfSQL, name, name); err != nil {
-			return fmt.Errorf("xoá user %s: huỷ phiên: %w", name, err)
+		if err := endSessionsOf(ctx, tx, name); err != nil {
+			return fmt.Errorf("xoá user %s: %w", name, err)
 		}
 		res, err := tx.ExecContext(ctx, "DELETE FROM users WHERE name = ?", name)
 		if err != nil {

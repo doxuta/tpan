@@ -391,7 +391,7 @@ main_run() {
   ok "đối chứng: không --cacert thì curl không tin chứng chỉ tự ký (mã 60)" rc_is 60
 
   printf '\nTrạng thái trước khi chạy lại setup:\n'
-  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"'
+  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT password_hash FROM users WHERE name = ?\", (\"admin\",)).fetchone()[0].encode()).hexdigest()[:16])"'
   local before="$OUT"
   section "bước 1: chạy lại setup: không đổi gì, không mật khẩu mới"
   vroot tpan setup --yes
@@ -400,7 +400,7 @@ main_run() {
   ok "báo mật khẩu đã có, giữ nguyên" hasF 'đã có từ trước, giữ nguyên'
   ok "không bước nào chạy (không có dòng \"xong\")" hasnt '^  xong$'
   ok "cùng fingerprint" hasF "$fp"
-  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT value FROM settings WHERE key = ?\", (\"admin.password_hash\",)).fetchone()[0].encode()).hexdigest()[:16])"'
+  vroot bash -c 'sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT password_hash FROM users WHERE name = ?\", (\"admin\",)).fetchone()[0].encode()).hexdigest()[:16])"'
   ok "cert, key, unit, PID dịch vụ, hash mật khẩu không đổi" test "$OUT" = "$before"
 
   section "bước 2: từ Mac tới https://<vm>:8443 (curl --cacert cert.pem của panel)"
@@ -735,7 +735,7 @@ main_run() {
 
   section "nhật ký audit và log dịch vụ"
   vroot python3 -c 'import sqlite3; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); [print(*r) for r in c.execute("SELECT time, ip, action, target, result, job_id FROM audit ORDER BY id")]'
-  ok "audit có login.fail, locked, admin.passwd, login, site.add job_running, site.rm" bash -c 'for a in "<mac> login.fail" " locked" "cli admin.passwd" "login  ok" "site.add c.example.com job_running" "site.rm b.example.com ok"; do grep -qF -- "$a" <<<"$1" || { echo "thiếu: $a"; exit 1; }; done' _ "$OUT"
+  ok "audit có login.fail, locked, admin.passwd, login, site.add job_running, site.rm" bash -c 'for a in "<mac> login.fail" " locked" "cli admin.passwd" "login admin ok" "site.add c.example.com job_running" "site.rm b.example.com ok"; do grep -qF -- "$a" <<<"$1" || { echo "thiếu: $a"; exit 1; }; done' _ "$OUT"
   "$VM" root journalctl -u tpan --no-pager -o short-iso >"$TMPD/journal" 2>&1
   printf '\nLog của tpan.service: %s dòng; "database is locked": %s; level=ERROR: %s\n' "$(wc -l <"$TMPD/journal" | tr -d ' ')" \
     "$(grep -c 'database is locked' "$TMPD/journal")" "$(grep -c 'level=ERROR' "$TMPD/journal")"

@@ -684,7 +684,7 @@ run_nginx() {
   vroot tpan trash list
   ok "thùng rác trống" hasF 'Thùng rác trống.'
   vroot tpan trash purge --expired --yes
-  ok "purge --expired lần hai: không có gì" bash -c '[ "$2" = 0 ] && grep -qF "Không có site nào quá hạn giữ." <<<"$1"' _ "$OUT" "$RC"
+  ok "purge --expired lần hai: không có gì" bash -c '[ "$2" = 0 ] && grep -qF "Không có site hay DB rời nào quá hạn giữ." <<<"$1"' _ "$OUT" "$RC"
   vroot tpan trash settings --days 7
   ok "đặt lại số ngày giữ 7" hasF 'thùng rác: 7 '
 

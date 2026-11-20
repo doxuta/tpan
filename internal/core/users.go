@@ -2,7 +2,7 @@ package core
 
 // User, gói, hạn mức, tạm khoá user của M13 (mục 6.12 của docs/KE-HOACH.md).
 //
-// core không biết vai (docs/thay-doi/M13.md, quyết định 10): ai được gọi hàm
+// core không biết vai (docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13"), quyết định 10): ai được gọi hàm
 // nào là luật của route ở server. Ở đây chỉ có những luật đúng với mọi người
 // gọi: không khoá hay xoá admin cuối cùng, không xoá user còn đồ, hạn mức gói.
 
@@ -535,7 +535,7 @@ func (a *Accounts) PrepareTrashAll(ctx context.Context, name string) (*Planned, 
 		return nil, err
 	}
 	// Kiểm hết trước khi dựng gì: khôi phục từ thùng rác mở khoá lén
-	// (docs/thay-doi/M13.md, quyết định 7).
+	// (docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13"), quyết định 7).
 	for _, st := range sites {
 		if st.Status == site.Active && (st.Suspended != account.NotSuspended || st.DBSuspended != account.NotSuspended) {
 			return nil, refuseSuspendedTrash(st)
@@ -594,7 +594,7 @@ func (a *Accounts) PrepareTrashAll(ctx context.Context, name string) (*Planned, 
 }
 
 // refuseSuspendedTrash là lời từ chối đưa một site đang khoá (site hoặc DB
-// của nó) vào thùng rác (quyết định 7 của docs/thay-doi/M13.md).
+// của nó) vào thùng rác (quyết định 7 của docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")).
 func refuseSuspendedTrash(st site.Site) *RefusedError {
 	d := st.Domain.String()
 	if st.Suspended != account.NotSuspended {

@@ -6,9 +6,9 @@
 //   +  Phép kiểm lệch ("drift:<path>"): nhận bản sửa tay làm chuẩn.
 // Máy chỉ đổi qua bản xem trước đã duyệt (nguyên tắc ở mục 10 của KE-HOACH.md).
 
+import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router";
 import { useAi } from "../../ai/AiProvider";
 import { post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
@@ -35,10 +35,10 @@ export function FixPanel({ incident, live }: Props) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const { openAI } = useAi();
-  // Sửa tự động, nhận bản sửa tay và hỏi AI là route chỉ admin (docs/thay-doi/M13.md): user thường chỉ có sửa tay.
+  // Sửa tự động, nhận bản sửa tay và hỏi AI là route chỉ admin (docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")): user thường chỉ có sửa tay.
   const { isAdmin } = useWho();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { track } = useJobTracker();
 
   const autoFix = live.auto_fix ?? "";
   const manual = live.manual_fix ?? [];
@@ -57,7 +57,9 @@ export function FixPanel({ incident, live }: Props) {
     mutationFn: () => post<JobStarted>("/api/v1/fixes", body),
     onSuccess: (job) => {
       void refreshIncidents(qc);
-      void navigate(`/jobs/${encodeURIComponent(job.job_id)}`);
+      // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
+      track(job.job_id);
+      setPreview(null);
     },
   });
   useEffect(() => {
