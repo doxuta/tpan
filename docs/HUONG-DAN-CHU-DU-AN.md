@@ -109,22 +109,30 @@ scripts/vm.sh ssh-key ~/.ssh/id_ed25519.pub
 ```
 
 ```bash
-IP=$(scripts/vm.sh ip); echo $IP
+scripts/vm.sh ip
 ```
+
+Lệnh này in IP của máy ảo, dạng `192.168.x.y`. Các lệnh dưới ghi `<IP máy ảo>`: gõ thẳng số đó vào. Đừng dùng biến shell kiểu `$IP`: biến chỉ sống trong đúng cửa sổ terminal đã gán nó, sang tab khác nó rỗng và lệnh thành `ssh ubuntu@` (lỗi `CONNECTION_CLOSED` trong Claude Code).
 
 Nhận khoá máy ảo một lần. Claude Code mở ssh không có terminal; gặp máy lạ ssh sẽ dừng với "Host key verification failed", nên phải nhận trước. Gõ `yes` khi được hỏi:
 
 ```bash
-ssh ubuntu@$IP true
+ssh ubuntu@<IP máy ảo> true
 ```
 
 ### 2.2. M7: Claude Code gọi tpan qua MCP
 
-Thêm tpan làm MCP server của Claude Code (trên Mac):
+Thêm tpan làm MCP server của Claude Code (trên Mac, `~/tpan`):
 
 ```bash
-claude mcp add --transport stdio tpan -- ssh ubuntu@$IP sudo -n tpan mcp
+claude mcp add --transport stdio tpan -- ssh ubuntu@<IP máy ảo> sudo -n tpan mcp
 ```
+
+```bash
+claude mcp get tpan
+```
+
+Chờ thấy `Status: ✔ Connected`. `mcp add` mặc định ghi cho **thư mục đang đứng**, nên các lệnh `claude` dưới đây phải chạy cũng ở `~/tpan`; chạy ở thư mục khác thì Claude Code không thấy công cụ tpan.
 
 Hỏi liệt kê site:
 
@@ -193,7 +201,7 @@ make build
 ```
 
 ```bash
-bin/tpan brain ubuntu@$IP
+bin/tpan brain ubuntu@<IP máy ảo>
 ```
 
 Terminal in "Bộ não: đã nối" là được. Mỗi câu hỏi từ panel hiện ở đây. `Ctrl+C` để ngắt.
@@ -204,7 +212,7 @@ Mở panel của máy ảo: lấy mật khẩu mới (terminal khác, `~/tpan`):
 scripts/vm.sh root tpan admin passwd
 ```
 
-Rồi mở `https://<IP máy ảo>:8443` (in bằng `echo $IP`), bỏ qua cảnh báo chứng chỉ tự ký, đăng nhập. Thử:
+Rồi mở `https://<IP máy ảo>:8443` (in bằng `scripts/vm.sh ip`), bỏ qua cảnh báo chứng chỉ tự ký, đăng nhập. Thử:
 
 1. Mở site `a.example.com`, mở ngăn AI. Xem nhãn ngữ cảnh và "xem trước thứ sẽ gửi": tên miền đã thành `site-a.example`.
 2. Hỏi "Site này có ổn không?". Chữ hiện dần. Nếu AI đề xuất Plan, nó nằm ở "Chờ bạn duyệt"; máy không đổi tới khi bạn duyệt.
