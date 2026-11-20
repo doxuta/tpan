@@ -36,6 +36,11 @@ type env struct {
 	stdout     io.Writer
 	stderr     io.Writer
 
+	// wpcliSHA512 rỗng trên máy thật (core so WP-CLI với mã đã ghim). Test chạy
+	// trên máy demo đặt sha512 của file WP-CLI giả, để kiểm chứng của Plan
+	// "Áp bản vá cô lập" (có phép kiểm WP-CLI của stack) chạy được.
+	wpcliSHA512 string
+
 	// Cờ chung, cobra ghi vào đây.
 	dbPath string
 	lang   string

@@ -358,6 +358,9 @@ func printSiteInfo(e *env, info core.SiteInfo) {
 		row("Vhost:", l.NginxConf)
 	case core.Apache:
 		row("Vhost:", l.ApacheConf)
+		// Chỉ in trên Apache: trên nginx không có .htaccess nên chế độ này
+		// chưa có tác dụng (M14, mục 6.13).
+		row(e.tr("Chế độ .htaccess:", ".htaccess mode:"), string(info.Site.Htaccess.OrDefault()))
 	}
 	if info.Web == "" {
 		printf(w, "\n%s\n", e.tr("Stack chưa cài nên không có gì để kiểm.", "The stack is not installed, so there is nothing to check."))

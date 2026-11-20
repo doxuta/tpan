@@ -4,7 +4,7 @@
 // đọc cờ, gọi một ca sử dụng trong internal/core rồi in kết quả; mọi quyết định
 // về máy nằm ở core, để CLI, API và MCP cho cùng một kết quả.
 //
-// Hiện có: version, serve, stack install, stack status, site add/list/info/rm, health [<domain>], setup, admin passwd, plan list/show/approve/reject, mcp, mcp config, brain <máy>, brain-link (ẩn), ssl issue/list/settings, security status/ufw/fail2ban, internal reload-web (ẩn).
+// Hiện có: version, serve, stack install, stack status, site add/list/info/rm, health [<domain>], setup, admin passwd, plan list/show/approve/reject, mcp, mcp config, brain <máy>, brain-link (ẩn), ssl issue/list/settings, security status/ufw/fail2ban/harden, site set --htaccess, route explain, internal reload-web (ẩn).
 package main
 
 import (

@@ -99,4 +99,11 @@ func printSelfVersions(ctx context.Context, e *env, asJSON, rollback bool, old s
 		return
 	}
 	printf(w, "%s %s -> %s\n", e.tr("tpan đã đổi:", "tpan changed:"), old, now)
+	// M14 (mục 6.13): bản mới siết cô lập giữa các site, nhưng vhost, quyền
+	// log và cấu hình PHP của site đã có vẫn là của bản cũ cho tới khi Plan
+	// "Áp bản vá cô lập" chạy. Nhắc ở đây vì đây là lúc duy nhất người vận
+	// hành chắc chắn đang nhìn terminal; chạy lại khi đã áp thì không đổi gì.
+	printf(w, "%s\n", e.tr(
+		"Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).",
+		"Next: run `sudo tpan security harden`. The new release tightens isolation between sites; existing sites need the hardening applied (preview with --dry-run)."))
 }

@@ -23,6 +23,8 @@ type cli struct {
 	terminal bool
 	stdin    string
 	db       string
+	// wpcliSHA512 khác rỗng khi máy giả là máy demo (WP-CLI của nó là file giả).
+	wpcliSHA512 string
 }
 
 func newCLI(t *testing.T) *cli {
@@ -48,6 +50,8 @@ func (c *cli) run(args ...string) (code int, stdout, stderr string) {
 		stdin:      strings.NewReader(c.stdin),
 		stdout:     &out,
 		stderr:     &errb,
+
+		wpcliSHA512: c.wpcliSHA512,
 	}
 	code = run(context.Background(), append(args, "--db", c.db), e)
 	return code, out.String(), errb.String()

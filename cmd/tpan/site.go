@@ -29,7 +29,62 @@ func siteCmd(e *env) *cobra.Command {
 		siteSuspendCmd(e, "unsuspend <domain>", "site.unsuspend", "Mở khoá site: bật lại pool, cron, vhost thường rồi kiểm site trả 200",
 			func(ctx context.Context, s *core.Sites, d validate.Domain) (*core.Planned, error) {
 				return s.PrepareUnsuspend(ctx, d)
-			}))
+			}),
+		siteSetCmd(e))
+	return c
+}
+
+// siteSetCmd là `tpan site set <domain> --htaccess an-toan|tat|day-du` (M14,
+// mục 6.13): đổi chế độ .htaccess của một site, là một Plan có xem trước. CLI
+// chạy bằng root nên là admin: đặt được cả day-du (API thì chỉ admin).
+func siteSetCmd(e *env) *cobra.Command {
+	var (
+		f        planRun
+		htaccess string
+	)
+	c := &cobra.Command{
+		Use:   "set <domain> --htaccess an-toan|tat|day-du",
+		Short: "Đổi chế độ .htaccess của một site (chỉ có tác dụng khi web server là Apache)",
+		Long: "Chế độ .htaccess của site trên Apache:\n" +
+			"  an-toan  .htaccess chỉ dùng được các chỉ thị trong danh sách cho phép (mặc định cho site mới).\n" +
+			"           Trước khi chuyển, tpan quét mọi .htaccess của site; có chỉ thị ngoài danh sách thì từ chối\n" +
+			"           và in từng dòng, vì ở chế độ này dòng đó làm cả site báo 500.\n" +
+			"  tat      Apache không đọc .htaccess; permalink của WordPress do vhost lo.\n" +
+			"  day-du   AllowOverride All như trước M14: site ghi được cấu hình Apache, health luôn cảnh báo.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Cờ và domain sai thì không gì chạm tới máy.
+			mode, err := site.ParseHtaccessMode(htaccess)
+			if err != nil {
+				return fail(e, f.asJSON, &core.RefusedError{Code: "htaccess_mode_invalid", Message: i18n.T(
+					"--htaccess phải là một trong: an-toan, tat, day-du",
+					"--htaccess must be one of: an-toan, tat, day-du")})
+			}
+			if _, err := parseDomainArg(args[0]); err != nil {
+				return fail(e, f.asJSON, err)
+			}
+			// Cần root cả khi --dry-run: chuyển sang an-toan phải quét .htaccess
+			// dưới user của site (runuser), việc chỉ root làm được.
+			if err := requireRoot(e, cmd); err != nil {
+				return fail(e, f.asJSON, err)
+			}
+			if mode == site.HtaccessFull {
+				f.note = i18n.T(
+					"Chế độ day-du: site này ghi được cấu hình Apache qua .htaccess và, nếu bị chiếm, có thể chạy mã dưới user của site khác. health sẽ luôn cảnh báo cho tới khi chuyển về an-toan.",
+					"The day-du mode: this site can write Apache configuration through .htaccess and, if compromised, may run code as another site's user. health keeps warning until it is switched back to an-toan.")
+			}
+			return runSiteJob(cmd, e, &f, args[0], "site.htaccess",
+				func(ctx context.Context, s *core.Sites, d validate.Domain) (siteJob, error) {
+					p, err := s.PrepareHtaccess(ctx, d, mode)
+					if err != nil {
+						return siteJob{}, err
+					}
+					return siteJob{plan: p.Plan, preview: p.Preview, execute: p.Execute}, nil
+				}, nil)
+		},
+	}
+	c.Flags().StringVar(&htaccess, "htaccess", "", "chế độ .htaccess: an-toan, tat hoặc day-du")
+	f.flags(c)
 	return c
 }
 
