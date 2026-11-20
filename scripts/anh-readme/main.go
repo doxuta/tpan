@@ -4,6 +4,7 @@
 // trong web/ vì file chạy nhúng web/dist):
 //
 //	go run ./scripts/anh-readme
+//	go run ./scripts/anh-readme -bo m15 -out docs/bang-chung   (ảnh khối "Phiên bản và cập nhật" của M15)
 //
 // Chương trình tự làm hết, rồi tự tắt cả hai tiến trình khi xong:
 //  1. build tpan ra thư mục tạm rồi chạy `tpan serve --demo` (máy giả, tên máy
@@ -66,14 +67,24 @@ func main() {
 	chrome := flag.String("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "đường dẫn Chrome")
 	debugPort := flag.Int("debug-port", 18142, "cổng DevTools của Chrome")
 	out := flag.String("out", "docs/anh", "thư mục ghi ảnh")
+	set := flag.String("bo", "readme", "bộ ảnh: readme (ảnh của README) hoặc m15 (khối Phiên bản và cập nhật)")
 	flag.Parse()
-	if err := run(*listen, *chrome, *debugPort, *out); err != nil {
+	list := shots()
+	switch *set {
+	case "readme":
+	case "m15":
+		list = shotsM15()
+	default:
+		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme hoặc m15")
+		os.Exit(2)
+	}
+	if err := run(*listen, *chrome, *debugPort, *out, list); err != nil {
 		fmt.Fprintln(os.Stderr, "lỗi:", err)
 		os.Exit(1)
 	}
 }
 
-func run(listen, chrome string, debugPort int, out string) error {
+func run(listen, chrome string, debugPort int, out string, list []shot) error {
 	tmp, err := os.MkdirTemp("", "tpan-anh-")
 	if err != nil {
 		return err
@@ -171,7 +182,7 @@ func run(listen, chrome string, debugPort int, out string) error {
 		return err
 	}
 
-	for _, s := range shots() {
+	for _, s := range list {
 		if err := capture(c, base, jobID, out, s); err != nil {
 			return fmt.Errorf("%s: %w", s.file, err)
 		}
@@ -201,6 +212,39 @@ func shots() []shot {
 		{file: "su-co.png", path: "/incidents", theme: "light", ready: `document.body.innerText.includes('example')`},
 		{file: "stack.png", path: "/stack", theme: "light", ready: `!!document.querySelector('main h1, main h2')`},
 		{file: "bang-dieu-khien-toi.png", path: "/", theme: "dark", ready: `!!document.querySelector('main h1, main h2')`},
+	}
+}
+
+// shotsM15 là ảnh của khối "Phiên bản và cập nhật" (mục 6.14 của KE-HOACH.md)
+// trên máy demo: nguồn tải giả có bản v9.9.9-demo, máy có tpan.old. Bấm bằng
+// chữ trên nút thay vì id, để ảnh hỏng ngay khi chữ trên nút đổi mà quên chụp lại.
+func shotsM15() []shot {
+	click := func(label string) func(c *cdp) error {
+		return func(c *cdp) error {
+			js := fmt.Sprintf(`[...document.querySelectorAll('#phien-ban button')].some(b=>b.innerText.trim().startsWith(%q))`, label)
+			if err := c.waitTrue(js, 20*time.Second); err != nil {
+				return fmt.Errorf("chờ nút %q: %w", label, err)
+			}
+			_, err := c.eval(fmt.Sprintf(`[...document.querySelectorAll('#phien-ban button')].find(b=>b.innerText.trim().startsWith(%q)).click()`, label))
+			return err
+		}
+	}
+	const (
+		toBlock = `document.getElementById('phien-ban').scrollIntoView({block:'start'})`
+		preview = `document.getElementById('phien-ban').innerText.includes('SHA256 SẼ KIỂM')`
+		dialog  = `!!document.querySelector('[role=dialog],[role=alertdialog]')`
+	)
+	return []shot{
+		{file: "M15-phien-ban-sang.png", path: "/settings", theme: "light", before: click("Kiểm bản mới"), ready: preview, after: toBlock},
+		{file: "M15-phien-ban-toi.png", path: "/settings", theme: "dark", before: click("Kiểm bản mới"), ready: preview, after: toBlock},
+		// Không bấm "Kiểm bản mới" lần nữa: máy chủ còn nhớ lần kiểm của ảnh
+		// trước nên nút "Cập nhật lên" có sẵn; bấm kiểm lại thì nút bị khoá
+		// trong lúc chờ và cú bấm kế tiếp rơi vào nút đang khoá.
+		{file: "M15-xac-nhan-cap-nhat-sang.png", path: "/settings", theme: "light",
+			before: click("Cập nhật lên"), ready: dialog},
+		{file: "M15-xac-nhan-quay-ve-toi.png", path: "/settings", theme: "dark",
+			before: click("Quay về bản trước"), ready: dialog},
+		{file: "M15-man-cap-nhat-sang.png", path: "/updates", theme: "light", before: click("Kiểm bản mới"), ready: preview, after: toBlock},
 	}
 }
 
