@@ -2142,3 +2142,1855 @@ s3.example.com curl=0 http=200 nhắc=27 <title>s3.example.com</title>
   => ĐẠT: s1.example.com và s3.example.com vẫn 200
 
 [2026-11-20 18:37:12] $ scripts/vm.sh root tpan health --json
+started 2026-11-20T18:37:13.060120253+07:00  finished 2026-11-20T18:37:33.385770626+07:00
+nhóm: (máy, stack), s1.example.com, s10.example.com, s3.example.com, s4.example.com, s5.example.com, s6.example.com, s7.example.com, s8.example.com, s9.example.com, s2.example.com, tpan
+số phép kiểm theo trạng thái: pass=173 unknown=3 warn=20
+số phép drift: 31
+--- warn dns.a:s1.example.com (chặng dns): s1.example.com chưa có bản ghi A
+--- warn tls.cert:s1.example.com (chặng tls): Chưa có chứng chỉ cho s1.example.com
+--- warn dns.a:s10.example.com (chặng dns): s10.example.com chưa có bản ghi A
+--- warn tls.cert:s10.example.com (chặng tls): Chưa có chứng chỉ cho s10.example.com
+--- warn dns.a:s3.example.com (chặng dns): s3.example.com chưa có bản ghi A
+--- warn tls.cert:s3.example.com (chặng tls): Chưa có chứng chỉ cho s3.example.com
+--- warn dns.a:s4.example.com (chặng dns): s4.example.com chưa có bản ghi A
+--- warn tls.cert:s4.example.com (chặng tls): Chưa có chứng chỉ cho s4.example.com
+--- warn dns.a:s5.example.com (chặng dns): s5.example.com chưa có bản ghi A
+--- warn tls.cert:s5.example.com (chặng tls): Chưa có chứng chỉ cho s5.example.com
+--- warn dns.a:s6.example.com (chặng dns): s6.example.com chưa có bản ghi A
+--- warn tls.cert:s6.example.com (chặng tls): Chưa có chứng chỉ cho s6.example.com
+--- warn dns.a:s7.example.com (chặng dns): s7.example.com chưa có bản ghi A
+--- warn tls.cert:s7.example.com (chặng tls): Chưa có chứng chỉ cho s7.example.com
+--- warn dns.a:s8.example.com (chặng dns): s8.example.com chưa có bản ghi A
+--- warn tls.cert:s8.example.com (chặng tls): Chưa có chứng chỉ cho s8.example.com
+--- warn dns.a:s9.example.com (chặng dns): s9.example.com chưa có bản ghi A
+--- warn tls.cert:s9.example.com (chặng tls): Chưa có chứng chỉ cho s9.example.com
+--- unknown tpan.cert:/etc/tpan/tls/cert.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+--- unknown tpan.perm:/etc/tpan/tls/key.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/key.pem
+--- unknown tpan.perm:/etc/tpan (chặng tpan): Chưa kiểm được: không có /etc/tpan
+--- warn tpan.scheduler:health (chặng tpan): Bộ hẹn giờ health chưa chạy lần nào
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+sự cố vừa mở: 
+sự cố vừa đóng: 
+[2026-11-20 18:37:33] (mã thoát 0)
+  => ĐẠT: health sau site rm s2.example.com: thoát 0, không Fail
+  => ĐẠT: health sau site rm s2.example.com: không có lệch (drift) nào khác đạt
+  => ĐẠT: health sau site rm s2.example.com: không mở sự cố nào
+  => ĐẠT: health không kiểm dịch vụ của s2.example.com (đang ở thùng rác): chỉ còn phép drift của file vhost được giữ, và đạt
+
+
+######## [2026-11-20 18:37:33] nginx f: tpan site restore s2.example.com --yes
+
+[2026-11-20 18:37:33] $ scripts/vm.sh root tpan site restore s2.example.com --yes
+Bắt đầu job 11efa969c47a72fb
+- Chuyển thư mục của s2.example.com ra khỏi thùng rác ...
+  xong
+- Mở khoá user Linux tp_s2_example_com_36299e của s2.example.com ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/s2.example.com/public/wp-config.php ...
+  đã đúng, bỏ qua
+- Đặt lịch cron WordPress của s2.example.com (5 phút một lần) ...
+  xong
+- Mở khoá user DB tp_s2_example_com_36299e của site s2.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-s2_example_com_36299e cho s2.example.com ...
+  xong
+- Ghi vhost nginx cho s2.example.com ...
+  đã đúng, bỏ qua
+- Bật /etc/nginx/sites-enabled/tpan-s2.example.com.conf → /etc/nginx/sites-available/tpan-s2.example.com.conf ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s1.example.com
+  [đạt] Site s1.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s10.example.com
+  [đạt] Site s10.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s3.example.com
+  [đạt] Site s3.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s4.example.com
+  [đạt] Site s4.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s5.example.com
+  [đạt] Site s5.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s6.example.com
+  [đạt] Site s6.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s7.example.com
+  [đạt] Site s7.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s8.example.com
+  [đạt] Site s8.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s9.example.com
+  [đạt] Site s9.example.com không đọc được wp-config.php của site s2.example.com
+
+Job 11efa969c47a72fb: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_s2_example_com_36299e
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_s2_example_com_36299e
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s1.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s1.example.com
+  [đạt] Site s1.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s1_example_com_090c1b không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s10.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s10.example.com
+  [đạt] Site s10.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s10_example_com_e05713 không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s3.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s3.example.com
+  [đạt] Site s3.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s3_example_com_25da68 không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s4.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s4.example.com
+  [đạt] Site s4.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s4_example_com_98fad1 không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s5.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s5.example.com
+  [đạt] Site s5.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s5_example_com_e86576 không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s6.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s6.example.com
+  [đạt] Site s6.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s6_example_com_68e457 không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s7.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s7.example.com
+  [đạt] Site s7.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s7_example_com_ca9fa3 không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s8.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s8.example.com
+  [đạt] Site s8.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s8_example_com_8e6a68 không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s9.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s9.example.com
+  [đạt] Site s9.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s9_example_com_e6635f không đọc được wp-config.php của s2.example.com
+[2026-11-20 18:37:36] (mã thoát 0)
+THỜI GIAN site restore (đo từ Mac): 3 giây
+  => ĐẠT: restore thoát 0, job thành công
+
+[2026-11-20 18:37:36] $ scripts/vm.sh root bash -c 
+cd "$1" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-64
+find . -type f | wc -l
+ _ /var/www/s2.example.com
+954a1e0898ab6a16f98fce83bc55b546a0dfe12110142872b542f695a98eb9b8
+3785
+[2026-11-20 18:37:36] (mã thoát 0)
+  => ĐẠT: cây thư mục sau khôi phục giống hệt trước khi xoá
+
+[2026-11-20 18:37:36] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  n=$(printf "%s" "$body" | grep -cF "http://$d/")
+  echo "$d curl=$rc http=$code nhắc=$n $title"
+done
+ _ s2.example.com
+s2.example.com curl=0 http=200 nhắc=29 <title>s2.example.com</title>
+[2026-11-20 18:37:36] (mã thoát 0)
+  => ĐẠT: s2.example.com trả 200, đúng trang của mình
+
+[2026-11-20 18:37:36] $ scripts/vm.sh exec curl -sS -m 20 --resolve s2.example.com:80:127.0.0.1 http://s2.example.com/e2e-dau.txt
+e2e-m6-dau-file-1795174628
+[2026-11-20 18:37:36] (mã thoát 0)
+  => ĐẠT: file dấu còn nguyên
+
+[2026-11-20 18:37:37] $ scripts/vm.sh root bash -c cd / && runuser -u "$2" -- wp post get "$3" --field=post_title --path="/var/www/$1/public" 2>&1 _ s2.example.com tp_s2_example_com_36299e 5
+e2e-m6 dau du lieu s2
+[2026-11-20 18:37:37] (mã thoát 0)
+  => ĐẠT: bài viết dấu còn trong DB (wp post get)
+
+[2026-11-20 18:37:37] $ scripts/vm.sh root bash -c 
+u=$1
+chage -l "$u" | grep -i "^Account expires"
+mariadb -N -B -e "SELECT User, JSON_VALUE(Priv, \"\$.account_locked\") FROM mysql.global_priv WHERE User = \"$u\""
+ _ tp_s2_example_com_36299e
+Account expires						: never
+tp_s2_example_com_36299e	0
+[2026-11-20 18:37:37] (mã thoát 0)
+  => ĐẠT: user Linux mở khoá (never), user DB mở khoá (0)
+
+[2026-11-20 18:37:37] $ scripts/vm.sh root bash -c ls -d "/var/lib/tpan/trash/$1" 2>&1; ls /var/lib/tpan/trash | wc -l _ s2_example_com_36299e
+ls: cannot access '/var/lib/tpan/trash/s2_example_com_36299e': No such file or directory
+0
+[2026-11-20 18:37:37] (mã thoát 0)
+  => ĐẠT: thùng rác không còn thư mục của s2.example.com
+
+[2026-11-20 18:37:37] $ scripts/vm.sh root tpan trash list
+Thùng rác trống.
+[2026-11-20 18:37:37] (mã thoát 0)
+  => ĐẠT: trash list trống
+
+[2026-11-20 18:37:37] $ scripts/vm.sh root runuser -u tp_s1_example_com_090c1b -- cat /var/www/s2.example.com/public/wp-config.php
+cat: /var/www/s2.example.com/public/wp-config.php: Permission denied
+[2026-11-20 18:37:37] (mã thoát 1)
+  => ĐẠT: sau khôi phục: user của s1.example.com vẫn không đọc được wp-config.php của s2.example.com
+
+[2026-11-20 18:37:37] $ scripts/vm.sh root tpan site restore s2.example.com --yes
+Từ chối: site s2.example.com không ở thùng rác; đưa vào thùng rác trước bằng: sudo tpan site rm s2.example.com
+[2026-11-20 18:37:37] (mã thoát 1)
+  => ĐẠT: restore lần hai bị từ chối (site không ở thùng rác)
+
+[2026-11-20 18:37:37] $ scripts/vm.sh root tpan health --json
+started 2026-11-20T18:37:37.835620058+07:00  finished 2026-11-20T18:38:16.290815955+07:00
+nhóm: (máy, stack), s1.example.com, s10.example.com, s2.example.com, s3.example.com, s4.example.com, s5.example.com, s6.example.com, s7.example.com, s8.example.com, s9.example.com, tpan
+số phép kiểm theo trạng thái: pass=198 unknown=4 warn=22
+số phép drift: 33
+--- warn dns.a:s1.example.com (chặng dns): s1.example.com chưa có bản ghi A
+--- warn tls.cert:s1.example.com (chặng tls): Chưa có chứng chỉ cho s1.example.com
+--- warn dns.a:s10.example.com (chặng dns): s10.example.com chưa có bản ghi A
+--- warn tls.cert:s10.example.com (chặng tls): Chưa có chứng chỉ cho s10.example.com
+--- warn dns.a:s2.example.com (chặng dns): s2.example.com chưa có bản ghi A
+--- warn tls.cert:s2.example.com (chặng tls): Chưa có chứng chỉ cho s2.example.com
+--- warn dns.a:s3.example.com (chặng dns): s3.example.com chưa có bản ghi A
+--- warn tls.cert:s3.example.com (chặng tls): Chưa có chứng chỉ cho s3.example.com
+--- warn dns.a:s4.example.com (chặng dns): s4.example.com chưa có bản ghi A
+--- warn tls.cert:s4.example.com (chặng tls): Chưa có chứng chỉ cho s4.example.com
+--- warn dns.a:s5.example.com (chặng dns): s5.example.com chưa có bản ghi A
+--- warn tls.cert:s5.example.com (chặng tls): Chưa có chứng chỉ cho s5.example.com
+--- warn dns.a:s6.example.com (chặng dns): s6.example.com chưa có bản ghi A
+--- warn tls.cert:s6.example.com (chặng tls): Chưa có chứng chỉ cho s6.example.com
+--- warn dns.a:s7.example.com (chặng dns): s7.example.com chưa có bản ghi A
+--- warn tls.cert:s7.example.com (chặng tls): Chưa có chứng chỉ cho s7.example.com
+--- warn dns.a:s8.example.com (chặng dns): s8.example.com chưa có bản ghi A
+--- warn tls.cert:s8.example.com (chặng tls): Chưa có chứng chỉ cho s8.example.com
+--- unknown wp.checksums:s8.example.com (chặng wordpress): Chưa kiểm được: wp core verify-checksums báo lỗi, chưa rõ mã nguồn có nguyên vẹn không (mã 1: Error: RuntimeException: Failed to get url 'https://api.wordpress.org/core/checksums/1.0/?version=7.1.5&locale=en_US': cURL error 28: Operation timed out after 10052 milliseconds with 0 bytes received.)
+--- warn dns.a:s9.example.com (chặng dns): s9.example.com chưa có bản ghi A
+--- warn tls.cert:s9.example.com (chặng tls): Chưa có chứng chỉ cho s9.example.com
+--- unknown tpan.cert:/etc/tpan/tls/cert.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+--- unknown tpan.perm:/etc/tpan/tls/key.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/key.pem
+--- unknown tpan.perm:/etc/tpan (chặng tpan): Chưa kiểm được: không có /etc/tpan
+--- warn tpan.scheduler:health (chặng tpan): Bộ hẹn giờ health chưa chạy lần nào
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+sự cố vừa mở: 
+sự cố vừa đóng: 
+[2026-11-20 18:38:16] (mã thoát 0)
+  => ĐẠT: health sau site restore s2.example.com: thoát 0, không Fail
+  => ĐẠT: health sau site restore s2.example.com: không có lệch (drift) nào khác đạt
+  => ĐẠT: health sau site restore s2.example.com: không mở sự cố nào
+  => ĐẠT: health có kiểm lại s2.example.com, mọi phép của nó không Fail
+  => ĐẠT: phép kiểm của s2.example.com không Fail, không lệch
+
+
+######## [2026-11-20 18:38:16] nginx g: xoá hẳn s3.example.com (rm rồi trash purge)
+
+[2026-11-20 18:38:16] $ scripts/vm.sh root tpan trash purge s1.example.com --yes --json
+{
+  "error": {
+    "code": "site_not_trashed",
+    "message": {
+      "vi": "site s1.example.com không ở thùng rác; đưa vào thùng rác trước bằng: sudo tpan site rm s1.example.com",
+      "en": "site s1.example.com is not in the trash; move it there first with: sudo tpan site rm s1.example.com"
+    }
+  }
+}
+[2026-11-20 18:38:16] (mã thoát 1)
+  => ĐẠT: purge site đang chạy (s1.example.com) bị từ chối: site_not_trashed
+
+[2026-11-20 18:38:16] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  n=$(printf "%s" "$body" | grep -cF "http://$d/")
+  echo "$d curl=$rc http=$code nhắc=$n $title"
+done
+ _ s1.example.com
+s1.example.com curl=0 http=200 nhắc=27 <title>s1.example.com</title>
+[2026-11-20 18:38:16] (mã thoát 0)
+  => ĐẠT: s1.example.com vẫn 200 sau lời từ chối
+
+[2026-11-20 18:38:16] $ scripts/vm.sh root tpan site rm s3.example.com --yes
+Bắt đầu job 922f5629972c3b4b
+- Tắt vhost của s3.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-s3_example_com_25da68 ...
+  xong
+- Khoá user DB tp_s3_example_com_25da68 của site s3.example.com ...
+  xong
+- Khoá user Linux tp_s3_example_com_25da68 của s3.example.com ...
+  xong
+- Gỡ lịch cron WordPress của s3.example.com ...
+  xong
+- Chuyển thư mục của s3.example.com vào thùng rác ...
+  xong
+  [đạt] Domain s3.example.com không còn được phục vụ
+
+Job 922f5629972c3b4b: thành công
+Kiểm chứng:
+  [đạt] Domain s3.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 52, HTTP 000)
+Site s3.example.com đã vào thùng rác; xoá hẳn lúc 2026-11-27 18:38. Khôi phục: sudo tpan site restore s3.example.com
+[2026-11-20 18:38:17] (mã thoát 0)
+  => ĐẠT: site rm s3.example.com thoát 0
+
+[2026-11-20 18:38:17] $ scripts/vm.sh root tpan trash purge s3.example.com --yes
+Bắt đầu job 88bb5e66040dd16f
+- Tự backup s3.example.com trước khi xoá hẳn, vào /var/lib/tpan/backups/s3.example.com ...
+  xong
+- Tắt vhost của s3.example.com ...
+  đã đúng, bỏ qua
+- Gỡ file vhost của s3.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-s3_example_com_25da68 ...
+  đã đúng, bỏ qua
+- Gỡ lịch cron WordPress của s3.example.com ...
+  đã đúng, bỏ qua
+- Xoá user DB và DB tp_s3_example_com_25da68 của site s3.example.com ...
+  xong
+- Xoá hẳn /var/lib/tpan/trash/s3_example_com_25da68 và mọi thứ bên trong ...
+  xong
+- Xoá hẳn /var/log/tpan/sites/s3.example.com và mọi thứ bên trong ...
+  xong
+- Xoá user Linux tp_s3_example_com_25da68 ...
+  xong
+
+Job 88bb5e66040dd16f: thành công
+[2026-11-20 18:38:19] (mã thoát 0)
+  => ĐẠT: trash purge s3.example.com thoát 0, job thành công
+
+[2026-11-20 18:38:19] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n = c.execute("SELECT COUNT(*) FROM job_events WHERE job_id = ? AND kind = \"command\"", (j[0],)).fetchone()[0]
+print("số lệnh (sự kiện command) của job:", n)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"unit.done\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    if kind == "command" and not any(w in msg for w in ("systemctl", "nginx -t", "apachectl", "php-fpm", "certbot", "usermod", "userdel")) and not (step or "").startswith(("db.", "user.", "dir.")):
+        continue
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ site.purge
+số job trong tpan.db: 6
+job site.purge 88bb5e66040dd16f succeeded | target: s3.example.com
+bắt đầu: 2026-11-20T11:38:17.315156144Z | xong: 2026-11-20T11:38:19.905782030Z
+thời gian job: 2.6 giây
+số lệnh (sự kiện command) của job: 23
+  command absent:/etc/nginx/sites-available/tpan-s3.example.com.conf nginx -t
+  command absent:/etc/nginx/sites-available/tpan-s3.example.com.conf systemctl reload nginx
+  command site.user.absent:tp_s3_example_com_25da68 userdel tp_s3_example_com_25da68
+[2026-11-20 18:38:20] (mã thoát 0)
+
+[2026-11-20 18:38:20] $ scripts/vm.sh root bash -c 
+d=$1; u=$2; slug=$3; php=$4; web=$5
+getent passwd "$u" >/dev/null && echo "CÒN user Linux $u" || echo "không có user Linux $u (getent mã $?)"
+getent group "$u" >/dev/null && echo "CÒN nhóm $u" || echo "không có nhóm $u"
+mariadb -N -B -e "SHOW DATABASES" | grep -qx "$u" && echo "CÒN DB $u" || echo "không có DB $u"
+mariadb -N -B -e "SELECT User FROM mysql.user" | grep -qx "$u" && echo "CÒN user DB $u" || echo "không có user DB $u"
+for p in "/var/www/$d" "/var/lib/tpan/trash/$slug" "/var/log/tpan/sites/$d" "/etc/php/$php/fpm/pool.d/tpan-$slug.conf" "/run/php/tpan-$slug.sock" "/etc/$web/sites-enabled/tpan-$d.conf" "/etc/$web/sites-available/tpan-$d.conf"; do
+  if [ -e "$p" ] || [ -L "$p" ]; then echo "CÒN $p"; else echo "không có $p"; fi
+done
+python3 -c "import sqlite3,sys; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); r = c.execute(\"SELECT status FROM sites WHERE domain = ?\", (sys.argv[1],)).fetchone(); print((\"CÒN dòng \" + sys.argv[1] + \" trong bảng sites (\" + r[0] + \")\") if r else (\"không có dòng \" + sys.argv[1] + \" trong bảng sites\"))" "$d"
+ _ s3.example.com tp_s3_example_com_25da68 s3_example_com_25da68 8.3 nginx
+không có user Linux tp_s3_example_com_25da68 (getent mã 2)
+không có nhóm tp_s3_example_com_25da68
+không có DB tp_s3_example_com_25da68
+không có user DB tp_s3_example_com_25da68
+không có /var/www/s3.example.com
+không có /var/lib/tpan/trash/s3_example_com_25da68
+không có /var/log/tpan/sites/s3.example.com
+không có /etc/php/8.3/fpm/pool.d/tpan-s3_example_com_25da68.conf
+không có /run/php/tpan-s3_example_com_25da68.sock
+không có /etc/nginx/sites-enabled/tpan-s3.example.com.conf
+không có /etc/nginx/sites-available/tpan-s3.example.com.conf
+không có dòng s3.example.com trong bảng sites
+[2026-11-20 18:38:20] (mã thoát 0)
+  => ĐẠT: không còn gì của s3.example.com: user, nhóm, DB, user DB, thư mục thùng rác, log, pool, vhost, dòng sites
+
+[2026-11-20 18:38:20] $ scripts/vm.sh exec curl -sS -m 10 -o /dev/null --resolve s3.example.com:80:127.0.0.1 http://s3.example.com/
+curl: (52) Empty reply from server
+[2026-11-20 18:38:20] (mã thoát 52)
+  => ĐẠT: s3.example.com rơi vào site mặc định (curl mã 52)
+
+[2026-11-20 18:38:20] $ scripts/vm.sh root tpan trash purge s3.example.com --yes
+Từ chối: không có site s3.example.com trong tpan; xem danh sách bằng: sudo tpan site list
+[2026-11-20 18:38:20] (mã thoát 1)
+  => ĐẠT: purge lần hai bị từ chối
+
+
+######## [2026-11-20 18:38:20] nginx h: hết hạn: trash settings --days 0, rm s4.example.com, trash purge --expired
+
+[2026-11-20 18:38:20] $ scripts/vm.sh root tpan trash settings --days 0
+Số ngày giữ site trong thùng rác: 0 (đổi số này chỉ áp cho site vào thùng rác sau đó).
+[2026-11-20 18:38:20] (mã thoát 0)
+  => ĐẠT: đặt số ngày giữ 0
+
+[2026-11-20 18:38:20] $ scripts/vm.sh root tpan site rm s4.example.com --yes
+Bắt đầu job 48147ace45503076
+- Tắt vhost của s4.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-s4_example_com_98fad1 ...
+  xong
+- Khoá user DB tp_s4_example_com_98fad1 của site s4.example.com ...
+  xong
+- Khoá user Linux tp_s4_example_com_98fad1 của s4.example.com ...
+  xong
+- Gỡ lịch cron WordPress của s4.example.com ...
+  xong
+- Chuyển thư mục của s4.example.com vào thùng rác ...
+  xong
+  [đạt] Domain s4.example.com không còn được phục vụ
+
+Job 48147ace45503076: thành công
+Kiểm chứng:
+  [đạt] Domain s4.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 52, HTTP 000)
+Site s4.example.com đã vào thùng rác; xoá hẳn lúc 2026-11-20 18:38. Khôi phục: sudo tpan site restore s4.example.com
+[2026-11-20 18:38:20] (mã thoát 0)
+  => ĐẠT: site rm s4.example.com thoát 0
+
+[2026-11-20 18:38:20] $ scripts/vm.sh root tpan trash list
+DOMAIN                                   XOÁ LÚC          HẠN XOÁ HẲN
+s4.example.com                           2026-11-20 18:38 2026-11-20 18:38
+[2026-11-20 18:38:21] (mã thoát 0)
+  => ĐẠT: trash list có s4.example.com
+
+[2026-11-20 18:38:21] $ scripts/vm.sh root tpan trash purge --expired --dry-run
+== s4.example.com
+Kế hoạch: Xoá hẳn site s4.example.com
+6 bước sẽ chạy, 3 bước đã đúng sẽ bỏ qua, 5 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Tự backup s4.example.com trước khi xoá hẳn, vào /var/lib/tpan/backups/s4.example.com  (backup.create:s4.example.com)
+    Vì sao: Các bước sau xoá DB và file của site, không lấy lại được. Bản backup này là đường lùi cuối cùng: tpan không bao giờ tự dọn nó. Khi hoàn tác, file chỉ bị xoá nếu dữ liệu gốc còn nguyên.
+    $ du -sb --one-file-system -- /var/lib/tpan/trash/s4_example_com_98fad1/public
+    $ mariadb -N -B  (stdin: SELECT COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH), 0) FROM information_schema.TABLES WHERE TABLE_SCHEMA='tp_s4_example_com_98fad1';)
+    $ mariadb-dump --single-transaction --quick '--result-file=/var/lib/tpan/backups/s4.example.com/.tmp-<YYYYMMDD-HHMMSS>/db.sql' tp_s4_example_com_98fad1
+    $ runuser -u tp_s4_example_com_98fad1 -- wp core version --path=/var/www/s4.example.com/public
+    $ tar --create --gzip '--file=/var/lib/tpan/backups/s4.example.com/s4.example.com-<YYYYMMDD-HHMMSS>.tar.gz.part' --one-file-system '--directory=/var/lib/tpan/backups/s4.example.com/.tmp-<YYYYMMDD-HHMMSS>' manifest.json db.sql --directory=/var/lib/tpan/trash/s4_example_com_98fad1 public
+    $ sha256sum -- '/var/lib/tpan/backups/s4.example.com/s4.example.com-<YYYYMMDD-HHMMSS>.tar.gz'
+ 2. [đã đúng, bỏ qua] Tắt vhost của s4.example.com  (absent:/etc/nginx/sites-enabled/tpan-s4.example.com.conf)
+ 3. [sẽ chạy] Gỡ file vhost của s4.example.com  (absent:/etc/nginx/sites-available/tpan-s4.example.com.conf)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Gỡ cấu hình web của s4.example.com trước khi xoá dữ liệu: web server và PHP-FPM thôi phục vụ site, tiến trình PHP của user tp_s4_example_com_98fad1 thoát để xoá được user. Bước này hoàn tác được.
+    $ nginx -t
+    $ systemctl reload nginx
+    xoá /etc/nginx/sites-available/tpan-s4.example.com.conf
+ 4. [đã đúng, bỏ qua] Gỡ pool PHP-FPM tpan-s4_example_com_98fad1  (absent:/etc/php/8.3/fpm/pool.d/tpan-s4_example_com_98fad1.conf)
+ 5. [đã đúng, bỏ qua] Gỡ lịch cron WordPress của s4.example.com  (absent:/etc/cron.d/tpan-s4_example_com_98fad1)
+ 6. [sẽ chạy] Xoá user DB và DB tp_s4_example_com_98fad1 của site s4.example.com  (mariadb.site-db-absent:s4.example.com)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Site đã gỡ mà DB và user DB còn lại thì dữ liệu cũ nằm đó không ai quản, user DB vẫn đăng nhập được, và tạo lại site cùng domain sẽ bị từ chối vì DB đã có.
+    $ mariadb -N -B  (stdin: DROP USER IF EXISTS 'tp_s4_example_com_98fad1'@'localhost';)
+    $ mariadb -N -B  (stdin: DROP DATABASE IF EXISTS `tp_s4_example_com_98fad1`;)
+    Ghi chú hoàn tác: DB đã xoá thì dữ liệu mất, chỉ lấy lại được từ backup.
+ 7. [sẽ chạy] Xoá hẳn /var/lib/tpan/trash/s4_example_com_98fad1 và mọi thứ bên trong  (remove-tree:/var/lib/tpan/trash/s4_example_com_98fad1)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Site đã bị xoá thì mã nguồn và file tải lên của nó không còn ai dùng. Để lại thì chúng chiếm đĩa, và lỗ hổng trong mã cũ vẫn nằm trên máy.
+    $ rm -r --one-file-system -- /var/lib/tpan/trash/s4_example_com_98fad1
+    Ghi chú hoàn tác: File đã xoá không lấy lại được. Muốn giữ thì backup trước khi xoá.
+ 8. [sẽ chạy] Xoá hẳn /var/log/tpan/sites/s4.example.com và mọi thứ bên trong  (remove-tree:/var/log/tpan/sites/s4.example.com)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Site đã bị xoá thì mã nguồn và file tải lên của nó không còn ai dùng. Để lại thì chúng chiếm đĩa, và lỗ hổng trong mã cũ vẫn nằm trên máy.
+    $ rm -r --one-file-system -- /var/log/tpan/sites/s4.example.com
+    Ghi chú hoàn tác: File đã xoá không lấy lại được. Muốn giữ thì backup trước khi xoá.
+ 9. [sẽ chạy] Xoá user Linux tp_s4_example_com_98fad1  (site.user.absent:tp_s4_example_com_98fad1)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Site đã bị xoá thì user của nó không còn việc gì. Để lại thì UID cũ có thể bị một user mới dùng lại, và file sót lại của site cũ thuộc về user mới đó.
+    $ userdel tp_s4_example_com_98fad1
+    Ghi chú hoàn tác: Tạo lại user sẽ ra UID khác; muốn có lại site thì tạo lại cả site.
+Xoá hẳn: DB, file, log và user của site bị xoá. Bước đầu tiên tự backup site vào /var/lib/tpan/backups/<domain>/ (xem bằng: sudo tpan backup list <domain>); muốn lấy lại thì tạo lại site cùng domain rồi khôi phục bản đó.
+[2026-11-20 18:38:21] (mã thoát 0)
+  => ĐẠT: purge --expired --dry-run thoát 0, chỉ nói tới s4.example.com
+
+[2026-11-20 18:38:21] $ scripts/vm.sh root tpan trash purge --expired --yes
+Bắt đầu job ffa07222fb494640
+- Tự backup s4.example.com trước khi xoá hẳn, vào /var/lib/tpan/backups/s4.example.com ...
+  xong
+- Tắt vhost của s4.example.com ...
+  đã đúng, bỏ qua
+- Gỡ file vhost của s4.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-s4_example_com_98fad1 ...
+  đã đúng, bỏ qua
+- Gỡ lịch cron WordPress của s4.example.com ...
+  đã đúng, bỏ qua
+- Xoá user DB và DB tp_s4_example_com_98fad1 của site s4.example.com ...
+  xong
+- Xoá hẳn /var/lib/tpan/trash/s4_example_com_98fad1 và mọi thứ bên trong ...
+  xong
+- Xoá hẳn /var/log/tpan/sites/s4.example.com và mọi thứ bên trong ...
+  xong
+- Xoá user Linux tp_s4_example_com_98fad1 ...
+  xong
+
+== s4.example.com
+
+Job ffa07222fb494640: thành công
+[2026-11-20 18:38:23] (mã thoát 0)
+  => ĐẠT: purge --expired thoát 0
+  => ĐẠT: xoá hẳn đúng s4.example.com
+
+[2026-11-20 18:38:23] $ scripts/vm.sh root bash -c 
+d=$1; u=$2; slug=$3; php=$4; web=$5
+getent passwd "$u" >/dev/null && echo "CÒN user Linux $u" || echo "không có user Linux $u (getent mã $?)"
+getent group "$u" >/dev/null && echo "CÒN nhóm $u" || echo "không có nhóm $u"
+mariadb -N -B -e "SHOW DATABASES" | grep -qx "$u" && echo "CÒN DB $u" || echo "không có DB $u"
+mariadb -N -B -e "SELECT User FROM mysql.user" | grep -qx "$u" && echo "CÒN user DB $u" || echo "không có user DB $u"
+for p in "/var/www/$d" "/var/lib/tpan/trash/$slug" "/var/log/tpan/sites/$d" "/etc/php/$php/fpm/pool.d/tpan-$slug.conf" "/run/php/tpan-$slug.sock" "/etc/$web/sites-enabled/tpan-$d.conf" "/etc/$web/sites-available/tpan-$d.conf"; do
+  if [ -e "$p" ] || [ -L "$p" ]; then echo "CÒN $p"; else echo "không có $p"; fi
+done
+python3 -c "import sqlite3,sys; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); r = c.execute(\"SELECT status FROM sites WHERE domain = ?\", (sys.argv[1],)).fetchone(); print((\"CÒN dòng \" + sys.argv[1] + \" trong bảng sites (\" + r[0] + \")\") if r else (\"không có dòng \" + sys.argv[1] + \" trong bảng sites\"))" "$d"
+ _ s4.example.com tp_s4_example_com_98fad1 s4_example_com_98fad1 8.3 nginx
+không có user Linux tp_s4_example_com_98fad1 (getent mã 2)
+không có nhóm tp_s4_example_com_98fad1
+không có DB tp_s4_example_com_98fad1
+không có user DB tp_s4_example_com_98fad1
+không có /var/www/s4.example.com
+không có /var/lib/tpan/trash/s4_example_com_98fad1
+không có /var/log/tpan/sites/s4.example.com
+không có /etc/php/8.3/fpm/pool.d/tpan-s4_example_com_98fad1.conf
+không có /run/php/tpan-s4_example_com_98fad1.sock
+không có /etc/nginx/sites-enabled/tpan-s4.example.com.conf
+không có /etc/nginx/sites-available/tpan-s4.example.com.conf
+không có dòng s4.example.com trong bảng sites
+[2026-11-20 18:38:24] (mã thoát 0)
+  => ĐẠT: không còn gì của s4.example.com
+
+[2026-11-20 18:38:24] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  n=$(printf "%s" "$body" | grep -cF "http://$d/")
+  echo "$d curl=$rc http=$code nhắc=$n $title"
+done
+ _ s1.example.com s2.example.com s5.example.com s6.example.com s7.example.com s8.example.com s9.example.com s10.example.com
+s1.example.com curl=0 http=200 nhắc=27 <title>s1.example.com</title>
+s2.example.com curl=0 http=200 nhắc=29 <title>s2.example.com</title>
+s5.example.com curl=0 http=200 nhắc=27 <title>s5.example.com</title>
+s6.example.com curl=0 http=200 nhắc=27 <title>s6.example.com</title>
+s7.example.com curl=0 http=200 nhắc=27 <title>s7.example.com</title>
+s8.example.com curl=0 http=200 nhắc=27 <title>s8.example.com</title>
+s9.example.com curl=0 http=200 nhắc=27 <title>s9.example.com</title>
+s10.example.com curl=0 http=200 nhắc=27 <title>s10.example.com</title>
+[2026-11-20 18:38:25] (mã thoát 0)
+  => ĐẠT: 8 site còn lại vẫn 200
+
+[2026-11-20 18:38:25] $ scripts/vm.sh root tpan trash list
+Thùng rác trống.
+[2026-11-20 18:38:25] (mã thoát 0)
+  => ĐẠT: thùng rác trống
+
+[2026-11-20 18:38:26] $ scripts/vm.sh root tpan trash purge --expired --yes
+Không có site hay DB rời nào quá hạn giữ.
+[2026-11-20 18:38:26] (mã thoát 0)
+  => ĐẠT: purge --expired lần hai: không có gì
+
+[2026-11-20 18:38:26] $ scripts/vm.sh root tpan trash settings --days 7
+Số ngày giữ site trong thùng rác: 7 (đổi số này chỉ áp cho site vào thùng rác sau đó).
+[2026-11-20 18:38:26] (mã thoát 0)
+  => ĐẠT: đặt lại số ngày giữ 7
+
+
+######## [2026-11-20 18:38:26] nginx i: prune: sites.yaml bớt s9.example.com s10.example.com (và s3.example.com, s4.example.com đã xoá hẳn)
+
+[2026-11-20 18:38:26] $ scripts/vm.sh root bash -c 'printf "%s" "$1" >"$2"' _ "<nội dung <tmp>/sites-prune.yaml>" /root/e2e-sites.yaml
+[2026-11-20 18:38:26] (mã thoát 0)
+
+[2026-11-20 18:38:26] $ scripts/vm.sh root cat /root/e2e-sites.yaml
+# sites.yaml của e2e M6
+defaults:
+  admin_email: admin@example.com
+sites:
+  - domain: s1.example.com
+  - domain: s2.example.com
+  - domain: s5.example.com
+  - domain: s6.example.com
+  - domain: s7.example.com
+  - domain: s8.example.com
+[2026-11-20 18:38:26] (mã thoát 0)
+
+[2026-11-20 18:38:26] $ scripts/vm.sh root tpan apply -f /root/e2e-sites.yaml --prune --dry-run
+DOMAIN                                   VIỆC             LÝ DO
+s1.example.com                           bỏ qua (đã có)   
+s2.example.com                           bỏ qua (đã có)   
+s5.example.com                           bỏ qua (đã có)   
+s6.example.com                           bỏ qua (đã có)   
+s7.example.com                           bỏ qua (đã có)   
+s8.example.com                           bỏ qua (đã có)   
+s10.example.com                          vào thùng rác    
+s9.example.com                           vào thùng rác    
+
+Kế hoạch: Áp danh sách site: tạo 0, đưa vào thùng rác 2
+14 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 8 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Tắt vhost của s10.example.com  (absent:/etc/nginx/sites-enabled/tpan-s10.example.com.conf)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Web server và PHP-FPM thôi phục vụ s10.example.com trước khi thư mục site bị chuyển đi, để khách không thấy lỗi lưng chừng. File vhost trong sites-available được giữ: khôi phục chỉ cần bật lại link. Bước này hoàn tác được.
+    $ nginx -t
+    xoá /etc/nginx/sites-enabled/tpan-s10.example.com.conf
+ 2. [sẽ chạy] Gỡ pool PHP-FPM tpan-s10_example_com_e05713  (absent:/etc/php/8.3/fpm/pool.d/tpan-s10_example_com_e05713.conf)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Web server và PHP-FPM thôi phục vụ s10.example.com trước khi thư mục site bị chuyển đi, để khách không thấy lỗi lưng chừng. File vhost trong sites-available được giữ: khôi phục chỉ cần bật lại link. Bước này hoàn tác được.
+    $ php-fpm8.3 -t
+    xoá /etc/php/8.3/fpm/pool.d/tpan-s10_example_com_e05713.conf
+ 3. [sẽ chạy] Khoá user DB tp_s10_example_com_e05713 của site s10.example.com  (db.lock:s10.example.com)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Site đang vào thùng rác: DB được giữ nguyên để khôi phục, nhưng không ai được đăng nhập vào nó nữa. Không khoá thì mã PHP cũ (hay ai giữ mật khẩu trong wp-config.php) vẫn đọc, ghi được DB của một site đã xoá. Khoá không đổi mật khẩu hay quyền nào, khôi phục chỉ cần mở khoá.
+    $ mariadb -N -B  (stdin: SELECT COUNT(*), COALESCE(MAX(JSON_VALUE(Priv, '$.account_locked') IN ('1', 'true')), 0) FROM mysql.global_priv WHERE User='tp_s10_example_com_e05713' AND Host='localhost';)
+    $ mariadb -N -B  (stdin: ALTER USER 'tp_s10_example_com_e05713'@'localhost' ACCOUNT LOCK;)
+ 4. [sẽ chạy] Khoá user Linux tp_s10_example_com_e05713 của s10.example.com  (user.lock:s10.example.com)
+    Vì sao: User của site vốn không có mật khẩu và không có shell; cho tài khoản hết hạn là lớp chặn thứ hai cho một site đã xoá: cron của nó thôi chạy, không đăng nhập được qua PAM, và `chage -l` cho thấy rõ user này đang ở thùng rác. Bước này không đổi file hay mật khẩu nào và hoàn tác được.
+    $ chage -l tp_s10_example_com_e05713
+    $ usermod --expiredate 1 tp_s10_example_com_e05713
+ 5. [sẽ chạy] Gỡ lịch cron WordPress của s10.example.com  (absent:/etc/cron.d/tpan-s10_example_com_e05713)
+    Vì sao: Site không còn chạy thì không còn việc định kỳ để gọi. Bỏ bước này thì cron vẫn gọi tpan mỗi 5 phút cho một site không còn, và log đầy dòng bỏ qua.
+    xoá /etc/cron.d/tpan-s10_example_com_e05713
+ 6. [sẽ chạy] Chuyển thư mục của s10.example.com vào thùng rác  (dir.move:/var/www/s10.example.com)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Chuyển cả thư mục bằng một lần đổi tên: không chép, không xoá file nào, nên dữ liệu không bao giờ nằm dở dang ở hai nơi. Bỏ bước này thì file của site vẫn ở chỗ cũ, site chưa thật sự vào (hay ra khỏi) thùng rác.
+ 7. [sẽ chạy] Tắt vhost của s9.example.com  (absent:/etc/nginx/sites-enabled/tpan-s9.example.com.conf)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Web server và PHP-FPM thôi phục vụ s9.example.com trước khi thư mục site bị chuyển đi, để khách không thấy lỗi lưng chừng. File vhost trong sites-available được giữ: khôi phục chỉ cần bật lại link. Bước này hoàn tác được.
+    $ nginx -t
+    xoá /etc/nginx/sites-enabled/tpan-s9.example.com.conf
+ 8. [sẽ chạy] Gỡ pool PHP-FPM tpan-s9_example_com_e6635f  (absent:/etc/php/8.3/fpm/pool.d/tpan-s9_example_com_e6635f.conf)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Web server và PHP-FPM thôi phục vụ s9.example.com trước khi thư mục site bị chuyển đi, để khách không thấy lỗi lưng chừng. File vhost trong sites-available được giữ: khôi phục chỉ cần bật lại link. Bước này hoàn tác được.
+    $ php-fpm8.3 -t
+    xoá /etc/php/8.3/fpm/pool.d/tpan-s9_example_com_e6635f.conf
+ 9. [sẽ chạy] Khoá user DB tp_s9_example_com_e6635f của site s9.example.com  (db.lock:s9.example.com)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Site đang vào thùng rác: DB được giữ nguyên để khôi phục, nhưng không ai được đăng nhập vào nó nữa. Không khoá thì mã PHP cũ (hay ai giữ mật khẩu trong wp-config.php) vẫn đọc, ghi được DB của một site đã xoá. Khoá không đổi mật khẩu hay quyền nào, khôi phục chỉ cần mở khoá.
+    $ mariadb -N -B  (stdin: SELECT COUNT(*), COALESCE(MAX(JSON_VALUE(Priv, '$.account_locked') IN ('1', 'true')), 0) FROM mysql.global_priv WHERE User='tp_s9_example_com_e6635f' AND Host='localhost';)
+    $ mariadb -N -B  (stdin: ALTER USER 'tp_s9_example_com_e6635f'@'localhost' ACCOUNT LOCK;)
+10. [sẽ chạy] Khoá user Linux tp_s9_example_com_e6635f của s9.example.com  (user.lock:s9.example.com)
+    Vì sao: User của site vốn không có mật khẩu và không có shell; cho tài khoản hết hạn là lớp chặn thứ hai cho một site đã xoá: cron của nó thôi chạy, không đăng nhập được qua PAM, và `chage -l` cho thấy rõ user này đang ở thùng rác. Bước này không đổi file hay mật khẩu nào và hoàn tác được.
+    $ chage -l tp_s9_example_com_e6635f
+    $ usermod --expiredate 1 tp_s9_example_com_e6635f
+11. [sẽ chạy] Gỡ lịch cron WordPress của s9.example.com  (absent:/etc/cron.d/tpan-s9_example_com_e6635f)
+    Vì sao: Site không còn chạy thì không còn việc định kỳ để gọi. Bỏ bước này thì cron vẫn gọi tpan mỗi 5 phút cho một site không còn, và log đầy dòng bỏ qua.
+    xoá /etc/cron.d/tpan-s9_example_com_e6635f
+12. [sẽ chạy] Chuyển thư mục của s9.example.com vào thùng rác  (dir.move:/var/www/s9.example.com)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Chuyển cả thư mục bằng một lần đổi tên: không chép, không xoá file nào, nên dữ liệu không bao giờ nằm dở dang ở hai nơi. Bỏ bước này thì file của site vẫn ở chỗ cũ, site chưa thật sự vào (hay ra khỏi) thùng rác.
+13. [sẽ chạy] Kiểm cấu hình rồi nạp lại php8.3-fpm một lần cho cả lô  (service.reload:php8.3-fpm)
+    Vì sao: Các bước trước chỉ ghi file, chưa nạp. Bỏ bước này thì php8.3-fpm vẫn chạy cấu hình cũ: site mới không được phục vụ, site đã gỡ vẫn còn. Nạp một lần cho cả lô thay vì mỗi site một lần, và kiểm cú pháp trước để một file sai không làm dịch vụ nạp hỏng.
+    $ php-fpm8.3 -t
+    $ systemctl reload php8.3-fpm
+    Ghi chú hoàn tác: Nạp lại không có gì để trả lại; các bước ghi file tự trả file cũ.
+14. [sẽ chạy] Kiểm cấu hình rồi nạp lại nginx một lần cho cả lô  (service.reload:nginx)
+    Vì sao: Các bước trước chỉ ghi file, chưa nạp. Bỏ bước này thì nginx vẫn chạy cấu hình cũ: site mới không được phục vụ, site đã gỡ vẫn còn. Nạp một lần cho cả lô thay vì mỗi site một lần, và kiểm cú pháp trước để một file sai không làm dịch vụ nạp hỏng.
+    $ nginx -t
+    $ systemctl reload nginx
+    Ghi chú hoàn tác: Nạp lại không có gì để trả lại; các bước ghi file tự trả file cũ.
+[2026-11-20 18:38:26] (mã thoát 0)
+  => ĐẠT: dry-run: 6 bỏ qua, 2 vào thùng rác (s9.example.com, s10.example.com), không tạo gì
+
+[2026-11-20 18:38:27] $ scripts/vm.sh root tpan apply -f /root/e2e-sites.yaml --prune --yes
+DOMAIN                                   VIỆC             LÝ DO
+s1.example.com                           bỏ qua (đã có)   
+s2.example.com                           bỏ qua (đã có)   
+s5.example.com                           bỏ qua (đã có)   
+s6.example.com                           bỏ qua (đã có)   
+s7.example.com                           bỏ qua (đã có)   
+s8.example.com                           bỏ qua (đã có)   
+s10.example.com                          vào thùng rác    
+s9.example.com                           vào thùng rác    
+
+Bắt đầu job 095ab067e5d59783
+- Tắt vhost của s9.example.com ...
+- Tắt vhost của s10.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-s9_example_com_e6635f ...
+  xong
+- Gỡ pool PHP-FPM tpan-s10_example_com_e05713 ...
+  xong
+- Khoá user DB tp_s9_example_com_e6635f của site s9.example.com ...
+  xong
+- Khoá user DB tp_s10_example_com_e05713 của site s10.example.com ...
+  xong
+- Khoá user Linux tp_s9_example_com_e6635f của s9.example.com ...
+  xong
+- Khoá user Linux tp_s10_example_com_e05713 của s10.example.com ...
+  xong
+- Gỡ lịch cron WordPress của s9.example.com ...
+  xong
+- Chuyển thư mục của s9.example.com vào thùng rác ...
+  xong
+  xong
+- Gỡ lịch cron WordPress của s10.example.com ...
+  xong
+- Chuyển thư mục của s10.example.com vào thùng rác ...
+  xong
+- Kiểm cấu hình rồi nạp lại php8.3-fpm một lần cho cả lô ...
+  xong
+- Kiểm cấu hình rồi nạp lại nginx một lần cho cả lô ...
+  xong
+  [đạt] Domain s10.example.com không còn được phục vụ
+== s10.example.com: xong
+  [đạt] Domain s9.example.com không còn được phục vụ
+== s9.example.com: xong
+
+Job 095ab067e5d59783: thành công
+Kiểm chứng:
+  [đạt] Domain s10.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 52, HTTP 000)
+  [đạt] Domain s9.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 52, HTTP 000)
+
+DOMAIN                                   KẾT QUẢ                  LỖI
+s10.example.com                          xong                     
+s9.example.com                           xong                     
+[2026-11-20 18:38:28] (mã thoát 0)
+THỜI GIAN apply --prune 2 site (đo từ Mac): 1 giây
+  => ĐẠT: apply --prune thoát 0, job thành công
+  => ĐẠT: bảng kết quả: s9.example.com và s10.example.com xong
+
+[2026-11-20 18:38:29] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n = c.execute("SELECT COUNT(*) FROM job_events WHERE job_id = ? AND kind = \"command\"", (j[0],)).fetchone()[0]
+print("số lệnh (sự kiện command) của job:", n)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"unit.done\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    if kind == "command" and not any(w in msg for w in ("systemctl", "nginx -t", "apachectl", "php-fpm", "certbot", "usermod", "userdel")) and not (step or "").startswith(("db.", "user.", "dir.")):
+        continue
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ apply
+số job trong tpan.db: 9
+job apply 095ab067e5d59783 succeeded | target: 2 site
+bắt đầu: 2026-11-20T11:38:27.765133849Z | xong: 2026-11-20T11:38:28.116946218Z
+thời gian job: 0.4 giây
+số lệnh (sự kiện command) của job: 34
+  command absent:/etc/nginx/sites-enabled/tpan-s9.example.com.conf nginx -t
+  command absent:/etc/nginx/sites-enabled/tpan-s10.example.com.conf nginx -t
+  command absent:/etc/php/8.3/fpm/pool.d/tpan-s9_example_com_e6635f.conf php-fpm8.3 -t
+  command absent:/etc/php/8.3/fpm/pool.d/tpan-s10_example_com_e05713.conf php-fpm8.3 -t
+  command db.lock:s9.example.com mariadb -N -B
+  command db.lock:s9.example.com mariadb -N -B
+  command db.lock:s9.example.com mariadb -N -B
+  command db.lock:s9.example.com mariadb -N -B
+  command db.lock:s10.example.com mariadb -N -B
+  command user.lock:s9.example.com getent passwd tp_s9_example_com_e6635f
+  command db.lock:s10.example.com mariadb -N -B
+  command user.lock:s9.example.com chage -l tp_s9_example_com_e6635f
+  command db.lock:s10.example.com mariadb -N -B
+  command user.lock:s9.example.com getent passwd tp_s9_example_com_e6635f
+  command user.lock:s9.example.com chage -l tp_s9_example_com_e6635f
+  command db.lock:s10.example.com mariadb -N -B
+  command user.lock:s10.example.com getent passwd tp_s10_example_com_e05713
+  command user.lock:s9.example.com usermod --expiredate 1 tp_s9_example_com_e6635f
+  command user.lock:s10.example.com chage -l tp_s10_example_com_e05713
+  command user.lock:s9.example.com getent passwd tp_s9_example_com_e6635f
+  command user.lock:s10.example.com getent passwd tp_s10_example_com_e05713
+  command user.lock:s9.example.com chage -l tp_s9_example_com_e6635f
+  command user.lock:s10.example.com chage -l tp_s10_example_com_e05713
+  command user.lock:s10.example.com usermod --expiredate 1 tp_s10_example_com_e05713
+  command user.lock:s10.example.com getent passwd tp_s10_example_com_e05713
+  command user.lock:s10.example.com chage -l tp_s10_example_com_e05713
+  command service.reload:php8.3-fpm php-fpm8.3 -t
+  command service.reload:php8.3-fpm systemctl reload php8.3-fpm
+  command service.reload:nginx nginx -t
+  command service.reload:nginx systemctl reload nginx
+  unit.done s10.example.com {"target":"s10.example.com","status":"succeeded"}
+  unit.done s9.example.com {"target":"s9.example.com","status":"succeeded"}
+[2026-11-20 18:38:29] (mã thoát 0)
+  => ĐẠT: job apply thành công
+  => ĐẠT: sự kiện của job: đúng 1 lệnh `systemctl reload nginx`
+  => ĐẠT: sự kiện của job: đúng 1 lệnh `systemctl reload php8.3-fpm`
+  => ĐẠT: sự kiện của job: không có lệnh reload hay restart nào khác
+
+[2026-11-20 18:38:31] $ scripts/vm.sh root bash -c for u in "$1" "$2"; do echo "== journalctl -u $u --since \"$3\" --until \"$4\""; journalctl -u "$u" --since "$3" --until "$4" --no-pager -o short-iso | grep -vE "^-- " ; done _ nginx php8.3-fpm 2026-11-20 18:38:26 2026-11-20 18:38:29
+== journalctl -u nginx --since "2026-11-20 18:38:26" --until "2026-11-20 18:38:29"
+2026-11-20T18:38:27+07:00 tpan-test systemd[1]: Reloading nginx.service - A high performance web server and a reverse proxy server...
+2026-11-20T18:38:27+07:00 tpan-test nginx[21159]: 2026/11/20 18:38:27 [notice] 21159#21159: signal process started
+2026-11-20T18:38:27+07:00 tpan-test systemd[1]: Reloaded nginx.service - A high performance web server and a reverse proxy server.
+== journalctl -u php8.3-fpm --since "2026-11-20 18:38:26" --until "2026-11-20 18:38:29"
+2026-11-20T18:38:27+07:00 tpan-test systemd[1]: Reloading php8.3-fpm.service - The PHP 8.3 FastCGI Process Manager...
+2026-11-20T18:38:27+07:00 tpan-test systemd[1]: Reloaded php8.3-fpm.service - The PHP 8.3 FastCGI Process Manager.
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=9, "/run/php/tpan-idle-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=8, "/run/php/tpan-s10_example_com_e05713-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=10, "/run/php/tpan-s1_example_com_090c1b-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=18, "/run/php/tpan-s9_example_com_e6635f-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=11, "/run/php/tpan-s2_example_com_36299e-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=17, "/run/php/tpan-s8_example_com_8e6a68-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=14, "/run/php/tpan-s5_example_com_e86576-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=15, "/run/php/tpan-s6_example_com_68e457-8.3.sock"
+2026-11-20T18:38:27+07:00 tpan-test php-fpm8.3[13333]: [20-Nov-2026 18:38:27] NOTICE: using inherited socket fd=16, "/run/php/tpan-s7_example_com_ca9fa3-8.3.sock"
+[2026-11-20 18:38:31] (mã thoát 0)
+  => ĐẠT: journal của nginx trong khoảng job: đúng 1 dòng Reloaded
+  => ĐẠT: journal của php8.3-fpm trong khoảng job: đúng 1 dòng Reloaded
+  => ĐẠT: journal: không dịch vụ nào bị dừng hay khởi động lại trong khoảng job
+  => ĐẠT: job prune có 2 unit.done (s9.example.com, s10.example.com), đều succeeded
+
+[2026-11-20 18:38:31] $ scripts/vm.sh root tpan trash list
+DOMAIN                                   XOÁ LÚC          HẠN XOÁ HẲN
+s10.example.com                          2026-11-20 18:38 2026-11-27 18:38
+s9.example.com                           2026-11-20 18:38 2026-11-27 18:38
+[2026-11-20 18:38:31] (mã thoát 0)
+  => ĐẠT: trash list có s9.example.com và s10.example.com
+
+[2026-11-20 18:38:31] $ scripts/vm.sh root bash -c for d in "$@"; do curl -sS -m 10 -o /dev/null --resolve "$d:80:127.0.0.1" "http://$d/"; echo "$d curl mã $?"; done _ s9.example.com s10.example.com
+curl: (52) Empty reply from server
+s9.example.com curl mã 52
+curl: (52) Empty reply from server
+s10.example.com curl mã 52
+[2026-11-20 18:38:31] (mã thoát 0)
+  => ĐẠT: s9.example.com, s10.example.com rơi vào site mặc định (curl mã 52)
+
+[2026-11-20 18:38:31] $ scripts/vm.sh root bash -c 
+u=$1
+chage -l "$u" | grep -i "^Account expires"
+mariadb -N -B -e "SELECT User, JSON_VALUE(Priv, \"\$.account_locked\") FROM mysql.global_priv WHERE User = \"$u\""
+ _ tp_s9_example_com_e6635f
+Account expires						: Jan 02, 1970
+tp_s9_example_com_e6635f	1
+[2026-11-20 18:38:31] (mã thoát 0)
+  => ĐẠT: s9.example.com: user và user DB bị khoá
+
+[2026-11-20 18:38:32] $ scripts/vm.sh root bash -c 
+u=$1
+chage -l "$u" | grep -i "^Account expires"
+mariadb -N -B -e "SELECT User, JSON_VALUE(Priv, \"\$.account_locked\") FROM mysql.global_priv WHERE User = \"$u\""
+ _ tp_s10_example_com_e05713
+Account expires						: Jan 02, 1970
+tp_s10_example_com_e05713	1
+[2026-11-20 18:38:32] (mã thoát 0)
+  => ĐẠT: s10.example.com: user và user DB bị khoá
+
+[2026-11-20 18:38:32] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  n=$(printf "%s" "$body" | grep -cF "http://$d/")
+  echo "$d curl=$rc http=$code nhắc=$n $title"
+done
+ _ s1.example.com s2.example.com s5.example.com s6.example.com s7.example.com s8.example.com
+s1.example.com curl=0 http=200 nhắc=27 <title>s1.example.com</title>
+s2.example.com curl=0 http=200 nhắc=29 <title>s2.example.com</title>
+s5.example.com curl=0 http=200 nhắc=27 <title>s5.example.com</title>
+s6.example.com curl=0 http=200 nhắc=27 <title>s6.example.com</title>
+s7.example.com curl=0 http=200 nhắc=27 <title>s7.example.com</title>
+s8.example.com curl=0 http=200 nhắc=27 <title>s8.example.com</title>
+[2026-11-20 18:38:33] (mã thoát 0)
+  => ĐẠT: 6 site trong file vẫn 200
+
+[2026-11-20 18:38:33] $ scripts/vm.sh root tpan apply -f /root/e2e-sites.yaml --prune --yes
+DOMAIN                                   VIỆC             LÝ DO
+s1.example.com                           bỏ qua (đã có)   
+s2.example.com                           bỏ qua (đã có)   
+s5.example.com                           bỏ qua (đã có)   
+s6.example.com                           bỏ qua (đã có)   
+s7.example.com                           bỏ qua (đã có)   
+s8.example.com                           bỏ qua (đã có)   
+
+Không có gì thay đổi.
+[2026-11-20 18:38:33] (mã thoát 0)
+  => ĐẠT: chạy lại prune: không có gì thay đổi
+
+[2026-11-20 18:38:33] $ scripts/vm.sh root tpan health --json
+started 2026-11-20T18:38:33.898332857+07:00  finished 2026-11-20T18:39:03.320986421+07:00
+nhóm: (máy, stack), s1.example.com, s2.example.com, s5.example.com, s6.example.com, s7.example.com, s8.example.com, s10.example.com, s9.example.com, tpan
+số phép kiểm theo trạng thái: pass=105 unknown=3 warn=14
+số phép drift: 23
+--- warn dns.a:s1.example.com (chặng dns): s1.example.com chưa có bản ghi A
+--- warn tls.cert:s1.example.com (chặng tls): Chưa có chứng chỉ cho s1.example.com
+--- warn dns.a:s2.example.com (chặng dns): s2.example.com chưa có bản ghi A
+--- warn tls.cert:s2.example.com (chặng tls): Chưa có chứng chỉ cho s2.example.com
+--- warn dns.a:s5.example.com (chặng dns): s5.example.com chưa có bản ghi A
+--- warn tls.cert:s5.example.com (chặng tls): Chưa có chứng chỉ cho s5.example.com
+--- warn dns.a:s6.example.com (chặng dns): s6.example.com chưa có bản ghi A
+--- warn tls.cert:s6.example.com (chặng tls): Chưa có chứng chỉ cho s6.example.com
+--- warn dns.a:s7.example.com (chặng dns): s7.example.com chưa có bản ghi A
+--- warn tls.cert:s7.example.com (chặng tls): Chưa có chứng chỉ cho s7.example.com
+--- warn dns.a:s8.example.com (chặng dns): s8.example.com chưa có bản ghi A
+--- warn tls.cert:s8.example.com (chặng tls): Chưa có chứng chỉ cho s8.example.com
+--- unknown tpan.cert:/etc/tpan/tls/cert.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+--- unknown tpan.perm:/etc/tpan/tls/key.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/key.pem
+--- unknown tpan.perm:/etc/tpan (chặng tpan): Chưa kiểm được: không có /etc/tpan
+--- warn tpan.scheduler:health (chặng tpan): Bộ hẹn giờ health chưa chạy lần nào
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+sự cố vừa mở: 
+sự cố vừa đóng: 
+[2026-11-20 18:39:03] (mã thoát 0)
+  => ĐẠT: health sau prune: thoát 0, không Fail
+  => ĐẠT: health sau prune: không có lệch (drift) nào khác đạt
+  => ĐẠT: health sau prune: không mở sự cố nào
+
+
+######## [2026-11-20 18:39:03] nginx k: tpan setup (panel nghe 8443) rồi đăng nhập từ Mac
+
+[2026-11-20 18:39:03] $ scripts/vm.sh root tpan setup --yes
+Bắt đầu job 12d9c25c87b3e48f
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 12d9c25c87b3e48f: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    F7:CA:2E:7A:73:84:4E:F9:76:86:C4:C7:DD:80:D2:93:69:64:DE:9E:6A:32:9D:A0:24:5D:BD:93:F1:12:51:9E
+Mở: https://<IP của máy>:8443
+[2026-11-20 18:39:03] (mã thoát 0)
+  => ĐẠT: setup thoát 0
+  => ĐẠT: đọc được mật khẩu panel
+
+[2026-11-20 18:39:03] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login.json https://<vm>:8443/api/v1/login
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+set-cookie: __Host-tpan=<đã che>; Path=/; HttpOnly; Secure; SameSite=Strict
+x-content-type-options: nosniff
+date: Fri, 20 Nov 2026 11:39:04 GMT
+
+-> HTTP 204, 0.073678s
+[2026-11-20 18:39:04] (mã thoát 0)
+  => ĐẠT: đăng nhập panel: 204
+
+
+######## [2026-11-20 18:39:04] nginx k: API: POST /api/v1/apply?dry_run=1
+
+[2026-11-20 18:39:04] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n = c.execute("SELECT COUNT(*) FROM job_events WHERE job_id = ? AND kind = \"command\"", (j[0],)).fetchone()[0]
+print("số lệnh (sự kiện command) của job:", n)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"unit.done\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    if kind == "command" and not any(w in msg for w in ("systemctl", "nginx -t", "apachectl", "php-fpm", "certbot", "usermod", "userdel")) and not (step or "").startswith(("db.", "user.", "dir.")):
+        continue
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+số job trong tpan.db: 10
+[2026-11-20 18:39:04] (mã thoát 0)
+
+[2026-11-20 18:39:04] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Accept: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 -H Content-Type: application/json --data-binary @<tmp>/apply-body.json https://<vm>:8443/api/v1/apply?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Fri, 20 Nov 2026 11:39:04 GMT
+
+-> HTTP 200, 0.038643s
+[2026-11-20 18:39:04] (mã thoát 0)
+  => ĐẠT: POST /apply?dry_run=1: 200
+{
+  "items": [
+    {
+      "domain": "s1.example.com",
+      "action": "skip"
+    },
+    {
+      "domain": "s11.example.com",
+      "action": "create"
+    }
+  ],
+  "steps": 18
+}
+  => ĐẠT: items: s1.example.com skip, s11.example.com create
+
+[2026-11-20 18:39:04] $ scripts/vm.sh root bash -c getent passwd | grep -c "^tp_s11" ; ls /var/www
+0
+html
+s1.example.com
+s2.example.com
+s5.example.com
+s6.example.com
+s7.example.com
+s8.example.com
+[2026-11-20 18:39:04] (mã thoát 0)
+  => ĐẠT: xem trước qua API không tạo gì cho s11
+
+[2026-11-20 18:39:04] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n = c.execute("SELECT COUNT(*) FROM job_events WHERE job_id = ? AND kind = \"command\"", (j[0],)).fetchone()[0]
+print("số lệnh (sự kiện command) của job:", n)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"unit.done\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    if kind == "command" and not any(w in msg for w in ("systemctl", "nginx -t", "apachectl", "php-fpm", "certbot", "usermod", "userdel")) and not (step or "").startswith(("db.", "user.", "dir.")):
+        continue
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+số job trong tpan.db: 10
+[2026-11-20 18:39:04] (mã thoát 0)
+  => ĐẠT: không job mới (vẫn 10 job)
+
+
+######## [2026-11-20 18:39:04] nginx k: API: DELETE /api/v1/sites/s5.example.com rồi POST /restore
+
+[2026-11-20 18:39:04] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X DELETE -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Accept: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/sites/s5.example.com?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Fri, 20 Nov 2026 11:39:04 GMT
+
+-> HTTP 200, 0.007534s
+[2026-11-20 18:39:04] (mã thoát 0)
+  => ĐẠT: DELETE ?dry_run=1: 200, kind site.rm
+
+[2026-11-20 18:39:04] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X DELETE -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Accept: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/sites/s5.example.com
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 30
+date: Fri, 20 Nov 2026 11:39:04 GMT
+
+-> HTTP 202, 0.004512s
+[2026-11-20 18:39:04] (mã thoát 0)
+  => ĐẠT: DELETE: 202 có job_id
+(chờ job 15d4b37b957bea99: 2 giây)
+
+[2026-11-20 18:39:05] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/jobs/15d4b37b957bea99
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Fri, 20 Nov 2026 11:39:05 GMT
+
+-> HTTP 200, 0.003625s
+[2026-11-20 18:39:05] (mã thoát 0)
+{
+  "job": {
+    "kind": "site.rm",
+    "target": "s5.example.com",
+    "status": "succeeded",
+    "error": null
+  },
+  "commands": [
+    "systemctl reload nginx",
+    "systemctl reload php8.3-fpm",
+    "usermod --expiredate 1 tp_s5_example_com_e86576"
+  ]
+}
+  => ĐẠT: job site.rm succeeded
+
+[2026-11-20 18:39:05] $ scripts/vm.sh exec curl -sS -m 10 -o /dev/null --resolve s5.example.com:80:127.0.0.1 http://s5.example.com/
+curl: (52) Empty reply from server
+[2026-11-20 18:39:05] (mã thoát 52)
+  => ĐẠT: s5.example.com rơi vào site mặc định (curl mã 52)
+
+[2026-11-20 18:39:05] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/trash
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 809
+date: Fri, 20 Nov 2026 11:39:05 GMT
+
+-> HTTP 200, 0.152474s
+[2026-11-20 18:39:06] (mã thoát 0)
+{
+  "days": 7,
+  "sites": [
+    {
+      "domain": "s10.example.com",
+      "status": "trashed"
+    },
+    {
+      "domain": "s9.example.com",
+      "status": "trashed"
+    },
+    {
+      "domain": "s5.example.com",
+      "status": "trashed"
+    }
+  ]
+}
+  => ĐẠT: GET /trash: 200, có s5.example.com, s9.example.com, s10.example.com, days 7
+
+[2026-11-20 18:39:06] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Accept: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/sites/s5.example.com/restore?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Fri, 20 Nov 2026 11:39:06 GMT
+
+-> HTTP 200, 0.010657s
+[2026-11-20 18:39:06] (mã thoát 0)
+  => ĐẠT: POST /restore?dry_run=1: 200
+
+[2026-11-20 18:39:06] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Accept: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/sites/s5.example.com/restore
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 30
+date: Fri, 20 Nov 2026 11:39:06 GMT
+
+-> HTTP 202, 0.017618s
+[2026-11-20 18:39:06] (mã thoát 0)
+  => ĐẠT: POST /restore: 202
+(chờ job 5443d165639df1ca: 5 giây)
+
+[2026-11-20 18:39:10] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/jobs/5443d165639df1ca
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Fri, 20 Nov 2026 11:39:10 GMT
+
+-> HTTP 200, 0.008392s
+[2026-11-20 18:39:10] (mã thoát 0)
+{
+  "job": {
+    "kind": "site.restore",
+    "target": "s5.example.com",
+    "status": "succeeded",
+    "error": null
+  },
+  "commands": [
+    "usermod --expiredate '' tp_s5_example_com_e86576",
+    "systemctl reload php8.3-fpm",
+    "systemctl reload nginx"
+  ]
+}
+  => ĐẠT: job site.restore succeeded
+
+[2026-11-20 18:39:10] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  n=$(printf "%s" "$body" | grep -cF "http://$d/")
+  echo "$d curl=$rc http=$code nhắc=$n $title"
+done
+ _ s5.example.com
+s5.example.com curl=0 http=200 nhắc=27 <title>s5.example.com</title>
+[2026-11-20 18:39:10] (mã thoát 0)
+  => ĐẠT: s5.example.com trả 200 lại
+
+[2026-11-20 18:39:10] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X DELETE -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Accept: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/trash/s1.example.com?dry_run=1
+HTTP/2 409 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 281
+date: Fri, 20 Nov 2026 11:39:10 GMT
+
+-> HTTP 409, 0.002911s
+[2026-11-20 18:39:10] (mã thoát 0)
+  => ĐẠT: DELETE /trash/s1.example.com (site đang chạy): 409 site_not_trashed
+
+[2026-11-20 18:39:10] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/export
+HTTP/2 200 
+content-disposition: attachment; filename="sites.yaml"
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: text/yaml; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 542
+date: Fri, 20 Nov 2026 11:39:10 GMT
+
+-> HTTP 200, 0.003543s
+[2026-11-20 18:39:10] (mã thoát 0)
+  => ĐẠT: GET /export: 200, YAML có s1.example.com
+
+
+######## [2026-11-20 18:39:10] apache 0: máy sạch, triển khai tpan
+scripts/e2e-m6.sh: line 146: .tpan-vm: No such file or directory
+Máy ảo:  (file .tpan-vm)
+
+[2026-11-20 18:39:10] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-test  /-\|/-\|/ [2K[0A[0E[2K[0A[0ERestoring snapshot  /-\ [2K[0A[0ESnapshot restored: tpan-test.clean
+[2K[0A[0EStarting tpan-test  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
+[2026-11-20 18:39:24] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-20 18:39:24] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-20 18:39:25] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-20 18:39:26] $ make vm-deploy DATE=2026-11-20T11:35:16Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 1d ago)
+Lockfile is up to date, resolution step is skipped
+Done in 67ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 355 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.88 kB │ gzip:   0.54 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-C4nRzuMG.css                                   28.08 kB │ gzip:   6.88 kB
+dist/assets/useStatusName-CeMqYRww.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/OriginTag-Dgz8q4_V.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-Z_0ZBdWO.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/DomainText-CO5yjJU7.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-4xcUk0cc.js                                0.35 kB │ gzip:   0.25 kB
+dist/assets/Note-BntgBWL9.js                                      0.43 kB │ gzip:   0.29 kB
+dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
+dist/assets/SelectField-BguhGOt4.js                               0.54 kB │ gzip:   0.35 kB
+dist/assets/model-BNSSnAZC.js                                     0.58 kB │ gzip:   0.38 kB
+dist/assets/Field-BYZWAmeg.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/m13-dbs-DcmBjGYr.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/MonoText-BZjkKg9G.js                                  0.71 kB │ gzip:   0.45 kB
+dist/assets/m13-chung-BbbtymkZ.js                                 0.80 kB │ gzip:   0.44 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-DPMNvehV.js                                 0.92 kB │ gzip:   0.46 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/model-BpxMnQl5.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/PreviewedOp-UOtBnSiy.js                               1.88 kB │ gzip:   1.01 kB
+dist/assets/model-CFrO6SUO.js                                     1.96 kB │ gzip:   0.93 kB
+dist/assets/bao-mat-DPypmfv0.js                                   4.16 kB │ gzip:   1.81 kB
+dist/assets/CheckRow-BRGYrkT7.js                                  6.06 kB │ gzip:   2.65 kB
+dist/assets/plan-cho-duyet-mvFoxNy5.js                            6.13 kB │ gzip:   2.08 kB
+dist/assets/backup-BotXHSn6.js                                    6.22 kB │ gzip:   2.37 kB
+dist/assets/dang-nhap-LOnjoamP.js                                 7.09 kB │ gzip:   2.98 kB
+dist/assets/goi-BHh9j-aG.js                                       8.23 kB │ gzip:   3.49 kB
+dist/assets/backup-y1hmAJzb.js                                    9.89 kB │ gzip:   3.26 kB
+dist/assets/StatusMark-Brx-JUb9.js                               11.76 kB │ gzip:   3.74 kB
+dist/assets/thung-rac-COssRKm6.js                                11.92 kB │ gzip:   3.96 kB
+dist/assets/duyet-plan-j1GCk852.js                               11.95 kB │ gzip:   4.38 kB
+dist/assets/ssl-D24V5NvY.js                                      12.27 kB │ gzip:   4.57 kB
+dist/assets/cron-CBuzqQi9.js                                     13.01 kB │ gzip:   4.88 kB
+dist/assets/co-so-du-lieu-Bi2tgyEE.js                            15.09 kB │ gzip:   4.85 kB
+dist/assets/cap-nhat-C7W3rt2e.js                                 15.46 kB │ gzip:   5.09 kB
+dist/assets/tao-site-yuTRtG3S.js                                 15.99 kB │ gzip:   5.29 kB
+dist/assets/co-so-du-lieu-CCNQkwxf.js                            16.78 kB │ gzip:   4.92 kB
+dist/assets/stack-CWU4Yerw.js                                    18.01 kB │ gzip:   5.61 kB
+dist/assets/phien-ai-ubV112LE.js                                 18.23 kB │ gzip:   5.84 kB
+dist/assets/cai-dat-DsemzWE8.js                                  21.70 kB │ gzip:   7.03 kB
+dist/assets/ErrorNote-QQMTLDqN.js                                22.84 kB │ gzip:   7.89 kB
+dist/assets/su-co-BuSoTCb0.js                                    23.16 kB │ gzip:   7.41 kB
+dist/assets/nguoi-dung-BKajbfAD.js                               25.50 kB │ gzip:   8.55 kB
+dist/assets/bang-dieu-khien-CIrqiejv.js                          26.83 kB │ gzip:   8.15 kB
+dist/assets/site-bLqIa8Xc.js                                     28.24 kB │ gzip:   7.96 kB
+dist/assets/lich-su-C4V-GPcP.js                                  30.47 kB │ gzip:   9.41 kB
+dist/assets/ScreenHeader-twihr6Ib.js                            116.70 kB │ gzip:  39.33 kB
+dist/assets/index-42BBuWgs.js                                   336.97 kB │ gzip: 106.57 kB
+
+✓ built in 404ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.1.1-21-g4682b4f-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=4682b4f -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-20T11:35:16Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.1.1-21-g4682b4f-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=4682b4f -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-20T11:35:16Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan v0.1.1-21-g4682b4f-dirty (commit 4682b4f, build 2026-11-20T11:35:16Z)
+[2026-11-20 18:39:33] (mã thoát 0)
+  => ĐẠT: build và chép tpan vào máy ảo
+
+[2026-11-20 18:39:33] $ shasum -a 256 bin/tpan-linux-arm64 bin/tpan-linux-amd64
+bb38367cc590e8e68311da2761cb90877be1141f1e7e8f369c961936e84c49eb  bin/tpan-linux-arm64
+70c16b8c3ed1fe6bb3606b61248b2032fd2982a8bcb511e0625ce43ad53b74c7  bin/tpan-linux-amd64
+[2026-11-20 18:39:33] (mã thoát 0)
+
+[2026-11-20 18:39:33] $ git log --oneline -1
+4682b4f kế hoạch: gộp chỗ đã chốt của M13 vào mục 6.12, bước e2e 16, bảng chia việc M13; chú thích trỏ về KE-HOACH
+[2026-11-20 18:39:33] (mã thoát 0)
+
+[2026-11-20 18:39:33] $ git status --short
+ M docs/bang-chung/M13-hoi-quy-m6.log
+[2026-11-20 18:39:33] (mã thoát 0)
+
+
+######## [2026-11-20 18:39:33] apache: tpan stack install --web apache
+
+[2026-11-20 18:39:33] $ scripts/vm.sh root tpan stack install --web apache --yes
+Bắt đầu job 343d36f85a62c8b8
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2 ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Module Apache: bật mpm_event proxy_fcgi setenvif rewrite headers http2; tắt mpm_prefork ...
+  xong
+- Gỡ /etc/apache2/sites-enabled/000-default.conf ...
+  xong
+- Ghi /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Bật /etc/apache2/sites-enabled/000-tpan-default.conf → /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Chạy và bật apache2 khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 343d36f85a62c8b8: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[2026-11-20 18:40:27] (mã thoát 0)
+  => ĐẠT: stack install thoát 0
+
+[2026-11-20 18:40:27] $ scripts/vm.sh exec php -r echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION, "\n";
+8.3
+[2026-11-20 18:40:28] (mã thoát 0)
+
+[2026-11-20 18:40:28] $ scripts/vm.sh exec systemctl is-active apache2 php8.3-fpm mariadb
+active
+active
+active
+[2026-11-20 18:40:28] (mã thoát 0)
+  => ĐẠT: apache2, php8.3-fpm, mariadb active
+
+
+######## [2026-11-20 18:40:28] apache: apply 3 site
+
+[2026-11-20 18:40:28] $ scripts/vm.sh root bash -c 'printf "%s" "$1" >"$2"' _ "<nội dung <tmp>/sites-a.yaml>" /root/e2e-sites.yaml
+[2026-11-20 18:40:28] (mã thoát 0)
+
+[2026-11-20 18:40:28] $ scripts/vm.sh root cat /root/e2e-sites.yaml
+# sites.yaml của e2e M6
+defaults:
+  admin_email: admin@example.com
+sites:
+  - domain: s1.example.com
+  - domain: s2.example.com
+  - domain: s3.example.com
+[2026-11-20 18:40:28] (mã thoát 0)
+
+[2026-11-20 18:40:29] $ scripts/vm.sh root tpan apply -f /root/e2e-sites.yaml --yes
+DOMAIN                                   VIỆC             LÝ DO
+s1.example.com                           tạo              
+s2.example.com                           tạo              
+s3.example.com                           tạo              
+
+Bắt đầu job 253df06ee9118de6
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Tạo user Linux tp_s3_example_com_25da68 cho site ...
+- Tạo user Linux tp_s1_example_com_090c1b cho site ...
+- Tạo user Linux tp_s2_example_com_36299e cho site ...
+  xong
+- Tạo thư mục /var/www/s3.example.com ...
+  xong
+- Tạo thư mục /var/www/s3.example.com/public ...
+  xong
+- Tạo thư mục /var/www/s3.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/s3.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/s3.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_s3_example_com_25da68 và user DB riêng của site s3.example.com ...
+  xong
+- Tạo thư mục /var/www/s1.example.com ...
+  xong
+- Tạo thư mục /var/www/s1.example.com/public ...
+  xong
+- Tạo thư mục /var/www/s1.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/s1.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/s1.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_s1_example_com_090c1b và user DB riêng của site s1.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-s3_example_com_25da68 cho s3.example.com ...
+  xong
+- Tạo thư mục /var/www/s2.example.com ...
+  xong
+- Tạo thư mục /var/www/s2.example.com/public ...
+  xong
+- Tạo thư mục /var/www/s2.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/s2.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-s1_example_com_090c1b cho s1.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/s2.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_s2_example_com_36299e và user DB riêng của site s2.example.com ...
+  xong
+- Giải nén WordPress vào /var/www/s3.example.com/public ...
+  xong
+- Giải nén WordPress vào /var/www/s1.example.com/public ...
+  xong
+- Ghi pool PHP-FPM tpan-s2_example_com_36299e cho s2.example.com ...
+  xong
+- Giải nén WordPress vào /var/www/s2.example.com/public ...
+  xong
+- Tạo /var/www/s2.example.com/public/wp-config.php ...
+  xong
+- Tạo /var/www/s1.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/s2.example.com/public/wp-config.php ...
+  xong
+- Tạo /var/www/s3.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/s1.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/s3.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của s2.example.com (5 phút một lần) ...
+  xong
+- Ghi /var/www/s2.example.com/public/.htaccess ...
+  xong
+- Ghi vhost apache cho s2.example.com ...
+  xong
+- Bật /etc/apache2/sites-enabled/tpan-s2.example.com.conf → /etc/apache2/sites-available/tpan-s2.example.com.conf ...
+  xong
+- Đặt lịch cron WordPress của s3.example.com (5 phút một lần) ...
+  xong
+- Ghi /var/www/s3.example.com/public/.htaccess ...
+  xong
+- Ghi vhost apache cho s3.example.com ...
+  xong
+  xong
+- Đặt lịch cron WordPress của s1.example.com (5 phút một lần) ...
+  xong
+- Bật /etc/apache2/sites-enabled/tpan-s3.example.com.conf → /etc/apache2/sites-available/tpan-s3.example.com.conf ...
+  xong
+- Ghi /var/www/s1.example.com/public/.htaccess ...
+  xong
+- Ghi vhost apache cho s1.example.com ...
+  xong
+  xong
+- Bật /etc/apache2/sites-enabled/tpan-s1.example.com.conf → /etc/apache2/sites-available/tpan-s1.example.com.conf ...
+  xong
+- Kiểm cấu hình rồi nạp lại php8.3-fpm một lần cho cả lô ...
+  xong
+- Kiểm cấu hình rồi nạp lại apache2 một lần cho cả lô ...
+  xong
+- Cài WordPress cho s3.example.com ...
+- Cài WordPress cho s1.example.com ...
+- Cài WordPress cho s2.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+== s1.example.com: xong
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+== s3.example.com: xong
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+== s2.example.com: xong
+
+Job 253df06ee9118de6: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_s1_example_com_090c1b
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_s1_example_com_090c1b
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của s1.example.com
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_s2_example_com_36299e
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_s2_example_com_36299e
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của s2.example.com
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_s3_example_com_25da68
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_s3_example_com_25da68
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của s3.example.com
+
+DOMAIN                                   KẾT QUẢ                  LỖI
+s1.example.com                           xong                     
+s2.example.com                           xong                     
+s3.example.com                           xong                     
+
+Cô lập giữa các site mới: 6/6 phép kiểm đạt.
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://s1.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://s2.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://s3.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-20 18:40:46] (mã thoát 0)
+Mật khẩu quản trị trong output: 3; mỗi cái đúng một lần: 1
+THỜI GIAN apply 3 site apache (đo từ Mac): 17 giây
+  => ĐẠT: apply thoát 0, job thành công
+  => ĐẠT: 3 mật khẩu quản trị, mỗi cái đúng một lần
+Đã đọc mật khẩu DB của 3/3 site vào danh sách che (không in).
+
+[2026-11-20 18:40:47] $ scripts/vm.sh root python3 -c 
+import sqlite3, sys, datetime
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print("số job trong tpan.db:", c.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+if len(sys.argv) < 2:
+    sys.exit(0)
+j = c.execute("SELECT id, status, target, started_at, finished_at, error FROM jobs WHERE kind = ? ORDER BY started_at DESC, rowid DESC LIMIT 1", (sys.argv[1],)).fetchone()
+if j is None:
+    print("không có job", sys.argv[1])
+    sys.exit(0)
+print("job", sys.argv[1], j[0], j[1], "| target:", j[2])
+print("bắt đầu:", j[3], "| xong:", j[4])
+try:
+    p = lambda s: datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    print("thời gian job: %.1f giây" % (p(j[4]) - p(j[3])).total_seconds())
+except Exception as e:
+    print("không tính được thời gian job:", e)
+if j[5]:
+    print("lỗi của job:", j[5][:400].replace("\n", " "))
+n = c.execute("SELECT COUNT(*) FROM job_events WHERE job_id = ? AND kind = \"command\"", (j[0],)).fetchone()[0]
+print("số lệnh (sự kiện command) của job:", n)
+for kind, step, msg in c.execute("SELECT kind, step_id, message FROM job_events WHERE job_id = ? AND kind IN (\"command\", \"unit.done\", \"step.fail\", \"undo.done\", \"undo.fail\") ORDER BY seq", (j[0],)):
+    if kind == "command" and not any(w in msg for w in ("systemctl", "nginx -t", "apachectl", "php-fpm", "certbot", "usermod", "userdel")) and not (step or "").startswith(("db.", "user.", "dir.")):
+        continue
+    print(" ", kind, step or "-", msg[:300].replace("\n", " "))
+ apply
+số job trong tpan.db: 2
+job apply 253df06ee9118de6 succeeded | target: 3 site
+bắt đầu: 2026-11-20T11:40:29.697018409Z | xong: 2026-11-20T11:40:45.598804784Z
+thời gian job: 15.9 giây
+số lệnh (sự kiện command) của job: 98
+  command file:/etc/php/8.3/fpm/pool.d/tpan-s3_example_com_25da68.conf php-fpm8.3 -t
+  command file:/etc/php/8.3/fpm/pool.d/tpan-s1_example_com_090c1b.conf php-fpm8.3 -t
+  command file:/etc/php/8.3/fpm/pool.d/tpan-s2_example_com_36299e.conf php-fpm8.3 -t
+  command file:/etc/apache2/sites-available/tpan-s2.example.com.conf apachectl configtest
+  command symlink:/etc/apache2/sites-enabled/tpan-s2.example.com.conf apachectl configtest
+  command file:/etc/apache2/sites-available/tpan-s3.example.com.conf apachectl configtest
+  command symlink:/etc/apache2/sites-enabled/tpan-s3.example.com.conf apachectl configtest
+  command file:/etc/apache2/sites-available/tpan-s1.example.com.conf apachectl configtest
+  command symlink:/etc/apache2/sites-enabled/tpan-s1.example.com.conf apachectl configtest
+  command service.reload:php8.3-fpm php-fpm8.3 -t
+  command service.reload:php8.3-fpm systemctl reload php8.3-fpm
+  command service.reload:apache2 apachectl configtest
+  command service.reload:apache2 systemctl reload apache2
+  unit.done s1.example.com {"target":"s1.example.com","status":"succeeded"}
+  unit.done s3.example.com {"target":"s3.example.com","status":"succeeded"}
+  unit.done s2.example.com {"target":"s2.example.com","status":"succeeded"}
+[2026-11-20 18:40:47] (mã thoát 0)
+  => ĐẠT: job apply thành công
+  => ĐẠT: sự kiện của job: đúng 1 lệnh `systemctl reload apache2`
+  => ĐẠT: sự kiện của job: đúng 1 lệnh `systemctl reload php8.3-fpm`
+  => ĐẠT: sự kiện của job: không có lệnh reload hay restart nào khác
+
+[2026-11-20 18:40:49] $ scripts/vm.sh root bash -c for u in "$1" "$2"; do echo "== journalctl -u $u --since \"$3\" --until \"$4\""; journalctl -u "$u" --since "$3" --until "$4" --no-pager -o short-iso | grep -vE "^-- " ; done _ apache2 php8.3-fpm 2026-11-20 18:40:28 2026-11-20 18:40:47
+== journalctl -u apache2 --since "2026-11-20 18:40:28" --until "2026-11-20 18:40:47"
+2026-11-20T18:40:40+07:00 tpan-test systemd[1]: Reloading apache2.service - The Apache HTTP Server...
+2026-11-20T18:40:40+07:00 tpan-test apachectl[15311]: AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+2026-11-20T18:40:40+07:00 tpan-test systemd[1]: Reloaded apache2.service - The Apache HTTP Server.
+== journalctl -u php8.3-fpm --since "2026-11-20 18:40:28" --until "2026-11-20 18:40:47"
+2026-11-20T18:40:40+07:00 tpan-test systemd[1]: Reloading php8.3-fpm.service - The PHP 8.3 FastCGI Process Manager...
+2026-11-20T18:40:40+07:00 tpan-test systemd[1]: Reloaded php8.3-fpm.service - The PHP 8.3 FastCGI Process Manager.
+2026-11-20T18:40:40+07:00 tpan-test php-fpm8.3[13928]: [20-Nov-2026 18:40:40] NOTICE: using inherited socket fd=9, "/run/php/tpan-idle-8.3.sock"
+[2026-11-20 18:40:49] (mã thoát 0)
+  => ĐẠT: journal của apache2 trong khoảng job: đúng 1 dòng Reloaded
+  => ĐẠT: journal của php8.3-fpm trong khoảng job: đúng 1 dòng Reloaded
+  => ĐẠT: journal: không dịch vụ nào bị dừng hay khởi động lại trong khoảng job
+
+[2026-11-20 18:40:49] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  n=$(printf "%s" "$body" | grep -cF "http://$d/")
+  echo "$d curl=$rc http=$code nhắc=$n $title"
+done
+ _ s1.example.com s2.example.com s3.example.com
+s1.example.com curl=0 http=200 nhắc=27 <title>s1.example.com</title>
+s2.example.com curl=0 http=200 nhắc=27 <title>s2.example.com</title>
+s3.example.com curl=0 http=200 nhắc=27 <title>s3.example.com</title>
+[2026-11-20 18:40:50] (mã thoát 0)
+  => ĐẠT: 3 site 200, đúng trang của mình
+
+[2026-11-20 18:40:50] $ scripts/vm.sh root runuser -u tp_s1_example_com_090c1b -- cat /var/www/s2.example.com/public/wp-config.php
+cat: /var/www/s2.example.com/public/wp-config.php: Permission denied
+[2026-11-20 18:40:50] (mã thoát 1)
+  => ĐẠT: cô lập: user của s1.example.com không đọc được wp-config.php của s2.example.com
+
+
+######## [2026-11-20 18:40:50] apache: rm s2.example.com (403) rồi restore (200)
+
+[2026-11-20 18:40:50] $ scripts/vm.sh root bash -c 
+cd "$1" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-64
+find . -type f | wc -l
+ _ /var/www/s2.example.com
+81611f7b686c3bb8358f7b4753a75943c3db7bcf0174fac7b93154f06f11d985
+3785
+[2026-11-20 18:40:50] (mã thoát 0)
+
+[2026-11-20 18:40:50] $ scripts/vm.sh root tpan site rm s2.example.com --yes
+Bắt đầu job c3f3915749295fcf
+- Tắt vhost của s2.example.com ...
+  xong
+- Gỡ pool PHP-FPM tpan-s2_example_com_36299e ...
+  xong
+- Khoá user DB tp_s2_example_com_36299e của site s2.example.com ...
+  xong
+- Khoá user Linux tp_s2_example_com_36299e của s2.example.com ...
+  xong
+- Gỡ lịch cron WordPress của s2.example.com ...
+  xong
+- Chuyển thư mục của s2.example.com vào thùng rác ...
+  xong
+  [đạt] Domain s2.example.com không còn được phục vụ
+
+Job c3f3915749295fcf: thành công
+Kiểm chứng:
+  [đạt] Domain s2.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 0, HTTP 403)
+Site s2.example.com đã vào thùng rác; xoá hẳn lúc 2026-11-27 18:40. Khôi phục: sudo tpan site restore s2.example.com
+[2026-11-20 18:40:50] (mã thoát 0)
+  => ĐẠT: site rm thoát 0, job thành công
+
+[2026-11-20 18:40:50] $ scripts/vm.sh exec curl -sS -m 10 -o /dev/null -w %{http_code}\n --resolve s2.example.com:80:127.0.0.1 http://s2.example.com/
+403
+[2026-11-20 18:40:50] (mã thoát 0)
+  => ĐẠT: s2.example.com ở thùng rác: Apache trả 403 (site mặc định)
+
+[2026-11-20 18:40:50] $ scripts/vm.sh root bash -c 
+u=$1
+chage -l "$u" | grep -i "^Account expires"
+mariadb -N -B -e "SELECT User, JSON_VALUE(Priv, \"\$.account_locked\") FROM mysql.global_priv WHERE User = \"$u\""
+ _ tp_s2_example_com_36299e
+Account expires						: Jan 02, 1970
+tp_s2_example_com_36299e	1
+[2026-11-20 18:40:50] (mã thoát 0)
+  => ĐẠT: user và user DB bị khoá
+
+[2026-11-20 18:40:51] $ scripts/vm.sh root ls /etc/apache2/sites-enabled /etc/apache2/sites-available
+/etc/apache2/sites-available:
+000-default.conf
+000-tpan-default.conf
+default-ssl.conf
+tpan-s1.example.com.conf
+tpan-s2.example.com.conf
+tpan-s3.example.com.conf
+
+/etc/apache2/sites-enabled:
+000-tpan-default.conf
+tpan-s1.example.com.conf
+tpan-s3.example.com.conf
+[2026-11-20 18:40:51] (mã thoát 0)
+  => ĐẠT: link vhost gỡ, file vhost giữ
+
+[2026-11-20 18:40:51] $ scripts/vm.sh root tpan site restore s2.example.com --yes
+Bắt đầu job 14d14f863543bd3c
+- Chuyển thư mục của s2.example.com ra khỏi thùng rác ...
+  xong
+- Mở khoá user Linux tp_s2_example_com_36299e của s2.example.com ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/s2.example.com/public/wp-config.php ...
+  đã đúng, bỏ qua
+- Đặt lịch cron WordPress của s2.example.com (5 phút một lần) ...
+  xong
+- Mở khoá user DB tp_s2_example_com_36299e của site s2.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-s2_example_com_36299e cho s2.example.com ...
+  xong
+- Ghi vhost apache cho s2.example.com ...
+  đã đúng, bỏ qua
+- Bật /etc/apache2/sites-enabled/tpan-s2.example.com.conf → /etc/apache2/sites-available/tpan-s2.example.com.conf ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s1.example.com
+  [đạt] Site s1.example.com không đọc được wp-config.php của site s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s3.example.com
+  [đạt] Site s3.example.com không đọc được wp-config.php của site s2.example.com
+
+Job 14d14f863543bd3c: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_s2_example_com_36299e
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_s2_example_com_36299e
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s1.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s1.example.com
+  [đạt] Site s1.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s1_example_com_090c1b không đọc được wp-config.php của s2.example.com
+  [đạt] Site s2.example.com không đọc được wp-config.php của site s3.example.com: Bị từ chối như mong đợi: tp_s2_example_com_36299e không đọc được wp-config.php của s3.example.com
+  [đạt] Site s3.example.com không đọc được wp-config.php của site s2.example.com: Bị từ chối như mong đợi: tp_s3_example_com_25da68 không đọc được wp-config.php của s2.example.com
+[2026-11-20 18:40:53] (mã thoát 0)
+  => ĐẠT: restore thoát 0, job thành công
+
+[2026-11-20 18:40:53] $ scripts/vm.sh exec bash -c 
+for d in "$@"; do
+  body=$(curl -sS -m 20 --resolve "$d:80:127.0.0.1" -w "\n%{http_code}" "http://$d/" 2>/dev/null); rc=$?
+  code=$(printf "%s" "$body" | tail -1)
+  title=$(printf "%s" "$body" | grep -o "<title>[^<]*</title>" | head -1)
+  n=$(printf "%s" "$body" | grep -cF "http://$d/")
+  echo "$d curl=$rc http=$code nhắc=$n $title"
+done
+ _ s2.example.com
+s2.example.com curl=0 http=200 nhắc=27 <title>s2.example.com</title>
+[2026-11-20 18:40:53] (mã thoát 0)
+  => ĐẠT: s2.example.com trả 200 lại, đúng trang
+
+[2026-11-20 18:40:53] $ scripts/vm.sh root bash -c 
+cd "$1" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-64
+find . -type f | wc -l
+ _ /var/www/s2.example.com
+81611f7b686c3bb8358f7b4753a75943c3db7bcf0174fac7b93154f06f11d985
+3785
+[2026-11-20 18:40:54] (mã thoát 0)
+  => ĐẠT: cây thư mục giống hệt trước khi xoá
+
+[2026-11-20 18:40:54] $ scripts/vm.sh root bash -c 
+u=$1
+chage -l "$u" | grep -i "^Account expires"
+mariadb -N -B -e "SELECT User, JSON_VALUE(Priv, \"\$.account_locked\") FROM mysql.global_priv WHERE User = \"$u\""
+ _ tp_s2_example_com_36299e
+Account expires						: never
+tp_s2_example_com_36299e	0
+[2026-11-20 18:40:54] (mã thoát 0)
+  => ĐẠT: mở khoá cả hai
+
+[2026-11-20 18:40:54] $ scripts/vm.sh root tpan health --json
+started 2026-11-20T18:40:54.296036094+07:00  finished 2026-11-20T18:41:00.384844572+07:00
+nhóm: (máy, stack), s1.example.com, s2.example.com, s3.example.com, tpan
+số phép kiểm theo trạng thái: pass=52 unknown=3 warn=8
+số phép drift: 12
+--- warn dns.a:s1.example.com (chặng dns): s1.example.com chưa có bản ghi A
+--- warn tls.cert:s1.example.com (chặng tls): Chưa có chứng chỉ cho s1.example.com
+--- warn dns.a:s2.example.com (chặng dns): s2.example.com chưa có bản ghi A
+--- warn tls.cert:s2.example.com (chặng tls): Chưa có chứng chỉ cho s2.example.com
+--- warn dns.a:s3.example.com (chặng dns): s3.example.com chưa có bản ghi A
+--- warn tls.cert:s3.example.com (chặng tls): Chưa có chứng chỉ cho s3.example.com
+--- unknown tpan.cert:/etc/tpan/tls/cert.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/cert.pem (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)
+--- unknown tpan.perm:/etc/tpan/tls/key.pem (chặng tpan): Chưa kiểm được: không có /etc/tpan/tls/key.pem
+--- unknown tpan.perm:/etc/tpan (chặng tpan): Chưa kiểm được: không có /etc/tpan
+--- warn tpan.scheduler:health (chặng tpan): Bộ hẹn giờ health chưa chạy lần nào
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+sự cố vừa mở: 
+sự cố vừa đóng: 
+[2026-11-20 18:41:00] (mã thoát 0)
+  => ĐẠT: health apache sau restore: thoát 0, không Fail
+  => ĐẠT: health apache sau restore: không có lệch (drift) nào khác đạt
+  => ĐẠT: health apache sau restore: không mở sự cố nào
+
+
+######## [2026-11-20 18:41:00] bí mật, IP, tên user Mac, cookie có lọt vào chính file log không
+Số bí mật đã gặp: 27; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu nào
+  => ĐẠT: log không chứa IP máy ảo (IPv4)
+  => ĐẠT: log không chứa mạng Multipass
+  => ĐẠT: log không chứa IPv6 của máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+  => ĐẠT: log không chứa giá trị cookie nào
+
+
+######## [2026-11-20 18:41:00] TỔNG KẾT: 167 khẳng định đạt, 0 khẳng định không đạt
+exit=0
