@@ -213,6 +213,12 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "GET /api/v1/security/isolation", rule: adminOnly, h: s.handleIsolation},
 		{pattern: "POST /api/v1/security/harden", rule: adminOnly, h: s.handleSecurityHarden},
 
+		// M15: nút cập nhật TPAN trong panel (types_m15.go, api_m15.go). Chỉ
+		// admin: lượt chạy thay file chạy của panel bằng quyền root.
+		{pattern: "GET /api/v1/self", rule: adminOnly, h: s.handleSelf},
+		{pattern: "POST /api/v1/self/update", rule: adminOnly, h: s.handleSelfUpdate},
+		{pattern: "POST /api/v1/self/rollback", rule: adminOnly, h: s.handleSelfRollback},
+
 		// Còn lại: đường dẫn API lạ là 404 JSON; mọi thứ khác là giao diện web
 		// (đã nhúng). Cũng nằm trong bảng để test duyệt đủ mọi mẫu của mux.
 		{pattern: "/api/", rule: public, h: handleAPINotFound},
