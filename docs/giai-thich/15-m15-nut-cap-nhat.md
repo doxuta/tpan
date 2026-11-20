@@ -1,6 +1,6 @@
 # M15: nút cập nhật TPAN trong panel
 
-Đọc kèm: `11-m11-cai-dat-va-phat-hanh.md` (gói phát hành, `SHA256SUMS`), `12-m12-phien-ban-va-cap-nhat.md` mục 2.10 và 3.12 (`tpan self-update` ở dòng lệnh, `SelfDownload`, `SelfInstall`) cùng đoạn "`rename` và file đang chạy" ở mục 4, `13-m13-nhieu-nguoi-dung.md` (luật route `adminOnly`, phiên "xem như"), `03-m3-giao-dien-va-api.md` (cookie phiên, CSRF, job và SSE), `00-go-can-ban.md` mục 7 (context), `docs/KE-HOACH.md` mục 6.14 (đặc tả đã chốt của mốc này) và `docs/thay-doi/M15.md` (sổ làm việc: đợt 0 đã thử gì, chỗ khác lời giao việc).
+Đọc kèm: `11-m11-cai-dat-va-phat-hanh.md` (gói phát hành, `SHA256SUMS`), `12-m12-phien-ban-va-cap-nhat.md` mục 2.10 và 3.12 (`tpan self-update` ở dòng lệnh, `SelfDownload`, `SelfInstall`) cùng đoạn "`rename` và file đang chạy" ở mục 4, `13-m13-nhieu-nguoi-dung.md` (luật route `adminOnly`, phiên "xem như"), `03-m3-giao-dien-va-api.md` (cookie phiên, CSRF, job và SSE), `00-go-can-ban.md` mục 7 (context), `docs/KE-HOACH.md` mục 6.14 (đặc tả đã chốt của mốc này) và phần "Đã chốt khi làm M15" ở mục 6.14 của `docs/KE-HOACH.md` (sổ làm việc: đợt 0 đã thử gì, chỗ khác lời giao việc).
 
 Mốc này sinh ra từ một yêu cầu ngày 21/11/2026, sau khi phát hành v0.2.0: cập nhật TPAN ngay trong panel, không phải SSH vào máy gõ `tpan self-update`. Người review sẽ hỏi quanh bảy câu dưới đây. Bảng này là mục lục của cả file:
 
@@ -890,7 +890,12 @@ Vì sao "kiểm bản mới" cũng là POST chứ không phải GET? Vì nó là
 ```go
 	fresh := false
 	if r.URL.Query().Get("auto") == "1" {
-		if c := s.selfCheck.get(); c != nil && s.now().Sub(c.CheckedAt) <= SelfCheckTTL {
+		st, err := s.apiSelf().Status(r.Context())
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		if c := s.selfCheck.get(st.URL); c != nil && s.now().Sub(c.CheckedAt) <= SelfCheckTTL {
 			fresh = true
 		}
 	}
@@ -898,7 +903,7 @@ Vì sao "kiểm bản mới" cũng là POST chứ không phải GET? Vì nó là
 		c, err := s.apiSelf().Check(r.Context())
 ```
 
-`s.selfCheck` (kiểu `selfChecks` trong cùng file) nhớ lần kiểm gần nhất trong bộ nhớ của tiến trình, có `sync.Mutex` canh vì nhiều request chạy song song. `SelfCheckTTL` là 6 giờ (`internal/server/types_m15.go`). Ba quyết định nhỏ ở đây:
+`s.selfCheck` (kiểu `selfChecks` trong cùng file) nhớ lần kiểm gần nhất trong bộ nhớ của tiến trình, có `sync.Mutex` canh vì nhiều request chạy song song. `get(url)` chỉ trả lần kiểm đó khi nó đã hỏi đúng nguồn tải `url`: nguồn tải đổi thì lần kiểm cũ nói về chỗ khác, coi như chưa kiểm (chỗ này sửa sau lần chạy e2e đầu, xem mục 5.8). `SelfCheckTTL` là 6 giờ (`internal/server/types_m15.go`). Ba quyết định nhỏ ở đây:
 
 - Lần kiểm lỗi cũng được nhớ. Nếu không, một máy không ra được mạng sẽ phải chờ hết 15 giây của `curl` ở mọi lần tải trang.
 - Người bấm nút (không có `auto`) thì luôn hỏi mới. Bấm là muốn biết bây giờ.
@@ -1496,7 +1501,7 @@ Muốn ra khỏi cgroup một cách đàng hoàng thì phải nhờ systemd tạ
 
 ### 5.3 Đơn vị tạm chạy thẳng `tpan self-update --yes`
 
-Đây là dự định ban đầu trong lời giao việc của mốc, và là thứ bài thử cơ chế đã chạy (phần 2 của mục 2.2). Nó lên được bản mới. Nhưng nhìn bảng `audit` của lần thử đó: `cli | self.update | http://127.0.0.1:8015/b | ok`. Không biết ai bấm, IP là `cli`, và không có gì trong settings để màn đọc lại sau restart. Vì vậy có lệnh nội bộ `tpan internal self-update`: cùng Plan, thêm hai việc ghi (settings và `audit` có tên người). `tpan self-update` của dòng lệnh không đổi hành vi: phần H của `M15.log`, và ba dòng `audit` cuối bảng (27, 28, 29) vẫn mang IP `cli`. Nguồn: `docs/thay-doi/M15.md`, mục "Chỗ khác với lời giao việc".
+Đây là dự định ban đầu trong lời giao việc của mốc, và là thứ bài thử cơ chế đã chạy (phần 2 của mục 2.2). Nó lên được bản mới. Nhưng nhìn bảng `audit` của lần thử đó: `cli | self.update | http://127.0.0.1:8015/b | ok`. Không biết ai bấm, IP là `cli`, và không có gì trong settings để màn đọc lại sau restart. Vì vậy có lệnh nội bộ `tpan internal self-update`: cùng Plan, thêm hai việc ghi (settings và `audit` có tên người). `tpan self-update` của dòng lệnh không đổi hành vi: phần H của `M15.log`, và ba dòng `audit` cuối bảng (27, 28, 29) vẫn mang IP `cli`. Nguồn: phần "Đã chốt khi làm M15" ở mục 6.14 của `docs/KE-HOACH.md`, mục "Chỗ khác với lời giao việc".
 
 ### 5.4 Truyền người bấm và IP qua dòng lệnh
 
@@ -1504,13 +1509,13 @@ Ví dụ `tpan internal self-update --actor admin --ip ...`. Gọn hơn đi vòn
 
 ### 5.5 Tải cả file chạy lúc "Kiểm bản mới" để biết tên bản
 
-`tpan self-update` chỉ biết tên bản mới sau khi đã tải file chạy về và chạy `tpan.new version`. Làm vậy cho nút "Kiểm bản mới" nghĩa là mỗi lần kiểm tải hơn 20 MB, ghi một file vào `/usr/local/bin`, và chạy một file bằng root chỉ để đọc tên của nó; dòng phiên bản cuối trang còn tự kiểm khi mở panel. Chọn cách khác: `make release` ghi thêm file `VERSION` một dòng, và lần kiểm chỉ tải hai file chữ. Cái giá: bản phát hành trước M15 không có `VERSION` (mục 2.3, 5.9). Nguồn: `docs/thay-doi/M15.md`.
+`tpan self-update` chỉ biết tên bản mới sau khi đã tải file chạy về và chạy `tpan.new version`. Làm vậy cho nút "Kiểm bản mới" nghĩa là mỗi lần kiểm tải hơn 20 MB, ghi một file vào `/usr/local/bin`, và chạy một file bằng root chỉ để đọc tên của nó; dòng phiên bản cuối trang còn tự kiểm khi mở panel. Chọn cách khác: `make release` ghi thêm file `VERSION` một dòng, và lần kiểm chỉ tải hai file chữ. Cái giá: bản phát hành trước M15 không có `VERSION` (mục 2.3, 5.9). Nguồn: phần "Đã chốt khi làm M15" ở mục 6.14 của `docs/KE-HOACH.md`.
 
 ### 5.6 Ghi lại số bản cấu trúc DB lúc nâng để biết có lùi được không
 
-Ý là: mỗi lần lên bản mới, ghi vào settings "trước khi lên DB ở bản mấy", rồi lúc quay về so số. Lời giao việc cho mình nêu đây là một cách đã cân nhắc; sổ làm việc `docs/thay-doi/M15.md` không ghi lại lần cân nhắc đó, nên phần lý do dưới đây là mình đọc từ mã và mục 6.14.
+Ý là: mỗi lần lên bản mới, ghi vào settings "trước khi lên DB ở bản mấy", rồi lúc quay về so số. Phiên chính cân nhắc cách này ở đợt 0 và ghi lại ở mục 6.14 của `docs/KE-HOACH.md` (phần "Đã chốt khi làm M15"); phần lý do dưới đây khớp với mã và mục 6.14.
 
-Chọn hỏi thẳng file cũ (`tpan.old site list`, mục 3.10) vì ba lẽ. File cũ là thứ duy nhất biết chắc nó đọc được gì; số ghi lại chỉ là phỏng đoán về nó. Cách hỏi thẳng bắt được cả lý do khác (file cũ hỏng, không chạy nổi). Và nó chạy được với mọi `tpan.old` đang có trên các máy, kể cả file do bản trước M15 để lại, khi chưa có mã nào ghi số. Bằng chứng: mục 2.8, và phép thử tay ở `docs/thay-doi/M15.md` (v0.1.2 thoát mã 1, v0.2.0 thoát mã 0 trên cùng DB bản 1400).
+Chọn hỏi thẳng file cũ (`tpan.old site list`, mục 3.10) vì ba lẽ. File cũ là thứ duy nhất biết chắc nó đọc được gì; số ghi lại chỉ là phỏng đoán về nó. Cách hỏi thẳng bắt được cả lý do khác (file cũ hỏng, không chạy nổi). Và nó chạy được với mọi `tpan.old` đang có trên các máy, kể cả file do bản trước M15 để lại, khi chưa có mã nào ghi số. Bằng chứng: mục 2.8, và phép thử tay ở phần "Đã chốt khi làm M15" ở mục 6.14 của `docs/KE-HOACH.md` (v0.1.2 thoát mã 1, v0.2.0 thoát mã 0 trên cùng DB bản 1400).
 
 ### 5.7 Không dùng `--collect`
 
@@ -1521,7 +1526,7 @@ Chọn hỏi thẳng file cũ (`tpan.old site list`, mục 3.10) vì ba lẽ. Fi
 - **Dòng `audit` mất khi tiến trình bị dừng.** Ở bài thử cơ chế, lượt chạy bị cắt in `tpan: ghi nhật ký self.update: context canceled`: lệnh ghi nhật ký dùng chung context đã bị huỷ. Phát hiện bằng chính output đó. Trong mã của mốc, lệnh nội bộ ghi `audit` và `Run` ghi settings bằng `context.WithoutCancel` (mục 3.7, 4.10).
 - **"Sai sha256 thì không còn `tpan.new`" chỉ đúng một nửa.** Phần D của e2e khẳng định như vậy. Phần C7 chạy lại đúng tình huống đó khi trên máy đang có một `tpan.new` còn sót, và thấy file sót ấy vẫn nguyên. Log ghi nhận (dòng 1402): `vì vậy "sai sha256 thì không còn tpan.new" (phần D) chỉ đúng khi trước lượt chạy không có tpan.new; có sẵn thì nó được trả lại, file vừa tải vẫn bị bỏ`. Đây là hành vi đúng của hoàn tác (trả máy về như trước lượt chạy), chỉ là câu mô tả ban đầu nói quá.
 - **E2E phải đi hai chặng.** v0.2.0 chưa có API cập nhật, nên không thể "cài v0.2.0 rồi bấm nút". E2E lên bản của nhánh bằng `tpan self-update` của chính v0.2.0, rồi mới gọi API của bản nhánh để lên một bản build thứ hai chỉ khác tên. Hệ quả cần nói thật: chặng bấm nút đi giữa hai bản cùng mã.
-- **Lần kiểm còn nhớ không biết nguồn tải đã đổi.** Ở `M15.log` dòng 1399, setting nguồn tải đã là `.../sai` mà `check` trong cùng câu trả lời vẫn là lần kiểm với `.../b` (`"url":"http://127.0.0.1:8015/b"`, `"up_to_date":true`). Hôm nay chỉ đồ nghề test đổi được setting này, nên người dùng chưa gặp. Khi có lệnh đặt `update.self_url` thì cần xoá lần kiểm cũ lúc đổi nguồn. Mình chỉ thấy điều này trong log; ghi lại để phiên chính xem.
+- **Lần kiểm còn nhớ không biết nguồn tải đã đổi.** Ở `M15.log` dòng 1399, setting nguồn tải đã là `.../sai` mà `check` trong cùng câu trả lời vẫn là lần kiểm với `.../b` (`"url":"http://127.0.0.1:8015/b"`, `"up_to_date":true`). Hôm nay chỉ đồ nghề test đổi được setting này, nên người dùng chưa gặp. Phiên chính đã sửa ngay sau lần chạy e2e đó: máy chủ chỉ trả lần kiểm còn nhớ khi nó hỏi đúng nguồn tải hiện tại, và `auto=1` kiểm lại khi nguồn đã đổi (`selfChecks.get(url)` ở `internal/server/api_m15.go`, unit test `TestSelfKiemQuenKhiDoiNguon`). Cả e2e được chạy lại từ máy sạch trên bản đã sửa: 200 khẳng định đạt, 0 không đạt (`docs/bang-chung/M15-sau-sua.log`). Các số dòng trích trong file này vẫn là của `M15.log`, lần chạy trước khi sửa.
 
 ### 5.9 Giới hạn đã biết, nói thẳng
 
