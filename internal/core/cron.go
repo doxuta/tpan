@@ -83,7 +83,7 @@ func (c *Cron) Run(ctx context.Context, d validate.Domain) (CronRun, error) {
 		// Site trong thùng rác: user Linux của nó bị khoá bằng hạn tài khoản,
 		// nhưng root gọi runuser bỏ qua hạn đó, nên phải chặn ở đây.
 		run.Status = CronSkipped
-		run.Output = "site " + d.String() + " không active (" + string(st.Status) + "), bỏ qua"
+		run.Output = "site " + d.String() + " is not active (" + string(st.Status) + "), skipped"
 	} else {
 		rctx, cancel := context.WithTimeout(ctx, cronTimeout)
 		res, err := c.Sites.Sys.Run(rctx, cronCmd(st.Layout()))

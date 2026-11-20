@@ -353,14 +353,14 @@ func TestSpaceOK(t *testing.T) {
 		want              bool
 	}{
 		{free: 60, total: 100, need: 10, want: true},
-		{free: 12, total: 20, need: 10, want: true},   // đúng 1,2 lần, còn 2 = 10%
-		{free: 12, total: 21, need: 10, want: false},  // còn 2 < 2,1
-		{free: 11, total: 10, need: 10, want: false},  // < 1,2 lần
-		{free: 5, total: 100, need: 4, want: false},   // 4 × 1,2 = 4,8 > ... còn 1 < 10
-		{free: 50, total: 100, need: 4, want: true},   // làm tròn lên 4/5 → 1
-		{free: 9, total: 100, need: 10, want: false},  // không đủ cả need
-		{free: 10, total: 100, need: 0, want: true},   // DB rỗng, còn đúng 10%
-		{free: 9, total: 100, need: 0, want: false},   // đĩa đã dưới 10%
+		{free: 12, total: 20, need: 10, want: true},  // đúng 1,2 lần, còn 2 = 10%
+		{free: 12, total: 21, need: 10, want: false}, // còn 2 < 2,1
+		{free: 11, total: 10, need: 10, want: false}, // < 1,2 lần
+		{free: 5, total: 100, need: 4, want: false},  // 4 × 1,2 = 4,8 > ... còn 1 < 10
+		{free: 50, total: 100, need: 4, want: true},  // làm tròn lên 4/5 → 1
+		{free: 9, total: 100, need: 10, want: false}, // không đủ cả need
+		{free: 10, total: 100, need: 0, want: true},  // DB rỗng, còn đúng 10%
+		{free: 9, total: 100, need: 0, want: false},  // đĩa đã dưới 10%
 		{free: max, total: max, need: max, want: false},
 		{free: max, total: max, need: 1, want: true},
 	} {
@@ -669,7 +669,7 @@ func TestBackupArchive(t *testing.T) {
 			t.Errorf("Info = %+v", ia)
 		}
 		all := strings.Join(ia.Commands, "\n")
-		if strings.Contains(all, "2026") || !strings.Contains(all, "<giờ lúc chạy>.tar.gz") || !strings.Contains(all, "mariadb-dump") {
+		if strings.Contains(all, "2026") || !strings.Contains(all, "<YYYYMMDD-HHMMSS>.tar.gz") || !strings.Contains(all, "mariadb-dump") {
 			t.Errorf("Commands = %v", ia.Commands)
 		}
 	})
@@ -1105,8 +1105,8 @@ func (bkBoom) Info() engine.StepInfo {
 	return engine.StepInfo{ID: "test.boom", Title: i18n.T("boom", "boom"), Why: i18n.T("x", "x")}
 }
 func (bkBoom) Check(context.Context, system.System) (bool, error) { return false, nil }
-func (bkBoom) Apply(context.Context, system.System) error          { return errors.New("boom") }
-func (bkBoom) Undo(context.Context, system.System) error           { return nil }
+func (bkBoom) Apply(context.Context, system.System) error         { return errors.New("boom") }
+func (bkBoom) Undo(context.Context, system.System) error          { return nil }
 
 // bkRestore dựng đúng các bước của core.PrepareRestore (types_m9.go).
 func bkRestore(f *bkFake, x *BackupExtract) []engine.Step {

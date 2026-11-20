@@ -57,7 +57,7 @@ func Drift(p, wantSHA256 string, stage Stage) Check {
 
 		data, err := sys.ReadFile(p)
 		if errors.Is(err, fs.ErrNotExist) {
-			ev.ExitCode, ev.Output = 1, "không có file / no such file\nmong đợi / expected: "+want
+			ev.ExitCode, ev.Output = 1, "No such file or directory\nexpected: "+want
 			return b.bad(Fail,
 				i18n.T("File "+p+" không còn", "File "+p+" is gone"),
 				i18n.T("File do tpan quản lý đã bị xoá hoặc đổi tên. Thiếu nó thì phần cấu hình tương ứng không còn tác dụng.",
@@ -70,7 +70,7 @@ func Drift(p, wantSHA256 string, stage Stage) Check {
 		}
 		sum := sha256.Sum256(data)
 		got := hex.EncodeToString(sum[:])
-		ev.Output = got + "  " + p + "\nmong đợi / expected: " + want
+		ev.Output = got + "  " + p + "\nexpected: " + want
 		if got == want {
 			return b.pass(i18n.T("File "+p+" đúng như tpan đã ghi", "File "+p+" is as tpan wrote it"), ev)
 		}
@@ -269,7 +269,7 @@ func PanelCert(p string, now func() time.Time) Check {
 		ev := Evidence{Command: "parse " + p + " (tpan)"}
 		data, err := sys.ReadFile(p)
 		if errors.Is(err, fs.ErrNotExist) {
-			ev.ExitCode, ev.Output = 1, "không có file / no such file"
+			ev.ExitCode, ev.Output = 1, "No such file or directory"
 			return b.unknown(i18n.T("không có "+p+" (máy chưa chạy tpan setup, hoặc đang ở chế độ --demo)",
 				p+" is missing (tpan setup has not run, or this is --demo mode)"), ev)
 		}
@@ -289,7 +289,7 @@ func PanelCert(p string, now func() time.Time) Check {
 		}
 		left := cert.NotAfter.Sub(now())
 		days := int(left / (24 * time.Hour))
-		ev.Output = fmt.Sprintf("subject=%s notAfter=%s còn %d ngày", cert.Subject.String(), cert.NotAfter.UTC().Format(time.RFC3339), days)
+		ev.Output = fmt.Sprintf("subject=%s notAfter=%s, %d days left", cert.Subject.String(), cert.NotAfter.UTC().Format(time.RFC3339), days)
 		switch {
 		case left <= 0:
 			return b.bad(Fail,
@@ -348,7 +348,7 @@ func FileMode(p string, perm uint32, owner system.Owner, stage Stage) Check {
 		recheck := line("ls", "-ld", p)
 		info, err := sys.Stat(p)
 		if errors.Is(err, fs.ErrNotExist) {
-			ev.ExitCode, ev.Output = 1, "không có file / no such file"
+			ev.ExitCode, ev.Output = 1, "No such file or directory"
 			return b.unknown(i18n.T("không có "+p, p+" does not exist"), ev)
 		}
 		if err != nil {
@@ -357,7 +357,7 @@ func FileMode(p string, perm uint32, owner system.Owner, stage Stage) Check {
 		}
 		gotUser, gotGroup := orRoot(info.Owner.User), orRoot(info.Owner.Group)
 		gotPerm := uint32(info.Mode.Perm())
-		ev.Output = fmt.Sprintf("mode %04o, chủ %s:%s", gotPerm, gotUser, gotGroup)
+		ev.Output = fmt.Sprintf("mode %04o, owner %s:%s", gotPerm, gotUser, gotGroup)
 		if info.Mode&fs.ModeSymlink != 0 {
 			ev.Output = "symlink, " + ev.Output
 			return b.bad(Fail,
@@ -452,7 +452,7 @@ func TPANJobs(stuck func(ctx context.Context) ([]StuckJob, error)) Check {
 			return b.unknown(i18n.T("không đọc được danh sách job ("+err.Error()+")", "could not read the job list ("+err.Error()+")"), ev)
 		}
 		if len(jobs) == 0 {
-			ev.Output = "không có / none"
+			ev.Output = "none"
 			return b.pass(i18n.T("Không có job nào chạy quá lâu", "No job has been running for too long"), ev)
 		}
 		var lines, short []string
@@ -509,12 +509,12 @@ func TPANScheduler(lastBeat func(ctx context.Context) (t time.Time, ok bool, err
 			"Is `tpan serve` running? The scheduler lives in that process; if it is down nobody checks the machine periodically and new incidents go unnoticed.")
 		fix := []string{line("journalctl", "-u", "tpan", "-n", "50", "--no-pager"), line("systemctl", "status", "tpan")}
 		if !ok {
-			ev.ExitCode, ev.Output = 1, "chưa bao giờ / never"
+			ev.ExitCode, ev.Output = 1, "never"
 			return b.bad(Warn,
 				i18n.T("Bộ hẹn giờ health chưa chạy lần nào", "The health scheduler has never run"), cause, fix, ev)
 		}
 		age := now().Sub(t)
-		ev.Output = fmt.Sprintf("lần gần nhất / last: %s, cách đây / ago: %s", t.UTC().Format(time.RFC3339), age.Round(time.Second))
+		ev.Output = fmt.Sprintf("last: %s, ago: %s", t.UTC().Format(time.RFC3339), age.Round(time.Second))
 		if age > maxAge {
 			mins, maxMins := int(age/time.Minute), int(maxAge/time.Minute)
 			return b.bad(Warn,

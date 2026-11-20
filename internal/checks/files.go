@@ -42,7 +42,7 @@ func WPCLI(sha512hex string) Check {
 
 		info, err := sys.Stat(wpPath)
 		if errors.Is(err, fs.ErrNotExist) {
-			statEv.ExitCode, statEv.Output = 1, "không có file / no such file"
+			statEv.ExitCode, statEv.Output = 1, "No such file or directory"
 			return b.bad(Fail,
 				i18n.T("WP-CLI chưa được cài (không có "+wpPath+")", "WP-CLI is not installed ("+wpPath+" is missing)"),
 				i18n.T("Chưa cài hoặc file đã bị xoá. Không có WP-CLI thì không tạo được site WordPress.",
@@ -53,7 +53,7 @@ func WPCLI(sha512hex string) Check {
 			statEv.ExitCode, statEv.Output = -1, err.Error()
 			return b.unknown(i18n.T("không đọc được thông tin file ("+err.Error()+")", "could not stat the file ("+err.Error()+")"), statEv)
 		}
-		statEv.Output = fmt.Sprintf("mode %04o, %d byte, chủ %s:%s", uint32(info.Mode.Perm()), info.Size, orRoot(info.Owner.User), orRoot(info.Owner.Group))
+		statEv.Output = fmt.Sprintf("mode %04o, %d bytes, owner %s:%s", uint32(info.Mode.Perm()), info.Size, orRoot(info.Owner.User), orRoot(info.Owner.Group))
 		if !info.Mode.IsRegular() {
 			return b.bad(Fail,
 				i18n.T(wpPath+" không phải file thường", wpPath+" is not a regular file"),
@@ -70,7 +70,7 @@ func WPCLI(sha512hex string) Check {
 		}
 		sum := sha512.Sum512(data)
 		got := hex.EncodeToString(sum[:])
-		shaEv.Output = got + "  " + wpPath + "\nmong đợi / expected: " + want
+		shaEv.Output = got + "  " + wpPath + "\nexpected: " + want
 
 		var vi, en, fix []string
 		if info.Mode.Perm() != 0o755 {
@@ -168,7 +168,7 @@ func OSRelease(id, versionID string) Check {
 			"TPAN has only been tested on "+id+" "+versionID+". Other systems use other package names and paths, so installing there is likely to break.")
 		data, err := sys.ReadFile(file)
 		if errors.Is(err, fs.ErrNotExist) {
-			ev.ExitCode, ev.Output = 1, "không có file / no such file"
+			ev.ExitCode, ev.Output = 1, "No such file or directory"
 			return b.bad(Fail, i18n.T("Không có "+file+": không nhận ra hệ điều hành", file+" is missing: the operating system is not recognised"), why, fix, ev)
 		}
 		if err != nil {

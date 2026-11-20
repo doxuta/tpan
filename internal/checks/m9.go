@@ -56,7 +56,7 @@ func TPANBackupAge(dir string, maxAge time.Duration, now func() time.Time) Check
 			return b.unknown(i18n.T("không đọc được "+dir+" ("+sslClean(err.Error())+")", "could not read "+dir+" ("+sslClean(err.Error())+")"), ev)
 		}
 		if err != nil {
-			ev.ExitCode, ev.Output = 1, "không có / no such file or directory"
+			ev.ExitCode, ev.Output = 1, "No such file or directory"
 		}
 
 		var newest string
@@ -88,7 +88,7 @@ func TPANBackupAge(dir string, maxAge time.Duration, now func() time.Time) Check
 					"Nobody has copied tpan.db yet. If this file is damaged or lost, tpan forgets every site, the history and the backups it has. Make one now and turn on the daily schedule so nobody has to remember."),
 				fix, ev)
 		}
-		ev.Output = "mới nhất / newest: " + newest
+		ev.Output = "newest: " + newest
 		age := now().Sub(newestAt)
 		if age > maxAge {
 			hours := int(age / time.Hour)

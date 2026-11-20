@@ -50,7 +50,7 @@ func PHPPoolWWWAbsent(version string) Check {
 		if err != nil {
 			ev.ExitCode, ev.Output = -1, err.Error()
 			if errors.Is(err, fs.ErrNotExist) {
-				ev.ExitCode, ev.Output = 1, "không có / no such file or directory"
+				ev.ExitCode, ev.Output = 1, "No such file or directory"
 			}
 			return b.unknown(i18n.T("không đọc được "+dir+" ("+sslClean(err.Error())+")", "could not read "+dir+" ("+sslClean(err.Error())+")"), ev)
 		}

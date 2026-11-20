@@ -230,7 +230,7 @@ func TLSCert(l site.Layout) Check {
 		ev := Evidence{Command: "read " + file + " (tpan)"}
 		data, err := sys.ReadFile(file)
 		if errors.Is(err, fs.ErrNotExist) {
-			ev.ExitCode, ev.Output = 1, "không có file / no such file"
+			ev.ExitCode, ev.Output = 1, "No such file or directory"
 			return b.bad(Fail,
 				i18n.T("Chưa có chứng chỉ cho "+dom, "There is no certificate for "+dom),
 				i18n.T("Chưa xin chứng chỉ cho tên miền này, hoặc file bị xoá. Trình duyệt sẽ báo không an toàn (hoặc không vào được cổng 443).",

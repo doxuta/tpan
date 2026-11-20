@@ -62,8 +62,8 @@ func (st *settingsStep) Info() engine.StepInfo {
 		id += ":" + kv[0] + "=" + kv[1]
 	}
 	return engine.StepInfo{ID: id, Title: st.title, Why: st.why, NoUndo: i18n.T(
-		"Không hoàn tác: bước này chỉ chạy sau khi gói đã nâng, mà gói đã nâng thì máy đang chạy dòng mới; trả settings về dòng cũ là để tpan nói sai về máy.",
-		"Not undone: this step only runs after the packages are upgraded, and then the machine runs the new series; putting the old series back in settings would make tpan describe the machine wrongly.")}
+		"Bước này chỉ chạy sau khi gói đã nâng, mà gói đã nâng thì máy đang chạy dòng mới; trả settings về dòng cũ là để tpan nói sai về máy.",
+		"This step only runs after the packages are upgraded, and then the machine runs the new series; putting the old series back in settings would make tpan describe the machine wrongly.")}
 }
 
 func (st *settingsStep) Check(ctx context.Context, _ system.System) (bool, error) {

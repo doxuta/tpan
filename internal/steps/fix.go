@@ -71,8 +71,8 @@ func (s *PHPFPMRestart) Info() engine.StepInfo {
 		// Mọi site dùng bản PHP này mất PHP trong vài giây.
 		Danger: true,
 		NoUndo: i18n.T(
-			"Không hoàn tác: khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về (dừng PHP-FPM lại chỉ làm site chết).",
-			"Not undone: a restart changes no configuration, so there is no earlier state to return to (stopping PHP-FPM again would only take the sites down).",
+			"Khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về (dừng PHP-FPM lại chỉ làm site chết).",
+			"A restart changes no configuration, so there is no earlier state to return to (stopping PHP-FPM again would only take the sites down).",
 		),
 	}
 }

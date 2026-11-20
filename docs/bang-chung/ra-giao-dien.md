@@ -118,3 +118,7 @@ Những mục đã quét và không tìm thấy lỗi nào ở cả 4 tổ hợp
 5. **Chế độ xám thật của hệ điều hành:** bốn dấu trạng thái có còn phân biệt được không. Hình dạng đúng đặc tả theo mã, nhưng chưa nhìn bằng mắt.
 6. **Trình đọc màn hình thật** (VoiceOver): thứ tự đọc, nhãn dấu trạng thái, vùng `aria-live` "Đã chép". Mình mới kiểm thuộc tính trong DOM, chưa nghe thật.
 7. **Đi hết màn bằng Tab thật** từ đầu tới cuối. Mình mới kiểm từng phần tử có viền focus, chưa kiểm thứ tự Tab hay bẫy focus trong hộp hỏi lại và ngăn AI ở 390 px.
+
+## Cập nhật sau khi rà (20/11/2026)
+
+Các chuỗi từ mã Go còn tiếng Việt ở bản EN đã sửa: bằng chứng của phép kiểm viết tiếng Anh như output của công cụ thật, tên file backup giữ chỗ là `<YYYYMMDD-HHMMSS>`, lý do "không hoàn tác" của các bước bỏ tiền tố trùng với nhãn giao diện. Test `internal/checks/i18n_scan_test.go` quét mã nguồn để bắt lại các lỗi này. Còn lại: lỗi trả về từ `err.Error()` có thể mang chữ Việt vào bản EN (quét tĩnh không bắt được), và dữ liệu đã lưu trước đó giữ chữ cũ.

@@ -416,7 +416,7 @@ func SecurityUpdates() Check {
 		}
 		// Output thật của mô phỏng có cả trăm dòng "Conf" đứng sau các dòng "Inst" và
 		// clip giữ phần CUỐI, nên các dòng quan trọng sẽ bị cắt mất; chỉ giữ dòng bảo mật.
-		ev.Output = clip("(chỉ các dòng Inst của kho -security / only the Inst lines of the -security pocket)\n" + strings.Join(sec, "\n"))
+		ev.Output = clip("(only the Inst lines of the -security pocket)\n" + strings.Join(sec, "\n"))
 		n := strconv.Itoa(len(sec))
 		return b.bad(Warn,
 			i18n.T(n+" gói bảo mật đang chờ cập nhật", n+" security updates are waiting"),

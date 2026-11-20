@@ -81,8 +81,8 @@ func (s *MariaDBSecure) Info() engine.StepInfo {
 		// DROP DATABASE test xoá dữ liệu nếu ai đó đã dùng DB này.
 		Danger: true,
 		NoUndo: i18n.T(
-			"Không hoàn tác: không có lý do gì để tạo lại user ẩn danh hay DB test, cả hai đều là lỗ hổng.",
-			"Not undone: there is no reason to recreate anonymous users or the test database; both are security holes.",
+			"Không có lý do gì để tạo lại user ẩn danh hay DB test, cả hai đều là lỗ hổng.",
+			"There is no reason to recreate anonymous users or the test database; both are security holes.",
 		),
 	}
 }

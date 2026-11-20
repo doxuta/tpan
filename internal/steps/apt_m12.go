@@ -489,8 +489,8 @@ func (s *AptUpgrade) Info() engine.StepInfo {
 		// Gói dịch vụ tự khởi động lại dịch vụ trong lúc nâng.
 		Danger: true,
 		NoUndo: i18n.T(
-			"Không hoàn tác: apt không hạ gói về bản cũ một cách an toàn (bản cũ có thể không còn trên kho, gói khác có thể đã cần bản mới).",
-			"Not undone: apt cannot safely downgrade a package (the old version may be gone from the repository, and other packages may now need the new one).",
+			"apt không hạ gói về bản cũ một cách an toàn (bản cũ có thể không còn trên kho, gói khác có thể đã cần bản mới).",
+			"apt cannot safely downgrade a package (the old version may be gone from the repository, and other packages may now need the new one).",
 		),
 	}
 }
@@ -553,8 +553,8 @@ func (s *AptRemove) Info() engine.StepInfo {
 		Commands: []string{s.cmd().String()},
 		Danger:   true,
 		NoUndo: i18n.T(
-			"Không hoàn tác tự động: cài lại có thể kéo bản mới hơn bản vừa gỡ. Cần thì cài lại bằng tay; file cấu hình vẫn còn.",
-			"Not undone automatically: reinstalling may pull a newer version than the one removed. Reinstall by hand if needed; the configuration files are still there.",
+			"Cài lại có thể kéo bản mới hơn bản vừa gỡ. Cần thì cài lại bằng tay; file cấu hình vẫn còn.",
+			"Reinstalling may pull a newer version than the one removed. Reinstall by hand if needed; the configuration files are still there.",
 		),
 	}
 }
@@ -631,8 +631,8 @@ func (s *ServiceRestart) Info() engine.StepInfo {
 		Commands: cmdStrings(s.Test, &restart),
 		Danger:   true,
 		NoUndo: i18n.T(
-			"Không hoàn tác: khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về.",
-			"Not undone: a restart changes no configuration, so there is no earlier state to return to.",
+			"Khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về.",
+			"A restart changes no configuration, so there is no earlier state to return to.",
 		),
 	}
 }
@@ -902,8 +902,8 @@ func (s *MariaDBDump) Info() engine.StepInfo {
 			),
 			Commands: []string{dbShow(measureDBSQL(s.DB)), s.cmd().String(), s.tail().String()},
 			NoUndo: i18n.T(
-				"Không hoàn tác: file xuất được giữ lại vì nó là đường lùi (hoặc chính là bản người dùng muốn xuất).",
-				"Not undone: the dump is kept because it is the way back (or the very export the user asked for).",
+				"File xuất được giữ lại vì nó là đường lùi (hoặc chính là bản người dùng muốn xuất).",
+				"The dump is kept because it is the way back (or the very export the user asked for).",
 			),
 		}
 	}
@@ -916,8 +916,8 @@ func (s *MariaDBDump) Info() engine.StepInfo {
 		),
 		Commands: []string{s.cmd().String(), s.tail().String()},
 		NoUndo: i18n.T(
-			"Không hoàn tác: file xuất được giữ lại vì nó là đường lùi của bản nâng cấp.",
-			"Not undone: the dump is kept because it is the way back from the upgrade.",
+			"File xuất được giữ lại vì nó là đường lùi của bản nâng cấp.",
+			"The dump is kept because it is the way back from the upgrade.",
 		),
 	}
 }
@@ -1028,8 +1028,8 @@ func (s *MariaDBUpgradeRun) Info() engine.StepInfo {
 		),
 		Commands: []string{mariadbVersionCmd.String(), mariadbUpgradeCmd.String()},
 		NoUndo: i18n.T(
-			"Không hoàn tác: bảng hệ thống đã nâng không hạ lại được. Đường lùi là file xuất ở bước trước.",
-			"Not undone: upgraded system tables cannot be downgraded. The way back is the dump from the earlier step.",
+			"Bảng hệ thống đã nâng không hạ lại được. Đường lùi là file xuất ở bước trước.",
+			"Upgraded system tables cannot be downgraded. The way back is the dump from the earlier step.",
 		),
 	}
 }

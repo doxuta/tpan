@@ -321,8 +321,8 @@ func (s *SiteDBAbsent) Info() engine.StepInfo {
 		// Xoá toàn bộ bài viết, tài khoản của site.
 		Danger: true,
 		NoUndo: i18n.T(
-			"Không hoàn tác: DB đã xoá thì dữ liệu mất, chỉ lấy lại được từ backup.",
-			"Not undone: once the database is dropped its data is gone and can only be restored from a backup.",
+			"DB đã xoá thì dữ liệu mất, chỉ lấy lại được từ backup.",
+			"Once the database is dropped its data is gone and can only be restored from a backup.",
 		),
 	}
 }

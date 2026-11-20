@@ -72,18 +72,18 @@ func siteGuard(b base, l site.Layout, needUser bool, paths ...string) Check {
 
 // siteDescribe mô tả loại, quyền và chủ của một mục, làm bằng chứng của phép kiểm đọc file.
 func siteDescribe(info system.FileInfo) string {
-	kind := "file thường"
+	kind := "regular file"
 	switch {
 	case info.Mode.IsDir():
-		kind = "thư mục"
+		kind = "directory"
 	case info.Mode&fs.ModeSymlink != 0:
 		kind = "symlink"
 	case info.Mode&fs.ModeSocket != 0:
 		kind = "socket"
 	case !info.Mode.IsRegular():
-		kind = "loại khác"
+		kind = "other type"
 	}
-	return fmt.Sprintf("%s, mode %04o, chủ %s:%s", kind, uint32(info.Mode.Perm()), orRoot(info.Owner.User), orRoot(info.Owner.Group))
+	return fmt.Sprintf("%s, mode %04o, owner %s:%s", kind, uint32(info.Mode.Perm()), orRoot(info.Owner.User), orRoot(info.Owner.Group))
 }
 
 // siteStat đọc thông tin một đường dẫn qua system.System và dựng bằng chứng.
@@ -94,7 +94,7 @@ func siteStat(sys system.System, p string) (info system.FileInfo, ev Evidence, m
 	info, err = sys.Stat(p)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		ev.ExitCode, ev.Output = 1, "không có / no such file or directory"
+		ev.ExitCode, ev.Output = 1, "No such file or directory"
 		return info, ev, true, nil
 	case err != nil:
 		ev.ExitCode, ev.Output = -1, err.Error()

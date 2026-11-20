@@ -250,7 +250,7 @@ const backupStamp = "20060102-150405"
 
 // backupLater là chữ thay cho giờ trong Info: tên file chọn lúc Apply, mà
 // Info phải giống hệt nhau giữa hai lần dựng Plan (so dấu vân tay lúc duyệt).
-const backupLater = "<giờ lúc chạy>"
+const backupLater = "<YYYYMMDD-HHMMSS>"
 
 // wpVersionRe: bản WordPress lấy từ output của `wp` (mã PHP của site chạy,
 // in gì cũng được), nên chỉ nhận dạng phiên bản trước khi ghi vào manifest.
