@@ -20,7 +20,38 @@ func siteCmd(e *env) *cobra.Command {
 		Use:   "site",
 		Short: "Tạo, xem, đưa vào thùng rác và khôi phục site WordPress",
 	}
-	c.AddCommand(siteAddCmd(e), siteListCmd(e), siteInfoCmd(e), siteRmCmd(e), siteRestoreCmd(e))
+	c.AddCommand(siteAddCmd(e), siteListCmd(e), siteInfoCmd(e), siteRmCmd(e), siteRestoreCmd(e),
+		siteSuspendCmd(e, "suspend <domain>", "site.suspend",
+			"Tạm khoá site: mọi đường dẫn trả 403 kèm trang tạm khoá (trừ /.well-known/acme-challenge/), tắt pool PHP-FPM và cron của site",
+			func(ctx context.Context, s *core.Sites, d validate.Domain) (*core.Planned, error) {
+				return s.PrepareSuspend(ctx, d)
+			}),
+		siteSuspendCmd(e, "unsuspend <domain>", "site.unsuspend", "Mở khoá site: bật lại pool, cron, vhost thường rồi kiểm site trả 200",
+			func(ctx context.Context, s *core.Sites, d validate.Domain) (*core.Planned, error) {
+				return s.PrepareUnsuspend(ctx, d)
+			}))
+	return c
+}
+
+// siteSuspendCmd dựng site suspend và site unsuspend (mục 6.12).
+func siteSuspendCmd(e *env, use, action, short string, prepare func(context.Context, *core.Sites, validate.Domain) (*core.Planned, error)) *cobra.Command {
+	var f planRun
+	c := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSiteJob(cmd, e, &f, args[0], action,
+				func(ctx context.Context, s *core.Sites, d validate.Domain) (siteJob, error) {
+					p, err := prepare(ctx, s, d)
+					if err != nil {
+						return siteJob{}, err
+					}
+					return siteJob{plan: p.Plan, preview: p.Preview, execute: p.Execute}, nil
+				}, nil)
+		},
+	}
+	f.flags(c)
 	return c
 }
 
@@ -52,7 +83,7 @@ func openSites(ctx context.Context, e *env, dryRun bool) (*core.Sites, func(), e
 	if err != nil {
 		return nil, nil, err
 	}
-	s.Settings, s.Store, s.Backups = st, st, st
+	s.Settings, s.Store, s.Backups, s.Accounts = st, st, st, st
 	if !dryRun {
 		s.Journal = st
 	}
@@ -134,12 +165,12 @@ func (f *planRun) progress(e *env, p engine.Plan) *progress {
 
 func siteAddCmd(e *env) *cobra.Command {
 	var (
-		title, email string
-		withSSL      bool
-		f            planRun
+		title, email, owner string
+		withSSL             bool
+		f                   planRun
 	)
 	c := &cobra.Command{
-		Use:   "add <domain> [--email E] [--title T] [--ssl]",
+		Use:   "add <domain> [--email E] [--title T] [--ssl] [--owner U]",
 		Short: "Tạo một site WordPress (chạy lại cho domain đã có thì sửa chỗ lệch)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -157,6 +188,11 @@ func siteAddCmd(e *env) *cobra.Command {
 					return fail(e, f.asJSON, asRefusal(err))
 				}
 			}
+			if owner != "" {
+				if _, err := parseUserArg(owner); err != nil {
+					return fail(e, f.asJSON, err)
+				}
+			}
 			if !f.dryRun {
 				if err := requireRoot(e, cmd); err != nil {
 					return fail(e, f.asJSON, err)
@@ -168,7 +204,7 @@ func siteAddCmd(e *env) *cobra.Command {
 			}
 			defer done()
 
-			add, err := s.PrepareAdd(ctx, core.SiteInput{Domain: d, Title: title, Email: em})
+			add, err := s.PrepareAdd(ctx, core.SiteInput{Domain: d, Title: title, Email: em, Owner: owner})
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
@@ -227,6 +263,7 @@ func siteAddCmd(e *env) *cobra.Command {
 	fl.StringVar(&email, "email", "", "email của tài khoản quản trị WordPress (bắt buộc với site mới)")
 	fl.StringVar(&title, "title", "", "tiêu đề site (mặc định là domain)")
 	fl.BoolVar(&withSSL, "ssl", false, "tạo xong thì xin luôn chứng chỉ Let's Encrypt (email SSL chưa đặt thì dùng --email)")
+	fl.StringVar(&owner, "owner", "", "user chủ của site mới (mặc định admin; kiểm hạn mức gói của user đó)")
 	f.flags(c)
 	return c
 }

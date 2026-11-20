@@ -132,6 +132,10 @@ func seed(ctx context.Context, m *machine, st *store.Store) error {
 	if err := seedSSL(ctx, m, st, siteBlog); err != nil {
 		return err
 	}
+	// M13 (m13.go): gói, user, chủ của site, site tạm khoá, DB rời.
+	if err := seedM13(ctx, m, st, s); err != nil {
+		return err
+	}
 
 	// Làm hỏng sau cùng: hoàn tác ở lần thất bại ở trên reload PHP-FPM, và mọi
 	// lần reload đều dựng lại socket.

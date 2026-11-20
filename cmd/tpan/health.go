@@ -69,6 +69,9 @@ func healthCmd(e *env) *cobra.Command {
 			if err != nil {
 				return fail(e, asJSON, err)
 			}
+			if h.domain == "" {
+				measureDisk(ctx, e, st)
+			}
 			if !fix {
 				if asJSON {
 					if err := writeJSON(e.stdout, before); err != nil {
@@ -108,6 +111,18 @@ func (h *healthRun) run(ctx context.Context) (health.Report, error) {
 		printHealthReport(h.e, rep)
 	}
 	return rep, nil
+}
+
+// measureDisk đo dung lượng của mọi user (mục 6.12: cập nhật trong phép kiểm
+// nặng mỗi giờ), như bộ hẹn giờ của tpan serve, khi health chạy cho cả máy.
+// Lỗi chỉ in ra stderr: số đo cũ được giữ, và hạn mức không phải là sức khoẻ
+// của máy nên không đổi mã thoát.
+func measureDisk(ctx context.Context, e *env, st *store.Store) {
+	s := &core.Sites{Sys: e.sys, Settings: st, Store: st}
+	a := &core.Accounts{Sys: e.sys, Store: st, Sites: s, DBs: &core.DBs{Sys: e.sys, Store: st, Sites: st}}
+	if err := a.MeasureDisk(ctx); err != nil {
+		printf(e.stderr, "tpan: %v\n", err)
+	}
 }
 
 // healthExit: lỗi (Fail) hoặc stack chưa cài là mã 1, vì không có gì để

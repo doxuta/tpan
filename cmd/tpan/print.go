@@ -324,13 +324,16 @@ func printSiteList(e *env, list []site.Site) {
 			"No sites yet. Create one with: sudo tpan site add <domain> --email <email>"))
 		return
 	}
-	printf(w, "%-40s %-8s %-5s %-4s %s\n", "DOMAIN", e.tr("TRẠNG THÁI", "STATUS"), "PHP", "SSL", e.tr("TẠO LÚC", "CREATED"))
+	// Cột của M13 (chủ, tạm khoá) nằm sau cột cũ: script đọc cột đầu vẫn đúng.
+	printf(w, "%-40s %-8s %-5s %-4s %-16s %-14s %s\n", "DOMAIN", e.tr("TRẠNG THÁI", "STATUS"), "PHP", "SSL", e.tr("TẠO LÚC", "CREATED"),
+		e.tr("CHỦ", "OWNER"), e.tr("TẠM KHOÁ", "SUSPENDED"))
 	for _, s := range list {
 		ssl := e.tr("không", "no")
 		if s.SSL {
 			ssl = e.tr("có", "yes")
 		}
-		printf(w, "%-40s %-8s %-5s %-4s %s\n", s.Domain, s.Status, s.PHPVersion, ssl, s.Created.Local().Format("2006-01-02 15:04"))
+		printf(w, "%-40s %-8s %-5s %-4s %-16s %-14s %s\n", s.Domain, s.Status, s.PHPVersion, ssl, s.Created.Local().Format("2006-01-02 15:04"),
+			s.Owner, suspensionText(e, s.Suspended))
 	}
 }
 
@@ -339,6 +342,9 @@ func printSiteInfo(e *env, info core.SiteInfo) {
 	row := func(k, v string) { printf(w, "%-16s %s\n", k, v) }
 	row("Domain:", info.Site.Domain.String())
 	row(e.tr("Trạng thái:", "Status:"), string(info.Site.Status))
+	row(e.tr("Chủ:", "Owner:"), info.Site.Owner)
+	row(e.tr("Tạm khoá:", "Suspended:"), suspensionText(e, info.Site.Suspended))
+	row(e.tr("DB tạm khoá:", "DB suspended:"), suspensionText(e, info.Site.DBSuspended))
 	row("PHP:", info.Site.PHPVersion)
 	row(e.tr("Tạo lúc:", "Created:"), info.Site.Created.Local().Format("2006-01-02 15:04"))
 	row(e.tr("User Linux:", "Linux user:"), l.User)

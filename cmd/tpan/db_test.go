@@ -130,7 +130,7 @@ func TestDBList(t *testing.T) {
 	c.trashSeed(true, site.Site{Domain: domainOf(t, dbCLIDom), Status: site.Active, PHPVersion: "8.3"})
 	l := site.LayoutOf(domainOf(t, dbCLIDom))
 	c.fake.Handle([]string{"mariadb", "-N", "-B"}, func(system.Cmd) system.Result {
-		return system.Result{Stdout: l.DB + "\t12\t2097152\n"}
+		return system.Result{Stdout: l.DB + "\t12\t2097152\tutf8mb4\tutf8mb4_general_ci\n"}
 	})
 	code, out, errs := c.run("db", "list", "--json")
 	if code != 0 {
@@ -140,7 +140,8 @@ func TestDBList(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &rows); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
-	if len(rows) != 1 || rows[0]["domain"] != dbCLIDom || rows[0]["db"] != l.DB || rows[0]["tables"] != float64(12) || rows[0]["size_bytes"] != float64(2097152) {
+	if len(rows) != 1 || rows[0]["domain"] != dbCLIDom || rows[0]["db"] != l.DB || rows[0]["tables"] != float64(12) || rows[0]["size_bytes"] != float64(2097152) ||
+		rows[0]["kind"] != "site" || rows[0]["owner"] != "admin" || rows[0]["charset"] != "utf8mb4" {
 		t.Errorf("JSON = %s", out)
 	}
 	if code, out, _ := c.run("db", "list"); code != 0 || !strings.Contains(out, "2.0 MiB") || !strings.Contains(out, l.DB) {

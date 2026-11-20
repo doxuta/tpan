@@ -97,9 +97,14 @@ func TestDemoTail(t *testing.T) {
 	}
 }
 
-// demoExpectedWarn: cảnh báo có chủ ý của máy demo. Shop và wiki chưa xin SSL
-// (màn SSL có nút xin để bấm thử), nên chặng TLS của hai site đó là "chưa có
-// chứng chỉ" ở dạng cảnh báo. Mọi cảnh báo khác vẫn làm test hỏng.
+// demoExpectedWarn: cảnh báo có chủ ý của máy demo. Shop, wiki và lab chưa xin
+// SSL (màn SSL có nút xin để bấm thử), nên chặng TLS của các site đó là "chưa
+// có chứng chỉ" ở dạng cảnh báo. Các chặng xám "tạm khoá" của lab (M13: Unknown
+// có cờ Suspended) là điều đã biết, không phải sự cố. Mọi cảnh báo khác vẫn
+// làm test hỏng.
 func demoExpectedWarn(x checks.Result) bool {
-	return x.Status == checks.Warn && (x.ID == "tls.cert:shop.example.net" || x.ID == "tls.cert:"+siteWiki)
+	if x.Status == checks.Unknown && x.Suspended {
+		return true
+	}
+	return x.Status == checks.Warn && slices.Contains([]string{"tls.cert:" + siteShop, "tls.cert:" + siteWiki, "tls.cert:" + siteLab}, x.ID)
 }

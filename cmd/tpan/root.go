@@ -124,6 +124,19 @@ func serveCmd(e *env) *cobra.Command {
 					return err
 				}
 				printf(e.stdout, "%s %s\n", e.tr("Mật khẩu đăng nhập demo:", "Demo login password:"), pw)
+				// M13: các user mẫu (vai user) cũng có mật khẩu mới mỗi lần
+				// chạy, để xem giao diện của khách hosting.
+				for _, u := range demo.Users() {
+					upw := store.GeneratePassword()
+					h, err := store.HashPassword(upw)
+					if err != nil {
+						return err
+					}
+					if err := st.SetUserPassword(ctx, u, h); err != nil {
+						return err
+					}
+					printf(e.stdout, "%s %s / %s\n", e.tr("User demo (vai user):", "Demo user (user role):"), u, upw)
+				}
 				wpHash, wpcliHash := demo.Hashes()
 				deps = server.Deps{Sys: sys, Store: st, Demo: true, Hostname: "demo", WPHash: wpHash, WPCLISHA512: wpcliHash}
 				// Bộ não giả (kịch bản soạn sẵn) để thử ngăn AI trên máy không

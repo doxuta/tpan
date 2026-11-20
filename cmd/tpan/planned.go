@@ -22,6 +22,13 @@ type planFlags struct {
 // action, target ghi vào audit. journal là store đang mở (ghi audit). Trả
 // exitCode 1 khi người dùng huỷ hoặc job không thành công.
 func runPlanned(ctx context.Context, e *env, f planFlags, journal any, action, target string, p *core.Planned) (engine.Report, error) {
+	return runPlannedOut(ctx, e, f, journal, action, target, p, nil)
+}
+
+// runPlannedOut là runPlanned với jsonOf (nil là in Report) dựng thứ in ra khi
+// --json sau khi chạy: lệnh có mật khẩu hiện một lần (db add, db passwd) gói
+// Report cùng mật khẩu ở một trường riêng, như admin_password của site add.
+func runPlannedOut(ctx context.Context, e *env, f planFlags, journal any, action, target string, p *core.Planned, jsonOf func(engine.Report) any) (engine.Report, error) {
 	if f.dryRun || !f.yes {
 		pv, err := p.Preview(ctx)
 		if err != nil {
@@ -58,7 +65,11 @@ func runPlanned(ctx context.Context, e *env, f planFlags, journal any, action, t
 		return rep, err
 	}
 	if f.asJSON {
-		if werr := writeJSON(e.stdout, rep); werr != nil {
+		var v any = rep
+		if jsonOf != nil {
+			v = jsonOf(rep)
+		}
+		if werr := writeJSON(e.stdout, v); werr != nil {
 			return rep, werr
 		}
 	} else {

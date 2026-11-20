@@ -78,6 +78,9 @@ type machine struct {
 	dbUsers map[string]bool
 	// dbLocked: user DB bị khoá (ALTER USER ... ACCOUNT LOCK, thùng rác M6).
 	dbLocked map[string]bool
+	// dbCharset: charset và collation mặc định của DB (M13, m13.go): ghi lúc
+	// CREATE và ALTER DATABASE, đọc lại cho màn Cơ sở dữ liệu và bước đổi charset.
+	dbCharset map[string][2]string
 	// expired: user Linux có hạn tài khoản (usermod --expiredate, thùng rác
 	// M6), giá trị là dòng "Account expires" của chage -l.
 	expired   map[string]string
@@ -104,6 +107,7 @@ func newMachine() *machine {
 		dbs:        map[string]bool{},
 		dbUsers:    map[string]bool{},
 		dbLocked:   map[string]bool{},
+		dbCharset:  map[string][2]string{},
 		expired:    map[string]string{},
 		installed:  map[string]bool{},
 		options:    map[string]map[string]string{},
@@ -370,6 +374,9 @@ func (m *machine) mariadb(c system.Cmd) system.Result {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if res, ok := m.mariadbM13(sql); ok {
+		return res
+	}
 	if res, ok := m.mariadbLock(sql); ok {
 		return res
 	}

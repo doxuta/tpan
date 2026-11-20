@@ -118,7 +118,7 @@ func TestTrashListAndSettings(t *testing.T) {
 	if code, out, _ := c.run("trash", "list"); code != 0 || !strings.Contains(out, "Thùng rác trống") {
 		t.Errorf("list rỗng: mã %d, %q", code, out)
 	}
-	if code, out, _ := c.run("trash", "list", "--json"); code != 0 || strings.TrimSpace(out) != "[]" {
+	if code, out, _ := c.run("trash", "list", "--json"); code != 0 || strings.Join(strings.Fields(out), "") != `{"sites":[],"dbs":[]}` {
 		t.Errorf("list rỗng --json: mã %d, %q", code, out)
 	}
 
@@ -134,8 +134,8 @@ func TestTrashListAndSettings(t *testing.T) {
 		t.Errorf("list: mã %d; muốn b (hết hạn trước) rồi a, không có site active\n%s", code, out)
 	}
 	_, out, _ = c.run("trash", "list", "--json")
-	var list []site.Site
-	if err := json.Unmarshal([]byte(out), &list); err != nil || len(list) != 2 || list[0].Domain.String() != "b.example.com" {
+	var list struct{ Sites []site.Site }
+	if err := json.Unmarshal([]byte(out), &list); err != nil || len(list.Sites) != 2 || list.Sites[0].Domain.String() != "b.example.com" {
 		t.Errorf("list --json = %+v, %v", list, err)
 	}
 
@@ -186,7 +186,7 @@ func TestTrashPurgeAndRestoreRefusals(t *testing.T) {
 // terminal thì từ chối; --yes thì xoá hẳn, xoá dòng và ghi audit.
 func TestTrashPurgeExpired(t *testing.T) {
 	c := newCLI(t)
-	if code, out, _ := c.run("trash", "purge", "--expired", "--yes"); code != 0 || !strings.Contains(out, "Không có site nào quá hạn") {
+	if code, out, _ := c.run("trash", "purge", "--expired", "--yes"); code != 0 || !strings.Contains(out, "Không có site hay DB rời nào quá hạn") {
 		t.Errorf("không có gì quá hạn: mã %d, %q", code, out)
 	}
 
@@ -200,11 +200,13 @@ func TestTrashPurgeExpired(t *testing.T) {
 	c.fake.Handle([]string{"mariadb"}, func(system.Cmd) system.Result { return system.Result{Stdout: "0\t0\n"} })
 
 	code, out, errs := c.run("trash", "purge", "--expired", "--dry-run", "--json")
-	var rows []struct {
-		Domain  string          `json:"domain"`
-		Preview json.RawMessage `json:"preview"`
+	var rows struct {
+		Sites []struct {
+			Domain  string          `json:"domain"`
+			Preview json.RawMessage `json:"preview"`
+		}
 	}
-	if err := json.Unmarshal([]byte(out), &rows); err != nil || code != 0 || len(rows) != 1 || rows[0].Domain != "old.example.com" || len(rows[0].Preview) == 0 {
+	if err := json.Unmarshal([]byte(out), &rows); err != nil || code != 0 || len(rows.Sites) != 1 || rows.Sites[0].Domain != "old.example.com" || len(rows.Sites[0].Preview) == 0 {
 		t.Fatalf("--dry-run --json: mã %d, %v, %q, %s", code, err, out, errs)
 	}
 	code, out, _ = c.run("trash", "purge", "--expired", "--dry-run")
@@ -221,8 +223,8 @@ func TestTrashPurgeExpired(t *testing.T) {
 	}
 
 	code, out, errs = c.run("trash", "purge", "--expired", "--yes", "--json")
-	var res []core.PurgeResult
-	if err := json.Unmarshal([]byte(out), &res); err != nil || code != 0 || len(res) != 1 || res[0].Domain.String() != "old.example.com" || res[0].Error != "" {
+	var res struct{ Sites []core.PurgeResult }
+	if err := json.Unmarshal([]byte(out), &res); err != nil || code != 0 || len(res.Sites) != 1 || res.Sites[0].Domain.String() != "old.example.com" || res.Sites[0].Error != "" {
 		t.Fatalf("--yes: mã %d, %v, %q, %s", code, err, out, errs)
 	}
 	if c.trashAudits("site.purge", "ok") != 1 {

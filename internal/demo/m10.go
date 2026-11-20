@@ -311,6 +311,11 @@ func (x *m10) configtest(system.Cmd) system.Result {
 // nối được (mã 7). Apache: xem apacheSite. Lệnh khác của curl (tải WordPress,
 // WP-CLI, ghi chú) không phụ thuộc web server nên để machine.go lo.
 func (x *m10) curl(c system.Cmd) system.Result {
+	// Site tạm khoá (M13, m13.go) trả 403 kèm trang tạm khoá, như nhau với
+	// nginx và Apache.
+	if res, ok := x.suspendedSite(c); ok {
+		return res
+	}
 	web := x.activeWeb()
 	resolve := argAfter(c.Args, "--resolve")
 	local := resolve != "" || slices.Contains(c.Args, "-w") ||

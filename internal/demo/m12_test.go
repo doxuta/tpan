@@ -108,7 +108,7 @@ func TestPHPListOnDemo(t *testing.T) {
 	row := func(v string) core.PHPVersionRow { return list.Versions[slices.Index(vs, v)] }
 	// siteOld (M6) nằm trong thùng rác nhưng vẫn tính là đang dùng 8.3: gỡ bản
 	// đó thì khôi phục site sẽ không còn PHP để chạy.
-	if r := row("8.3"); !r.Installed || !r.Default || r.Source != core.SourceUbuntu || !slices.Equal(r.Sites, []string{siteBlog, siteOld, siteShop, siteWiki}) ||
+	if r := row("8.3"); !r.Installed || !r.Default || r.Source != core.SourceUbuntu || !slices.Equal(r.Sites, []string{siteBlog, siteLab, siteOld, siteShop, siteWiki}) ||
 		r.Support == nil || r.Support.State != "security" || r.Support.SecurityUntil != "2027-12-31" {
 		t.Errorf("8.3 = %+v (support %+v)", r, r.Support)
 	}
