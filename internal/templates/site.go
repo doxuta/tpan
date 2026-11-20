@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/htaccess"
 	"github.com/doxuta/tpan/internal/site"
 )
 
@@ -39,6 +40,11 @@ type siteData struct {
 	PHPErrorLog string
 	Socket      string
 	AcmeRoot    string
+	// Ba trường dưới chỉ vhost Apache dùng (M14): chế độ .htaccess đã kiểm, và
+	// hai chuỗi của bản an-toan lấy từ gói htaccess (withHtaccess điền).
+	Htaccess        string
+	OverrideOptions string
+	OverrideList    string
 }
 
 // SitePool sinh file pool PHP-FPM của site: /etc/php/<ver>/fpm/pool.d/tpan-<slug>.conf.
@@ -62,13 +68,34 @@ func NginxSite(l site.Layout, php, acmeRoot string) ([]byte, error) {
 	return siteRender("site-nginx.conf.tmpl", d)
 }
 
-// ApacheSite sinh vhost Apache của site. php và acmeRoot như NginxSite.
+// ApacheSite sinh vhost Apache của site. php và acmeRoot như NginxSite. mode là
+// chế độ .htaccess của site (M14, mục 6.13): quyết định khối AllowOverride của
+// thư mục public (files/site-apache-override.tmpl). Rỗng là an-toan.
 func ApacheSite(l site.Layout, php, acmeRoot string, mode site.HtaccessMode) ([]byte, error) {
 	d, err := siteVhostData(l, php, acmeRoot)
+	if err == nil {
+		d, err = withHtaccess(d, mode)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost apache: %w", err)
 	}
 	return siteRender("site-apache.conf.tmpl", d)
+}
+
+// withHtaccess kiểm chế độ .htaccess rồi điền các trường mà khối AllowOverride
+// của vhost Apache cần. Chế độ rỗng hiểu là an-toan (mode.OrDefault()); giá trị
+// ngoài ba chế độ là ErrParam, vì chuỗi này quyết định site được ghi gì vào
+// cấu hình Apache. Danh sách chỉ thị lấy từ gói htaccess: cùng một hằng với
+// phép quét .htaccess và phép kiểm web.hardened, nên ba nơi không lệch nhau.
+func withHtaccess(d siteData, mode site.HtaccessMode) (siteData, error) {
+	mode, err := site.ParseHtaccessMode(string(mode.OrDefault()))
+	if err != nil {
+		return siteData{}, fmt.Errorf("%w: %v", ErrParam, err)
+	}
+	d.Htaccess = string(mode)
+	d.OverrideOptions = htaccess.OverrideOptions()
+	d.OverrideList = htaccess.List()
+	return d, nil
 }
 
 // WPHtaccess trả .htaccess chuẩn của WordPress (bản Apache). Không có tham số

@@ -1,0 +1,116 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Vhost Apache của site example.com, bản đã có chứng chỉ: cổng 80 chỉ còn để gia
+# hạn chứng chỉ và chuyển sang https; site chạy ở cổng 443 (cần mod ssl).
+# Apache chạy MPM event, PHP đi qua proxy_fcgi tới pool riêng của site (mục 3).
+<VirtualHost *:80>
+    ServerName example.com
+    # Mọi thứ trừ thử thách bị chuyển hướng bên dưới, nên không đọc file nào của
+    # site qua cổng 80. Không có khối <Directory> cho thư mục này, nên nếu luật
+    # chuyển hướng hỏng thì apache2.conf (<Directory /> Require all denied) vẫn
+    # chặn: hỏng thì đóng, không lộ nội dung qua http.
+    DocumentRoot "/var/www/example.com/public"
+
+    ErrorLog "/var/log/tpan/sites/example.com/error.log"
+    CustomLog "/var/log/tpan/sites/example.com/access.log" combined
+
+    # Gia hạn chứng chỉ vẫn đi qua cổng 80 (certbot --webroot), nên thử thách
+    # phải được phục vụ thẳng, không bị chuyển hướng.
+    Alias /.well-known/acme-challenge/ "/var/lib/tpan/acme/.well-known/acme-challenge/"
+    <Directory "/var/lib/tpan/acme/.well-known/acme-challenge">
+        Options None
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    # Chuyển mọi đường dẫn khác sang https, KHÔNG nuốt thử thách. Dùng
+    # mod_rewrite thay cho Redirect/RedirectMatch vì hai lý do: mod_alias xử lý
+    # mọi Redirect TRƯỚC mọi Alias, nên một "Redirect /" thường sẽ nuốt luôn
+    # thử thách; và mod_rewrite giữ nguyên query string. Với RewriteCond loại
+    # trừ, request thử thách không khớp luật nào, đi tiếp tới Alias ở trên.
+    # Dùng tên domain cố định thay vì %{HTTP_HOST}: Host lấy từ request.
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteRule ^/(.*)$ https://example.com/$1 [R=301,L]
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName example.com
+    DocumentRoot "/var/www/example.com/public"
+    DirectoryIndex index.php
+
+    SSLEngine on
+    SSLCertificateFile "/etc/letsencrypt/live/example.com/fullchain.pem"
+    SSLCertificateKeyFile "/etc/letsencrypt/live/example.com/privkey.pem"
+
+    # Cố ý không bật HSTS (Strict-Transport-Security): chứng chỉ staging trình
+    # duyệt không tin, và HSTS sẽ khoá người dùng ngoài site, không cho bấm
+    # "tiếp tục" nữa.
+
+    # Log riêng từng site, trong thư mục mà /etc/logrotate.d/tpan-sites xoay vòng.
+    ErrorLog "/var/log/tpan/sites/example.com/error.log"
+    CustomLog "/var/log/tpan/sites/example.com/access.log" combined
+
+    # Từ đây tới hết vhost là đúng các luật của bản cổng 80 (site-apache.conf.tmpl):
+    # có chứng chỉ rồi thì không được mất luật bảo mật nào.
+
+    # Giới hạn upload 64 MB (pool PHP đặt cùng mức). Đơn vị là byte.
+    LimitRequestBody 67108864
+
+    # Thử thách Let's Encrypt đọc từ webroot chung, không từ mã nguồn site.
+    Alias /.well-known/acme-challenge/ "/var/lib/tpan/acme/.well-known/acme-challenge/"
+    <Directory "/var/lib/tpan/acme/.well-known/acme-challenge">
+        Options None
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    <Directory "/var/www/example.com/public">
+        # Ghi đè "Indexes FollowSymLinks" mà apache2.conf của Ubuntu đặt cho
+        # /var/www: không liệt kê thư mục. Permalink (mod_rewrite trong
+        # .htaccess) cần FollowSymLinks hoặc SymLinksIfOwnerMatch; chọn cái sau
+        # để site này không đặt symlink trỏ sang file của site khác.
+        Options SymLinksIfOwnerMatch
+        # Chế độ .htaccess "day-du" (như trước M14): .htaccess của site dùng
+        # được mọi chỉ thị, kể cả chỉ thị chuyển request sang pool PHP khác.
+        # Site này mà bị chiếm thì chạy được mã dưới user của site khác trên
+        # cùng máy, nên tpan health luôn cảnh báo. Chuyển về bản chặt bằng:
+        # tpan site set example.com --htaccess an-toan
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Không chạy PHP trong thư mục upload: file .php ai đó tải lên được (qua lỗi
+    # của plugin) cũng không thành mã chạy được. AllowOverride None để một
+    # .htaccess đặt vào uploads/ không mở lại được.
+    <Directory "/var/www/example.com/public/wp-content/uploads">
+        AllowOverride None
+        <FilesMatch "(?i)\.php$">
+            Require all denied
+        </FilesMatch>
+    </Directory>
+
+    # Chặn file ẩn (.env, .htaccess, .user.ini...).
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
+    # Chặn thư mục ẩn (.git...), trừ .well-known.
+    <DirectoryMatch "/\.(?!well-known(/|$))">
+        Require all denied
+    </DirectoryMatch>
+
+    # PHP-FPM nhận hai biến PHP_VALUE và PHP_ADMIN_VALUE từ web server và cho
+    # chúng đè cả php_admin_value của pool. Thiếu hai dòng dưới, .htaccess của
+    # site chỉ cần một dòng SetEnv PHP_ADMIN_VALUE "open_basedir=/" là PHP của
+    # nó đọc được ngoài thư mục site. Hai dòng này gỡ cả hai biến ngay trước
+    # khi request được gửi sang PHP-FPM.
+    ProxyFCGISetEnvIf "true" !PHP_VALUE
+    ProxyFCGISetEnvIf "true" !PHP_ADMIN_VALUE
+
+    # PHP chuyển tới pool riêng của site qua socket. Không khai báo khối
+    # <Proxy "fcgi://localhost">: các site dùng chung tên này, khai báo worker
+    # dùng lại kết nối thì các site sẽ dùng chung một worker.
+    <FilesMatch "\.php$">
+        SetHandler "proxy:unix:/run/php/tpan-example_com_a379a6-8.3.sock|fcgi://localhost"
+    </FilesMatch>
+</VirtualHost>

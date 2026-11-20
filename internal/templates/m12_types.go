@@ -69,4 +69,5 @@ package templates
 //   - logrotate-sites.tmpl, nhánh nginx: postrotate không dùng
 //     `invoke-rc.d nginx rotate` (cần init script của gói Ubuntu) mà gửi USR1
 //     cho tiến trình chính: `[ ! -f /run/nginx.pid ] || kill -USR1 "$(cat /run/nginx.pid)"`
-//     (cả hai gói đều ghi /run/nginx.pid).
+//     (cả hai gói đều ghi /run/nginx.pid). Từ M14 tín hiệu là HUP thay cho USR1
+//     (lý do ở mục 4 của m14_types.go).

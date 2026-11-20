@@ -32,6 +32,8 @@ func TestSiteGolden(t *testing.T) {
 		{"site-pool", func() ([]byte, error) { return SitePool(l, "8.3") }},
 		{"site-nginx", func() ([]byte, error) { return NginxSite(l, "8.3", acmeRoot) }},
 		{"site-apache", func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot, site.HtaccessSafe) }},
+		{"site-apache-tat", func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot, site.HtaccessOff) }},
+		{"site-apache-day-du", func() ([]byte, error) { return ApacheSite(l, "8.3", acmeRoot, site.HtaccessFull) }},
 		{"site-htaccess", func() ([]byte, error) { return WPHtaccess(), nil }},
 	}
 	for _, c := range cases {
@@ -157,7 +159,6 @@ func TestSiteKeyDirectives(t *testing.T) {
 		`CustomLog "` + l.LogDir + `/access.log" combined`,
 		"LimitRequestBody 67108864",
 		`Alias /.well-known/acme-challenge/ "` + acmeRoot + `/.well-known/acme-challenge/"`,
-		"AllowOverride All",
 		"Options SymLinksIfOwnerMatch",
 		`<Directory "` + l.Public + `/wp-content/uploads">`,
 		`SetHandler "proxy:unix:` + l.SocketFor("8.3") + `|fcgi://localhost"`,
@@ -169,7 +170,10 @@ func TestSiteKeyDirectives(t *testing.T) {
 	}
 	for _, line := range strings.Split(string(ap), "\n") {
 		code := strings.TrimSpace(line)
-		if strings.HasPrefix(code, "#") {
+		// Dòng "AllowOverride Options=Indexes,..." (M14) không bật Indexes: nó chỉ
+		// cho .htaccess bật hay tắt tuỳ chọn đó. Khối AllowOverride theo chế độ
+		// có test riêng (TestApacheHtaccessModes).
+		if strings.HasPrefix(code, "#") || strings.HasPrefix(code, "AllowOverride") {
 			continue
 		}
 		if strings.Contains(code, "Indexes") || strings.Contains(code, "<Proxy") || strings.Contains(code, "FollowSymLinks") {

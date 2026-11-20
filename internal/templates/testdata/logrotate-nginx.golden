@@ -3,10 +3,12 @@
 # Xoay vòng log của các site do tpan quản lý: /var/log/tpan/sites/<domain>/*.log
 # Giữ 14 bản theo ngày, nén lại, để log không ăn hết đĩa.
 #
-# Không dùng chỉ thị su: thư mục log của mỗi site thuộc root:root, quyền 0755
-# (mục 5), nên logrotate chạy bằng root không phải đổi tên file trong một thư
-# mục do user của site kiểm soát. Nếu thư mục thuộc user của site, user đó có
-# thể đặt symlink để lừa root ghi đè file khác.
+# Không dùng chỉ thị su: thư mục log của mỗi site thuộc root:<nhóm của site>,
+# quyền 0750 (mục 5): chủ là root và nhóm chỉ được đọc, nên logrotate chạy bằng
+# root không phải đổi tên file trong một thư mục do user của site kiểm soát.
+# Nếu user của site ghi được vào thư mục, nó có thể đặt symlink để lừa root ghi
+# đè file khác. Nhóm của site (thay cho "ai cũng đọc được") để site này không
+# đọc được log của site khác.
 
 # access.log và error.log do Nginx ghi: xoay xong phải báo cho nó mở lại
 # file mới, không thì nó cứ ghi vào file cũ đã đổi tên.
@@ -25,11 +27,19 @@
     # Một lần postrotate cho tất cả site, không phải mỗi site một lần.
     sharedscripts
     postrotate
-        # Gửi USR1 cho tiến trình chính của Nginx để nó mở lại file log, không
-        # ngắt kết nối đang chạy. Không gọi init script của gói Ubuntu (gói của
-        # nginx.org không có); cả hai gói đều ghi /run/nginx.pid. Chưa có file
-        # pid (Nginx chưa chạy) thì bỏ qua, không báo lỗi.
-        [ ! -f /run/nginx.pid ] || kill -USR1 "$(cat /run/nginx.pid)"
+        # Gửi HUP cho tiến trình chính của Nginx: nó chạy bằng root, mở file
+        # log mới rồi sinh worker mới thừa kế file đã mở; worker cũ làm nốt
+        # request đang chạy rồi thoát, không ngắt kết nối nào.
+        # Không dùng USR1 (tín hiệu "mở lại log" quen thuộc): nhận USR1, từng
+        # worker (chạy dưới www-data) tự mở lại file theo đường dẫn, mà thư mục
+        # log là root:<nhóm của site> 0750 nên worker bị từ chối ở thư mục và
+        # log mới vẫn rơi vào access.log.1 (đã đo trên máy ảo).
+        # HUP cũng là nạp lại cấu hình: nếu cấu hình Nginx đang sai cú pháp thì
+        # Nginx giữ worker cũ và log chưa được mở lại cho tới lần reload đúng.
+        # Không gọi init script của gói Ubuntu (gói của nginx.org không có); cả
+        # hai gói đều ghi /run/nginx.pid. Chưa có file pid (Nginx chưa chạy)
+        # thì bỏ qua, không báo lỗi.
+        [ ! -f /run/nginx.pid ] || kill -HUP "$(cat /run/nginx.pid)"
     endscript
 }
 

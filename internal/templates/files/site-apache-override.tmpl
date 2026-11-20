@@ -1,0 +1,47 @@
+{{- /*
+Phần của khối <Directory "<public>"> đổi theo chế độ .htaccess của site (M14,
+mục 6.13 của docs/KE-HOACH.md). Dùng chung cho site-apache.conf.tmpl và
+<VirtualHost *:443> của site-apache-ssl.conf.tmpl, để hai bản không lệch nhau.
+
+Mỗi nhánh tự mở đầu bằng một dấu xuống dòng và không kết thúc bằng xuống dòng
+(các dấu "-" trong ngoặc nhọn cắt khoảng trắng thừa), nên nơi gọi viết lời gọi
+ở đầu một dòng riêng với dấu "-" bên trái.
+
+Nhánh cuối (else) là an-toan: chế độ đã được kiểm trong Go, nhưng nếu một giá
+trị lạ lọt tới đây thì nó rơi vào bản chặt chứ không vào AllowOverride All.
+
+Phép kiểm web.hardened so "có chứa" trên cả file, kể cả chú thích: chú thích
+của một nhánh không được nhắc nguyên văn tên chỉ thị chỉ có ở nhánh khác
+(test TestApacheHtaccessModes giữ điều này).
+*/ -}}
+{{- if eq .Htaccess "day-du"}}
+        # Chế độ .htaccess "day-du" (như trước M14): .htaccess của site dùng
+        # được mọi chỉ thị, kể cả chỉ thị chuyển request sang pool PHP khác.
+        # Site này mà bị chiếm thì chạy được mã dưới user của site khác trên
+        # cùng máy, nên tpan health luôn cảnh báo. Chuyển về bản chặt bằng:
+        # tpan site set {{.Domain}} --htaccess an-toan
+        AllowOverride All
+{{- else if eq .Htaccess "tat"}}
+        # Chế độ .htaccess "tat": Apache không đọc file .htaccess nào của site.
+        # Permalink của WordPress (không có file hay thư mục đúng tên thì
+        # chuyển cho index.php) do dòng FallbackResource làm, thay cho các
+        # luật rewrite mà WordPress vẫn ghi vào .htaccess.
+        AllowOverride None
+        FallbackResource /index.php
+{{- else}}
+        # Chế độ .htaccess "an-toan": .htaccess của site chỉ dùng được các chỉ
+        # thị có tên ở dòng AllowOverrideList (thứ WordPress và plugin phổ biến
+        # ghi: rewrite, phân quyền, header, cache, kiểu file, chuyển hướng).
+        # Gặp chỉ thị ngoài danh sách thì Apache trả 500 cho site này.
+        # Danh sách cố ý không có SetHandler, AddHandler, Action,
+        # ProxyFCGISetEnvIf: với chúng, một site bị chiếm gửi được request sang
+        # pool PHP của site khác và chạy mã của nó dưới user của site kia.
+        # Danh sách cũng không có Options: cho cả chỉ thị thì .htaccess viết
+        # được "Options FollowSymLinks", bỏ mất SymLinksIfOwnerMatch ở trên.
+        # Options đi qua dòng AllowOverride, với đúng các tuỳ chọn ghi ở đó
+        # ("Options -Indexes" vẫn chạy, "Options +FollowSymLinks" thì 500).
+        # Cả danh sách phải nằm trên MỘT dòng: Apache nhận tối đa 64 tên mỗi
+        # dòng, và dòng AllowOverrideList thứ hai thay dòng thứ nhất.
+        AllowOverride {{.OverrideOptions}}
+        AllowOverrideList {{.OverrideList}}
+{{- end -}}

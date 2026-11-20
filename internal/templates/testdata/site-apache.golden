@@ -28,8 +28,21 @@
         # .htaccess) cần FollowSymLinks hoặc SymLinksIfOwnerMatch; chọn cái sau
         # để site này không đặt symlink trỏ sang file của site khác.
         Options SymLinksIfOwnerMatch
-        # WordPress và plugin ghi luật vào .htaccess (permalink, cache).
-        AllowOverride All
+        # Chế độ .htaccess "an-toan": .htaccess của site chỉ dùng được các chỉ
+        # thị có tên ở dòng AllowOverrideList (thứ WordPress và plugin phổ biến
+        # ghi: rewrite, phân quyền, header, cache, kiểu file, chuyển hướng).
+        # Gặp chỉ thị ngoài danh sách thì Apache trả 500 cho site này.
+        # Danh sách cố ý không có SetHandler, AddHandler, Action,
+        # ProxyFCGISetEnvIf: với chúng, một site bị chiếm gửi được request sang
+        # pool PHP của site khác và chạy mã của nó dưới user của site kia.
+        # Danh sách cũng không có Options: cho cả chỉ thị thì .htaccess viết
+        # được "Options FollowSymLinks", bỏ mất SymLinksIfOwnerMatch ở trên.
+        # Options đi qua dòng AllowOverride, với đúng các tuỳ chọn ghi ở đó
+        # ("Options -Indexes" vẫn chạy, "Options +FollowSymLinks" thì 500).
+        # Cả danh sách phải nằm trên MỘT dòng: Apache nhận tối đa 64 tên mỗi
+        # dòng, và dòng AllowOverrideList thứ hai thay dòng thứ nhất.
+        AllowOverride Options=Indexes,MultiViews,SymLinksIfOwnerMatch
+        AllowOverrideList <Files <FilesMatch <IfModule <If <Else <ElseIf <Limit <LimitExcept <RequireAll <RequireAny <RequireNone RewriteEngine RewriteRule RewriteCond RewriteBase RewriteOptions Require Order Allow Deny Satisfy AuthType AuthName AuthUserFile AuthGroupFile AuthBasicProvider Header RequestHeader ExpiresActive ExpiresByType ExpiresDefault FileETag AddType AddEncoding AddCharset AddDefaultCharset AddOutputFilterByType AddOutputFilter SetOutputFilter SetEnv SetEnvIf SetEnvIfNoCase UnsetEnv BrowserMatch BrowserMatchNoCase DirectoryIndex ErrorDocument Redirect RedirectMatch RedirectPermanent RedirectTemp LimitRequestBody ServerSignature AddLanguage DefaultLanguage
         Require all granted
     </Directory>
 
@@ -51,6 +64,14 @@
     <DirectoryMatch "/\.(?!well-known(/|$))">
         Require all denied
     </DirectoryMatch>
+
+    # PHP-FPM nhận hai biến PHP_VALUE và PHP_ADMIN_VALUE từ web server và cho
+    # chúng đè cả php_admin_value của pool. Thiếu hai dòng dưới, .htaccess của
+    # site chỉ cần một dòng SetEnv PHP_ADMIN_VALUE "open_basedir=/" là PHP của
+    # nó đọc được ngoài thư mục site. Hai dòng này gỡ cả hai biến ngay trước
+    # khi request được gửi sang PHP-FPM.
+    ProxyFCGISetEnvIf "true" !PHP_VALUE
+    ProxyFCGISetEnvIf "true" !PHP_ADMIN_VALUE
 
     # PHP chuyển tới pool riêng của site qua socket. Không khai báo khối
     # <Proxy "fcgi://localhost">: các site dùng chung tên này, khai báo worker

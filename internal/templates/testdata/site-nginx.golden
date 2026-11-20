@@ -8,6 +8,13 @@ server {
     server_name example.com;
 
     root /var/www/example.com/public;
+    # Nginx chạy dưới www-data và đọc được file của mọi site qua quyền nhóm.
+    # Thiếu dòng dưới, site A chỉ cần đặt một symlink trỏ sang file của site B
+    # là Nginx trả file đó về, kể cả mã nguồn PHP nếu symlink mang đuôi .txt.
+    # if_not_owner: chỉ đi theo symlink khi symlink và file đích cùng một chủ,
+    # nên symlink của site trỏ vào file của chính nó vẫn chạy.
+    # from=$document_root: chỉ xét phần đường dẫn nằm dưới thư mục gốc của site.
+    disable_symlinks if_not_owner from=$document_root;
     index index.php;
 
     # Log riêng từng site, trong thư mục mà /etc/logrotate.d/tpan-sites xoay vòng.

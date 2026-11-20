@@ -132,11 +132,19 @@ func TestKeyDirectives(t *testing.T) {
 func TestLogrotateByWeb(t *testing.T) {
 	ng, _ := LogrotateSites(Logrotate{Web: "nginx"})
 	ap, _ := LogrotateSites(Logrotate{Web: "apache"})
-	// Bản nginx gửi USR1 qua /run/nginx.pid (chạy được với cả gói Ubuntu lẫn
+	// Bản nginx gửi HUP qua /run/nginx.pid (chạy được với cả gói Ubuntu lẫn
 	// nginx.org), không dùng init script của gói Ubuntu (M12).
-	if !bytes.Contains(ng, []byte(`[ ! -f /run/nginx.pid ] || kill -USR1 "$(cat /run/nginx.pid)"`)) ||
+	if !bytes.Contains(ng, []byte("\n        [ ! -f /run/nginx.pid ] || kill -HUP \"$(cat /run/nginx.pid)\"\n")) ||
 		bytes.Contains(ng, []byte("invoke-rc.d")) || bytes.Contains(ng, []byte("apache2")) {
 		t.Errorf("bản nginx sai:\n%s", ng)
+	}
+	// Không còn lệnh nào gửi USR1 (M14): thư mục log của site là 0750 theo nhóm
+	// của site, worker nginx không tự mở lại được file log. Chú thích được nhắc
+	// tới USR1 để nói vì sao không dùng.
+	for _, line := range strings.Split(string(ng), "\n") {
+		if code := strings.TrimSpace(line); !strings.HasPrefix(code, "#") && strings.Contains(code, "USR1") {
+			t.Errorf("bản nginx còn gửi USR1: %q", line)
+		}
 	}
 	if !bytes.Contains(ap, []byte("invoke-rc.d apache2 reload")) || bytes.Contains(ap, []byte("invoke-rc.d nginx")) {
 		t.Errorf("bản apache sai:\n%s", ap)

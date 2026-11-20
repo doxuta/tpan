@@ -85,9 +85,12 @@ func NginxSiteSSL(l site.Layout, php, acmeRoot string) ([]byte, error) {
 //   - <VirtualHost *:443>: mọi luật của bản cổng 80 hiện có, cộng SSLEngine on,
 //     SSLCertificateFile l.CertFullchain(), SSLCertificateKeyFile l.CertPrivkey().
 //
-// Cần mod ssl đã bật (Plan SSL bật trước khi ghi file này).
+// Cần mod ssl đã bật (Plan SSL bật trước khi ghi file này). mode như ApacheSite.
 func ApacheSiteSSL(l site.Layout, php, acmeRoot string, mode site.HtaccessMode) ([]byte, error) {
 	d, err := sslSiteData(l, php, acmeRoot)
+	if err == nil {
+		d.siteData, err = withHtaccess(d.siteData, mode)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost apache SSL: %w", err)
 	}
@@ -98,6 +101,8 @@ func ApacheSiteSSL(l site.Layout, php, acmeRoot string, mode site.HtaccessMode) 
 // "apache", ssl theo site.Site.SSL. Tạo site, chạy lại, xin SSL và phát hiện
 // lệch (M4) đều gọi hàm này, để không có chỗ nào ghi đè vhost 443 bằng bản cổng 80.
 // php là bản PHP site đang dùng (site.Site.PHPVersion): vhost trỏ vào socket của bản đó.
+// mode là chế độ .htaccess (site.Site.Htaccess), chỉ vhost Apache dùng; với
+// nginx nó bị bỏ qua vì nginx không đọc .htaccess.
 func SiteVhost(l site.Layout, web, php, acmeRoot string, ssl bool, mode site.HtaccessMode) ([]byte, error) {
 	switch {
 	case web == "nginx" && ssl:

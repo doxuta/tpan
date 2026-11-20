@@ -28,8 +28,7 @@
         # .htaccess) cần FollowSymLinks hoặc SymLinksIfOwnerMatch; chọn cái sau
         # để site này không đặt symlink trỏ sang file của site khác.
         Options SymLinksIfOwnerMatch
-        # WordPress và plugin ghi luật vào .htaccess (permalink, cache).
-        AllowOverride All
+{{- template "site-apache-override.tmpl" .}}
         Require all granted
     </Directory>
 
@@ -51,6 +50,14 @@
     <DirectoryMatch "/\.(?!well-known(/|$))">
         Require all denied
     </DirectoryMatch>
+
+    # PHP-FPM nhận hai biến PHP_VALUE và PHP_ADMIN_VALUE từ web server và cho
+    # chúng đè cả php_admin_value của pool. Thiếu hai dòng dưới, .htaccess của
+    # site chỉ cần một dòng SetEnv PHP_ADMIN_VALUE "open_basedir=/" là PHP của
+    # nó đọc được ngoài thư mục site. Hai dòng này gỡ cả hai biến ngay trước
+    # khi request được gửi sang PHP-FPM.
+    ProxyFCGISetEnvIf "true" !PHP_VALUE
+    ProxyFCGISetEnvIf "true" !PHP_ADMIN_VALUE
 
     # PHP chuyển tới pool riêng của site qua socket. Không khai báo khối
     # <Proxy "fcgi://localhost">: các site dùng chung tên này, khai báo worker

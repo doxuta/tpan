@@ -23,6 +23,8 @@ func TestSSLGolden(t *testing.T) {
 	}{
 		{"site-nginx-ssl", func() ([]byte, error) { return NginxSiteSSL(l, "8.3", acmeRoot) }},
 		{"site-apache-ssl", func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot, site.HtaccessSafe) }},
+		{"site-apache-tat-ssl", func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot, site.HtaccessOff) }},
+		{"site-apache-day-du-ssl", func() ([]byte, error) { return ApacheSiteSSL(l, "8.3", acmeRoot, site.HtaccessFull) }},
 		{"nginx-default-ssl", NginxDefaultSSL},
 		{"apache-default-ssl", ApacheDefaultSSL},
 		{"renew-hook", func() ([]byte, error) { return RenewHook(testTpanBin) }},
@@ -177,7 +179,6 @@ func TestApacheSiteSSLDirectives(t *testing.T) {
 		`ErrorLog "` + l.LogDir + `/error.log"`,
 		`CustomLog "` + l.LogDir + `/access.log" combined`,
 		"LimitRequestBody 67108864",
-		"AllowOverride All",
 		"Options SymLinksIfOwnerMatch",
 		`<Directory "` + l.Public + `/wp-content/uploads">`,
 		`<FilesMatch "^\.">`,
@@ -196,11 +197,21 @@ func TestApacheSiteSSLDirectives(t *testing.T) {
 	if cond <= 0 || cond >= rule || rule >= i443 {
 		t.Errorf("RewriteCond (%d) phải đứng trước RewriteRule (%d) và cả hai trong vhost 80 (443 bắt đầu ở %d)", cond, rule, i443)
 	}
-	if bytes.Contains(ap[i443:], []byte("Rewrite")) {
-		t.Error("vhost 443 không được có luật Rewrite (sẽ thành vòng lặp chuyển hướng)")
+	// Chỉ xét dòng lệnh bắt đầu bằng Rewrite: từ M14 dòng AllowOverrideList của
+	// vhost 443 có các TÊN chỉ thị RewriteEngine, RewriteRule... (cho .htaccess
+	// dùng), đó không phải luật chuyển hướng.
+	for _, line := range codeLines(ap[i443:]) {
+		if strings.HasPrefix(line, "Rewrite") {
+			t.Errorf("vhost 443 không được có luật Rewrite (sẽ thành vòng lặp chuyển hướng): %q", line)
+		}
 	}
 	// Redirect thường của mod_alias xử lý trước Alias nên nuốt thử thách: cấm.
+	// Bỏ qua các dòng AllowOverride: "Options=Indexes,..." không bật Indexes,
+	// khối đó có test riêng (TestApacheHtaccessModes).
 	for _, line := range codeLines(ap) {
+		if strings.HasPrefix(line, "AllowOverride") {
+			continue
+		}
 		if strings.HasPrefix(line, "Redirect") || strings.Contains(line, "Indexes") || strings.Contains(line, "<Proxy") ||
 			strings.Contains(line, "FollowSymLinks") || strings.Contains(line, "Strict-Transport-Security") {
 			t.Errorf("apache SSL có dòng không được có: %q", line)
