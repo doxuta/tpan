@@ -62,11 +62,20 @@ const vi = {
   brainAuthWarn: (method: string) => `Claude Code đang đăng nhập bằng “${method}”, không phải gói claude.ai. Mỗi câu hỏi có thể bị tính tiền theo API.`,
   brainSinceLabel: "NỐI TỪ",
   brainWarningsLabel: "LƯU Ý",
-  brainEnableTitle: "Bật AI",
-  brainEnableBody: "Gõ lệnh này trên máy chủ, rồi nối bộ não ở bước sau.",
-  brainConnectTitle: "Nối bộ não",
-  brainConnectBody: "Gõ lệnh này trên máy cá nhân của bạn, trong một terminal, và giữ terminal đó mở. Đây không phải lệnh trên máy chủ, và không cần sudo.",
-  brainConnectWhere: "Chạy trên máy cá nhân của bạn (máy có Claude Code), không phải trên máy chủ.",
+  brainEnableTitle: "1. Bật AI (trên máy chủ)",
+  brainEnableBody: "Lệnh đầu đổi cấu hình, lệnh sau khởi động lại panel để nhận cấu hình mới.",
+  brainEnableDone: "1. Bật AI: đã xong (chế độ bridge).",
+  brainSudoTitle: "2. Cho phép nối không cần gõ mật khẩu (trên máy chủ, làm một lần)",
+  brainSudoBody:
+    "Máy cá nhân nối vào bằng ssh rồi chạy sudo tpan brain-link, lúc đó không có ai gõ mật khẩu sudo. Dòng này cho user SSH của bạn chạy đúng ba lệnh tpan bằng sudo không mật khẩu; $USER tự thành tên user đang đăng nhập. Không cho chạy lệnh duyệt Plan: AI chỉ đề xuất, bạn duyệt. Lệnh cuối phải in “parsed OK”; báo lỗi thì xoá file bằng sudo rm /etc/sudoers.d/tpan-mcp. Bỏ qua bước này nếu bạn SSH bằng root.",
+  brainConnectTitle: "3. Nối bộ não (trên máy cá nhân của bạn)",
+  brainConnectBody:
+    "Chạy trong thư mục mã nguồn TPAN: make build dựng tpan cho máy của bạn (bản phát hành chỉ có cho Linux). Gõ ở một terminal mới và để nó mở: đóng terminal là ngắt bộ não. Thấy “Bộ não: đã nối” là xong.",
+  brainConnectWhere: "Chạy trên máy cá nhân của bạn (máy có Claude Code), không phải trên máy chủ. Không cần sudo.",
+  brainUserLabel: "User SSH trên máy chủ",
+  brainUserHint: "User bạn dùng để ssh vào máy này. Lệnh bên dưới tự điền theo.",
+  brainHostLabel2: "Địa chỉ máy chủ",
+  brainHostHint: "Lấy từ thanh địa chỉ của trình duyệt. Nếu đã khai máy này trong ~/.ssh/config thì có thể thay cả cụm user@địa chỉ bằng tên đã khai.",
 };
 
 export const strings = defineStrings(vi, {
@@ -125,9 +134,18 @@ export const strings = defineStrings(vi, {
   brainAuthWarn: (method) => `Claude Code is logged in with “${method}”, not a claude.ai plan. Each question may be billed at API prices.`,
   brainSinceLabel: "CONNECTED SINCE",
   brainWarningsLabel: "NOTES",
-  brainEnableTitle: "Turn AI on",
-  brainEnableBody: "Type this command on the server, then connect the brain in the next step.",
-  brainConnectTitle: "Connect the brain",
-  brainConnectBody: "Type this command on your own machine, in a terminal, and keep that terminal open. It is not a command for the server, and it needs no sudo.",
-  brainConnectWhere: "Runs on your own machine (the one with Claude Code), not on the server.",
+  brainEnableTitle: "1. Turn AI on (on the server)",
+  brainEnableBody: "The first command changes the setting, the second restarts the panel so it picks the setting up.",
+  brainEnableDone: "1. Turn AI on: done (bridge mode).",
+  brainSudoTitle: "2. Allow connecting without a password (on the server, once)",
+  brainSudoBody:
+    "Your machine connects over ssh and runs sudo tpan brain-link, with nobody there to type a sudo password. This line lets your SSH user run exactly three tpan commands with sudo and no password; $USER becomes the name of the logged-in user. It does not allow approving Plans: the AI only proposes, you approve. The last command must print “parsed OK”; if it reports an error, delete the file with sudo rm /etc/sudoers.d/tpan-mcp. Skip this step if you SSH in as root.",
+  brainConnectTitle: "3. Connect the brain (on your own machine)",
+  brainConnectBody:
+    "Run it in the TPAN source folder: make build builds tpan for your machine (releases only ship Linux builds). Type it in a new terminal and keep it open: closing the terminal disconnects the brain. You are done when it prints “Brain: connected”.",
+  brainConnectWhere: "Runs on your own machine (the one with Claude Code), not on the server. No sudo needed.",
+  brainUserLabel: "SSH user on the server",
+  brainUserHint: "The user you ssh into this machine with. The command below fills it in.",
+  brainHostLabel2: "Server address",
+  brainHostHint: "Taken from the browser's address bar. If this machine is in your ~/.ssh/config, you can replace the whole user@address with that name.",
 });

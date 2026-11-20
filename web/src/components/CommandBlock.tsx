@@ -89,11 +89,16 @@ function CommandRow({ command }: { command: string }) {
   );
 }
 
-export function CommandBlock({ commands }: { commands: string[] }) {
+/**
+ * addSudo={false}: lệnh đã tự đặt sudo đúng chỗ (ví dụ `echo ... | sudo tee`),
+ * thêm sudo vào đầu dòng nữa thì thừa. where: thay dòng "chạy ở đâu" mặc định
+ * (máy chủ, quyền root), dùng cho lệnh chạy trên máy cá nhân.
+ */
+export function CommandBlock({ commands, addSudo = true, where }: { commands: string[]; addSudo?: boolean; where?: string }) {
   const t = useStrings(strings);
   const session = useSession();
   const { state, copy } = useCopy();
-  const lines = commands.map(withSudo).filter((c) => c !== "");
+  const lines = commands.map((c) => (addSudo ? withSudo(c) : c.trim())).filter((c) => c !== "");
   if (lines.length === 0) return null;
 
   const demo = session.data?.demo === true;
@@ -102,7 +107,7 @@ export function CommandBlock({ commands }: { commands: string[] }) {
   return (
     <div className="bg-pre p-[12px]">
       <div className="flex flex-wrap items-start justify-between gap-x-[12px] gap-y-[6px]">
-        <p className="m-0 min-w-0 flex-1 basis-[240px] text-[13px] text-muted">{demo ? t.commandWhereDemo : t.commandWhere(host)}</p>
+        <p className="m-0 min-w-0 flex-1 basis-[240px] text-[13px] text-muted">{demo ? t.commandWhereDemo : (where ?? t.commandWhere(host))}</p>
         {lines.length > 1 && (
           <button
             type="button"

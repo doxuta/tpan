@@ -235,13 +235,19 @@ function Connect({ brain, draft }: { brain: BrainStatus; draft: string }) {
         {off && (
           <div>
             <p className="m-0 mb-[4px] text-[13px]">{t.connectServerStep}</p>
-            <CommandBlock commands={["tpan mcp config --brain bridge"]} />
+            <CommandBlock commands={["tpan mcp config --brain bridge", "systemctl restart tpan"]} />
           </div>
         )}
         <div>
           {off && <p className="m-0 mb-[4px] text-[13px]">{t.connectLocalStep}</p>}
-          <LocalCommand command={brain.connect_command} />
+          {/* Tên máy (hostname) thường không phân giải được từ máy cá nhân: dùng địa chỉ đang mở panel. */}
+          <LocalCommand command={brain.connect_command.replace(/@[^@\s]*$/, "@" + window.location.hostname)} />
         </div>
+        <p className="m-0 text-[13px]">
+          {t.connectFullLead}
+          <Link to="/settings">{t.connectFullLink}</Link>
+          {t.connectFullTail}
+        </p>
       </div>
       <p className="m-0 mt-[12px] text-[13px] text-muted">{t.connectOrClaude}</p>
       <ClaudeCommand prompt={t.claudePrompt(draft.trim())} />

@@ -34,6 +34,9 @@ const vi = {
   connectLocalStep: "2. Trên máy cá nhân của bạn:",
   connectLocalWhere: "Chạy trên máy cá nhân của bạn (máy có Claude Code), không phải trên máy chủ. Gõ ở terminal bạn sẽ để mở.",
   connectOrClaude: "Chưa nối thì vẫn dùng được Claude Code trực tiếp:",
+  connectFullLead: "Thay <user> bằng user SSH của bạn. Đủ các bước, kể cả cấu hình sudo trên máy chủ, ở ",
+  connectFullLink: "Cài đặt, mục AI và bộ não",
+  connectFullTail: ".",
   claudePrompt: (question: string) => (question ? `Dùng công cụ tpan: ${question}` : "Dùng công cụ tpan xem mục đang mở trên panel (current_view) rồi cho mình biết có gì cần xử lý."),
 
   // ---- ngữ cảnh gửi kèm ----
@@ -133,6 +136,9 @@ export const strings = defineStrings(vi, {
   connectLocalStep: "2. On your own machine:",
   connectLocalWhere: "Runs on your own machine (the one with Claude Code), not on the server. Type it in a terminal you will leave open.",
   connectOrClaude: "Until it is connected you can still use Claude Code directly:",
+  connectFullLead: "Replace <user> with your SSH user. Every step, including the sudo setup on the server, is in ",
+  connectFullLink: "Settings, AI and brain",
+  connectFullTail: ".",
   claudePrompt: (question) => (question ? `Use the tpan tools: ${question}` : "Use the tpan tools to look at what is open on the panel (current_view) and tell me what needs attention."),
 
   chipsHeading: "CONTEXT SENT ALONG",

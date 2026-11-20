@@ -5,7 +5,7 @@
 // bao giờ chạm vào đăng nhập Claude.
 
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { errorMessage, get } from "../../api/client";
 import type { BrainStatus } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -16,10 +16,99 @@ import { Tag } from "../../components/Tag";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/cai-dat";
 import { strings as khung } from "../../i18n/khung";
+import { Field } from "../dang-nhap/Field";
 import { formatDateTime } from "../lich-su/format";
 
-/** Lệnh bật AI trên máy chủ. CommandBlock tự thêm sudo khi hiện và khi chép. */
-const enableCommand = "tpan mcp config --brain bridge";
+/** Bật AI trên máy chủ: đổi cấu hình rồi khởi động lại (tpan serve chỉ đọc ai.brain lúc khởi động). CommandBlock tự thêm sudo. */
+const enableCommands = ["tpan mcp config --brain bridge", "systemctl restart tpan"];
+
+/**
+ * Sudoers cho user SSH (mục 3.9 của docs/HUONG-DAN-CHU-DU-AN.md). $USER do
+ * shell của người gõ tự thay bằng tên user đang đăng nhập, nên lệnh chép là
+ * chạy được ngay, không có chỗ nào phải tự sửa. Mỗi dòng đã có sudo đúng chỗ.
+ */
+const sudoersFile = "/etc/sudoers.d/tpan-mcp";
+const sudoCommands = [
+  `echo "$USER ALL=(root) NOPASSWD: /usr/local/bin/tpan mcp, /usr/local/bin/tpan mcp --session *, /usr/local/bin/tpan brain-link" | sudo tee ${sudoersFile}`,
+  `sudo chmod 440 ${sudoersFile}`,
+  "sudo visudo -c",
+];
+
+/** User SSH gõ ở ô nhập được nhớ trong trình duyệt này (chỉ tiện lợi; trình duyệt chặn bộ nhớ thì thôi). */
+const userKey = "tpan.brain.sshUser";
+function loadUser(): string {
+  try {
+    return window.localStorage.getItem(userKey) ?? "";
+  } catch {
+    return "";
+  }
+}
+function saveUser(v: string) {
+  try {
+    window.localStorage.setItem(userKey, v);
+  } catch {
+    /* bỏ qua */
+  }
+}
+
+/** Ba bước nối bộ não khi chưa nối. Bước 1 chỉ hiện lệnh khi AI còn tắt. */
+function ConnectSteps({ modeOff }: { modeOff: boolean }) {
+  const t = useStrings(strings);
+  const [user, setUser] = useState(loadUser);
+  const host = window.location.hostname;
+  const u = user.trim();
+  const target = `${u === "" ? "<user>" : u}@${host}`;
+  const connectCommands = ["make build", `bin/tpan brain ${target}`];
+
+  return (
+    <div className="mt-[14px] flex max-w-[760px] flex-col gap-[20px] border-t border-hair pt-[14px]">
+      {modeOff ? (
+        <div>
+          <h3 className="m-0 text-[14px] font-semibold">{t.brainEnableTitle}</h3>
+          <p className="mt-[4px] mb-[8px] text-muted">{t.brainEnableBody}</p>
+          <CommandBlock commands={enableCommands} />
+        </div>
+      ) : (
+        <p className="m-0 flex items-center gap-[10px] text-[14px] font-semibold">
+          <StatusMark status="pass" />
+          {t.brainEnableDone}
+        </p>
+      )}
+      <div>
+        <h3 className="m-0 text-[14px] font-semibold">{t.brainSudoTitle}</h3>
+        <p className="mt-[4px] mb-[8px] text-muted">{t.brainSudoBody}</p>
+        <CommandBlock commands={sudoCommands} addSudo={false} />
+      </div>
+      <div>
+        <h3 className="m-0 text-[14px] font-semibold">{t.brainConnectTitle}</h3>
+        <p className="mt-[4px] mb-[12px] text-muted">{t.brainConnectBody}</p>
+        <div className="mb-[12px] flex flex-wrap gap-[16px]">
+          <div className="min-w-[200px] flex-1">
+            <Field
+              id="bo-nao-user"
+              label={t.brainUserLabel}
+              hint={t.brainUserHint}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="ubuntu"
+              value={user}
+              onChange={(e) => {
+                setUser(e.target.value);
+                saveUser(e.target.value);
+              }}
+            />
+          </div>
+          <div className="min-w-[200px] flex-1">
+            <div className="mb-[6px] text-[14px] font-medium">{t.brainHostLabel2}</div>
+            <div className="flex h-[44px] items-center font-mono text-[13px] sm:h-[40px]">{host}</div>
+            <p className="mt-[6px] mb-0 text-[13px] text-muted">{t.brainHostHint}</p>
+          </div>
+        </div>
+        <CommandBlock commands={connectCommands} addSudo={false} where={t.brainConnectWhere} />
+      </div>
+    </div>
+  );
+}
 
 /** Claude Code đăng nhập bằng gói claude.ai thì không tính tiền theo API; mọi cách khác thì có. */
 const planAuth = "claude.ai";
@@ -131,31 +220,8 @@ export function BoNao() {
             )}
           </dl>
 
-          {/* Chưa nối: hai lệnh ở hai máy khác nhau, nên mỗi lệnh nói rõ chạy ở đâu. Demo thì không có gì để nối. */}
-          {!b.connected && b.mode !== "demo" && (
-            <div className="mt-[14px] flex max-w-[760px] flex-col gap-[16px] border-t border-hair pt-[14px]">
-              {b.mode === "off" && (
-                <div>
-                  <h3 className="m-0 text-[14px] font-semibold">{t.brainEnableTitle}</h3>
-                  <p className="mt-[4px] mb-[8px] text-muted">{t.brainEnableBody}</p>
-                  <CommandBlock commands={[enableCommand]} />
-                </div>
-              )}
-              <div>
-                <h3 className="m-0 text-[14px] font-semibold">{t.brainConnectTitle}</h3>
-                <p className="mt-[4px] mb-[8px] text-muted">{t.brainConnectBody}</p>
-                <div className="bg-pre p-[12px]">
-                  <p className="m-0 text-[13px] text-muted">{t.brainConnectWhere}</p>
-                  <p className="mt-[8px] mb-0 font-mono text-[12px] leading-[1.55]">
-                    <span aria-hidden="true" className="text-muted select-none">
-                      ${" "}
-                    </span>
-                    <MonoText size={12}>{b.connect_command}</MonoText>
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Chưa nối: ba bước ở hai máy khác nhau, nên mỗi bước nói rõ chạy ở đâu. Demo thì không có gì để nối. */}
+          {!b.connected && b.mode !== "demo" && <ConnectSteps modeOff={b.mode === "off"} />}
         </>
       )}
     </section>
