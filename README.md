@@ -1,5 +1,8 @@
 # TPAN
 
+[![Bản phát hành](https://img.shields.io/github/v/release/doxuta/tpan)](https://github.com/doxuta/tpan/releases/latest)
+[![Giấy phép MIT](https://img.shields.io/github/license/doxuta/tpan)](LICENSE)
+
 TPAN là panel quản trị máy chủ web cho một VPS Ubuntu 24.04. Nó làm hai việc: cài LEMP (nginx) hoặc LAMP (apache), và tạo nhiều site WordPress trên cùng một máy, mỗi site một tên miền. Mọi thứ nằm trong một file chạy `tpan` viết bằng Go, có CLI, API, giao diện web song ngữ Việt và Anh, và cổng MCP cho agent.
 
 Khác với panel kiểu "bấm là chạy", TPAN làm theo kiểu hộp kính:
@@ -49,15 +52,22 @@ Cùng bảng điều khiển ở giao diện tối.
 
 TPAN chạy bằng quyền root và sửa cấu hình hệ thống (gói apt, nginx hoặc apache, PHP-FPM, MariaDB, user Linux, cron). Chỉ cài trên một VPS Ubuntu 24.04 sạch dành riêng cho nó, không cài lên máy đang chạy dịch vụ khác. Luôn thử trên máy ảo trước (phần Phát triển bên dưới có máy ảo test).
 
+## Yêu cầu
+
+- Ubuntu 24.04 LTS sạch, amd64 hoặc arm64, quyền root (hoặc user có sudo).
+- Đã chạy thật trên: VPS 4 vCPU, 6 GB RAM, đĩa 40 GB (amd64); máy ảo 2 CPU, 4 GB RAM, đĩa 20 GB (arm64).
+- Mở cổng 22 (SSH), 80 và 443 (site), 8443 (panel). Muốn panel không ra internet thì cài với `--private`.
+- Muốn có HTTPS thật cho site: một tên miền có bản ghi A trỏ về IP của máy.
+
 ## Cài đặt
 
-Cài nhanh trên một VPS Ubuntu 24.04 sạch, từ bản phát hành mới nhất trên GitHub:
+Cài trên một VPS Ubuntu 24.04 sạch, từ bản phát hành mới nhất trên GitHub:
 
 ```bash
 curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx
 ```
 
-Script cài là `scripts/install.sh`. Nó đặt file chạy vào `/usr/local/bin/tpan`, chạy `tpan setup` (thư mục, chứng chỉ tự ký, DB, mật khẩu quản trị, dịch vụ systemd), rồi nếu có `--web` thì chạy `tpan stack install`. Chạy lại được: thứ gì đã đúng thì không đổi.
+Đổi `--web nginx` (LEMP) thành `--web apache` nếu muốn LAMP. Script cài là `scripts/install.sh`. Nó đặt file chạy vào `/usr/local/bin/tpan`, chạy `tpan setup` (thư mục, chứng chỉ tự ký, DB, mật khẩu quản trị, dịch vụ systemd), rồi nếu có `--web` thì chạy `tpan stack install`. Chạy lại được: thứ gì đã đúng thì không đổi.
 
 Các cờ, lấy từ `bash scripts/install.sh --help`:
 
@@ -74,9 +84,17 @@ sudo ./install.sh [--binary FILE | --from BASE] [--private] [--web nginx|apache]
 --lang vi|en    ngôn ngữ thông báo
 ```
 
-### Cách 1: chép gói phát hành sang máy
+### Thử cả gói bằng một lệnh
 
-Trên Mac (máy dev), đóng gói:
+Trên VPS sạch, lệnh này cài tpan rồi tự thử lần lượt: health, tạo site `thu.example.com`, thùng rác, fail2ban, ufw, backup, đổi nginx sang apache rồi về, PHP, cập nhật. Cuối cùng in bảng đạt/hỏng; log đã che mật khẩu và IP nằm ở `/root/tpan-thu-che.log`.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/doxuta/tpan/main/scripts/thu-tren-vps.sh | sudo bash
+```
+
+### Cài không qua GitHub: chép gói phát hành sang máy
+
+Dùng khi máy đích không tải được từ GitHub, hoặc khi thử bản tự build. Trên máy dev, đóng gói:
 
 ```bash
 make release
@@ -95,15 +113,7 @@ cd tpan-release
 sudo ./install.sh --web nginx        # hoặc --web apache
 ```
 
-`install.sh` tự chọn `tpan-linux-amd64` hay `tpan-linux-arm64` theo máy, kiểm sha256 với `SHA256SUMS` nằm cạnh, và thử chạy `tpan version` trước khi thay file.
-
-### Cách 2: một lệnh từ bản phát hành
-
-```bash
-curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx
-```
-
-Tải `install.sh`, `tpan-linux-<arch>` và `SHA256SUMS` từ bản phát hành mới nhất trên GitHub. Muốn tải từ chỗ khác (bản tự đóng gói, máy chủ nội bộ) thì thay địa chỉ bằng `<BASE>/install.sh` và thêm `--from <BASE>`.
+`install.sh` tự chọn `tpan-linux-amd64` hay `tpan-linux-arm64` theo máy, kiểm sha256 với `SHA256SUMS` nằm cạnh, và thử chạy `tpan version` trước khi thay file. Gói đặt trên một máy chủ nội bộ thì dùng `<BASE>/install.sh` kèm `--from <BASE>`.
 
 ### Sau khi cài
 
@@ -111,6 +121,9 @@ Tải `install.sh`, `tpan-linux-<arch>` và `SHA256SUMS` từ bản phát hành 
 2. Mở `https://<IP của máy>:8443`. Trình duyệt sẽ cảnh báo vì chứng chỉ tự ký. Xem chi tiết chứng chỉ trong trình duyệt và so dấu vân tay SHA-256 với dòng `tpan setup` đã in. Khớp thì đúng là panel của bạn, lúc đó mới bỏ qua cảnh báo.
 3. Đăng nhập bằng mật khẩu vừa lưu.
 4. Bật lịch backup: `sudo tpan backup settings --keep 5 --at 03:30`. Máy mới chưa có bản sao lưu nào của `tpan.db`, nên trang Sự cố và `tpan health` sẽ cảnh báo `tpan.backup:db` cho tới khi có (đó là cảnh báo thật, không phải lỗi).
+5. Tạo site đầu tiên ở màn **Site → Tạo site**, hoặc bằng CLI ở phần dưới. Xin HTTPS ở màn **SSL**: mặc định là chứng chỉ thử (staging) của Let's Encrypt, không tốn hạn mức nhưng trình duyệt chưa tin; thử xong thì tắt Staging và bấm "Xin lại" để có chứng chỉ thật.
+
+Cập nhật lên bản mới: `sudo tpan self-update --dry-run` để xem trước, `sudo tpan self-update --yes` để cập nhật (giữ bản cũ, quay lại bằng `--rollback`).
 
 Quên mật khẩu: trên máy chủ chạy `sudo tpan admin passwd`. Lệnh này sinh mật khẩu mới, huỷ mọi phiên đăng nhập và gỡ mọi IP đang bị khoá.
 
@@ -142,7 +155,9 @@ sudo tpan health                               # mọi phép kiểm; mã thoát 
 sudo tpan health shop.example.com --fix --dry-run
 
 # SSL (Let's Encrypt, cần tên miền thật trỏ về máy)
-sudo tpan ssl issue shop.example.com --email admin@example.com
+sudo tpan ssl issue shop.example.com --email admin@example.com   # mặc định là chứng chỉ thử (staging)
+sudo tpan ssl settings --staging=false                           # thử xong: từ giờ xin chứng chỉ thật
+sudo tpan site add blog.example.com --email admin@example.com --ssl   # tạo site và xin SSL luôn
 
 # Backup
 sudo tpan backup create shop.example.com
@@ -158,10 +173,20 @@ sudo tpan php use shop.example.com 8.4
 # Cập nhật
 sudo tpan update --check                       # chỉ xem gói nào có bản mới
 sudo tpan update
-sudo tpan self-update --dry-run                # cập nhật chính tpan (cần đã có bản phát hành)
+sudo tpan self-update --dry-run                # cập nhật chính tpan lên bản phát hành mới nhất
 ```
 
 Các lệnh khác: `tpan apply -f sites.yaml` và `tpan export` (nhiều site một lúc), `tpan trash`, `tpan db`, `tpan cron`, `tpan security`, `tpan plan`, `tpan mcp` (cho agent qua SSH), `tpan brain <ssh-đích>` (chạy trên máy cá nhân, nối Claude Code của bạn vào panel). Danh sách đủ: `tpan --help`.
+
+## AI trong panel (tuỳ chọn)
+
+AI tắt sẵn. Bộ não là Claude Code đã đăng nhập trên máy cá nhân của bạn; máy chủ không giữ khoá hay đăng nhập AI nào, và AI chỉ đề xuất Plan, bạn duyệt rồi TPAN mới chạy. Bật trong ba bước, màn **Cài đặt → AI và bộ não** có đủ lệnh để chép:
+
+1. Trên máy chủ: `sudo tpan mcp config --brain bridge && sudo systemctl restart tpan`.
+2. Trên máy chủ, một lần: cho user SSH chạy `tpan mcp` và `tpan brain-link` bằng sudo không mật khẩu (file `/etc/sudoers.d/tpan-mcp`; dòng cần ghi có sẵn trên màn Cài đặt).
+3. Trên máy cá nhân, trong thư mục mã nguồn: `make build`, rồi `bin/tpan brain <user>@<máy>` và để terminal đó mở.
+
+Chi tiết và cách dùng với Claude Code, Codex qua MCP: [docs/giai-thich/07-m7-cong-cho-agent.md](docs/giai-thich/07-m7-cong-cho-agent.md), [docs/giai-thich/08-m8-ai-trong-panel.md](docs/giai-thich/08-m8-ai-trong-panel.md).
 
 ## Phát triển
 
@@ -204,10 +229,10 @@ Thử bản cài trên máy ảo trước khi đụng VPS: `make release`, chép
   - [08-m8-ai-trong-panel.md](docs/giai-thich/08-m8-ai-trong-panel.md): AI trong panel (`tpan brain`)
   - [09-m9-backup-va-cron.md](docs/giai-thich/09-m9-backup-va-cron.md): backup, khôi phục, DB, cron
   - [10-m10-chuyen-web-server.md](docs/giai-thich/10-m10-chuyen-web-server.md): chuyển LEMP và LAMP tại chỗ
+  - [11-m11-cai-dat-va-phat-hanh.md](docs/giai-thich/11-m11-cai-dat-va-phat-hanh.md): cài một lệnh và phát hành
   - [12-m12-phien-ban-va-cap-nhat.md](docs/giai-thich/12-m12-phien-ban-va-cap-nhat.md): phiên bản và cập nhật
+- [docs/HUONG-DAN-CHU-DU-AN.md](docs/HUONG-DAN-CHU-DU-AN.md): thử từng phần trên VPS thật, từng lệnh một (stack, site, SSL, tường lửa, thùng rác, backup, AI).
 - [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M12.log`, và các lần chạy lại sau khi ghép).
-
----
 
 ## Giấy phép
 
@@ -221,7 +246,7 @@ Every operation shows a preview first (steps, commands, file diffs), rolls back 
 
 The screenshots above come from `tpan serve --demo`, a fake machine with sample data.
 
-Install on a clean Ubuntu 24.04 VPS: `curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx`. Or run `make release`, copy `dist/release/<version>/` to the server, then `sudo ./install.sh --web nginx`. Then open `https://<server>:8443`, compare the certificate's SHA-256 fingerprint with the one `tpan setup` printed, and log in with the admin password shown once. Forgot it: `sudo tpan admin passwd`. With `--private` the panel listens on 127.0.0.1 only; reach it through `ssh -L 8443:127.0.0.1:8443 <server>`.
+Install on a clean Ubuntu 24.04 VPS: `curl -fsSL https://github.com/doxuta/tpan/releases/latest/download/install.sh | sudo bash -s -- --web nginx`. Or run `make release`, copy `dist/release/<version>/` to the server, then `sudo ./install.sh --web nginx`. Then open `https://<server>:8443`, compare the certificate's SHA-256 fingerprint with the one `tpan setup` printed, and log in with the admin password shown once. Forgot it: `sudo tpan admin passwd`. Update to the latest release with `sudo tpan self-update --yes` (`--rollback` goes back). With `--private` the panel listens on 127.0.0.1 only; reach it through `ssh -L 8443:127.0.0.1:8443 <server>`.
 
 TPAN runs as root and changes system configuration. Use it only on a clean, dedicated VPS, and try it in a VM first. Every command accepts `--lang en`.
 

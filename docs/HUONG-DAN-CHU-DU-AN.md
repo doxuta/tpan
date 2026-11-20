@@ -267,7 +267,7 @@ sed -e 's/<domain>/example.com/g' -e 's/<IP>/203.0.113.10/g' ~/tpan-vps.log > ~/
 
 ### 3.1. Cài tpan bằng `install.sh` (M11)
 
-Repo còn riêng tư nên chưa tải thẳng từ GitHub được. Đóng gói trên Mac rồi chép sang.
+Repo đã công khai và có bản phát hành, nên cách gọn nhất là lệnh một dòng ở README (`curl … install.sh | sudo bash -s -- --web nginx`). Dưới đây là cách không cần GitHub: đóng gói trên Mac rồi chép sang.
 
 Trên Mac, `~/tpan`:
 
