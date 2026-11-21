@@ -141,6 +141,8 @@ Thành phần nằm ở `web/src/components/`. Màn chỉ ghép thành phần v�
 
 Hình khối chung: thẻ bo 10 px, viền `--hair`, nền `--surface`, đệm 16 px. Ô điều khiển (nút, ô nhập, ô chọn) bo 8 px, cao 40 px; dưới 640 px cao 44 px để bấm được bằng ngón tay. Bóng đổ chỉ cho lớp nổi (menu thả, hộp thoại, thanh lệnh, ngăn AI, thẻ theo dõi job).
 
+Bo góc chỉ có bốn cỡ, là bốn lớp Tailwind khai trong `styles.css`: `rounded-card` (10 px, thẻ, hộp thoại), `rounded-ctl` (8 px, nút, ô nhập, menu thả, khối bằng chứng), `rounded-item` (6 px, mục trong menu thả), `rounded-chip` (4 px, chip nhỏ: số sự cố trên menu, khung phím tắt `⌘K`); thêm `rounded-full` cho nhãn nhỏ và hình đại diện. Không viết bo góc bằng giá trị tự do (`rounded-[…]`); `web/kieu_dang_test.go` chặn.
+
 | Thành phần | Hình thức |
 |---|---|
 | Nút chính (`Button variant="primary"`) | nền `--accent`, chữ `--on-accent` 14 px độ đậm 500; rê thì nền `--accent-hover`. Mỗi màn một nút chính, nằm bên phải đầu màn; khối xem trước có nút chính của riêng nó |
@@ -164,7 +166,7 @@ Hình khối chung: thẻ bo 10 px, viền `--hair`, nền `--surface`, đệm 1
 | Ô nhập (`Field`, `Input`, `Select`, `Textarea`) | nhãn 14/500 nằm trên ô; ô viền `--field`, nền `--surface`; lỗi có dấu lỗi và `aria-invalid` |
 | Ô chọn (`Checkbox`) | 16 px, màu nhấn; ô bị khoá có lời giải thích trong nhãn đọc và `title`, không để trống |
 | Nút đoạn (`SegmentButton`) | nhóm bo 8 px viền `--line`; ô đang chọn nền `--accent-tint`, chữ `--accent`, có `aria-pressed` |
-| Hộp thoại (`Dialog`) | bo 10 px, bóng, lớp phủ `--scrim`; nút làm việc là động từ của đúng việc đó |
+| Hộp thoại (`Dialog`) | bo 10 px, bóng, lớp phủ `--scrim`; nút làm việc là động từ của đúng việc đó và đứng trước nút "Huỷ" (như bản 1: kịch bản bấm thật của M15, M16 bấm nút đầu tiên); `danger` cho việc không hoàn tác được thì nút làm việc là nút nguy hiểm |
 | Trạng thái rỗng (`EmptyState`) | một câu `--muted`, kèm một liên kết hoặc nút tới việc tiếp theo |
 | Hàng tuyến | cao 52 px; cột tên site co giãn 220 đến 320 px, tên **một dòng**, sans 14/500, dài thì cắt bằng dấu ba chấm và có `title`; sáu ga chia đều; cột mã HTTP rộng 76 px. Mã khác 200 có nền `--fail`, chữ `--on-fail`. Dưới hàng lỗi có một dòng chữ `--fail-text` nói hỏng ở đâu |
 | Ô tìm `⌘K` | một nút trông như ô nhập (nền `--soft`, viền `--line`): kính lúp, dòng gợi ý `--muted`, phím tắt trong khung nhỏ. Mở thanh lệnh |
