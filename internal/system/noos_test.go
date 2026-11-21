@@ -42,6 +42,9 @@ var osAllowed = map[string]string{
 	"internal/demo/demo.go":     "thư mục tạm của chế độ --demo",
 	"cmd/tpan/main.go":          "kiểm tpan.db đã có chưa trước khi mở store",
 	"cmd/tpan/apply.go":         "đọc sites.yaml người gõ lệnh chỉ ra",
+	// M18: render user-data chạy không cần root (WriteFileAtomic luôn chown về
+	// root) và chỉ đọc, ghi file theo đường dẫn chính người gõ lệnh đưa.
+	"cmd/tpan/cloudinit.go": "đọc sites.yaml, SHA256SUMS và ghi user-data theo đường dẫn người gõ lệnh chỉ ra (M18)",
 }
 
 func set(names ...string) map[string]bool {
