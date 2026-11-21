@@ -107,6 +107,40 @@ func checkClipped(c *cdp, f *m16Fail, what string) {
 	}
 }
 
+// restoreButtonsInView khẳng định, từ 1024 px trở lên (ảnh 1440 × 900), mọi
+// nút "Khôi phục" trên hàng nằm trọn trong khung nhìn của bảng khi bảng chưa
+// cuộn ngang: người dùng thấy nút mà không phải kéo thanh cuộn của bảng.
+// checkClipped bỏ qua khung cuộn được nên không bắt được ca này. Ở 390 px bảng
+// được phép cuộn ngang, không kiểm.
+func restoreButtonsInView(c *cdp) error {
+	v, err := c.eval(fmt.Sprintf(`(()=>{
+		if (innerWidth < 1024) return '';
+		const bs=[...document.querySelectorAll('main tr button')].filter(b=>b.textContent.trim()===%q);
+		if (!bs.length) return 'không có nút nào';
+		const bad=[];
+		for (const b of bs) {
+			let box=null;
+			for (let a=b.parentElement; a; a=a.parentElement) { const o=getComputedStyle(a).overflowX; if (o==='auto'||o==='scroll') { box=a; break; } }
+			if (box) box.scrollLeft=0;
+			const r=b.getBoundingClientRect(), ar=box?box.getBoundingClientRect():{left:0,right:innerWidth};
+			if (r.left < ar.left-1 || r.right > Math.min(ar.right, innerWidth)+1) bad.push((b.getAttribute('aria-label')||'').slice(0,60)+' (phải '+Math.round(r.right)+' > khung '+Math.round(Math.min(ar.right, innerWidth))+')');
+		}
+		return bad.length ? bad.length+'/'+bs.length+' nút ngoài khung: '+bad.slice(0,3).join('; ') : 'ok '+bs.length;
+	})()`, m18Nhan.khoiPhuc))
+	if err != nil {
+		return err
+	}
+	s := fmt.Sprint(v)
+	switch {
+	case s == "":
+		return nil
+	case strings.HasPrefix(s, "ok "):
+		fmt.Printf("  %s nút «%s» nằm trọn trong khung nhìn của bảng\n", strings.TrimPrefix(s, "ok "), m18Nhan.khoiPhuc)
+		return nil
+	}
+	return fmt.Errorf("nút «%s» trên hàng: %s", m18Nhan.khoiPhuc, s)
+}
+
 // openRemoteDialog bấm Khôi phục trên hàng bản chỉ còn trên kho và chờ hộp
 // thoại "Tải về máy trước khi khôi phục?".
 func openRemoteDialog(c *cdp, domain string) error {
@@ -207,7 +241,7 @@ func photosM18(c *cdp, base, out, only string) error {
 			if c.str(`[...document.querySelectorAll('main th')].some(th=>th.textContent.trim()===`+fmt.Sprintf("%q", m18Nhan.cotODau)+`)?'có':''`) == "" {
 				return fmt.Errorf("bảng không có cột «%s»", m18Nhan.cotODau)
 			}
-			return nil
+			return restoreButtonsInView(c)
 		},
 		"backup-hop-kho": func() error {
 			if c.str(fmt.Sprintf(`[...document.querySelectorAll('[role=dialog] button,[role=alertdialog] button')].some(b=>b.textContent.trim()===%q)?'có':''`, m18Nhan.taiVeMay)) == "" {
