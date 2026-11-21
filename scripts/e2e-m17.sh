@@ -871,17 +871,22 @@ thao_tac_cua_a() {
   [ "$web" = nginx ] && other=apache
   section "bất biến 7: A giữ lồng sau đổi PHP"
   # Đổi bản PHP là điều kiện "xong lõi" của đề bài, không được bỏ qua. Kho ngoài
-  # (packages.sury.org) có lúc trả 404 cho một gói của một bản (gặp ở lượt dò
-  # M17 với 8.4): thử lần lượt 8.4, 8.2, 8.1, dùng bản đầu tiên cài được và ghi
-  # rõ; không bản nào cài được thì khẳng định ra KHÔNG ĐẠT.
-  local pv="" v
-  for v in 8.4 8.2 8.1; do
-    vroot tpan php install "$v" --yes
-    if job_ok; then
-      pv=$v
-      break
-    fi
-    note "không cài được PHP $v (thường do kho ngoài packages.sury.org), thử bản kế tiếp"
+  # (packages.sury.org) có lúc trả 404 cho một gói của một bản, hay đang đồng bộ
+  # ("Mirror sync in progress", cả kho hỏng vài phút; gặp ở lượt dò M17): mỗi
+  # vòng thử lần lượt 8.4, 8.2, 8.1, dùng bản đầu tiên cài được và ghi rõ; hỏng
+  # cả ba thì chờ 2 phút rồi thử vòng sau, tối đa 4 vòng. Không bản nào cài
+  # được thì khẳng định ra KHÔNG ĐẠT.
+  local pv="" v vong
+  for vong in 1 2 3 4; do
+    for v in 8.4 8.2 8.1; do
+      vroot tpan php install "$v" --yes
+      if job_ok; then
+        pv=$v
+        break 2
+      fi
+      note "vòng $vong: không cài được PHP $v (thường do kho ngoài packages.sury.org), thử bản kế tiếp"
+    done
+    [ "$vong" -lt 4 ] && sleep 120
   done
   ok "cài được một bản PHP khác 8.3 để đổi (đã dùng: ${pv:-không bản nào})" test -n "$pv"
   if [ -n "$pv" ]; then
