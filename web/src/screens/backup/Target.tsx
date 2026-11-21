@@ -21,11 +21,10 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { CommandBlock } from "../../components/CommandBlock";
 import { Disclosure } from "../../components/Disclosure";
-import { Checkbox, Field, Input, Textarea } from "../../components/Field";
+import { Checkbox, Field, Input, Select, Textarea } from "../../components/Field";
 import { useJobTracker } from "../../components/JobTracker";
 import { Code } from "../../components/MonoText";
 import { Notice } from "../../components/Notice";
-import { SegmentButton } from "../../components/SegmentButton";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/backup-dich";
 import { strings as khung } from "../../i18n/khung";
@@ -347,10 +346,17 @@ function TargetFormBlock({ view, pending, busy, onPreview }: FormProps) {
       </label>
 
       <div className="flex flex-col gap-[12px]">
-        <div>
-          <p className="mt-0 mb-[6px] font-medium">{t.caLabel}</p>
-          <SegmentButton<CaMode> label={t.caLabel} options={caOptions} value={f.ca} onChange={(ca) => put("ca", ca)} />
-        </div>
+        {/* Ô chọn thường, không dùng nút đoạn: ba nhãn dài không vừa một hàng ở 390 px
+            (nút đoạn không xuống dòng, bị khung thẻ cắt mất "Không dùng"). */}
+        <Field label={t.caLabel} htmlFor="o-dich-ca">
+          <Select id="o-dich-ca" name="ca" value={f.ca} onChange={(e) => put("ca", e.target.value as CaMode)}>
+            {caOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
         {f.ca === "custom" && (
           <Field label={t.caPemLabel} htmlFor="o-dich-ca-pem" hint={t.caPemHint} hintId="h-dich-ca-pem" error={bad("caPem") ? t.caPemMissing : undefined}>
             <Textarea
