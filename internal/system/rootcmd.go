@@ -27,17 +27,51 @@ var siteUserRe = regexp.MustCompile(`^tp_[a-z0-9_]{1,29}$`)
 // must be an anchor or <anchor>/<one name> (see checkRootZone): a deeper path
 // has a middle component the site controls, which the kernel would follow
 // before the program could open it by fd.
-var rootZoneCommands = map[string]func(args []string) bool{
+//
+// Danh sách trắng theo từng cờ, không theo tên chương trình (soát cuối M28,
+// C5): miễn "tar" hay "du" nói chung thì lọt các cờ nhận một FILE mà chương
+// trình mở theo đường dẫn, đi theo symlink ở tên cuối (tar --file, -T,
+// --exclude-from, --index-file, -I/--use-compress-program, -F; du
+// --files0-from, -X, -L; useradd -P). Mọi cờ ngoài đúng dạng tpan đang dùng
+// làm cả lệnh bị từ chối khi lệnh chạm vùng site.
+var rootZoneCommands = map[string]func(args []string, prefix string) bool{
 	// Backup: tar --create opens the tree by fd with O_NOFOLLOW and stores a
 	// symlink as a symlink (N3). Extracting into a tree the site holds is the
 	// classic symlink attack, so any extract or dereference form is refused.
 	"tar": tarCreateOnly,
-	// Disk usage: du does not follow symlinks and only prints numbers (N3).
-	"du": func([]string) bool { return true },
+	// Disk usage: du -sb --one-file-system does not follow symlinks and only
+	// prints numbers (N3). Chỉ đúng dạng đó.
+	"du": func(args []string, _ string) bool {
+		for _, a := range args {
+			switch {
+			case a == "-sb", a == "-s", a == "-b", a == "--one-file-system", a == "--":
+			case strings.HasPrefix(a, "-"):
+				return false
+			}
+		}
+		return true
+	},
 	// Site user: --home-dir <anchor> is only a string written to /etc/passwd,
-	// as long as --no-create-home is there.
-	"useradd": func(args []string) bool {
-		return slices.Contains(args, "--no-create-home") || slices.Contains(args, "-M")
+	// as long as --no-create-home is there. Chỉ đúng các cờ tpan dùng; giá trị
+	// của --shell không được nằm trong vùng.
+	"useradd": func(args []string, prefix string) bool {
+		for i := 0; i < len(args); i++ {
+			switch a := args[i]; a {
+			case "--system", "--user-group", "--no-create-home":
+			case "--home-dir":
+				i++ // giá trị kiểm ở checkRootZone (phải là neo hay ngoài vùng)
+			case "--shell":
+				if i+1 >= len(args) || strings.Contains(args[i+1], prefix) {
+					return false
+				}
+				i++
+			default:
+				if strings.HasPrefix(a, "-") {
+					return false
+				}
+			}
+		}
+		return slices.Contains(args, "--no-create-home")
 	},
 }
 
@@ -49,25 +83,32 @@ var rootZoneCommands = map[string]func(args []string) bool{
 // directory: a first argument without "-" (old-style "tar h ..." where it is
 // an option cluster), and "C" inside a cluster ("-zC <dir>"); only a bare
 // "-C <dir>" or a --directory form is understood.
-func tarCreateOnly(args []string) bool {
+//
+// Chỉ nhận đúng các cờ tpan dùng cho backup (soát cuối C5): --create, --gzip,
+// --one-file-system, --file=<ngoài vùng> (tar ghi file nén theo đường dẫn, đi
+// theo symlink ở tên cuối, nên không bao giờ được nằm trong vùng),
+// --directory=<thư mục> và -C <thư mục> (checkRootZone đòi thư mục trong vùng
+// phải đúng là một neo). Cờ khác, kể cả dạng viết tắt, cụm cờ ngắn và
+// --directory tách giá trị, đều bị từ chối.
+func tarCreateOnly(args []string, prefix string) bool {
 	if len(args) == 0 || !strings.HasPrefix(args[0], "-") {
 		return false
 	}
 	create := false
-	for _, a := range args {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
 		switch {
 		case a == "--create":
 			create = true
-		case strings.HasPrefix(a, "--"):
-			name, _, _ := strings.Cut(a, "=")
-			for _, bad := range []string{"--extract", "--get", "--dereference"} {
-				if len(name) > 2 && strings.HasPrefix(bad, name) {
-					return false
-				}
+		case a == "--gzip", a == "--one-file-system":
+		case strings.HasPrefix(a, "--file="):
+			if strings.Contains(a, prefix) {
+				return false
 			}
-		case strings.HasPrefix(a, "-") && strings.ContainsAny(a[1:], "xhL"):
-			return false
-		case strings.HasPrefix(a, "-") && a != "-C" && strings.Contains(a, "C"):
+		case strings.HasPrefix(a, "--directory="):
+		case a == "-C":
+			i++ // giá trị kiểm ở checkRootZone
+		case strings.HasPrefix(a, "-"):
 			return false
 		}
 	}
@@ -114,7 +155,7 @@ func checkRootZone(root string, cmd Cmd) error {
 	}
 	refuse := fmt.Errorf("%w: %s", ErrRootZoneCommand, cmd.String())
 	form, ok := rootZoneCommands[cmd.Name]
-	if !ok || !form(cmd.Args) {
+	if !ok || !form(cmd.Args, prefix) {
 		return refuse
 	}
 	for _, kv := range cmd.Env {
