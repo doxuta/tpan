@@ -18,11 +18,12 @@ package server
 //   - POST /api/v1/packages/{name}: thân là PackageEdit (bốn giới hạn cũ như
 //     trước; bảy trường mới tuỳ chọn: vắng mặt là giữ nguyên, để giao diện cũ
 //     không xoá trần khi sửa gói). Có site trong lồng dùng gói và trần đổi:
-//     202 JobStarted (job cage.sync, dòng gói chỉ ghi khi job thành công);
+//     202 JobStarted (job cage.sync; dòng gói ghi TRƯỚC khi job chạy, ở móc
+//     before của Planned: chính sách của admin không chờ máy, mục 3.6);
 //     ?dry_run=1 trả Preview. Không: 200 PackageRow như trước.
 //   - POST /api/v1/packages: thân account.Package như trước, nhận thêm bảy trường.
 //   - POST /api/v1/users/{name}: đổi gói của user có site trong lồng mà trần
-//     khác: 202 JobStarted (mọi thay đổi của thân áp trong after của job).
+//     khác: 202 JobStarted (mọi thay đổi của thân áp ở móc before, trước job).
 //   - GET /api/v1/sites, /sites/{domain}: site có thêm "caged".
 // Audit: "cage.enable", "cage.disable" (target domain), "isolation.probe",
 // "isolation.probe.cleanup" (target id lượt thử), "package.edit" như cũ.

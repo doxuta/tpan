@@ -9,7 +9,7 @@ LDFLAGS := -s -w \
   -X $(MODULE)/internal/buildinfo.Date=$(DATE)
 
 .DEFAULT_GOAL := help
-.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean nc-m17 e2e
+.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean nc-m17 e2e don-tmp
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -83,6 +83,15 @@ nc-m17: ## (M17) Chạy một bản thử nghiên cứu trong máy ảo: make nc
 	@{ case "$(T)" in t0-*) ;; *) cat $(NC17)/lib.sh ;; esac; cat $(NC17)/$(T).sh; } | \
 	  TPAN_VM_CAPTURE=1 scripts/vm.sh root bash -s > $(NC17)/$(T).ket-qua.txt 2>&1; \
 	  rc=$$?; cat $(NC17)/$(T).ket-qua.txt; echo "(mã thoát $$rc; đã lưu $(NC17)/$(T).ket-qua.txt)"
+
+# Xoá một thư mục nháp của thợ trong tmp-phien/ (đã nằm ngoài git). Có target này
+# vì lệnh rm gói trong `bash -c` hay `eval` bắt người duyệt tay, làm phiên tự chạy
+# đứng chờ. Chỉ nhận tên thư mục nháp bắt đầu bằng dấu gạch dưới, không có / hay ..,
+# để không lỡ xoá lời giao việc (tmp-phien/giao-viec) hay thứ gì ngoài tmp-phien.
+don-tmp: ## (M17) Xoá một thư mục nháp trong tmp-phien/: make don-tmp T=_nhap
+	@case "$(T)" in _[a-z0-9]*) ;; *) echo "T phải là tên thư mục nháp bắt đầu bằng _ (ví dụ _nhap)" >&2; exit 2 ;; esac
+	@case "$(T)" in */*|*..*) echo "T không được chứa / hay .." >&2; exit 2 ;; esac
+	rm -rf -- "tmp-phien/$(T)"
 
 # Chạy một kịch bản e2e trên máy ảo của mốc và lưu log. Có target này vì phiên tự
 # chạy chỉ được gọi `make` và `scripts/vm.sh` (luật 9 của agent-dev/LO-TRINH.md);
