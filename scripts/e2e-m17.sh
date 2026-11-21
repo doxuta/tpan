@@ -870,19 +870,30 @@ thao_tac_cua_a() {
   local web=$1 other=nginx name0
   [ "$web" = nginx ] && other=apache
   section "bất biến 7: A giữ lồng sau đổi PHP"
-  vroot tpan php install 8.4 --yes
-  if job_ok; then
-    sau_viec "cài PHP 8.4"
-    vroot tpan php use "$A" 8.4 --yes
-    ok "php use $A 8.4: job thành công" job_ok
-    sau_viec "A chạy PHP 8.4"
+  # Đổi bản PHP là điều kiện "xong lõi" của đề bài, không được bỏ qua. Kho ngoài
+  # (packages.sury.org) có lúc trả 404 cho một gói của một bản (gặp ở lượt dò
+  # M17 với 8.4): thử lần lượt 8.4, 8.2, 8.1, dùng bản đầu tiên cài được và ghi
+  # rõ; không bản nào cài được thì khẳng định ra KHÔNG ĐẠT.
+  local pv="" v
+  for v in 8.4 8.2 8.1; do
+    vroot tpan php install "$v" --yes
+    if job_ok; then
+      pv=$v
+      break
+    fi
+    note "không cài được PHP $v (thường do kho ngoài packages.sury.org), thử bản kế tiếp"
+  done
+  ok "cài được một bản PHP khác 8.3 để đổi (đã dùng: ${pv:-không bản nào})" test -n "$pv"
+  if [ -n "$pv" ]; then
+    sau_viec "cài PHP $pv"
+    vroot tpan php use "$A" "$pv" --yes
+    ok "php use $A $pv: job thành công" job_ok
+    sau_viec "A chạy PHP $pv"
     vsc tien-trinh kiem-ban "$A"
-    ok "A chạy PHP 8.4 trong lồng: không file pool chung, đúng một master" bash -c '[ "$1" = 0 ] && [ "$2" = 1 ]' _ "$(kv POOL_CHUNG_FILE)" "$(kv MASTER)"
+    ok "A chạy PHP $pv trong lồng: không file pool chung, đúng một master" bash -c '[ "$1" = 0 ] && [ "$2" = 1 ]' _ "$(kv POOL_CHUNG_FILE)" "$(kv MASTER)"
     vroot tpan php use "$A" 8.3 --yes
     ok "php use $A 8.3 (về lại): job thành công" job_ok
     sau_viec "A về PHP 8.3"
-  else
-    note "BỎ các khẳng định đổi PHP: không cài được 8.4 (kho ngoài packages.sury.org)"
   fi
 
   section "bất biến 7: tạm khoá (403, socket disabled) rồi mở khoá"
