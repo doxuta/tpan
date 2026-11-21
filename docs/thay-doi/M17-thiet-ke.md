@@ -362,13 +362,13 @@ Bước:
 
 Bước 3 đến 5 nằm trước lúc request đầu tiên vào lồng, nên lúc mã của site bắt đầu chạy trong lồng thì không còn tiến trình nào cùng uid ở ngoài để mở `/proc/<pid>/root` (soát thiết kế điểm 4, `t14` P4). Đổi lại có một khoảng ngắn giữa bước 3 và bước 5 mà request được trả 502 (pool chung đã gỡ, vhost chưa đổi); e2e đo khoảng này bằng vòng `curl` và ghi con số (đề bài: "đo được thời gian gián đoạn").
 
-Kiểm chứng: `cage.socket`, `cage.fence`, `cage.limits`, và mềm (`checks.Soft`): `cage.runtime`, phép gọi HTTP của site. Thành công thì ghi `caged=1`. Hoàn tác đi ngược: vhost về, pool chung về (ghi lại từ template, chờ socket), lồng tắt, file gỡ.
+Kiểm chứng: bộ phép kiểm trong lồng của site (`siteChecks` với trần của gói), mọi phép bọc `policyVerify`: Fail của phép **không** thuộc tập cứng hạ xuống Warn. Tập cứng: chặng web (cấu hình web server, vhost), `cage.socket`, `cage.limits` (và `php.socket` cho Plan ra lồng). Mềm: phép gọi HTTP, WordPress, DB, cô lập, `cage.runtime`, và cả `cage.fence` (khác bản trước của thiết kế, sửa lúc viết lời giao việc đợt 3): `cage.fence` chạy lệnh mới trong slice của site, mà lúc kiểm chứng mã của site đã nhận request và lấp được số tiến trình của slice (bằng `exec`), làm `systemd-run` không khởi động được và job hỏng theo ý site; hàng rào đã được kiểm khi `php-fpm -t` chạy trong lồng ở bước 2, trước khi mã của site vào slice; health vẫn chạy `cage.fence` như phép cứng mỗi giờ. Thành công thì ghi `caged=1`. Hoàn tác đi ngược: vhost về, pool chung về (ghi lại từ template, chờ socket), lồng tắt, file gỡ.
 
 **`cage.disable <domain> | --all | --stale`**
 
 Điều kiện đầu: site `active`, không tạm khoá; máy **có file của lồng** (đọc máy như lớp bọc lệnh, không đòi `caged=1`: đây cũng là Plan dọn lồng dựng dở sau một lần panel bị tắt giữa `cage.enable`, soát thiết kế điểm 6), không có thì `cage_not_caged`. Không đòi cờ của gói: admin được đưa một site ra để gỡ lỗi; health cảnh báo cho tới khi đưa vào lại.
 
-Bước: `steps.SitePool` (ghi, kiểm, reload, chờ socket) → vhost bản thường → `CageSocket{Disable}` → `CageFiles{Remove}` (hàng rào gỡ trước tiên). Kiểm chứng: bộ phép kiểm thường của site, phép gọi HTTP là mềm. Thành công thì `caged=0`. File pool và vhost sinh lại từ template nên giống từng byte bản trước khi vào lồng.
+Bước: `steps.SitePool` (ghi, kiểm, reload, chờ socket) → vhost bản thường → `CageSocket{Disable}` → `CageFiles{Remove}` (hàng rào gỡ trước tiên). Kiểm chứng: bộ phép kiểm thường của site bọc `policyVerify` (như `cage.enable`). Thành công thì `caged=0`. File pool và vhost sinh lại từ template nên giống từng byte bản trước khi vào lồng.
 
 `--all`: mọi site đang có lồng trên máy (lời khuyên của `cage_active` ở mục 6 dùng cờ này). `--stale`: chỉ site có lồng mà gói không còn muốn lồng. `cage enable --all`: mọi site mà gói muốn lồng mà chưa có lồng. Mỗi site một job, site này hỏng không kéo site khác.
 
