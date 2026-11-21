@@ -294,12 +294,14 @@ func sitePHPSteps(st site.Site, cfg StackConfig, lim account.Limits) ([]engine.S
 
 (`internal/core/cage.go`; mình rút gọn phần xử lý lỗi.) Mọi thao tác trên site (đổi bản PHP, mở khoá, khôi phục từ thùng rác, chạy lại `site add`) đi qua hàm này để biết site đang ở đâu. Nếu chỗ nào đó vẫn tự gọi `steps.SitePool`, site trong lồng sẽ bị ghi lại một pool chung: hai nơi cùng phục vụ PHP của một site. Để chặn điều đó, có một test đọc cây cú pháp Go: `TestKhongGoiPoolChungNgoaiHamChon` trong `internal/core/nopool_m17_test.go`. Nó giữ một bảng "tên bị canh, các hàm được phép gọi" và đỏ khi có hàm khác gọi. Lần chạy đầu nó bắt được một chỗ thật: `unsuspendSteps` gọi thẳng `steps.SitePool` (ghi ở `docs/thay-doi/M17.md`, mục 12).
 
+**Bước pool của site ngoài lồng có gác hàng rào.** Plan được dựng trước khi job lấy khoá. Nếu một Plan của chủ site (`php.use`, chạy lại `site add`, khôi phục, mở khoá, sửa tự động) dựng lúc site còn ngoài lồng, rồi admin kịp `cage enable`, thì Plan cũ chạy sau sẽ ghi lại pool chung và vhost thường: user thường tự ra khỏi lồng (soát cuối N4). Cách sửa nằm ở `internal/core/cage.go`: nhánh `!st.Caged` của `sitePHPSteps` trả `cageAbsentPool{Step: pool, ...}`, và `Apply` của nó kiểm file hàng rào **trong job** (đã giữ khoá), thấy có thì từ chối, không ghi gì. `sharedPoolStep` là chỗ duy nhất gọi `steps.SitePool` (test tĩnh canh đúng tên này); chỉ `PrepareDisable` gọi thẳng nó, vì Plan ra lồng chính là việc ghi lại pool chung.
+
 `cageEnableSteps` ghép năm việc theo thứ tự, và thứ tự là cả chuyện an toàn:
 
 1. `CageFiles`: ghi bảy file của lồng (mục 3.4). Hàng rào ghi **sau cùng**.
 2. `CageSocket`: bật socket, systemd bắt đầu nghe (mục 3.5). Chưa khởi động dịch vụ. Vhost còn trỏ pool chung nên chưa request nào vào lồng.
-3. `steps.Absent` gỡ file pool chung rồi `php-fpm<bản> -t` và reload: tiến trình con của pool chung dừng.
-4. `CageReap`: giết mọi tiến trình mang uid của site mà không nằm trong slice (mục 3.6).
+3. `steps.Absent` gỡ file pool chung rồi `php-fpm<bản> -t` và reload: tiến trình con của pool chung dừng. `PrepareEnable` còn gỡ pool sót ở mọi bản PHP khác có trên máy (soát cuối V3); không thì `cage.state` báo lỗi mãi, và Apache chế độ `day-du` chuyển được request sang pool sót đó.
+4. `CageReap`: gỡ crontab riêng của user site, rồi dừng mọi tiến trình mang uid của site mà không nằm trong slice (mục 3.6).
 5. Vhost bản trong lồng, qua `siteVhost`. Từ đây request đi vào socket của lồng.
 
 Hệ quả của thứ tự: giữa bước 3 và bước 5 có một khoảng ngắn mà request của site nhận 502 (pool chung đã gỡ, vhost chưa đổi). Bản thiết kế nói thẳng điều này và đề e2e đo khoảng đó; con số chưa có (mục 2.7). Đổi lại, lúc mã PHP của site bắt đầu chạy trong lồng thì không còn tiến trình nào của cùng uid ở ngoài lồng. Mục 5.5 giải thích vì sao điều đó quan trọng.
@@ -336,7 +338,7 @@ MemorySwapMax=0
 {{end}}...
 ```
 
-Trần bằng 0 thì không có dòng đó (không giới hạn). `MemoryMax` luôn đi kèm `MemorySwapMax=0`: không thì site vượt trần sẽ đẩy bộ nhớ ra swap và làm chậm cả máy thay vì chỉ request đó chết. Bốn dòng `...Accounting=yes` bật bộ đếm của cgroup để `tpan usage` đọc được. Cả dịch vụ PHP lẫn mọi lệnh tpan chạy thay cho site nằm trong slice này, nên trần tính chung cho chúng.
+Trần CPU, RAM, tiến trình bằng 0 thì không có dòng đó (không giới hạn). Riêng hai dòng đĩa (`IOReadBandwidthMax`, `IOWriteBandwidthMax`) **luôn có**, ghi `infinity` khi gói không đặt trần: đợt chạy thật thấy bỏ dòng rồi `daemon-reload` thì `io.max` trên cgroup giữ nguyên trần cũ, `cage.limits` lệch mãi (`docs/thay-doi/M17.md`, đợt 4, mục 1). `MemoryMax` luôn đi kèm `MemorySwapMax=0`: không thì site vượt trần sẽ đẩy bộ nhớ ra swap và làm chậm cả máy thay vì chỉ request đó chết. Bốn dòng `...Accounting=yes` bật bộ đếm của cgroup để `tpan usage` đọc được. Cả dịch vụ PHP lẫn mọi lệnh tpan chạy thay cho site nằm trong slice này, nên trần tính chung cho chúng.
 
 **Dịch vụ** (`cage-service.tmpl`), các dòng đáng đọc:
 
@@ -393,9 +395,11 @@ SystemCallFilter=~@privileged @resources
 
 Đã thử và **không** đưa vào hàng rào: `PrivateUsers=yes` (mục 5.3), `IPAddressDeny` và `PrivateNetwork=yes` (làm WordPress hỏng: không phân giải được tên, không ra được mạng), `MemoryDenyWriteExecute` (rủi ro với JIT của plugin), `NoExecPaths` (vỡ plugin có kèm file chạy). Bảng đầy đủ ở mục 2.3 của bản thiết kế.
 
-**Cách `CageFiles` ghi file** (`internal/steps/cage.go`, hàm `applyWrite`): kiểm mọi thứ có thể hỏng mà không cần đụng máy trước (`wantAll`), chụp trạng thái cũ (`capture`) để hoàn tác, rồi ghi từng file bằng `WriteFileAtomic` (ghi file tạm rồi đổi tên: không bao giờ để lại file ghi dở), theo thứ tự `s.order()`, hàng rào cuối. Sau đó `systemctl daemon-reload`, và nếu file dịch vụ hay `php-fpm.conf` vừa ghi thì chạy `php-fpm<bản> -t --fpm-config <conf>` (kiểm cú pháp) bằng `AsUser`, nên `-t` cũng chạy trong lồng. Hỏng thì `rollback` trả mọi file về như cũ. Chỉ đổi file slice thì không khởi động lại gì (trần có hiệu lực ngay sau `daemon-reload`, mục 2.3).
+**Cách `CageFiles` ghi file** (`internal/steps/cage.go`, hàm `applyWrite`): kiểm mọi thứ có thể hỏng mà không cần đụng máy trước (`wantAll`), chụp trạng thái cũ (`capture`) để hoàn tác, rồi ghi từng file bằng `WriteFileAtomic` (ghi file tạm rồi đổi tên: không bao giờ để lại file ghi dở), theo thứ tự `s.order()`, hàng rào cuối. Sau đó `systemctl daemon-reload`, và nếu file dịch vụ hay `php-fpm.conf` vừa ghi thì chạy `cageFPMTest`, tức `php-fpm<bản> -t -R --fpm-config <conf>` (kiểm cú pháp) bằng **root ở ngoài lồng** (`-R` cho FPM chạy bằng root, vì pool của lồng không có dòng `user`). Không chạy dưới uid của site: mã của site giết được lệnh đó (`kill -9 -1`) hay lấp số tiến trình của slice, làm Plan chính sách hỏng theo ý site (soát cuối N1). Hỏng thì `rollback` trả mọi file về như cũ. Chỉ đổi file slice thì không khởi động lại gì (trần có hiệu lực ngay sau `daemon-reload`, mục 2.3).
 
 Điểm tinh: `passwd` và `group` được gắn vào lồng theo inode (số định danh file). Ghi bằng rename tạo ra file mới có inode mới, lồng đang chạy vẫn thấy file cũ. Nên đổi hai file đó cũng phải `try-restart` dịch vụ (dòng `s.svcActive && (written[...] ...)` ở `applyWrite`). Lỗi của `try-restart` chỉ ghi log, không làm bước hỏng: file đã đúng, `-t` đã đạt, dịch vụ sống hay chết là việc của phép kiểm `cage.socket` và `cage.runtime`.
+
+**Gắn lại `passwd` và `group` sau lệnh đổi user.** Cùng nguyên nhân inode, nhưng ở chiều ngược lại: `useradd`, `userdel`, `usermod -aG`, `gpasswd -d` thay `/etc/passwd`, `/etc/group` thật bằng cách đổi tên đè, và kernel gỡ lệnh gắn trên file cũ trong mọi lồng đang chạy: A đọc ra tên user `tp_*` của B (phát hiện nặng của đợt chạy thật). `apt` cũng làm vậy (cài `apache2` chạy `groupadd ssl-cert`). Sửa: hàm `cageRebindIdentity` trong `internal/steps/cage.go` liệt kê các dịch vụ lồng đang `active` rồi chạy `systemctl bind --read-only <unit> <file riêng> /etc/passwd` (và `/etc/group`) cho từng lồng; các bước apt (`internal/steps/apt_m12.go`) và bước đổi user gọi nó. Hàm không bao giờ trả lỗi; lồng nào không gắn lại được thì `cage.runtime` báo lỗi, sửa tự động `cage.restart`. Còn hở: lệnh `wp` tạm đang chạy đúng lúc đó thấy `passwd` của máy tới khi nó thoát, và user do `unattended-upgrades` tạo thì phải đợi health bắt (soát cuối N5).
 
 ### 3.5 Socket do systemd giữ: `steps.CageSocket` và `cage-socket.tmpl`
 
@@ -408,7 +412,7 @@ ListenStream={{.Socket}}
 SocketUser=www-data
 SocketGroup=www-data
 SocketMode=0660
-DirectoryMode=0755
+DirectoryMode=0711
 RemoveOnStop=yes
 ```
 
@@ -422,7 +426,9 @@ Thư mục socket là `/run/tpan-cage/<16 ký tự hex>/php.sock` (`Layout.CageR
 
 Dòng `ExecStartPre=-...install -d ... /run/mysqld` là cách sửa lỗi của mục 2.5: unit socket chạy bằng root ở máy thật (không trong hàng rào) trước khi nghe, nên tạo được thư mục `/run/mysqld` nếu MariaDB chưa kịp. Dấu `-` nghĩa là lệnh lỗi cũng không chặn socket.
 
-`CageSocket.applyEnable` (`internal/steps/cage.go`), theo thứ tự: kiểm layout, kiểm trạng thái cũ để có thể hoàn tác (`s.state`), `php-fpm -t` trong lồng, `systemctl reset-failed` (bỏ trạng thái `failed` còn từ lần trước), `systemctl enable --now <socket>`, rồi `waitCageSocket` chờ file socket xuất hiện, tối đa 20 giây. **Không khởi động dịch vụ**: request đầu tiên làm việc đó. Lý do: nếu bước này khởi động dịch vụ, mã của site đã chạy trong lồng trước khi bước giết tiến trình ngoài lồng; và không gì mã của site điều khiển được (giết tiến trình chính, trả mã lạ) làm bước này hỏng.
+Thư mục socket là `0711` (`DirectoryMode`): đi qua được nhưng không liệt kê được, nên site không đọc ra danh sách các lồng khác (soát cuối L6).
+
+`CageSocket.applyEnable` (`internal/steps/cage.go`), theo thứ tự: kiểm layout, kiểm trạng thái cũ để có thể hoàn tác (`s.state`), kiểm cấu hình bằng root ngoài lồng (`cageFPMTest`, `php-fpm<bản> -t -R`), một phép thử hàng rào trong lồng (`runFenceTest`: `php-fpm -t` chạy dưới user của site qua lớp bọc, chứng minh systemd dựng được không gian riêng; lỗi do bị giết hay hết tài nguyên, `cage.ErrKilled`, thì bỏ qua vì đó là việc mã của site làm được; lỗi dựng không gian riêng như `226/NAMESPACE` thì bước hỏng), `systemctl reset-failed` (bỏ trạng thái `failed` còn từ lần trước), `systemctl enable --now <socket>`, rồi `waitCageSocket` chờ file socket xuất hiện, tối đa 20 giây. **Không khởi động dịch vụ**: request đầu tiên làm việc đó. Lý do: nếu bước này khởi động dịch vụ, mã của site đã chạy trong lồng trước khi bước giết tiến trình ngoài lồng; và không gì mã của site điều khiển được (giết tiến trình chính, trả mã lạ) làm bước này hỏng.
 
 ### 3.6 Giết tiến trình cùng uid ngoài lồng: `steps.CageReap`
 
@@ -441,9 +447,19 @@ func cageStray(sys system.System, pid, uid, cg string) bool {
 }
 ```
 
-`cageReap` quét `/proc` (đọc bằng Go qua `System`, không shell), tìm tiến trình mang uid của site mà cgroup không nằm dưới slice của site, gửi `SIGKILL` bằng `kill -KILL <pid>...` (argv), rồi chờ chúng biến mất. Trước lúc giết nó đọc lại `status` lần nữa: pid có thể đã được dùng lại giữa lúc quét và lúc giết, nên chỉ giết pid vẫn đúng uid và vẫn ngoài slice. Tệ nhất là giết nhầm một tiến trình khác của chính site đó.
+`cageReap` làm hai việc.
 
-Vì sao cần: tiến trình ngoài lồng cùng uid với site mở cửa ra gốc thật của máy qua `/proc/<pid>/root` (bản thử t14, P4, mục 5.5). Cũng vì thế health có `cage.runtime` báo khi còn tiến trình như vậy.
+Một, gỡ crontab riêng của user site bằng `crontab -r -u <user>` chạy bằng root (`cageCrontabGone`; file còn sau lệnh thì lỗi). Lý do (soát cuối N3): crontab cài từ lúc site còn ngoài lồng vẫn chạy sau `cage.enable`, mỗi phút cron chạy mã của site ở ngoài hàng rào, không trần, cùng uid. Trong lồng thì `crontab` không chạy được (`NoNewPrivileges` chặn setgid, `/var/spool` bị che), nên phải gỡ từ ngoài.
+
+Hai, dừng tiến trình, lặp tới `cageReapWait` (5 giây). Mỗi vòng:
+
+1. `cageKillAll`: `kill -KILL -1` chạy dưới user của site **qua lớp bọc**, tức trong lồng. `kill(-1)` gửi tín hiệu tới mọi tiến trình cùng uid trên máy trong một lượt duyệt của kernel (lồng không có PID namespace riêng). Một chuỗi tiến trình "fork rồi tự thoát" liên tục (nhảy pid) sống qua được lệnh `kill <pid>`, nhưng không sống qua lượt `-1` (soát cuối N2).
+2. Quét `/proc` (`cageScan`, đọc bằng Go qua `System`, không shell), tìm tiến trình mang uid của site mà cgroup không nằm dưới slice, đọc lại `status` lần nữa (pid có thể đã được dùng lại giữa lúc quét và lúc giết), rồi `kill -KILL <pid>...` bằng root. Đây là đường dự phòng khi mã của site lấp số tiến trình của slice và unit tạm của lớp bọc không khởi động được.
+3. Quét lại; hết vòng 5 giây mà còn thì bước hỏng.
+
+Lệnh `kill -1` trong lồng cũng giết cả tiến trình của site nằm trong slice. Chấp nhận được vì bước này chỉ chạy khi đằng nào cũng phải dừng (trước request đầu vào lồng, hoặc ngay trước khi `cage.restart` khởi động lại).
+
+Vì sao cần: tiến trình ngoài lồng cùng uid với site mở cửa ra gốc thật của máy qua `/proc/<pid>/root` (bản thử t14, P4, mục 5.5). Cũng vì thế health có `cage.runtime` báo khi còn tiến trình như vậy, hoặc khi `/var/spool/cron/crontabs/<user>` còn file.
 
 ### 3.7 Vhost: `steps.SiteVhostCaged`
 
@@ -466,7 +482,7 @@ func Wrap(sys system.System) *Sys { return &Sys{System: sys} }
 `Run` quyết theo bốn bước (đọc lời chú thích trên hàm):
 
 1. `cmd.AsUser` rỗng, hoặc không có dạng `tp_<slug>` (`site.CageSlugOfUser`): chạy thẳng như cũ. Có `AsUser` kèm `Env`: từ chối (`Env` chỉ dành cho `tpan brain`).
-2. `Stat` file hàng rào của slug đó (`site.CageFenceOfSlug`). Không có file (`fs.ErrNotExist`): chạy như cũ, vì site đó ngoài lồng. Lỗi khác: trả lỗi, **không chạy gì**. "Site có lồng hay không" được đọc từ **máy** (file hàng rào), không từ bảng `sites`: giữa một Plan vào lồng, bảng chưa đổi mà dịch vụ đã chạy trong lồng, và bước kiểm chứng của chính Plan đó phải chạy `wp` trong lồng.
+2. `Stat` file hàng rào của slug đó (`site.CageFenceOfSlug`). Không có file (`fs.ErrNotExist`) **và** thư mục cấu hình của lồng `/etc/tpan/cage/<slug>` cũng không có: chạy như cũ, vì site đó ngoài lồng. Thiếu hàng rào mà thư mục cấu hình còn (lồng dựng dở, hoặc ai xoá nhầm `fence.conf` lúc dịch vụ vẫn chạy), hay lỗi lạ: trả lỗi, **không chạy gì**. Lớp bọc đóng khi nghi ngờ (soát cuối V1): không thì `wp` của health và cron chạy mã của site ngoài lồng. `cage disable` vẫn dọn được trường hợp chỉ còn thư mục đó. "Site có lồng hay không" được đọc từ **máy** (file hàng rào), không từ bảng `sites`: giữa một Plan vào lồng, bảng chưa đổi mà dịch vụ đã chạy trong lồng, và bước kiểm chứng của chính Plan đó phải chạy `wp` trong lồng.
 3. Có hàng rào: dựng lệnh `systemd-run` bằng hàm `fenced`:
 
 ```go
@@ -572,7 +588,7 @@ func policyHard(r checks.Result) bool {
 }
 ```
 
-`policyVerify` bọc mọi phép kiểm của Plan: phép không thuộc tập cứng mà Fail thì hạ thành Warn. Mã HTTP, WordPress, `cage.runtime` và cả `cage.fence` đều mềm trong Plan chính sách (`cage.enable`, `cage.disable`, `cage.sync`: sửa gói, đổi gói của user). Lý do riêng của `cage.fence` (sổ quyết định, mục 1): lúc kiểm chứng, mã của site đã nhận request và có thể lấp số tiến trình của slice bằng `exec`, làm `systemd-run` của chính `cage.fence` không khởi động được. Hàng rào đã được kiểm lúc `php-fpm -t` chạy trong lồng ở bước `CageSocket`, trước khi mã của site vào slice. Health vẫn chạy `cage.fence` mỗi giờ như phép cứng. Plan của **chủ site** (đổi bản PHP, khôi phục, mở khoá) vẫn kiểm 200 như trước: site chỉ làm hỏng việc của chính nó.
+`policyVerify` bọc mọi phép kiểm của Plan: phép không thuộc tập cứng mà Fail thì hạ thành Warn. Mã HTTP, WordPress, `cage.runtime` và cả `cage.fence` đều mềm trong Plan chính sách (`cage.enable`, `cage.disable`, `cage.sync`: sửa gói, đổi gói của user). Lý do riêng của `cage.fence` (sổ quyết định, mục 1): lúc kiểm chứng, mã của site đã nhận request và có thể lấp số tiến trình của slice bằng `exec`, làm `systemd-run` của chính `cage.fence` không khởi động được. Hàng rào đã được thử lúc `CageSocket` bật lồng (`runFenceTest`: `php-fpm -t` chạy trong lồng, trước khi mã của site vào slice). Health vẫn chạy `cage.fence` mỗi giờ như phép cứng. Plan của **chủ site** (đổi bản PHP, khôi phục, mở khoá) vẫn kiểm 200 như trước: site chỉ làm hỏng việc của chính nó.
 
 ### 3.11 Sửa gói thì trần đổi: `PrepareEditPackage`
 
@@ -721,9 +737,9 @@ Thuộc tính này dựng thêm user namespace, đẹp về mặt cô lập. Đo
 
 Đề bài gốc chỉ nói "dịch vụ PHP-FPM riêng nằm trong slice". M14 từng thử để tiến trình chính bằng root, vì PHP-FPM cần root để đổi user của tiến trình con và `chown` socket. Cách đó giữ `CAP_SETUID`, `CAP_SETGID`, `CAP_CHOWN`, `CAP_KILL` ngay trong lồng. Bản thử t1 cho thấy làm được **không cần root**: systemd giữ socket (không còn `chown`), PHP-FPM chạy thẳng bằng user của site (không còn đổi user). Kết quả: không còn tiến trình root nào trong lồng, điểm `systemd-analyze security` từ 9.4 xuống 1.3 (mục 2.2).
 
-### 5.5 Ngoại lệ `Cmd.Bare` cho lệnh `test` của phép kiểm cô lập, và vì sao `CageReap` tồn tại
+### 5.5 Một ngoại lệ "chạy ngoài lồng cho nhanh" (đã loại), và vì sao `CageReap` tồn tại
 
-Đây là chỗ bản thiết kế đầu làm sai và phát hiện nhờ đo. `checks.Isolated(from, to)` chạy các lệnh `test` dưới user của site `from` ("user A có đọc được file của B không?"). Bản thiết kế đầu có trường `Cmd.Bare` để các lệnh này chạy **ngoài** lồng (cho nhanh, không qua `systemd-run`). Bản thử t14 (mục P4) chứng minh đó là lỗ hổng:
+Bản thiết kế đầu định cho `checks.Isolated(from, to)`, phép kiểm "user A có đọc được file của B không", chạy các lệnh `test` dưới user của A **ngoài** lồng (một trường `Cmd.Bare`, cho nhanh, không qua `systemd-run`). Lần soát thiết kế chỉ ra đó là lỗ hổng và đã loại trước khi viết mã: trong mã không có `Bare`. Bản thử t14 (mục P4) là bằng chứng:
 
 ```
   trong lồng thấy pid của sleep ngoài lồng: [37294]
@@ -734,14 +750,18 @@ Thuộc tính này dựng thêm user namespace, đẹp về mặt cô lập. Đo
   file /tmp/tpan-p4-thu ở máy thật: CO
 ```
 
-Nghĩa là: **một** tiến trình cùng uid với site chạy ngoài lồng (dù chỉ vài mili giây, như lệnh `test`) là đủ để mã trong lồng mở `/proc/<pid>/root` ra gốc thật của máy, giữ file descriptor đó lại sau khi tiến trình đã thoát, và ghi được vào `/tmp` của máy. `ProtectProc=invisible` chỉ giấu tiến trình của uid *khác*, không giấu tiến trình cùng uid; systemd 255 chưa có PID namespace riêng. Cách sửa gồm bốn việc (bản thiết kế mục 3.4):
+Nghĩa là: **một** tiến trình cùng uid với site chạy ngoài lồng, dù chỉ vài mili giây như lệnh `test`, là đủ để mã trong lồng mở `/proc/<pid>/root` ra gốc thật của máy, giữ file descriptor đó sau khi tiến trình đã thoát, và ghi được vào `/tmp` của máy. `ProtectProc=invisible` chỉ giấu tiến trình của uid *khác*; systemd 255 chưa có PID namespace riêng. Hệ quả trong mã hiện tại:
 
-- Bỏ `Cmd.Bare`: không lệnh nào của tpan chạy dưới user của site ngoài hàng rào (`cage.Wrap` bước 2: lỗi `Stat` thì không chạy gì).
-- `Isolated(from, to)` **không sinh ra khi `from` ở trong lồng**. Site trong lồng không nhìn thấy site khác là điều `cage.fence` và `cage.runtime` chứng minh.
-- `CageReap` trong Plan `cage.enable`: giết mọi tiến trình cùng uid còn ở ngoài slice trước khi mã của site chạy trong lồng (mục 3.6).
+- **Không có ngoại lệ nào.** Lệnh chạy dưới user của site trong lồng luôn đi qua `cage.Wrap`, tức luôn trong hàng rào; thiếu hàng rào mà lồng còn dấu vết thì không chạy gì (mục 3.8).
+- `Isolated(from, to)` **không sinh ra khi `from` ở trong lồng**. Site trong lồng không nhìn thấy site khác là điều `cage.fence` và `cage.runtime` chứng minh. Có test riêng cho việc này.
+- `CageReap` tồn tại vì một lý do: trước khi mã của site chạy trong lồng, không được còn tiến trình cùng uid nào ở ngoài. Tiến trình nền do mã của site sinh từ lúc còn ngoài lồng, cron của riêng user, lệnh `wp` dở dang đều là loại đó (mục 3.6).
 - `cage.runtime` báo khi còn tiến trình như vậy; mọi dòng "sửa tay" in bằng `system.Describe`, ra dạng `systemd-run` cho site trong lồng.
 
 Còn hở, nói thẳng: người vận hành tự gõ `runuser -u tp_<slug> -- ...` bằng tay trên máy thì tự mở lại cửa này. Đừng làm vậy với site đã vào lồng.
+
+### 5.5b Phép thử an ninh từng báo "bị chặn" mà không đo gì
+
+Chỗ agent làm sai thật, phát hiện ở đợt chạy thật (`docs/thay-doi/M17.md`, đợt 4, mục 5). Các file PHP thử gọi lệnh bằng `proc_open` với stderr đổ vào `/dev/null`. `open_basedir` của pool chặn mở `/dev/null`, nên `proc_open` trả `false`, và mọi đường cần gọi lệnh (C1, C2, C4, C5, L6, L7) ra "bị chặn" ở cả hai cột: kết quả đẹp mà không đo gì. Sửa: stderr vào pipe, và lệnh không chạy được thì ô ra `skipped`, không bao giờ `blocked` (có test). Bài học đáng nhớ để nói với người review: một phép thử an ninh phải phân biệt "bị chặn" với "không đo được". Một ô xanh chưa phải bằng chứng; phải biết phép thử có thể đỏ.
 
 ### 5.6 Lỗi "lồng không thấy MariaDB": bốn cách đã thử, ba cách không đủ
 
@@ -817,7 +837,7 @@ Câu 4 và câu 9 cần chạy lệnh trên máy ảo. Đáp án ở cuối file
 
 5. Nếu chỉ có `MemoryMax`, khi site vượt trần nhân có thể đẩy bộ nhớ ra swap để cho site chạy tiếp thay vì giết tiến trình, làm chậm cả máy chứ không chỉ site đó. `MemorySwapMax=0` cấm swap cho site, nên chạm trần là một tiến trình chết ngay, đúng thiết kế "chỉ request đó chết" (chú thích trong `cage-slice.tmpl`).
 
-6. Trong Plan `cage.enable`, lúc bước kiểm chứng chạy, mã của site đã nhận request và có thể lấp số tiến trình của slice (bằng `exec`) làm `systemd-run` của `cage.fence` không khởi động được; nếu phép đó cứng thì site chặn được việc vào lồng của chính nó. Hàng rào đã được kiểm lúc `php-fpm -t` chạy trong lồng ở bước `CageSocket`, trước khi mã của site vào slice. Còn khi chạy trong health (mỗi giờ), không có Plan nào chờ nó, nên Fail của `cage.fence` là một cảnh báo thật và báo lỗi. (`policyHard` chỉ liệt kê chặng web, `cage.socket`, `cage.limits`, `php.socket`.)
+6. Trong Plan `cage.enable`, lúc bước kiểm chứng chạy, mã của site đã nhận request và có thể lấp số tiến trình của slice (bằng `exec`) làm `systemd-run` của `cage.fence` không khởi động được; nếu phép đó cứng thì site chặn được việc vào lồng của chính nó. Hàng rào đã được thử lúc `CageSocket` bật lồng (`runFenceTest`), trước khi mã của site vào slice. Còn khi chạy trong health (mỗi giờ), không có Plan nào chờ nó, nên Fail của `cage.fence` là một cảnh báo thật và báo lỗi. (`policyHard` chỉ liệt kê chặng web, `cage.socket`, `cage.limits`, `php.socket`.)
 
 7. Không phải lỗi của thiết kế. Máy bận thì đúng: trần 50% nhận 50,0%, trần 25% nhận 25,0%, trần 100% nhận 99,5% (t3b mục c). Máy rảnh thì ít hơn (35,7% cho trần 50%) vì vCPU đang ngủ của máy ảo thức dậy trễ khoảng 10 đến 14 ms ở đầu mỗi chu kỳ 100 ms. Không lần nào vượt trần. Khi trả lời: nêu cả hai con số, nói e2e đo lúc máy bận. Con số e2e riêng của phiên chính chưa có (mục 2.7).
 
@@ -825,4 +845,4 @@ Câu 4 và câu 9 cần chạy lệnh trên máy ảo. Đáp án ở cuối file
 
 9. Hai lệnh, chạy trên máy ảo bằng `scripts/vm.sh root ...`. Lệnh một: `systemctl cat tpan-cage-<slug>-php.service`, in file unit kèm mọi drop-in áp cho nó; cuối output có `fence.conf`. Lệnh hai: tạo một lệnh tạm sống 60 giây rồi hỏi unit của nó, `systemd-run --unit=tpan-cage-<slug>-run-thu -p User=tp_<slug> sleep 60` và ngay sau đó `systemctl cat tpan-cage-<slug>-run-thu.service`; output cũng có cùng `fence.conf`, vì tên unit bắt đầu bằng `tpan-cage-<slug>-`. Bản thử t1 (mục 4) đã kiểm điều này: `DropInPaths` của unit tạm là file hàng rào. Mình chưa chạy lại hai lệnh trên trong phiên này.
 
-10. Chặn: không capability (`CapEff: 0`), `NoNewPrivileges` và `RestrictSUIDSGID` (không `sudo`, `su`, `crontab`), `RestrictNamespaces` (không tạo namespace mới), `/sys/fs/cgroup` và `/run` (socket của systemd) không thấy được, `SystemCallFilter=~@privileged @resources`, và không có tiến trình cùng uid ngoài lồng (`CageReap`, `Isolated` không sinh từ site trong lồng). Chưa chặn được (nói thẳng): mạng dùng chung (đọc `/proc/self/net/tcp`), và với Apache chế độ `.htaccess` `day-du` thì site đặt được `SetHandler` sang socket của lồng khác. Soát cuối trên máy ảo còn ghi ở `docs/thay-doi/M17.md` (phần "Phát hiện của các đợt soát"); lúc mình viết phần đó còn trống.
+10. Chặn: không capability (`CapEff: 0`), `NoNewPrivileges` và `RestrictSUIDSGID` (không `sudo`, `su`, `crontab`), `RestrictNamespaces` (không tạo namespace mới), `/sys/fs/cgroup` và `/run` (socket của systemd) không thấy được, `SystemCallFilter=~@privileged @resources`, và không có tiến trình cùng uid ngoài lồng (`CageReap`, `Isolated` không sinh từ site trong lồng). Chưa chặn được (nói thẳng): mạng dùng chung (đọc `/proc/self/net/tcp`), và với Apache chế độ `.htaccess` `day-du` thì site đặt được `SetHandler` sang socket của lồng khác. Danh sách từng lỗ đã tìm và đã sửa nằm trong bảng "Soát cuối, pha 1" của `docs/thay-doi/M17.md` (N1 tới N5, V1 tới V5, L1 tới L10) và mục "Phát hiện của đợt chạy thật trên máy ảo (đợt 4)". Ba lỗ nặng cần nhớ tên: N2 (tiến trình nhảy pid sống qua lượt giết), N3 (crontab riêng của user chạy mã ngoài lồng), N4 (Plan dựng trước ghi lại pool chung, user tự ra khỏi lồng). Pha 2 (thử trên máy ảo) chưa có trong bảng lúc mình viết.
