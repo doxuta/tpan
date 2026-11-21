@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/doxuta/tpan/internal/checks"
@@ -120,15 +121,35 @@ func printPreview(e *env, pv engine.Preview) {
 		}
 		if s.CheckError != "" {
 			// Thường vì máy chưa có thứ bước trước sẽ cài; không phải lỗi.
-			printf(w, "    %s %s\n", e.tr("(chưa kiểm được lúc xem trước:", "(could not check during preview:"), s.CheckError+")")
+			// Có thể chứa output của mã PHP của site: lọc ký tự điều khiển.
+			printf(w, "    %s %s\n", e.tr("(chưa kiểm được lúc xem trước:", "(could not check during preview:"), noCtl(s.CheckError)+")")
 		}
 	}
+}
+
+// noCtl đổi ký tự điều khiển (trừ tab) thành '?' trước khi in ra terminal:
+// nội dung file trong thư mục site, đích symlink và output của lệnh chạy mã PHP
+// của site do site viết, có thể chứa chuỗi escape điều khiển terminal của
+// người quản trị (M28).
+func noCtl(s string) string {
+	return strings.Map(func(r rune) rune {
+		if (r < 0x20 && r != '\t') || (r >= 0x7f && r < 0xa0) {
+			return '?'
+		}
+		return r
+	}, s)
 }
 
 func fileAction(e *env, f engine.FileChange) string {
 	switch {
 	case f.Delete:
 		return e.tr("xoá", "delete")
+	case f.Hidden != "":
+		return e.tr("(ẩn nội dung: "+f.Hidden+")", "(content hidden: "+f.Hidden+")")
+	case f.OldLink != "":
+		// Đích của symlink do user của site đặt (M28): in dạng có nháy, không
+		// để chuỗi escape nào tới terminal.
+		return e.tr("thay symlink (→ "+strconv.Quote(f.OldLink)+") bằng file thường:", "replace the symlink (→ "+strconv.Quote(f.OldLink)+") with a regular file:")
 	case !f.OldExists:
 		return e.tr("tạo", "create")
 	case bytes.Equal(f.Old, f.New):

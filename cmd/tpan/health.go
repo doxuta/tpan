@@ -318,12 +318,15 @@ func printFileDiffs(e *env, pv engine.Preview) {
 			continue
 		}
 		for _, f := range s.Info.Files {
-			if f.Delete || !f.OldExists || bytes.Equal(f.Old, f.New) {
+			// OldLink, Hidden (M28): không có nội dung cũ để so; dòng của bước
+			// trong printPreview đã nói điều sẽ xảy ra.
+			if f.Delete || !f.OldExists || f.OldLink != "" || f.Hidden != "" || bytes.Equal(f.Old, f.New) {
 				continue
 			}
 			printf(e.stdout, "\n    --- %s (%s)\n    +++ %s (%s)\n", f.Path, e.tr("đang có", "current"), f.Path, e.tr("tpan sẽ ghi", "tpan will write"))
 			for _, l := range lineDiff(f.Old, f.New) {
-				printf(e.stdout, "    %s\n", l)
+				// .htaccess do site viết lại được: không để chuỗi escape tới terminal.
+				printf(e.stdout, "    %s\n", noCtl(l))
 			}
 		}
 	}
