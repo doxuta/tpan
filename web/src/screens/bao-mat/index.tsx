@@ -6,7 +6,9 @@
 // Cả hai theo một nhịp: bấm → POST ?dry_run=1 trả Preview → PlanReview (hỏi
 // lại vì bước bật ufw nguy hiểm) → POST thật trả job_id → chuyển tới /jobs/:id.
 // Hai dòng SSH chỉ cảnh báo, không có nút: sửa sai là mất đường vào máy.
-// Cuối màn là khối "Cô lập giữa các site" của M14 (Isolation.tsx, mục 6.13).
+// Giao diện bản 2: hai thẻ. Thẻ "Kiểm tra bảo mật máy" (mỗi mục một CheckRow,
+// đóng sẵn trừ dòng lỗi) và thẻ "Cô lập giữa các site" của M14 (Isolation.tsx,
+// mục 6.13). Bản xem trước và khối "cổng sẽ mở" nằm dưới hai thẻ.
 
 import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,7 +17,10 @@ import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { CheckResult, JobStarted, Preview, SecurityStatus } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
 import { MonoText } from "../../components/MonoText";
+import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bao-mat";
@@ -58,15 +63,17 @@ export default function BaoMat() {
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
-      {q.isPending && <p className="mt-[20px] mb-0 text-muted">{k.loading}</p>}
+      <ScreenHeader crumbs={[{ label: k.groups.may }, { label: t.title }]} title={t.title} summary={t.summary} />
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div className="pt-[20px]">
-          <p className="m-0">{errorMessage(q.error, lang)}</p>
-          <Button className="mt-[12px]" onClick={() => void q.refetch()}>
-            {k.retry}
-          </Button>
-        </div>
+        <Card>
+          <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
+          <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+        </Card>
       )}
       {q.isSuccess && <Results results={q.data.results} refetching={q.isFetching} refetchFailed={q.isRefetchError} onRecheck={() => void q.refetch()} />}
       {/* M14: khối cô lập tự đọc API của nó, nên vẫn hiện khi phần trên đang tải hay lỗi. */}
@@ -82,20 +89,12 @@ type ResultsProps = {
   onRecheck: () => void;
 };
 
-// Tách khỏi BaoMat để trạng thái mở/đóng của từng dòng khởi tạo một lần từ dữ
-// liệu đã có (dòng chưa đạt mở sẵn), và giữ nguyên khi "Kiểm lại".
+// Tách khỏi BaoMat để việc đang xem trước nằm cùng chỗ với các nút của dòng.
+// Mỗi CheckRow tự giữ trạng thái mở (chỉ dòng lỗi mở sẵn) và giữ nguyên khi "Kiểm lại".
 function Results({ results, refetching, refetchFailed, onRecheck }: ResultsProps) {
   const t = useStrings(strings);
   const qc = useQueryClient();
   const { track } = useJobTracker();
-
-  const [open, setOpen] = useState<Set<string>>(() => new Set(results.filter((c) => c.status === "fail" || c.status === "warn").map((c) => c.id)));
-  const toggle = (id: string) =>
-    setOpen((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
 
   /** Việc đang xem trước. "Chạy" gửi đúng việc này. */
   const [kind, setKind] = useState<Kind | null>(null);
@@ -163,40 +162,39 @@ function Results({ results, refetching, refetchFailed, onRecheck }: ResultsProps
 
   return (
     <>
-      <section aria-labelledby="bm-ds" className="pt-[26px]">
-        <div className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[8px]">
-          <h2 id="bm-ds" className="m-0 text-[16px] font-semibold">
-            {t.listHeading}
-          </h2>
+      <Card
+        title={t.listHeading}
+        titleId="bm-ds"
+        actions={
           <Button onClick={onRecheck} disabled={refetching}>
             {refetching ? t.rechecking : t.recheck}
           </Button>
-        </div>
-        <p className="mt-[8px] mb-0 max-w-[720px] text-muted">{t.readOnlyNote}</p>
+        }
+        footer={t.readOnlyNote}
+      >
         {refetchFailed && (
-          <p role="alert" className="mt-[10px] mb-0">
-            {t.recheckFailed}
-          </p>
+          <div className="mb-[12px]">
+            <Notice kind="fail" role="alert">
+              {t.recheckFailed}
+            </Notice>
+          </div>
         )}
         {results.length === 0 ? (
-          <p className="mt-[14px] mb-0 text-muted">{t.empty}</p>
+          <EmptyState>{t.empty}</EmptyState>
         ) : (
-          <ul aria-label={t.listLabel} className="m-0 mt-[10px] list-none border-t border-hair p-0">
+          <ul aria-label={t.listLabel} className="m-0 list-none p-0">
             {results.map((c) => (
-              <CheckRow key={c.id} check={c} open={open.has(c.id)} onToggle={() => toggle(c.id)} action={actionFor(c)} noFix={readOnlyIds.has(c.id)} />
+              <CheckRow key={c.id} check={c} action={actionFor(c)} noFix={readOnlyIds.has(c.id)} />
             ))}
           </ul>
         )}
-      </section>
+      </Card>
 
       {preview && kind && (
-        <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
+        <div ref={previewRef} tabIndex={-1} className="flex flex-col gap-[20px] outline-offset-0">
           {ports.length > 0 && (
-            <section aria-labelledby="bm-cong" className="pt-[26px]">
-              <h2 id="bm-cong" className="m-0 font-mono text-[11px] font-normal tracking-[0.08em] text-muted">
-                {t.portsLabel}
-              </h2>
-              <p className="mt-[8px] mb-0">{t.portsLead}</p>
+            <Card title={t.portsLabel} titleId="bm-cong">
+              <p className="m-0">{t.portsLead}</p>
               <ul className="m-0 mt-[8px] flex list-none flex-wrap gap-x-[16px] gap-y-[6px] p-0">
                 {ports.map((p) => (
                   <li key={p}>
@@ -205,7 +203,7 @@ function Results({ results, refetching, refetchFailed, onRecheck }: ResultsProps
                 ))}
               </ul>
               <p className="mt-[8px] mb-0 font-medium">{t.portsWarn}</p>
-            </section>
+            </Card>
           )}
           <PlanReview preview={preview} onRun={() => run.mutate(kind)} running={run.isPending} error={run.error} onCancel={cancel} />
         </div>

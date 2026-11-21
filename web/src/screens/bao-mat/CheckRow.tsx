@@ -89,17 +89,20 @@ export function CheckRow({ check, open, onToggle, defaultOpen, action, noFix = f
         </div>
       </Disclosure>
 
-      {/* Việc làm được ngay từ dòng: chỉ hiện khi dòng chưa đạt. */}
+      {/* Việc làm được ngay từ dòng: chỉ hiện khi dòng chưa đạt. Nút và lời dẫn chung một hàng
+          (xuống dòng khi hẹp) để màn Bảo mật lúc mới mở không quá hai màn hình. */}
       {action && notOk && (
-        <div className="pb-[14px] pl-[32px]">
-          <p className="mt-0 mb-[10px] text-muted">{action.hint}</p>
-          <Button id={`act-${action.kind}`} onClick={action.onClick} disabled={action.disabled}>
-            {action.pending ? t.previewing : action.label}
-          </Button>
+        <div className="pb-[12px] pl-[32px]">
+          <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px]">
+            <Button id={`act-${action.kind}`} size="sm" onClick={action.onClick} disabled={action.disabled}>
+              {action.pending ? t.previewing : action.label}
+            </Button>
+            <span className="min-w-0 flex-[1_1_320px] text-[13px] text-muted">{action.hint}</span>
+          </div>
           {action.error && <div className="pt-[12px]">{action.error}</div>}
         </div>
       )}
-      {noFix && notOk && <p className="mt-0 mb-[14px] pl-[32px] text-muted">{t.sshNoFix}</p>}
+      {noFix && notOk && <p className="mt-0 mb-[12px] pl-[32px] text-[13px] text-muted">{t.sshNoFix}</p>}
     </li>
   );
 }
