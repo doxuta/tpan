@@ -1,6 +1,6 @@
 // Bản xem trước của một Plan, trình bày như một pull request (mục 7 của
-// docs/GIAO-DIEN.md, ý 3 của mục 10 trong KE-HOACH.md): tóm tắt, phạm vi ảnh
-// hưởng, từng bước với lệnh sẽ chạy và file thay đổi dạng diff, rồi nút chạy.
+// docs/GIAO-DIEN.md, bản 2): tóm tắt, phạm vi ảnh hưởng, từng bước với lệnh sẽ
+// chạy và file thay đổi dạng diff, rồi nút chạy.
 // Không có route riêng: màn Tạo site và thao tác Xoá site nhúng component này
 // với Preview lấy từ ?dry_run=1.
 
@@ -8,10 +8,11 @@ import { useId, useMemo, useState, type ReactNode } from "react";
 import { errorMessage } from "../../api/client";
 import type { FileChange, Preview, StepPreview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Dialog } from "../../components/Dialog";
+import { Disclosure } from "../../components/Disclosure";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
-import { MonoText } from "../../components/MonoText";
-import { StatusMark } from "../../components/StatusMark";
+import { Notice } from "../../components/Notice";
 import { Tag } from "../../components/Tag";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/duyet-plan";
@@ -31,7 +32,10 @@ export type PlanReviewProps = {
   onCancel?: () => void;
 };
 
-const labelClass = "font-mono text-[11px] tracking-[0.08em] text-muted";
+const labelClass = "text-[12px] font-medium text-muted";
+
+/** Plan chỉ có chừng này bước (hoặc ít hơn) thì mở sẵn lệnh và diff của mọi bước; nhiều hơn thì chỉ mở bước nguy hiểm. */
+const OPEN_ALL_UP_TO = 3;
 
 export function PlanReview({ preview, onRun, running = false, error, onCancel }: PlanReviewProps) {
   const t = useStrings(strings);
@@ -51,32 +55,27 @@ export function PlanReview({ preview, onRun, running = false, error, onCancel }:
   const press = () => (dangerous.length > 0 ? setConfirming(true) : onRun());
 
   return (
-    <section aria-labelledby={headingId} className="pt-[26px]">
-      <h2 id={headingId} className="m-0 text-[16px] font-semibold">
-        {t.heading}: {tx(preview.title, lang)}
-      </h2>
-      <p className="mt-[6px] mb-0 text-muted">{t.summary}</p>
+    // Không tự thêm khoảng trên: màn đặt khối này trong cột flex cách nhau 20 px (mục 3.5).
+    <Card title={`${t.heading}: ${tx(preview.title, lang)}`} titleId={headingId}>
+      <p className="m-0 text-muted">{t.summary}</p>
 
-      <div className="mt-[18px] border-t border-hair pt-[14px]">
-        <h3 className={`m-0 font-normal ${labelClass}`}>{t.summaryLabel}</h3>
-        <dl className="m-0 mt-[8px] grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:flex sm:flex-wrap sm:gap-x-[40px]">
+      <Section label={t.summaryLabel}>
+        <dl className="m-0 grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:flex sm:flex-wrap sm:gap-x-[40px]">
           <Metric label={t.stepsToRun} value={t.stepsUnit(toRun.length)} />
           <Metric label={t.stepsToSkip} value={t.stepsUnit(skipped)} sub={skipped > 0 ? t.skipNote : undefined} />
           <Metric label={t.filesChanged} value={t.filesUnit(fileCount)} />
           {preview.target && (
-            <div>
+            <div className="col-span-2 min-w-0 sm:col-span-1">
               <dt className={labelClass}>{t.targetLabel}</dt>
-              <dd className="m-0 mt-[8px]">
-                <MonoText>{preview.target}</MonoText>
-              </dd>
+              {/* Đối tượng thường là một tên miền: sans, không mono (mục 4 của GIAO-DIEN.md). */}
+              <dd className="m-0 mt-[8px] text-[14px] font-medium [overflow-wrap:anywhere]">{preview.target}</dd>
             </div>
           )}
         </dl>
-      </div>
+      </Section>
 
-      <div className="mt-[18px] border-t border-hair pt-[14px]">
-        <h3 className={`m-0 font-normal ${labelClass}`}>{t.scopeLabel}</h3>
-        <div className="mt-[8px] flex flex-wrap items-center gap-x-[8px] gap-y-[6px]">
+      <Section label={t.scopeLabel}>
+        <div className="flex flex-wrap items-center gap-x-[8px] gap-y-[6px]">
           {reloads.length > 0 ? (
             <>
               <span>{t.scopeReload}</span>
@@ -89,20 +88,19 @@ export function PlanReview({ preview, onRun, running = false, error, onCancel }:
           )}
         </div>
         <p className="mt-[6px] mb-0">{dangerous.length > 0 ? t.scopeDanger(dangerous.length) : t.scopeNoDanger}</p>
-      </div>
+      </Section>
 
-      <div className="mt-[18px] border-t border-hair pt-[14px]">
-        <h3 className={`m-0 font-normal ${labelClass}`}>{t.stepsLabel}</h3>
-        <ol className="m-0 mt-[8px] list-none p-0">
+      <Section label={t.stepsLabel}>
+        <ol className="m-0 list-none rounded-ctl border border-hair px-[12px] py-0">
           {preview.steps.map((s, i) => (
-            <StepItem key={`${i}-${s.info.id}`} n={i + 1} step={s} tips={tips} />
+            <StepItem key={`${i}-${s.info.id}`} n={i + 1} step={s} tips={tips} expanded={toRun.length <= OPEN_ALL_UP_TO || !!s.info.danger} />
           ))}
         </ol>
-      </div>
+      </Section>
 
-      <div className="mt-[22px] border-t border-hair pt-[18px]">
+      <div className="mt-[18px] border-t border-hair pt-[16px]">
         <div className="flex flex-wrap gap-[8px]">
-          <Button variant="primary" onClick={press} disabled={running || toRun.length === 0}>
+          <Button variant="primary" data-plan-run onClick={press} disabled={running || toRun.length === 0}>
             {running ? t.running : t.run(toRun.length)}
           </Button>
           {onCancel && (
@@ -113,12 +111,11 @@ export function PlanReview({ preview, onRun, running = false, error, onCancel }:
         </div>
         {toRun.length === 0 && <p className="mt-[10px] mb-0 text-muted">{t.nothingToRun}</p>}
         {error != null && (
-          <p role="alert" className="mt-[10px] mb-0 flex items-start gap-[10px]">
-            <span className="mt-[2px] inline-flex w-[20px] flex-none justify-center">
-              <StatusMark status="fail" />
-            </span>
-            <span>{errorMessage(error, lang)}</span>
-          </p>
+          <div className="mt-[10px]">
+            <Notice kind="fail" role="alert">
+              {errorMessage(error, lang)}
+            </Notice>
+          </div>
         )}
       </div>
 
@@ -142,7 +139,16 @@ export function PlanReview({ preview, onRun, running = false, error, onCancel }:
           ))}
         </ul>
       </Dialog>
-    </section>
+    </Card>
+  );
+}
+
+function Section({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mt-[16px] border-t border-hair pt-[14px]">
+      <h3 className={`m-0 ${labelClass}`}>{label}</h3>
+      <div className="mt-[8px]">{children}</div>
+    </div>
   );
 }
 
@@ -156,29 +162,44 @@ function Metric({ label, value, sub }: { label: string; value: string; sub?: str
   );
 }
 
-function StepItem({ n, step, tips }: { n: number; step: StepPreview; tips: boolean }) {
+/**
+ * Một bước. Dòng tóm tắt (số bước, tên, nhãn nguy hiểm, lời cảnh báo) luôn thấy;
+ * lệnh sẽ chạy và file thay đổi nằm trong khối mở ra để danh sách 11 bước vẫn gọn.
+ * Bước đã đúng sẽ bị bỏ qua: không có lệnh hay file nào chạy, nên chỉ là một dòng.
+ */
+function StepItem({ n, step, tips, expanded }: { n: number; step: StepPreview; tips: boolean; expanded: boolean }) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const { info, done } = step;
   const files = info.files ?? [];
+  const commands = info.commands ?? [];
   const why = tx(info.why, lang);
   const noUndo = tx(info.no_undo, lang);
-  return (
-    <li className={`border-t border-hair py-[14px] ${done ? "text-muted" : ""}`}>
-      <div className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[4px]">
-        <span className="font-mono text-[12px] text-muted">{t.stepNumber(n)}</span>
+  const muted = done ? "text-muted" : "";
+
+  const head = (
+    <span className="block min-w-0">
+      <span className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[4px]">
+        <span className="text-[13px] font-normal text-muted">{t.stepNumber(n)}</span>
         {/* overflow-wrap: tên bước hay chứa đường dẫn dài không có chỗ ngắt, ở 390 px chữ tràn khỏi hàng. */}
-        <h4 className={`m-0 min-w-0 flex-[1_1_240px] text-[14px] font-semibold [overflow-wrap:anywhere] ${done ? "text-muted" : ""}`}>{tx(info.title, lang)}</h4>
+        <span className={`min-w-0 flex-[1_1_240px] text-[14px] font-semibold [overflow-wrap:anywhere] ${muted}`}>{tx(info.title, lang)}</span>
         {info.danger && !done && <Tag>{t.danger}</Tag>}
-        {done && <span className="text-[13px]">{t.willSkip}</span>}
-      </div>
-      {tips && why && <p className="mt-[6px] mb-0 text-muted">{why}</p>}
-      {/* Bước đã đúng sẽ bị bỏ qua: không có lệnh hay file nào chạy, nên không liệt kê. */}
-      {!done && (
-        <div className="mt-[8px] flex flex-col gap-[10px]">
-          {noUndo && <p className="m-0 text-muted">{t.noUndo(noUndo)}</p>}
-          {step.check_error && <p className="m-0 text-muted">{t.checkError(step.check_error)}</p>}
-          {(info.commands?.length ?? 0) > 0 && <EvidenceBlock text={(info.commands ?? []).map((c) => `$ ${c}`).join("\n")} label={t.commandsLabel} />}
+        {done && <span className="text-[13px] font-normal text-muted">{t.willSkip}</span>}
+      </span>
+      {tips && why && <span className="mt-[4px] block text-[13px] font-normal text-muted">{why}</span>}
+      {!done && noUndo && <span className="mt-[4px] block text-[13px] font-normal text-muted">{t.noUndo(noUndo)}</span>}
+      {!done && step.check_error && <span className="mt-[4px] block text-[13px] font-normal text-muted">{t.checkError(step.check_error)}</span>}
+    </span>
+  );
+
+  if (done || (commands.length === 0 && files.length === 0)) {
+    return <li className="border-t border-hair py-[10px] first:border-t-0">{head}</li>;
+  }
+  return (
+    <li className="border-t border-hair first:border-t-0">
+      <Disclosure flush defaultOpen={expanded} summary={head}>
+        <div className="flex flex-col gap-[12px]">
+          {commands.length > 0 && <EvidenceBlock text={commands.map((c) => `$ ${c}`).join("\n")} label={t.commandsLabel} />}
           {files.length > 0 && (
             <div>
               <div className={`mb-[6px] ${labelClass}`}>{t.filesLabel}</div>
@@ -188,7 +209,7 @@ function StepItem({ n, step, tips }: { n: number; step: StepPreview; tips: boole
             </div>
           )}
         </div>
-      )}
+      </Disclosure>
     </li>
   );
 }
@@ -210,7 +231,7 @@ function FileDiffView({ file }: { file: FileChange }) {
   else if (!d.changed) body = <Note>{file.old_exists ? t.fileUnchanged : t.fileEmptyNew}</Note>;
   else
     body = (
-      <div role="group" aria-label={t.diffOf(file.path)} className="bg-pre py-[8px] font-mono text-[12px] leading-[1.55]">
+      <div role="group" aria-label={t.diffOf(file.path)} className="bg-pre py-[8px] font-mono text-[12.5px] leading-[1.55]">
         {d.lines.map((l, i) =>
           l.kind === "gap" ? (
             <div key={i} className="px-[12px] text-muted">
@@ -226,9 +247,9 @@ function FileDiffView({ file }: { file: FileChange }) {
       </div>
     );
   return (
-    <details open={!d.binary && d.changed && size <= 80} className="mt-[8px] border border-hair first:mt-0">
-      <summary className="cursor-pointer px-[12px] py-[8px]">
-        <span className="mr-[12px] font-mono text-[12px] [overflow-wrap:anywhere]">{file.path}</span>
+    <details open={!d.binary && d.changed && size <= 80} className="mt-[8px] overflow-hidden rounded-ctl border border-hair first:mt-0">
+      <summary className="cursor-pointer bg-soft px-[12px] py-[8px]">
+        <span className="mr-[12px] font-mono text-[13px] [overflow-wrap:anywhere]">{file.path}</span>
         <span className="mr-[12px] text-[12px] text-muted">{kind}</span>
         {!d.binary && d.changed && <span className="font-mono text-[12px] text-muted">{t.diffStat(d.added, d.removed)}</span>}
       </summary>

@@ -1,6 +1,7 @@
-// Một phép kiểm: dấu trạng thái, tên, câu kết quả; bấm để mở bằng chứng (lệnh
-// và output thật), nguyên nhân và cách sửa tay. Màn Tạo site dùng lại để hiện
-// các điều kiện chưa đạt của một lần từ chối.
+// Một phép kiểm (bản 2): một dòng mở ra được. Dòng tóm tắt là dấu trạng thái,
+// tên và câu kết quả; mở ra thì thấy bằng chứng (lệnh và output thật), nguyên
+// nhân và cách sửa tay. Màn Tạo site dùng lại để hiện các điều kiện chưa đạt
+// của một lần từ chối.
 
 import { useState } from "react";
 import { Link } from "react-router";
@@ -9,16 +10,12 @@ import { useWho } from "../../api/m13-users";
 import type { CheckResult } from "../../api/types";
 import { Button } from "../../components/Button";
 import { CommandBlock } from "../../components/CommandBlock";
+import { Disclosure } from "../../components/Disclosure";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
 import { StatusMark } from "../../components/StatusMark";
 import { useStatusName } from "../../components/useStatusName";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/site";
-
-/** Id hợp lệ cho aria-controls: id phép kiểm có dấu ":" và "." nên đổi hết ký tự lạ. */
-export function checkPanelId(id: string): string {
-  return "phep-kiem-" + id.replace(/[^a-zA-Z0-9_-]/g, "-");
-}
 
 type Props = {
   check: CheckResult;
@@ -26,51 +23,46 @@ type Props = {
   onToggle: () => void;
 };
 
+const labelClass = "mb-[6px] text-[12px] font-medium text-muted";
+
 export function CheckItem({ check, open, onToggle }: Props) {
   const t = useStrings(strings);
   const statusName = useStatusName();
   const { lang } = useLang();
   const { openAI } = useAi();
   const { isAdmin } = useWho(); // user thường không có AI (mục 6.12): không có nút "Giải thích"
-  const panelId = checkPanelId(check.id);
   const cause = tx(check.cause, lang);
   const fix = check.manual_fix ?? [];
 
+  const summary = (
+    <span className="flex items-start gap-[12px]">
+      <span className="flex h-[21px] w-[20px] flex-none items-center justify-center">
+        <StatusMark status={check.status} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium [overflow-wrap:anywhere]">
+          <span className="sr-only">{statusName(check.status, check.suspended)}: </span>
+          {tx(check.title, lang)}
+        </span>
+        <span className="block text-[13px] text-muted [overflow-wrap:anywhere]">{tx(check.summary, lang)}</span>
+      </span>
+    </span>
+  );
+
   return (
     <li className="border-t border-hair first:border-t-0">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={onToggle}
-        className="flex min-h-[44px] w-full items-start gap-[12px] bg-transparent py-[10px] text-left text-ink"
-      >
-        <span className="flex h-[21px] w-[20px] flex-none items-center justify-center">
-          <StatusMark status={check.status} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-medium">
-            <span className="sr-only">{statusName(check.status, check.suspended)}: </span>
-            {tx(check.title, lang)}
-          </span>
-          <span className="block text-muted">{tx(check.summary, lang)}</span>
-        </span>
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`mt-[3px] flex-none text-muted ${open ? "rotate-180" : ""}`}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <div id={panelId} className="flex flex-col gap-[14px] pb-[16px] pl-[32px]">
-          {check.evidence && check.evidence.length > 0 ? <EvidenceBlock evidence={check.evidence} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}
+      <Disclosure flush open={open} onOpenChange={onToggle} summary={summary}>
+        <div className="flex flex-col gap-[14px] pl-[32px]">
+          {check.evidence && check.evidence.length > 0 ? <EvidenceBlock evidence={check.evidence} clamp={20} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}
           {cause && (
             <div>
-              <div className="mb-[6px] font-mono text-[11px] tracking-[0.08em] text-muted">{t.cause}</div>
+              <div className={labelClass}>{t.cause}</div>
               <p className="m-0">{cause}</p>
             </div>
           )}
           {fix.length > 0 && (
             <div>
-              <div className="mb-[6px] font-mono text-[11px] tracking-[0.08em] text-muted">{t.manualFix}</div>
+              <div className={labelClass}>{t.manualFix}</div>
               <CommandBlock commands={fix} />
             </div>
           )}
@@ -84,6 +76,7 @@ export function CheckItem({ check, open, onToggle }: Props) {
           {isAdmin && (check.status === "fail" || check.status === "warn") && (
             <div>
               <Button
+                size="sm"
                 title={t.explainHint}
                 onClick={() =>
                   openAI({
@@ -98,7 +91,7 @@ export function CheckItem({ check, open, onToggle }: Props) {
             </div>
           )}
         </div>
-      )}
+      </Disclosure>
     </li>
   );
 }
