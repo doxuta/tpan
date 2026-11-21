@@ -44,6 +44,9 @@
 //	func (f *FakeSystem) ResetRan()
 //	// Snapshot chụp toàn bộ hệ thống file giả, để so trước và sau một thao tác.
 //	func (f *FakeSystem) Snapshot() map[string]FakeEntry
+//	// SetSite dựng dir và dir/public, chủ user:www-data, quyền 2750, như một
+//	// site thật, để luật chủ của vùng site bật trong test (M28, S16).
+//	func (f *FakeSystem) SetSite(dir, user string)
 package system
 
 import (
@@ -59,6 +62,17 @@ import (
 // Quy ước chung cho mọi hàm có tham số path: path là đường dẫn tuyệt đối.
 // Đường dẫn không tồn tại thì lỗi trả về thoả errors.Is(err, fs.ErrNotExist),
 // ở cả LocalSystem lẫn FakeSystem, để Step viết một kiểu kiểm cho cả hai.
+//
+// Vùng site (M28, docs/thay-doi/M28-thiet-ke.md mục 3.3): với đường dẫn mà
+// sitefs.Split nhận (nằm hẳn bên dưới /var/www/<tên>/), mười hai hàm có
+// đường dẫn đi qua cửa sitefs và theo luật C1 đến C10 thay cho câu tả riêng
+// của từng hàm dưới đây: không đi theo symlink ở bất kỳ thành phần nào (kể cả
+// neo; ReadFile, ReadDir, Chown, Chmod, StatFS từ chối symlink ở tên cuối),
+// ReadFile chỉ đọc file thường của chính user site và không quá
+// sitefs.MaxFile, Chown và Chmod chỉ nhận thư mục hoặc file thường một tên.
+// Lời từ chối là *sitefs.Error (sitefs.Refused). Run từ chối lệnh chạy bằng
+// root nhận đường dẫn trong vùng (ErrRootZoneCommand, mục 3.4). Ngoài vùng:
+// giữ nguyên như dưới đây.
 type System interface {
 	// Run chạy một chương trình bằng argv, KHÔNG qua shell. Kết quả luôn được
 	// trả về đầy đủ (kể cả khi có lỗi) để làm bằng chứng.
