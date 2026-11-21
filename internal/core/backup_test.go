@@ -770,13 +770,14 @@ func TestBackupRestore(t *testing.T) {
 		t.Errorf("bản tự backup không có hiện trạng trước khi khôi phục:\n%s", data)
 	}
 
-	// id rỗng: bản đầy đủ mới nhất, giờ là bản tự backup vừa ghi.
+	// id rỗng: bản đầy đủ mới nhất có lý do manual hoặc schedule (M18, S21),
+	// tức là bản nguồn, không phải bản tự backup before-restore mới hơn.
 	p, err = be.b.PrepareRestore(ctx, d, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ex := p.Plan.Steps[1].(*steps.BackupExtract); ex.Archive != pre.Path || ex.SHA256 != pre.SHA256 {
-		t.Errorf("id rỗng chọn %s, muốn %s", ex.Archive, pre.Path)
+	if ex := p.Plan.Steps[1].(*steps.BackupExtract); ex.Archive != src.Path || ex.SHA256 != src.SHA256 {
+		t.Errorf("id rỗng chọn %s, muốn %s", ex.Archive, src.Path)
 	}
 }
 
