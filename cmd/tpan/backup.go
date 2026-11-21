@@ -78,8 +78,14 @@ func backupCreateCmd(e *env) *cobra.Command {
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
-			_, err = runPlanned(ctx, e, f.planFlags(), b.Sites.Store, "backup.create", d.String(), p)
-			return err
+			rep, err := runPlanned(ctx, e, f.planFlags(), b.Sites.Store, "backup.create", d.String(), p)
+			if err != nil || rep.Job.Status != engine.JobSucceeded {
+				return err
+			}
+			// M18: bản trên máy xong thì đẩy lên kho (chỉ khi đã đặt đích).
+			// JSON trên stdout giữ nguyên dạng M9; kết quả đẩy ra stderr.
+			backupSyncTail(ctx, e, b, false, f.verbose)
+			return nil
 		},
 	}
 	c.Flags().BoolVar(&all, "all", false, "backup mọi site đang chạy, mỗi site một job, rồi chép tpan.db (việc lịch backup hằng ngày làm)")
@@ -101,6 +107,8 @@ type backupAllResult struct {
 	// TPANDB là bản sao tpan.db vừa ghi; rỗng khi chép lỗi (xem Error).
 	TPANDB string `json:"tpan_db,omitempty"`
 	Error  string `json:"error,omitempty"`
+	// Sync (M18) là lượt đẩy cuối lệnh; không có khi chưa đặt đích (B11).
+	Sync *core.SyncResult `json:"sync,omitempty"`
 }
 
 // backupCreateAll: xem trước từng site active, hỏi lại một lần cho cả lô, rồi
@@ -205,6 +213,9 @@ func backupCreateAll(cmd *cobra.Command, e *env, f *planRun, reason core.BackupR
 			printf(e.stdout, "%s %s\n", e.tr("Lỗi:", "Error:"), r.Error)
 		}
 	}
+	// M18: lượt đẩy sau phần cục bộ, kèm yêu cầu gói panel mới (bản tpan.db
+	// vừa chép). Đẩy lỗi không đổi mã thoát.
+	out.Sync = backupSyncTail(ctx, e, b, true, f.verbose)
 	if f.asJSON {
 		if werr := writeJSON(e.stdout, out); werr != nil {
 			return werr
@@ -245,10 +256,10 @@ func newestSnapshot(e *env) string {
 }
 
 func backupListCmd(e *env) *cobra.Command {
-	var asJSON bool
+	var asJSON, remote bool
 	c := &cobra.Command{
-		Use:   "list [<domain>]",
-		Short: "Liệt kê bản backup (cả bản xuất DB), mới nhất trước",
+		Use:   "list [<domain>] [--remote]",
+		Short: "Liệt kê bản backup (cả bản xuất DB), mới nhất trước; --remote liệt kê trên kho S3",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
@@ -260,8 +271,28 @@ func backupListCmd(e *env) *cobra.Command {
 				}
 				dom = d.String()
 			}
+			if remote && dom != "" {
+				return fail(e, asJSON, argsInvalid("--remote liệt kê cả kho, không đi cùng tên domain",
+					"--remote lists the whole store and does not take a domain name"))
+			}
 			if err := requireRoot(e, cmd); err != nil {
 				return fail(e, asJSON, err)
+			}
+			if remote {
+				r, done, err := openRemote(ctx, e, true)
+				if err != nil {
+					return err
+				}
+				defer done()
+				l, err := r.ListRemote(ctx)
+				if err != nil {
+					return fail(e, asJSON, err)
+				}
+				if asJSON {
+					return writeJSON(e.stdout, l)
+				}
+				printRemoteListing(e, l)
+				return nil
 			}
 			b, done, err := openBackups(ctx, e, false)
 			if err != nil {
@@ -275,25 +306,46 @@ func backupListCmd(e *env) *cobra.Command {
 			if asJSON {
 				return writeJSON(e.stdout, list)
 			}
-			printBackups(e, list)
+			cur, set, err := core.CurrentTargetID(ctx, b.Sites.Settings)
+			if err != nil {
+				return err
+			}
+			printBackups(e, list, cur, set)
 			return nil
 		},
 	}
 	c.Flags().BoolVar(&asJSON, "json", false, "in kết quả dạng JSON")
+	c.Flags().BoolVar(&remote, "remote", false, "liệt kê object trên kho S3, ghép với bảng backups")
 	return c
 }
 
-func printBackups(e *env, list []core.Backup) {
+// printBackups in bảng backup. Cột "Ở ĐÂU" (M18) chỉ hiện khi đã đặt đích
+// (set) hoặc có dòng đã dính tới kho: máy không dùng kho thì bảng y hệt M9
+// (B11), script cũ đọc theo cột không vỡ.
+func printBackups(e *env, list []core.Backup, cur string, set bool) {
 	w := e.stdout
 	if len(list) == 0 {
 		printf(w, "%s\n", e.tr("Chưa có bản backup nào.", "There are no backups yet."))
 		return
 	}
-	printf(w, "%-16s %-30s %-4s %-14s %10s %-16s %s\n", "ID", "DOMAIN", e.tr("LOẠI", "KIND"),
-		e.tr("LÝ DO", "REASON"), e.tr("CỠ", "SIZE"), e.tr("LÚC TẠO", "CREATED"), "FILE")
+	where := set
 	for _, b := range list {
-		printf(w, "%-16s %-30s %-4s %-14s %10s %-16s %s\n", b.ID, b.Domain, b.Kind, b.Reason,
-			humanSize(b.Size), b.Created.Local().Format("2006-01-02 15:04"), b.Path)
+		where = where || b.Remote != site.RemoteNone || !b.Local
+	}
+	if !where {
+		printf(w, "%-16s %-30s %-4s %-14s %10s %-16s %s\n", "ID", "DOMAIN", e.tr("LOẠI", "KIND"),
+			e.tr("LÝ DO", "REASON"), e.tr("CỠ", "SIZE"), e.tr("LÚC TẠO", "CREATED"), "FILE")
+		for _, b := range list {
+			printf(w, "%-16s %-30s %-4s %-14s %10s %-16s %s\n", b.ID, b.Domain, b.Kind, b.Reason,
+				humanSize(b.Size), b.Created.Local().Format("2006-01-02 15:04"), b.Path)
+		}
+		return
+	}
+	printf(w, "%-16s %-30s %-4s %-14s %10s %-16s %-15s %s\n", "ID", "DOMAIN", e.tr("LOẠI", "KIND"),
+		e.tr("LÝ DO", "REASON"), e.tr("CỠ", "SIZE"), e.tr("LÚC TẠO", "CREATED"), e.tr("Ở ĐÂU", "WHERE"), "FILE")
+	for _, b := range list {
+		printf(w, "%-16s %-30s %-4s %-14s %10s %-16s %-15s %s\n", b.ID, b.Domain, b.Kind, b.Reason,
+			humanSize(b.Size), b.Created.Local().Format("2006-01-02 15:04"), backupWhere(e, b, cur), b.Path)
 	}
 }
 
@@ -338,6 +390,29 @@ func backupRestoreCmd(e *env) *cobra.Command {
 			}
 			defer done()
 			p, err := b.PrepareRestore(ctx, d, id)
+			var re *core.RefusedError
+			if errors.As(err, &re) && re.Code == core.CodeBackupNotOnMachine {
+				// M18 (mục 3.6): bản nguồn chỉ còn trên kho đang đặt thì tải về
+				// (một job riêng) rồi dựng lại Plan khôi phục như M9. Bản ở đích
+				// khác hay đã mất thì giữ lời từ chối của core.
+				src, serr := b.RestoreSource(ctx, d, id)
+				if serr != nil {
+					return fail(e, f.asJSON, serr)
+				}
+				need, nerr := b.NeedsPull(ctx, src)
+				if nerr != nil {
+					return nerr
+				}
+				if need {
+					pulled, perr := restorePull(ctx, e, f, b, src)
+					if !pulled {
+						return perr
+					}
+					// Dựng lại với đúng id vừa tải: id rỗng mà chọn lại có thể ra
+					// bản khác nếu bảng vừa đổi.
+					p, err = b.PrepareRestore(ctx, d, src.ID)
+				}
+			}
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
