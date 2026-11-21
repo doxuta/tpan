@@ -4,9 +4,12 @@
 // Khoá truy vấn khai báo ở đây chứ không thêm vào api/queries.ts (file đó của
 // phiên chính). Sau job, màn tự invalidate cả backupsKey lẫn overview.
 
+import type { Backup } from "../../api/types";
 import type { Lang } from "../../i18n";
 
 export const backupsKey = ["backups"] as const;
+/** Đích ngoài máy (GET /backups/target): chỉ admin đọc. Bắt đầu bằng backupsKey nên job xong thì tự tải lại cùng bảng. */
+export const targetKey = [...backupsKey, "target"] as const;
 
 export const backupsPath = "/api/v1/backups";
 export const backupSettingsPath = "/api/v1/backups/settings";
@@ -44,3 +47,45 @@ export function shortSha(sha: string): string {
 
 /** Tình trạng site của một dòng backup, tính từ overview (site đang chạy, trong thùng rác, hay không còn). */
 export type SiteState = "active" | "trashed" | "gone";
+
+// ---- Kho ngoài máy (M18) ----
+
+/** Việc mở từ một hàng của bảng: để khoá nút và đổi chữ nút vừa bấm. */
+export type RowWork = "restore" | "push" | "pull";
+export type PendingRow = { action: RowWork; id: string } | null;
+
+/**
+ * Cột "Ở đâu" chỉ hiện khi máy có dùng kho (B11): đã đặt đích, hoặc có ít nhất
+ * một dòng không phải "chỉ trên máy". Máy không dùng kho thì bảng y như trước M18.
+ * `configured` là undefined với user thường (họ không đọc được đích): chỉ dựa vào các dòng.
+ */
+export function showWhere(items: Backup[], configured: boolean | undefined): boolean {
+  return configured === true || items.some((b) => b.location !== undefined && b.location !== "machine");
+}
+
+/**
+ * Việc kho của một hàng, chỉ admin: tải về cho bản chỉ còn trên kho; đẩy lên kho
+ * cho bản chỉ trên máy hay đẩy lỗi, loại full, và chỉ khi đã đặt đích (máy chủ
+ * cũng kiểm lại, kể cả luật s3.keep). `location` vắng (setting đích hỏng) thì
+ * không đoán: không có việc nào.
+ */
+export function storageWork(b: Backup, isAdmin: boolean, configured: boolean | undefined): "push" | "pull" | null {
+  if (!isAdmin) return null;
+  if (b.location === "remote") return "pull";
+  if (configured === true && b.kind === "full" && (b.location === "machine" || b.location === "push_failed")) return "push";
+  return null;
+}
+
+/** Tải về không có job_id: bảng tự tải lại mỗi 3 giây, tối đa 2 phút. */
+export const pullPollMs = 3000;
+export const pullPollWindowMs = 2 * 60 * 1000;
+export type PullWatch = { id: string; until: number };
+
+/**
+ * Khoảng tải lại của bảng (cho refetchInterval): bật khi đang chờ một bản tải về
+ * mà dòng đó còn là "chỉ trên kho" và chưa quá hạn; hết điều kiện thì false.
+ */
+export function pullPoll(items: Backup[] | undefined, watch: PullWatch | null, now: number): number | false {
+  if (!watch || now > watch.until) return false;
+  return items?.find((b) => b.id === watch.id)?.location === "remote" ? pullPollMs : false;
+}

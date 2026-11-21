@@ -5,14 +5,22 @@
 // trước (PlanReview) → bấm chạy → máy chủ trả job_id, ở lại màn và thẻ theo
 // dõi job báo tiến độ. Cả ba dùng chung một cặp mutation và một chỗ hiện bản
 // xem trước, vì cùng lúc chỉ mở một việc.
+//
+// M18 thêm hai việc với kho ngoài máy, cũng đi qua bản xem trước: "Đẩy lên kho"
+// (máy chủ nhận vào hàng chờ, không có job_id nên màn hiện câu `note` của máy
+// chủ) và "Tải về máy" (thường có job_id; không có thì bảng tự tải lại mỗi 3
+// giây tới khi dòng hết là "chỉ trên kho", tối đa 2 phút). Khôi phục một bản chỉ
+// còn trên kho thì hỏi tải về trước; tải xong màn chỉ báo, không tự khôi phục,
+// vì khôi phục ghi đè site nên người dùng phải tự xem bản xem trước của nó.
 
 import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { errorMessage, get, post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
+import { pullPath, pushPath } from "../../api/m18-types";
 import { queryKeys, useOverview } from "../../api/queries";
-import type { Backup, BackupsOverview, BackupSettingsRequest, JobStarted, Preview } from "../../api/types";
+import type { Backup, BackupsOverview, BackupSettingsRequest, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
@@ -26,14 +34,34 @@ import { CreateNow } from "./Create";
 import { BackupList } from "./List";
 import { backupSettingsPath, backupsKey, backupsPath, restorePath, siteBackupPath, type SiteState } from "./model";
 import { BackupSettingsForm } from "./Settings";
+import { TargetCard } from "./Target";
+import { useStorageFlow, type Started } from "./StorageFlow";
 
-/** Việc đang hỏi: đủ để gọi cả hai chặng (xem trước và chạy) và để chữ nói đúng việc. */
+/**
+ * Việc đang hỏi: đủ để gọi cả hai chặng (xem trước và chạy) và để chữ nói đúng việc.
+ * fromRestore: tải về do người bấm "Khôi phục" một bản chỉ còn trên kho; xong thì báo "Đã tải về".
+ */
 type Req =
   | { action: "restore"; backup: Backup }
+  | { action: "push"; backup: Backup }
+  | { action: "pull"; backup: Backup; fromRestore?: boolean }
   | { action: "create"; domain: string }
   | { action: "settings"; body: BackupSettingsRequest };
 
-const pathOf = (r: Req): string => (r.action === "restore" ? restorePath(r.backup.id) : r.action === "create" ? siteBackupPath(r.domain) : backupSettingsPath);
+const pathOf = (r: Req): string => {
+  switch (r.action) {
+    case "restore":
+      return restorePath(r.backup.id);
+    case "push":
+      return pushPath(r.backup.id);
+    case "pull":
+      return pullPath(r.backup.id);
+    case "create":
+      return siteBackupPath(r.domain);
+    case "settings":
+      return backupSettingsPath;
+  }
+};
 const bodyOf = (r: Req): BackupSettingsRequest | undefined => (r.action === "settings" ? r.body : undefined);
 
 export default function Backups() {
@@ -42,10 +70,13 @@ export default function Backups() {
   const { lang } = useLang();
   const qc = useQueryClient();
   const { track } = useJobTracker();
-  const q = useQuery({ queryKey: backupsKey, queryFn: () => get<BackupsOverview>(backupsPath) });
+  // Phần kho ngoài máy dùng chung với tab Backup của trang site (StorageFlow.tsx): hộp hỏi tải về trước,
+  // câu báo, tự tải lại bảng, và việc đã đặt đích chưa.
+  const flow = useStorageFlow((backup) => ask({ action: "pull", backup, fromRestore: true }));
+  const q = useQuery({ queryKey: backupsKey, queryFn: () => get<BackupsOverview>(backupsPath), refetchInterval: flow.poll });
   // Cùng khoá overview với khung trang: không gọi thêm API. Cho biết site nào đang chạy, đang ở thùng rác.
   const overview = useOverview();
-  // Cài đặt lịch và số bản giữ (POST /backups/settings) là route chỉ admin.
+  // Cài đặt lịch và số bản giữ (POST /backups/settings) và mọi việc với kho là route chỉ admin.
   const { isAdmin } = useWho();
 
   const [filter, setFilter] = useState("");
@@ -59,14 +90,15 @@ export default function Backups() {
     onSuccess: (preview, req) => setOpen({ req, preview }),
   });
   const run = useMutation({
-    mutationFn: (req: Req) => post<JobStarted>(pathOf(req), bodyOf(req)),
-    onSuccess: (job) => {
+    mutationFn: (req: Req) => post<Started>(pathOf(req), bodyOf(req)),
+    onSuccess: (res, req) => {
       // Danh sách, cài đặt và số đếm ở menu đều đổi sau job.
       void qc.invalidateQueries({ queryKey: backupsKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
       // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
-      track(job.job_id);
+      if (res.job_id) track(res.job_id);
       setOpen(null);
+      if (req.action === "push" || req.action === "pull") flow.ran(req, res);
     },
   });
 
@@ -92,6 +124,7 @@ export default function Backups() {
 
   function ask(req: Req) {
     setOpen(null);
+    flow.clear();
     run.reset();
     setAsked(req);
     dry.mutate(req);
@@ -104,9 +137,42 @@ export default function Backups() {
     run.reset();
   }
 
+  /** "Khôi phục" một hàng. Bản chỉ còn trên kho thì flow.restore lo (hộp hỏi tải về, hoặc nhắn nhờ admin) và không gọi API. */
+  function restore(backup: Backup) {
+    if (flow.restore(backup)) close();
+    else ask({ action: "restore", backup });
+  }
+
   const pendingReq = dry.isPending ? asked : null;
 
-  const errorHeading = (r: Req): string => (r.action === "restore" ? t.restoreErrorHeading(r.backup.domain) : r.action === "create" ? t.createErrorHeading(r.domain) : t.settingsErrorHeading);
+  const errorHeading = (r: Req): string => {
+    switch (r.action) {
+      case "restore":
+        return t.restoreErrorHeading(r.backup.domain);
+      case "push":
+        return t.pushErrorHeading(r.backup.domain);
+      case "pull":
+        return t.pullErrorHeading(r.backup.domain);
+      case "create":
+        return t.createErrorHeading(r.domain);
+      case "settings":
+        return t.settingsErrorHeading;
+    }
+  };
+  /** Một dòng đậm trên bản xem trước nói việc sẽ làm với bản nào. */
+  const previewLead = (r: Req): string | null => {
+    switch (r.action) {
+      case "restore":
+        return t.restoreWarning(r.backup.domain, formatWhen(r.backup.created, lang));
+      case "push":
+        return t.pushWarning(r.backup.domain, formatWhen(r.backup.created, lang));
+      case "pull":
+        return t.pullWarning(r.backup.domain, formatWhen(r.backup.created, lang));
+      default:
+        return null;
+    }
+  };
+  const lead = open ? previewLead(open.req) : null;
 
   return (
     <>
@@ -132,10 +198,16 @@ export default function Backups() {
             filter={filter}
             onFilter={setFilter}
             stateOf={stateOf}
-            pendingId={pendingReq?.action === "restore" ? pendingReq.backup.id : null}
+            pending={pendingReq && (pendingReq.action === "restore" || pendingReq.action === "push" || pendingReq.action === "pull") ? { action: pendingReq.action, id: pendingReq.backup.id } : null}
             anyPending={dry.isPending}
-            onRestore={(backup) => ask({ action: "restore", backup })}
+            onRestore={restore}
+            isAdmin={isAdmin}
+            targetConfigured={flow.configured}
+            onPush={(backup) => ask({ action: "push", backup })}
+            onPull={(backup) => ask({ action: "pull", backup })}
           />
+
+          {flow.render(q.data.items)}
 
           {dry.isError && asked && (
             <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
@@ -148,7 +220,7 @@ export default function Backups() {
 
           {open && (
             <div ref={resultRef} tabIndex={-1} className="flex flex-col gap-[12px] outline-offset-0">
-              {open.req.action === "restore" && <p className="m-0 max-w-[72ch] font-semibold">{t.restoreWarning(open.req.backup.domain, formatWhen(open.req.backup.created, lang))}</p>}
+              {lead && <p className="m-0 max-w-[72ch] font-semibold">{lead}</p>}
               <PlanReview preview={open.preview} onRun={() => run.mutate(open.req)} running={run.isPending} error={run.error} onCancel={close} />
             </div>
           )}
@@ -162,6 +234,9 @@ export default function Backups() {
               onPreview={(body) => ask({ action: "settings", body })}
             />
           )}
+
+          {/* M18: đích ngoài máy (kho S3), chỉ admin: thẻ tự lo dữ liệu, bản xem trước và job. */}
+          {isAdmin && <TargetCard />}
         </>
       )}
     </>
