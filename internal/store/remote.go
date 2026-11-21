@@ -35,6 +35,26 @@ func (s *Store) MarkBackupStored(ctx context.Context, id, key, targetID string, 
 	return n > 0, nil
 }
 
+// AddBackupRemoteOnly ghi lại dòng của một bản chỉ còn trên kho (local=0,
+// remote='stored') khi dòng đã bị dọn trên máy trong lúc bản đang được đẩy
+// (F2 của lượt soát cuối). Lúc đó object vừa đọc lại khớp sha256 là bản duy
+// nhất còn lại; xoá nó (cách cũ) là mất hẳn bản mà luật giữ trên kho muốn
+// giữ. Dòng đã có thì không làm gì (ON CONFLICT DO NOTHING). Chủ lấy theo
+// site như AddBackup; site không còn thì admin.
+func (s *Store) AddBackupRemoteOnly(ctx context.Context, b Backup, key, targetID string, at time.Time) error {
+	_, err := s.db.ExecContext(ctx,
+		"INSERT INTO backups ("+backupInsertColumns+`, local, remote, remote_key, remote_target, remote_at, owner)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'stored', ?, ?, ?, COALESCE((SELECT owner FROM sites WHERE domain = ?), 'admin'))
+		 ON CONFLICT(id) DO NOTHING`,
+		b.ID, b.Domain, b.Kind, b.Reason, b.Path, b.Size, b.SHA256,
+		b.WPVersion, b.PHPVersion, b.JobID, fmtTime(b.Created),
+		key, targetID, fmtTime(at), b.Domain)
+	if err != nil {
+		return fmt.Errorf("ghi lại backup %s (chỉ còn trên kho): %w", b.ID, err)
+	}
+	return nil
+}
+
 // MarkBackupPushFailed ghi lần đẩy lỗi. Một câu UPDATE có điều kiện, không
 // đọc trước: dòng đang 'stored' (ở đích cũ, nay đẩy sang đích khác lỗi) giữ
 // nguyên remote, remote_key, remote_target và đếm lần thử, vì bản vẫn còn

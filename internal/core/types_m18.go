@@ -112,9 +112,9 @@ const (
 	CodeBackupKeyMissing   = "backup_key_missing"
 	// CodeBackupOutsideKeep: đẩy tay một bản mà luật giữ trên kho sẽ dọn ngay (R9).
 	CodeBackupOutsideKeep = "backup_outside_keep"
-	CodeCloudInitInvalid   = "cloudinit_invalid"
-	CodeCloudInitTooLarge  = "cloudinit_too_large"
-	CodeCloudInitNoConfig  = "cloudinit_no_config"
+	CodeCloudInitInvalid  = "cloudinit_invalid"
+	CodeCloudInitTooLarge = "cloudinit_too_large"
+	CodeCloudInitNoConfig = "cloudinit_no_config"
 )
 
 // Thời gian của lượt đẩy (mục 3.5).
@@ -140,6 +140,9 @@ type RemoteStore interface {
 	BackupStore
 	MarkBackupStored(ctx context.Context, id, key, targetID string, at time.Time) (ok bool, err error)
 	MarkBackupPushFailed(ctx context.Context, id, targetID, msg string, countTry bool) error
+	// AddBackupRemoteOnly ghi lại dòng local=0, stored khi dòng bị dọn trên
+	// máy giữa lúc đẩy (F2 của lượt soát cuối).
+	AddBackupRemoteOnly(ctx context.Context, b Backup, key, targetID string, at time.Time) error
 	ResetBackupTries(ctx context.Context, id string) error
 	SetBackupLocal(ctx context.Context, id string) (ok bool, err error)
 	ForgetBackupRemote(ctx context.Context, id string) (deleted bool, err error)

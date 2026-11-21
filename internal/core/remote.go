@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/agebox"
@@ -260,6 +261,14 @@ func (r *Remote) PrepareSetTarget(ctx context.Context, in TargetInput) (*TargetS
 	if err != nil {
 		return nil, s3Refuse(err)
 	}
+	// F5 của lượt soát cuối: kiểu "bucket.host" gửi request tới host
+	// <bucket>.<host>, không phải host đã qua luật "http chỉ cho loopback".
+	// http thì bắt buộc kiểu đường dẫn, để host thật đúng là host đã kiểm.
+	if strings.HasPrefix(ep, "http://") && !in.PathStyle {
+		return nil, refuse(s3.CodeEndpointInvalid, i18n.T(
+			"endpoint http (chỉ cho máy này) phải dùng kiểu đường dẫn; bỏ kiểu bucket.host (--vhost)",
+			"an http endpoint (local machine only) must use path-style addressing; drop bucket.host style (--vhost)"))
+	}
 	region, err := s3.CheckRegion(in.Region)
 	if err != nil {
 		return nil, s3Refuse(err)
@@ -320,10 +329,11 @@ func (r *Remote) PrepareSetTarget(ctx context.Context, in TargetInput) (*TargetS
 		if err != nil {
 			return nil, err
 		}
-		if !ok || cur.Endpoint != ep || cur.Region != region || cur.Bucket != in.Bucket || !bytes.Equal(curCA, ca) {
+		// path_style cũng đổi host thật (bucket.host), nên cũng phải gửi lại khoá (F5).
+		if !ok || cur.Endpoint != ep || cur.Region != region || cur.Bucket != in.Bucket || cur.PathStyle != in.PathStyle || !bytes.Equal(curCA, ca) {
 			return nil, refuse(s3.CodeKeysInvalid, i18n.T(
-				"đổi endpoint, vùng, bucket hay CA thì gửi lại cả hai khoá (access key và secret key)",
-				"changing the endpoint, region, bucket or CA requires sending both keys again (access key and secret key)"))
+				"đổi endpoint, vùng, bucket, kiểu địa chỉ hay CA thì gửi lại cả hai khoá (access key và secret key)",
+				"changing the endpoint, region, bucket, addressing style or CA requires sending both keys again (access key and secret key)"))
 		}
 		a, s, has, err := readKeys(r.Sys)
 		if err != nil {
@@ -432,6 +442,22 @@ func (r *Remote) afterSetTarget(ctx context.Context, store steps.ObjectStore, c 
 	}
 	if err := r.setSettings(ctx, kv...); err != nil {
 		return TargetSetResult{}, err
+	}
+	// F3 của lượt soát cuối: đặt lại đích (đổi khoá, đổi kho) là cơ hội mới
+	// cho mọi bản đã đẩy lỗi đủ RemoteMaxTries lần ở cấu hình cũ; không thì
+	// chúng không bao giờ tự lên kho nữa.
+	if r.Store != nil {
+		rows, err := r.Store.Backups(ctx, "")
+		if err != nil {
+			return TargetSetResult{}, fmt.Errorf("đọc bảng backups: %w", err)
+		}
+		for _, b := range rows {
+			if b.RemoteTries > 0 {
+				if err := r.Store.ResetBackupTries(ctx, b.ID); err != nil {
+					return TargetSetResult{}, err
+				}
+			}
+		}
 	}
 	due := changed
 	if !due {
@@ -783,11 +809,14 @@ func (r *Remote) preparePush(_ context.Context, store steps.ObjectStore, c Targe
 			return fmt.Errorf("ghi bản %s đã lên kho: %w", row.ID, err)
 		}
 		if !ok {
-			// Dòng đã mất (dọn trên máy chen vào): object không còn ai trỏ tới.
-			if err := store.Delete(ctx, key); err != nil {
-				return fmt.Errorf("bản %s đã bị dọn khỏi máy trong lúc đẩy; xoá object %s: %w", row.ID, key, err)
+			// F2: dòng đã mất vì dọn trên máy chen vào giữa lúc đẩy (cron đêm,
+			// bản before-restore). File trên máy đã xoá, nên object vừa đọc lại
+			// khớp là bản duy nhất còn lại: ghi lại dòng thành "chỉ còn trên
+			// kho", không xoá object. Dọn trên kho ngay sau đây quyết bản này
+			// còn được giữ không, theo cùng một luật remoteSurvives.
+			if err := r.Store.AddBackupRemoteOnly(dbctx, row, key, c.ID, r.now()); err != nil {
+				return fmt.Errorf("bản %s đã bị dọn khỏi máy trong lúc đẩy; object %s còn trên kho nhưng chưa ghi lại được dòng: %w", row.ID, key, err)
 			}
-			return nil
 		}
 		h.stored = true
 		// R3b: cờ bền cho gói panel; R2a: chỉ job đẩy đạt mới xoá lỗi của đích.
@@ -1270,6 +1299,18 @@ func (r *Remote) Pull(ctx context.Context, id string, onEvent func(engine.Event)
 // ================================================================ liệt kê, health
 
 // ListRemote liệt kê trên kho, ghép với bảng backups (mục 3.6).
+// displayKey thay mọi ký tự điều khiển (Cc) và định dạng (Cf: gồm các ký tự
+// đảo chiều như U+202E) bằng "?", để tên object lạ không giả được dòng khác
+// hay đảo chữ trên terminal.
+func displayKey(k string) string {
+	return strings.Map(func(c rune) rune {
+		if unicode.Is(unicode.Cc, c) || unicode.Is(unicode.Cf, c) {
+			return '?'
+		}
+		return c
+	}, k)
+}
+
 func (r *Remote) ListRemote(ctx context.Context) (RemoteListing, error) {
 	store, c, err := r.open(ctx)
 	if err != nil {
@@ -1294,7 +1335,11 @@ func (r *Remote) ListRemote(ctx context.Context) (RemoteListing, error) {
 	}
 	seen := map[string]bool{}
 	if err := store.List(ctx, "", func(o s3.Object) error {
-		obj := RemoteObject{Key: o.Key, Size: o.Size, Modified: o.Modified}
+		// F4 của lượt soát cuối: tên object do người ghi được vào bucket đặt;
+		// bỏ ký tự điều khiển và ký tự định dạng (đảo chiều chữ…) trước khi
+		// hiện ra terminal hay giao diện (mục 5 của bản thiết kế). Ghép với
+		// bảng backups vẫn dùng tên gốc.
+		obj := RemoteObject{Key: displayKey(o.Key), Size: o.Size, Modified: o.Modified}
 		if b, ok := byKey[o.Key]; ok {
 			obj.BackupID, obj.Domain = b.ID, b.Domain
 		}
