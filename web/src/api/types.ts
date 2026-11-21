@@ -314,6 +314,10 @@ export type SessionInfo = {
   expires?: string;
   /** M13: người đang đăng nhập; không có khi chưa đăng nhập. */
   user?: Identity;
+  /** M20: chưa có phiên nhưng có phiếu chờ bước hai còn hạn (hiện chặng nhập mã). */
+  mfa_pending?: boolean;
+  /** M20: chính sách bắt user này bật hai bước mà họ chưa bật: chỉ vào được /bat-hai-buoc. */
+  mfa_enroll_required?: boolean;
 };
 
 export type PasswordChange = { current: string; new: string };

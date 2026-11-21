@@ -172,6 +172,11 @@ type SessionInfo struct {
 	// User là người đang đăng nhập (M13): tên, vai, và ViewedBy khi admin
 	// đang "xem như" user này (phiên chỉ đọc). nil khi chưa đăng nhập.
 	User *account.Identity `json:"user,omitempty"`
+	// MFAPending (M20): chưa có phiên nhưng có phiếu chờ bước hai còn hạn.
+	MFAPending bool `json:"mfa_pending,omitempty"`
+	// MFAEnrollRequired (M20): chính sách bắt user thật của phiên bật hai bước
+	// mà họ chưa bật; mọi route trừ trang bật trả 403 mfa_enroll_required.
+	MFAEnrollRequired bool `json:"mfa_enroll_required,omitempty"`
 }
 
 type PasswordChange struct {
