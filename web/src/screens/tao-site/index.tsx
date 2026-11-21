@@ -7,9 +7,13 @@
 // trước của hai bên đều là PlanReview (cùng id trong trang), nên không vẽ song
 // song. Đổi chế độ là bắt đầu lại; đổi lại là mất chữ đã gõ, chấp nhận vì người
 // dùng hiếm khi đổi giữa chừng.
+//
+// Bản 2: đầu màn có đường dẫn "Site / Tạo site"; form nằm trong một thẻ rộng
+// tối đa 560 px. Giữ nguyên id các ô (#o-domain, #o-title, #o-email, #o-owner)
+// và nút gửi là `form button[type=submit]`: script chụp và e2e dùng.
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from "react";
 import { useNavigate } from "react-router";
 import { ApiError, post } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
@@ -17,10 +21,12 @@ import { useUsers } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, SiteCreate } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Field, Input, Select } from "../../components/Field";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { SegmentButton } from "../../components/SegmentButton";
-import { StatusMark } from "../../components/StatusMark";
 import { useLang, useStrings, tx } from "../../i18n";
+import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/tao-site";
 import { PlanReview } from "../duyet-plan";
 import { ErrorNote } from "../site/ErrorNote";
@@ -30,11 +36,12 @@ type Mode = "one" | "list";
 
 export default function TaoSite() {
   const t = useStrings(strings);
+  const k = useStrings(khung);
   const [mode, setMode] = useState<Mode>("one");
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
-      <div className="pt-[22px]">
+      <ScreenHeader crumbs={[{ label: k.menu.sites, to: "/sites" }, { label: t.title }]} title={t.title} summary={t.summary} />
+      <div>
         <SegmentButton<Mode>
           label={t.modeGroup}
           value={mode}
@@ -50,11 +57,11 @@ export default function TaoSite() {
   );
 }
 
-type Field = "domain" | "title" | "email" | "owner";
+type FieldName = "domain" | "title" | "email" | "owner";
 
 // Mã lỗi của máy chủ ứng với ô nhập nào. Mã khác (stack chưa cài, job đang
 // chạy, điều kiện chưa đạt...) không thuộc ô nào nên hiện cạnh nút.
-const fieldOfCode: Record<string, Field> = {
+const fieldOfCode: Record<string, FieldName> = {
   domain_invalid: "domain",
   site_exists_unmanaged: "domain",
   site_trashed: "domain",
@@ -64,9 +71,6 @@ const fieldOfCode: Record<string, Field> = {
   user_not_found: "owner",
   user_suspended: "owner",
 };
-
-const inputClass =
-  "box-border h-[44px] w-full border border-ink bg-surface px-[10px] text-[14px] text-ink placeholder:text-muted disabled:border-hair disabled:text-muted sm:h-[40px]";
 
 function OneSite() {
   const t = useStrings(strings);
@@ -84,7 +88,7 @@ function OneSite() {
   const owner = ownerSel || me;
   const owners = (users.data ?? []).filter((u) => u.user.status === "active").map((u) => u.user.name);
   /** Lỗi nhập thiếu, bắt ngay ở trình duyệt để khỏi gọi máy chủ chỉ để nghe "thiếu". */
-  const [missing, setMissing] = useState<Field | null>(null);
+  const [missing, setMissing] = useState<FieldName | null>(null);
   /** Nội dung đã gửi đi xem trước. "Chạy" gửi đúng bản này. */
   const [sent, setSent] = useState<SiteCreate | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -117,7 +121,7 @@ function OneSite() {
   }, [preview]);
 
   // Sửa ô nào thì bản xem trước cũ hết đúng: bỏ nó, người dùng xem trước lại.
-  const edit = (set: (v: string) => void, field: Field) => (v: string) => {
+  const edit = (set: (v: string) => void, field: FieldName) => (v: string) => {
     set(v);
     if (missing === field) setMissing(null);
     if (preview) {
@@ -131,7 +135,7 @@ function OneSite() {
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     const body: SiteCreate = { domain: domain.trim(), title: title.trim(), email: email.trim(), ...(isAdmin && owner !== me ? { owner } : {}) };
-    const empty: Field | null = body.domain === "" ? "domain" : body.email === "" ? "email" : null;
+    const empty: FieldName | null = body.domain === "" ? "domain" : body.email === "" ? "email" : null;
     setMissing(empty);
     if (empty) {
       document.getElementById(`o-${empty}`)?.focus();
@@ -142,126 +146,83 @@ function OneSite() {
 
   // Lỗi của lần xem trước, tách theo ô: câu lỗi hiện ngay dưới ô sai.
   const apiErr = dry.error instanceof ApiError ? dry.error : null;
-  const errField: Field | undefined = apiErr ? fieldOfCode[apiErr.code] : undefined;
-  const fieldError = (f: Field): string | null => {
+  const errField: FieldName | undefined = apiErr ? fieldOfCode[apiErr.code] : undefined;
+  const fieldError = (f: FieldName): string | null => {
     if (missing === f) return f === "domain" ? t.domainRequired : t.emailRequired;
     if (errField === f && apiErr?.body) return tx(apiErr.body.error.message, lang);
     return null;
   };
 
-  const field = (f: Field, label: string, hint: string, value: string, set: (v: string) => void, extra: Record<string, unknown>) => {
+  // Một ô một dòng: nhãn, ô, gợi ý, câu lỗi. Câu lỗi mang id e-<ô> để ô trỏ aria-describedby tới.
+  const field = (f: Exclude<FieldName, "owner">, label: string, hint: string, value: string, set: (v: string) => void, extra: Omit<InputHTMLAttributes<HTMLInputElement>, "className">) => {
     const err = fieldError(f);
-    const describedBy = `h-${f}${err ? ` e-${f}` : ""}`;
     return (
-      <div>
-        <label htmlFor={`o-${f}`} className="mb-[4px] block font-medium">
-          {label}
-        </label>
-        <p id={`h-${f}`} className="mt-0 mb-[6px] text-[13px] text-muted">
-          {hint}
-        </p>
-        <input
+      <Field label={label} htmlFor={`o-${f}`} hint={hint} hintId={`h-${f}`} error={err && <span id={`e-${f}`}>{err}</span>}>
+        <Input
           id={`o-${f}`}
           name={f}
           value={value}
           onChange={(e) => edit(set, f)(e.target.value)}
-          aria-describedby={describedBy}
+          aria-describedby={`h-${f}${err ? ` e-${f}` : ""}`}
           aria-invalid={err ? true : undefined}
           autoComplete="off"
-          className={inputClass}
           {...extra}
         />
-        {err && (
-          <div id={`e-${f}`} role="alert" className="mt-[8px] flex items-start gap-[10px]">
-            <span className="flex h-[21px] w-[20px] flex-none items-center justify-center">
-              <StatusMark status="fail" />
-            </span>
-            <span className="font-medium">{err}</span>
-          </div>
-        )}
-      </div>
+      </Field>
     );
   };
 
+  const ownerErr = fieldError("owner");
+
   return (
     <>
-      <form onSubmit={onSubmit} noValidate aria-labelledby="moi" className="max-w-[560px]">
-        <h2 id="moi" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
-          {t.formHeading}
-        </h2>
-        <div className="flex flex-col gap-[20px]">
-          {field("domain", t.domainLabel, t.domainHint, domain, setDomain, {
-            type: "text",
-            inputMode: "url",
-            spellCheck: false,
-            autoCapitalize: "none",
-            placeholder: "shop.example.com",
-            className: `${inputClass} font-mono text-[13px]`,
-          })}
-          {field("title", t.titleLabel, t.titleHint, title, setTitle, { type: "text" })}
-          {field("email", t.emailLabel, t.emailHint, email, setEmail, {
-            type: "email",
-            spellCheck: false,
-            autoCapitalize: "none",
-            placeholder: "admin@example.com",
-            className: `${inputClass} font-mono text-[13px]`,
-          })}
-          {isAdmin && (
+      <form onSubmit={onSubmit} noValidate className="max-w-[560px]">
+        <Card title={t.formHeading} titleId="moi">
+          <div className="flex flex-col gap-[20px]">
+            {field("domain", t.domainLabel, t.domainHint, domain, setDomain, {
+              type: "text",
+              inputMode: "url",
+              spellCheck: false,
+              autoCapitalize: "none",
+              placeholder: "shop.example.com",
+            })}
+            {field("title", t.titleLabel, t.titleHint, title, setTitle, { type: "text" })}
+            {field("email", t.emailLabel, t.emailHint, email, setEmail, {
+              type: "email",
+              spellCheck: false,
+              autoCapitalize: "none",
+              placeholder: "admin@example.com",
+            })}
+            {isAdmin && (
+              <Field label={t.ownerLabel} htmlFor="o-owner" hint={t.ownerHint} hintId="h-owner" error={ownerErr && <span id="e-owner">{ownerErr}</span>}>
+                <Select
+                  id="o-owner"
+                  name="owner"
+                  value={owner}
+                  onChange={(e) => edit(setOwnerSel, "owner")(e.target.value)}
+                  aria-describedby={`h-owner${ownerErr ? " e-owner" : ""}`}
+                  aria-invalid={ownerErr ? true : undefined}
+                >
+                  {/* Danh sách chưa tải xong hoặc lỗi: vẫn có đúng một lựa chọn là chính mình, nên tạo site cho mình không bị chặn. */}
+                  {!owners.includes(me) && <option value={me}>{t.ownerSelf(me)}</option>}
+                  {owners.map((n) => (
+                    <option key={n} value={n}>
+                      {n === me ? t.ownerSelf(n) : n}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+            {apiErr && !errField && <ErrorNote error={apiErr} heading={t.errorHeading} checksHeading={t.checksHeading} />}
+            {apiErr && errField && (apiErr.body?.error.checks?.length ?? 0) > 0 && <ErrorNote error={apiErr} omitMessage checksHeading={t.checksHeading} />}
+            {!apiErr && dry.isError && <ErrorNote error={dry.error} heading={t.errorHeading} />}
             <div>
-              <label htmlFor="o-owner" className="mb-[4px] block font-medium">
-                {t.ownerLabel}
-              </label>
-              <p id="h-owner" className="mt-0 mb-[6px] text-[13px] text-muted">
-                {t.ownerHint}
-              </p>
-              <select
-                id="o-owner"
-                name="owner"
-                value={owner}
-                onChange={(e) => edit(setOwnerSel, "owner")(e.target.value)}
-                aria-describedby={`h-owner${fieldError("owner") ? " e-owner" : ""}`}
-                aria-invalid={fieldError("owner") ? true : undefined}
-                className={`${inputClass} font-mono text-[13px]`}
-              >
-                {/* Danh sách chưa tải xong hoặc lỗi: vẫn có đúng một lựa chọn là chính mình, nên tạo site cho mình không bị chặn. */}
-                {!owners.includes(me) && <option value={me}>{t.ownerSelf(me)}</option>}
-                {owners.map((n) => (
-                  <option key={n} value={n}>
-                    {n === me ? t.ownerSelf(n) : n}
-                  </option>
-                ))}
-              </select>
-              {fieldError("owner") && (
-                <div id="e-owner" role="alert" className="mt-[8px] flex items-start gap-[10px]">
-                  <span className="flex h-[21px] w-[20px] flex-none items-center justify-center">
-                    <StatusMark status="fail" />
-                  </span>
-                  <span className="font-medium">{fieldError("owner")}</span>
-                </div>
-              )}
+              <Button variant="primary" type="submit" disabled={dry.isPending}>
+                {dry.isPending ? t.previewing : t.preview}
+              </Button>
             </div>
-          )}
-        </div>
-        {apiErr && !errField && (
-          <div className="pt-[16px]">
-            <ErrorNote error={apiErr} heading={t.errorHeading} checksHeading={t.checksHeading} />
           </div>
-        )}
-        {apiErr && errField && (apiErr.body?.error.checks?.length ?? 0) > 0 && (
-          <div className="pt-[16px]">
-            <ErrorNote error={apiErr} omitMessage checksHeading={t.checksHeading} />
-          </div>
-        )}
-        {!apiErr && dry.isError && (
-          <div className="pt-[16px]">
-            <ErrorNote error={dry.error} heading={t.errorHeading} />
-          </div>
-        )}
-        <div className="pt-[20px]">
-          <Button variant="primary" type="submit" disabled={dry.isPending}>
-            {dry.isPending ? t.previewing : t.preview}
-          </Button>
-        </div>
+        </Card>
       </form>
 
       {preview && sent && (

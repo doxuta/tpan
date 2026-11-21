@@ -18,19 +18,23 @@ const vi = {
   colRole: "Vai",
   colPackage: "Gói",
   colSites: "Site",
-  colDBs: "DB",
+  // Số DB rời tính cả DB rời trong thùng rác, đúng con số gói dùng để chặn (M16, mục 3.8).
+  colDBs: "DB rời",
   colDisk: "Dung lượng",
   colStatus: "Trạng thái",
   colAction: "Việc",
 
-  // Số đang dùng trên giới hạn của gói; 0 là không giới hạn.
-  unlimited: "không giới hạn",
-  usedOf: (used: string, limit: string) => `${used} / ${limit}`,
-  notMeasured: "chưa đo",
+  roleName: { admin: "Quản trị", user: "Người dùng" },
   diskHint: "Đo mỗi giờ",
 
-  statusActive: "đang hoạt động",
-  statusSuspended: "tạm khoá",
+  // Chân bảng
+  footerCount: (n: number) => `${n} người dùng`,
+  footerUnlimited: "∞ là không giới hạn theo gói.",
+  footerPlans: "Xem các gói",
+  footerTrashRule: "Site và DB rời tính như gói tính: cả thứ trong thùng rác.",
+
+  statusActive: "Đang hoạt động",
+  statusSuspended: "Tạm khoá",
   suspendedMeta: (when: string, reason: string) => (reason ? `từ ${when}: ${reason}` : `từ ${when}`),
   overQuota: "vượt gói",
 
@@ -43,10 +47,13 @@ const vi = {
   viewAsStarting: "Đang mở…",
   viewAsFailed: "Chưa mở được phiên xem như.",
   forUser: (what: string, name: string) => `${what}: ${name}`,
-  previewing: "Đang dựng…",
+  // Nhãn của nút ba chấm: "Việc khác với khach_a: tạm khoá, xem như, xoá" (items đã viết thường).
+  moreFor: (name: string, items: string) => `Việc khác với ${name}: ${items}`,
+  previewing: "Đang dựng bản xem trước…",
 
   // Chọn nhiều hàng
   selectRow: (name: string) => `Chọn ${name}`,
+  selfLocked: "không tự chọn được tài khoản của mình",
   selectedCount: (n: number) => `Đã chọn ${n} user`,
   clearSelection: "Bỏ chọn",
   bulkSuspend: (n: number) => `Tạm khoá ${n} user`,
@@ -72,7 +79,7 @@ const vi = {
   nameMissing: "Chưa có tên đăng nhập. Gõ tên rồi bấm lại.",
 
   // Mật khẩu hiện một lần
-  secretLabel: "MẬT KHẨU, HIỆN MỘT LẦN",
+  secretLabel: "Mật khẩu, hiện một lần",
   secretTitle: (name: string) => `Mật khẩu của ${name}`,
   secretBody: "tpan chỉ hiện mật khẩu này một lần và không giữ bản rõ. Chép và gửi cho người dùng trước khi ẩn đi.",
   secretUser: "Tên đăng nhập",
@@ -146,18 +153,21 @@ export const strings = defineStrings(vi, {
   colRole: "Role",
   colPackage: "Package",
   colSites: "Sites",
-  colDBs: "DBs",
+  colDBs: "Standalone databases",
   colDisk: "Disk",
   colStatus: "Status",
   colAction: "Action",
 
-  unlimited: "unlimited",
-  usedOf: (used, limit) => `${used} / ${limit}`,
-  notMeasured: "not measured",
+  roleName: { admin: "Admin", user: "User" },
   diskHint: "Measured every hour",
 
-  statusActive: "active",
-  statusSuspended: "suspended",
+  footerCount: (n) => `${n} ${n === 1 ? "user" : "users"}`,
+  footerUnlimited: "∞ means no limit in the package.",
+  footerPlans: "See the packages",
+  footerTrashRule: "Sites and standalone DBs count the way the package counts them: including those in the trash.",
+
+  statusActive: "Active",
+  statusSuspended: "Suspended",
   suspendedMeta: (when, reason) => (reason ? `since ${when}: ${reason}` : `since ${when}`),
   overQuota: "over the package",
 
@@ -170,9 +180,11 @@ export const strings = defineStrings(vi, {
   viewAsStarting: "Opening…",
   viewAsFailed: "Could not open the view-as session.",
   forUser: (what, name) => `${what}: ${name}`,
-  previewing: "Building…",
+  moreFor: (name, items) => `More actions for ${name}: ${items}`,
+  previewing: "Building the preview…",
 
   selectRow: (name) => `Select ${name}`,
+  selfLocked: "you cannot select your own account",
   selectedCount: (n) => `${n} selected`,
   clearSelection: "Clear selection",
   bulkSuspend: (n) => `Suspend ${n} users`,
@@ -196,7 +208,7 @@ export const strings = defineStrings(vi, {
   passwordTooShort: (min) => `The password is shorter than ${min} characters. Add more, or leave it empty so tpan generates one.`,
   nameMissing: "There is no username yet. Type one and press again.",
 
-  secretLabel: "PASSWORD, SHOWN ONCE",
+  secretLabel: "Password, shown once",
   secretTitle: (name) => `Password of ${name}`,
   secretBody: "tpan shows this password only once and keeps no plain copy. Copy it and send it to the user before you hide it.",
   secretUser: "Username",

@@ -1,14 +1,15 @@
-// Bảng cron của từng site: bảng kẻ mảnh như "Lịch sử máy" (mục 7 của
-// GIAO-DIEN.md). Mỗi hàng: site, việc, nhịp chạy, lần chạy gần nhất (dấu trạng
-// thái và nút mở output), file cron và lệnh (chữ mono, bấm là chép). Site chưa
-// bật cron ghi rõ vì sao thay vì để trống.
+// Bảng cron của từng site (bản 2): một TableList trong thẻ. Mỗi hàng: site,
+// việc, nhịp chạy, lần chạy gần nhất (dấu trạng thái và nút mở output), file
+// cron và lệnh (chữ mono, bấm là chép). Site chưa bật cron ghi rõ vì sao thay
+// vì để trống.
 //
 // Output không nằm trong ô bảng (dòng dài làm bảng phình): nút chỉ báo hàng
-// nào đang mở, màn hiện EvidenceBlock ngay dưới bảng.
+// nào đang mở, màn hiện thẻ bằng chứng ngay dưới bảng.
 
 import { Link } from "react-router";
 import type { CronEntry, Suspension } from "../../api/types";
-import { MonoText } from "../../components/MonoText";
+import { Button } from "../../components/Button";
+import { Code, MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { SuspendTag } from "../../components/SuspendTag";
 import { TableList } from "../../components/TableList";
@@ -61,9 +62,14 @@ export function CronSiteTable({ items, trashed, suspended, openDomain, onToggle 
 
   return (
     <TableList
+      title={t.sitesHeading}
+      titleId="cron-sites"
       caption={t.tableName}
+      minWidth={960}
       rows={items}
       rowKey={(c) => c.domain}
+      above={<p className="m-0 max-w-[72ch] px-[16px] py-[12px] text-[13px] text-muted">{t.sitesHint}</p>}
+      footer={<span>{t.readOnly}</span>}
       empty={
         <>
           {t.noSites}
@@ -71,57 +77,70 @@ export function CronSiteTable({ items, trashed, suspended, openDomain, onToggle 
         </>
       }
       columns={[
-        { header: t.colSite, cell: (c) => <MonoText>{c.domain}</MonoText> },
-        { header: t.colJob, cell: () => t.jobWp },
+        {
+          header: t.colSite,
+          cell: (c) => (
+            // Tên miền dài nằm một dòng, cắt bằng dấu ba chấm; đủ chữ trong title.
+            <span title={c.domain} className="inline-block max-w-[280px] truncate align-bottom font-medium">
+              {c.domain}
+            </span>
+          ),
+        },
+        { header: t.colJob, nowrap: false, className: "min-w-[160px]", cell: () => t.jobWp },
         {
           header: t.colEvery,
           cell: (c) => (
             <span className="block">
               {everyText(t, c.schedule)}
               {/* Dòng gốc luôn hiện để so với file cron; với dạng lạ nó là thứ duy nhất nói được nhịp. */}
-              <span className="block font-mono text-[12px] text-muted" title={t.scheduleRaw}>
-                {c.schedule}
+              <span className="block text-muted" title={t.scheduleRaw}>
+                <Code>{c.schedule}</Code>
               </span>
             </span>
           ),
         },
         {
           header: t.colLast,
+          nowrap: false,
+          className: "min-w-[220px]",
           cell: (c) => {
             const run = c.last;
             if (!run) return <span className="text-muted">{t.neverRun}</span>;
             const word = t.statusWord[run.status];
             const open = openDomain === c.domain;
             return (
-              <span className="flex flex-col items-start gap-[6px]">
+              <span className="flex flex-col items-start gap-[4px]">
                 <span className="flex flex-wrap items-center gap-x-[8px] gap-y-[2px]">
                   {/* Mỗi dấu nằm trong ô 20 px để hình nhỏ (chấm 12 px) không làm chữ bên cạnh lệch hàng. */}
                   <span className="inline-flex size-[20px] items-center justify-center">
                     <StatusMark status={markOf[run.status]} label={k.statusLabel(c.domain, word)} />
                   </span>
                   <span>{word}</span>
-                  {run.status === "fail" && <span className="font-mono text-[12px] text-fail-text">{t.exitCode(run.exit_code)}</span>}
-                  {run.status === "skipped" && <span className="text-[13px] text-muted">{suspended.has(c.domain) ? t.skippedSuspended : t.skippedNote}</span>}
+                  {run.status === "fail" && <span className="text-[12.5px] text-muted">{t.exitCode(run.exit_code)}</span>}
                 </span>
-                <span className="font-mono text-[12px] whitespace-nowrap text-muted">
+                {run.status === "skipped" && <span className="text-[12.5px] text-muted">{suspended.has(c.domain) ? t.skippedSuspended : t.skippedNote}</span>}
+                <span className="text-[12.5px] whitespace-nowrap text-muted tabular-nums">
                   {formatWhen(run.started, lang)} · {durationText(t, run.duration_ns, lang)}
                 </span>
-                <button
-                  type="button"
+                <Button
+                  size="sm"
+                  variant="text"
+                  className="-ml-[10px]"
                   aria-expanded={open}
-                  aria-controls="cron-evidence"
+                  aria-controls={open ? "cron-evidence" : undefined}
                   aria-label={open ? t.hideOutputFor(c.domain) : t.showOutputFor(c.domain)}
                   onClick={() => onToggle(c.domain)}
-                  className="h-[44px] border border-ink bg-surface px-[10px] text-[12px] font-medium text-ink hover:bg-pre sm:h-[28px]"
                 >
                   {open ? t.hideOutput : t.showOutput}
-                </button>
+                </Button>
               </span>
             );
           },
         },
         {
           header: t.colFile,
+          nowrap: false,
+          className: "min-w-[240px]",
           cell: (c) => {
             const how = suspended.get(c.domain);
             if (c.enabled) {
@@ -137,7 +156,7 @@ export function CronSiteTable({ items, trashed, suspended, openDomain, onToggle 
             return (
               <span className="flex flex-col items-start gap-[6px]">
                 {how ? <SuspendTag how={how} /> : <Tag>{t.notEnabled}</Tag>}
-                <span className="text-[13px] text-muted">
+                <span className="max-w-[320px] text-[12.5px] text-muted">
                   {how ? (
                     t.suspendedWhy
                   ) : trashed.has(c.domain) ? (

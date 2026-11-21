@@ -148,8 +148,8 @@ type MariaDBStatus struct {
 	Upgrades []MariaDBLine `json:"upgrades"`
 }
 
-// SelfStatus là phần `tpan self-update` của màn Cập nhật (chỉ hiện lệnh, không
-// có nút: tự thay file chạy của panel đang phục vụ trang là cắt chính job đó).
+// SelfStatus là phần `tpan self-update` của màn Cập nhật. Tới M12 màn chỉ hiện
+// lệnh; từ M15 có nút, chạy qua một đơn vị systemd tạm (types_m15.go).
 type SelfStatus struct {
 	Version string `json:"version"` // buildinfo của bản đang chạy
 	URL     string `json:"url"`     // gốc tải (settings update.self_url hoặc DefaultSelfURL)
@@ -198,7 +198,7 @@ type Updates struct {
 	Backups BackupStore
 }
 
-// SelfUpdate là `tpan self-update` (chỉ CLI).
+// SelfUpdate là `tpan self-update` và, từ M15, nút cập nhật trong panel (types_m15.go).
 type SelfUpdate struct {
 	Sys      system.System
 	Settings Settings

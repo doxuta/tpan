@@ -4,6 +4,9 @@
 // trong web/ vì file chạy nhúng web/dist):
 //
 //	go run ./scripts/anh-readme
+//	go run ./scripts/anh-readme -bo m15 -out docs/bang-chung   (ảnh khối "Phiên bản và cập nhật" của M15)
+//	TPAN_PANEL_PASSWORD=... go run ./scripts/anh-readme -bo m15-that -panel https://<máy ảo>:8443 -out docs/bang-chung
+//	    (bấm thật nút cập nhật trên panel của máy ảo test, xem m15_that.go)
 //
 // Chương trình tự làm hết, rồi tự tắt cả hai tiến trình khi xong:
 //  1. build tpan ra thư mục tạm rồi chạy `tpan serve --demo` (máy giả, tên máy
@@ -35,6 +38,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -66,14 +70,48 @@ func main() {
 	chrome := flag.String("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "đường dẫn Chrome")
 	debugPort := flag.Int("debug-port", 18142, "cổng DevTools của Chrome")
 	out := flag.String("out", "docs/anh", "thư mục ghi ảnh")
+	set := flag.String("bo", "readme", "bộ ảnh: readme (ảnh của README), m15 (khối Phiên bản và cập nhật ở demo), m15-that (bấm thật trên panel ở -panel) hoặc m16-do (đo từng màn, xem m16.go)")
+	panel := flag.String("panel", "", "địa chỉ một panel đang chạy (máy ảo test), thay cho serve --demo; mật khẩu admin lấy từ biến môi trường TPAN_PANEL_PASSWORD")
+	var m16 m16Opts
+	flag.BoolVar(&m16.longNames, "ten-dai", false, "bộ m16-do trên demo: tạo ba site tên dài qua API nếu chưa có")
+	flag.StringVar(&m16.site, "site", "", "bộ m16-do: site dùng cho màn \"trang một site\" (mặc định: site tên dài nhất của máy)")
+	flag.StringVar(&m16.passwordFile, "mat-khau-tep", "", "với -panel: file chứa output của `tpan setup` hoặc `tpan admin passwd`; mật khẩu admin được đọc từ đó")
+	flag.BoolVar(&m16.threshold, "nguong", false, "bộ m16-do: kiểm các ngưỡng cứng của M16, sai một cái là thoát mã khác 0")
+	flag.StringVar(&m16.step, "buoc", "", "bộ m16-that: admin, tao-site, user hoặc nang-cap (xem m16_that.go)")
+	flag.StringVar(&m16.userName, "ten", "", "bộ m16-that, bước user: tên user thường (mật khẩu ở biến môi trường TPAN_USER_PASSWORD)")
+	flag.StringVar(&m16.waitFile, "cho-tep", "", "bộ m16-that, bước nang-cap: file mà script e2e tạo ra khi đã nâng cấp xong")
+	flag.StringVar(&m16.only, "chi", "", "bộ m16: chỉ chụp các ảnh có tên này (cách nhau bằng dấu phẩy, ví dụ cong-cu,nguoi-dung), bỏ phần bàn phím và tiếng Anh")
 	flag.Parse()
-	if err := run(*listen, *chrome, *debugPort, *out); err != nil {
+	list := shots()
+	switch *set {
+	case "readme":
+	case "m15":
+		list = shotsM15()
+	case "m15-that":
+		list = nil // run gọi liveM15 thay cho vòng chụp
+		if *panel == "" {
+			fmt.Fprintln(os.Stderr, "lỗi: -bo m15-that cần -panel (panel của máy ảo test; demo không cập nhật được)")
+			os.Exit(2)
+		}
+	case "m16-do", "m16", "mau-v2":
+		list = nil
+	case "m16-that":
+		list = nil
+		if *panel == "" {
+			fmt.Fprintln(os.Stderr, "lỗi: -bo m16-that cần -panel (panel của máy ảo test)")
+			os.Exit(2)
+		}
+	default:
+		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that hoặc mau-v2")
+		os.Exit(2)
+	}
+	if err := run(*listen, *chrome, *debugPort, *out, *set, list, *panel, m16); err != nil {
 		fmt.Fprintln(os.Stderr, "lỗi:", err)
 		os.Exit(1)
 	}
 }
 
-func run(listen, chrome string, debugPort int, out string) error {
+func run(listen, chrome string, debugPort int, out, set string, list []shot, panel string, m16 m16Opts) error {
 	tmp, err := os.MkdirTemp("", "tpan-anh-")
 	if err != nil {
 		return err
@@ -86,45 +124,64 @@ func run(listen, chrome string, debugPort int, out string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// 1. build và chạy serve --demo.
-	bin := filepath.Join(tmp, "tpan")
-	if b, err := exec.CommandContext(ctx, "go", "build", "-o", bin, "./cmd/tpan").CombinedOutput(); err != nil {
-		return fmt.Errorf("build tpan: %w\n%s", err, b)
-	}
-	srv := exec.Command(bin, "serve", "--demo", "--listen", listen)
-	srv.Stderr = os.Stderr
-	srvOut, err := srv.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	srv.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	if err := srv.Start(); err != nil {
-		return fmt.Errorf("chạy tpan serve --demo: %w", err)
-	}
-	defer stop(srv)
-
-	// 2. mật khẩu demo: dòng đầu có chữ "demo"/"Demo" rồi dấu hai chấm, từ cuối là mật khẩu.
-	pwCh := make(chan string, 1)
-	go func() {
-		sc := bufio.NewScanner(srvOut)
-		sent := false
-		for sc.Scan() { // đọc tới hết để tiến trình không nghẽn ống
-			f := strings.Fields(sc.Text())
-			if !sent && len(f) > 1 && strings.Contains(strings.ToLower(sc.Text()), "demo") && strings.Contains(sc.Text(), ":") {
-				pwCh <- f[len(f)-1]
-				sent = true
-			}
+	// Panel có sẵn (-panel: máy ảo test) thì không dựng demo; mật khẩu đi qua
+	// biến môi trường để không nằm trong dòng lệnh hay lịch sử shell.
+	base, password := strings.TrimRight(panel, "/"), os.Getenv("TPAN_PANEL_PASSWORD")
+	if panel != "" && password == "" && m16.passwordFile != "" {
+		// Mật khẩu `tpan setup` hay `tpan admin passwd` in ra (26 ký tự base32),
+		// đọc từ file output của chính lệnh đó: không đi qua dòng lệnh hay màn hình.
+		b, err := os.ReadFile(m16.passwordFile)
+		if err != nil {
+			return fmt.Errorf("đọc -mat-khau-tep: %w", err)
 		}
-	}()
-	var password string
-	select {
-	case password = <-pwCh:
-	case <-time.After(30 * time.Second):
-		return errors.New("không đọc được mật khẩu demo từ stdout của serve")
+		password = regexp.MustCompile(`\b[A-Z2-7]{26}\b`).FindString(string(b))
 	}
-	base := "http://" + listen
-	if err := waitHTTP(ctx, base+"/api/v1/session"); err != nil {
-		return fmt.Errorf("serve chưa nghe ở %s: %w", base, err)
+	if panel != "" && password == "" {
+		return errors.New("-panel cần mật khẩu admin của panel đó: biến môi trường TPAN_PANEL_PASSWORD, hoặc -mat-khau-tep <file có output của tpan setup>")
+	}
+	needPanel := set != "mau-v2" // trang mẫu tĩnh mở thẳng từ đĩa, không cần panel
+	if panel == "" && needPanel {
+		// 1. build và chạy serve --demo.
+		bin := filepath.Join(tmp, "tpan")
+		if b, err := exec.CommandContext(ctx, "go", "build", "-o", bin, "./cmd/tpan").CombinedOutput(); err != nil {
+			return fmt.Errorf("build tpan: %w\n%s", err, b)
+		}
+		srv := exec.Command(bin, "serve", "--demo", "--listen", listen)
+		srv.Stderr = os.Stderr
+		srvOut, err := srv.StdoutPipe()
+		if err != nil {
+			return err
+		}
+		srv.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+		if err := srv.Start(); err != nil {
+			return fmt.Errorf("chạy tpan serve --demo: %w", err)
+		}
+		defer stop(srv)
+
+		// 2. mật khẩu demo: dòng đầu có chữ "demo"/"Demo" rồi dấu hai chấm, từ cuối là mật khẩu.
+		pwCh := make(chan string, 1)
+		go func() {
+			sc := bufio.NewScanner(srvOut)
+			sent := false
+			for sc.Scan() { // đọc tới hết để tiến trình không nghẽn ống
+				f := strings.Fields(sc.Text())
+				if !sent && len(f) > 1 && strings.Contains(strings.ToLower(sc.Text()), "demo") && strings.Contains(sc.Text(), ":") {
+					pwCh <- f[len(f)-1]
+					sent = true
+				} else if sent {
+					noteDemoUser(sc.Text()) // "User demo (vai user): <tên> / <mật khẩu>", cho bộ m16
+				}
+			}
+		}()
+		select {
+		case password = <-pwCh:
+		case <-time.After(30 * time.Second):
+			return errors.New("không đọc được mật khẩu demo từ stdout của serve")
+		}
+		base = "http://" + listen
+		if err := waitHTTP(ctx, base+"/api/v1/session"); err != nil {
+			return fmt.Errorf("serve chưa nghe ở %s: %w", base, err)
+		}
 	}
 
 	// 3. Chrome không giao diện. --remote-allow-origins: Chrome từ bản 111 từ
@@ -135,7 +192,12 @@ func run(listen, chrome string, debugPort int, out string) error {
 		"--remote-allow-origins="+devBase,
 		"--user-data-dir="+filepath.Join(tmp, "chrome"),
 		fmt.Sprintf("--window-size=%d,%d", width, height),
-		"--hide-scrollbars", "--no-first-run", "--no-default-browser-check", "about:blank")
+		"--hide-scrollbars", "--no-first-run", "--no-default-browser-check")
+	if panel != "" {
+		// Panel thật dùng chứng chỉ tự ký (tpan setup); Chrome này chỉ sống trong lần chạy và chỉ mở đúng panel đó.
+		ch.Args = append(ch.Args, "--ignore-certificate-errors")
+	}
+	ch.Args = append(ch.Args, "about:blank")
 	ch.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := ch.Start(); err != nil {
 		return fmt.Errorf("mở Chrome: %w", err)
@@ -156,6 +218,14 @@ func run(listen, chrome string, debugPort int, out string) error {
 		return err
 	}
 
+	if set == "mau-v2" {
+		return samplesV2(c, out)
+	}
+	if set == "m16-that" {
+		// Bộ này tự đăng nhập qua form của giao diện, như người dùng.
+		return liveM16(c, base, password, m16)
+	}
+
 	// 4. đăng nhập bằng fetch cùng origin (cookie HttpOnly nằm trong Chrome).
 	if err := c.goTo(base+"/", "/dang-nhap"); err != nil {
 		return err
@@ -166,12 +236,20 @@ func run(listen, chrome string, debugPort int, out string) error {
 		return fmt.Errorf("đăng nhập demo: trạng thái %v, lỗi %v", st, err)
 	}
 
+	switch set {
+	case "m15-that":
+		return liveM15(c, base, out)
+	case "m16-do":
+		return measureM16(c, base, m16)
+	case "m16":
+		return photosM16(c, base, password, out, m16.only)
+	}
 	jobID, err := siteJob(c)
 	if err != nil {
 		return err
 	}
 
-	for _, s := range shots() {
+	for _, s := range list {
 		if err := capture(c, base, jobID, out, s); err != nil {
 			return fmt.Errorf("%s: %w", s.file, err)
 		}
@@ -201,6 +279,39 @@ func shots() []shot {
 		{file: "su-co.png", path: "/incidents", theme: "light", ready: `document.body.innerText.includes('example')`},
 		{file: "stack.png", path: "/stack", theme: "light", ready: `!!document.querySelector('main h1, main h2')`},
 		{file: "bang-dieu-khien-toi.png", path: "/", theme: "dark", ready: `!!document.querySelector('main h1, main h2')`},
+	}
+}
+
+// shotsM15 là ảnh của khối "Phiên bản và cập nhật" (mục 6.14 của KE-HOACH.md)
+// trên máy demo: nguồn tải giả có bản v9.9.9-demo, máy có tpan.old. Bấm bằng
+// chữ trên nút thay vì id, để ảnh hỏng ngay khi chữ trên nút đổi mà quên chụp lại.
+func shotsM15() []shot {
+	click := func(label string) func(c *cdp) error {
+		return func(c *cdp) error {
+			js := fmt.Sprintf(`[...document.querySelectorAll('#phien-ban button')].some(b=>b.innerText.trim().startsWith(%q))`, label)
+			if err := c.waitTrue(js, 20*time.Second); err != nil {
+				return fmt.Errorf("chờ nút %q: %w", label, err)
+			}
+			_, err := c.eval(fmt.Sprintf(`[...document.querySelectorAll('#phien-ban button')].find(b=>b.innerText.trim().startsWith(%q)).click()`, label))
+			return err
+		}
+	}
+	const (
+		toBlock = `document.getElementById('phien-ban').scrollIntoView({block:'start'})`
+		preview = `document.getElementById('phien-ban').innerText.includes('SHA256 sẽ kiểm')`
+		dialog  = `!!document.querySelector('[role=dialog],[role=alertdialog]')`
+	)
+	return []shot{
+		{file: "M15-phien-ban-sang.png", path: "/settings", theme: "light", before: click("Kiểm bản mới"), ready: preview, after: toBlock},
+		{file: "M15-phien-ban-toi.png", path: "/settings", theme: "dark", before: click("Kiểm bản mới"), ready: preview, after: toBlock},
+		// Không bấm "Kiểm bản mới" lần nữa: máy chủ còn nhớ lần kiểm của ảnh
+		// trước nên nút "Cập nhật lên" có sẵn; bấm kiểm lại thì nút bị khoá
+		// trong lúc chờ và cú bấm kế tiếp rơi vào nút đang khoá.
+		{file: "M15-xac-nhan-cap-nhat-sang.png", path: "/settings", theme: "light",
+			before: click("Cập nhật lên"), ready: dialog},
+		{file: "M15-xac-nhan-quay-ve-toi.png", path: "/settings", theme: "dark",
+			before: click("Quay về bản trước"), ready: dialog},
+		{file: "M15-man-cap-nhat-sang.png", path: "/updates", theme: "light", before: click("Kiểm bản mới"), ready: preview, after: toBlock},
 	}
 }
 
@@ -234,6 +345,11 @@ func capture(c *cdp, base, jobID, out string, s shot) error {
 	}
 	time.Sleep(700 * time.Millisecond)
 
+	return snap(c, out, s.file)
+}
+
+// snap chụp trang đang mở vào out/file (PNG, nén lại nếu quá cỡ).
+func snap(c *cdp, out, file string) error {
 	res, err := c.call("Page.captureScreenshot", map[string]any{"format": "png"})
 	if err != nil {
 		return err
@@ -255,13 +371,13 @@ func capture(c *cdp, base, jobID, out string, s shot) error {
 			}
 		}
 	}
-	dst := filepath.Join(out, s.file)
+	dst := filepath.Join(out, file)
 	if err := os.WriteFile(dst, raw, 0o644); err != nil {
 		return err
 	}
 	fmt.Printf("%s  %d KB\n", dst, (len(raw)+1023)/1024)
 	if len(raw) > maxBytes {
-		fmt.Printf("  CHÚ Ý: %s vượt 600 KB\n", s.file)
+		fmt.Printf("  CHÚ Ý: %s vượt 600 KB\n", file)
 	}
 	return nil
 }
@@ -284,11 +400,20 @@ func siteJob(c *cdp) (string, error) {
 
 // ---- Chrome DevTools Protocol ----
 
-// cdp gọi tuần tự (gửi rồi đọc tới khi có trả lời cùng id), bỏ qua sự kiện:
-// đủ cho việc chụp ảnh, không cần luồng đọc riêng.
+// cdp gọi tuần tự (gửi rồi đọc tới khi có trả lời cùng id): đủ cho việc chụp
+// ảnh, không cần luồng đọc riêng. Sự kiện Chrome gửi xen giữa (lỗi console,
+// ngoại lệ JS, dòng log của trình duyệt) được giữ lại ở events để bộ M16 kiểm
+// "mở màn không lỗi console"; các bộ ảnh cũ không đọc tới nó.
 type cdp struct {
-	ws   *websocket.Conn
-	next int
+	ws     *websocket.Conn
+	next   int
+	events []cdpEvent
+}
+
+// cdpEvent là một sự kiện của Chrome DevTools Protocol (không phải trả lời của một lệnh).
+type cdpEvent struct {
+	Method string
+	Params json.RawMessage
 }
 
 func dial(url, origin string) (*cdp, error) {
@@ -309,6 +434,8 @@ func (c *cdp) call(method string, params any) (json.RawMessage, error) {
 	for {
 		var m struct {
 			ID     int             `json:"id"`
+			Method string          `json:"method"`
+			Params json.RawMessage `json:"params"`
 			Result json.RawMessage `json:"result"`
 			Error  *struct {
 				Message string `json:"message"`
@@ -318,6 +445,9 @@ func (c *cdp) call(method string, params any) (json.RawMessage, error) {
 			return nil, fmt.Errorf("%s: %w", method, err)
 		}
 		if m.ID != id {
+			if m.Method != "" {
+				c.events = append(c.events, cdpEvent{Method: m.Method, Params: m.Params})
+			}
 			continue
 		}
 		if m.Error != nil {

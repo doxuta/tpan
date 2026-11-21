@@ -1,13 +1,15 @@
 // Các phiên đang đăng nhập: GET /api/v1/account/sessions, và nút xoá từng phiên
 // (DELETE /api/v1/account/sessions/{id}). Phiên hiện tại không có nút ở đây:
-// đăng xuất phiên này đã có mục Đăng xuất ở menu, và xoá nhầm phiên đang dùng
-// thì văng ngay ra trang đăng nhập.
+// đăng xuất phiên này đã có mục Đăng xuất ở menu tài khoản, và xoá nhầm phiên
+// đang dùng thì văng ngay ra trang đăng nhập.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { del, errorMessage, get } from "../../api/client";
 import type { SessionRow } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { MonoText } from "../../components/MonoText";
+import { RowActions } from "../../components/RowActions";
 import { TableList } from "../../components/TableList";
 import { Tag } from "../../components/Tag";
 import { useLang, useStrings, type Lang } from "../../i18n";
@@ -34,24 +36,25 @@ export function Phien() {
   });
 
   return (
-    <section aria-labelledby="phien-tieu-de" className="pt-[28px]">
-      <h2 id="phien-tieu-de" className="m-0 text-[16px] font-semibold">
-        {t.ssHeading}
-      </h2>
-      <p className="mt-[6px] mb-[14px] text-muted">{t.ssIntro}</p>
-
-      {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
+    <>
+      {q.isPending && (
+        <Card title={t.ssHeading} titleId="phien-tieu-de">
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div>
-          <p className="m-0">{errorMessage(q.error, lang)}</p>
-          <Button className="mt-[12px]" onClick={() => void q.refetch()}>
-            {k.retry}
-          </Button>
-        </div>
+        <Card title={t.ssHeading} titleId="phien-tieu-de">
+          <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
+          <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+        </Card>
       )}
       {q.isSuccess && (
         <TableList
+          title={t.ssHeading}
+          titleId="phien-tieu-de"
           caption={t.ssTable}
+          minWidth={560}
+          above={<p className="m-0 max-w-[72ch] px-[16px] py-[12px] text-muted">{t.ssIntro}</p>}
           rows={q.data}
           rowKey={(r) => r.id}
           empty={t.ssEmpty}
@@ -65,31 +68,30 @@ export function Phien() {
                 </span>
               ),
             },
-            { header: t.ssColCreated, cell: (r) => <span className="font-mono text-[12px] whitespace-nowrap text-muted">{formatTime(r.created, lang)}</span> },
-            { header: t.ssColLastSeen, cell: (r) => <span className="font-mono text-[12px] whitespace-nowrap text-muted">{formatTime(r.last_seen, lang)}</span> },
+            { header: t.ssColCreated, cell: (r) => <span className="text-muted tabular-nums">{formatTime(r.created, lang)}</span> },
+            { header: t.ssColLastSeen, cell: (r) => <span className="text-muted tabular-nums">{formatTime(r.last_seen, lang)}</span> },
             {
               header: t.ssColAction,
-              cell: (r) =>
-                r.current ? (
+              align: "right",
+              nowrap: false,
+              cell: (r) => {
+                const label = t.ssSignOutLabel(r.ip, formatTime(r.created, lang));
+                const busy = signOut.isPending && signOut.variables === r.id;
+                return r.current ? (
                   <span className="text-[13px] text-muted">{t.ssCurrentHint}</span>
                 ) : (
-                  <Button
-                    aria-label={t.ssSignOutLabel(r.ip, formatTime(r.created, lang))}
-                    disabled={signOut.isPending && signOut.variables === r.id}
-                    onClick={() => signOut.mutate(r.id)}
-                  >
-                    {signOut.isPending && signOut.variables === r.id ? t.ssSigningOut : t.ssSignOut}
-                  </Button>
-                ),
+                  <RowActions primary={[{ label: t.ssSignOut, busy, busyLabel: t.ssSigningOut, ariaLabel: label, onClick: () => signOut.mutate(r.id) }]} moreLabel={label} />
+                );
+              },
             },
           ]}
         />
       )}
       {signOut.isError && (
-        <div className="mt-[12px]">
+        <Card>
           <Note kind="fail">{errorMessage(signOut.error, lang)}</Note>
-        </div>
+        </Card>
       )}
-    </section>
+    </>
   );
 }

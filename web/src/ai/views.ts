@@ -32,8 +32,9 @@ export function viewLabel(path: string, lang: Lang): string {
   const session = params("/ai/:id", path);
   if (session?.id) return t.viewAiSession(session.id);
 
-  // Mục menu: lấy tên đúng như menu đang hiện.
-  const s = screens.find((r) => r.menu && params(r.path, path) !== null);
+  // Mục menu: lấy tên đúng như menu đang hiện. /dashboard (Bảng điều khiển của
+  // user thường, M16) là userPath của mục "/" chứ không phải một dòng có menu.
+  const s = screens.find((r) => r.menu && (params(r.path, path) !== null || r.menu.userPath === path));
   if (s?.menu) return khung[lang].menu[s.menu.label];
   return path;
 }

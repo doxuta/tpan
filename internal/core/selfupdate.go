@@ -1,8 +1,14 @@
 package core
 
 // `tpan self-update` (mục 6.11 của docs/KE-HOACH.md). Hợp đồng M12 đợt 0; thân
-// do thợ đợt 2 viết. Chỉ CLI gọi: job thay file chạy và khởi động lại
-// tpan.service, chạy từ panel thì cắt chính tiến trình đang chạy job.
+// do thợ đợt 2 viết.
+//
+// Ai chạy hai Plan này: CLI (`tpan self-update`), và từ M15 là lệnh nội bộ
+// `tpan internal self-update` mà panel nhờ systemd khởi trong một đơn vị tạm
+// (selfupdate_m15.go, mục 6.14). `tpan serve` không bao giờ tự Execute chúng:
+// job kết thúc bằng khởi động lại tpan.service, và systemd dừng mọi tiến trình
+// của dịch vụ đó ở đúng bước ấy, kể cả tiến trình đang chạy job. Panel chỉ gọi
+// Prepare, PrepareRollback để lấy bản xem trước và lời từ chối.
 //
 // Plan "self.update":
 //  1. steps.SelfDownload: tải <base>/tpan-linux-<Arch> và <base>/SHA256SUMS vào
@@ -14,7 +20,8 @@ package core
 //  Kiểm chứng: `TpanBin version` chạy được. Bản tải về trùng bản đang chạy thì
 //  SelfDownload báo và các bước sau được bỏ qua (Check true).
 // Plan "self.rollback": steps.SelfInstall{New: TpanBin+".old"...} đổi ngược
-// rồi restart. Không có .old thì từ chối self_no_old.
+// rồi restart. Không có .old thì từ chối self_no_old. Từ M15: file .old không
+// mở được tpan.db hiện tại thì từ chối self_rollback_db (oldOpensDB).
 //
 // Ghi chú khi viết thân (đợt 2):
 //   - Bỏ qua khi trùng bản: bước 2 và 3 được bọc trong sameVersionSkip, đọc bản
@@ -44,6 +51,9 @@ import (
 const (
 	tpanNew = TpanBin + ".new"
 	tpanOld = TpanBin + ".old"
+	// tpanDB là DB mà tpan.service mở (mục 4.4), cũng là DB mà một lệnh tpan
+	// không có cờ --db mở.
+	tpanDB = "/var/lib/tpan/tpan.db"
 )
 
 // baseURL là gốc tải: settings update.self_url, rỗng thì DefaultSelfURL.
@@ -102,7 +112,11 @@ func (s *SelfUpdate) Prepare(ctx context.Context, baseURL string) (*Planned, err
 	return newPlanned(s.Sys, s.Journal, plan, nil), nil
 }
 
-// PrepareRollback dựng Plan "self.rollback".
+// PrepareRollback dựng Plan "self.rollback". Ba điều kiện đầu, áp cho cả CLI
+// lẫn panel: có file cũ (self_no_old); máy không còn lồng hay lượt thử tấn công
+// chưa dọn, thứ bản trước M17 không biết (CodeCageActive, M17); file cũ mở được
+// tpan.db hiện tại (CodeSelfRollbackDB, M15). Kiểm lồng trước vì nó không chạy
+// file cũ và lời từ chối có lệnh gỡ chạy được ngay.
 func (s *SelfUpdate) PrepareRollback(ctx context.Context) (*Planned, error) {
 	ok, err := pathExists(s.Sys, tpanOld)
 	if err != nil {
@@ -114,6 +128,9 @@ func (s *SelfUpdate) PrepareRollback(ctx context.Context) (*Planned, error) {
 			"there is no "+tpanOld+" to go back to (no self-update yet, or already rolled back)"))
 	}
 	if err := s.refuseCageActive(ctx); err != nil {
+		return nil, err
+	}
+	if err := s.oldOpensDB(ctx); err != nil {
 		return nil, err
 	}
 	plan := engine.Plan{
@@ -205,6 +222,45 @@ func (s *SelfUpdate) refuseCageActive(ctx context.Context) error {
 	return refuse(CodeCageActive, i18n.T(
 		"không lùi tpan về bản trước được: bản trước không biết lồng theo site và phép thử tấn công. Còn: "+strings.Join(vi, "; ")+". Làm các lệnh đó rồi chạy lại.",
 		"cannot roll tpan back: the previous release knows nothing about per-site cages or the attack probe. Still present: "+strings.Join(en, "; ")+". Run those commands, then try again."))
+}
+
+// oldOpensDB thử xem file chạy cũ có mở được tpan.db hiện tại không, bằng cách
+// chạy `tpan.old site list`: lệnh chỉ đọc, có từ v0.1.0, và mở DB đúng như
+// dịch vụ sẽ mở sau khi quay về. Bản mới thường đã nâng cấu trúc DB; bản cũ
+// gặp DB mới hơn nó biết thì thoát ngay, nên quay về là để tpan.service khởi
+// động lại liên tục trong khi job báo thành công (đã gặp ở M13, mục 6.12).
+// Biết chắc không lùi được thì từ chối trước khi đổi file.
+//
+// Chỉ thử khi máy đã có tpan.db: chưa có mà chạy `site list` thì chính file cũ
+// tạo một DB rỗng, tức là bản xem trước làm đổi máy. Chưa có DB thì cũng không
+// có gì để bản cũ không mở được.
+func (s *SelfUpdate) oldOpensDB(ctx context.Context) error {
+	hasDB, err := pathExists(s.Sys, tpanDB)
+	if err != nil || !hasDB {
+		return err
+	}
+	cmd := system.Cmd{Name: tpanOld, Args: []string{"site", "list"}}
+	res, err := s.Sys.Run(ctx, cmd)
+	if err == nil {
+		return nil
+	}
+	// Lệnh bị cắt vì ctx (người dùng đóng trang, tiến trình bị dừng) không nói
+	// gì về file cũ: báo lỗi thường, không báo "bản cũ không mở được DB".
+	if ctx.Err() != nil {
+		return fmt.Errorf("thử %s: %w", cmd.String(), err)
+	}
+	// File cũ in lý do ra stderr ("DB ở bản 1400, tpan này chỉ biết tới bản
+	// 900..."). Không in gì (file hỏng, không chạy nổi) thì dùng lỗi của Run.
+	said := oneLine(res.Stderr, selfOutputMax)
+	if said == "" {
+		said = oneLine(res.Stdout, selfOutputMax)
+	}
+	if said == "" {
+		said = oneLine(err.Error(), selfOutputMax)
+	}
+	return refuse(CodeSelfRollbackDB, i18n.T(
+		"bản trước ("+tpanOld+") không mở được "+tpanDB+" hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: "+said+". Hai đường còn lại: chép lại bản sao "+tpanDB+" có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này",
+		"the previous release ("+tpanOld+") cannot open the current "+tpanDB+", usually because the running release upgraded the DB schema. Rolling back now would leave the tpan service restarting in a loop, so nothing was changed. The previous release said: "+said+". The two ways left: put back a copy of "+tpanDB+" taken before the upgrade and then roll back, or stay on this release"))
 }
 
 // sameVersionSkip bọc một bước của self.update: file vừa tải cùng bản với bản

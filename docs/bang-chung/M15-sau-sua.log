@@ -1,0 +1,2121 @@
+e2e M15. Bản cũ: v0.2.0; bản A (của cây): v0.2.0-18-gc55e34c; bản B: v0.2.0-18-gc55e34c-e2e-b; máy ảo: tpan-m15
+
+
+######## [2026-11-21 02:25:31] PHẦN 0: máy sạch, đóng gói bản A và bản B, dựng nguồn tải trên loopback
+Máy ảo: tpan-m15
+
+[2026-11-21 02:25:31] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m15  /-\|/-\|/-\|/-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m15.clean
+[2K[0A[0EStarting tpan-m15  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
+[2026-11-21 02:25:47] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-21 02:25:47] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-21 02:25:47] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-21 02:25:47] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+ls: cannot access '/etc/tpan': No such file or directory
+ls: cannot access '/var/lib/tpan': No such file or directory
+[2026-11-21 02:25:47] (mã thoát 2)
+  => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
+Kiến trúc máy ảo: arm64
+
+[2026-11-21 02:25:48] $ bash -c cd "$1" && ls -l && cat SHA256SUMS && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.0
+total 92672
+-rw-r--r--@ 1 <user>  staff       243 Nov 21 01:18 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff     20194 Nov 21 01:18 install.sh
+-rw-r--r--@ 1 <user>  staff  24035488 Nov 21 01:18 tpan-linux-amd64
+-rw-r--r--@ 1 <user>  staff  22085792 Nov 21 01:17 tpan-linux-arm64
+39826be1ae3fa337e386456c4175b2be556e82e1ee933c5ee2416efd811fd2b2  tpan-linux-amd64
+1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b  tpan-linux-arm64
+e78a9d9de614d04456176b535cb98fc7b1d1c116482e21c6464ecd4929578d9d  install.sh
+tpan-linux-amd64: OK
+tpan-linux-arm64: OK
+install.sh: OK
+[2026-11-21 02:25:48] (mã thoát 0)
+  => ĐẠT: gói v0.2.0 đã phát hành: đủ file, sha256 khớp SHA256SUMS
+
+[2026-11-21 02:25:48] $ bash -c cd "$1" && grep " tpan-linux-$2\$" SHA256SUMS | shasum -a 256 -c - _ dist/release/v0.1.2 arm64
+tpan-linux-arm64: OK
+[2026-11-21 02:25:48] (mã thoát 0)
+  => ĐẠT: file chạy v0.1.2 (arm64) đã phát hành: sha256 khớp SHA256SUMS
+
+[2026-11-21 02:25:48] $ git log --oneline -1
+c55e34c giải thích M15: nút cập nhật TPAN trong panel (vì sao phải có đơn vị systemd tạm, đi qua mã theo thứ tự một lần bấm, bằng chứng, câu hỏi tự kiểm)
+[2026-11-21 02:25:48] (mã thoát 0)
+
+[2026-11-21 02:25:48] $ git status --short
+?? docs/bang-chung/M15-sau-sua.log
+[2026-11-21 02:25:48] (mã thoát 0)
+
+[2026-11-21 02:25:48] $ make release VERSION=v0.2.0-18-gc55e34c DATE=2026-11-20T19:25:31Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 1d ago)
+Lockfile is up to date, resolution step is skipped
+Done in 17ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 367 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.88 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-DRu0iMus.css                                   30.44 kB │ gzip:   7.34 kB
+dist/assets/useStatusName-U629ftgS.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/OriginTag-DAB7LGRD.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-BwR83O87.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/DomainText-BKMfK_lz.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-DxEL7qUk.js                                0.35 kB │ gzip:   0.26 kB
+dist/assets/Note-fPNifnBT.js                                      0.43 kB │ gzip:   0.30 kB
+dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
+dist/assets/SelectField-DYH2PjJg.js                               0.54 kB │ gzip:   0.35 kB
+dist/assets/m14-DiKgolOs.js                                       0.55 kB │ gzip:   0.34 kB
+dist/assets/model-BNSSnAZC.js                                     0.58 kB │ gzip:   0.38 kB
+dist/assets/Field-Bv3QDeJ8.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/m13-dbs-C40hI8uG.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/MonoText-DKmt209s.js                                  0.71 kB │ gzip:   0.45 kB
+dist/assets/m13-chung-BC5sudaR.js                                 0.80 kB │ gzip:   0.45 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-CiUFg7uC.js                                 0.93 kB │ gzip:   0.47 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/model-6nboEF3Y.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/PreviewedOp-CupqhsFp.js                               1.87 kB │ gzip:   0.99 kB
+dist/assets/model-CFrO6SUO.js                                     1.96 kB │ gzip:   0.93 kB
+dist/assets/RouteMap-3jUlxq6J.js                                  2.40 kB │ gzip:   1.06 kB
+dist/assets/Bulk-DjVxlDpr.js                                      2.99 kB │ gzip:   1.36 kB
+dist/assets/plan-cho-duyet-CIwAUT48.js                            6.10 kB │ gzip:   2.09 kB
+dist/assets/backup-B21mrjUV.js                                    6.22 kB │ gzip:   2.38 kB
+dist/assets/dang-nhap-Bq6OEbyB.js                                 7.09 kB │ gzip:   2.99 kB
+dist/assets/goi-CrXqdVNN.js                                       8.23 kB │ gzip:   3.50 kB
+dist/assets/Self-CnPY2W3n.js                                      9.54 kB │ gzip:   2.90 kB
+dist/assets/backup-E-bp03eT.js                                    9.88 kB │ gzip:   3.23 kB
+dist/assets/StatusMark-CO-Vaxnd.js                               11.76 kB │ gzip:   3.74 kB
+dist/assets/duyet-plan-BKS6zdeC.js                               11.95 kB │ gzip:   4.37 kB
+dist/assets/ssl-D-ZKPzP-.js                                      12.26 kB │ gzip:   4.56 kB
+dist/assets/CheckRow-Bi2hsyrZ.js                                 12.82 kB │ gzip:   4.97 kB
+dist/assets/cap-nhat-5-9PnTQ8.js                                 12.99 kB │ gzip:   4.41 kB
+dist/assets/cron-W8lhO2BD.js                                     13.01 kB │ gzip:   4.88 kB
+dist/assets/thung-rac-DhfxE1bz.js                                14.04 kB │ gzip:   4.70 kB
+dist/assets/bao-mat-C9Y9Gfpo.js                                  14.90 kB │ gzip:   4.55 kB
+dist/assets/co-so-du-lieu-Doz3FvBL.js                            15.09 kB │ gzip:   4.85 kB
+dist/assets/tao-site-BjZYelk0.js                                 15.99 kB │ gzip:   5.26 kB
+dist/assets/co-so-du-lieu-DDlAORr5.js                            16.78 kB │ gzip:   4.93 kB
+dist/assets/stack-DDvH_qLq.js                                    17.98 kB │ gzip:   5.59 kB
+dist/assets/phien-ai-C2WS6y3R.js                                 18.24 kB │ gzip:   5.86 kB
+dist/assets/cai-dat-CqdhsBBD.js                                  21.82 kB │ gzip:   7.07 kB
+dist/assets/su-co-XP9GVjxH.js                                    23.15 kB │ gzip:   7.42 kB
+dist/assets/nguoi-dung-CvkLD_wc.js                               25.50 kB │ gzip:   8.58 kB
+dist/assets/bang-dieu-khien-_zUDUMIP.js                          26.83 kB │ gzip:   8.14 kB
+dist/assets/ErrorNote-CkGkQ1VE.js                                28.47 kB │ gzip:   9.73 kB
+dist/assets/lich-su-EPqvBLCr.js                                  30.47 kB │ gzip:   9.43 kB
+dist/assets/site-HV__EU5X.js                                     32.75 kB │ gzip:   8.91 kB
+dist/assets/ScreenHeader-BC7ih3Ty.js                            138.47 kB │ gzip:  46.24 kB
+dist/assets/index-BquTODAP.js                                   330.60 kB │ gzip: 104.72 kB
+
+✓ built in 205ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.0-18-gc55e34c -X github.com/doxuta/tpan/internal/buildinfo.Commit=c55e34c -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-20T19:25:31Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.0-18-gc55e34c -X github.com/doxuta/tpan/internal/buildinfo.Commit=c55e34c -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-20T19:25:31Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/v0.2.0-18-gc55e34c
+mkdir -p dist/release/v0.2.0-18-gc55e34c
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.0-18-gc55e34c/
+chmod 0755 dist/release/v0.2.0-18-gc55e34c/tpan-linux-amd64 dist/release/v0.2.0-18-gc55e34c/tpan-linux-arm64 dist/release/v0.2.0-18-gc55e34c/install.sh
+cd dist/release/v0.2.0-18-gc55e34c && if command -v sha256sum >/dev/null 2>&1; then \
+	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	else \
+	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	fi > SHA256SUMS
+printf '%s\n' 'v0.2.0-18-gc55e34c' > dist/release/v0.2.0-18-gc55e34c/VERSION
+Gói phát hành: dist/release/v0.2.0-18-gc55e34c/
+total 90432
+-rw-r--r--@ 1 <user>  staff       243 Nov 21 02:25 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff        19 Nov 21 02:25 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 21 02:25 install.sh
+-rwxr-xr-x@ 1 <user>  staff  24113312 Nov 21 02:25 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  22151328 Nov 21 02:25 tpan-linux-arm64
+[2026-11-21 02:25:51] (mã thoát 0)
+  => ĐẠT: make release (bản A, v0.2.0-18-gc55e34c)
+
+[2026-11-21 02:25:51] $ make release VERSION=v0.2.0-18-gc55e34c-e2e-b DATE=2026-11-20T19:25:31Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 1d ago)
+Lockfile is up to date, resolution step is skipped
+Done in 10ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 367 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.88 kB │ gzip:   0.53 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-DRu0iMus.css                                   30.44 kB │ gzip:   7.34 kB
+dist/assets/useStatusName-U629ftgS.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/OriginTag-DAB7LGRD.js                                 0.26 kB │ gzip:   0.21 kB
+dist/assets/Card-BwR83O87.js                                      0.26 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/DomainText-BKMfK_lz.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-DxEL7qUk.js                                0.35 kB │ gzip:   0.26 kB
+dist/assets/Note-fPNifnBT.js                                      0.43 kB │ gzip:   0.30 kB
+dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
+dist/assets/SelectField-DYH2PjJg.js                               0.54 kB │ gzip:   0.35 kB
+dist/assets/m14-DiKgolOs.js                                       0.55 kB │ gzip:   0.34 kB
+dist/assets/model-BNSSnAZC.js                                     0.58 kB │ gzip:   0.38 kB
+dist/assets/Field-Bv3QDeJ8.js                                     0.61 kB │ gzip:   0.40 kB
+dist/assets/m13-dbs-C40hI8uG.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/MonoText-DKmt209s.js                                  0.71 kB │ gzip:   0.45 kB
+dist/assets/m13-chung-BC5sudaR.js                                 0.80 kB │ gzip:   0.45 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/TableList-CiUFg7uC.js                                 0.93 kB │ gzip:   0.47 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/model-6nboEF3Y.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/PreviewedOp-CupqhsFp.js                               1.87 kB │ gzip:   0.99 kB
+dist/assets/model-CFrO6SUO.js                                     1.96 kB │ gzip:   0.93 kB
+dist/assets/RouteMap-3jUlxq6J.js                                  2.40 kB │ gzip:   1.06 kB
+dist/assets/Bulk-DjVxlDpr.js                                      2.99 kB │ gzip:   1.36 kB
+dist/assets/plan-cho-duyet-CIwAUT48.js                            6.10 kB │ gzip:   2.09 kB
+dist/assets/backup-B21mrjUV.js                                    6.22 kB │ gzip:   2.38 kB
+dist/assets/dang-nhap-Bq6OEbyB.js                                 7.09 kB │ gzip:   2.99 kB
+dist/assets/goi-CrXqdVNN.js                                       8.23 kB │ gzip:   3.50 kB
+dist/assets/Self-CnPY2W3n.js                                      9.54 kB │ gzip:   2.90 kB
+dist/assets/backup-E-bp03eT.js                                    9.88 kB │ gzip:   3.23 kB
+dist/assets/StatusMark-CO-Vaxnd.js                               11.76 kB │ gzip:   3.74 kB
+dist/assets/duyet-plan-BKS6zdeC.js                               11.95 kB │ gzip:   4.37 kB
+dist/assets/ssl-D-ZKPzP-.js                                      12.26 kB │ gzip:   4.56 kB
+dist/assets/CheckRow-Bi2hsyrZ.js                                 12.82 kB │ gzip:   4.97 kB
+dist/assets/cap-nhat-5-9PnTQ8.js                                 12.99 kB │ gzip:   4.41 kB
+dist/assets/cron-W8lhO2BD.js                                     13.01 kB │ gzip:   4.88 kB
+dist/assets/thung-rac-DhfxE1bz.js                                14.04 kB │ gzip:   4.70 kB
+dist/assets/bao-mat-C9Y9Gfpo.js                                  14.90 kB │ gzip:   4.55 kB
+dist/assets/co-so-du-lieu-Doz3FvBL.js                            15.09 kB │ gzip:   4.85 kB
+dist/assets/tao-site-BjZYelk0.js                                 15.99 kB │ gzip:   5.26 kB
+dist/assets/co-so-du-lieu-DDlAORr5.js                            16.78 kB │ gzip:   4.93 kB
+dist/assets/stack-DDvH_qLq.js                                    17.98 kB │ gzip:   5.59 kB
+dist/assets/phien-ai-C2WS6y3R.js                                 18.24 kB │ gzip:   5.86 kB
+dist/assets/cai-dat-CqdhsBBD.js                                  21.82 kB │ gzip:   7.07 kB
+dist/assets/su-co-XP9GVjxH.js                                    23.15 kB │ gzip:   7.42 kB
+dist/assets/nguoi-dung-CvkLD_wc.js                               25.50 kB │ gzip:   8.58 kB
+dist/assets/bang-dieu-khien-_zUDUMIP.js                          26.83 kB │ gzip:   8.14 kB
+dist/assets/ErrorNote-CkGkQ1VE.js                                28.47 kB │ gzip:   9.73 kB
+dist/assets/lich-su-EPqvBLCr.js                                  30.47 kB │ gzip:   9.43 kB
+dist/assets/site-HV__EU5X.js                                     32.75 kB │ gzip:   8.91 kB
+dist/assets/ScreenHeader-BC7ih3Ty.js                            138.47 kB │ gzip:  46.24 kB
+dist/assets/index-BquTODAP.js                                   330.60 kB │ gzip: 104.72 kB
+
+✓ built in 158ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.0-18-gc55e34c-e2e-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=c55e34c -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-20T19:25:31Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.0-18-gc55e34c-e2e-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=c55e34c -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-20T19:25:31Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/v0.2.0-18-gc55e34c-e2e-b
+mkdir -p dist/release/v0.2.0-18-gc55e34c-e2e-b
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.0-18-gc55e34c-e2e-b/
+chmod 0755 dist/release/v0.2.0-18-gc55e34c-e2e-b/tpan-linux-amd64 dist/release/v0.2.0-18-gc55e34c-e2e-b/tpan-linux-arm64 dist/release/v0.2.0-18-gc55e34c-e2e-b/install.sh
+cd dist/release/v0.2.0-18-gc55e34c-e2e-b && if command -v sha256sum >/dev/null 2>&1; then \
+	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	else \
+	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	fi > SHA256SUMS
+printf '%s\n' 'v0.2.0-18-gc55e34c-e2e-b' > dist/release/v0.2.0-18-gc55e34c-e2e-b/VERSION
+Gói phát hành: dist/release/v0.2.0-18-gc55e34c-e2e-b/
+total 90432
+-rw-r--r--@ 1 <user>  staff       243 Nov 21 02:25 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff        25 Nov 21 02:25 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 21 02:25 install.sh
+-rwxr-xr-x@ 1 <user>  staff  24113312 Nov 21 02:25 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  22151328 Nov 21 02:25 tpan-linux-arm64
+[2026-11-21 02:25:52] (mã thoát 0)
+  => ĐẠT: make release VERSION=v0.2.0-18-gc55e34c-e2e-b (bản B, cùng mã, khác tên bản)
+
+[2026-11-21 02:25:52] $ bash -c 
+    set -e
+    st=$1; a=$2; b=$3; arch=$4; older=$5; sai=$6; zeros=$7
+    rm -rf dist/e2e-m15
+    mkdir -p "$st/rel/a" "$st/rel/b" "$st/rel/sai"
+    cp "dist/release/$a/tpan-linux-$arch" "dist/release/$a/SHA256SUMS" "dist/release/$a/VERSION" "$st/rel/a/"
+    cp "dist/release/$b/tpan-linux-$arch" "dist/release/$b/SHA256SUMS" "dist/release/$b/VERSION" "$st/rel/b/"
+    cp "dist/release/$b/tpan-linux-$arch" "$st/rel/sai/"
+    printf "%s  tpan-linux-%s\n" "$zeros" "$arch" >"$st/rel/sai/SHA256SUMS"
+    printf "%s\n" "$sai" >"$st/rel/sai/VERSION"
+    cp "$older/tpan-linux-$arch" "$st/tpan-cu"
+    cp scripts/e2e-m15/db.py scripts/e2e-m15/trang-thai.sh "$st/"
+    for d in a b sai; do
+      echo "== $st/rel/$d: VERSION $(cat "$st/rel/$d/VERSION")"
+      cat "$st/rel/$d/SHA256SUMS"
+      (cd "$st/rel/$d" && shasum -a 256 "tpan-linux-$arch")
+    done
+   _ dist/e2e-m15 v0.2.0-18-gc55e34c v0.2.0-18-gc55e34c-e2e-b arm64 dist/release/v0.1.2 v0.2.0-18-gc55e34c-e2e-sai 0000000000000000000000000000000000000000000000000000000000000000
+== dist/e2e-m15/rel/a: VERSION v0.2.0-18-gc55e34c
+695af3ec2f421b7f881cc6f148f631ac6e70d1fd0ac3f8859cafb511ccc7af53  tpan-linux-amd64
+1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f  tpan-linux-arm64
+e78a9d9de614d04456176b535cb98fc7b1d1c116482e21c6464ecd4929578d9d  install.sh
+1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f  tpan-linux-arm64
+== dist/e2e-m15/rel/b: VERSION v0.2.0-18-gc55e34c-e2e-b
+ca832b0b598411e29b71540b62054f27bd9e0f923d9a09aac2271291681ff46c  tpan-linux-amd64
+676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc  tpan-linux-arm64
+e78a9d9de614d04456176b535cb98fc7b1d1c116482e21c6464ecd4929578d9d  install.sh
+676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc  tpan-linux-arm64
+== dist/e2e-m15/rel/sai: VERSION v0.2.0-18-gc55e34c-e2e-sai
+0000000000000000000000000000000000000000000000000000000000000000  tpan-linux-arm64
+676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc  tpan-linux-arm64
+[2026-11-21 02:25:53] (mã thoát 0)
+  => ĐẠT: dựng thư mục đồ nghề dist/e2e-m15 (a, b, sai, file chạy v0.1.2, script phụ)
+  => ĐẠT: đọc được sha256 của ba file chạy (v0.2.0, A, B) và A khác B
+
+[2026-11-21 02:25:53] $ multipass transfer -r dist/release/v0.2.0 tpan-m15:/home/ubuntu/
+[2026-11-21 02:25:53] (mã thoát 0)
+  => ĐẠT: chép gói v0.2.0 sang máy ảo
+
+[2026-11-21 02:25:53] $ multipass transfer -r dist/e2e-m15 tpan-m15:/home/ubuntu/
+[2026-11-21 02:25:53] (mã thoát 0)
+  => ĐẠT: chép thư mục đồ nghề sang máy ảo (/home/ubuntu/e2e-m15)
+
+[2026-11-21 02:25:53] $ scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8015 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m15/rel
+Running as unit: tpan-e2e-http.service; invocation ID: e44d2ef994164f27adb40ad576adea6a
+[2026-11-21 02:25:54] (mã thoát 0)
+
+[2026-11-21 02:25:56] $ scripts/vm.sh exec bash -c for d in a b sai; do printf "%s: SHA256SUMS %s, VERSION %s (%s)\n" "$d" "$(curl -s -o /dev/null -w "%{http_code}" "$1/$d/SHA256SUMS")" "$(curl -s -o /dev/null -w "%{http_code}" "$1/$d/VERSION")" "$(curl -s "$1/$d/VERSION")"; done; curl -sS -m 3 -o /dev/null "http://127.0.0.1:$2/" ; echo "cổng chết $2: curl mã $?" _ http://127.0.0.1:8015 8016
+a: SHA256SUMS 200, VERSION 200 (v0.2.0-18-gc55e34c)
+b: SHA256SUMS 200, VERSION 200 (v0.2.0-18-gc55e34c-e2e-b)
+sai: SHA256SUMS 200, VERSION 200 (v0.2.0-18-gc55e34c-e2e-sai)
+curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server
+cổng chết 8016: curl mã 7
+[2026-11-21 02:25:56] (mã thoát 0)
+  => ĐẠT: (đồ nghề) nguồn tải loopback trả a, b, sai
+  => ĐẠT: (đồ nghề) cổng 8016 không có gì nghe (curl mã 7)
+
+==== Phần 0: 13 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:25:56] PHẦN A: cài v0.2.0 từ bản phát hành bằng install.sh của chính gói đó
+
+[2026-11-21 02:25:56] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.2.0 && sudo bash ./install.sh --web nginx
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /home/ubuntu/v0.2.0/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
+Đã đặt /usr/local/bin/tpan
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job 9e13cfa5086a62a9
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 9e13cfa5086a62a9: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <bí mật, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    16:03:D3:F1:00:EB:9A:0D:A7:9D:E9:51:4D:6E:1D:9F:C4:49:C8:26:EB:5C:27:69:C0:7A:F2:E7:7E:00:2D:95
+Mở: https://<IP của máy>:8443
+
+==> Cài stack: tpan stack install --web nginx
+Bắt đầu job 19d088255ed17817
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Bật kiểm quyền file và khoá API của OPcache cho php<bản>-fpm ...
+  xong
+- Ẩn tiến trình của user khác với PHP của php<bản>-fpm ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
+
+Job 19d088255ed17817: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.7%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+
+Xong. Bước tiếp:
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-21 02:26:32] (mã thoát 0)
+Mật khẩu quản trị panel trong output: 1 lần
+  => ĐẠT: install.sh v0.2.0 thoát 0
+  => ĐẠT: mật khẩu quản trị in đúng một lần (giữ ngoài log)
+
+[2026-11-21 02:26:32] $ scripts/vm.sh exec tpan version
+tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
+[2026-11-21 02:26:32] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.0
+
+[2026-11-21 02:26:32] $ scripts/vm.sh exec systemctl is-active tpan nginx php8.3-fpm mariadb
+active
+active
+active
+active
+[2026-11-21 02:26:32] (mã thoát 0)
+  => ĐẠT: tpan.service và ba dịch vụ của stack đều active
+
+[2026-11-21 02:26:32] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job 900ad14cc26d1544
+- Tạo user Linux tp_a_example_com_7653e4 cho site ...
+  xong
+- Tạo thư mục /var/www/a.example.com ...
+  xong
+- Tạo thư mục /var/www/a.example.com/public ...
+  xong
+- Tạo thư mục /var/www/a.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/a.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/access.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/error.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_a_example_com_7653e4 và user DB riêng của site a.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/a.example.com/public ...
+  xong
+- Tạo /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của a.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho a.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf ...
+  xong
+- Cài WordPress cho a.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+
+Job 900ad14cc26d1544: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+  [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640
+  [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://a.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <bí mật, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-21 02:26:47] (mã thoát 0)
+  => ĐẠT: site add a.example.com: thoát 0, job thành công
+
+[2026-11-21 02:26:47] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-21 02:26:47] (mã thoát 0)
+  => ĐẠT: a.example.com trả 200
+  => ĐẠT: panel trả lời qua https (--cacert là chứng chỉ của chính panel)
+
+[2026-11-21 02:26:47] $ curl -X POST <panel>/api/v1/login   (phiên: jar.C1)
+    thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
+-> HTTP 204
+  => ĐẠT: v0.2.0: đăng nhập admin lấy cookie C1: 204
+
+[2026-11-21 02:26:47] $ curl -X GET <panel>/api/v1/session   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m15","version":"v0.2.0","expires":"2026-11-21T07:26:47.451900207Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: C1: logged_in, user admin, version v0.2.0
+
+[2026-11-21 02:26:47] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 404
+    thân nhận (tối đa 1600 byte): {"error":{"code":"not_found","message":{"vi":"Không có đường dẫn API này.","en":"No such API path."}}}
+  => ĐẠT: v0.2.0 chưa có API cập nhật: GET /api/v1/self không phải 200
+
+[2026-11-21 02:26:47] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:26:47
+phien-ban=tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
+sha-tpan=1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b
+sha-old=(không có)
+sha-new=(không có)
+MainPID=1735
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=(chưa restart lần nào)
+tat-den-nghe-ms=(chưa restart lần nào)
+update.self_url=(không có)
+update.self_last=(không có)
+[2026-11-21 02:26:47] (mã thoát 0)
+  => ĐẠT: file chạy đang cài đúng là file của gói v0.2.0 (sha256), tpan.service active
+
+[2026-11-21 02:26:47] $ scripts/vm.sh root tpan health
+
+== Máy và stack ==
+[đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.5%
+[đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+[đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+[đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó
+[đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 83.5% (3.2 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+[đạt] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi
+[đạt] File /etc/systemd/system/tpan.service còn đúng như tpan đã ghi: File /etc/systemd/system/tpan.service đúng như tpan đã ghi
+[đạt] File /etc/tpan/tls/cert.pem còn đúng như tpan đã ghi: File /etc/tpan/tls/cert.pem đúng như tpan đã ghi
+
+22 đạt
+
+== Site a.example.com ==
+[cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: a.example.com chưa có bản ghi A
+    Nguyên nhân: Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. tpan không tự sửa được: bản ghi nằm ở nơi quản lý DNS của tên miền. Vào đó tạo bản ghi A cho a.example.com trỏ về IP public của máy (card mạng có: <vm>; VPS sau NAT thì lấy IP public ở trang quản lý VPS), rồi chờ vài phút và bấm kiểm lại.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ip -o addr show scope global
+      sudo getent ahostsv4 a.example.com
+[cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho a.example.com
+    Nguyên nhân: Chưa xin chứng chỉ cho tên miền này, hoặc file bị xoá. Trình duyệt sẽ báo không an toàn (hoặc không vào được cổng 443).
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ls -l /etc/letsencrypt/live/a.example.com
+      sudo tpan ssl issue a.example.com
+      sudo certbot certificates --cert-name a.example.com
+[đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+[đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+[đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640
+[đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+[đạt] File /etc/nginx/sites-available/tpan-a.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-a.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf đúng như tpan đã ghi
+
+10 đạt, 2 cảnh báo
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.7 GiB
+[đạt] Chứng chỉ HTTPS của panel còn hạn: Chứng chỉ của panel còn 3652 ngày
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: /etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan có quyền 0700, chủ root:root: /etc/tpan: quyền 0700, chủ root:root đúng
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[đạt] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health vẫn chạy
+[cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+    Nguyên nhân: Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan backup create --all --yes
+      sudo tpan backup settings --at 03:30
+      sudo ls /var/lib/tpan/backups/_tpan
+
+8 đạt, 1 cảnh báo
+[2026-11-21 02:26:50] (mã thoát 0)
+Số dòng [lỗi] của tpan health: 0
+
+==== Phần A: 11 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:26:50] PHẦN B: v0.2.0 lên bản A (v0.2.0-18-gc55e34c) bằng tpan self-update của chính v0.2.0
+
+[2026-11-21 02:26:50] $ scripts/vm.sh root tpan self-update --dry-run --url http://127.0.0.1:8015/a
+Kế hoạch: Cập nhật tpan (đang chạy bản v0.2.0)
+3 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 2 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Tải bản tpan mới vào /usr/local/bin/tpan.new  (self.download:/usr/local/bin/tpan.new)
+    Vì sao: Bản mới được tải vào file riêng và kiểm sha256 theo SHA256SUMS của bản phát hành trước khi đụng tới file đang chạy. File hỏng hay bị sửa giữa đường thì bị xoá, không bao giờ được chạy bằng quyền root.
+    $ curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8015/a/SHA256SUMS
+    $ curl -fsSL --max-time 300 --proto-redir =https -o /usr/local/bin/tpan.new http://127.0.0.1:8015/a/tpan-linux-arm64
+    $ /usr/local/bin/tpan.new version
+ 2. [sẽ chạy] Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old  (self.install:/usr/local/bin/tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đây là lúc bản mới thành file chạy của tpan. Bản cũ không bị xoá mà đổi tên thành /usr/local/bin/tpan.old, để quay về được nếu bản mới có lỗi. Dịch vụ tpan chỉ dùng bản mới sau khi khởi động lại.
+ 3. [sẽ chạy] Khởi động lại tpan  (service.restart:tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Dịch vụ đang chạy vẫn dùng bản cũ trong bộ nhớ cho tới khi được khởi động lại; không làm bước này thì bản vá chưa có tác dụng. Cấu hình được kiểm trước, sai thì không khởi động lại.
+    $ systemctl restart tpan
+    Ghi chú hoàn tác: Khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về.
+[2026-11-21 02:26:50] (mã thoát 0)
+  => ĐẠT: self-update --dry-run (v0.2.0) thoát 0
+
+[2026-11-21 02:26:50] $ scripts/vm.sh root tpan self-update --yes --url http://127.0.0.1:8015/a
+Bắt đầu job a0fbd7bf31ef6561
+- Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+  xong
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+  xong
+- Khởi động lại tpan ...
+  xong
+  [đạt] File chạy /usr/local/bin/tpan chạy được
+
+Job a0fbd7bf31ef6561: thành công
+Kiểm chứng:
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+tpan đã đổi: v0.2.0 -> v0.2.0-18-gc55e34c
+Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
+[2026-11-21 02:26:50] (mã thoát 0)
+  => ĐẠT: self-update (v0.2.0) thoát 0, job thành công
+  => ĐẠT: in v0.2.0 -> v0.2.0-18-gc55e34c
+
+[2026-11-21 02:26:50] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:26:50
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b
+sha-new=(không có)
+MainPID=14799
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=6
+tat-den-nghe-ms=12
+update.self_url=(không có)
+update.self_last=(không có)
+[2026-11-21 02:26:50] (mã thoát 0)
+  => ĐẠT: tpan version là A (v0.2.0-18-gc55e34c)
+  => ĐẠT: file chạy là file của gói A, tpan.old là file của v0.2.0 (sha256)
+  => ĐẠT: panel đã restart: MainPID đổi (1735 -> 14799), tpan.service active
+
+[2026-11-21 02:26:50] $ curl -X GET <panel>/api/v1/session   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m15","version":"v0.2.0-18-gc55e34c","expires":"2026-11-21T07:26:47.451900207Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: cookie C1 (tạo bởi v0.2.0) vẫn đăng nhập: logged_in, version là A
+
+[2026-11-21 02:26:50] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-21 02:26:50] (mã thoát 0)
+  => ĐẠT: a.example.com vẫn 200
+
+[2026-11-21 02:26:50] $ scripts/vm.sh root tpan health
+
+== Máy và stack ==
+[đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.6%
+[đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+[đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+[đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó
+[đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 84.1% (3.2 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+[đạt] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi
+[đạt] File /etc/systemd/system/tpan.service còn đúng như tpan đã ghi: File /etc/systemd/system/tpan.service đúng như tpan đã ghi
+[đạt] File /etc/tpan/tls/cert.pem còn đúng như tpan đã ghi: File /etc/tpan/tls/cert.pem đúng như tpan đã ghi
+
+22 đạt
+
+== Site a.example.com ==
+[cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: a.example.com chưa có bản ghi A
+    Nguyên nhân: Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. tpan không tự sửa được: bản ghi nằm ở nơi quản lý DNS của tên miền. Vào đó tạo bản ghi A cho a.example.com trỏ về IP public của máy (card mạng có: <vm>; VPS sau NAT thì lấy IP public ở trang quản lý VPS), rồi chờ vài phút và bấm kiểm lại.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ip -o addr show scope global
+      sudo getent ahostsv4 a.example.com
+[cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho a.example.com
+    Nguyên nhân: Chưa xin chứng chỉ cho tên miền này, hoặc file bị xoá. Trình duyệt sẽ báo không an toàn (hoặc không vào được cổng 443).
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ls -l /etc/letsencrypt/live/a.example.com
+      sudo tpan ssl issue a.example.com
+      sudo certbot certificates --cert-name a.example.com
+[đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+[đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+[đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640
+[đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+[đạt] File /etc/nginx/sites-available/tpan-a.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-a.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf đúng như tpan đã ghi
+
+10 đạt, 2 cảnh báo
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.6 GiB
+[đạt] Chứng chỉ HTTPS của panel còn hạn: Chứng chỉ của panel còn 3652 ngày
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: /etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan có quyền 0700, chủ root:root: /etc/tpan: quyền 0700, chủ root:root đúng
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[đạt] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health vẫn chạy
+[cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+    Nguyên nhân: Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan backup create --all --yes
+      sudo tpan backup settings --at 03:30
+      sudo ls /var/lib/tpan/backups/_tpan
+
+8 đạt, 1 cảnh báo
+[2026-11-21 02:26:53] (mã thoát 0)
+Số dòng [lỗi] của tpan health: 0
+  => ĐẠT: tpan health sau khi nâng không có [lỗi] mới so với trước khi nâng
+
+==== Phần B: 9 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:26:53] PHẦN C: API cập nhật trên bản A, gọi như giao diện gọi
+
+
+######## [2026-11-21 02:26:53] C1: GET /api/v1/self
+
+[2026-11-21 02:26:53] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"https://github.com/doxuta/tpan/releases/latest/download","has_old":true,"busy":false}
+  => ĐẠT: GET /self 200: version A, has_old true, busy false
+  => ĐẠT: version là A, has_old true, busy false
+  => ĐẠT: chưa có check (chưa kiểm lần nào), chưa có last (chưa lượt nào chạy từ panel)
+
+
+######## [2026-11-21 02:26:53] C2: Kiểm bản mới với nguồn tải mặc định (lần duy nhất ra mạng thật)
+
+[2026-11-21 02:26:53] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"https://github.com/doxuta/tpan/releases/latest/download","has_old":true,"busy":false,"check":{"current":"v0.2.0-18-gc55e34c","latest":"","url":"https://github.com/doxuta/tpan/releases/latest/download","asset":"tpan-linux-arm64","sha256":"1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b","up_to_date":false,"checked_at":"2026-11-21T02:26:54.852420118+07:00"}}
+  => ĐẠT: POST /self/update?dry_run=1: 200
+  => ĐẠT: check.url là nguồn tải mặc định (https://github.com/doxuta/tpan/releases/latest/download)
+  => ĐẠT: không có check.error
+  => ĐẠT: check.sha256 bằng đúng dòng tpan-linux-arm64 trong SHA256SUMS của gói v0.2.0 (bản mới nhất trên GitHub)
+  => ĐẠT: check.latest rỗng (bản phát hành cũ chưa có file VERSION), up_to_date false, asset tpan-linux-arm64
+
+
+######## [2026-11-21 02:26:54] C3: Kiểm bản mới với nguồn tải loopback (bản B)
+
+[2026-11-21 02:26:54] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py seturl http://127.0.0.1:8015/b
+update.self_url=http://127.0.0.1:8015/b
+[2026-11-21 02:26:55] (mã thoát 0)
+  => ĐẠT: (đồ nghề) setting update.self_url là http://127.0.0.1:8015/b
+
+[2026-11-21 02:26:55] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"check":{"current":"v0.2.0-18-gc55e34c","latest":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","asset":"tpan-linux-arm64","sha256":"676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc","up_to_date":false,"checked_at":"2026-11-21T02:26:55.093425769+07:00"}}
+  => ĐẠT: dry_run=1: 200, check.latest là B (v0.2.0-18-gc55e34c-e2e-b), check.current là A
+  => ĐẠT: check.sha256 khớp SHA256SUMS của b
+  => ĐẠT: up_to_date false, check.asset là tpan-linux-arm64, check.url là http://127.0.0.1:8015/b, không có check.error
+
+[2026-11-21 02:26:55] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"check":{"current":"v0.2.0-18-gc55e34c","latest":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","asset":"tpan-linux-arm64","sha256":"676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc","up_to_date":false,"checked_at":"2026-11-21T02:26:55.093425769+07:00"}}
+  => ĐẠT: GET /self sau đó còn nhớ check (latest B, có checked_at)
+
+[2026-11-21 02:26:56] $ curl -X POST <panel>/api/v1/self/update?dry_run=1&auto=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"check":{"current":"v0.2.0-18-gc55e34c","latest":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","asset":"tpan-linux-arm64","sha256":"676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc","up_to_date":false,"checked_at":"2026-11-21T02:26:55.093425769+07:00"}}
+  => ĐẠT: dry_run=1&auto=1: trả cùng checked_at (không kiểm lại)
+
+[2026-11-21 02:26:56] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"check":{"current":"v0.2.0-18-gc55e34c","latest":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","asset":"tpan-linux-arm64","sha256":"676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc","up_to_date":false,"checked_at":"2026-11-21T02:26:56.318458478+07:00"}}
+  => ĐẠT: dry_run=1 không auto (người bấm nút): kiểm lại, checked_at mới
+
+[2026-11-21 02:26:56] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:26:56
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b
+sha-new=(không có)
+MainPID=14799
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=6
+tat-den-nghe-ms=12
+update.self_url=http://127.0.0.1:8015/b
+update.self_last=(không có)
+[2026-11-21 02:26:56] (mã thoát 0)
+  => ĐẠT: kiểm bản mới không tải file chạy, không đổi gì: file chạy vẫn là A, không có tpan.new, chưa có update.self_last
+
+
+######## [2026-11-21 02:26:56] C4: phân quyền và CSRF với handler thật
+
+[2026-11-21 02:26:56] $ scripts/vm.sh root tpan user add khach_m15 --full-name Khach M15 --email khach@example.com --yes --json
+{
+  "user": {
+    "user": {
+      "name": "khach_m15",
+      "full_name": "Khach M15",
+      "email": "khach@example.com",
+      "role": "user",
+      "package": "default",
+      "status": "active",
+      "created": "2026-11-20T19:26:56.809779037Z"
+    },
+    "limits": {
+      "name": "default",
+      "max_sites": 0,
+      "max_dbs": 0,
+      "disk_mb": 0,
+      "max_backups": 0,
+      "created": "2026-11-20T19:25:56Z"
+    },
+    "usage": {
+      "sites": 0,
+      "dbs": 0,
+      "disk_bytes": -1
+    },
+    "over_quota": false
+  },
+  "password": "<bí mật, đã che>"
+}
+[2026-11-21 02:26:56] (mã thoát 0)
+  => ĐẠT: user add khach_m15: thoát 0, mật khẩu sinh một lần (đã che)
+
+[2026-11-21 02:26:56] $ curl -X POST <panel>/api/v1/login   (phiên: jar.user-thuong)
+    thân gửi: {"name":"khach_m15","password":"<bí mật, đã che>"}
+-> HTTP 204
+  => ĐẠT: user thường khach_m15 đăng nhập: 204
+
+[2026-11-21 02:26:57] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:26:57
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b
+sha-new=(không có)
+MainPID=14799
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=6
+tat-den-nghe-ms=12
+update.self_url=http://127.0.0.1:8015/b
+update.self_last=(không có)
+[2026-11-21 02:26:57] (mã thoát 0)
+
+[2026-11-21 02:26:57] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+[2026-11-21 02:26:57] (mã thoát 0)
+
+[2026-11-21 02:26:57] $ curl -X GET <panel>/api/v1/self   (phiên: jar.user-thuong)
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}}
+  => ĐẠT: user thường: GET /self 403 forbidden
+
+[2026-11-21 02:26:57] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.user-thuong)
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}}
+  => ĐẠT: user thường: POST /self/update?dry_run=1 403 forbidden
+
+[2026-11-21 02:26:57] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.user-thuong)
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}}
+  => ĐẠT: user thường: POST /self/update 403 forbidden
+
+[2026-11-21 02:26:57] $ curl -X POST <panel>/api/v1/self/rollback?dry_run=1   (phiên: jar.user-thuong)
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}}
+  => ĐẠT: user thường: POST /self/rollback?dry_run=1 403 forbidden
+
+[2026-11-21 02:26:57] $ curl -X POST <panel>/api/v1/self/rollback   (phiên: jar.user-thuong)
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}}
+  => ĐẠT: user thường: POST /self/rollback 403 forbidden
+
+[2026-11-21 02:26:57] $ curl -X GET <panel>/api/v1/self   (phiên: jar.khong-cookie)
+-> HTTP 401
+    thân nhận (tối đa 1600 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+  => ĐẠT: không cookie: GET /self 401 unauthorized
+
+[2026-11-21 02:26:57] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.khong-cookie)
+-> HTTP 401
+    thân nhận (tối đa 1600 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+  => ĐẠT: không cookie: POST /self/update?dry_run=1 401 unauthorized
+
+[2026-11-21 02:26:57] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.khong-cookie)
+-> HTTP 401
+    thân nhận (tối đa 1600 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+  => ĐẠT: không cookie: POST /self/update 401 unauthorized
+
+[2026-11-21 02:26:57] $ curl -X POST <panel>/api/v1/self/rollback   (phiên: jar.khong-cookie)
+-> HTTP 401
+    thân nhận (tối đa 1600 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+  => ĐẠT: không cookie: POST /self/rollback 401 unauthorized
+
+[2026-11-21 02:26:58] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)   [Sec-Fetch-Site: cross-site; Origin: https://evil.example.com]
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên bị chặn (chống CSRF). Hãy thao tác từ chính giao diện tpan.","en":"The request came from another site and was blocked (CSRF protection). Use the tpan interface itself."}}}
+  => ĐẠT: admin, Sec-Fetch-Site: cross-site: POST /self/update bị chặn 403 csrf
+
+[2026-11-21 02:26:58] $ curl -X POST <panel>/api/v1/self/rollback   (phiên: jar.C1)   [Sec-Fetch-Site: cross-site; Origin: https://evil.example.com]
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên bị chặn (chống CSRF). Hãy thao tác từ chính giao diện tpan.","en":"The request came from another site and was blocked (CSRF protection). Use the tpan interface itself."}}}
+  => ĐẠT: admin, Sec-Fetch-Site: cross-site: POST /self/rollback bị chặn 403 csrf
+
+[2026-11-21 02:26:58] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)   [Sec-Fetch-Site: (không gửi); Origin: https://evil.example.com]
+-> HTTP 403
+    thân nhận (tối đa 1600 byte): {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên bị chặn (chống CSRF). Hãy thao tác từ chính giao diện tpan.","en":"The request came from another site and was blocked (CSRF protection). Use the tpan interface itself."}}}
+  => ĐẠT: admin, không Sec-Fetch-Site, Origin lạ: POST /self/update bị chặn 403 csrf
+
+[2026-11-21 02:26:58] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:26:58
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b
+sha-new=(không có)
+MainPID=14799
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=6
+tat-den-nghe-ms=12
+update.self_url=http://127.0.0.1:8015/b
+update.self_last=(không có)
+[2026-11-21 02:26:58] (mã thoát 0)
+  => ĐẠT: sau cả loạt: file chạy, tpan.old, MainPID, update.self_url, update.self_last không đổi
+  => ĐẠT: đơn vị tạm tpan-self-update không chạy
+
+[2026-11-21 02:26:58] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+[2026-11-21 02:26:58] (mã thoát 0)
+  => ĐẠT: bảng audit không có thêm dòng self.* nào (không lượt nào được khởi)
+
+
+######## [2026-11-21 02:26:58] C5: một lượt cùng lúc (giữ khoá toàn cục để lượt cập nhật phải chờ)
+
+[2026-11-21 02:26:58] $ scripts/vm.sh root systemd-run --unit tpan-e2e-lock --collect flock /run/tpan/tpan.lock sleep 300
+Running as unit: tpan-e2e-lock.service; invocation ID: e663677c01c442478997ddd845d80e84
+[2026-11-21 02:26:58] (mã thoát 0)
+
+[2026-11-21 02:26:59] $ scripts/vm.sh root bash -c flock -n "$1" true; echo "thử lấy khoá không chờ: mã $?" _ /run/tpan/tpan.lock
+thử lấy khoá không chờ: mã 1
+[2026-11-21 02:26:59] (mã thoát 0)
+  => ĐẠT: (đồ nghề) khoá toàn cục /run/tpan/tpan.lock đang bị giữ
+
+[2026-11-21 02:26:59] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+    thân gửi: {"url":"http://evil.example.com/x","version":"v9"}
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:26:59.790945415+07:00"}}
+  => ĐẠT: POST /self/update (kèm thân JSON lạ): 202
+  => ĐẠT: run.status running, run.from là A, run.actor admin, run.action update
+
+[2026-11-21 02:26:59] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":true,"busy":true,"last":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:26:59.790945415+07:00"},"check":{"current":"v0.2.0-18-gc55e34c","latest":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","asset":"tpan-linux-arm64","sha256":"676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc","up_to_date":false,"checked_at":"2026-11-21T02:26:56.318458478+07:00"}}
+  => ĐẠT: ngay sau đó GET /self: busy true, last.status running
+
+[2026-11-21 02:26:59] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+-> HTTP 409
+    thân nhận (tối đa 1600 byte): {"error":{"code":"self_update_running","message":{"vi":"một lượt cập nhật hoặc quay về tpan đang chạy (đơn vị tpan-self-update); đợi nó xong rồi thử lại. Xem nó đang làm gì: journalctl -u tpan-self-update","en":"a tpan update or rollback is already running (unit tpan-self-update); wait for it to finish, then try again. To see what it is doing: journalctl -u tpan-self-update"}}}
+  => ĐẠT: POST /self/update lần hai: 409 self_update_running
+
+[2026-11-21 02:26:59] $ curl -X POST <panel>/api/v1/self/rollback   (phiên: jar.C1)
+-> HTTP 409
+    thân nhận (tối đa 1600 byte): {"error":{"code":"self_update_running","message":{"vi":"một lượt cập nhật hoặc quay về tpan đang chạy (đơn vị tpan-self-update); đợi nó xong rồi thử lại. Xem nó đang làm gì: journalctl -u tpan-self-update","en":"a tpan update or rollback is already running (unit tpan-self-update); wait for it to finish, then try again. To see what it is doing: journalctl -u tpan-self-update"}}}
+  => ĐẠT: POST /self/rollback trong lúc đó: 409 self_update_running
+
+[2026-11-21 02:27:00] $ scripts/vm.sh exec systemctl is-active tpan-self-update
+active
+[2026-11-21 02:27:00] (mã thoát 0)
+  => ĐẠT: systemctl is-active tpan-self-update in active
+
+[2026-11-21 02:27:00] $ scripts/vm.sh exec systemctl show tpan-self-update -p ExecStart -p Description -p ControlGroup
+ExecStart={ path=/usr/local/bin/tpan ; argv[]=/usr/local/bin/tpan internal self-update ; ignore_errors=no ; start_time=[Sat 2026-11-21 02:26:59 +07] ; stop_time=[n/a] ; pid=15773 ; code=(null) ; status=0/0 }
+ControlGroup=/system.slice/tpan-self-update.service
+Description=tpan: cap nhat tu panel
+[2026-11-21 02:27:00] (mã thoát 0)
+  => ĐẠT: dòng lệnh của đơn vị tạm đúng là /usr/local/bin/tpan internal self-update
+  => ĐẠT: đơn vị tạm nằm ở cgroup riêng (/system.slice/tpan-self-update.service)
+  => ĐẠT: dòng lệnh và mô tả không chứa evil.example.com, tên user hay IP nào
+
+[2026-11-21 02:27:00] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:00
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=1d37ea2092c244a3ebe656c23e6b41ce8e461d0f4cadae9474871df86a0e419b
+sha-new=(không có)
+MainPID=14799
+ActiveState=active
+NRestarts=0
+don-vi-tam=active
+khong-active-ms=6
+tat-den-nghe-ms=12
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"running","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:26:59.790945415+07:00"}
+[2026-11-21 02:27:00] (mã thoát 0)
+  => ĐẠT: lượt chạy đang chờ khoá: file chạy vẫn là A, MainPID chưa đổi
+
+
+######## [2026-11-21 02:27:00] C6: nhả khoá, A lên B qua đơn vị tạm, panel restart
+
+[2026-11-21 02:27:00] $ scripts/vm.sh root systemctl stop tpan-e2e-lock
+[2026-11-21 02:27:00] (mã thoát 0)
+
+[2026-11-21 02:27:01] (nền) hỏi GET <panel>/api/v1/session bằng cookie C1, 0,05 giây một lần, tới khi version là v0.2.0-18-gc55e34c-e2e-b:
+    5 lần hỏi trong 445 ms; 0 lần hỏng kết nối (panel đang restart); version ở lần hỏi cuối: v0.2.0-18-gc55e34c-e2e-b
+    không lần hỏi nào hỏng: lần restart lọt giữa hai lần hỏi (ngắn hơn khoảng cách hỏi)
+  => ĐẠT: GET /session trả version B (v0.2.0-18-gc55e34c-e2e-b) trong vòng 60 giây
+
+[2026-11-21 02:27:01] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh cho 60
+cho-don-vi=xong sau 0 giây
+luc=2026-11-21 02:27:01
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=(không có)
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"63186605d45c4985","actor":"admin","ip":"<mac>","started":"2026-11-21T02:26:59.790945415+07:00","finished":"2026-11-21T02:27:00.876113429+07:00"}
+[2026-11-21 02:27:01] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đã chạy xong (xong sau 0 giây)
+  -- GHI NHẬN: gián đoạn của lần restart này: tpan.service không active 12 ms (ActiveExit -> ActiveEnter của systemd); từ lúc systemd bắt đầu dừng tới lúc tiến trình mới mở cổng nghe 27 ms (journal); nhìn từ trình duyệt: 0 lần hỏi hỏng, khoảng 0 ms
+  => ĐẠT: MainPID của tpan.service đổi (14799 -> 16046), dịch vụ active
+  => ĐẠT: tpan version là B
+  => ĐẠT: file chạy là file của b, tpan.old là file của A (sha256)
+  => ĐẠT: systemctl is-active tpan-self-update in inactive (đơn vị đã tự dọn)
+  => ĐẠT: setting update.self_url vẫn là http://127.0.0.1:8015/b (thân request không đổi được nguồn tải)
+
+[2026-11-21 02:27:01] $ curl -X GET <panel>/api/v1/session   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m15","version":"v0.2.0-18-gc55e34c-e2e-b","expires":"2026-11-21T07:26:47.451900207Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: cookie C1 vẫn logged_in, version là B
+
+[2026-11-21 02:27:01] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-21 02:27:01] (mã thoát 0)
+  => ĐẠT: a.example.com vẫn 200
+
+[2026-11-21 02:27:01] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"last":{"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"63186605d45c4985","actor":"admin","ip":"<mac>","started":"2026-11-21T02:26:59.790945415+07:00","finished":"2026-11-21T02:27:00.876113429+07:00"}}
+  => ĐẠT: GET /self: last.action update, status ok, from A, to B
+  => ĐẠT: last.actor admin, last.ip không phải cli, có job_id, có finished
+  => ĐẠT: last.ip là IP của máy đã bấm (ở đây là Mac, đã che trong log)
+  => ĐẠT: busy false; version B; has_old true; check vắng (panel vừa restart nên quên lần kiểm)
+
+[2026-11-21 02:27:01] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+[2026-11-21 02:27:01] (mã thoát 0)
+  => ĐẠT: audit: dòng self.update kết quả started, actor admin, target là A
+  => ĐẠT: audit: dòng self.update target "A -> B" kết quả ok, actor admin, cùng job_id với last
+  => ĐẠT: audit: hai lần bấm bị từ chối trong lúc đang chạy có dòng self_update_running (update và rollback)
+
+[2026-11-21 02:27:01] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py jobs
+job|id|kind|status|actor|target|error
+job|a0fbd7bf31ef6561|self.update|succeeded||http://127.0.0.1:8015/a|
+job|63186605d45c4985|self.update|succeeded|admin|http://127.0.0.1:8015/b|
+[2026-11-21 02:27:01] (mã thoát 0)
+  => ĐẠT: jobs: job self.update succeeded, actor admin, đúng job_id của last
+
+[2026-11-21 02:27:01] $ scripts/vm.sh root journalctl -u tpan-self-update --no-pager -o short-precise --since 2026-11-21 02:26:58
+Nov 21 02:26:59.806859 tpan-m15 systemd[1]: Started tpan-self-update.service - tpan: cap nhat tu panel.
+Nov 21 02:27:00.676127 tpan-m15 tpan[15773]: Bắt đầu job 63186605d45c4985
+Nov 21 02:27:00.677154 tpan-m15 tpan[15773]: - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+Nov 21 02:27:00.812568 tpan-m15 tpan[15773]:   xong
+Nov 21 02:27:00.813471 tpan-m15 tpan[15773]: - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+Nov 21 02:27:00.823469 tpan-m15 tpan[15773]:   xong
+Nov 21 02:27:00.826044 tpan-m15 tpan[15773]: - Khởi động lại tpan ...
+Nov 21 02:27:00.854256 tpan-m15 tpan[15773]:   xong
+Nov 21 02:27:00.867682 tpan-m15 tpan[15773]:   [đạt] File chạy /usr/local/bin/tpan chạy được
+Nov 21 02:27:00.878360 tpan-m15 tpan[15773]: Job 63186605d45c4985: thành công
+Nov 21 02:27:00.878360 tpan-m15 tpan[15773]: Kiểm chứng:
+Nov 21 02:27:00.878360 tpan-m15 tpan[15773]:   [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+Nov 21 02:27:00.878360 tpan-m15 tpan[15773]: tpan đã đổi: v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b
+Nov 21 02:27:00.880833 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+[2026-11-21 02:27:02] (mã thoát 0)
+  => ĐẠT: journal của đơn vị tạm có tiến độ từng bước (tải, thay file, khởi động lại) và dòng A -> B
+  => ĐẠT: journal không chứa evil.example.com
+
+==== Phần C: 63 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:02] PHẦN D: nguồn tải có SHA256SUMS sai, rồi nguồn tải chết
+
+[2026-11-21 02:27:02] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:02
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=(không có)
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"63186605d45c4985","actor":"admin","ip":"<mac>","started":"2026-11-21T02:26:59.790945415+07:00","finished":"2026-11-21T02:27:00.876113429+07:00"}
+[2026-11-21 02:27:02] (mã thoát 0)
+  => ĐẠT: trước lượt chạy: đang ở B, không có tpan.new (lượt A lên B đã dùng nó làm file chạy)
+
+[2026-11-21 02:27:02] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py seturl http://127.0.0.1:8015/sai
+update.self_url=http://127.0.0.1:8015/sai
+[2026-11-21 02:27:02] (mã thoát 0)
+  => ĐẠT: (đồ nghề) setting update.self_url là http://127.0.0.1:8015/sai
+
+[2026-11-21 02:27:02] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/sai","has_old":true,"busy":false,"last":{"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"63186605d45c4985","actor":"admin","ip":"<mac>","started":"2026-11-21T02:26:59.790945415+07:00","finished":"2026-11-21T02:27:00.876113429+07:00"},"check":{"current":"v0.2.0-18-gc55e34c-e2e-b","latest":"v0.2.0-18-gc55e34c-e2e-sai","url":"http://127.0.0.1:8015/sai","asset":"tpan-linux-arm64","sha256":"0000000000000000000000000000000000000000000000000000000000000000","up_to_date":false,"checked_at":"2026-11-21T02:27:02.444985863+07:00"}}
+  => ĐẠT: dry_run=1: check.sha256 toàn số 0, up_to_date false
+
+[2026-11-21 02:27:02] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c-e2e-b","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:02.509063675+07:00"}}
+  => ĐẠT: POST /self/update: 202
+
+[2026-11-21 02:27:02] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh cho 60
+cho-don-vi=xong sau 0 giây
+luc=2026-11-21 02:27:02
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=(không có)
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8015/sai
+update.self_last={"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new","job_id":"8c78cb11c8c91e73","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:02.509063675+07:00","finished":"2026-11-21T02:27:02.590353984+07:00"}
+[2026-11-21 02:27:02] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đã chạy xong (xong sau 0 giây)
+  => ĐẠT: sha256 của /usr/local/bin/tpan không đổi (vẫn là b), tpan version vẫn B
+  => ĐẠT: MainPID không đổi (panel không restart), dịch vụ active
+  => ĐẠT: không còn /usr/local/bin/tpan.new (file tải về sai sha256 đã bị bỏ); tpan.old vẫn là A
+
+[2026-11-21 02:27:02] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/sai","has_old":true,"busy":false,"last":{"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new","job_id":"8c78cb11c8c91e73","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:02.509063675+07:00","finished":"2026-11-21T02:27:02.590353984+07:00"},"check":{"current":"v0.2.0-18-gc55e34c-e2e-b","latest":"v0.2.0-18-gc55e34c-e2e-sai","url":"http://127.0.0.1:8015/sai","asset":"tpan-linux-arm64","sha256":"0000000000000000000000000000000000000000000000000000000000000000","up_to_date":false,"checked_at":"2026-11-21T02:27:02.444985863+07:00"}}
+    last.error nguyên văn: bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new
+  => ĐẠT: GET /self: last.status failed, from B
+  => ĐẠT: last.error có chữ sha256 và cả hai số (số của file tải về và số ghi trong SHA256SUMS)
+
+[2026-11-21 02:27:02] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+audit|12|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|13|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|8c78cb11c8c91e73
+[2026-11-21 02:27:03] (mã thoát 0)
+  => ĐẠT: audit: dòng self.update kết quả rolled_back (job hỏng, đã hoàn tác)
+
+[2026-11-21 02:27:03] $ scripts/vm.sh root journalctl -u tpan-self-update --no-pager -o short-precise --since 2026-11-21 02:27:02
+Nov 21 02:27:02.527015 tpan-m15 systemd[1]: Started tpan-self-update.service - tpan: cap nhat tu panel.
+Nov 21 02:27:02.536096 tpan-m15 tpan[16521]: Bắt đầu job 8c78cb11c8c91e73
+Nov 21 02:27:02.537250 tpan-m15 tpan[16521]: - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+Nov 21 02:27:02.584478 tpan-m15 tpan[16521]:   LỖI: bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new
+Nov 21 02:27:02.584478 tpan-m15 tpan[16521]:     | 0000000000000000000000000000000000000000000000000000000000000000  tpan-linux-arm64
+Nov 21 02:27:02.592914 tpan-m15 tpan[16521]: Job 8c78cb11c8c91e73: hỏng, đã hoàn tác sạch
+Nov 21 02:27:02.592914 tpan-m15 tpan[16521]: Lỗi: bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new
+Nov 21 02:27:02.595475 tpan-m15 systemd[1]: tpan-self-update.service: Main process exited, code=exited, status=1/FAILURE
+Nov 21 02:27:02.595555 tpan-m15 systemd[1]: tpan-self-update.service: Failed with result 'exit-code'.
+[2026-11-21 02:27:03] (mã thoát 0)
+  => ĐẠT: journal của đơn vị tạm nói rõ lý do (sha256)
+
+[2026-11-21 02:27:03] $ curl -X GET <panel>/api/v1/session   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m15","version":"v0.2.0-18-gc55e34c-e2e-b","expires":"2026-11-21T07:26:47.451900207Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: panel vẫn trả 200, C1 vẫn đăng nhập, version B
+  => ĐẠT: C1 logged_in, version B
+
+
+######## [2026-11-21 02:27:03] D: nguồn tải chết (cổng loopback không có gì nghe)
+
+[2026-11-21 02:27:03] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py seturl http://127.0.0.1:8016/khong-co
+update.self_url=http://127.0.0.1:8016/khong-co
+[2026-11-21 02:27:03] (mã thoát 0)
+  => ĐẠT: (đồ nghề) setting update.self_url là http://127.0.0.1:8016/khong-co
+
+[2026-11-21 02:27:03] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8016/khong-co","has_old":true,"busy":false,"last":{"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new","job_id":"8c78cb11c8c91e73","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:02.509063675+07:00","finished":"2026-11-21T02:27:02.590353984+07:00"},"check":{"current":"v0.2.0-18-gc55e34c-e2e-b","latest":"","url":"http://127.0.0.1:8016/khong-co","asset":"tpan-linux-arm64","sha256":"","up_to_date":false,"checked_at":"2026-11-21T02:27:03.41189945+07:00","error":{"vi":"Không hỏi được nguồn tải: hỏi gốc tải bản phát hành: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 15 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server","en":"Could not reach the download source: hỏi gốc tải bản phát hành: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 15 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server"}}}
+  => ĐẠT: dry_run=1 vẫn 200, có check.error
+    check.error nguyên văn: Không hỏi được nguồn tải: hỏi gốc tải bản phát hành: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 15 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server
+  => ĐẠT: check.error có lời giải thích; check.current là B; version, has_old vẫn có
+
+[2026-11-21 02:27:03] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c-e2e-b","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:03.499117058+07:00"}}
+  => ĐẠT: POST /self/update: 202
+
+[2026-11-21 02:27:03] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh cho 90
+cho-don-vi=xong sau 0 giây
+luc=2026-11-21 02:27:03
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=(không có)
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8016/khong-co
+update.self_last={"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server","job_id":"47bdbf2ae3055628","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:03.499117058+07:00","finished":"2026-11-21T02:27:03.536897933+07:00"}
+[2026-11-21 02:27:03] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đã chạy xong (xong sau 0 giây)
+
+[2026-11-21 02:27:03] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8016/khong-co","has_old":true,"busy":false,"last":{"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server","job_id":"47bdbf2ae3055628","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:03.499117058+07:00","finished":"2026-11-21T02:27:03.536897933+07:00"},"check":{"current":"v0.2.0-18-gc55e34c-e2e-b","latest":"","url":"http://127.0.0.1:8016/khong-co","asset":"tpan-linux-arm64","sha256":"","up_to_date":false,"checked_at":"2026-11-21T02:27:03.41189945+07:00","error":{"vi":"Không hỏi được nguồn tải: hỏi gốc tải bản phát hành: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 15 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server","en":"Could not reach the download source: hỏi gốc tải bản phát hành: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 15 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server"}}}
+    last.error nguyên văn: bước self.download:/usr/local/bin/tpan.new: thực hiện: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server
+  => ĐẠT: last.status failed kèm lý do
+  => ĐẠT: file chạy và MainPID không đổi, không có tpan.new
+
+==== Phần D: 21 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:03] PHẦN C7: đã là bản mới nhất (chạy sau D, xem chú thích trong script)
+
+[2026-11-21 02:27:03] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py seturl http://127.0.0.1:8015/b
+update.self_url=http://127.0.0.1:8015/b
+[2026-11-21 02:27:04] (mã thoát 0)
+  => ĐẠT: (đồ nghề) setting update.self_url là http://127.0.0.1:8015/b
+
+[2026-11-21 02:27:04] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:04
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=(không có)
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server","job_id":"47bdbf2ae3055628","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:03.499117058+07:00","finished":"2026-11-21T02:27:03.536897933+07:00"}
+[2026-11-21 02:27:04] (mã thoát 0)
+
+[2026-11-21 02:27:04] $ curl -X POST <panel>/api/v1/self/update?dry_run=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"last":{"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã thoát 7: curl: (7) Failed to connect to 127.0.0.1 port 8016 after 0 ms: Couldn't connect to server","job_id":"47bdbf2ae3055628","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:03.499117058+07:00","finished":"2026-11-21T02:27:03.536897933+07:00"},"check":{"current":"v0.2.0-18-gc55e34c-e2e-b","latest":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","asset":"tpan-linux-arm64","sha256":"676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc","up_to_date":true,"checked_at":"2026-11-21T02:27:04.298624175+07:00"}}
+  => ĐẠT: dry_run=1: up_to_date true (latest B trùng bản đang chạy, sha256 trùng file đang cài)
+
+[2026-11-21 02:27:04] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c-e2e-b","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:04.361331805+07:00"}}
+  => ĐẠT: POST /self/update lần nữa: 202
+
+[2026-11-21 02:27:04] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh cho 60
+cho-don-vi=xong sau 0 giây
+luc=2026-11-21 02:27:04
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"same","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"e8344c3da65c96d2","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:04.361331805+07:00","finished":"2026-11-21T02:27:04.454051147+07:00"}
+[2026-11-21 02:27:04] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đã chạy xong (xong sau 0 giây)
+  => ĐẠT: MainPID không đổi (không restart), file chạy vẫn là b
+
+[2026-11-21 02:27:04] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"last":{"action":"update","status":"same","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"e8344c3da65c96d2","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:04.361331805+07:00","finished":"2026-11-21T02:27:04.454051147+07:00"},"check":{"current":"v0.2.0-18-gc55e34c-e2e-b","latest":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","asset":"tpan-linux-arm64","sha256":"676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc","up_to_date":true,"checked_at":"2026-11-21T02:27:04.298624175+07:00"}}
+  => ĐẠT: last.status là same, from B, to B
+
+[2026-11-21 02:27:04] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+audit|12|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|13|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|8c78cb11c8c91e73
+audit|14|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|15|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|47bdbf2ae3055628
+audit|16|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|17|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|same|e8344c3da65c96d2
+[2026-11-21 02:27:04] (mã thoát 0)
+  => ĐẠT: audit: dòng self.update "B -> B" kết quả same
+  => ĐẠT: lượt same để lại tpan.new cùng bản (file của b, đã kiểm sha256); tpan.old vẫn là A
+
+
+######## [2026-11-21 02:27:04] C7: nguồn tải sai sha256 lần nữa, lúc đang có tpan.new còn sót của lượt same
+
+[2026-11-21 02:27:04] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py seturl http://127.0.0.1:8015/sai
+update.self_url=http://127.0.0.1:8015/sai
+[2026-11-21 02:27:05] (mã thoát 0)
+  => ĐẠT: (đồ nghề) setting update.self_url là http://127.0.0.1:8015/sai
+
+[2026-11-21 02:27:05] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c-e2e-b","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.039812235+07:00"}}
+  => ĐẠT: POST /self/update: 202
+
+[2026-11-21 02:27:05] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh cho 60
+cho-don-vi=xong sau 0 giây
+luc=2026-11-21 02:27:05
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8015/sai
+update.self_last={"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new","job_id":"51e98ebc4e5605d2","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.039812235+07:00","finished":"2026-11-21T02:27:05.143307779+07:00"}
+[2026-11-21 02:27:05] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đã chạy xong (xong sau 0 giây)
+
+[2026-11-21 02:27:05] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/sai","has_old":true,"busy":false,"last":{"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new","job_id":"51e98ebc4e5605d2","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.039812235+07:00","finished":"2026-11-21T02:27:05.143307779+07:00"}}
+  => ĐẠT: last.status failed, lý do có chữ sha256
+  => ĐẠT: bước tải lỗi trả máy về như trước lượt chạy: tpan.new còn sót vẫn nguyên (sha256 như trước), file chạy và MainPID không đổi
+  -- GHI NHẬN: vì vậy "sai sha256 thì không còn tpan.new" (phần D) chỉ đúng khi trước lượt chạy không có tpan.new; có sẵn thì nó được trả lại, file vừa tải vẫn bị bỏ
+
+==== Phần C7: 13 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:05] PHẦN E: quay về bản trước (B về A) bằng POST /api/v1/self/rollback
+
+[2026-11-21 02:27:05] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py seturl http://127.0.0.1:8015/b
+update.self_url=http://127.0.0.1:8015/b
+[2026-11-21 02:27:05] (mã thoát 0)
+  => ĐẠT: (đồ nghề) setting update.self_url là http://127.0.0.1:8015/b
+
+[2026-11-21 02:27:05] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:05
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=16046
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=12
+tat-den-nghe-ms=27
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"failed","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c-e2e-b","error":"bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new","job_id":"51e98ebc4e5605d2","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.039812235+07:00","finished":"2026-11-21T02:27:05.143307779+07:00"}
+[2026-11-21 02:27:05] (mã thoát 0)
+
+[2026-11-21 02:27:05] $ curl -X POST <panel>/api/v1/self/rollback?dry_run=1   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"current":"v0.2.0-18-gc55e34c-e2e-b","old":"v0.2.0-18-gc55e34c"}
+  => ĐẠT: POST /self/rollback?dry_run=1: 200 {current: B, old: A}
+  => ĐẠT: current là B, old là A
+
+[2026-11-21 02:27:05] $ curl -X POST <panel>/api/v1/self/rollback   (phiên: jar.C1)
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"rollback","status":"running","from":"v0.2.0-18-gc55e34c-e2e-b","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.909415651+07:00"}}
+  => ĐẠT: POST /self/rollback: 202, run.action rollback, run.status running, run.from B
+  => ĐẠT: run.action rollback, status running, from B, actor admin
+
+[2026-11-21 02:27:06] (nền) hỏi GET <panel>/api/v1/session bằng cookie C1, 0,05 giây một lần, tới khi version là v0.2.0-18-gc55e34c:
+    3 lần hỏi trong 185 ms; 0 lần hỏng kết nối (panel đang restart); version ở lần hỏi cuối: v0.2.0-18-gc55e34c
+    không lần hỏi nào hỏng: lần restart lọt giữa hai lần hỏi (ngắn hơn khoảng cách hỏi)
+  => ĐẠT: GET /session trả version A trong vòng 60 giây
+
+[2026-11-21 02:27:06] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh cho 60
+cho-don-vi=xong sau 0 giây
+luc=2026-11-21 02:27:06
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=(không có)
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=17579
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=9
+tat-den-nghe-ms=16
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"rollback","status":"ok","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c","job_id":"21e29cdabf55d7d7","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.909415651+07:00","finished":"2026-11-21T02:27:06.024336841+07:00"}
+[2026-11-21 02:27:06] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đã chạy xong (xong sau 0 giây)
+  -- GHI NHẬN: gián đoạn của lần restart này: tpan.service không active 9 ms; từ lúc systemd bắt đầu dừng tới lúc tiến trình mới mở cổng nghe 16 ms (journal); nhìn từ trình duyệt: 0 lần hỏi hỏng, khoảng 0 ms
+  => ĐẠT: tpan version là A, file chạy là file của A (sha256)
+  => ĐẠT: MainPID đổi (16046 -> 17579), dịch vụ active
+  => ĐẠT: không còn tpan.old; bản vừa bị thay ra (B) nằm ở tpan.new
+
+[2026-11-21 02:27:06] $ curl -X GET <panel>/api/v1/session   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m15","version":"v0.2.0-18-gc55e34c","expires":"2026-11-21T07:26:47.451900207Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: C1 vẫn logged_in, version A
+
+[2026-11-21 02:27:06] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":false,"busy":false,"last":{"action":"rollback","status":"ok","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c","job_id":"21e29cdabf55d7d7","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.909415651+07:00","finished":"2026-11-21T02:27:06.024336841+07:00"}}
+  => ĐẠT: last.action rollback, status ok, from B, to A, actor admin
+  => ĐẠT: has_old false, busy false
+
+[2026-11-21 02:27:06] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+audit|12|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|13|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|8c78cb11c8c91e73
+audit|14|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|15|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|47bdbf2ae3055628
+audit|16|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|17|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|same|e8344c3da65c96d2
+audit|18|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|19|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|51e98ebc4e5605d2
+audit|20|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|21|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c|ok|21e29cdabf55d7d7
+[2026-11-21 02:27:06] (mã thoát 0)
+  => ĐẠT: audit: dòng self.rollback started (target B) và dòng "B -> A" kết quả ok cùng job_id
+
+[2026-11-21 02:27:06] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-21 02:27:06] (mã thoát 0)
+  => ĐẠT: a.example.com vẫn 200
+
+[2026-11-21 02:27:06] $ curl -X POST <panel>/api/v1/self/rollback   (phiên: jar.C1)
+-> HTTP 409
+    thân nhận (tối đa 1600 byte): {"error":{"code":"self_no_old","message":{"vi":"không có /usr/local/bin/tpan.old để quay về (chưa từng self-update, hoặc đã quay về rồi)","en":"there is no /usr/local/bin/tpan.old to go back to (no self-update yet, or already rolled back)"}}}
+  => ĐẠT: POST /self/rollback lần nữa: 409 self_no_old
+
+[2026-11-21 02:27:06] $ curl -X POST <panel>/api/v1/self/rollback?dry_run=1   (phiên: jar.C1)
+-> HTTP 409
+    thân nhận (tối đa 1600 byte): {"error":{"code":"self_no_old","message":{"vi":"không có /usr/local/bin/tpan.old để quay về (chưa từng self-update, hoặc đã quay về rồi)","en":"there is no /usr/local/bin/tpan.old to go back to (no self-update yet, or already rolled back)"}}}
+  => ĐẠT: POST /self/rollback?dry_run=1 khi không còn tpan.old: 409 self_no_old
+
+==== Phần E: 17 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:06] PHẦN F: lõi từ chối quay về khi file cũ không mở được DB (đặt file v0.1.2 làm tpan.old)
+
+[2026-11-21 02:27:06] $ scripts/vm.sh root install -o root -g root -m 0755 /home/ubuntu/e2e-m15/tpan-cu /usr/local/bin/tpan.old
+[2026-11-21 02:27:07] (mã thoát 0)
+  => ĐẠT: (đồ nghề) đặt file chạy v0.1.2 vào /usr/local/bin/tpan.old
+
+[2026-11-21 02:27:07] $ scripts/vm.sh root /usr/local/bin/tpan.old version
+tpan v0.1.2 (commit d6675d0, build 2026-11-20T09:01:34Z)
+[2026-11-21 02:27:07] (mã thoát 0)
+  => ĐẠT: (đồ nghề) tpan.old là v0.1.2
+
+[2026-11-21 02:27:07] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:07
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=bcf5aac6b050ec860fbed0e74bec3a5c94f9debf343802a45a893b115822fe83
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=17579
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=9
+tat-den-nghe-ms=16
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"rollback","status":"ok","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c","job_id":"21e29cdabf55d7d7","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.909415651+07:00","finished":"2026-11-21T02:27:06.024336841+07:00"}
+[2026-11-21 02:27:07] (mã thoát 0)
+
+[2026-11-21 02:27:07] $ curl -X POST <panel>/api/v1/self/rollback?dry_run=1   (phiên: jar.C1)
+-> HTTP 409
+    thân nhận (tối đa 3000 byte): {"error":{"code":"self_rollback_db","message":{"vi":"bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. Hai đường còn lại: chép lại bản sao /var/lib/tpan/tpan.db có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này","en":"the previous release (/usr/local/bin/tpan.old) cannot open the current /var/lib/tpan/tpan.db, usually because the running release upgraded the DB schema. Rolling back now would leave the tpan service restarting in a loop, so nothing was changed. The previous release said: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. The two ways left: put back a copy of /var/lib/tpan/tpan.db taken before the upgrade and then roll back, or stay on this release"}}}
+  => ĐẠT: POST /self/rollback?dry_run=1: 409 self_rollback_db
+    lời từ chối nguyên văn: bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. Hai đường còn lại: chép lại bản sao /var/lib/tpan/tpan.db có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này
+  => ĐẠT: lời nhắn có câu của chính file cũ ("chỉ biết tới bản")
+
+[2026-11-21 02:27:07] $ curl -X POST <panel>/api/v1/self/rollback   (phiên: jar.C1)
+-> HTTP 409
+    thân nhận (tối đa 3000 byte): {"error":{"code":"self_rollback_db","message":{"vi":"bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. Hai đường còn lại: chép lại bản sao /var/lib/tpan/tpan.db có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này","en":"the previous release (/usr/local/bin/tpan.old) cannot open the current /var/lib/tpan/tpan.db, usually because the running release upgraded the DB schema. Rolling back now would leave the tpan service restarting in a loop, so nothing was changed. The previous release said: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. The two ways left: put back a copy of /var/lib/tpan/tpan.db taken before the upgrade and then roll back, or stay on this release"}}}
+  => ĐẠT: POST /self/rollback: 409 self_rollback_db
+
+[2026-11-21 02:27:07] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+audit|12|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|13|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|8c78cb11c8c91e73
+audit|14|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|15|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|47bdbf2ae3055628
+audit|16|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|17|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|same|e8344c3da65c96d2
+audit|18|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|19|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|51e98ebc4e5605d2
+audit|20|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|21|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c|ok|21e29cdabf55d7d7
+audit|22|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_no_old|
+audit|23|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_rollback_db|
+[2026-11-21 02:27:07] (mã thoát 0)
+  => ĐẠT: audit: dòng self.rollback kết quả self_rollback_db (actor admin, target là bản đang chạy A)
+
+[2026-11-21 02:27:07] $ scripts/vm.sh root tpan self-update --rollback --yes
+Từ chối: bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. Hai đường còn lại: chép lại bản sao /var/lib/tpan/tpan.db có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này
+[2026-11-21 02:27:07] (mã thoát 1)
+  => ĐẠT: CLI tpan self-update --rollback --yes: thoát khác 0
+  => ĐẠT: CLI in lời từ chối có câu của file cũ
+
+[2026-11-21 02:27:07] $ scripts/vm.sh root tpan self-update --rollback --dry-run
+Từ chối: bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 1400, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. Hai đường còn lại: chép lại bản sao /var/lib/tpan/tpan.db có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này
+[2026-11-21 02:27:07] (mã thoát 1)
+  => ĐẠT: CLI --rollback --dry-run cũng từ chối (thoát khác 0)
+
+[2026-11-21 02:27:07] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:08
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=bcf5aac6b050ec860fbed0e74bec3a5c94f9debf343802a45a893b115822fe83
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=17579
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=9
+tat-den-nghe-ms=16
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"rollback","status":"ok","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c","job_id":"21e29cdabf55d7d7","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.909415651+07:00","finished":"2026-11-21T02:27:06.024336841+07:00"}
+[2026-11-21 02:27:08] (mã thoát 0)
+  => ĐẠT: file chạy, tpan.old, MainPID, phiên bản, update.self_last không đổi
+  => ĐẠT: đơn vị tạm không chạy; tpan.service active
+
+[2026-11-21 02:27:08] $ scripts/vm.sh root rm -f /usr/local/bin/tpan.old
+[2026-11-21 02:27:08] (mã thoát 0)
+  => ĐẠT: (đồ nghề) gỡ file v0.1.2 khỏi /usr/local/bin/tpan.old
+
+==== Phần F: 12 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:08] PHẦN G: lượt chạy bị giết giữa chừng
+
+[2026-11-21 02:27:08] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:08
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=(không có)
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=17579
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=9
+tat-den-nghe-ms=16
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"rollback","status":"ok","from":"v0.2.0-18-gc55e34c-e2e-b","to":"v0.2.0-18-gc55e34c","job_id":"21e29cdabf55d7d7","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:05.909415651+07:00","finished":"2026-11-21T02:27:06.024336841+07:00"}
+[2026-11-21 02:27:08] (mã thoát 0)
+  => ĐẠT: trước khi thử: đang ở bản A
+
+[2026-11-21 02:27:08] $ scripts/vm.sh root systemd-run --unit tpan-e2e-lock --collect flock /run/tpan/tpan.lock sleep 300
+Running as unit: tpan-e2e-lock.service; invocation ID: 234240a1140548278759f460f72ebd96
+[2026-11-21 02:27:08] (mã thoát 0)
+
+[2026-11-21 02:27:09] $ scripts/vm.sh root bash -c flock -n "$1" true; echo "thử lấy khoá không chờ: mã $?" _ /run/tpan/tpan.lock
+thử lấy khoá không chờ: mã 1
+[2026-11-21 02:27:09] (mã thoát 0)
+  => ĐẠT: (đồ nghề) khoá toàn cục /run/tpan/tpan.lock đang bị giữ
+
+[2026-11-21 02:27:09] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:09.782194019+07:00"}}
+  => ĐẠT: POST /self/update: 202
+
+[2026-11-21 02:27:09] $ scripts/vm.sh exec systemctl is-active tpan-self-update
+active
+[2026-11-21 02:27:09] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đang chạy (chờ khoá)
+
+[2026-11-21 02:27:09] $ scripts/vm.sh root systemctl kill --kill-whom=main -s KILL tpan-self-update
+[2026-11-21 02:27:10] (mã thoát 0)
+  => ĐẠT: systemctl kill --kill-whom=main -s KILL tpan-self-update thoát 0 (KILL dọn được đơn vị, không cần systemctl stop)
+
+[2026-11-21 02:27:12] $ scripts/vm.sh exec systemctl is-active tpan-self-update
+inactive
+[2026-11-21 02:27:12] (mã thoát 4)
+  => ĐẠT: sau KILL đơn vị tạm không còn chạy (--collect dọn cả đơn vị bị giết)
+
+[2026-11-21 02:27:12] $ scripts/vm.sh root systemctl stop tpan-e2e-lock
+[2026-11-21 02:27:12] (mã thoát 0)
+
+[2026-11-21 02:27:12] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":false,"busy":false,"last":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:09.782194019+07:00"}}
+  => ĐẠT: ngay sau khi bị giết (chưa quá 15 giây): busy false, last.status còn running
+
+[2026-11-21 02:27:12] (chờ 16 giây: quá hạn selfInterruptAfter 15 giây)
+
+[2026-11-21 02:27:28] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":false,"busy":false,"last":{"action":"update","status":"interrupted","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:09.782194019+07:00"}}
+  => ĐẠT: sau 16 giây: busy false, last.status là interrupted
+
+[2026-11-21 02:27:28] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:28
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=(không có)
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=17579
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=9
+tat-den-nghe-ms=16
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"running","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:09.782194019+07:00"}
+[2026-11-21 02:27:28] (mã thoát 0)
+  => ĐẠT: file chạy không đổi, MainPID không đổi, panel vẫn chạy
+  => ĐẠT: settings vẫn giữ dấu gốc (status running): interrupted chỉ có trong câu trả lời của API
+
+
+######## [2026-11-21 02:27:28] G: lượt bình thường sau đó vẫn chạy được (A lên B, kết thúc ok)
+
+[2026-11-21 02:27:28] $ curl -X POST <panel>/api/v1/self/update   (phiên: jar.C1)
+-> HTTP 202
+    thân nhận (tối đa 1600 byte): {"run":{"action":"update","status":"running","from":"v0.2.0-18-gc55e34c","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:28.78636309+07:00"}}
+  => ĐẠT: POST /self/update: 202 (không bị đơn vị cũ chặn)
+
+[2026-11-21 02:27:29] (nền) hỏi GET <panel>/api/v1/session bằng cookie C1, 0,05 giây một lần, tới khi version là v0.2.0-18-gc55e34c-e2e-b:
+    4 lần hỏi trong 277 ms; 0 lần hỏng kết nối (panel đang restart); version ở lần hỏi cuối: v0.2.0-18-gc55e34c-e2e-b
+    không lần hỏi nào hỏng: lần restart lọt giữa hai lần hỏi (ngắn hơn khoảng cách hỏi)
+  => ĐẠT: GET /session trả version B trong vòng 60 giây
+
+[2026-11-21 02:27:29] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh cho 60
+cho-don-vi=xong sau 0 giây
+luc=2026-11-21 02:27:29
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=(không có)
+MainPID=18881
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=5
+tat-den-nghe-ms=13
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"b2060f5d238042f6","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:28.78636309+07:00","finished":"2026-11-21T02:27:29.009942675+07:00"}
+[2026-11-21 02:27:29] (mã thoát 0)
+  => ĐẠT: đơn vị tạm đã chạy xong (xong sau 0 giây)
+  -- GHI NHẬN: gián đoạn của lần restart này: tpan.service không active 5 ms; từ lúc systemd bắt đầu dừng tới lúc tiến trình mới mở cổng nghe 13 ms (journal); nhìn từ trình duyệt: 0 lần hỏi hỏng, khoảng 0 ms
+
+[2026-11-21 02:27:29] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c-e2e-b","url":"http://127.0.0.1:8015/b","has_old":true,"busy":false,"last":{"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"b2060f5d238042f6","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:28.78636309+07:00","finished":"2026-11-21T02:27:29.009942675+07:00"}}
+  => ĐẠT: last.status ok (lúc bấm đang ở A, nguồn tải là B): from A, to B
+  => ĐẠT: tpan version là B, tpan.old là A, MainPID đổi
+
+==== Phần G: 15 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:29] PHẦN H: CLI không đổi hành vi
+
+[2026-11-21 02:27:29] $ scripts/vm.sh root tpan self-update --dry-run --url http://127.0.0.1:8015/b
+Kế hoạch: Cập nhật tpan (đang chạy bản v0.2.0-18-gc55e34c-e2e-b)
+3 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 2 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Tải bản tpan mới vào /usr/local/bin/tpan.new  (self.download:/usr/local/bin/tpan.new)
+    Vì sao: Bản mới được tải vào file riêng và kiểm sha256 theo SHA256SUMS của bản phát hành trước khi đụng tới file đang chạy. File hỏng hay bị sửa giữa đường thì bị xoá, không bao giờ được chạy bằng quyền root.
+    $ curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8015/b/SHA256SUMS
+    $ curl -fsSL --max-time 300 --proto-redir =https -o /usr/local/bin/tpan.new http://127.0.0.1:8015/b/tpan-linux-arm64
+    $ /usr/local/bin/tpan.new version
+ 2. [sẽ chạy] Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old  (self.install:/usr/local/bin/tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đây là lúc bản mới thành file chạy của tpan. Bản cũ không bị xoá mà đổi tên thành /usr/local/bin/tpan.old, để quay về được nếu bản mới có lỗi. Dịch vụ tpan chỉ dùng bản mới sau khi khởi động lại.
+ 3. [sẽ chạy] Khởi động lại tpan  (service.restart:tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Dịch vụ đang chạy vẫn dùng bản cũ trong bộ nhớ cho tới khi được khởi động lại; không làm bước này thì bản vá chưa có tác dụng. Cấu hình được kiểm trước, sai thì không khởi động lại.
+    $ systemctl restart tpan
+    Ghi chú hoàn tác: Khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về.
+[2026-11-21 02:27:29] (mã thoát 0)
+  => ĐẠT: self-update --dry-run thoát 0, in kế hoạch
+  => ĐẠT: kế hoạch có ba bước: tải, thay file, khởi động lại
+
+[2026-11-21 02:27:29] $ scripts/vm.sh exec tpan --help
+Panel tự động hoá LAMP/LEMP và WordPress
+
+Usage:
+  tpan [command]
+
+Available Commands:
+  admin       Quản lý tài khoản quản trị của panel
+  apply       Đưa máy về đúng danh sách site trong file: tạo site thiếu; --prune thì site ngoài danh sách vào thùng rác
+  backup      Backup site (mã nguồn và DB), xem, khôi phục, đặt lịch backup hằng ngày
+  brain       Chạy trên máy cá nhân: nối Claude Code của bạn vào panel của <máy> (AI trong panel)
+  cron        Cron WordPress thật của các site và lịch backup
+  db          DB của site và DB rời: xem, tạo, đổi mật khẩu, charset, tạm khoá, thùng rác, xuất và nhập .sql
+  export      In danh sách site đang chạy dạng sites.yaml (đưa lại vào tpan apply -f được)
+  health      Chạy các phép kiểm, ghi kết quả, mở và đóng sự cố; --fix sửa tự động (mã thoát 1 khi có lỗi)
+  help        Help about any command
+  mariadb     Nâng MariaDB lên dòng mới
+  mcp         Chạy MCP server qua stdio cho agent (gọi qua SSH từ máy cá nhân)
+  package     Gói hạn mức của user: số site, số DB rời, dung lượng, số backup mỗi site
+  php         Xem, cài, gỡ bản PHP và chọn bản PHP cho từng site
+  plan        Xem, duyệt và từ chối các Plan chờ duyệt (do agent hoặc AI đề xuất)
+  route       Xem request tới một tên miền đi đường nào trên máy này
+  security    Xem bảo mật của máy; bật tường lửa ufw và fail2ban; áp bản vá cô lập giữa các site
+  self-update Cập nhật chính tpan lên bản phát hành mới (--rollback: quay về bản trước)
+  serve       Chạy giao diện web và API
+  setup       Khởi tạo panel: thư mục, chứng chỉ, DB, mật khẩu quản trị, dịch vụ systemd (chạy lại không đổi gì)
+  site        Tạo, xem, đưa vào thùng rác và khôi phục site WordPress
+  ssl         Xin chứng chỉ SSL (Let's Encrypt) và đặt cấu hình SSL
+  stack       Cài và xem stack (web server, PHP-FPM, MariaDB)
+  trash       Xem thùng rác, xoá hẳn site trong đó, đặt số ngày giữ
+  update      Xem (--check) hoặc cập nhật các gói của stack đang có bản mới
+  user        User của panel: thêm, xem, sửa, đổi mật khẩu, tạm khoá, xoá
+  version     In phiên bản
+
+Flags:
+  -h, --help          help for tpan
+      --lang string   ngôn ngữ của output: vi hoặc en (default "vi")
+
+Use "tpan [command] --help" for more information about a command.
+[2026-11-21 02:27:29] (mã thoát 0)
+  => ĐẠT: tpan --help thoát 0, có self-update, KHÔNG hiện lệnh internal (lệnh ẩn)
+
+[2026-11-21 02:27:29] $ scripts/vm.sh exec tpan internal --help
+Lệnh nội bộ, do hook và đơn vị systemd của tpan gọi
+
+Usage:
+  tpan internal [command]
+
+Available Commands:
+  reload-web  Kiểm config rồi reload web server của stack (hook gia hạn chứng chỉ gọi)
+  self-update Chạy một lượt cập nhật tpan do panel khởi (đơn vị systemd tạm tpan-self-update gọi)
+
+Flags:
+  -h, --help   help for internal
+
+Global Flags:
+      --lang string   ngôn ngữ của output: vi hoặc en (default "vi")
+
+Use "tpan internal [command] --help" for more information about a command.
+[2026-11-21 02:27:29] (mã thoát 0)
+  => ĐẠT: tpan internal --help vẫn chạy, có lệnh con self-update
+
+
+######## [2026-11-21 02:27:29] H: CLI self-update rồi --rollback như M12
+
+[2026-11-21 02:27:29] $ scripts/vm.sh root tpan self-update --rollback --yes
+Bắt đầu job 82ee8ac5beb1abf2
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.old, giữ bản cũ ở /usr/local/bin/tpan.new ...
+  xong
+- Khởi động lại tpan ...
+  xong
+  [đạt] File chạy /usr/local/bin/tpan chạy được
+
+Job 82ee8ac5beb1abf2: thành công
+Kiểm chứng:
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+tpan đã quay về bản trước: v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c
+[2026-11-21 02:27:30] (mã thoát 0)
+  => ĐẠT: self-update --rollback --yes (B về A): thoát 0, job thành công
+
+[2026-11-21 02:27:30] $ scripts/vm.sh root tpan self-update --yes --url http://127.0.0.1:8015/b
+Bắt đầu job 0cce2b67285860a5
+- Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+  xong
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+  xong
+- Khởi động lại tpan ...
+  xong
+  [đạt] File chạy /usr/local/bin/tpan chạy được
+
+Job 0cce2b67285860a5: thành công
+Kiểm chứng:
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+tpan đã đổi: v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b
+Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
+[2026-11-21 02:27:30] (mã thoát 0)
+  => ĐẠT: self-update --yes --url .../b: thoát 0, job thành công
+  => ĐẠT: in A -> B
+
+[2026-11-21 02:27:30] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:30
+phien-ban=tpan v0.2.0-18-gc55e34c-e2e-b (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+sha-old=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-new=(không có)
+MainPID=19336
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=5
+tat-den-nghe-ms=14
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"b2060f5d238042f6","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:28.78636309+07:00","finished":"2026-11-21T02:27:29.009942675+07:00"}
+[2026-11-21 02:27:30] (mã thoát 0)
+  => ĐẠT: tpan version là B, tpan.old là A, dịch vụ active
+
+[2026-11-21 02:27:30] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+audit|12|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|13|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|8c78cb11c8c91e73
+audit|14|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|15|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|47bdbf2ae3055628
+audit|16|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|17|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|same|e8344c3da65c96d2
+audit|18|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|19|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|51e98ebc4e5605d2
+audit|20|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|21|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c|ok|21e29cdabf55d7d7
+audit|22|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_no_old|
+audit|23|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_rollback_db|
+audit|24|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|25|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|26|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|b2060f5d238042f6
+audit|27|cli||self.rollback|/usr/local/bin/tpan|ok|82ee8ac5beb1abf2
+audit|28|cli||self.update|http://127.0.0.1:8015/b|ok|0cce2b67285860a5
+[2026-11-21 02:27:30] (mã thoát 0)
+  => ĐẠT: audit: lượt CLI ghi ip cli, action self.update, target là gốc tải, kết quả ok
+
+[2026-11-21 02:27:30] $ scripts/vm.sh root tpan self-update --rollback --yes
+Bắt đầu job a007cf955e3f88c8
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.old, giữ bản cũ ở /usr/local/bin/tpan.new ...
+  xong
+- Khởi động lại tpan ...
+  xong
+  [đạt] File chạy /usr/local/bin/tpan chạy được
+
+Job a007cf955e3f88c8: thành công
+Kiểm chứng:
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+tpan đã quay về bản trước: v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c
+[2026-11-21 02:27:31] (mã thoát 0)
+  => ĐẠT: self-update --rollback --yes: thoát 0, job thành công
+  => ĐẠT: in B -> A
+
+[2026-11-21 02:27:31] $ scripts/vm.sh root bash /home/ubuntu/e2e-m15/trang-thai.sh
+luc=2026-11-21 02:27:31
+phien-ban=tpan v0.2.0-18-gc55e34c (commit c55e34c, build 2026-11-20T19:25:31Z)
+sha-tpan=1c0c77763d711f2ff17a757cd2c922b47788d8c5393043516949c803077cde6f
+sha-old=(không có)
+sha-new=676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc
+MainPID=19568
+ActiveState=active
+NRestarts=0
+don-vi-tam=inactive
+khong-active-ms=6
+tat-den-nghe-ms=29
+update.self_url=http://127.0.0.1:8015/b
+update.self_last={"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"b2060f5d238042f6","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:28.78636309+07:00","finished":"2026-11-21T02:27:29.009942675+07:00"}
+[2026-11-21 02:27:31] (mã thoát 0)
+  => ĐẠT: tpan version là A, file chạy là file của A, dịch vụ active
+
+[2026-11-21 02:27:31] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+audit|12|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|13|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|8c78cb11c8c91e73
+audit|14|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|15|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|47bdbf2ae3055628
+audit|16|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|17|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|same|e8344c3da65c96d2
+audit|18|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|19|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|51e98ebc4e5605d2
+audit|20|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|21|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c|ok|21e29cdabf55d7d7
+audit|22|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_no_old|
+audit|23|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_rollback_db|
+audit|24|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|25|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|26|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|b2060f5d238042f6
+audit|27|cli||self.rollback|/usr/local/bin/tpan|ok|82ee8ac5beb1abf2
+audit|28|cli||self.update|http://127.0.0.1:8015/b|ok|0cce2b67285860a5
+audit|29|cli||self.rollback|/usr/local/bin/tpan|ok|a007cf955e3f88c8
+[2026-11-21 02:27:31] (mã thoát 0)
+  => ĐẠT: audit: lượt CLI ghi ip cli, action self.rollback, kết quả ok
+
+[2026-11-21 02:27:31] $ curl -X GET <panel>/api/v1/self   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"version":"v0.2.0-18-gc55e34c","url":"http://127.0.0.1:8015/b","has_old":false,"busy":false,"last":{"action":"update","status":"ok","from":"v0.2.0-18-gc55e34c","to":"v0.2.0-18-gc55e34c-e2e-b","job_id":"b2060f5d238042f6","actor":"admin","ip":"<mac>","started":"2026-11-21T02:27:28.78636309+07:00","finished":"2026-11-21T02:27:29.009942675+07:00"}}
+  => ĐẠT: lượt CLI không ghi update.self_last: last vẫn là lượt cuối chạy từ panel (update, ok, A -> B)
+
+[2026-11-21 02:27:31] $ curl -X GET <panel>/api/v1/session   (phiên: jar.C1)
+-> HTTP 200
+    thân nhận (tối đa 1600 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m15","version":"v0.2.0-18-gc55e34c","expires":"2026-11-21T07:26:47.451900207Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: sau cả kịch bản cookie C1 vẫn logged_in, version A
+
+==== Phần H: 15 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:31] PHẦN CUỐI: health, bảng audit và jobs của cả kịch bản, tắt đồ nghề
+
+[2026-11-21 02:27:31] $ scripts/vm.sh root tpan health
+
+== Máy và stack ==
+[đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+[đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+[đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+[đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+[đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+[đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+[đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+[đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.7%
+[đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+[đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+[đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+[đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó
+[đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 86.1% (3.3 GiB trên 3.8 GiB); máy không có swap
+[đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
+[đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
+[đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
+[đạt] File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi
+[đạt] File /etc/systemd/system/tpan.service còn đúng như tpan đã ghi: File /etc/systemd/system/tpan.service đúng như tpan đã ghi
+[đạt] File /etc/tpan/tls/cert.pem còn đúng như tpan đã ghi: File /etc/tpan/tls/cert.pem đúng như tpan đã ghi
+
+22 đạt
+
+== Site a.example.com ==
+[cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: a.example.com chưa có bản ghi A
+    Nguyên nhân: Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. tpan không tự sửa được: bản ghi nằm ở nơi quản lý DNS của tên miền. Vào đó tạo bản ghi A cho a.example.com trỏ về IP public của máy (card mạng có: <vm>; VPS sau NAT thì lấy IP public ở trang quản lý VPS), rồi chờ vài phút và bấm kiểm lại.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ip -o addr show scope global
+      sudo getent ahostsv4 a.example.com
+[cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho a.example.com
+    Nguyên nhân: Chưa xin chứng chỉ cho tên miền này, hoặc file bị xoá. Trình duyệt sẽ báo không an toàn (hoặc không vào được cổng 443).
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo ls -l /etc/letsencrypt/live/a.example.com
+      sudo tpan ssl issue a.example.com
+      sudo certbot certificates --cert-name a.example.com
+[đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+[đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+[đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+[đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+[đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+[đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+[đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640
+[đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+[đạt] File /etc/nginx/sites-available/tpan-a.example.com.conf còn đúng như tpan đã ghi: File /etc/nginx/sites-available/tpan-a.example.com.conf đúng như tpan đã ghi
+[đạt] File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf còn đúng như tpan đã ghi: File /etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf đúng như tpan đã ghi
+
+10 đạt, 2 cảnh báo
+
+== tpan ==
+[đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.6 GiB
+[đạt] Chứng chỉ HTTPS của panel còn hạn: Chứng chỉ của panel còn 3652 ngày
+[đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: /etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng
+[đạt] /etc/tpan có quyền 0700, chủ root:root: /etc/tpan: quyền 0700, chủ root:root đúng
+[đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
+[đạt] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health vẫn chạy
+[cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+    Nguyên nhân: Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan backup create --all --yes
+      sudo tpan backup settings --at 03:30
+      sudo ls /var/lib/tpan/backups/_tpan
+
+8 đạt, 1 cảnh báo
+[2026-11-21 02:27:36] (mã thoát 0)
+Số dòng [lỗi] của tpan health: 0
+  => ĐẠT: cuối kịch bản tpan health không có [lỗi] mới so với lúc mới cài v0.2.0
+
+[2026-11-21 02:27:36] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-21 02:27:37] (mã thoát 0)
+  => ĐẠT: a.example.com vẫn 200
+
+[2026-11-21 02:27:37] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py audit
+audit|id|ip|actor|action|target|result|job_id
+audit|5|cli||self.update|http://127.0.0.1:8015/a|ok|a0fbd7bf31ef6561
+audit|8|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|9|<mac>|admin|self.update|v0.2.0-18-gc55e34c|self_update_running|
+audit|10|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_update_running|
+audit|11|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|63186605d45c4985
+audit|12|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|13|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|8c78cb11c8c91e73
+audit|14|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|15|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|47bdbf2ae3055628
+audit|16|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|17|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|same|e8344c3da65c96d2
+audit|18|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|19|<mac>|admin|self.update|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c-e2e-b|rolled_back|51e98ebc4e5605d2
+audit|20|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b|started|
+audit|21|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c-e2e-b -> v0.2.0-18-gc55e34c|ok|21e29cdabf55d7d7
+audit|22|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_no_old|
+audit|23|<mac>|admin|self.rollback|v0.2.0-18-gc55e34c|self_rollback_db|
+audit|24|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|25|<mac>|admin|self.update|v0.2.0-18-gc55e34c|started|
+audit|26|<mac>|admin|self.update|v0.2.0-18-gc55e34c -> v0.2.0-18-gc55e34c-e2e-b|ok|b2060f5d238042f6
+audit|27|cli||self.rollback|/usr/local/bin/tpan|ok|82ee8ac5beb1abf2
+audit|28|cli||self.update|http://127.0.0.1:8015/b|ok|0cce2b67285860a5
+audit|29|cli||self.rollback|/usr/local/bin/tpan|ok|a007cf955e3f88c8
+[2026-11-21 02:27:37] (mã thoát 0)
+
+[2026-11-21 02:27:37] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py jobs
+job|id|kind|status|actor|target|error
+job|a0fbd7bf31ef6561|self.update|succeeded||http://127.0.0.1:8015/a|
+job|63186605d45c4985|self.update|succeeded|admin|http://127.0.0.1:8015/b|
+job|8c78cb11c8c91e73|self.update|rolled_back|admin|http://127.0.0.1:8015/sai|bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 000000000000000000000000000000
+job|47bdbf2ae3055628|self.update|rolled_back|admin|http://127.0.0.1:8016/khong-co|bước self.download:/usr/local/bin/tpan.new: thực hiện: tải SHA256SUMS từ http://127.0.0.1:8016/khong-co: curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:8016/khong-co/SHA256SUMS: mã tho
+job|e8344c3da65c96d2|self.update|succeeded|admin|http://127.0.0.1:8015/b|
+job|51e98ebc4e5605d2|self.update|rolled_back|admin|http://127.0.0.1:8015/sai|bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 676969fc950594fa9be2576998e5ffef1d5a5aa954c908ad6edba9262470cddc, SHA256SUMS ghi 000000000000000000000000000000
+job|21e29cdabf55d7d7|self.rollback|succeeded|admin|/usr/local/bin/tpan|
+job|b2060f5d238042f6|self.update|succeeded|admin|http://127.0.0.1:8015/b|
+job|82ee8ac5beb1abf2|self.rollback|succeeded||/usr/local/bin/tpan|
+job|0cce2b67285860a5|self.update|succeeded||http://127.0.0.1:8015/b|
+job|a007cf955e3f88c8|self.rollback|succeeded||/usr/local/bin/tpan|
+[2026-11-21 02:27:37] (mã thoát 0)
+
+[2026-11-21 02:27:37] $ scripts/vm.sh root systemctl stop tpan-e2e-http
+[2026-11-21 02:27:37] (mã thoát 0)
+  => ĐẠT: (đồ nghề) tắt máy chủ tải tpan-e2e-http
+
+[2026-11-21 02:27:37] $ scripts/vm.sh exec systemctl is-active tpan-e2e-http tpan-e2e-lock tpan-self-update
+inactive
+inactive
+inactive
+[2026-11-21 02:27:37] (mã thoát 4)
+  => ĐẠT: không đơn vị tạm nào còn chạy (nguồn tải, khoá, cập nhật)
+
+==== Phần CUỐI: 4 đạt, 0 không đạt
+
+
+######## [2026-11-21 02:27:37] bí mật, IP, tên user Mac, cookie có lọt vào chính file log không
+Số bí mật đã gặp: 6; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu hay cookie nào
+  => ĐẠT: mọi trường password trong log đều đã che
+  => ĐẠT: log không chứa IP máy ảo (IPv4)
+  => ĐẠT: log không chứa mạng Multipass
+  => ĐẠT: log không chứa IPv6 của máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+
+
+######## [2026-11-21 02:27:37] TỔNG KẾT: 200 khẳng định đạt, 0 khẳng định không đạt

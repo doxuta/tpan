@@ -1,0 +1,139 @@
+<!doctype html>
+<!-- Trang mẫu giao diện bản 2 của TPAN (mốc M16). Dữ liệu mẫu. Mở thẳng bằng trình duyệt. Font tải từ Google Fonts cho tiện xem; bản thật nhúng font. -->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>TPAN: Người dùng</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B4FB8}a:hover{color:#083A87}
+</style>
+</head>
+<body>
+<div style="min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; background: #EEF1F4; color: #171A1F; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 10px 24px; background: #FFFFFF; border-bottom: 1px solid #DDE1E6">
+<a href="#" style="display: flex; align-items: center; gap: 10px; color: #171A1F; text-decoration: none">
+<svg role="img" aria-label="TPAN, máy đang có 1 sự cố mở" width="28" height="28" viewBox="0 0 32 32"><path d="M5 8h22M16 8v14" fill="none" stroke="#171A1F" stroke-width="4"></path><circle cx="5" cy="8" r="3.5" fill="#FFFFFF" stroke="#171A1F" stroke-width="2"></circle><circle cx="27" cy="8" r="3.5" fill="#FFFFFF" stroke="#171A1F" stroke-width="2"></circle><rect x="11.5" y="20.5" width="9" height="9" fill="#C8320A"></rect></svg>
+<span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 18px; font-weight: 600; letter-spacing: 0.04em">TPAN</span>
+</a>
+<span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #556070">demo</span>
+<button type="button" style="flex: 1 1 280px; max-width: 440px; height: 40px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #C5CBD3; border-radius: 8px; background: #F6F7F9; color: #556070; font: inherit; text-align: left">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+<span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Tìm màn, site hoặc gõ lệnh</span>
+<kbd style="padding: 1px 6px; border: 1px solid #C5CBD3; border-radius: 4px; background: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11px; color: #556070">⌘K</kbd>
+</button>
+<div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<a href="#" style="display: flex; align-items: center; gap: 8px; height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; color: #B42A06; font-weight: 500; text-decoration: none">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" style="flex: none"><rect width="14" height="14" fill="#C8320A"></rect><path d="M4 4l6 6M10 4l-6 6" stroke="#FFFFFF" stroke-width="1.6"></path></svg>
+<span>1 sự cố</span>
+</a>
+<button type="button" style="height: 40px; padding: 0 14px; border: 1px solid #C5CBD3; border-radius: 8px; background: #FFFFFF; color: #171A1F; font: inherit; font-weight: 500">Hỏi AI</button>
+<button type="button" aria-haspopup="menu" aria-label="admin, quản trị: mở menu tài khoản" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px 0 6px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #171A1F; font: inherit">
+<span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, #0B4FB8 10%, #FFFFFF); color: #0B4FB8; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600">A</span>
+<span style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2">
+<span style="font-weight: 500">admin</span>
+<span style="font-size: 12px; color: #556070">quản trị</span>
+</span>
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+</div>
+</header>
+<div style="flex: 1; display: flex; flex-wrap: wrap; align-items: stretch">
+<nav aria-label="Menu chính" style="flex: 1 1 232px; box-sizing: border-box; padding: 16px 12px; background: #FFFFFF; border-right: 1px solid #DDE1E6; display: flex; flex-direction: column; gap: 2px">
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"></path></svg><span style="flex: 1">Bảng điều khiển</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2"></rect><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"></rect><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"></rect><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2"></rect></svg><span style="flex: 1">Công cụ</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><circle cx="12" cy="12" r="8.5"></circle><path d="M3.5 12h17M12 3.5c2.6 2.8 2.6 14.2 0 17M12 3.5c-2.6 2.8-2.6 14.2 0 17"></path></svg><span style="flex: 1">Site</span><span style="font-size: 12px; font-weight: 400; color: #556070; font-variant-numeric: tabular-nums">5</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><ellipse cx="12" cy="6" rx="7" ry="2.8"></ellipse><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"></path></svg><span style="flex: 1">Cơ sở dữ liệu</span><span style="font-size: 12px; font-weight: 400; color: #556070; font-variant-numeric: tabular-nums">5</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><rect x="5" y="10.5" width="14" height="9.5" rx="1.8"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg><span style="flex: 1">SSL</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1"></rect><path d="M5 9v9.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"></path></svg><span style="flex: 1">Backup</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg><span style="flex: 1">Cron</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M4.5 7h15M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l.8 12a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9L17.5 7"></path></svg><span style="flex: 1">Thùng rác</span></a>
+<div style="padding: 16px 10px 6px; font-size: 12px; font-weight: 500; color: #556070">Máy chủ</div>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M12 4.5l8.5 14.5h-17z"></path><path d="M12 10v4.2M12 16.8v.2"></path></svg><span style="flex: 1">Sự cố</span><span style="min-width: 22px; box-sizing: border-box; padding: 1px 6px; border-radius: 4px; background: #C8320A; color: #FFFFFF; font-size: 12px; font-weight: 600; text-align: center">1<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap"> sự cố đang mở</span></span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M8.5 7h11M8.5 12h11M8.5 17h11M4.5 7h.01M4.5 12h.01M4.5 17h.01"></path></svg><span style="flex: 1">Lịch sử</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M12 4.5l8.5 4.3-8.5 4.3-8.5-4.3z"></path><path d="M3.5 13.2l8.5 4.3 8.5-4.3"></path></svg><span style="flex: 1">Stack</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 16V8.5M8.5 11.5L12 8l3.5 3.5"></path></svg><span style="flex: 1">Cập nhật</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M12 3.5l7 2.7v5.3c0 4.3-2.9 7.4-7 9-4.1-1.6-7-4.7-7-9V6.2z"></path></svg><span style="flex: 1">Bảo mật</span></a>
+<div style="padding: 16px 10px 6px; font-size: 12px; font-weight: 500; color: #556070">AI</div>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M5 5.5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4.5 3.5v-3.5H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"></path></svg><span style="flex: 1">Phiên AI</span></a>
+<div style="padding: 16px 10px 6px; font-size: 12px; font-weight: 500; color: #556070">Tài khoản</div>
+<a href="#" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; background: color-mix(in srgb, #0B4FB8 10%, #FFFFFF); color: #0B4FB8; font-weight: 600"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><circle cx="9" cy="8.5" r="3.2"></circle><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5M16 5.6a3.2 3.2 0 0 1 0 5.8M17.5 14.8c2 .6 3.2 2.2 3.6 4.7"></path></svg><span style="flex: 1">Người dùng</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M12 3.5l8 4.2v8.6l-8 4.2-8-4.2V7.7z"></path><path d="M4 7.7l8 4.2 8-4.2M12 11.9v8.6"></path></svg><span style="flex: 1">Gói</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: #2B3138"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none; color: #556070"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="17" r="2"></circle></svg><span style="flex: 1">Cài đặt</span></a>
+<div style="margin-top: auto; padding: 20px 10px 4px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #556070">TPAN v0.2.0</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<div style="font-size: 13px; color: #556070">Tài khoản / Người dùng</div>
+<h1 style="margin: 0; font-size: 24px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em">Người dùng</h1>
+<p style="margin: 0; max-width: 72ch; color: #556070">Tài khoản của khách hosting và của quản trị. Mỗi người chỉ thấy site và cơ sở dữ liệu của mình.</p>
+</div>
+<button type="button" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 12px; border: 1px solid #0B4FB8; border-radius: 8px; background: #0B4FB8; color: #FFFFFF; font: inherit; font-weight: 500">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="M12 5v14M5 12h14"></path></svg>
+<span>Thêm user</span>
+</button>
+</div>
+<section aria-label="Danh sách người dùng" style="background: #FFFFFF; border: 1px solid #DDE1E6; border-radius: 10px; overflow: hidden">
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 900px; border-collapse: collapse; text-align: left">
+<thead>
+<tr style="background: #F6F7F9">
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left; width: 28px; padding-left: 16px"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap">Chọn</span></th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left">Người dùng</th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left">Vai</th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left">Gói</th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left">Site</th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left">DB rời</th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left">Dung lượng</th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left">Trạng thái</th>
+<th scope="col" style="padding: 10px 12px; font-size: 12px; font-weight: 500; color: #556070; border-bottom: 1px solid #DDE1E6; white-space: nowrap; text-align: left; text-align: right; padding-right: 20px">Việc</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap; padding-left: 16px">
+<label style="display: flex; align-items: center">
+<input type="checkbox" disabled style="width: 16px; height: 16px; margin: 0">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap">Chọn admin: không tự chọn được tài khoản của mình</span>
+</label>
+</td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap">
+<div style="display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, #0B4FB8 10%, #FFFFFF); color: #0B4FB8; display: flex; align-items: center; justify-content: center; font-weight: 600">A</span>
+<span style="font-weight: 600">admin</span>
+<span style="padding: 1px 8px; border-radius: 999px; background: #EEF1F4; color: #3C4652; font-size: 12px">bạn</span>
+</div>
+</td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap">Quản trị</td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap"><a href="#" style="color: #0B4FB8; font-weight: 500; text-decoration: none">default</a></td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap"><span style="font-variant-numeric: tabular-nums"><span style="font-weight: 500">5</span><span style="color: #556070"> / ∞</span></span></td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap"><span style="font-variant-numeric: tabular-nums"><span style="font-weight: 500">0</span><span style="color: #556070"> / ∞</span></span></td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap"><span style="font-variant-numeric: tabular-nums"><span style="font-weight: 500">740,6 MB</span><span style="color: #556070"> / ∞</span></span></td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap">
+<span style="display: inline-flex; align-items: center; gap: 8px">
+<svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style="flex: none"><circle cx="6" cy="6" r="6" fill="#168A3A"></circle></svg>
+<span>Đang hoạt động</span>
+</span>
+</td>
+<td style="padding: 10px 12px; vertical-align: middle; white-space: nowrap; padding-right: 8px">
+<div style="display: flex; justify-content: flex-end; gap: 4px">
+<button type="button" style="height: 40px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #0B4FB8; font: inherit; font-weight: 500">Sửa</button>
+<button type="button" style="height: 40px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #0B4FB8; font: inherit; font-weight: 500">Đổi mật khẩu</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding: 10px 16px; border-top: 1px solid #DDE1E6; background: #F6F7F9; font-size: 13px; color: #556070">
+<span>1 người dùng</span>
+<span>∞ là không giới hạn theo gói. <a href="#" style="color: #0B4FB8; font-weight: 500; text-decoration: none">Xem các gói</a></span>
+</div>
+</section>
+</main>
+</div>
+</div>
+</body>
+</html>

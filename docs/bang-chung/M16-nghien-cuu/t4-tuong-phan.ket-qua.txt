@@ -1,0 +1,114 @@
+== Chế độ sáng (accent-tint = #E7EDF8)
+  ink           #171A1F trên paper        #EEF1F4  15.39  (cần 4.5)  đạt
+  ink           #171A1F trên surface      #FFFFFF  17.44  (cần 4.5)  đạt
+  ink           #171A1F trên soft         #F6F7F9  16.27  (cần 4.5)  đạt
+  ink           #171A1F trên pre          #E1E4E1  13.61  (cần 4.5)  đạt
+  ink           #171A1F trên accent-tint  #E7EDF8  14.84  (cần 4.5)  đạt
+  ink-soft      #2B3138 trên surface      #FFFFFF  13.13  (cần 4.5)  đạt
+  ink-soft      #2B3138 trên paper        #EEF1F4  11.58  (cần 4.5)  đạt
+  ink-soft      #2B3138 trên soft         #F6F7F9  12.25  (cần 4.5)  đạt
+  muted         #556070 trên paper        #EEF1F4   5.62  (cần 4.5)  đạt
+  muted         #556070 trên surface      #FFFFFF   6.38  (cần 4.5)  đạt
+  muted         #556070 trên soft         #F6F7F9   5.95  (cần 4.5)  đạt
+  muted         #556070 trên pre          #E1E4E1   4.98  (cần 4.5)  đạt
+  muted         #556070 trên accent-tint  #E7EDF8   5.43  (cần 4.5)  đạt
+  accent        #0B4FB8 trên surface      #FFFFFF   7.43  (cần 4.5)  đạt
+  accent        #0B4FB8 trên paper        #EEF1F4   6.56  (cần 4.5)  đạt
+  accent        #0B4FB8 trên soft         #F6F7F9   6.94  (cần 4.5)  đạt
+  accent        #0B4FB8 trên accent-tint  #E7EDF8   6.33  (cần 4.5)  đạt
+  accent-hover  #083A87 trên surface      #FFFFFF  10.68  (cần 4.5)  đạt
+  accent-hover  #083A87 trên paper        #EEF1F4   9.42  (cần 4.5)  đạt
+  accent-hover  #083A87 trên soft         #F6F7F9   9.97  (cần 4.5)  đạt
+  on-accent     #FFFFFF trên accent       #0B4FB8   7.43  (cần 4.5)  đạt
+  on-accent     #FFFFFF trên accent-hover #083A87  10.68  (cần 4.5)  đạt
+  fail-text     #B42A06 trên paper        #EEF1F4   5.66  (cần 4.5)  đạt
+  fail-text     #B42A06 trên surface      #FFFFFF   6.41  (cần 4.5)  đạt
+  fail-text     #B42A06 trên soft         #F6F7F9   5.98  (cần 4.5)  đạt
+  fail-text     #B42A06 trên pre          #E1E4E1   5.00  (cần 4.5)  đạt
+  ok-text       #12752F trên paper        #EEF1F4   5.13  (cần 4.5)  đạt
+  ok-text       #12752F trên surface      #FFFFFF   5.82  (cần 4.5)  đạt
+  ok-text       #12752F trên soft         #F6F7F9   5.42  (cần 4.5)  đạt
+  on-fail       #FFFFFF trên fail         #C8320A   5.36  (cần 4.5)  đạt
+  ok            #168A3A trên paper        #EEF1F4   3.92  (cần 3.0)  đạt
+  ok            #168A3A trên surface      #FFFFFF   4.44  (cần 3.0)  đạt
+  ok            #168A3A trên soft         #F6F7F9   4.14  (cần 3.0)  đạt
+  fail          #C8320A trên paper        #EEF1F4   4.73  (cần 3.0)  đạt
+  fail          #C8320A trên surface      #FFFFFF   5.36  (cần 3.0)  đạt
+  fail          #C8320A trên soft         #F6F7F9   5.00  (cần 3.0)  đạt
+  unknown       #7E848A trên paper        #EEF1F4   3.33  (cần 3.0)  đạt
+  unknown       #7E848A trên surface      #FFFFFF   3.78  (cần 3.0)  đạt
+  unknown       #7E848A trên soft         #F6F7F9   3.53  (cần 3.0)  đạt
+  warn-border   #16181A trên warn         #E0A100   7.86  (cần 3.0)  đạt
+  route         #171A1F trên surface      #FFFFFF  17.44  (cần 3.0)  đạt
+  route-dash    #7E848A trên surface      #FFFFFF   3.78  (cần 3.0)  đạt
+  accent        #0B4FB8 trên accent-tint  #E7EDF8   6.33  (cần 3.0)  đạt
+  field         #7A8592 trên surface      #FFFFFF   3.75  (cần 3.0)  đạt
+  field         #7A8592 trên soft         #F6F7F9   3.50  (cần 3.0)  đạt
+  field         #7A8592 trên paper        #EEF1F4   3.31  (cần 3.0)  đạt
+  ink           #171A1F trên track        #D2D5D7  11.83  (cần 3.0)  đạt
+  warn          #E0A100 trên surface      #FFFFFF   2.27  (cần 0.0)  trang trí
+  warn          #E0A100 trên paper        #EEF1F4   2.00  (cần 0.0)  trang trí
+  line          #C5CBD3 trên surface      #FFFFFF   1.63  (cần 0.0)  trang trí
+  line          #C5CBD3 trên soft         #F6F7F9   1.52  (cần 0.0)  trang trí
+  hair          #DDE1E6 trên surface      #FFFFFF   1.31  (cần 0.0)  trang trí
+  hair          #DDE1E6 trên paper        #EEF1F4   1.16  (cần 0.0)  trang trí
+  track         #D2D5D7 trên surface      #FFFFFF   1.47  (cần 0.0)  trang trí
+  => 0 cặp không đạt
+
+== Chế độ tối (accent-tint = #2D3645)
+  ink           #E9EBED trên paper        #111316  15.57  (cần 4.5)  đạt
+  ink           #E9EBED trên surface      #1A1D21  14.15  (cần 4.5)  đạt
+  ink           #E9EBED trên soft         #20242A  13.04  (cần 4.5)  đạt
+  ink           #E9EBED trên pre          #101214  15.71  (cần 4.5)  đạt
+  ink           #E9EBED trên accent-tint  #2D3645  10.19  (cần 4.5)  đạt
+  ink-soft      #CDD2D7 trên surface      #1A1D21  11.11  (cần 4.5)  đạt
+  ink-soft      #CDD2D7 trên paper        #111316  12.22  (cần 4.5)  đạt
+  ink-soft      #CDD2D7 trên soft         #20242A  10.24  (cần 4.5)  đạt
+  muted         #A3A9AF trên paper        #111316   7.84  (cần 4.5)  đạt
+  muted         #A3A9AF trên surface      #1A1D21   7.13  (cần 4.5)  đạt
+  muted         #A3A9AF trên soft         #20242A   6.57  (cần 4.5)  đạt
+  muted         #A3A9AF trên pre          #101214   7.91  (cần 4.5)  đạt
+  muted         #A3A9AF trên accent-tint  #2D3645   5.13  (cần 4.5)  đạt
+  accent        #8FB8FF trên surface      #1A1D21   8.43  (cần 4.5)  đạt
+  accent        #8FB8FF trên paper        #111316   9.28  (cần 4.5)  đạt
+  accent        #8FB8FF trên soft         #20242A   7.77  (cần 4.5)  đạt
+  accent        #8FB8FF trên accent-tint  #2D3645   6.07  (cần 4.5)  đạt
+  accent-hover  #B9D2FF trên surface      #1A1D21  11.05  (cần 4.5)  đạt
+  accent-hover  #B9D2FF trên paper        #111316  12.16  (cần 4.5)  đạt
+  accent-hover  #B9D2FF trên soft         #20242A  10.19  (cần 4.5)  đạt
+  on-accent     #0B1220 trên accent       #8FB8FF   9.33  (cần 4.5)  đạt
+  on-accent     #0B1220 trên accent-hover #B9D2FF  12.24  (cần 4.5)  đạt
+  fail-text     #FF8A70 trên paper        #111316   8.08  (cần 4.5)  đạt
+  fail-text     #FF8A70 trên surface      #1A1D21   7.35  (cần 4.5)  đạt
+  fail-text     #FF8A70 trên soft         #20242A   6.77  (cần 4.5)  đạt
+  fail-text     #FF8A70 trên pre          #101214   8.15  (cần 4.5)  đạt
+  ok-text       #45C97A trên paper        #111316   8.76  (cần 4.5)  đạt
+  ok-text       #45C97A trên surface      #1A1D21   7.96  (cần 4.5)  đạt
+  ok-text       #45C97A trên soft         #20242A   7.34  (cần 4.5)  đạt
+  on-fail       #190B07 trên fail         #FF6B4A   6.82  (cần 4.5)  đạt
+  ok            #45C97A trên paper        #111316   8.76  (cần 3.0)  đạt
+  ok            #45C97A trên surface      #1A1D21   7.96  (cần 3.0)  đạt
+  ok            #45C97A trên soft         #20242A   7.34  (cần 3.0)  đạt
+  fail          #FF6B4A trên paper        #111316   6.60  (cần 3.0)  đạt
+  fail          #FF6B4A trên surface      #1A1D21   6.00  (cần 3.0)  đạt
+  fail          #FF6B4A trên soft         #20242A   5.53  (cần 3.0)  đạt
+  unknown       #8A9096 trên paper        #111316   5.77  (cần 3.0)  đạt
+  unknown       #8A9096 trên surface      #1A1D21   5.24  (cần 3.0)  đạt
+  unknown       #8A9096 trên soft         #20242A   4.83  (cần 3.0)  đạt
+  warn-border   #15171A trên warn         #F2C14E  10.70  (cần 3.0)  đạt
+  route         #B8BEC4 trên surface      #1A1D21   9.02  (cần 3.0)  đạt
+  route-dash    #6B727A trên surface      #1A1D21   3.47  (cần 3.0)  đạt
+  accent        #8FB8FF trên accent-tint  #2D3645   6.07  (cần 3.0)  đạt
+  field         #737C87 trên surface      #1A1D21   4.00  (cần 3.0)  đạt
+  field         #737C87 trên soft         #20242A   3.68  (cần 3.0)  đạt
+  field         #737C87 trên paper        #111316   4.40  (cần 3.0)  đạt
+  ink           #E9EBED trên track        #30353A  10.36  (cần 3.0)  đạt
+  warn          #F2C14E trên surface      #1A1D21  10.08  (cần 0.0)  trang trí
+  warn          #F2C14E trên paper        #111316  11.09  (cần 0.0)  trang trí
+  line          #3B424B trên surface      #1A1D21   1.66  (cần 0.0)  trang trí
+  line          #3B424B trên soft         #20242A   1.53  (cần 0.0)  trang trí
+  hair          #2A2F36 trên surface      #1A1D21   1.26  (cần 0.0)  trang trí
+  hair          #2A2F36 trên paper        #111316   1.38  (cần 0.0)  trang trí
+  track         #30353A trên surface      #1A1D21   1.37  (cần 0.0)  trang trí
+  => 0 cặp không đạt
+

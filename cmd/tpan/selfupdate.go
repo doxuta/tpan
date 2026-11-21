@@ -2,8 +2,10 @@ package main
 
 // Lệnh `tpan self-update` (mục 6.11 và 9 của docs/KE-HOACH.md): tải bản phát
 // hành mới, kiểm sha256, thay file chạy, khởi động lại dịch vụ, giữ bản cũ ở
-// /usr/local/bin/tpan.old. --rollback đổi ngược về bản đó. Chỉ có ở CLI: chạy
-// từ panel thì job khởi động lại chính tiến trình đang chạy nó.
+// /usr/local/bin/tpan.old. --rollback đổi ngược về bản đó. Đây là lệnh người
+// vận hành gõ. Nút trong panel (M15, mục 6.14) chạy cùng Plan này qua lệnh nội
+// bộ ở internal_selfupdate.go, trong một đơn vị systemd tạm: job chạy ngay
+// trong panel sẽ bị dừng cùng dịch vụ ở bước khởi động lại.
 
 import (
 	"context"

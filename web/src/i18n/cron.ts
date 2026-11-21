@@ -39,7 +39,7 @@ const vi = {
   hideOutput: "Ẩn output",
   showOutputFor: (d: string) => `Xem output lần chạy gần nhất của ${d}`,
   hideOutputFor: (d: string) => `Ẩn output lần chạy gần nhất của ${d}`,
-  evidenceLabel: (d: string, exit: number) => `BẰNG CHỨNG · ${d} · MÃ THOÁT ${exit}`,
+  evidenceTitle: (d: string, exit: number) => `Bằng chứng · ${d} · mã thoát ${exit}`,
   emptyOutput: "Lệnh không in gì ra (nó chạy với --quiet), nên chỉ có dòng lệnh ở trên.",
   skippedNote: "Bị bỏ qua vì site không còn đang chạy.",
   skippedSuspended: "Bị bỏ qua vì site đang tạm khoá.",
@@ -50,7 +50,7 @@ const vi = {
   trashedLead: "Site đang trong thùng rác nên file cron đã gỡ. Khôi phục site khỏi ",
   trashedLink: "thùng rác",
   trashedTail: " thì file được ghi lại.",
-  missingWhy: "Site này chưa có file cron. Cách thêm ở khối bên dưới.",
+  missingWhy: "Site này chưa có file cron. Cách thêm ở thẻ bên dưới.",
 
   // Site chưa có cron
   missingHeading: "Site chưa có cron",
@@ -107,7 +107,7 @@ export const strings = defineStrings(vi, {
   hideOutput: "Hide output",
   showOutputFor: (d) => `Show the output of the last run of ${d}`,
   hideOutputFor: (d) => `Hide the output of the last run of ${d}`,
-  evidenceLabel: (d, exit) => `EVIDENCE · ${d} · EXIT CODE ${exit}`,
+  evidenceTitle: (d, exit) => `Evidence · ${d} · exit code ${exit}`,
   emptyOutput: "The command prints nothing (it runs with --quiet), so only the command line is shown above.",
   skippedNote: "Skipped because the site is no longer running.",
   skippedSuspended: "Skipped because the site is suspended.",
@@ -117,7 +117,7 @@ export const strings = defineStrings(vi, {
   trashedLead: "The site is in the trash, so its cron file was removed. Restore the site from the ",
   trashedLink: "trash",
   trashedTail: " and the file is written again.",
-  missingWhy: "This site has no cron file yet. How to add it is in the block below.",
+  missingWhy: "This site has no cron file yet. How to add it is in the card below.",
 
   missingHeading: "Sites without cron",
   missingHint: "Sites created by an older TPAN have no cron file, so WordPress still runs its scheduled tasks on visitor traffic. Run the command below for each site: it writes the cron file and turns on DISABLE_WP_CRON in wp-config.php. The site keeps running.",

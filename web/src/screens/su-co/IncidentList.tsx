@@ -1,6 +1,6 @@
-// /incidents: sự cố đang mở trước, đã đóng sau (mục 6.7 của KE-HOACH.md, mục 7
-// của GIAO-DIEN.md: màn danh sách là bảng kẻ mảnh, không thẻ). Một lần gọi
-// ?state=all rồi tách hai khối ở trình duyệt, để không gọi hai lần cho cùng dữ liệu.
+// /incidents: sự cố đang mở trước, đã đóng sau (mục 6.7 của KE-HOACH.md). Bản 2:
+// hai TableList, mỗi bảng tự vẽ thẻ có tiêu đề "Đang mở · N" và "Đã đóng · N". Một
+// lần gọi ?state=all rồi tách hai khối ở trình duyệt, để không gọi hai lần cho cùng dữ liệu.
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
@@ -8,9 +8,10 @@ import { errorMessage, get } from "../../api/client";
 import { useOverview } from "../../api/queries";
 import type { Incident } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { StatusMark } from "../../components/StatusMark";
-import { TableList } from "../../components/TableList";
+import { TableList, type Column } from "../../components/TableList";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/su-co";
@@ -40,11 +41,12 @@ export function IncidentList() {
   const lastRun = overview.data?.last_run;
   const emptyOpen = !overview.data ? t.noOpen : lastRun ? t.healthy(formatClock(lastRun, lang)) : t.healthyNeverRun;
 
-  const columns = (isOpen: boolean) => [
+  const columns = (isOpen: boolean): Column<Incident>[] => [
     {
       header: t.colIncident,
+      nowrap: false,
       className: "min-w-[240px]",
-      cell: (i: Incident) => {
+      cell: (i) => {
         const s = incidentState(i, t);
         return (
           <span className="inline-flex items-start gap-[10px]">
@@ -56,27 +58,27 @@ export function IncidentList() {
         );
       },
     },
-    { header: t.colTarget, className: "min-w-[150px]", cell: (i: Incident) => <Target target={i.target} /> },
-    { header: t.colStage, className: "w-[130px] whitespace-nowrap", cell: (i: Incident) => t.stages[i.stage] },
+    { header: t.colTarget, nowrap: false, className: "min-w-[150px]", cell: (i) => <Target target={i.target} /> },
+    { header: t.colStage, cell: (i) => t.stages[i.stage] },
     {
       header: t.colOpened,
-      className: "w-[120px] whitespace-nowrap",
-      cell: (i: Incident) => (
-        <span title={i.opened} className="font-mono text-[12px] text-muted">
+      cell: (i) => (
+        <span title={i.opened} className="text-[13px] text-muted">
           {formatDateTime(i.opened, lang)}
         </span>
       ),
     },
     {
       header: t.colClosed,
+      nowrap: false,
       className: "min-w-[150px]",
-      cell: (i: Incident) =>
+      cell: (i) =>
         isOpen || !i.closed ? (
           <span className="text-[13px]">{t.openFor(formatSpan(spanMs(i.opened), t))}</span>
         ) : (
-          <span title={i.closed} className="font-mono text-[12px] text-muted">
+          <span title={i.closed} className="text-[13px] text-muted">
             {formatDateTime(i.closed, lang)}
-            {i.close_reason === "gone" && <span className="block font-sans text-[12px]">{t.closedGone}</span>}
+            {i.close_reason === "gone" && <span className="block text-[12px]">{t.closedGone}</span>}
           </span>
         ),
     },
@@ -84,30 +86,22 @@ export function IncidentList() {
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
-      {q.isPending && <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>}
+      <ScreenHeader crumbs={[{ label: k.groups.may }, { label: t.title }]} title={t.title} summary={t.summary} />
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div className="pt-[26px]">
-          <p className="m-0">{errorMessage(q.error, lang)}</p>
-          <div className="mt-[10px]">
-            <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-          </div>
-        </div>
+        <Card>
+          <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
+          <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+        </Card>
       )}
       {q.data && (
         <>
-          <section aria-labelledby="dang-mo">
-            <h2 id="dang-mo" className="m-0 pt-[26px] pb-[10px] text-[16px] font-semibold">
-              {t.openHeading(open.length)}
-            </h2>
-            <TableList caption={t.openHeading(open.length)} rows={open} rowKey={(i) => String(i.id)} empty={emptyOpen} columns={columns(true)} />
-          </section>
-          <section aria-labelledby="da-dong">
-            <h2 id="da-dong" className="m-0 pt-[26px] pb-[10px] text-[16px] font-semibold">
-              {t.closedHeading(closed.length)}
-            </h2>
-            <TableList caption={t.closedHeading(closed.length)} rows={closed} rowKey={(i) => String(i.id)} empty={t.noClosed} columns={columns(false)} />
-          </section>
+          <TableList title={t.openHeading(open.length)} titleId="dang-mo" minWidth={820} rows={open} rowKey={(i) => String(i.id)} empty={emptyOpen} columns={columns(true)} />
+          <TableList title={t.closedHeading(closed.length)} titleId="da-dong" minWidth={820} rows={closed} rowKey={(i) => String(i.id)} empty={t.noClosed} columns={columns(false)} />
         </>
       )}
     </>

@@ -125,6 +125,7 @@ func newMachine() *machine {
 	// Sau securityHandlers: m12.go thay handler `apt-get -s` của security.go
 	// (cùng độ dài prefix thì handler đăng ký sau thắng).
 	m.m12Setup()
+	m.m15Setup() // M15 (m15.go): nguồn tải giả của "Kiểm bản mới", file tpan.old.
 	// Sau m12Setup: m10.go thay các handler systemctl, apt-get install, curl, ss.
 	m.m10Setup()
 	// M14 (m14.go): php-fpm -i, nginx -T, apache2ctl -S.

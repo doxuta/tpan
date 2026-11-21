@@ -15,7 +15,9 @@ import { post } from "../../api/client";
 import { dbPath, useCollations } from "../../api/m13-dbs";
 import type { DatabaseRow, DBEdit } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { CharsetPicker } from "../../components/CharsetPicker";
+import { Field, Input } from "../../components/Field";
 import { MonoText } from "../../components/MonoText";
 import type { usePreviewedOp } from "../../components/PreviewedOp";
 import { useStrings } from "../../i18n";
@@ -52,81 +54,67 @@ export function EditPanel({ row, op, onClose }: Props) {
   });
 
   return (
-    <section aria-labelledby="sua-db" className="pt-[26px]">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-[24px] gap-y-[6px]">
-        <h2 id="sua-db" className="m-0 text-[16px] font-semibold [overflow-wrap:anywhere]">
-          {standalone ? t.editHeading(row.db) : t.charsetHeading(row.domain)}
-        </h2>
-        <Button onClick={onClose}>{t.editClose}</Button>
-      </div>
-      <p className="mt-[6px] mb-0">
+    <Card
+      title={standalone ? t.editHeading(row.db) : t.charsetHeading(row.domain)}
+      titleId="sua-db"
+      actions={<Button onClick={onClose}>{t.editClose}</Button>}
+    >
+      <div className="flex flex-col gap-[16px]">
         <MonoText>{row.db}</MonoText>
-      </p>
 
-      <div className="mt-[14px] border-t border-hair pt-[14px]">
-        <p className="mt-0 mb-[12px] max-w-[720px] text-[13px] text-muted">{t.charsetIntro}</p>
-        {collations.isPending && <p className="m-0 text-muted">{t.collationsLoading}</p>}
-        {collations.isError && <p className="m-0">{t.collationsFailed}</p>}
-        {collations.isSuccess && (
-          <>
-            <CharsetPicker collations={collations.data} charset={pair.charset} collation={pair.collation} onChange={(charset, collation) => setPair({ charset, collation })} />
-            <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px] pt-[12px]">
-              <Button
-                variant="primary"
-                disabled={op.pending || unchanged}
-                aria-describedby={unchanged ? "doi-charset-giong" : undefined}
-                onClick={() => void op.ask(rowOp(t, "charset", row, pair))}
-              >
-                {op.busy(`charset:${row.db}`) ? m.previewing : t.charsetPreview}
-              </Button>
-              {unchanged && (
-                <span id="doi-charset-giong" className="text-[13px] text-muted">
-                  {t.charsetSame}
-                </span>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {standalone && (
-        <div className="mt-[18px] border-t border-hair pt-[14px]">
-          <h3 className="m-0 font-mono text-[11px] font-normal tracking-[0.08em] text-muted uppercase">{t.noteHeading}</h3>
-          <p className="mt-[6px] mb-[8px] max-w-[720px] text-[13px] text-muted">{t.noteIntro}</p>
-          <label htmlFor="sua-ghi-chu" className="sr-only">
-            {t.noteLabel}
-          </label>
-          <input
-            id="sua-ghi-chu"
-            value={note}
-            onChange={(e) => {
-              setNote(e.target.value);
-              saveNote.reset();
-            }}
-            aria-invalid={noteBad ? true : undefined}
-            autoComplete="off"
-            className="box-border h-[44px] w-full max-w-[560px] border border-ink bg-surface px-[10px] text-[14px] text-ink sm:h-[40px]"
-          />
-          {noteBad && (
-            <p role="alert" className="mt-[6px] mb-0 font-medium">
-              {t.noteTooLong}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px] pt-[10px]">
-            <Button disabled={saveNote.isPending || noteBad || note.trim() === (row.note ?? "")} onClick={() => saveNote.mutate()}>
-              {saveNote.isPending ? t.noteSaving : t.noteSave}
-            </Button>
-            <span aria-live="polite" className="text-[13px] text-muted">
-              {saveNote.isSuccess ? t.noteSaved : ""}
-            </span>
-          </div>
-          {saveNote.isError && (
-            <div className="pt-[10px]">
-              <ErrorNote error={saveNote.error} heading={t.noteFailed} checksHeading={m.checksHeading} />
-            </div>
+        <div className="flex flex-col gap-[12px]">
+          <p className="m-0 max-w-[72ch] text-[13px] text-muted">{t.charsetIntro}</p>
+          {collations.isPending && <p className="m-0 text-muted">{t.collationsLoading}</p>}
+          {collations.isError && <p className="m-0">{t.collationsFailed}</p>}
+          {collations.isSuccess && (
+            <>
+              <CharsetPicker collations={collations.data} charset={pair.charset} collation={pair.collation} onChange={(charset, collation) => setPair({ charset, collation })} />
+              <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px]">
+                <Button
+                  variant="primary"
+                  disabled={op.pending || unchanged}
+                  aria-describedby={unchanged ? "doi-charset-giong" : undefined}
+                  onClick={() => void op.ask(rowOp(t, "charset", row, pair))}
+                >
+                  {op.busy(`charset:${row.db}`) ? m.previewing : t.charsetPreview}
+                </Button>
+                {unchanged && (
+                  <span id="doi-charset-giong" className="text-[13px] text-muted">
+                    {t.charsetSame}
+                  </span>
+                )}
+              </div>
+            </>
           )}
         </div>
-      )}
-    </section>
+
+        {standalone && (
+          <div className="flex max-w-[560px] flex-col gap-[10px] border-t border-hair pt-[16px]">
+            <Field label={t.noteHeading} htmlFor="sua-ghi-chu" hint={t.noteIntro} hintId="sua-ghi-chu-goi-y" error={noteBad ? t.noteTooLong : undefined}>
+              <Input
+                id="sua-ghi-chu"
+                value={note}
+                onChange={(e) => {
+                  setNote(e.target.value);
+                  saveNote.reset();
+                }}
+                aria-describedby="sua-ghi-chu-goi-y"
+                aria-invalid={noteBad ? true : undefined}
+                autoComplete="off"
+              />
+            </Field>
+            <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px]">
+              <Button disabled={saveNote.isPending || noteBad || note.trim() === (row.note ?? "")} onClick={() => saveNote.mutate()}>
+                {saveNote.isPending ? t.noteSaving : t.noteSave}
+              </Button>
+              <span aria-live="polite" className="text-[13px] text-muted">
+                {saveNote.isSuccess ? t.noteSaved : ""}
+              </span>
+            </div>
+            {saveNote.isError && <ErrorNote error={saveNote.error} heading={t.noteFailed} checksHeading={m.checksHeading} />}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }

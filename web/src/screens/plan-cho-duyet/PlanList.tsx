@@ -1,6 +1,9 @@
 // /plans: các Plan chờ duyệt, đã chạy và đã từ chối, mới nhất trước (thứ tự do
 // máy chủ trả). Lọc theo trạng thái bằng GET /api/v1/plans?status=...; mặc
 // định xem các Plan chờ duyệt vì đó là việc người dùng tới đây để làm.
+//
+// Bản 2: bảng trong thẻ; nút lọc nằm ở đầu màn (không nằm trong bảng, vì bảng
+// biến mất lúc đang tải bộ lọc mới và nút sẽ mất focus theo).
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -8,7 +11,7 @@ import { Link } from "react-router";
 import { errorMessage, get } from "../../api/client";
 import type { PendingPlan, PlanStatus } from "../../api/types";
 import { Button } from "../../components/Button";
-import { MonoText } from "../../components/MonoText";
+import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { SegmentButton } from "../../components/SegmentButton";
 import { TableList } from "../../components/TableList";
@@ -33,9 +36,11 @@ export function PlanList() {
 
   return (
     <>
-      <ScreenHeader title={t.listTitle} summary={t.listSummary} />
-      <section aria-label={t.listCaption} className="pt-[26px]">
-        <div className="mb-[16px]">
+      <ScreenHeader
+        crumbs={[{ label: k.groups.ai }, { label: t.listTitle }]}
+        title={t.listTitle}
+        summary={t.listSummary}
+        actions={
           <SegmentButton<Filter>
             label={t.filterLabel}
             value={filter}
@@ -47,41 +52,50 @@ export function PlanList() {
               { value: "all", label: t.filterAll },
             ]}
           />
-        </div>
-        {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
-        {q.isError && (
+        }
+      />
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
+      {q.isError && (
+        <Card>
           <div role="alert">
-            <p className="m-0">
+            <p className="mt-0 mb-[12px]">
               {t.listFailed} {errorMessage(q.error, lang)}
             </p>
-            <Button className="mt-[12px]" onClick={() => void q.refetch()}>
-              {k.retry}
-            </Button>
+            <Button onClick={() => void q.refetch()}>{k.retry}</Button>
           </div>
-        )}
-        {q.isSuccess && (
-          <TableList
-            caption={t.listCaption}
-            rows={q.data}
-            rowKey={(p) => p.id}
-            empty={empty}
-            columns={[
-              {
-                header: t.colPlan,
-                cell: (p) => (
-                  <Link to={`/plans/${encodeURIComponent(p.id)}`} className="[overflow-wrap:anywhere]">
-                    {tx(p.title, lang)}
-                  </Link>
-                ),
-              },
-              { header: t.colOrigin, cell: (p) => <OriginTag origin={p.origin} /> },
-              { header: t.colTarget, cell: (p) => <MonoText size={12}>{p.target}</MonoText> },
-              { header: t.colStatus, cell: (p) => <span className="text-muted">{t.status[p.status]}</span>, className: "whitespace-nowrap" },
-              { header: t.colTime, cell: (p) => <span className="font-mono text-[12px] whitespace-nowrap text-muted">{formatDateTime(p.created, lang)}</span> },
-            ]}
-          />
-        )}
-      </section>
+        </Card>
+      )}
+      {q.isSuccess && (
+        <TableList
+          label={t.listCaption}
+          caption={t.listCaption}
+          minWidth={820}
+          rows={q.data}
+          rowKey={(p) => p.id}
+          empty={empty}
+          columns={[
+            {
+              header: t.colPlan,
+              nowrap: false,
+              className: "min-w-[240px]",
+              cell: (p) => (
+                <Link to={`/plans/${encodeURIComponent(p.id)}`} className="[overflow-wrap:anywhere]">
+                  {tx(p.title, lang)}
+                </Link>
+              ),
+            },
+            { header: t.colOrigin, cell: (p) => <OriginTag origin={p.origin} /> },
+            // Đối tượng thường là tên miền (sans) hoặc "2 site"; không phải thứ để chép từng ký tự.
+            { header: t.colTarget, nowrap: false, cell: (p) => <span className="[overflow-wrap:anywhere]">{p.target}</span> },
+            { header: t.colStatus, cell: (p) => <span className="text-muted">{t.status[p.status]}</span> },
+            { header: t.colTime, cell: (p) => <span className="text-[13px] text-muted">{formatDateTime(p.created, lang)}</span> },
+          ]}
+        />
+      )}
     </>
   );
 }

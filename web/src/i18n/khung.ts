@@ -6,15 +6,16 @@
 import { defineStrings } from "./index";
 
 const vi = {
-  homeLabel: "TPAN, về Bảng điều khiển",
+  homeLabel: "TPAN, về trang chủ",
   machineState: (s: string) => `máy: ${s}`,
   demo: "demo",
   demoHint: "Chế độ demo: dữ liệu mẫu, không lệnh nào chạy trên máy thật",
   stackMissing: "chưa cài stack",
   php: (v: string) => `php ${v}`,
 
-  command: "Gõ lệnh hoặc hỏi TPAN…",
-  commandUser: "Gõ tên màn cần mở…",
+  // Ô tìm trên thanh đầu trang (mở thanh lệnh). Thanh lệnh có màn, site đang chạy, và lệnh AI (admin).
+  command: "Tìm màn, site hoặc gõ lệnh",
+  commandUser: "Tìm màn hoặc site",
   commandSoon: "Thanh lệnh chưa có trong bản này",
   langGroup: "Ngôn ngữ",
   themeGroup: "Giao diện sáng hoặc tối",
@@ -22,11 +23,24 @@ const vi = {
   dark: "Tối",
   tips: (on: boolean) => `Gợi ý: ${on ? "bật" : "tắt"}`,
 
+  // Menu tài khoản (bản 2, mục 3.5 của docs/thay-doi/M16-thiet-ke.md).
+  accountMenu: (name: string, role: string) => `${name}, ${role}: mở menu tài khoản`,
+  langVi: "Tiếng Việt",
+  langEn: "English",
+  themeMenu: "Giao diện",
+  themeSystem: "Theo hệ điều hành",
+  tipsItem: "Gợi ý",
+  menuToggle: "Menu",
+  searchLabel: "Mở thanh lệnh",
+  incidentsLink: (n: number) => `${n} sự cố`,
+
   skipToContent: "Bỏ qua menu, tới nội dung",
   navLabel: "Menu chính",
-  groups: { may: "MÁY", ai: "AI", taiKhoan: "TÀI KHOẢN" },
+  breadcrumb: "Đường dẫn",
+  groups: { may: "Máy chủ", ai: "AI", taiKhoan: "Tài khoản" },
   menu: {
     dashboard: "Bảng điều khiển",
+    tools: "Công cụ",
     sites: "Site",
     databases: "Cơ sở dữ liệu",
     ssl: "SSL",
@@ -61,7 +75,11 @@ const vi = {
   status: { pass: "đạt", warn: "cảnh báo", fail: "lỗi", unknown: "chưa kiểm được" },
   statusLabel: (what: string, status: string) => `${what}: ${status}`,
 
-  evidence: "BẰNG CHỨNG",
+  evidence: "Bằng chứng",
+  notMeasured: "chưa đo",
+  unlimited: "không giới hạn",
+  showAll: (n: number) => `Xem hết ${n} dòng`,
+  collapse: "Thu gọn",
   copy: "bấm để chép",
   copied: "Đã chép",
   copyFailed: "Không chép được. Chọn chữ rồi chép tay.",
@@ -91,19 +109,19 @@ const vi = {
 
   notFoundTitle: "Không có trang này",
   notFoundBody: "Đường dẫn này không trỏ tới màn nào của TPAN.",
-  notFoundHome: "Về Bảng điều khiển",
+  notFoundHome: "Về trang chủ",
 };
 
 export const strings = defineStrings(vi, {
-  homeLabel: "TPAN, go to the dashboard",
+  homeLabel: "TPAN, go to the home page",
   machineState: (s) => `machine: ${s}`,
   demo: "demo",
   demoHint: "Demo mode: sample data, no command runs on a real machine",
   stackMissing: "no stack yet",
   php: (v) => `php ${v}`,
 
-  command: "Type a command or ask TPAN…",
-  commandUser: "Type the name of a screen to open…",
+  command: "Find a screen or site, or type a command",
+  commandUser: "Find a screen or site",
   commandSoon: "The command bar is not in this version yet",
   langGroup: "Language",
   themeGroup: "Light or dark",
@@ -111,11 +129,23 @@ export const strings = defineStrings(vi, {
   dark: "Dark",
   tips: (on) => `Tips: ${on ? "on" : "off"}`,
 
+  accountMenu: (name, role) => `${name}, ${role}: open the account menu`,
+  langVi: "Tiếng Việt",
+  langEn: "English",
+  themeMenu: "Theme",
+  themeSystem: "Follow the system",
+  tipsItem: "Tips",
+  menuToggle: "Menu",
+  searchLabel: "Open the command bar",
+  incidentsLink: (n) => (n === 1 ? "1 incident" : `${n} incidents`),
+
   skipToContent: "Skip the menu, go to content",
   navLabel: "Main menu",
-  groups: { may: "MACHINE", ai: "AI", taiKhoan: "ACCOUNT" },
+  breadcrumb: "Breadcrumb",
+  groups: { may: "Server", ai: "AI", taiKhoan: "Account" },
   menu: {
     dashboard: "Dashboard",
+    tools: "Tools",
     sites: "Sites",
     databases: "Databases",
     ssl: "SSL",
@@ -149,7 +179,11 @@ export const strings = defineStrings(vi, {
   status: { pass: "pass", warn: "warning", fail: "failed", unknown: "not checked" },
   statusLabel: (what, status) => `${what}: ${status}`,
 
-  evidence: "EVIDENCE",
+  evidence: "Evidence",
+  notMeasured: "not measured",
+  unlimited: "unlimited",
+  showAll: (n) => `Show all ${n} lines`,
+  collapse: "Collapse",
   copy: "press to copy",
   copied: "Copied",
   copyFailed: "Could not copy. Select the text and copy it by hand.",
@@ -179,5 +213,5 @@ export const strings = defineStrings(vi, {
 
   notFoundTitle: "No such page",
   notFoundBody: "This address does not lead to any TPAN screen.",
-  notFoundHome: "Go to the dashboard",
+  notFoundHome: "Go to the home page",
 });

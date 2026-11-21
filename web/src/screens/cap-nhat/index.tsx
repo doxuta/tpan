@@ -3,7 +3,9 @@
 //   (a) Packages  gói của stack có bản mới       → nút "Cập nhật N gói"
 //   (b) Auto      bản vá bảo mật tự động         → nút "Bật bản vá tự động" khi chưa đạt
 //   (c) Mariadb   dòng MariaDB nâng lên được     → mỗi dòng một nút "Nâng lên <dòng>"
-//   (d) Self      cập nhật chính TPAN            → chỉ lệnh để tự gõ, không nút
+//   (d) Self      phiên bản và cập nhật TPAN     → khối dùng chung với màn Cài đặt (mục 6.14):
+//                                                  tự lấy GET /api/v1/self, có "Kiểm bản mới",
+//                                                  "Cập nhật lên <bản>" và "Quay về bản trước"
 // Ba việc đầu cùng một nhịp như màn SSL và Bảo mật: bấm → POST ?dry_run=1 trả
 // Preview → PlanReview → POST thật trả job_id → chuyển tới /jobs/:id. Một bản
 // xem trước tại một thời điểm, nằm dưới các khối. Máy chủ từ chối (409 kèm
@@ -17,6 +19,7 @@ import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, UpdateStatus } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/cap-nhat";
@@ -37,13 +40,17 @@ export default function UpdatesScreen() {
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
-      {q.isPending && <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>}
+      <ScreenHeader crumbs={[{ label: k.groups.may }, { label: t.title }]} title={t.title} summary={t.summary} />
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div className="pt-[26px]">
+        <Card>
           <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
           <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-        </div>
+        </Card>
       )}
       {q.isSuccess && <Loaded status={q.data} />}
     </>
@@ -114,7 +121,7 @@ function Loaded({ status }: { status: UpdateStatus }) {
       <Packages status={status} flow={flow} />
       <Auto status={status} flow={flow} />
       <Mariadb status={status.mariadb} flow={flow} />
-      <Self status={status.self} />
+      <Self />
 
       {open && (
         <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
