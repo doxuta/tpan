@@ -20,7 +20,7 @@ Thiết kế đầy đủ ở [docs/KE-HOACH.md](docs/KE-HOACH.md), mục 1 và 
 
 ## Ảnh
 
-Mọi ảnh dưới đây chụp từ `tpan serve --demo`: một máy giả có dữ liệu mẫu (tên máy `demo`, các site `*.example.*`), không phải máy thật. Chụp lại bằng `go run ./scripts/anh-readme`.
+Mọi ảnh dưới đây chụp từ `tpan serve --demo`: một máy giả có dữ liệu mẫu (tên máy `demo`, các site `*.example.*`), không phải máy thật. Giao diện là bản 2 (mốc M16). Chụp lại bằng `make anh-readme`; ảnh mọi màn ở sáng, tối và 390 px nằm ở `docs/bang-chung/M16/`.
 
 ![Bảng điều khiển](docs/anh/bang-dieu-khien.png)
 
@@ -32,7 +32,7 @@ Tạo site: bấm "Xem trước" thì thấy số bước sẽ chạy, bước b
 
 ![Trang một site đang có sự cố](docs/anh/site-su-co.png)
 
-Trang của một site: đường đi request, chặng hỏng, số request và lỗi 5xx trong một giờ, rồi từng phép kiểm theo chặng.
+Trang của một site, tab Tổng quan: đường đi request, chặng hỏng, số request và lỗi 5xx trong một giờ, sự cố của site. Từng phép kiểm theo chặng nằm ở tab Phép kiểm; còn các tab Log, PHP, Backup, Cài đặt site.
 
 ![Chi tiết một job](docs/anh/job.png)
 
