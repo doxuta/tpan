@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
-  do-giao-dien anh-m16 anh-xem anh-mau e2e-m16 lay-dev kieu-dang
+  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -83,14 +83,17 @@ do-giao-dien: web ## Đo từng màn trên máy demo (dài mấy màn hình, c�
 anh-m16: web ## Chụp mọi màn (sáng, tối, 390 px) vào docs/bang-chung/M16, kiểm lỗi console, bàn phím, tiếng Anh
 	$(ANH) -bo m16 -out docs/bang-chung/M16
 
+anh-readme: web ## Chụp lại bảy ảnh của README vào docs/anh (máy demo)
+	$(ANH) -bo readme -out docs/anh
+
 anh-xem: web ## Chụp nhanh vài màn của bộ m16 (CHI=cong-cu,nguoi-dung) vào OUT (mặc định tmp-phien/anh, không vào git) để soát giữa đợt
 	$(ANH) -bo m16 -out $(or $(OUT),tmp-phien/anh) -chi "$(CHI)"
 
 anh-mau: ## Chụp ba trang mẫu bản 2 vào thư mục OUT (mặc định tmp-phien/mau, không vào git), để đặt cạnh ảnh bản thật
 	$(ANH) -bo mau-v2 -out $(or $(OUT),tmp-phien/mau)
 
-e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: hai vai, tạo site từ giao diện, nâng từ v0.2.0)
-	bash scripts/e2e-m16.sh
+e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: hai vai, tạo site từ giao diện, nâng từ v0.2.0); log vào LOG (mặc định docs/bang-chung/M16.log)
+	E2E_LOG=$(or $(LOG),docs/bang-chung/M16.log) bash scripts/e2e-m16.sh > $(or $(LOG),docs/bang-chung/M16.log) 2>&1
 
 lay-dev: ## git fetch origin (trước khi ghép dev vào nhánh mốc)
 	git fetch origin

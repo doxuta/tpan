@@ -79,8 +79,10 @@ func (c *cdp) press(selector string) error {
 func tabWalk(c *cdp, f *m16Fail, what string) error {
 	const mark = `(()=>{
 		const vis = e => { const r=e.getBoundingClientRect(), s=getComputedStyle(e); return r.width>1 && r.height>1 && s.visibility!=='hidden' && s.display!=='none'; };
+		// role=tablist: khung RovingFocusGroup của Radix có tabindex=0 chỉ để chuyển focus ngay sang tab
+		// đang mở (tab đó đã nằm trong danh sách), nên bản thân khung không bao giờ giữ focus.
 		const all = [...document.querySelectorAll('main a[href], main button, main input, main select, main textarea, main [tabindex="0"]')]
-			.filter(e => vis(e) && !e.disabled && e.getAttribute('tabindex')!=='-1' && e.type!=='hidden');
+			.filter(e => vis(e) && !e.disabled && e.getAttribute('tabindex')!=='-1' && e.type!=='hidden' && e.getAttribute('role')!=='tablist');
 		all.forEach((e,i)=>e.setAttribute('data-tw', String(i)));
 		window.scrollTo(0,0);
 		if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
