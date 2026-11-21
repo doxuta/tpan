@@ -192,6 +192,9 @@ func (f *FakeSystem) OpenRead(p string) (io.ReadCloser, int64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	p = clean(p)
+	if _, _, ok := sitefs.Split(sitefs.Root, p); ok {
+		return nil, 0, &sitefs.Error{Op: "mở để đọc theo dòng", Path: p, Err: ErrZoneStream}
+	}
 	if err := f.failed("open", p); err != nil {
 		return nil, 0, err
 	}
@@ -216,6 +219,9 @@ func (f *FakeSystem) CreateFile(p string, perm fs.FileMode, owner Owner) (io.Wri
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	p = clean(p)
+	if _, _, ok := sitefs.Split(sitefs.Root, p); ok {
+		return nil, &sitefs.Error{Op: "tạo file để ghi theo dòng", Path: p, Err: ErrZoneStream}
+	}
 	if err := f.failed("write", p); err != nil {
 		return nil, err
 	}

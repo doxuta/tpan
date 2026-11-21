@@ -313,6 +313,9 @@ func (s *LocalSystem) WriteFileAtomic(path string, data []byte, perm fs.FileMode
 // ELOOP) rồi fstat trên chính fd đã mở: không có khoảng hở giữa lúc kiểm và
 // lúc đọc để ai tráo file.
 func (s *LocalSystem) OpenRead(path string) (io.ReadCloser, int64, error) {
+	if _, _, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return nil, 0, &sitefs.Error{Op: "mở để đọc theo dòng", Path: path, Err: ErrZoneStream}
+	}
 	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		if errors.Is(err, syscall.ELOOP) {
@@ -335,6 +338,9 @@ func (s *LocalSystem) OpenRead(path string) (io.ReadCloser, int64, error) {
 // CreateFile tạo file mới bằng O_CREAT|O_EXCL|O_NOFOLLOW (đã có, kể cả là
 // symlink, thì lỗi EEXIST), đặt quyền và chủ trên fd trước byte đầu tiên.
 func (s *LocalSystem) CreateFile(path string, perm fs.FileMode, owner Owner) (io.WriteCloser, error) {
+	if _, _, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return nil, &sitefs.Error{Op: "tạo file để ghi theo dòng", Path: path, Err: ErrZoneStream}
+	}
 	uid, gid, err := lookupOwner(owner)
 	if err != nil {
 		return nil, fmt.Errorf("tạo %s: %w", path, err)
