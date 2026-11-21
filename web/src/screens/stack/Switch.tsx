@@ -5,6 +5,7 @@
 // /jobs/:id. Máy chủ từ chối (409: stack_same_web, precondition_failed kèm
 // checks...) thì ErrorNote hiện câu của nó ngay dưới nút. Lệnh tương đương để
 // tự gõ nằm trong CommandBlock, có --dry-run nên chỉ xem trước.
+// Bản 2: một thẻ; bản xem trước (PlanReview, tự vẽ thẻ) nằm dưới thẻ.
 
 import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, StackStatus, StackSwitchBody } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { CommandBlock } from "../../components/CommandBlock";
 import { MonoText } from "../../components/MonoText";
 import { useLang, useStrings } from "../../i18n";
@@ -31,20 +33,17 @@ export function Switch() {
   const { lang } = useLang();
   const q = useQuery({ queryKey: stackKey, queryFn: () => get<StackStatus>("/api/v1/stack") });
 
+  if (q.isSuccess) return <Loaded status={q.data} />;
   return (
-    <section aria-labelledby="st-switch" className="pt-[26px]">
-      <h2 id="st-switch" className="m-0 pb-[10px] text-[16px] font-semibold">
-        {t.switchHeading}
-      </h2>
-      {q.isPending && <p className="m-0 border-t border-hair pt-[10px] text-muted">{k.loading}</p>}
+    <Card title={t.switchHeading} titleId="st-switch">
+      {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
       {q.isError && (
-        <div className="border-t border-hair pt-[10px]">
+        <div>
           <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
           <Button onClick={() => void q.refetch()}>{k.retry}</Button>
         </div>
       )}
-      {q.isSuccess && <Loaded status={q.data} />}
-    </section>
+    </Card>
   );
 }
 
@@ -99,31 +98,41 @@ function Loaded({ status }: { status: StackStatus }) {
     document.getElementById(buttonId)?.focus();
   }
 
-  if (!installed) return <p className="m-0 max-w-[720px] border-t border-hair pt-[10px] text-muted">{t.switchNotInstalled}</p>;
+  if (!installed) {
+    return (
+      <Card title={t.switchHeading} titleId="st-switch">
+        <p className="m-0 max-w-[72ch] text-muted">{t.switchNotInstalled}</p>
+      </Card>
+    );
+  }
 
   return (
     <>
-      <dl className="m-0 border-t border-hair pt-[12px]">
-        <dt className="m-0 font-mono text-[11px] font-normal tracking-[0.08em] text-muted uppercase">{t.switchCurrent}</dt>
-        <dd className="m-0 mt-[4px]">
-          <MonoText>{current}</MonoText>
-        </dd>
-      </dl>
+      <Card title={t.switchHeading} titleId="st-switch">
+        <div className="flex flex-col gap-[16px]">
+          <dl className="m-0">
+            <dt className="m-0 text-[12px] font-medium text-muted">{t.switchCurrent}</dt>
+            <dd className="m-0 mt-[4px]">
+              <MonoText>{current}</MonoText>
+            </dd>
+          </dl>
 
-      <p className="mt-[14px] mb-[12px] max-w-[720px]">{t.switchHint(current, target)}</p>
-      <Button id={buttonId} onClick={start} disabled={dry.isPending || run.isPending}>
-        {dry.isPending ? t.previewing : t.switchTo(target)}
-      </Button>
-      <p className="mt-[10px] mb-0 max-w-[720px] text-muted">{t.previewHint}</p>
+          <p className="m-0 max-w-[72ch]">{t.switchHint(current, target)}</p>
+          <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px]">
+            <Button id={buttonId} onClick={start} disabled={dry.isPending || run.isPending}>
+              {dry.isPending ? t.previewing : t.switchTo(target)}
+            </Button>
+            <span className="text-muted">{t.previewHint}</span>
+          </div>
 
-      {dry.isError && (
-        <div className="pt-[12px]">
-          <ErrorNote error={dry.error} heading={t.switchPreviewError(target)} checksHeading={t.checksHeading} />
+          {dry.isError && <ErrorNote error={dry.error} heading={t.switchPreviewError(target)} checksHeading={t.checksHeading} />}
+
+          <div className="flex flex-col gap-[10px]">
+            <p className="m-0 max-w-[72ch]">{t.switchCommandHint}</p>
+            <CommandBlock commands={[t.switchCommand(target)]} />
+          </div>
         </div>
-      )}
-
-      <p className="mt-[14px] mb-[10px] max-w-[720px]">{t.switchCommandHint}</p>
-      <CommandBlock commands={[t.switchCommand(target)]} />
+      </Card>
 
       {open && (
         <div ref={previewRef} tabIndex={-1} className="outline-offset-0">

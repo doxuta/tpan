@@ -5,6 +5,7 @@
 // → PlanReview → POST thật → /jobs/:id. Một bản xem trước tại một thời điểm,
 // nằm dưới bảng. Máy chủ từ chối (409 kèm checks, ví dụ php_in_use) thì ErrorNote
 // hiện câu của nó ngay dưới bảng.
+// Bản 2: bảng trong thẻ (TableList), các ghi chú nằm ở chân bảng.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +15,9 @@ import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, PHPList, PHPSupport, PHPVersionRow, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Icon } from "../../components/Icon";
+import { Code } from "../../components/MonoText";
 import { TableList } from "../../components/TableList";
 import { Tag } from "../../components/Tag";
 import { useLang, useStrings } from "../../i18n";
@@ -29,20 +33,17 @@ export function Php() {
   const { lang } = useLang();
   const q = useQuery({ queryKey: phpKey, queryFn: () => get<PHPList>("/api/v1/php") });
 
+  if (q.isSuccess) return <Loaded list={q.data} />;
   return (
-    <section aria-labelledby="st-php" className="pt-[26px] pb-[8px]">
-      <h2 id="st-php" className="m-0 pb-[10px] text-[16px] font-semibold">
-        {t.phpHeading}
-      </h2>
-      {q.isPending && <p className="m-0 border-t border-hair pt-[10px] text-muted">{k.loading}</p>}
+    <Card title={t.phpHeading} titleId="st-php">
+      {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
       {q.isError && (
-        <div className="border-t border-hair pt-[10px]">
+        <div>
           <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
           <Button onClick={() => void q.refetch()}>{k.retry}</Button>
         </div>
       )}
-      {q.isSuccess && <Loaded list={q.data} />}
-    </section>
+    </Card>
   );
 }
 
@@ -108,27 +109,48 @@ function Loaded({ list }: { list: PHPList }) {
 
   const busy = dry.isPending || run.isPending;
 
+  // Ghi chú ở chân bảng: cách dùng hai nút, rồi hai lời báo khi thiếu dữ liệu ngoài.
+  const notes = [
+    versions.length > 0 ? `${t.actionHint} ${t.previewHint}` : null,
+    list.notes_ok ? null : t.notesMissing,
+    list.sury_enabled ? null : t.suryOff,
+  ].filter((n): n is string => n !== null);
+
   return (
     <>
       <TableList
+        title={t.phpHeading}
+        titleId="st-php"
         caption={t.phpTable}
+        minWidth={860}
         rows={versions}
         rowKey={(r) => r.version}
         empty={t.phpEmpty}
+        footer={
+          notes.length > 0 ? (
+            <div className="flex max-w-[72ch] flex-col gap-[4px]">
+              {notes.map((n) => (
+                <span key={n}>{n}</span>
+              ))}
+            </div>
+          ) : undefined
+        }
         columns={[
           {
             header: t.colVersion,
-            className: "whitespace-nowrap",
             cell: (r) => (
               <span className="inline-flex flex-wrap items-baseline gap-x-[8px] gap-y-[4px]">
-                <span className="font-mono text-[13px] font-semibold">{r.version}</span>
+                <span className="font-semibold">
+                  <Code>{r.version}</Code>
+                </span>
                 {r.default && <Tag>{t.defaultTag}</Tag>}
               </span>
             ),
           },
-          { header: t.colInstalled, className: "whitespace-nowrap", cell: (r) => (r.installed ? t.installed : <span className="text-muted">{t.notInstalledPhp}</span>) },
+          { header: t.colInstalled, cell: (r) => (r.installed ? t.installed : <span className="text-muted">{t.notInstalledPhp}</span>) },
           {
             header: t.colSites,
+            nowrap: false,
             className: "min-w-[110px]",
             cell: (r) => <SitesCell row={r} open={expanded.has(r.version)} onToggle={() => toggleSites(r.version)} />,
           },
@@ -140,21 +162,25 @@ function Loaded({ list }: { list: PHPList }) {
           },
           {
             header: t.colAction,
-            className: "whitespace-nowrap",
+            align: "right",
             cell: (r) => {
               const canRemove = r.installed && !r.default && (r.sites ?? []).length === 0;
               if (r.installed && !canRemove) return null;
               const action = r.installed ? removeAction(r.version) : installAction(r.version);
               const pending = dry.isPending && dry.variables.id === action.id;
               return (
-                <Button
-                  id={`act-${action.id}`}
-                  aria-label={pending ? undefined : r.installed ? t.removeLabel(r.version) : t.installLabel(r.version)}
-                  onClick={() => start(action)}
-                  disabled={busy}
-                >
-                  {pending ? t.previewing : r.installed ? t.remove : t.install}
-                </Button>
+                <div className="flex justify-end">
+                  <Button
+                    id={`act-${action.id}`}
+                    variant="text"
+                    aria-label={pending ? undefined : r.installed ? t.removeLabel(r.version) : t.installLabel(r.version)}
+                    onClick={() => start(action)}
+                    disabled={busy}
+                    className="px-[12px]"
+                  >
+                    {pending ? t.previewing : r.installed ? t.remove : t.install}
+                  </Button>
+                </div>
               );
             },
           },
@@ -162,14 +188,10 @@ function Loaded({ list }: { list: PHPList }) {
       />
 
       {dry.isError && (
-        <div className="pt-[12px]">
+        <Card>
           <ErrorNote error={dry.error} heading={t.previewError(dry.variables.body.version, dry.variables.kind === "install")} checksHeading={t.checksHeading} />
-        </div>
+        </Card>
       )}
-
-      {versions.length > 0 && <p className="mt-[10px] mb-0 max-w-[720px] text-muted">{t.actionHint} {t.previewHint}</p>}
-      {!list.notes_ok && <p className="mt-[6px] mb-0 max-w-[720px] text-muted">{t.notesMissing}</p>}
-      {!list.sury_enabled && <p className="mt-[6px] mb-0 max-w-[720px] text-muted">{t.suryOff}</p>}
 
       {open && (
         <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
@@ -188,24 +210,23 @@ function SitesCell({ row, open, onToggle }: { row: PHPVersionRow; open: boolean;
   const listId = `st-sites-${row.version.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant="text"
+        size="sm"
         aria-expanded={open}
-        aria-controls={listId}
+        aria-controls={open ? listId : undefined}
         aria-label={t.sitesToggle(row.version, sites.length, open)}
         onClick={onToggle}
-        className="inline-flex min-h-[44px] items-center gap-[6px] bg-transparent p-0 text-ink underline sm:min-h-0"
+        className="px-[8px]"
       >
         <span className="tabular-nums">{sites.length}</span>
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`flex-none text-muted ${open ? "rotate-180" : ""}`}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
+        <Icon name="chevron-down" size={16} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </Button>
       {open && (
         <ul id={listId} aria-label={t.sitesList(row.version)} className="m-0 mt-[6px] list-none p-0">
           {sites.map((d) => (
-            <li key={d} className="py-[2px]">
-              <Link to={`/sites/${encodeURIComponent(d)}`} className="font-mono text-[13px] text-ink no-underline hover:text-ink hover:underline">
+            <li key={d} className="py-[2px] [overflow-wrap:anywhere]">
+              <Link to={`/sites/${encodeURIComponent(d)}`} className="no-underline hover:underline">
                 {d}
               </Link>
             </li>
@@ -232,7 +253,7 @@ function Support({ support }: { support?: PHPSupport }) {
   return (
     <>
       <span>{label}</span>
-      {dates.length > 0 && <span className="block text-[13px] text-muted tabular-nums">{dates.join(" · ")}</span>}
+      {dates.length > 0 && <span className="block text-[12.5px] text-muted tabular-nums">{dates.join(" · ")}</span>}
     </>
   );
 }

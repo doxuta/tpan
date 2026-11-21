@@ -24,6 +24,7 @@ const vi = {
   edit: "Sửa",
   remove: "Xoá",
   forPackage: (what: string, name: string) => `${what}: ${name}`,
+  moreFor: (name: string, items: string) => `Việc khác với ${name}: ${items}`,
 
   addTitle: "Thêm gói",
   addConfirm: "Thêm gói",
@@ -73,6 +74,7 @@ export const strings = defineStrings(vi, {
   edit: "Edit",
   remove: "Delete",
   forPackage: (what, name) => `${what}: ${name}`,
+  moreFor: (name, items) => `More actions for ${name}: ${items}`,
 
   addTitle: "Add package",
   addConfirm: "Add package",
