@@ -18,7 +18,10 @@ ListenStream=/run/tpan-cage/7653e4959f8eac25/php.sock
 SocketUser=www-data
 SocketGroup=www-data
 SocketMode=0660
-DirectoryMode=0755
+# 0711: web server chỉ cần đi qua thư mục tới socket. Không ai ngoài root liệt
+# kê được /run/tpan-cage, nên không đếm được số site trong lồng hay đọc ra phần
+# băm của từng tên miền (soát cuối M17, L6; /proc/net/unix vẫn lộ phần băm).
+DirectoryMode=0711
 RemoveOnStop=yes
 
 [Install]

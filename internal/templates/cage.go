@@ -156,7 +156,7 @@ func CageSlice(l site.Layout, lim account.Limits) ([]byte, error) {
 
 // CageSocketUnit sinh tpan-cage-<slug>-php.socket đúng như mục 3.3: dòng
 // ExecStartPre=- với CageMySQLDirCmd, ListenStream=l.CageSocket(),
-// SocketUser/SocketGroup www-data, SocketMode=0660, DirectoryMode=0755,
+// SocketUser/SocketGroup www-data, SocketMode=0660, DirectoryMode=0711,
 // RemoveOnStop=yes, [Install] WantedBy=sockets.target.
 func CageSocketUnit(l site.Layout) ([]byte, error) {
 	d, err := cageDataOf(l)

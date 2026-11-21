@@ -172,7 +172,7 @@ func TestCageKeyDirectives(t *testing.T) {
 			"ExecStartPre=-/usr/bin/install -d -m 0755 -o mysql -g root /run/mysqld",
 			"ListenStream=" + sock,
 			"SocketUser=www-data", "SocketGroup=www-data", "SocketMode=0660",
-			"DirectoryMode=0755", "RemoveOnStop=yes", "[Install]", "WantedBy=sockets.target",
+			"DirectoryMode=0711", "RemoveOnStop=yes", "[Install]", "WantedBy=sockets.target",
 		},
 		"service": {
 			"StartLimitIntervalSec=30", "StartLimitBurst=10", "RequiresMountsFor=" + l.Dir,
