@@ -9,6 +9,7 @@ import (
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
+	"github.com/doxuta/tpan/internal/validate"
 )
 
 // Output mẫu trong file này viết theo tài liệu của systemd (systemctl show,
@@ -166,12 +167,32 @@ const (
 	rtFenceTime = "1699999000"
 )
 
-const rtMountOK = `20 1 0:30 / /var rw,relatime - tmpfs tmpfs rw
+// rtMountOK là mountinfo của tiến trình chính của lồng shop.example.com (mọi
+// test cage.runtime dùng site này). Hai dòng cuối là passwd, group riêng gắn
+// lên /etc/passwd, /etc/group, dạng thật lấy từ máy ảo M17.
+var rtMountOK = func() string {
+	d, _ := validate.ParseDomain("shop.example.com")
+	l := site.LayoutOf(d)
+	return `20 1 0:30 / /var rw,relatime - tmpfs tmpfs rw
 21 1 0:31 / /run rw,nosuid - tmpfs tmpfs rw
 22 1 0:32 / /etc/tpan ro,relatime - tmpfs tmpfs ro
 23 21 8:1 /mysqld /run/mysqld ro,relatime - ext4 /dev/sda1 rw
 24 21 0:25 /systemd/resolve /run/systemd/resolve ro,relatime - tmpfs tmpfs rw
+25 1 8:1 ` + l.CagePasswd() + ` /etc/passwd ro,nosuid,relatime shared:382 master:1 - ext4 /dev/sda1 rw
+26 1 8:1 ` + l.CageGroup() + ` /etc/group ro,nosuid,relatime shared:383 master:1 - ext4 /dev/sda1 rw
 `
+}()
+
+// cageDropLine bỏ mọi dòng có chứa sub.
+func cageDropLine(s, sub string) string {
+	var out []string
+	for _, ln := range strings.SplitAfter(s, "\n") {
+		if !strings.Contains(ln, sub) {
+			out = append(out, ln)
+		}
+	}
+	return strings.Join(out, "")
+}
 
 // setProc đặt một tiến trình giả trong /proc.
 func setProc(f *system.FakeSystem, pid int, uid, cgroup string) {
@@ -304,6 +325,17 @@ func TestCageRuntimeFail(t *testing.T) {
 		{"/run/systemd/resolve trỏ vào thư mục đã xoá", func(f *system.FakeSystem) {
 			f.SetFile(mainFile("mountinfo"), []byte(strings.Replace(rtMountOK, "/systemd/resolve /run", "/systemd/resolve//deleted /run", 1)), 0o444, system.Root)
 		}, "/run/systemd/resolve trỏ vào thư mục đã bị xoá"},
+		// useradd, userdel trên máy thay /etc/passwd bằng rename: kernel gỡ dòng
+		// gắn trong namespace của dịch vụ đang chạy (e2e M17).
+		{"mất dòng gắn passwd riêng", func(f *system.FakeSystem) {
+			f.SetFile(mainFile("mountinfo"), []byte(cageDropLine(rtMountOK, " /etc/passwd ")), 0o444, system.Root)
+		}, "không còn dòng gắn " + l.CagePasswd() + " lên /etc/passwd"},
+		{"mất dòng gắn group riêng", func(f *system.FakeSystem) {
+			f.SetFile(mainFile("mountinfo"), []byte(cageDropLine(rtMountOK, " /etc/group ")), 0o444, system.Root)
+		}, "không còn dòng gắn " + l.CageGroup() + " lên /etc/group"},
+		{"/etc/passwd gắn từ file của site khác", func(f *system.FakeSystem) {
+			f.SetFile(mainFile("mountinfo"), []byte(strings.Replace(rtMountOK, l.CagePasswd(), "/etc/tpan/cage/other_123456/passwd", 1)), 0o444, system.Root)
+		}, "không còn dòng gắn " + l.CagePasswd()},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

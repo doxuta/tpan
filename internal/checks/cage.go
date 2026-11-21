@@ -302,7 +302,8 @@ func cageUnixTime(s string) (int64, bool) {
 // /proc/<pid>/status có "NoNewPrivs:\t1" và CapEff bằng 0; /proc/<pid>/cgroup
 // nằm dưới tpan-<slug>.slice; /proc/<pid>/mountinfo có tmpfs ở /var, /run,
 // /etc/tpan, có dòng gắn /run/mysqld (chỉ đòi khi `systemctl is-active mariadb`
-// là active) và dòng gắn /run/systemd/resolve không mang "//deleted". Sai một
+// là active), dòng gắn /run/systemd/resolve không mang "//deleted", và hai dòng
+// gắn passwd, group riêng của lồng lên /etc/passwd, /etc/group. Sai một
 // điều: Fail. /proc/<pid>/exe (Readlink) kết thúc bằng " (deleted)", hoặc
 // `systemctl show --timestamp=unix -p ActiveEnterTimestamp` sớm hơn
 // `stat -c %Y <l.CageFence()>`: Warn. Sửa tự động: cage.restart.
@@ -472,7 +473,7 @@ func cageInspectMain(ctx context.Context, sys system.System, l site.Layout, pid,
 	if mi, ok := read("mountinfo"); ok {
 		ms := cageParseMounts(mi)
 		var shown []string
-		for _, p := range []string{"/var", "/run", "/etc/tpan", "/run/mysqld", "/run/systemd/resolve"} {
+		for _, p := range []string{"/var", "/run", "/etc/tpan", "/run/mysqld", "/run/systemd/resolve", "/etc/passwd", "/etc/group"} {
 			for _, m := range cageMountsAt(ms, p) {
 				shown = append(shown, m.point+" "+m.fstype+" root="+m.root)
 			}
@@ -499,6 +500,21 @@ func cageInspectMain(ctx context.Context, sys system.System, l site.Layout, pid,
 		if cageDeleted(cageMountsAt(ms, "/run/systemd/resolve")) {
 			fails.add("dòng gắn /run/systemd/resolve trỏ vào thư mục đã bị xoá (//deleted): site không phân giải được tên miền",
 				"the /run/systemd/resolve mount points at a deleted directory (//deleted): the site cannot resolve names")
+		}
+		// passwd, group riêng của lồng: useradd, userdel, usermod -aG trên máy
+		// thay /etc/passwd, /etc/group bằng rename, và kernel gỡ mọi lần gắn
+		// file lên đúng chỗ đó trong mount namespace khác. Dịch vụ đang chạy
+		// từ trước lúc đó thấy lại passwd của cả máy (tên user tp_* của mọi
+		// site), trong khi lệnh mới trong lồng (cage.fence) vẫn thấy bản riêng.
+		for _, f := range []struct{ point, src string }{{"/etc/passwd", l.CagePasswd()}, {"/etc/group", l.CageGroup()}} {
+			ok := false
+			for _, m := range cageMountsAt(ms, f.point) {
+				ok = ok || m.root == f.src
+			}
+			if !ok {
+				fails.add("tiến trình chính không còn dòng gắn "+f.src+" lên "+f.point+" (user hay nhóm trên máy vừa đổi sau khi lồng khởi động): mã của site đọc được "+f.point+" của cả máy",
+					"the main process no longer has "+f.src+" mounted on "+f.point+" (a user or group changed on the machine after the cage started): the site's code can read the machine's "+f.point)
+			}
 		}
 	}
 
