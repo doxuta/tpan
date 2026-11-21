@@ -130,9 +130,13 @@ deploy_bin() {
     fi
     TPAN_VM_CAPTURE= "$VM" deploy </dev/null >/dev/null 2>&1
   else
+    # Bản build sẵn do BIN chỉ ra: bản chưa vá lúc đo trước khi vá, hay bản
+    # cố định của cây lúc chạy bằng chứng cuối. Dòng "tpan version" in ngay sau
+    # cho biết đúng commit. (Log M28.log ngày 21/11 còn nhãn cũ "bản chưa vá"
+    # cho cả bản vá: nhãn sai, commit in ở dòng sau mới đúng.)
     local bin="$BIN_PREFIX-$ARCH"
-    printf '[%s] chép bản chưa vá %s vào máy ảo\n' "$(ts)" "$bin"
-    [ -f "$bin" ] || { echo "Chưa có $bin (chạy: make m28-giu-ban-chua-va)"; return 1; }
+    printf '[%s] chép bản build sẵn %s vào máy ảo\n' "$(ts)" "$bin"
+    [ -f "$bin" ] || { echo "Chưa có $bin (build ở đúng commit cần đo rồi chép thành tên đó)"; return 1; }
     "$VM" push "$bin" /tmp/tpan-m28 </dev/null >/dev/null 2>&1
     "$VM" root install -m 0755 /tmp/tpan-m28 /usr/local/bin/tpan </dev/null >/dev/null 2>&1
   fi

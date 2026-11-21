@@ -9,7 +9,7 @@ LDFLAGS := -s -w \
   -X $(MODULE)/internal/buildinfo.Date=$(DATE)
 
 .DEFAULT_GOAL := help
-.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell m28-nghien-cuu m28-giu-ban-chua-va e2e-m28 m28-test-vm hoi-quy-m28 clean
+.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 clean
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -81,11 +81,14 @@ vm-shell: ## Mở shell trong máy ảo test
 m28-nghien-cuu: ## (M28) Chạy một bản thử ở docs/bang-chung/M28-nghien-cuu trên máy ảo: make m28-nghien-cuu T=<tên>
 	bash docs/bang-chung/M28-nghien-cuu/chay.sh '$(T)' '$(A)' '$(S)'
 
-# Tạm (M28): giữ một bản build của mã chưa vá để e2e chạy thử trên nó trong lúc
-# phiên chính sửa mã. bin/ không vào git.
-m28-giu-ban-chua-va: build-linux
-	cp bin/tpan-linux-arm64 bin/tpan-truoc-ban-va-linux-arm64
-	cp bin/tpan-linux-amd64 bin/tpan-truoc-ban-va-linux-amd64
+# (M28) Giữ bản build của cây lúc này dưới tên bin/tpan-$(TEN)-linux-<kiến trúc>,
+# để e2e chạy đúng bản đó (make e2e-m28 B=0 BIN=bin/tpan-$(TEN)-linux) trong lúc
+# cây tiếp tục đổi: bản chưa vá lúc đo trước khi vá (TEN=truoc-ban-va), bản cố
+# định lúc chạy bằng chứng cuối (TEN=m28-e2e). bin/ không vào git.
+m28-giu-ban: TEN ?= m28-e2e
+m28-giu-ban: build-linux ## (M28) Giữ bản build của cây dưới tên khác: make m28-giu-ban TEN=<tên>
+	cp bin/tpan-linux-arm64 bin/tpan-$(TEN)-linux-arm64
+	cp bin/tpan-linux-amd64 bin/tpan-$(TEN)-linux-amd64
 
 # e2e bước 31 của M28. P: các phần (mặc định chinh). L: file log. B: build hay
 # không (E2E_BUILD, mặc định 1). BIN: tiền tố file chạy (E2E_BIN_PREFIX).
