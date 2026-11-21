@@ -221,6 +221,14 @@ type Planned struct {
 	// owner (M13) khác rỗng thì job ghi chủ này (engine.WithOwner): dùng cho
 	// Plan tạo một thứ chưa có dòng trong bảng lúc job bắt đầu (DB rời mới).
 	owner string
+	// remoteLock (M18) khác nil thì Execute giữ khoá này (chờ tối đa
+	// remoteWait) từ trước engine tới sau after: đặt, gỡ đích và sinh khoá
+	// sao lưu không được chạy xen giữa một lượt đẩy (R4 của bản soát hẹp).
+	// Thứ tự luôn là khoá lượt đẩy rồi khoá job; lượt đẩy không bao giờ lấy
+	// khoá job, nên không có khoá chéo. Không đặt cho job đẩy, tải, gói: các
+	// job đó chạy dưới khoá mà Sync hay Pull đã giữ.
+	remoteLock system.Locker
+	remoteWait time.Duration
 }
 
 // newPlanned dựng Planned. journal nil chỉ dùng được cho Preview.
@@ -241,6 +249,16 @@ func (p *Planned) Execute(ctx context.Context, onEvent func(engine.Event)) (engi
 	}
 	if p.owner != "" {
 		ctx = engine.WithOwner(ctx, p.owner)
+	}
+	if p.remoteLock != nil {
+		unlock, ok, err := p.remoteLock.Acquire(ctx, p.remoteWait)
+		if err != nil {
+			return engine.Report{}, fmt.Errorf("%s: lấy khoá lượt đẩy: %w", p.Plan.Kind, err)
+		}
+		if !ok {
+			return engine.Report{}, fmt.Errorf("%s: một lượt đẩy lên kho đang chạy quá %s; thử lại sau", p.Plan.Kind, p.remoteWait)
+		}
+		defer unlock()
 	}
 	rep, err := engine.New(p.sys, engine.Options{Journal: p.journal, OnEvent: onEvent}).Execute(ctx, p.Plan)
 	if err != nil {
