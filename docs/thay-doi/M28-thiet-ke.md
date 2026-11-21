@@ -257,7 +257,7 @@ Bằng chứng và log job (`GET /jobs/{id}`, SSE): nội dung file không đi q
 | T19 | `core.Sites.drift`: `pathExists(wp-config.php)` | `public/wp-config.php` | site ghi được | lstat đi theo `public` | qua cửa | `TestVungSiteCaHaiBan/stat` |
 | T20 | `checks.siteStat` (health): `Stat` các file của site | `public/...` | site ghi được | lstat đi theo `public` | qua cửa | `TestVungSiteCaHaiBan/stat` |
 | T21 | `steps.backupPublic`: `Stat(<neo>/public)` | `public` | site ghi được | lstat, đúng | qua cửa; neo là symlink thì từ chối (S11, mục 6) | `TestVungSiteCaHaiBan/stat` |
-| T22 | `checks.ScanHtaccess`: `head` dưới user site | `public/**/.htaccess` | site ghi được | FIFO làm chờ 10 giây và để lại tiến trình (S1) | `dd iflag=nonblock`; `Run` giết cả nhóm tiến trình khi hết hạn | `TestLenhRootHuyKhongDeLaiTienTrinh`, `TestScanHtaccessFIFO` |
+| T22 | `checks.ScanHtaccess`: `head` dưới user site | `public/**/.htaccess` | site ghi được | FIFO làm chờ 10 giây và để lại tiến trình (S1) | `dd iflag=nonblock`; `Run` giết cả nhóm tiến trình khi hết hạn | `TestLenhRootHuyKhongDeLaiTienTrinh`, `TestScanHtaccess` (argv có `iflag=nonblock`), e2e A5 biến thể đua FIFO |
 
 `StepInfo.Files` trong toàn bộ mã: `File` (đường dẫn do người dựng Plan đưa), `Absent`, `apt_m12`, `php_m12`, `suspend`, `harden_m14`. Chỉ một chỗ đưa đường dẫn trong vùng site: `SiteHtaccess` (`site_web.go:129`). Các đường dẫn còn lại đều dưới `/etc`, `/var/lib/tpan`, `/usr/local` (TPAN quản).
 
