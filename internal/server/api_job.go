@@ -262,7 +262,8 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, r, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, p)
+		// d đã qua siteCreateOwner: site mới (hay site của chính người gọi).
+		s.writePreview(w, r, p, d)
 		return
 	}
 
@@ -318,7 +319,7 @@ func (s *Server) handleSiteDelete(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, r, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, p)
+		s.writePreview(w, r, p)
 		return
 	}
 

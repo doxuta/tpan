@@ -192,6 +192,12 @@ func (s *Server) handleSecurityHarden(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, r, err)
 			return
 		}
+		// Route chỉ cho admin nên lọc không đổi gì; vẫn đi qua để luật "mọi
+		// bản xem trước qua filterPreview" không có ngoại lệ (B12).
+		if err := s.filterPreview(r, &pv); err != nil {
+			apiFail(w, r, err)
+			return
+		}
 		kept := apiNonNil(h.Kept)
 		for i := range kept {
 			kept[i].Findings = apiNonNil(kept[i].Findings)

@@ -59,7 +59,7 @@ func (s *Server) planJobKick(w http.ResponseWriter, r *http.Request, o jobOpts, 
 			apiFail(w, r, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, pv)
+		s.writePreview(w, r, pv)
 		return
 	}
 
