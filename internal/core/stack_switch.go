@@ -101,6 +101,7 @@ import (
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/sitefs"
 	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
 )
@@ -423,6 +424,16 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 // độ .htaccess "tat" (harden_m14.go). Người gọi tự bỏ qua site ở chế độ "tat":
 // hàm này không biết chế độ của site.
 func htaccessIfMissing(sys system.System, l site.Layout, public string) (engine.Step, error) {
+	// public trong thùng rác nằm ngoài vùng site nên không qua cửa sitefs, mà
+	// một tiến trình còn sống của site vẫn đổi được nó thành symlink: Stat bên
+	// dưới khi đó đi theo symlink và cho biết một thư mục bất kỳ có .htaccess
+	// hay không (soát cuối M28, C7). Đòi public là thư mục thật trước. (Với
+	// l.Public, cửa của System đã từ chối thư mục cha là symlink.)
+	if fi, err := sys.Stat(public); err == nil && fi.Mode&fs.ModeSymlink != 0 {
+		return nil, &sitefs.Error{Op: "kiểm", Path: public, Err: sitefs.ErrSymlink}
+	} else if err == nil && !fi.Mode.IsDir() {
+		return nil, fmt.Errorf("kiểm .htaccess của %s: %s không phải thư mục", l.Domain, public)
+	}
 	_, err := sys.Stat(public + "/.htaccess")
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
