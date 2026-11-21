@@ -96,6 +96,13 @@ const (
 	SettingS3PanelLast      = "s3.panel_last"
 	SettingS3PanelError     = "s3.panel_error"
 	SettingS3PanelDue       = "s3.panel_due" // "1": cần gói panel mới
+	// Nhịp lùi riêng của gói panel (R3 của bản soát hẹp): gói hỏng vì lý do
+	// bất kỳ thì lùi theo RemoteBackoff, để không chụp lại tpan.db mỗi 2 phút.
+	SettingS3PanelFailures = "s3.panel_failures"
+	SettingS3PanelRetryAt  = "s3.panel_retry_at" // RFC 3339
+	// SettingS3RelinkDue "1": đích vừa đổi, còn phải nối lại các dòng stored
+	// ở đích cũ (R5): nối lại hỏng thì chạy lại `target set` sẽ nối tiếp.
+	SettingS3RelinkDue = "s3.relink_due"
 )
 
 // Mã từ chối mới của M18 (mục 3.14). Mã s3_* nằm ở gói s3 (s3.Code*).
@@ -136,6 +143,10 @@ type RemoteStore interface {
 	ForgetBackupRemote(ctx context.Context, id string) (deleted bool, err error)
 	SetBackupRemoteTarget(ctx context.Context, id, targetID string) error
 	AppliedMigrations(ctx context.Context) ([]int, error)
+	// AbortStaleJobs đóng job các loại kinds còn running (R12): lượt đẩy gọi
+	// lúc đang giữ khoá lượt đẩy, nên job đẩy, tải, gói nào còn running là của
+	// tiến trình đã chết.
+	AbortStaleJobs(ctx context.Context, kinds []string, reason string) (int, error)
 }
 
 // Remote gom các ca sử dụng của kho S3. Dựng mới cho mỗi lệnh hay request.
