@@ -104,7 +104,7 @@ export function usePreviewedOp(invalidate: readonly QueryKey[]) {
   const panel: ReactNode = (
     <>
       {errorShown && asked && (
-        <div ref={resultRef} tabIndex={-1} className="pt-[20px] outline-offset-0">
+        <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
           <ErrorNote error={dry.error} heading={asked.op.errorHeading} checksHeading={m.checksHeading} />
           <div className="pt-[12px]">
             <Button onClick={close}>{k.cancel}</Button>
@@ -114,7 +114,7 @@ export function usePreviewedOp(invalidate: readonly QueryKey[]) {
       {open && (
         <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
           {open.op.warning && (
-            <p role="alert" className="m-0 max-w-[720px] pt-[26px] font-semibold">
+            <p role="alert" className="m-0 mb-[12px] max-w-[72ch] font-semibold">
               {open.op.warning}
             </p>
           )}

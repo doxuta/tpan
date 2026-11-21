@@ -22,7 +22,7 @@ export function SelfRollback() {
   const error = start.isError ? start.error : preview.isError ? preview.error : null;
 
   return (
-    <div className="mt-[18px] border-t border-hair pt-[14px]">
+    <div className="border-t border-hair pt-[16px]">
       <Button
         disabled={preview.isPending || start.isPending}
         onClick={() => {

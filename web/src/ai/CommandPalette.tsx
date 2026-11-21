@@ -1,9 +1,11 @@
-// Thanh lệnh ⌘K (mục 10, màn 11 của KE-HOACH.md). Mở từ mọi màn, dùng hoàn toàn
+// Thanh lệnh ⌘K (mục 10, màn 11 của KE-HOACH.md; kiểu dáng bản 2: khung bo
+// 10 px, bóng của lớp nổi, lớp phủ --scrim). Mở từ mọi màn, dùng hoàn toàn
 // bằng bàn phím: gõ để lọc, ↑ ↓ để đổi dòng, Enter để chạy, Esc để đóng.
 //
 // Hai việc:
 //   - gõ tên lệnh: danh sách lọc theo chữ (bỏ dấu, nên "tao site" tìm ra "Tạo site");
-//     lệnh là mở từng màn có trong routes.tsx, và mở hoặc đóng ngăn AI;
+//     lệnh là mở từng màn có trong routes.tsx, mở trang của từng site đang chạy
+//     ("Site: <tên miền>", lấy từ overview), và mở hoặc đóng ngăn AI;
 //   - gõ một câu không khớp lệnh nào rồi Enter: mở ngăn AI với câu đó làm câu hỏi.
 //     Ngăn chỉ điền câu và hiện nội dung sẽ gửi; người bấm Gửi (nguyên tắc 3, mục 8.1).
 //
@@ -20,14 +22,18 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router";
 import { useWho } from "../api/m13-users";
+import { useOverview } from "../api/queries";
+import { Code } from "../components/MonoText";
 import { useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/ai";
-import { screens } from "../routes";
+import { returnFocus } from "../components/focusReturn";
+import { menuPath, screens } from "../routes";
 import { useAi } from "./AiProvider";
 import { useWide } from "./platform";
 import { viewLabel } from "./views";
 
-type Command = { id: string; label: string; hint: string; run: () => void };
+/** hint: chữ phụ bên phải dòng; code: hint là đường dẫn (vẽ mono), không phải câu văn. */
+type Command = { id: string; label: string; hint: string; code?: boolean; run: () => void };
 
 /** Bỏ dấu và hạ chữ thường, để gõ không dấu vẫn khớp. "đ" không tách được bằng NFD nên đổi riêng. */
 function fold(s: string): string {
@@ -47,6 +53,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const { isAdmin } = useWho();
   const navigate = useNavigate();
   const wide = useWide();
+  // Cùng khoá với khung trang (queryKeys.overview) nên không gọi API thêm. User thường chỉ thấy site của mình.
+  const sites = useOverview().data?.sites;
   const listId = useId();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -62,18 +70,37 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
   const commands = useMemo<Command[]>(() => {
     // Mọi màn không có tham số trong đường dẫn: mở được mà không cần biết domain hay id.
+    // Mục menu đi theo vai (menuPath: Bảng điều khiển của user thường là /dashboard);
+    // /dashboard tự nó không thành một dòng nữa, để không có hai dòng cùng tên (M16, mục 3.6).
     const routes = screens
-      .filter((s) => s.load !== undefined && !s.bare && !s.path.includes(":") && (isAdmin || !s.admin))
+      .filter((s) => s.load !== undefined && !s.bare && !s.path.includes(":") && s.path !== "/dashboard" && (isAdmin || !s.admin))
       .map<Command>((s) => {
-        const name = viewLabel(s.path, lang);
+        const path = menuPath(s, isAdmin);
+        const name = viewLabel(path, lang);
         return {
-          id: s.path,
-          label: s.path === "/sites/new" ? t.paletteCreateSite : t.paletteOpen(name),
-          hint: s.path,
+          id: path,
+          label: path === "/sites/new" ? t.paletteCreateSite : t.paletteOpen(name),
+          hint: path,
+          code: true,
           run: () => {
             // Ngăn phủ kín màn hẹp: đóng lại, nếu không người dùng không thấy mục vừa mở.
             if (!wide) ai.setOpen(false);
-            navigate(s.path);
+            navigate(path);
+          },
+        };
+      });
+    // Mỗi site đang chạy một dòng "Site: <tên miền>", đi tới trang của site đó.
+    const siteRows = (sites ?? [])
+      .filter((s) => s.site.status === "active")
+      .map<Command>((s) => {
+        const path = `/sites/${encodeURIComponent(s.site.domain)}`;
+        return {
+          id: path,
+          label: t.paletteSite(s.site.domain),
+          hint: "",
+          run: () => {
+            if (!wide) ai.setOpen(false);
+            navigate(path);
           },
         };
       });
@@ -90,8 +117,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         }
       },
     };
-    return isAdmin ? [toggleAi, ...routes] : routes;
-  }, [lang, t, wide, ai, navigate, isAdmin]);
+    return isAdmin ? [toggleAi, ...routes, ...siteRows] : [...routes, ...siteRows];
+  }, [lang, t, wide, ai, navigate, isAdmin, sites]);
 
   const text = query.trim();
   const options = useMemo<Command[]>(() => {
@@ -146,15 +173,18 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-[60] bg-paper/80" />
+        <RadixDialog.Overlay className="fixed inset-0 z-[60] bg-scrim" />
         <RadixDialog.Content
           onCloseAutoFocus={(e) => {
             if (toAi.current) {
               e.preventDefault();
               toAi.current = false;
+              return;
             }
+            // Mở bằng ⌘K thì không có Dialog.Trigger: tự trả focus về chỗ cũ (ô tìm, hay phần tử đang dùng).
+            returnFocus(e);
           }}
-          className="fixed top-[12vh] left-1/2 z-[70] w-[min(560px,calc(100vw-32px))] max-h-[calc(100vh-24vh)] -translate-x-1/2 overflow-y-auto border border-ink bg-surface text-ink"
+          className="fixed top-[12vh] left-1/2 z-[70] w-[min(560px,calc(100vw-32px))] max-h-[calc(100vh-24vh)] -translate-x-1/2 overflow-y-auto rounded-card border border-hair bg-surface text-ink shadow-pop"
         >
           <RadixDialog.Title className="sr-only">{t.paletteTitle}</RadixDialog.Title>
           <RadixDialog.Description className="sr-only">{isAdmin ? t.paletteHint : t.paletteHintUser}</RadixDialog.Description>
@@ -172,7 +202,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            className="box-border block h-[48px] w-full border-0 border-b border-hair bg-surface px-[14px] text-[14px] text-ink placeholder:text-muted"
+            className="box-border block h-[48px] w-full border-0 border-b border-hair bg-surface px-[14px] text-[14px] text-ink placeholder:text-muted focus-visible:-outline-offset-2"
           />
           <ul id={listId} role="listbox" aria-label={t.paletteList} className="m-0 list-none p-0">
             {options.map((c, i) => (
@@ -183,12 +213,19 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 aria-selected={i === active}
                 onMouseMove={() => setActive(i)}
                 onClick={() => run(c)}
-                className={`flex min-h-[44px] cursor-pointer flex-wrap items-baseline justify-between gap-x-[12px] border-l-[3px] px-[11px] py-[8px] text-[14px] sm:min-h-[40px] ${
-                  i === active ? "border-ink bg-pre font-semibold" : "border-transparent"
+                className={`flex min-h-[44px] cursor-pointer flex-wrap items-center justify-between gap-x-[12px] px-[14px] py-[8px] text-[14px] sm:min-h-[40px] ${
+                  i === active ? "bg-soft font-semibold" : ""
                 }`}
               >
                 <span className="min-w-0 [overflow-wrap:anywhere]">{c.label}</span>
-                {c.hint && <span className="font-mono text-[12px] font-normal text-muted">{c.hint}</span>}
+                {c.hint &&
+                  (c.code ? (
+                    <span className="font-normal text-muted">
+                      <Code>{c.hint}</Code>
+                    </span>
+                  ) : (
+                    <span className="text-[13px] font-normal text-muted">{c.hint}</span>
+                  ))}
               </li>
             ))}
           </ul>

@@ -349,7 +349,9 @@ func TestM14IsolationTuKetQuaDaLuu(t *testing.T) {
 		}
 		return apiDecode[core.Isolation](t, rec, 200)
 	}
-	sites := []string{m14Blog, m14Lab, m14Shop, m14Wiki} // xếp theo tên
+	// Xếp theo tên. Ba site tên dài có từ M16 (dữ liệu demo cho ảnh và phép đo giao diện).
+	sites := []string{m14Blog, "cua-hang-so-mot.khach-hang-vi-du.example.com", "hoc-truc-tuyen.lop-hoc-a.example.net", m14Lab, m14Shop, "tin-tuc.to-soan-bao-vi-du.example.org", m14Wiki}
+	cells := len(sites) * (len(sites) - 1) // mọi cặp có thứ tự, trừ đường chéo
 
 	// Health chưa chạy: đủ hàng, cột và chế độ .htaccess, ô chưa có kết quả.
 	e.f.ResetRan()
@@ -357,7 +359,7 @@ func TestM14IsolationTuKetQuaDaLuu(t *testing.T) {
 	if n := len(e.f.Ran()); n != 0 {
 		t.Errorf("mở ma trận chạy %d lệnh; phải chỉ đọc kết quả đã lưu", n)
 	}
-	if iso.Web != core.Nginx || !slices.Equal(iso.Sites, sites) || len(iso.Cells) != 12 || len(iso.Htaccess) != 4 {
+	if iso.Web != core.Nginx || !slices.Equal(iso.Sites, sites) || len(iso.Cells) != cells || len(iso.Htaccess) != len(sites) {
 		t.Fatalf("trước health: web %s, sites %v, %d ô, %d dòng htaccess", iso.Web, iso.Sites, len(iso.Cells), len(iso.Htaccess))
 	}
 	for _, c := range iso.Cells {

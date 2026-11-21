@@ -1,5 +1,7 @@
 // Màn Đăng nhập (mục 10 của KE-HOACH.md, màn 1). Không có khung trang (routes.tsx
-// đánh dấu bare): chỉ logo, tên màn, một ô mật khẩu và nút Đăng nhập.
+// đánh dấu bare): logo, hai nút đoạn (ngôn ngữ, sáng/tối), một thẻ giữa trang
+// trên nền --paper có tên đăng nhập, mật khẩu và nút Đăng nhập; phần "Quên mật
+// khẩu" (và lời nhắc chế độ demo) là thẻ riêng bên dưới (bản 2).
 //
 // POST /api/v1/login trả 204 và đặt cookie. Sau đó đọc lại phiên (GET
 // /api/v1/session) rồi về ?next= (đã lọc bằng safeNext) hoặc "/". Lỗi theo mã:
@@ -12,16 +14,16 @@ import { ApiError, errorMessage, post, safeNext } from "../../api/client";
 import { queryKeys, useSession } from "../../api/queries";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
-import { Logo } from "../../components/Logo";
+import { TextField } from "../../components/Field";
+import { Logo, Wordmark } from "../../components/Logo";
 import { MonoText } from "../../components/MonoText";
+import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { SegmentButton } from "../../components/SegmentButton";
-import { StatusMark } from "../../components/StatusMark";
 import { useLang, useStrings, type Lang } from "../../i18n";
 import { strings } from "../../i18n/dang-nhap";
 import { strings as khung } from "../../i18n/khung";
 import { useTheme, type Theme } from "../../theme";
-import { Field } from "./Field";
 
 const setupCommand = "sudo tpan setup";
 const resetCommand = "sudo tpan admin passwd";
@@ -90,11 +92,11 @@ export default function DangNhap() {
   };
 
   return (
-    <main className="mx-auto box-border w-full max-w-[460px] px-[16px] pt-[32px] pb-[48px]">
+    <main className="mx-auto box-border flex min-h-screen w-full max-w-[460px] flex-col justify-center gap-[20px] px-[16px] py-[32px]">
       <div className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[12px]">
         <div className="flex items-center gap-[10px]">
           <Logo status={null} />
-          <span className="font-mono text-[22px] leading-none font-semibold tracking-[0.04em]">TPAN</span>
+          <Wordmark />
         </div>
         <div className="flex flex-wrap gap-[10px]">
           <SegmentButton<Lang>
@@ -118,11 +120,28 @@ export default function DangNhap() {
         </div>
       </div>
 
-      <ScreenHeader title={t.title} summary={t.summary} />
-
-      <form onSubmit={submit} className="mt-[20px]">
-        <Card>
-          <Field
+      {/* Một thẻ giữa trang (mục 3.7): quên mật khẩu và chế độ demo nằm ở chân thẻ. */}
+      <Card
+        footer={
+          <div className="flex flex-col gap-[6px]">
+            <p className="m-0">
+              <span className="font-medium text-ink">{t.forgotTitle}.</span> {t.forgotBody}
+            </p>
+            <div>
+              <MonoText bold>{resetCommand}</MonoText>
+            </div>
+            <p className="m-0">{t.forgotUser}</p>
+            {session.data?.demo && (
+              <p className="m-0 border-t border-hair pt-[8px]">
+                <span className="font-medium text-ink">{t.demoTitle}.</span> {t.demoBody}
+              </p>
+            )}
+          </div>
+        }
+      >
+        <ScreenHeader title={t.title} summary={t.summary} />
+        <form onSubmit={submit} className="mt-[16px] flex flex-col gap-[16px]">
+          <TextField
             id="ten-dang-nhap"
             type="text"
             label={t.nameLabel}
@@ -133,8 +152,7 @@ export default function DangNhap() {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <div className="mt-[16px]" />
-          <Field
+          <TextField
             ref={input}
             id="mat-khau"
             type="password"
@@ -147,33 +165,17 @@ export default function DangNhap() {
             onChange={(e) => setPassword(e.target.value)}
             invalid={failure?.kind === "wrong"}
           />
-          <div className="mt-[16px]">
-            <Button type="submit" variant="primary" disabled={busy || password === ""}>
-              {busy ? t.submitting : t.submit}
-            </Button>
-          </div>
+          <Button type="submit" variant="primary" disabled={busy || password === ""} className="w-full">
+            {busy ? t.submitting : t.submit}
+          </Button>
           {failure && <FailureNote failure={failure} t={t} lang={lang} lockedAt={lockedAt} failLabel={k.status.fail} />}
-        </Card>
-      </form>
-
-      <section className="pt-[24px]">
-        <h2 className="m-0 text-[16px] font-semibold">{t.forgotTitle}</h2>
-        <p className="mt-[6px] mb-[6px] text-[14px] text-muted">{t.forgotBody}</p>
-        <MonoText bold>{resetCommand}</MonoText>
-        <p className="mt-[10px] mb-0 text-[14px] text-muted">{t.forgotUser}</p>
-      </section>
-
-      {session.data?.demo && (
-        <section className="pt-[24px]">
-          <h2 className="m-0 text-[16px] font-semibold">{t.demoTitle}</h2>
-          <p className="mt-[6px] mb-0 text-[14px] text-muted">{t.demoBody}</p>
-        </section>
-      )}
+        </form>
+      </Card>
     </main>
   );
 }
 
-/** Thông báo lỗi: dấu lỗi (hình, không chỉ màu) rồi chữ đen, theo mục 2 và 9 của GIAO-DIEN.md. */
+/** Thông báo lỗi: dấu lỗi (hình, không chỉ màu) rồi chữ thường, theo mục 2 và 9 của GIAO-DIEN.md; chữ "lỗi" ẩn cho trình đọc màn hình. */
 function FailureNote({ failure, t, lang, lockedAt, failLabel }: { failure: Failure; t: (typeof strings)["vi"]; lang: Lang; lockedAt: number; failLabel: string }) {
   let body: string;
   switch (failure.kind) {
@@ -197,19 +199,17 @@ function FailureNote({ failure, t, lang, lockedAt, failLabel }: { failure: Failu
       break;
   }
   return (
-    <div role="alert" className="mt-[16px] flex items-start gap-[10px] border-t border-hair pt-[14px]">
-      <span className="mt-[1px] flex-none">
-        <StatusMark status="fail" label={failLabel} />
-      </span>
-      <div className="min-w-0">
-        <p className="m-0">{body}</p>
-        {failure.kind === "notSetUp" && (
-          <p className="mt-[6px] mb-0">
-            <MonoText bold>{setupCommand}</MonoText>
-          </p>
-        )}
-      </div>
-    </div>
+    <Notice kind="fail" role="alert">
+      <p className="m-0">
+        <span className="sr-only">{failLabel}: </span>
+        {body}
+      </p>
+      {failure.kind === "notSetUp" && (
+        <p className="mt-[6px] mb-0">
+          <MonoText bold>{setupCommand}</MonoText>
+        </p>
+      )}
+    </Notice>
   );
 }
 

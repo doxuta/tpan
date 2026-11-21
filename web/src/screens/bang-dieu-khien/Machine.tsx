@@ -1,6 +1,7 @@
-// Khối "Máy" (mục 6, "Thanh số liệu"): CPU, RAM, đĩa, swap, mỗi số một thanh có vạch ngưỡng 80%.
+// Thẻ "Máy" (mục 6, "Thanh số liệu"): CPU, RAM, đĩa, swap, mỗi số một thanh có vạch ngưỡng 80%.
 
 import type { Machine as MachineData } from "../../api/types";
+import { Card } from "../../components/Card";
 import { MetricBar } from "../../components/MetricBar";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bang-dieu-khien";
@@ -16,8 +17,7 @@ export function Machine({ m }: { m: MachineData }) {
   const diskKnown = m.disk.total > 0;
 
   return (
-    <section className="pt-[28px]">
-      <h2 className="m-0 mb-[14px] text-[16px] font-semibold">{t.machineTitle}</h2>
+    <Card title={t.machineTitle} titleId="bdk-may">
       <div className="flex flex-wrap gap-x-[32px] gap-y-[20px]">
         <MetricBar
           label={t.cpu}
@@ -49,6 +49,6 @@ export function Machine({ m }: { m: MachineData }) {
           {t.machineErrors} {m.errors.join("; ")}
         </p>
       )}
-    </section>
+    </Card>
   );
 }

@@ -1,0 +1,214 @@
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 8h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 15ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+✓ 399 modules transformed.
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+
+✓ built in 285ms
+go run ./scripts/anh-readme -listen 127.0.0.1:18161 -debug-port 18162 -bo m16 -out docs/bang-chung/M16
+2026/11/21 11:42:20 INFO tpan đang chạy listen=127.0.0.1:18161 tls=false demo=true version=dev
+docs/bang-chung/M16/dang-nhap-sang.png  56 KB
+docs/bang-chung/M16/bang-dieu-khien-sang.png  183 KB
+docs/bang-chung/M16/cong-cu-sang.png  135 KB
+docs/bang-chung/M16/site-sang.png  109 KB
+docs/bang-chung/M16/site-tong-quan-sang.png  118 KB
+docs/bang-chung/M16/site-hong-sang.png  126 KB
+docs/bang-chung/M16/site-phep-kiem-sang.png  150 KB
+docs/bang-chung/M16/site-log-sang.png  200 KB
+docs/bang-chung/M16/site-php-sang.png  83 KB
+docs/bang-chung/M16/site-backup-sang.png  89 KB
+docs/bang-chung/M16/site-cai-dat-sang.png  157 KB
+docs/bang-chung/M16/tao-site-sang.png  92 KB
+docs/bang-chung/M16/co-so-du-lieu-sang.png  188 KB
+docs/bang-chung/M16/ssl-sang.png  121 KB
+docs/bang-chung/M16/backup-sang.png  153 KB
+docs/bang-chung/M16/cron-sang.png  219 KB
+docs/bang-chung/M16/thung-rac-sang.png  107 KB
+docs/bang-chung/M16/su-co-sang.png  89 KB
+docs/bang-chung/M16/su-co-chi-tiet-sang.png  140 KB
+docs/bang-chung/M16/lich-su-sang.png  190 KB
+docs/bang-chung/M16/job-sang.png  175 KB
+docs/bang-chung/M16/plan-cho-duyet-sang.png  65 KB
+docs/bang-chung/M16/stack-sang.png  139 KB
+docs/bang-chung/M16/cap-nhat-sang.png  151 KB
+docs/bang-chung/M16/bao-mat-sang.png  154 KB
+docs/bang-chung/M16/phien-ai-sang.png  64 KB
+docs/bang-chung/M16/nguoi-dung-sang.png  107 KB
+docs/bang-chung/M16/goi-sang.png  71 KB
+docs/bang-chung/M16/cai-dat-sang.png  109 KB
+docs/bang-chung/M16/khong-co-trang-sang.png  54 KB
+docs/bang-chung/M16/user-cong-cu-sang.png  121 KB
+docs/bang-chung/M16/user-bang-dieu-khien-sang.png  120 KB
+docs/bang-chung/M16/user-co-so-du-lieu-sang.png  120 KB
+docs/bang-chung/M16/user-khong-co-quyen-sang.png  50 KB
+docs/bang-chung/M16/lop-menu-tai-khoan-sang.png  145 KB
+docs/bang-chung/M16/lop-menu-ba-cham-sang.png  193 KB
+docs/bang-chung/M16/lop-thanh-lenh-sang.png  159 KB
+docs/bang-chung/M16/lop-ngan-ai-sang.png  139 KB
+docs/bang-chung/M16/lop-xem-truoc-plan-sang.png  103 KB
+docs/bang-chung/M16/lop-theo-doi-job-sang.png  158 KB
+docs/bang-chung/M16/bang-dieu-khien-390-sang.png  59 KB
+docs/bang-chung/M16/cong-cu-390-sang.png  46 KB
+docs/bang-chung/M16/site-390-sang.png  37 KB
+docs/bang-chung/M16/site-tong-quan-390-sang.png  63 KB
+docs/bang-chung/M16/co-so-du-lieu-390-sang.png  61 KB
+docs/bang-chung/M16/nguoi-dung-390-sang.png  45 KB
+docs/bang-chung/M16/user-cong-cu-390-sang.png  48 KB
+docs/bang-chung/M16/dang-nhap-toi.png  55 KB
+docs/bang-chung/M16/bang-dieu-khien-toi.png  184 KB
+docs/bang-chung/M16/cong-cu-toi.png  134 KB
+docs/bang-chung/M16/site-toi.png  109 KB
+docs/bang-chung/M16/site-tong-quan-toi.png  118 KB
+docs/bang-chung/M16/site-hong-toi.png  126 KB
+docs/bang-chung/M16/site-phep-kiem-toi.png  149 KB
+docs/bang-chung/M16/site-log-toi.png  187 KB
+docs/bang-chung/M16/site-php-toi.png  83 KB
+docs/bang-chung/M16/site-backup-toi.png  89 KB
+docs/bang-chung/M16/site-cai-dat-toi.png  155 KB
+docs/bang-chung/M16/tao-site-toi.png  92 KB
+docs/bang-chung/M16/co-so-du-lieu-toi.png  190 KB
+docs/bang-chung/M16/ssl-toi.png  122 KB
+docs/bang-chung/M16/backup-toi.png  153 KB
+docs/bang-chung/M16/cron-toi.png  221 KB
+docs/bang-chung/M16/thung-rac-toi.png  107 KB
+docs/bang-chung/M16/su-co-toi.png  87 KB
+docs/bang-chung/M16/su-co-chi-tiet-toi.png  137 KB
+docs/bang-chung/M16/lich-su-toi.png  190 KB
+docs/bang-chung/M16/job-toi.png  173 KB
+docs/bang-chung/M16/plan-cho-duyet-toi.png  65 KB
+docs/bang-chung/M16/stack-toi.png  137 KB
+docs/bang-chung/M16/cap-nhat-toi.png  150 KB
+docs/bang-chung/M16/bao-mat-toi.png  153 KB
+docs/bang-chung/M16/phien-ai-toi.png  64 KB
+docs/bang-chung/M16/nguoi-dung-toi.png  106 KB
+docs/bang-chung/M16/goi-toi.png  71 KB
+docs/bang-chung/M16/cai-dat-toi.png  108 KB
+docs/bang-chung/M16/khong-co-trang-toi.png  54 KB
+docs/bang-chung/M16/user-cong-cu-toi.png  120 KB
+docs/bang-chung/M16/user-bang-dieu-khien-toi.png  119 KB
+docs/bang-chung/M16/user-co-so-du-lieu-toi.png  119 KB
+docs/bang-chung/M16/user-khong-co-quyen-toi.png  50 KB
+docs/bang-chung/M16/lop-menu-tai-khoan-toi.png  144 KB
+docs/bang-chung/M16/lop-menu-ba-cham-toi.png  194 KB
+docs/bang-chung/M16/lop-thanh-lenh-toi.png  152 KB
+docs/bang-chung/M16/lop-ngan-ai-toi.png  137 KB
+docs/bang-chung/M16/lop-xem-truoc-plan-toi.png  102 KB
+docs/bang-chung/M16/lop-theo-doi-job-toi.png  158 KB
+docs/bang-chung/M16/bang-dieu-khien-390-toi.png  60 KB
+docs/bang-chung/M16/cong-cu-390-toi.png  46 KB
+docs/bang-chung/M16/site-390-toi.png  38 KB
+docs/bang-chung/M16/site-tong-quan-390-toi.png  63 KB
+docs/bang-chung/M16/co-so-du-lieu-390-toi.png  62 KB
+docs/bang-chung/M16/nguoi-dung-390-toi.png  45 KB
+docs/bang-chung/M16/user-cong-cu-390-toi.png  47 KB
+
+Bàn phím (1440 × 900, tiếng Việt), mọi màn:
+  bàn phím bang-dieu-khien: Tab tới đủ 82 thứ bấm được, không cái nào bị che
+  bàn phím cong-cu: Tab tới đủ 21 thứ bấm được, không cái nào bị che
+  bàn phím site: Tab tới đủ 30 thứ bấm được, không cái nào bị che
+  bàn phím site-tong-quan: Tab tới đủ 10 thứ bấm được, không cái nào bị che
+  bàn phím site-hong: Tab tới đủ 12 thứ bấm được, không cái nào bị che
+  bàn phím site-phep-kiem: Tab tới đủ 11 thứ bấm được, không cái nào bị che
+  bàn phím site-log: Tab tới đủ 7 thứ bấm được, không cái nào bị che
+  bàn phím site-php: Tab tới đủ 4 thứ bấm được, không cái nào bị che
+  bàn phím site-backup: Tab tới đủ 4 thứ bấm được, không cái nào bị che
+  bàn phím site-cai-dat: Tab tới đủ 15 thứ bấm được, không cái nào bị che
+  bàn phím tao-site: Tab tới đủ 8 thứ bấm được, không cái nào bị che
+  bàn phím co-so-du-lieu: Tab tới đủ 46 thứ bấm được, không cái nào bị che
+  bàn phím ssl: Tab tới đủ 18 thứ bấm được, không cái nào bị che
+  bàn phím backup: Tab tới đủ 29 thứ bấm được, không cái nào bị che
+  bàn phím cron: Tab tới đủ 19 thứ bấm được, không cái nào bị che
+  bàn phím thung-rac: Tab tới đủ 8 thứ bấm được, không cái nào bị che
+  bàn phím su-co: Tab tới đủ 4 thứ bấm được, không cái nào bị che
+  bàn phím su-co-chi-tiet: Tab tới đủ 13 thứ bấm được, không cái nào bị che
+  bàn phím lich-su: Tab tới đủ 17 thứ bấm được, không cái nào bị che
+  bàn phím job: Tab tới đủ 42 thứ bấm được, không cái nào bị che
+  bàn phím plan-cho-duyet: Tab tới đủ 4 thứ bấm được, không cái nào bị che
+  bàn phím stack: Tab tới đủ 14 thứ bấm được, không cái nào bị che
+  bàn phím cap-nhat: Tab tới đủ 44 thứ bấm được, không cái nào bị che
+  bàn phím bao-mat: Tab tới đủ 55 thứ bấm được, không cái nào bị che
+  bàn phím phien-ai: Tab tới đủ 0 thứ bấm được, không cái nào bị che
+  bàn phím nguoi-dung: Tab tới đủ 15 thứ bấm được, không cái nào bị che
+  bàn phím goi: Tab tới đủ 4 thứ bấm được, không cái nào bị che
+  bàn phím cai-dat: Tab tới đủ 27 thứ bấm được, không cái nào bị che
+  bàn phím khong-co-trang: Tab tới đủ 1 thứ bấm được, không cái nào bị che
+  bàn phím user-cong-cu: Tab tới đủ 12 thứ bấm được, không cái nào bị che
+  bàn phím user-bang-dieu-khien: Tab tới đủ 21 thứ bấm được, không cái nào bị che
+  bàn phím user-co-so-du-lieu: Tab tới đủ 15 thứ bấm được, không cái nào bị che
+  bàn phím user-khong-co-quyen: Tab tới đủ 1 thứ bấm được, không cái nào bị che
+  bàn phím menu ba chấm: Enter mở, tới «Nhập từ bản đã xuất», mũi tên xuống tới «Đổi charset», Escape đóng, focus về nút, 0 lỗi console
+  bàn phím hộp hỏi lại: mở «Tạm khoá» từ menu ba chấm, Escape đóng, focus về nút ba chấm
+  bàn phím tab: mũi tên phải đổi từ tong-quan sang phep-kiem
+
+Tiếng Anh (không cuộn ngang, không chữ bị cắt mà thiếu title), mọi màn:
+  tiếng Anh bang-dieu-khien ở 1440 px: đạt
+  tiếng Anh cong-cu ở 1440 px: đạt
+  tiếng Anh site ở 1440 px: đạt
+  tiếng Anh site-tong-quan ở 1440 px: đạt
+  tiếng Anh site-hong ở 1440 px: đạt
+  tiếng Anh site-phep-kiem ở 1440 px: đạt
+  tiếng Anh site-log ở 1440 px: đạt
+  tiếng Anh site-php ở 1440 px: đạt
+  tiếng Anh site-backup ở 1440 px: đạt
+  tiếng Anh site-cai-dat ở 1440 px: đạt
+  tiếng Anh tao-site ở 1440 px: đạt
+  tiếng Anh co-so-du-lieu ở 1440 px: đạt
+  tiếng Anh ssl ở 1440 px: đạt
+  tiếng Anh backup ở 1440 px: đạt
+  tiếng Anh cron ở 1440 px: đạt
+  tiếng Anh thung-rac ở 1440 px: đạt
+  tiếng Anh su-co ở 1440 px: đạt
+  tiếng Anh su-co-chi-tiet ở 1440 px: đạt
+  tiếng Anh lich-su ở 1440 px: đạt
+  tiếng Anh job ở 1440 px: đạt
+  tiếng Anh plan-cho-duyet ở 1440 px: đạt
+  tiếng Anh stack ở 1440 px: đạt
+  tiếng Anh cap-nhat ở 1440 px: đạt
+  tiếng Anh bao-mat ở 1440 px: đạt
+  tiếng Anh phien-ai ở 1440 px: đạt
+  tiếng Anh nguoi-dung ở 1440 px: đạt
+  tiếng Anh goi ở 1440 px: đạt
+  tiếng Anh cai-dat ở 1440 px: đạt
+  tiếng Anh khong-co-trang ở 1440 px: đạt
+  tiếng Anh user-cong-cu ở 1440 px: đạt
+  tiếng Anh user-bang-dieu-khien ở 1440 px: đạt
+  tiếng Anh user-co-so-du-lieu ở 1440 px: đạt
+  tiếng Anh user-khong-co-quyen ở 1440 px: đạt
+  tiếng Anh bang-dieu-khien ở 390 px: đạt
+  tiếng Anh cong-cu ở 390 px: đạt
+  tiếng Anh site ở 390 px: đạt
+  tiếng Anh site-tong-quan ở 390 px: đạt
+  tiếng Anh site-hong ở 390 px: đạt
+  tiếng Anh site-phep-kiem ở 390 px: đạt
+  tiếng Anh site-log ở 390 px: đạt
+  tiếng Anh site-php ở 390 px: đạt
+  tiếng Anh site-backup ở 390 px: đạt
+  tiếng Anh site-cai-dat ở 390 px: đạt
+  tiếng Anh tao-site ở 390 px: đạt
+  tiếng Anh co-so-du-lieu ở 390 px: đạt
+  tiếng Anh ssl ở 390 px: đạt
+  tiếng Anh backup ở 390 px: đạt
+  tiếng Anh cron ở 390 px: đạt
+  tiếng Anh thung-rac ở 390 px: đạt
+  tiếng Anh su-co ở 390 px: đạt
+  tiếng Anh su-co-chi-tiet ở 390 px: đạt
+  tiếng Anh lich-su ở 390 px: đạt
+  tiếng Anh job ở 390 px: đạt
+  tiếng Anh plan-cho-duyet ở 390 px: đạt
+  tiếng Anh stack ở 390 px: đạt
+  tiếng Anh cap-nhat ở 390 px: đạt
+  tiếng Anh bao-mat ở 390 px: đạt
+  tiếng Anh phien-ai ở 390 px: đạt
+  tiếng Anh nguoi-dung ở 390 px: đạt
+  tiếng Anh goi ở 390 px: đạt
+  tiếng Anh cai-dat ở 390 px: đạt
+  tiếng Anh khong-co-trang ở 390 px: đạt
+  tiếng Anh user-cong-cu ở 390 px: đạt
+  tiếng Anh user-bang-dieu-khien ở 390 px: đạt
+  tiếng Anh user-co-so-du-lieu ở 390 px: đạt
+  tiếng Anh user-khong-co-quyen ở 390 px: đạt
+
+Đã chụp 94 ảnh vào docs/bang-chung/M16. Không đạt: 0
+anh-m16 exit=0

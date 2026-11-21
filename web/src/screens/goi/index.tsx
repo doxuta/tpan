@@ -2,6 +2,8 @@
 // (0 hiện là "không giới hạn") và số user đang dùng; thêm, sửa, xoá. Gói
 // "default" có sẵn, không xoá được. Ghi gói chỉ đổi tpan.db (không có job nên
 // không có bản xem trước); giới hạn có hiệu lực ngay cho mọi user dùng gói.
+// Bản 2: ScreenHeader (nút chính "Thêm gói") → một TableList; Sửa là nút chữ,
+// Xoá nằm trong menu ba chấm.
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
@@ -9,16 +11,17 @@ import { del, errorMessage, post } from "../../api/client";
 import { packagePath, packagesKey, packagesPath, refreshAccounts, usePackages } from "../../api/m13-users";
 import type { Package, PackageRow } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Dialog } from "../../components/Dialog";
-import { MonoText } from "../../components/MonoText";
+import { TextField } from "../../components/Field";
+import { Notice } from "../../components/Notice";
+import { RowActions } from "../../components/RowActions";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { TableList } from "../../components/TableList";
 import { Tag } from "../../components/Tag";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/goi";
 import { strings as khung } from "../../i18n/khung";
-import { Note } from "../cai-dat/Note";
-import { Field } from "../dang-nhap/Field";
 import { diskLimitText } from "../nguoi-dung/model";
 import { ErrorNote } from "../site/ErrorNote";
 
@@ -33,73 +36,86 @@ export default function Packages() {
   const [dlg, setDlg] = useState<Dlg | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const limit = (n: number) => (n > 0 ? String(n) : t.unlimited);
+  const limit = (n: number) => (n > 0 ? String(n) : <span className="text-muted">{t.unlimited}</span>);
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
-      <div className="pt-[24px]">
-        <Button variant="primary" onClick={() => setDlg({ kind: "add" })}>
-          {t.add}
-        </Button>
-      </div>
+      <ScreenHeader
+        crumbs={[{ label: k.groups.taiKhoan }, { label: t.title }]}
+        title={t.title}
+        summary={t.summary}
+        actions={
+          <Button variant="primary" icon="plus" onClick={() => setDlg({ kind: "add" })}>
+            {t.add}
+          </Button>
+        }
+      />
       {notice && (
-        <div className="pt-[16px]">
-          <Note kind="pass">{notice}</Note>
-        </div>
+        <Card>
+          <Notice kind="pass" role="status">
+            {notice}
+          </Notice>
+        </Card>
       )}
 
-      <section aria-label={t.tableName} className="pt-[22px]">
-        {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
-        {q.isError && (
-          <div>
-            <p className="mt-0 mb-[12px]">
-              {t.loadFailed} {errorMessage(q.error, lang)}
-            </p>
-            <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-          </div>
-        )}
-        {q.isSuccess && (
-          <TableList
-            caption={t.tableName}
-            rows={q.data}
-            rowKey={(r) => r.package.name}
-            empty={t.empty}
-            columns={[
-              {
-                header: t.colName,
-                cell: (r) => (
-                  <span className="inline-flex flex-wrap items-baseline gap-x-[8px]">
-                    <MonoText>{r.package.name}</MonoText>
-                    {r.package.name === "default" && <Tag>{t.builtIn}</Tag>}
-                  </span>
-                ),
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
+      {q.isError && (
+        <Card>
+          <p className="mt-0 mb-[12px]">
+            {t.loadFailed} {errorMessage(q.error, lang)}
+          </p>
+          <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+        </Card>
+      )}
+      {q.isSuccess && (
+        <TableList
+          label={t.tableName}
+          caption={t.tableName}
+          minWidth={820}
+          rows={q.data}
+          rowKey={(r) => r.package.name}
+          empty={t.empty}
+          columns={[
+            {
+              header: t.colName,
+              nowrap: false,
+              cell: (r) => (
+                <span className="inline-flex flex-wrap items-baseline gap-x-[8px] gap-y-[4px]">
+                  <span className="font-semibold [overflow-wrap:anywhere]">{r.package.name}</span>
+                  {r.package.name === "default" && <Tag>{t.builtIn}</Tag>}
+                </span>
+              ),
+            },
+            { header: t.colSites, align: "right", cell: (r) => limit(r.package.max_sites) },
+            { header: t.colDBs, align: "right", cell: (r) => limit(r.package.max_dbs) },
+            { header: t.colDisk, align: "right", cell: (r) => diskLimitText(r.package.disk_mb, lang) ?? <span className="text-muted">{t.unlimited}</span> },
+            { header: t.colBackups, align: "right", cell: (r) => limit(r.package.max_backups) },
+            { header: t.colUsers, align: "right", cell: (r) => r.users },
+            {
+              header: t.colAction,
+              align: "right",
+              cell: (r) => {
+                const name = r.package.name;
+                const more =
+                  name === "default"
+                    ? []
+                    : [{ label: t.remove, danger: true, onSelect: () => setDlg({ kind: "delete", row: r }) }];
+                return (
+                  <RowActions
+                    primary={[{ label: t.edit, ariaLabel: t.forPackage(t.edit, name), onClick: () => setDlg({ kind: "edit", row: r }) }]}
+                    more={more}
+                    moreLabel={t.moreFor(name, more.map((m) => m.label.toLowerCase()).join(", "))}
+                  />
+                );
               },
-              { header: t.colSites, cell: (r) => limit(r.package.max_sites) },
-              { header: t.colDBs, cell: (r) => limit(r.package.max_dbs) },
-              { header: t.colDisk, cell: (r) => diskLimitText(r.package.disk_mb, lang) ?? t.unlimited },
-              { header: t.colBackups, cell: (r) => limit(r.package.max_backups) },
-              { header: t.colUsers, cell: (r) => <span className="tabular-nums">{r.users}</span> },
-              {
-                header: t.colAction,
-                className: "pr-0",
-                cell: (r) => (
-                  <span className="flex flex-wrap gap-[8px]">
-                    <Button aria-label={t.forPackage(t.edit, r.package.name)} onClick={() => setDlg({ kind: "edit", row: r })}>
-                      {t.edit}
-                    </Button>
-                    {r.package.name !== "default" && (
-                      <Button aria-label={t.forPackage(t.remove, r.package.name)} onClick={() => setDlg({ kind: "delete", row: r })}>
-                        {t.remove}
-                      </Button>
-                    )}
-                  </span>
-                ),
-              },
-            ]}
-          />
-        )}
-      </section>
+            },
+          ]}
+        />
+      )}
 
       {(dlg?.kind === "add" || dlg?.kind === "edit") && (
         <PackageDialog
@@ -152,18 +168,22 @@ function PackageDialog({ row, onClose, onDone }: { row?: PackageRow; onClose: ()
   };
 
   const num = (id: string, label: string, hint: string, v: string, set: (s: string) => void) => (
-    <Field id={id} type="number" min={0} step={1} inputMode="numeric" label={label} hint={hint} value={v} onChange={(e) => set(e.target.value)} />
+    <TextField id={id} type="number" min={0} step={1} inputMode="numeric" label={label} hint={hint} value={v} onChange={(e) => set(e.target.value)} />
   );
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={edit ? t.editTitle(p!.name) : t.addTitle} confirmLabel={save.isPending ? t.saving : edit ? t.editConfirm : t.addConfirm} onConfirm={submit} busy={save.isPending}>
       <form onSubmit={onForm} className="flex flex-col gap-[14px]">
-        {!edit && <Field id="g-ten" label={t.fName} hint={t.fNameHint} autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus required value={name} onChange={(e) => setName(e.target.value)} />}
+        {!edit && <TextField id="g-ten" label={t.fName} hint={t.fNameHint} autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus required value={name} onChange={(e) => setName(e.target.value)} />}
         {num("g-site", t.fSites, `${t.fSitesHint} ${t.fZeroHint}`, sites, setSites)}
         {num("g-db", t.fDBs, `${t.fDBsHint} ${t.fZeroHint}`, dbs, setDbs)}
         {num("g-dia", t.fDisk, `${t.fDiskHint} ${t.fZeroHint}`, disk, setDisk)}
         {num("g-backup", t.fBackups, t.fZeroHint, backups, setBackups)}
-        {local && <Note kind="fail">{local}</Note>}
+        {local && (
+          <Notice kind="fail" role="alert">
+            {local}
+          </Notice>
+        )}
         {save.isError && <ErrorNote error={save.error} />}
         {/* Nút gửi ẩn để bấm Enter trong ô nhập là gửi (nút thật của hộp nằm ngoài form). */}
         <button type="submit" tabIndex={-1} aria-hidden="true" className="sr-only" />
@@ -184,7 +204,7 @@ function DeleteDialog({ name, onClose, onDone }: { name: string; onClose: () => 
     },
   });
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title={t.delTitle(name)} description={t.delDesc} confirmLabel={remove.isPending ? t.working : t.delConfirm} onConfirm={() => remove.mutate()} busy={remove.isPending}>
+    <Dialog open onOpenChange={(o) => !o && onClose()} title={t.delTitle(name)} description={t.delDesc} confirmLabel={remove.isPending ? t.working : t.delConfirm} onConfirm={() => remove.mutate()} busy={remove.isPending} danger>
       {remove.isError && <ErrorNote error={remove.error} />}
     </Dialog>
   );

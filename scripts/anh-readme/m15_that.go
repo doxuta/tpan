@@ -97,7 +97,8 @@ func liveM15(c *cdp, base, out string) error {
 	if err := clickIn(block, "Kiểm bản mới"); err != nil {
 		return err
 	}
-	if err := c.waitTrue(blockHas("SHA256 SẼ KIỂM"), 30*time.Second); err != nil {
+	// Bản 2 (M16) viết thường nhãn này; bản 1 ghi "SHA256 SẼ KIỂM".
+	if err := c.waitTrue(blockHas("SHA256 sẽ kiểm"), 30*time.Second); err != nil {
 		return fmt.Errorf("chờ bản xem trước sau khi bấm Kiểm bản mới: %w (khối đang ghi: %s)", err, text(block+`.innerText`))
 	}
 	if err := shot("M15-that-1-xem-truoc.png"); err != nil {
@@ -142,10 +143,11 @@ func liveM15(c *cdp, base, out string) error {
 	if err := shot("M15-that-3-da-len.png"); err != nil {
 		return err
 	}
-	footer := text(`document.querySelector('footer')?.innerText||''`)
-	fmt.Printf("dòng cuối trang sau khi lên: %q\n", strings.TrimSpace(footer))
+	// Dòng phiên bản: bản 2 (M16) đặt ở cuối menu (#dong-phien-ban); bản 1 ở chân trang.
+	footer := text(`(document.getElementById('dong-phien-ban')||document.querySelector('footer'))?.innerText||''`)
+	fmt.Printf("dòng phiên bản sau khi lên: %q\n", strings.TrimSpace(footer))
 	if !strings.Contains(footer, to) {
-		return fmt.Errorf("dòng phiên bản cuối trang chưa đổi sang %s: %q", to, footer)
+		return fmt.Errorf("dòng phiên bản chưa đổi sang %s: %q", to, footer)
 	}
 
 	// 4. Tải lại trang (nút của khối), rồi quay về bản trước.
@@ -153,7 +155,7 @@ func liveM15(c *cdp, base, out string) error {
 		return err
 	}
 	time.Sleep(time.Second)
-	if err := c.waitTrue(`document.readyState==='complete' && location.pathname==='/settings' && `+blockHas("LƯỢT GẦN NHẤT"), 30*time.Second); err != nil {
+	if err := c.waitTrue(`document.readyState==='complete' && location.pathname==='/settings' && `+blockHas("Lượt gần nhất"), 30*time.Second); err != nil {
 		return fmt.Errorf("sau khi tải lại trang: %w", err)
 	}
 	if err := clickIn(block, "Quay về bản trước"); err != nil {

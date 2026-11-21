@@ -7,6 +7,7 @@ import { useId } from "react";
 import type { Collation } from "../api/types";
 import { useStrings } from "../i18n";
 import { strings } from "../i18n/co-so-du-lieu";
+import { Field, Select } from "./Field";
 
 type Props = {
   collations: Collation[];
@@ -14,8 +15,6 @@ type Props = {
   collation: string;
   onChange: (charset: string, collation: string) => void;
 };
-
-const selectClass = "box-border block h-[44px] min-w-[150px] max-w-full border border-ink bg-surface px-[10px] font-mono text-[13px] text-ink sm:h-[40px]";
 
 /** Cặp mặc định khi chưa chọn gì: utf8mb4 nếu máy có (WordPress cần), không thì bộ đầu tiên. */
 export function defaultPair(collations: Collation[]): { charset: string; collation: string } {
@@ -36,33 +35,32 @@ export function CharsetPicker({ collations, charset, collation, onChange }: Prop
 
   return (
     <div className="flex flex-wrap gap-x-[14px] gap-y-[12px]">
-      <div>
-        <label htmlFor={`${id}-cs`} className="mb-[6px] block text-[14px] font-medium">
-          {t.charsetLabel}
-        </label>
-        <select id={`${id}-cs`} value={charset} onChange={(e) => pickCharset(e.target.value)} className={selectClass}>
-          {/* Charset hiện tại của DB không có trong danh sách (máy khác bản): vẫn hiện để ô chọn nói đúng thứ đang có. */}
-          {!charsets.includes(charset) && charset !== "" && <option value={charset}>{charset}</option>}
-          {charsets.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+      {/* Bộ ký tự là sans (như cột "Bộ ký tự" của bảng), collation là giá trị cấu hình nên mono. */}
+      <div className="min-w-[180px]">
+        <Field label={t.charsetLabel} htmlFor={`${id}-cs`}>
+          <Select id={`${id}-cs`} value={charset} onChange={(e) => pickCharset(e.target.value)}>
+            {/* Charset hiện tại của DB không có trong danh sách (máy khác bản): vẫn hiện để ô chọn nói đúng thứ đang có. */}
+            {!charsets.includes(charset) && charset !== "" && <option value={charset}>{charset}</option>}
+            {charsets.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
-      <div>
-        <label htmlFor={`${id}-co`} className="mb-[6px] block text-[14px] font-medium">
-          {t.collationLabel}
-        </label>
-        <select id={`${id}-co`} value={collation} onChange={(e) => onChange(charset, e.target.value)} className={selectClass}>
-          {!options.some((c) => c.collation === collation) && collation !== "" && <option value={collation}>{collation}</option>}
-          {options.map((c) => (
-            <option key={c.collation} value={c.collation}>
-              {c.collation}
-              {c.default ? t.collationDefault : ""}
-            </option>
-          ))}
-        </select>
+      <div className="min-w-[180px]">
+        <Field label={t.collationLabel} htmlFor={`${id}-co`}>
+          <Select id={`${id}-co`} mono value={collation} onChange={(e) => onChange(charset, e.target.value)}>
+            {!options.some((c) => c.collation === collation) && collation !== "" && <option value={collation}>{collation}</option>}
+            {options.map((c) => (
+              <option key={c.collation} value={c.collation}>
+                {c.collation}
+                {c.default ? t.collationDefault : ""}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
     </div>
   );

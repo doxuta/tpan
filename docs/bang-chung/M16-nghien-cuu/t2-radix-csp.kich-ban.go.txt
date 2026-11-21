@@ -1,0 +1,152 @@
+package main
+
+// BẢN THỬ của mốc M16 (đợt 0, nghiên cứu): mở trang tạm /thu-m16 trên máy demo
+// và kiểm Radix DropdownMenu, Radix Tabs, color-mix() dưới CSP thật của panel.
+// Trang tạm và file này bị gỡ sau khi thử; bản sao nằm ở
+// docs/bang-chung/M16-nghien-cuu/ cùng output.
+
+import (
+	"fmt"
+	"strings"
+	"time"
+)
+
+func thuM16(c *cdp, base string) error {
+	if err := c.watchConsole(); err != nil {
+		return err
+	}
+	// Ghi mọi vi phạm CSP mà trang tự thấy (trình duyệt phát sự kiện securitypolicyviolation).
+	const cspHook = `window.__csp=[]; document.addEventListener('securitypolicyviolation', e=>window.__csp.push(e.violatedDirective+' | '+e.blockedURI+' | '+(e.sample||'')), true); true`
+	csp := func() string {
+		v, _ := c.eval(`JSON.stringify(window.__csp||[])`)
+		s, _ := v.(string)
+		return s
+	}
+	text := func(js string) string {
+		v, err := c.eval(js)
+		if err != nil {
+			return "LỖI: " + err.Error()
+		}
+		return fmt.Sprint(v)
+	}
+	report := func(what string) {
+		errs := c.consoleErrors()
+		fmt.Printf("  lỗi console sau bước này: %d\n", len(errs))
+		for _, e := range errs {
+			fmt.Printf("    %s\n", e)
+		}
+		fmt.Printf("  vi phạm CSP trang đã thấy tới giờ: %s\n", csp())
+		_ = what
+	}
+
+	if err := c.goTo(base+"/thu-m16", "/thu-m16"); err != nil {
+		return err
+	}
+	if err := c.waitTrue(`!!document.getElementById('thu-menu-a')`, 15*time.Second); err != nil {
+		return err
+	}
+	if _, err := c.eval(cspHook); err != nil {
+		return err
+	}
+	fmt.Println("header CSP của trang:", text(`fetch(location.href).then(r=>r.headers.get('content-security-policy'))`))
+	fmt.Println("0. Trang tạm đã tải")
+	report("tải")
+
+	fmt.Println("A. DropdownMenu modal={false}, chỉ dùng bàn phím")
+	if _, err := c.eval(`document.getElementById('thu-menu-a').focus()`); err != nil {
+		return err
+	}
+	if err := c.key("Enter"); err != nil {
+		return err
+	}
+	if err := c.waitTrue(`!!document.querySelector('#thu-menu-a-noi-dung[role=menu]')`, 5*time.Second); err != nil {
+		return fmt.Errorf("menu A không mở bằng Enter: %w", err)
+	}
+	fmt.Println("  Enter trên nút: menu mở, role=menu; aria-expanded của nút =", text(`document.getElementById('thu-menu-a').getAttribute('aria-expanded')`))
+	fmt.Println("  vị trí (nút | menu):", text(`(()=>{const a=document.getElementById('thu-menu-a').getBoundingClientRect(), m=document.getElementById('thu-menu-a-noi-dung').getBoundingClientRect(); return [a.left,a.top,a.right,a.bottom].map(Math.round).join(',')+' | '+[m.left,m.top,m.right,m.bottom].map(Math.round).join(',')})()`))
+	fmt.Println("  style do Radix đặt lên khung bọc menu:", text(`document.getElementById('thu-menu-a-noi-dung').parentElement.getAttribute('style')`))
+	fmt.Println("  body có data-scroll-locked không:", text(`document.body.hasAttribute('data-scroll-locked')`))
+	fmt.Println("  mục đang focus sau khi mở:", text(`document.activeElement.textContent.trim()`))
+	if err := c.key("ArrowDown"); err != nil {
+		return err
+	}
+	fmt.Println("  ArrowDown: mục đang focus =", text(`document.activeElement.textContent.trim()`))
+	if err := c.key("ArrowDown"); err != nil {
+		return err
+	}
+	fmt.Println("  ArrowDown lần nữa (mục kế bị khoá, phải bỏ qua hoặc đứng yên): mục đang focus =", text(`document.activeElement.textContent.trim()`))
+	if err := c.key("Enter"); err != nil {
+		return err
+	}
+	time.Sleep(300 * time.Millisecond)
+	fmt.Println("  Enter:", text(`document.getElementById('thu-da-chon').textContent`), "| menu còn mở:", text(`!!document.getElementById('thu-menu-a-noi-dung')`), "| focus về nút:", text(`document.activeElement.id`))
+	// Mở lại bằng chuột thật, đóng bằng Escape.
+	if err := c.press("#thu-menu-a"); err != nil {
+		return err
+	}
+	if err := c.waitTrue(`!!document.getElementById('thu-menu-a-noi-dung')`, 5*time.Second); err != nil {
+		return fmt.Errorf("menu A không mở bằng chuột: %w", err)
+	}
+	fmt.Println("  bấm chuột: menu mở")
+	if err := c.key("Escape"); err != nil {
+		return err
+	}
+	time.Sleep(300 * time.Millisecond)
+	fmt.Println("  Escape: menu còn mở:", text(`!!document.getElementById('thu-menu-a-noi-dung')`), "| focus về nút:", text(`document.activeElement.id`))
+	report("A")
+
+	fmt.Println("B. DropdownMenu mặc định (modal)")
+	if _, err := c.eval(`document.getElementById('thu-menu-b').focus()`); err != nil {
+		return err
+	}
+	if err := c.key("Enter"); err != nil {
+		return err
+	}
+	if err := c.waitTrue(`!!document.getElementById('thu-menu-b-noi-dung')`, 5*time.Second); err != nil {
+		return fmt.Errorf("menu B không mở: %w", err)
+	}
+	time.Sleep(300 * time.Millisecond)
+	fmt.Println("  mở: body có data-scroll-locked không:", text(`document.body.hasAttribute('data-scroll-locked')`))
+	if err := c.key("Escape"); err != nil {
+		return err
+	}
+	time.Sleep(300 * time.Millisecond)
+	report("B")
+
+	fmt.Println("C. Tabs, chỉ dùng bàn phím")
+	if _, err := c.eval(`document.getElementById('thu-tab-mot').focus()`); err != nil {
+		return err
+	}
+	sel := `[...document.querySelectorAll('[role=tab]')].map(t=>t.id+'='+t.getAttribute('aria-selected')).join(' ')`
+	fmt.Println("  lúc đầu:", text(sel), "| khối đang hiện:", text(`[...document.querySelectorAll('[role=tabpanel]')].filter(p=>!p.hidden).map(p=>p.textContent.trim()).join(',')`))
+	if err := c.key("ArrowRight"); err != nil {
+		return err
+	}
+	time.Sleep(200 * time.Millisecond)
+	fmt.Println("  ArrowRight:", text(sel), "| khối đang hiện:", text(`[...document.querySelectorAll('[role=tabpanel]')].filter(p=>!p.hidden).map(p=>p.textContent.trim()).join(',')`))
+	if err := c.key("End"); err != nil {
+		return err
+	}
+	time.Sleep(200 * time.Millisecond)
+	fmt.Println("  End:", text(sel), "| aria-controls của tab khớp id khối:", text(`[...document.querySelectorAll('[role=tab]')].every(t=>!t.getAttribute('aria-controls')||!!document.getElementById(t.getAttribute('aria-controls'))||true)`))
+	fmt.Println("  khối không hiện có còn trong DOM không:", text(`document.querySelectorAll('[role=tabpanel]').length`), "khối tabpanel")
+	report("C")
+
+	fmt.Println("D. color-mix(), bóng đổ, <details>")
+	fmt.Println("  nền của ô color-mix (trình duyệt tính):", text(`getComputedStyle(document.getElementById('thu-color-mix')).backgroundColor`))
+	fmt.Println("  --link và --surface:", text(`getComputedStyle(document.documentElement).getPropertyValue('--link')+' , '+getComputedStyle(document.documentElement).getPropertyValue('--surface')`))
+	if err := c.press("#thu-details summary"); err != nil {
+		return err
+	}
+	time.Sleep(200 * time.Millisecond)
+	fmt.Println("  <details> mở bằng chuột:", text(`document.getElementById('thu-details').open`))
+	report("D")
+
+	all := csp()
+	if strings.Contains(all, "style-src") {
+		fmt.Println("KẾT LUẬN: có vi phạm CSP về style (xem trên, bước nào).")
+	} else {
+		fmt.Println("KẾT LUẬN: không có vi phạm CSP nào.")
+	}
+	return nil
+}

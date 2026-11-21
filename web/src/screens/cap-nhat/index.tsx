@@ -19,6 +19,7 @@ import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, UpdateStatus } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/cap-nhat";
@@ -39,13 +40,17 @@ export default function UpdatesScreen() {
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
-      {q.isPending && <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>}
+      <ScreenHeader crumbs={[{ label: k.groups.may }, { label: t.title }]} title={t.title} summary={t.summary} />
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div className="pt-[26px]">
+        <Card>
           <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
           <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-        </div>
+        </Card>
       )}
       {q.isSuccess && <Loaded status={q.data} />}
     </>

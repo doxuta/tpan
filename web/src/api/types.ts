@@ -276,6 +276,12 @@ export type Overview = {
   last_run?: string;
   /** M13: chỉ có với user thường; khi đó machine, stack_checks, tpan_checks rỗng. */
   quota?: Quota;
+  /**
+   * M16: số cơ sở dữ liệu đang chạy trong phạm vi người xem (DB của site đang
+   * chạy cộng DB rời đang chạy), bằng số hàng status "active" của
+   * /api/v1/databases. Server cũ không gửi thì menu không hiện số.
+   */
+  db_count?: number;
 };
 
 export type DatabaseRow = {

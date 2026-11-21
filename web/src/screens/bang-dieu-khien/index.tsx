@@ -1,7 +1,9 @@
-// Màn Bảng điều khiển (trang chủ, "/"): mục 7 của docs/GIAO-DIEN.md và trang
-// mẫu docs/mau-giao-dien/bang-dieu-khien-*.html. Hai cột bằng flex có xuống
-// dòng: cột chính (tên màn, bản đồ tuyến, máy, lịch sử) và cột bên (sự cố,
-// cảnh báo, chờ duyệt); màn hẹp thì cột bên rơi xuống dưới.
+// Màn Bảng điều khiển (trang chủ của admin "/", và "/dashboard" của user
+// thường): giao diện bản 2, mục 3.7 của docs/thay-doi/M16-thiet-ke.md. Hai cột
+// bằng flex có xuống dòng: cột chính (bản đồ tuyến, máy, TPAN tự kiểm, lịch sử)
+// và cột bên (sự cố, cảnh báo, chờ duyệt); màn hẹp thì cột bên rơi xuống dưới.
+// Mỗi khối là một thẻ; các thẻ cách nhau 20 px như mọi màn (main#noi-dung là cột
+// flex, màn không tự thêm khoảng trên).
 //
 // Dữ liệu: GET /api/v1/overview qua useOverview, cùng truy vấn mà khung trang
 // dùng cho menu và logo nên chỉ một request.
@@ -10,10 +12,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { errorMessage, post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
 import { queryKeys, useOverview } from "../../api/queries";
-import type { HealthReport, Status } from "../../api/types";
+import type { HealthReport, StackSummary } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
-import { StatusMark } from "../../components/StatusMark";
+import { Tag } from "../../components/Tag";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bang-dieu-khien";
 import { strings as khung } from "../../i18n/khung";
@@ -25,7 +29,18 @@ import { RouteMap } from "./RouteMap";
 import { Side } from "./Side";
 import { TpanChecks } from "./TpanChecks";
 
-const legend: Status[] = ["pass", "warn", "fail", "unknown"];
+/** Nhãn stack (LEMP hoặc LAMP, web server, PHP) hoặc "chưa cài stack": mọi vai thấy, như bản 1 vẽ trên thanh đầu trang. */
+function StackTags({ stack }: { stack: StackSummary }) {
+  const t = useStrings(strings);
+  if (!stack.installed) return <Tag tone="surface">{t.stackNone}</Tag>;
+  return (
+    <>
+      {stack.web && <Tag tone="surface">{stack.web === "nginx" ? "LEMP" : "LAMP"}</Tag>}
+      {stack.web && <Tag tone="surface">{stack.web}</Tag>}
+      {stack.php_version && <Tag tone="surface">{t.phpTag(stack.php_version)}</Tag>}
+    </>
+  );
+}
 
 export default function BangDieuKhien() {
   const t = useStrings(strings);
@@ -52,48 +67,45 @@ export default function BangDieuKhien() {
     : t.summary;
 
   return (
-    <div className="flex flex-wrap gap-x-[40px]">
-      <div className="min-w-0 flex-[999_1_560px]">
-        <ScreenHeader title={t.title} summary={isAdmin ? summary : t.summaryUser} />
+    <>
+      <ScreenHeader
+        title={t.title}
+        summary={isAdmin ? summary : t.summaryUser}
+        meta={o && <StackTags stack={o.stack} />}
+        actions={
+          // POST /health/run chỉ dành cho admin (docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")): user thường vẫn thấy sự cố của mình nhưng không bấm kiểm lại.
+          isAdmin && o ? (
+            <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
+              {recheck.isPending ? t.rechecking : t.recheck}
+            </Button>
+          ) : undefined
+        }
+      />
 
-        {q.isPending && <p className="mt-[24px] mb-0 text-muted">{kt.loading}</p>}
-        {!o && q.isError && (
-          <div role="alert" className="mt-[24px]">
-            <p className="m-0">
+      {recheck.isError && (
+        <Notice kind="fail" role="alert">
+          {t.recheckFailed} {errorMessage(recheck.error, lang)}
+        </Notice>
+      )}
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{kt.loading}</p>
+        </Card>
+      )}
+      {!o && q.isError && (
+        <Card>
+          <div role="alert">
+            <p className="mt-0 mb-[12px]">
               {t.loadFailed} {errorMessage(q.error, lang)}
             </p>
-            <Button className="mt-[12px]" onClick={() => void q.refetch()}>
-              {t.retry}
-            </Button>
+            <Button onClick={() => void q.refetch()}>{t.retry}</Button>
           </div>
-        )}
+        </Card>
+      )}
 
-        {o && (
-          <>
-            <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
-              <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
-                <h2 className="m-0 text-[16px] font-semibold">{t.mapTitle}</h2>
-                {/* POST /health/run chỉ dành cho admin (docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")): user thường vẫn thấy sự cố của mình nhưng không bấm kiểm lại. */}
-                {isAdmin && (
-                  <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
-                    {recheck.isPending ? t.rechecking : t.recheck}
-                  </Button>
-                )}
-              </div>
-              <ul aria-label={t.legend} className="m-0 flex list-none flex-wrap gap-x-[18px] gap-y-[8px] p-0">
-                {legend.map((s) => (
-                  <li key={s} className="flex items-center gap-[8px] text-[13px] text-muted">
-                    <StatusMark status={s} />
-                    <span>{kt.status[s]}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {recheck.isError && (
-              <p role="alert" className="mt-0 mb-[12px]">
-                {t.recheckFailed} {errorMessage(recheck.error, lang)}
-              </p>
-            )}
+      {o && (
+        <div className="flex flex-wrap items-start gap-[20px]">
+          <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-[20px]">
             <RouteMap o={o} />
             {/* User thường: hạn mức gói thay cho số liệu máy, và không có khối TPAN tự kiểm (mục 6.12). */}
             {isAdmin ? (
@@ -105,10 +117,10 @@ export default function BangDieuKhien() {
               o.quota && <QuotaBlock quota={o.quota} />
             )}
             <History jobs={o.jobs} />
-          </>
-        )}
-      </div>
-      {o && <Side o={o} admin={isAdmin} />}
-    </div>
+          </div>
+          <Side o={o} admin={isAdmin} />
+        </div>
+      )}
+    </>
   );
 }

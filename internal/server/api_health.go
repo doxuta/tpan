@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
@@ -246,6 +247,15 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		}
 		ov.Quota = &Quota{Package: sum.Limits, Usage: sum.Usage}
 	}
+	// Số DB cho menu (M16): cùng phạm vi scope với mọi phần khác của tổng quan,
+	// không nhận tham số nào từ người gọi. Đếm từ bảng sites và databases của
+	// tpan, không hỏi MariaDB: trang này được gọi mỗi 30 giây.
+	dbs, err := s.deps.Store.StandaloneDBs(ctx, scope)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	ov.DBCount = activeDBCount(sites, dbs)
 	var wg sync.WaitGroup
 	for i, st := range sites {
 		ov.Sites[i] = SiteRow{Site: st, Checks: apiNonNil(groups[st.Domain.String()])}
@@ -253,6 +263,25 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	wg.Wait()
 	writeJSON(w, http.StatusOK, ov)
+}
+
+// activeDBCount đếm DB đang chạy: mỗi site đang chạy có đúng một DB, cộng DB
+// rời đang chạy. Site và DB rời trong thùng rác không tính (DB của site đi
+// theo site; DB rời trong thùng rác đã bị DROP), như cách mục Site của menu
+// chỉ đếm site đang chạy.
+func activeDBCount(sites []site.Site, dbs []account.Database) int {
+	n := 0
+	for _, st := range sites {
+		if st.Status == site.Active {
+			n++
+		}
+	}
+	for _, d := range dbs {
+		if d.Status == account.DBActive {
+			n++
+		}
+	}
+	return n
 }
 
 // apiLastRun đọc lần health chạy đầy đủ gần nhất; chưa có hay đọc lỗi thì zero

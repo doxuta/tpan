@@ -9,15 +9,18 @@ import { useState, type ReactNode } from "react";
 import { errorMessage, get } from "../../api/client";
 import type { BrainStatus } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { CommandBlock } from "../../components/CommandBlock";
+import { TextField } from "../../components/Field";
 import { MonoText } from "../../components/MonoText";
-import { StatusMark } from "../../components/StatusMark";
+import { Notice } from "../../components/Notice";
+import { StatusLine, StatusMark } from "../../components/StatusMark";
 import { Tag } from "../../components/Tag";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/cai-dat";
 import { strings as khung } from "../../i18n/khung";
-import { Field } from "../dang-nhap/Field";
 import { formatDateTime } from "../lich-su/format";
+import { Row, Rows } from "./Rows";
 
 /** Bật AI trên máy chủ: đổi cấu hình rồi khởi động lại (tpan serve chỉ đọc ai.brain lúc khởi động). CommandBlock tự thêm sudo. */
 const enableCommands = ["tpan mcp config --brain bridge", "systemctl restart tpan"];
@@ -61,7 +64,7 @@ function ConnectSteps({ modeOff }: { modeOff: boolean }) {
   const connectCommands = ["make build", `bin/tpan brain ${target}`];
 
   return (
-    <div className="mt-[14px] flex max-w-[760px] flex-col gap-[20px] border-t border-hair pt-[14px]">
+    <div className="mt-[16px] flex max-w-[760px] flex-col gap-[20px] border-t border-hair pt-[16px]">
       {modeOff ? (
         <div>
           <h3 className="m-0 text-[14px] font-semibold">{t.brainEnableTitle}</h3>
@@ -69,9 +72,8 @@ function ConnectSteps({ modeOff }: { modeOff: boolean }) {
           <CommandBlock commands={enableCommands} />
         </div>
       ) : (
-        <p className="m-0 flex items-center gap-[10px] text-[14px] font-semibold">
-          <StatusMark status="pass" />
-          {t.brainEnableDone}
+        <p className="m-0 font-semibold">
+          <StatusLine status="pass">{t.brainEnableDone}</StatusLine>
         </p>
       )}
       <div>
@@ -84,7 +86,7 @@ function ConnectSteps({ modeOff }: { modeOff: boolean }) {
         <p className="mt-[4px] mb-[12px] text-muted">{t.brainConnectBody}</p>
         <div className="mb-[12px] flex flex-wrap gap-[16px]">
           <div className="min-w-[200px] flex-1">
-            <Field
+            <TextField
               id="bo-nao-user"
               label={t.brainUserLabel}
               hint={t.brainUserHint}
@@ -100,7 +102,9 @@ function ConnectSteps({ modeOff }: { modeOff: boolean }) {
           </div>
           <div className="min-w-[200px] flex-1">
             <div className="mb-[6px] text-[14px] font-medium">{t.brainHostLabel2}</div>
-            <div className="flex h-[44px] items-center font-mono text-[13px] sm:h-[40px]">{host}</div>
+            <div className="flex h-[44px] items-center sm:h-[40px]">
+              <MonoText>{host}</MonoText>
+            </div>
             <p className="mt-[6px] mb-0 text-[13px] text-muted">{t.brainHostHint}</p>
           </div>
         </div>
@@ -112,17 +116,6 @@ function ConnectSteps({ modeOff }: { modeOff: boolean }) {
 
 /** Claude Code đăng nhập bằng gói claude.ai thì không tính tiền theo API; mọi cách khác thì có. */
 const planAuth = "claude.ai";
-
-const labelClass = "font-mono text-[11px] tracking-[0.08em] text-muted";
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="border-t border-hair py-[12px]">
-      <dt className={labelClass}>{label}</dt>
-      <dd className="m-0 mt-[6px]">{children}</dd>
-    </div>
-  );
-}
 
 /** Cảnh báo bằng dấu trạng thái "cảnh báo" và chữ, không chỉ màu (mục 2 của GIAO-DIEN.md). */
 function Warn({ children }: { children: ReactNode }) {
@@ -150,18 +143,15 @@ export function BoNao() {
   const authIsApi = b?.connected === true && !!b.auth_method && b.auth_method !== planAuth;
 
   return (
-    <section aria-labelledby="bo-nao-tieu-de" className="pt-[28px]">
-      <h2 id="bo-nao-tieu-de" className="m-0 text-[16px] font-semibold">
-        {t.brainHeading}
-      </h2>
-      <p className="mt-[6px] mb-[14px] text-muted">{t.brainIntro}</p>
+    <Card title={t.brainHeading} titleId="bo-nao-tieu-de">
+      <p className="mt-0 mb-[14px] max-w-[72ch] text-muted">{t.brainIntro}</p>
 
       {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
       {q.isError && (
         <div role="alert">
-          <p className="m-0">
+          <Notice kind="fail">
             {t.brainLoadFailed} {errorMessage(q.error, lang)}
-          </p>
+          </Notice>
           <Button className="mt-[12px]" onClick={() => void q.refetch()}>
             {k.retry}
           </Button>
@@ -169,44 +159,39 @@ export function BoNao() {
       )}
       {b && (
         <>
-          <dl className="m-0 max-w-[760px]">
+          <Rows>
             <Row label={t.brainModeLabel}>
               <Tag>{b.mode}</Tag>
               <p className="mt-[6px] mb-0">{modeText}</p>
             </Row>
             <Row label={t.brainStateLabel}>
-              <span className="inline-flex items-center gap-[10px]">
-                <StatusMark status={ready ? "pass" : "unknown"} label={ready ? t.brainConnected : t.brainNotConnected} />
-                {b.mode === "demo" ? t.brainDemoReady : b.connected ? t.brainConnected : t.brainNotConnected}
-              </span>
+              <StatusLine status={ready ? "pass" : "unknown"}>{b.mode === "demo" ? t.brainDemoReady : b.connected ? t.brainConnected : t.brainNotConnected}</StatusLine>
             </Row>
             {b.connected && b.host && (
               <Row label={t.brainHostLabel}>
-                <MonoText size={12}>{b.host}</MonoText>
+                <MonoText>{b.host}</MonoText>
               </Row>
             )}
             {b.connected && b.claude_version && (
               <Row label={t.brainVersionLabel}>
-                <MonoText size={12}>{b.claude_version}</MonoText>
+                <MonoText>{b.claude_version}</MonoText>
                 {versionDiffers && <Warn>{t.brainVersionWarn(b.claude_version, b.tested_version ?? "")}</Warn>}
               </Row>
             )}
             {b.connected && b.model && (
               <Row label={t.brainModelLabel}>
-                <MonoText size={12}>{b.model}</MonoText>
+                <MonoText>{b.model}</MonoText>
               </Row>
             )}
             {b.connected && b.auth_method && (
               <Row label={t.brainAuthLabel}>
-                <MonoText size={12}>{b.auth_method}</MonoText>
+                <MonoText>{b.auth_method}</MonoText>
                 {authIsApi && <Warn>{t.brainAuthWarn(b.auth_method)}</Warn>}
               </Row>
             )}
             {b.connected && b.since && (
               <Row label={t.brainSinceLabel}>
-                <span title={b.since} className="font-mono text-[13px]">
-                  {formatDateTime(b.since, lang)}
-                </span>
+                <span title={b.since}>{formatDateTime(b.since, lang)}</span>
               </Row>
             )}
             {b.warnings && b.warnings.length > 0 && (
@@ -218,12 +203,12 @@ export function BoNao() {
                 ))}
               </Row>
             )}
-          </dl>
+          </Rows>
 
           {/* Chưa nối: ba bước ở hai máy khác nhau, nên mỗi bước nói rõ chạy ở đâu. Demo thì không có gì để nối. */}
           {!b.connected && b.mode !== "demo" && <ConnectSteps modeOff={b.mode === "off"} />}
         </>
       )}
-    </section>
+    </Card>
   );
 }

@@ -1,10 +1,14 @@
 // /plans/:id: một Plan do AI, agent hay người đề xuất. Plan chờ duyệt nhúng
 // PlanReview có sẵn (màn xem trước dùng chung, không sửa) và "chạy" ở đây là
-// duyệt: POST /api/v1/plans/{id}/approve rồi chuyển sang /jobs/{job_id}.
+// duyệt: POST /api/v1/plans/{id}/approve rồi ở lại trang, thẻ theo dõi job báo
+// tiến độ.
 //
 // Lúc duyệt mà máy đã khác lúc đề xuất, máy chủ dựng lại bản xem trước và trả
 // 409 plan_changed. Ta đọc lại Plan để PlanReview vẽ bản mới và báo người dùng
 // xem lại; không tự duyệt lại, vì bản người dùng vừa xem không còn đúng.
+//
+// Bản 2: mỗi nhóm là một thẻ; đường dẫn "Plan chờ duyệt / <tiêu đề>"; nhãn nguồn,
+// trạng thái và đối tượng nằm ở hàng nhãn nhỏ dưới tóm tắt.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -14,10 +18,10 @@ import { ApiError, errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, PendingPlan } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Dialog } from "../../components/Dialog";
-import { MonoText } from "../../components/MonoText";
+import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
-import { StatusMark } from "../../components/StatusMark";
 import { Tag } from "../../components/Tag";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/agent";
@@ -40,19 +44,26 @@ export function PlanDetail() {
 
   return (
     <>
-      {q.isPending && <p className="m-0 pt-[24px] text-muted">{k.loading}</p>}
+      {!plan && <ScreenHeader crumbs={[{ label: k.groups.ai }, { label: t.listTitle }]} title={t.listTitle} />}
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {!plan && q.isError && (
-        <div role="alert" className="pt-[24px]">
-          <p className="m-0">
-            {t.detailLoadFailed} {errorMessage(q.error, lang)}
-          </p>
-          <div className="mt-[12px] flex flex-wrap gap-[8px]">
-            <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-            <Link to="/plans" className={buttonClass("secondary")}>
-              {t.backToList}
-            </Link>
+        <Card>
+          <div role="alert">
+            <p className="mt-0 mb-[12px]">
+              {t.detailLoadFailed} {errorMessage(q.error, lang)}
+            </p>
+            <div className="flex flex-wrap gap-[8px]">
+              <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+              <Link to="/plans" className={buttonClass("secondary")}>
+                {t.backToList}
+              </Link>
+            </div>
           </div>
-        </div>
+        </Card>
       )}
       {plan && <Body plan={plan} />}
     </>
@@ -93,47 +104,56 @@ function Body({ plan }: { plan: PendingPlan }) {
   const when = formatDateTime(plan.decided ?? plan.created, lang);
   // plan_changed đã có câu riêng bên dưới; chỉ lỗi khác mới đưa cho PlanReview hiện.
   const approveError = changed ? undefined : approve.error;
+  const title = tx(plan.title, lang);
 
   return (
     <>
-      <ScreenHeader title={tx(plan.title, lang)} summary={t.proposedAt(formatDateTime(plan.created, lang))} />
-
-      <div className="mt-[14px] flex flex-wrap items-center gap-x-[12px] gap-y-[8px]">
-        <OriginTag origin={plan.origin} />
-        <Tag>{t.status[plan.status]}</Tag>
-        <MonoText size={12}>{plan.target}</MonoText>
-      </div>
+      <ScreenHeader
+        crumbs={[{ label: t.listTitle, to: "/plans" }, { label: title }]}
+        title={title}
+        summary={t.proposedAt(formatDateTime(plan.created, lang))}
+        meta={
+          <>
+            <OriginTag origin={plan.origin} tone="surface" />
+            <Tag tone="surface">{t.status[plan.status]}</Tag>
+            <Tag tone="surface">{plan.target}</Tag>
+          </>
+        }
+      />
 
       {plan.untrusted && (
-        <div role="note" className="mt-[18px] flex items-start gap-[10px] border border-ink p-[12px]">
-          <span className="mt-[2px] flex w-[20px] flex-none justify-center">
-            <StatusMark status="warn" label={t.untrustedLabel} />
-          </span>
-          <p className="m-0 font-medium">{t.untrustedWarning}</p>
-        </div>
+        <Card>
+          <div role="note">
+            <Notice kind="warn">
+              <p className="m-0 font-medium">
+                <span className="sr-only">{t.untrustedLabel}: </span>
+                {t.untrustedWarning}
+              </p>
+            </Notice>
+          </div>
+        </Card>
       )}
 
       {changed && (
-        <div role="alert" className="mt-[18px] flex items-start gap-[10px] border border-ink p-[12px]">
-          <span className="mt-[2px] flex w-[20px] flex-none justify-center">
-            <StatusMark status="warn" label={t.untrustedLabel} />
-          </span>
-          <p className="m-0 font-medium">{t.planChanged}</p>
-        </div>
+        <Card>
+          <Notice kind="warn" role="alert">
+            <p className="m-0 font-medium">
+              <span className="sr-only">{t.untrustedLabel}: </span>
+              {t.planChanged}
+            </p>
+          </Notice>
+        </Card>
       )}
 
       {pending && (
         <>
           <PlanReview preview={plan.preview} onRun={() => approve.mutate()} running={approve.isPending} error={approveError} />
-          <section aria-labelledby="tu-choi-tieu-de" className="mt-[22px] border-t border-hair pt-[18px]">
-            <h2 id="tu-choi-tieu-de" className="m-0 text-[16px] font-semibold">
-              {t.rejectHeading}
-            </h2>
-            <p className="mt-[6px] mb-[12px] text-muted">{t.rejectHint}</p>
+          <Card title={t.rejectHeading} titleId="tu-choi-tieu-de">
+            <p className="mt-0 mb-[12px] text-muted">{t.rejectHint}</p>
             <Button onClick={() => setRejecting(true)} disabled={approve.isPending}>
               {t.reject}
             </Button>
-          </section>
+          </Card>
           <Dialog
             open={rejecting}
             onOpenChange={(o) => {
@@ -152,7 +172,7 @@ function Body({ plan }: { plan: PendingPlan }) {
       )}
 
       {plan.status === "applied" && (
-        <section className="mt-[22px] border-t border-hair pt-[18px]">
+        <Card>
           <p className="m-0">{t.appliedLine}</p>
           {plan.job_id && (
             <p className="mt-[10px] mb-0">
@@ -161,24 +181,24 @@ function Body({ plan }: { plan: PendingPlan }) {
               </Link>
             </p>
           )}
-        </section>
+        </Card>
       )}
 
       {plan.status === "rejected" && (
-        <section className="mt-[22px] border-t border-hair pt-[18px]">
+        <Card>
           <p className="m-0">
             {plan.decided_by ? (
               <>
-                <MonoText size={13}>{plan.decided_by}</MonoText> {t.rejectedLine(when)}
+                <span className="font-medium">{plan.decided_by}</span> {t.rejectedLine(when)}
               </>
             ) : (
               t.rejectedNoWho(when)
             )}
           </p>
-        </section>
+        </Card>
       )}
 
-      <p className="mt-[26px] mb-0">
+      <p className="m-0">
         <Link to="/plans" className="inline-flex min-h-[44px] items-center sm:min-h-0">
           {t.backToList}
         </Link>

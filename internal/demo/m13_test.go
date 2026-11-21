@@ -41,7 +41,8 @@ func TestM13Seed(t *testing.T) {
 		t.Errorf("Users() = %v", Users())
 	}
 
-	owners := map[string]string{siteBlog: account.AdminName, siteShop: userA, siteWiki: userB, siteLab: userB}
+	owners := map[string]string{siteBlog: account.AdminName, siteShop: userA, siteWiki: userB, siteLab: userB,
+		siteLongShop: userA, siteLongEdu: account.AdminName, siteLongNews: userB}
 	for dom, want := range owners {
 		s, ok, err := st.Site(ctx, domain(t, dom))
 		if err != nil || !ok || s.Owner != want {
@@ -54,6 +55,20 @@ func TestM13Seed(t *testing.T) {
 		if s.Suspended != wantSusp {
 			t.Errorf("%s tạm khoá = %q; muốn %q", dom, s.Suspended, wantSusp)
 		}
+	}
+	// khach_a (gói co_ban, tối đa 2 site) đủ 2/2: màn Người dùng có thanh mức dùng đầy.
+	all, err := st.Sites(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nA := 0
+	for _, s := range all {
+		if s.Owner == userA {
+			nA++
+		}
+	}
+	if nA != 2 {
+		t.Errorf("%s có %d site; muốn đúng 2 (đủ hạn mức gói %s)", userA, nA, pkgBasic)
 	}
 
 	dbs, err := st.StandaloneDBs(ctx, "")

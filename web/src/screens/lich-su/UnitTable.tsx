@@ -1,11 +1,13 @@
 // Bảng kết quả từng site của job hàng loạt (mục 7 của KE-HOACH.md: "xong, lỗi ở
 // bước nào, vì sao"). Mỗi hàng là một sự kiện unit.done, nên bảng đọc lại được
-// về sau như phần còn lại của trang job. Bảng kẻ mảnh, dấu trạng thái là
-// component chung; chữ kết quả nằm ngay cạnh dấu nên dấu ẩn khỏi trình đọc.
+// về sau như phần còn lại của trang job. Bản 2: TableList tự vẽ thẻ, dòng tóm
+// tắt "N site xong, M site lỗi" nằm ở chân bảng. Dấu trạng thái là component
+// chung; chữ kết quả nằm ngay cạnh dấu nên dấu ẩn khỏi trình đọc.
 
 import type { Status, UnitResult } from "../../api/types";
-import { MonoText } from "../../components/MonoText";
-import { StatusMark } from "../../components/StatusMark";
+import { DomainText } from "../../components/DomainText";
+import { Code } from "../../components/MonoText";
+import { StatusLine } from "../../components/StatusMark";
 import { TableList } from "../../components/TableList";
 import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/lich-su";
@@ -23,44 +25,33 @@ export function UnitTable({ units }: { units: UnitResult[] }) {
   const failed = count("rolled_back") + count("undo_failed");
 
   return (
-    <section aria-labelledby="units-heading" className="pt-[26px]">
-      <h2 id="units-heading" className="m-0 text-[16px] font-semibold">
-        {t.unitsHeading}
-      </h2>
-      <p className="mt-[6px] mb-[14px] text-muted">{t.unitsSummary(count("succeeded"), failed, count("not_run"))}</p>
-      <TableList
-        caption={t.unitsHeading}
-        rows={units}
-        rowKey={(u) => u.target}
-        empty={t.unitsEmpty}
-        columns={[
-          { header: t.unitColSite, className: "min-w-[200px]", cell: (u) => <MonoText>{u.target}</MonoText> },
-          {
-            header: t.unitColResult,
-            className: "whitespace-nowrap",
-            cell: (u) => (
-              <span className="inline-flex items-center gap-[8px]">
-                <span className="flex h-[20px] w-[20px] items-center justify-center">
-                  <StatusMark status={markOf[u.status]} />
-                </span>
-                {t.unitStatus[u.status]}
+    <TableList
+      title={t.unitsHeading}
+      titleId="units-heading"
+      caption={t.unitsHeading}
+      minWidth={760}
+      rows={units}
+      rowKey={(u) => u.target}
+      empty={t.unitsEmpty}
+      footer={<span>{t.unitsSummary(count("succeeded"), failed, count("not_run"))}</span>}
+      columns={[
+        // Tên miền là chữ thường (sans), được ngắt dòng sau dấu chấm.
+        { header: t.unitColSite, nowrap: false, className: "min-w-[200px]", cell: (u) => <DomainText domain={u.target} /> },
+        { header: t.unitColResult, cell: (u) => <StatusLine status={markOf[u.status]}>{t.unitStatus[u.status]}</StatusLine> },
+        {
+          header: t.unitColStep,
+          nowrap: false,
+          cell: (u) =>
+            u.phase || u.step_id ? (
+              <span className="flex flex-col gap-[2px]">
+                {u.phase && <span>{t.unitPhase(u.phase)}</span>}
+                {u.step_id && <Code className="text-muted">{u.step_id}</Code>}
               </span>
-            ),
-          },
-          {
-            header: t.unitColStep,
-            cell: (u) =>
-              u.phase || u.step_id ? (
-                <span className="flex flex-col gap-[2px]">
-                  {u.phase && <span>{t.unitPhase(u.phase)}</span>}
-                  {u.step_id && <span className="font-mono text-[12px] text-muted [overflow-wrap:anywhere]">{u.step_id}</span>}
-                </span>
-              ) : null,
-          },
-          // Lỗi của lệnh có thể nhiều dòng: giữ xuống dòng, không cắt.
-          { header: t.unitColWhy, cell: (u) => (u.error ? <span className="[overflow-wrap:anywhere] whitespace-pre-wrap">{u.error}</span> : null) },
-        ]}
-      />
-    </section>
+            ) : null,
+        },
+        // Lỗi của lệnh có thể nhiều dòng: giữ xuống dòng, không cắt.
+        { header: t.unitColWhy, nowrap: false, cell: (u) => (u.error ? <span className="block min-w-[200px] [overflow-wrap:anywhere] whitespace-pre-wrap">{u.error}</span> : null) },
+      ]}
+    />
   );
 }

@@ -12,7 +12,6 @@ import { Link } from "react-router";
 import { errorMessage } from "../../api/client";
 import { previewOf, refreshAccounts, startOf, userPath, waitJob, type PlanRequest } from "../../api/m13-users";
 import { Button } from "../../components/Button";
-import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { TableList } from "../../components/TableList";
 import { useLang, useStrings } from "../../i18n";
@@ -34,7 +33,7 @@ export function BulkPanel({ action, names, reason, onClose }: Props) {
   const [items, setItems] = useState<Item[]>(() => names.map((name) => ({ name, state: "queued", steps: 0 })));
   const [running, setRunning] = useState(false);
   const [finished, setFinished] = useState(false);
-  const top = useRef<HTMLElement>(null);
+  const top = useRef<HTMLDivElement>(null);
 
   const reqOf = (name: string): PlanRequest => ({ method: "POST", path: userPath(name, action === "suspend" ? "/suspend" : "/unsuspend"), body: action === "suspend" ? { reason } : undefined });
   const patch = (name: string, p: Partial<Item>) => setItems((xs) => xs.map((x) => (x.name === name ? { ...x, ...p } : x)));
@@ -115,59 +114,64 @@ export function BulkPanel({ action, names, reason, onClose }: Props) {
   const runLabel = action === "suspend" ? t.bulkRunSuspend(ready.length) : t.bulkRunUnsuspend(ready.length);
 
   return (
-    <section ref={top} tabIndex={-1} aria-labelledby="bulk-heading" className="pt-[26px] outline-offset-0">
-      <h2 id="bulk-heading" className="m-0 text-[16px] font-semibold">
-        {title}
-      </h2>
-      <p className="mt-[6px] mb-[14px] text-muted">{t.bulkIntro}</p>
-      {action === "suspend" && reason && (
-        <p className="mt-0 mb-[14px]">
-          <span className="font-mono text-[11px] tracking-[0.08em] text-muted">{t.bulkReasonLabel.toUpperCase()}</span>
-          <br />
-          {reason}
-        </p>
-      )}
-      <div aria-live="polite">
-        <TableList
-          caption={title}
-          rows={items}
-          rowKey={(i) => i.name}
-          empty=""
-          columns={[
-            { header: t.bulkColUser, cell: (i) => <MonoText>{i.name}</MonoText> },
-            {
-              header: t.bulkColResult,
-              cell: (i) => (
-                <span className="flex items-start gap-[10px]">
-                  <span className="mt-[4px] flex-none">
-                    <StatusMark status={mark(i.state)} label={k.status[mark(i.state)]} />
-                  </span>
-                  <span>
-                    {result(i)}
-                    {i.job && (
-                      <>
-                        {" "}
-                        <Link to={`/jobs/${encodeURIComponent(i.job)}`}>{t.bulkEvidence}</Link>
-                      </>
-                    )}
-                  </span>
+    // Khối ngoài giữ ref và focus: TableList tự vẽ thẻ nên không có chỗ nhận ref.
+    <div ref={top} tabIndex={-1} aria-live="polite" className="outline-offset-0">
+      <TableList
+        titleId="bulk-heading"
+        title={title}
+        caption={title}
+        actions={
+          <>
+            {!finished && (
+              <Button variant="primary" disabled={previewing || running || ready.length === 0} onClick={() => void runAll()}>
+                {running ? t.working : runLabel}
+              </Button>
+            )}
+            <Button disabled={running} onClick={onClose}>
+              {finished ? t.bulkClose : k.cancel}
+            </Button>
+          </>
+        }
+        above={
+          <div className="flex flex-col gap-[6px] border-b border-hair px-[16px] py-[12px]">
+            <p className="m-0 text-muted">{t.bulkIntro}</p>
+            {action === "suspend" && reason && (
+              <p className="m-0">
+                <span className="text-[12px] font-medium text-muted">{t.bulkReasonLabel}</span>
+                <br />
+                {reason}
+              </p>
+            )}
+          </div>
+        }
+        rows={items}
+        rowKey={(i) => i.name}
+        empty=""
+        footer={!previewing && ready.length === 0 && !finished ? t.bulkNone : undefined}
+        columns={[
+          { header: t.bulkColUser, cell: (i) => <span className="font-semibold">{i.name}</span> },
+          {
+            header: t.bulkColResult,
+            nowrap: false,
+            cell: (i) => (
+              <span className="flex items-start gap-[10px]">
+                <span className="mt-[4px] flex-none">
+                  <StatusMark status={mark(i.state)} label={k.status[mark(i.state)]} />
                 </span>
-              ),
-            },
-          ]}
-        />
-      </div>
-      {!previewing && ready.length === 0 && !finished && <p className="mt-[12px] mb-0">{t.bulkNone}</p>}
-      <div className="mt-[16px] flex flex-wrap gap-[8px]">
-        {!finished && (
-          <Button variant="primary" disabled={previewing || running || ready.length === 0} onClick={() => void runAll()}>
-            {running ? t.working : runLabel}
-          </Button>
-        )}
-        <Button disabled={running} onClick={onClose}>
-          {finished ? t.bulkClose : k.cancel}
-        </Button>
-      </div>
-    </section>
+                <span>
+                  {result(i)}
+                  {i.job && (
+                    <>
+                      {" "}
+                      <Link to={`/jobs/${encodeURIComponent(i.job)}`}>{t.bulkEvidence}</Link>
+                    </>
+                  )}
+                </span>
+              </span>
+            ),
+          },
+        ]}
+      />
+    </div>
   );
 }

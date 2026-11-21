@@ -18,6 +18,9 @@ import { errorMessage, get, post } from "../../api/client";
 import { queryKeys } from "../../api/queries";
 import type { Backup, BackupsOverview, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Code } from "../../components/MonoText";
+import { RowActions } from "../../components/RowActions";
 import { TableList } from "../../components/TableList";
 import { Tag } from "../../components/Tag";
 import { useLang, useStrings } from "../../i18n";
@@ -93,80 +96,92 @@ export function Backups({ domain, active, restoreBlocked }: { domain: string; ac
   const items = q.data?.items ?? [];
   const errorHeading = (r: Req): string => (r.action === "create" ? t.bkCreateErrorHeading : t.bkRestoreErrorHeading(formatWhen(r.backup.created, lang)));
 
-  return (
-    <section aria-labelledby="backup-site">
-      <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[6px]">
-        <h2 id="backup-site" className="m-0 text-[16px] font-semibold">
-          {t.bkHeading}
-        </h2>
-        {active && (
-          <Button variant="primary" disabled={dry.isPending} onClick={() => ask({ action: "create" })}>
-            {pending?.action === "create" ? t.bkPreviewing : t.bkNow}
-          </Button>
-        )}
-      </div>
-      <p className="mt-0 mb-[12px] max-w-[720px] text-[13px] text-muted">{active ? t.bkHint : t.bkTrashed}</p>
-      {restoreBlocked && (
-        <p id="khoi-phuc-bi-chan" className="mt-0 mb-[12px] max-w-[720px] text-[13px] text-muted">
-          {restoreBlocked}
-        </p>
-      )}
+  const createButton = active && (
+    <Button variant="primary" disabled={dry.isPending} onClick={() => ask({ action: "create" })}>
+      {pending?.action === "create" ? t.bkPreviewing : t.bkNow}
+    </Button>
+  );
 
-      {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
-      {q.isError && (
-        <div>
-          <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
-          <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-        </div>
-      )}
-      {q.isSuccess && (
-        <>
-          <TableList
-            caption={t.bkTableName(domain)}
-            rows={items.slice(0, shownCount)}
-            rowKey={(x) => x.id}
-            empty={active ? t.bkEmpty : t.bkEmptyTrashed}
-            columns={[
-              { header: t.bkColCreated, cell: (x) => <span className="font-mono text-[12px] whitespace-nowrap text-muted">{formatWhen(x.created, lang)}</span> },
-              { header: t.bkColKind, cell: (x) => <Tag title={x.kind === "full" ? b.kindFull : b.kindSql}>{x.kind}</Tag> },
-              { header: t.bkColReason, cell: (x) => b.reasons[x.reason] ?? x.reason },
-              { header: t.bkColSize, cell: (x) => <span className="font-mono text-[12px] whitespace-nowrap">{formatSize(x.size, lang)}</span> },
-              { header: t.bkColSha, cell: (x) => <span className="font-mono text-[12px] text-muted">{shortSha(x.sha256)}</span> },
-              {
-                header: t.bkColAction,
-                className: "pr-0",
-                cell: (x) => {
-                  if (x.kind === "sql") {
-                    return (
-                      <span className="text-[13px] text-muted">
-                        {t.bkSqlLead}
-                        <Link to="/databases">{t.bkSqlLink}</Link>
-                        {t.bkSqlTail}
-                      </span>
-                    );
-                  }
-                  if (!active) return null;
+  return (
+    <>
+      {q.isSuccess ? (
+        <TableList
+          title={t.bkHeading}
+          titleId="backup-site"
+          actions={createButton}
+          caption={t.bkTableName(domain)}
+          rows={items.slice(0, shownCount)}
+          rowKey={(x) => x.id}
+          empty={active ? t.bkEmpty : t.bkEmptyTrashed}
+          minWidth={720}
+          // Lời dẫn nằm giữa đầu thẻ và bảng; câu "vì sao chưa khôi phục được" đứng ngay dưới, nút Khôi phục trỏ tới nó.
+          above={
+            <div className="flex flex-col gap-[4px] px-[16px] py-[10px] text-[13px] text-muted">
+              <p className="m-0 max-w-[72ch]">{active ? t.bkHint : t.bkTrashed}</p>
+              {restoreBlocked && (
+                <p id="khoi-phuc-bi-chan" className="m-0 max-w-[72ch]">
+                  {restoreBlocked}
+                </p>
+              )}
+            </div>
+          }
+          footer={<Link to="/backups">{t.bkViewAll(items.length)}</Link>}
+          columns={[
+            { header: t.bkColCreated, className: "tabular-nums", cell: (x) => formatWhen(x.created, lang) },
+            { header: t.bkColKind, cell: (x) => <Tag title={x.kind === "full" ? b.kindFull : b.kindSql}>{x.kind}</Tag> },
+            { header: t.bkColReason, cell: (x) => b.reasons[x.reason] ?? x.reason },
+            { header: t.bkColSize, align: "right", cell: (x) => formatSize(x.size, lang) },
+            { header: t.bkColSha, cell: (x) => <Code>{shortSha(x.sha256)}</Code> },
+            {
+              header: t.bkColAction,
+              align: "right",
+              nowrap: false,
+              cell: (x) => {
+                if (x.kind === "sql") {
                   return (
-                    <Button
-                      aria-label={t.bkRestoreFor(formatWhen(x.created, lang))}
-                      aria-describedby={restoreBlocked ? "khoi-phuc-bi-chan" : undefined}
-                      disabled={dry.isPending || restoreBlocked !== undefined}
-                      onClick={() => ask({ action: "restore", backup: x })}>
-                      {pending?.action === "restore" && pending.backup.id === x.id ? t.bkPreviewing : t.bkRestore}
-                    </Button>
+                    <span className="text-[12.5px] text-muted">
+                      {t.bkSqlLead}
+                      <Link to="/databases">{t.bkSqlLink}</Link>
+                      {t.bkSqlTail}
+                    </span>
                   );
-                },
+                }
+                if (!active) return null;
+                const label = t.bkRestoreFor(formatWhen(x.created, lang));
+                return (
+                  <RowActions
+                    moreLabel={label}
+                    primary={[
+                      {
+                        label: t.bkRestore,
+                        ariaLabel: label,
+                        title: restoreBlocked,
+                        disabled: dry.isPending || restoreBlocked !== undefined,
+                        busy: pending?.action === "restore" && pending.backup.id === x.id,
+                        busyLabel: t.bkPreviewing,
+                        onClick: () => ask({ action: "restore", backup: x }),
+                      },
+                    ]}
+                  />
+                );
               },
-            ]}
-          />
-          <p className="mt-[12px] mb-0 text-[13px]">
-            <Link to="/backups">{t.bkViewAll(items.length)}</Link>
-          </p>
-        </>
+            },
+          ]}
+        />
+      ) : (
+        <Card title={t.bkHeading} titleId="backup-site" actions={createButton}>
+          {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
+          {q.isError && (
+            <div>
+              <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
+              <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+            </div>
+          )}
+        </Card>
       )}
 
       {dry.isError && asked && (
-        <div ref={resultRef} tabIndex={-1} className="pt-[20px] outline-offset-0">
+        <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
           <ErrorNote error={dry.error} heading={errorHeading(asked)} checksHeading={t.bkChecksHeading} />
           <div className="pt-[12px]">
             <Button onClick={close}>{k.cancel}</Button>
@@ -175,11 +190,11 @@ export function Backups({ domain, active, restoreBlocked }: { domain: string; ac
       )}
 
       {open && (
-        <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
-          {open.req.action === "restore" && <p className="m-0 max-w-[720px] pt-[26px] font-semibold">{t.bkRestoreWarning(domain, formatWhen(open.req.backup.created, lang))}</p>}
+        <div ref={resultRef} tabIndex={-1} className="flex flex-col gap-[20px] outline-offset-0">
+          {open.req.action === "restore" && <p className="m-0 max-w-[72ch] font-semibold">{t.bkRestoreWarning(domain, formatWhen(open.req.backup.created, lang))}</p>}
           <PlanReview preview={open.preview} onRun={() => run.mutate(open.req)} running={run.isPending} error={run.error} onCancel={close} />
         </div>
       )}
-    </section>
+    </>
   );
 }

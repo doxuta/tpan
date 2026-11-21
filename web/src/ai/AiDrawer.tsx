@@ -1,12 +1,16 @@
-// Ngăn AI (mục 8.4 của KE-HOACH.md, "Ngăn AI" ở mục 6 của docs/GIAO-DIEN.md,
-// hình chuẩn docs/mau-giao-dien/ngan-ai-sang.html). Từ trên xuống: đầu ngăn
-// (tên, tình trạng bộ não, nút đóng); cách nối nếu bộ não chưa nối; "Ngữ cảnh
-// gửi kèm" với các nhãn bỏ được; cuộc trò chuyện; ô hỏi tiếp.
+// Ngăn AI (mục 8.4 của KE-HOACH.md; "Ngăn AI" ở mục 6 và 7 của docs/GIAO-DIEN.md,
+// bản 2). Từ trên xuống: đầu ngăn (tên, tình trạng bộ não, nút đóng); cách nối
+// nếu bộ não chưa nối; "Ngữ cảnh gửi kèm" với các nhãn bỏ được; cuộc trò
+// chuyện; ô hỏi tiếp.
 //
-// Màn đủ rộng (useWide): ngăn nằm cạnh nội dung, trong hàng flex của Layout.
-// Màn hẹp: ngăn là lớp phủ (Radix Dialog, nên khoá focus và Esc đóng được),
-// toàn màn dưới 640 px. Trạng thái cuộc trò chuyện nằm ở AiProvider nên hai
-// kiểu trình bày dùng chung một thứ.
+// Ngăn đóng thì KHÔNG còn gì ở góc màn hình: nút mở là "Hỏi AI" trên thanh đầu
+// trang (Layout, #nut-hoi-ai).
+//
+// Màn đủ rộng (useWide): khung chat nổi cỡ cố định 400 × 640 px ở góc dưới bên
+// phải, đè lên nội dung chứ không chiếm chỗ trong bố cục. Màn hẹp: ngăn là lớp
+// phủ (Radix Dialog, nên khoá focus và Esc đóng được), toàn màn dưới 640 px.
+// Trạng thái cuộc trò chuyện nằm ở AiProvider nên hai kiểu trình bày dùng chung
+// một thứ.
 
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -14,39 +18,29 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { errorMessage, get, post } from "../api/client";
 import type { AIChip, AIChipKey, AskPreview, BrainStatus, PendingPlan } from "../api/types";
-import { buttonClass } from "../components/Button";
+import { Button, IconButton, buttonClass } from "../components/Button";
+import { Card } from "../components/Card";
 import { ClaudeCommand } from "../components/ClaudeCommand";
 import { CommandBlock } from "../components/CommandBlock";
+import { Disclosure } from "../components/Disclosure";
+import { EmptyState } from "../components/EmptyState";
 import { EvidenceBlock } from "../components/EvidenceBlock";
+import { Field, Input } from "../components/Field";
+import { returnFocus } from "../components/focusReturn";
+import { Icon } from "../components/Icon";
+import { Code } from "../components/MonoText";
+import { Notice } from "../components/Notice";
 import { StatusMark } from "../components/StatusMark";
-import { useCopy } from "../components/useCopy";
+import { Tag } from "../components/Tag";
 import { tx, useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/ai";
-import { strings as khung } from "../i18n/khung";
 import { useAi, type AiMode, type TurnView, type ToolItem } from "./AiProvider";
 import { AnswerText } from "./AnswerText";
 import { useWide } from "./platform";
 import { extractLinks } from "./views";
 
-const monoLabel = "m-0 mb-[4px] font-mono text-[11px] tracking-[0.08em] text-muted";
-const tag = "border border-ink px-[5px] font-mono text-[11px] tracking-[0.06em] text-ink";
-const iconProps = { "aria-hidden": true, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", className: "flex-none" } as const;
-
-function CloseIcon({ size, width = 2 }: { size: number; width?: number }) {
-  return (
-    <svg {...iconProps} width={size} height={size} strokeWidth={width}>
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg {...iconProps} width={12} height={12} strokeWidth={2.5}>
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
+/** Nhãn nhỏ trong ngăn: 12 px đậm vừa, viết thường (mục 4 của GIAO-DIEN.md). */
+const smallLabel = "m-0 text-[12px] font-medium text-muted";
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);
@@ -62,17 +56,17 @@ function toolName(full: string): string {
   return full.replace(/^mcp__tpan__/, "");
 }
 
-// ---- vỏ ngăn: cạnh nội dung hay lớp phủ ----
+// ---- vỏ ngăn: khung nổi hay lớp phủ ----
 
 export function AiDrawer() {
   const ai = useAi();
   const t = useStrings(strings);
   const wide = useWide();
-  if (!ai.open) return <Launcher />;
+  if (!ai.open) return null;
 
   if (wide) {
-    // Khung chat nổi kiểu Messenger: cỡ cố định ở góc dưới bên phải, không chiếm
-    // cột của trang và không phình theo nội dung; chữ dài thì cuộn bên trong khung.
+    // Khung chat nổi: cỡ cố định ở góc dưới bên phải, không chiếm cột của trang và
+    // không phình theo nội dung; chữ dài thì cuộn bên trong khung.
     return (
       <div
         id="ngan-ai"
@@ -82,47 +76,27 @@ export function AiDrawer() {
         onKeyDown={(e) => e.key === "Escape" && ai.setOpen(false)}
       >
         <ReturnFocus />
-        <Panel overlay={false} className="h-full w-full" />
+        <Panel overlay={false} className="h-full w-full rounded-card border border-hair shadow-pop" />
       </div>
     );
   }
   return (
     <RadixDialog.Root open onOpenChange={ai.setOpen}>
       <RadixDialog.Portal>
-        {/* Làm mờ trang bằng chính màu nền, không bóng đổ (mục 9). */}
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-paper/80" />
-        <RadixDialog.Content id="ngan-ai" aria-describedby={undefined} className="fixed inset-y-0 right-0 z-50 w-full max-w-full text-ink sm:w-[440px]">
-          <Panel overlay className="h-full" />
+        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-scrim" />
+        <RadixDialog.Content id="ngan-ai" aria-describedby={undefined} onCloseAutoFocus={returnFocus} className="fixed inset-y-0 right-0 z-50 w-full max-w-full text-ink sm:w-[440px]">
+          <Panel overlay className="h-full border-l border-hair shadow-pop" />
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>
   );
 }
 
-/** Nút nổi góc dưới bên phải khi khung chat đang đóng: bấm là mở, như bong bóng chat. */
-function Launcher() {
-  const ai = useAi();
-  const t = useStrings(strings);
-  return (
-    <button
-      type="button"
-      onClick={() => ai.setOpen(true)}
-      className="fixed right-[16px] bottom-[16px] z-40 inline-flex h-[48px] items-center gap-[8px] border border-ink bg-ink px-[16px] text-[14px] font-medium text-on-ink hover:opacity-90"
-    >
-      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 5h16v11H9l-5 4z" />
-      </svg>
-      {t.launcher}
-      {ai.running && <span className="ml-[2px] font-mono text-[12px]">…</span>}
-    </button>
-  );
-}
-
 /**
- * Ngăn nằm cạnh nội dung tắt đi cùng lúc con trỏ đang ở trong nó, nên trình
- * duyệt đưa focus về <body> và người dùng bàn phím mất dấu vị trí (mục 10, ý 2
- * của GIAO-DIEN.md). Trả focus về nút "Hỏi AI" trên thanh đầu trang. Lớp phủ
- * (Radix Dialog) tự trả focus nên không cần.
+ * Ngăn nổi tắt đi cùng lúc con trỏ đang ở trong nó, nên trình duyệt đưa focus về
+ * <body> và người dùng bàn phím mất dấu vị trí (mục 10, ý 2 của GIAO-DIEN.md).
+ * Trả focus về nút "Hỏi AI" trên thanh đầu trang. Lớp phủ (Radix Dialog) tự trả
+ * focus nên không cần.
  */
 function ReturnFocus() {
   useEffect(
@@ -159,32 +133,24 @@ function Panel({ overlay, className }: { overlay: boolean; className: string }) 
   const heading = <h2 className="m-0 text-[16px] font-semibold">{t.title}</h2>;
 
   return (
-    <section className={`flex min-h-0 flex-col border border-card-border bg-surface ${className}`}>
-      <div className="flex flex-none flex-wrap items-center gap-x-[12px] gap-y-[6px] border-b border-hair py-[10px] pr-[12px] pl-[18px]">
+    <section className={`flex min-h-0 flex-col overflow-hidden bg-surface ${className}`}>
+      <div className="flex flex-none flex-wrap items-center gap-x-[12px] gap-y-[6px] border-b border-hair py-[10px] pr-[8px] pl-[16px]">
         {overlay ? <RadixDialog.Title asChild>{heading}</RadixDialog.Title> : heading}
         <span className="flex-1" />
         {ai.turns.length > 0 && (
-          <button type="button" title={t.newSessionHint} disabled={ai.running} onClick={ai.reset} className={buttonClass("secondary")}>
+          <Button size="sm" title={t.newSessionHint} disabled={ai.running} onClick={ai.reset}>
             {t.newSession}
-          </button>
+          </Button>
         )}
-        <button
-          type="button"
-          aria-label={t.close}
-          title={t.close}
-          onClick={() => ai.setOpen(false)}
-          className="flex h-[44px] w-[44px] flex-none items-center justify-center border border-ink bg-surface text-ink hover:bg-pre sm:h-[40px] sm:w-[40px]"
-        >
-          <CloseIcon size={16} />
-        </button>
+        <IconButton icon="close" label={t.close} onClick={() => ai.setOpen(false)} />
         {/* Tình trạng bộ não: một dòng riêng dưới tiêu đề, cắt "…" khi tên máy dài; tooltip có câu đầy đủ. */}
         {!brain.isPending && (
-          <span className="flex min-w-0 basis-full items-center gap-[8px] font-mono text-[12px] text-muted">
+          <span className="flex min-w-0 basis-full items-center gap-[8px] pr-[8px] text-[13px] text-muted">
             <StatusMark status={ready ? "pass" : "unknown"} label={b ? (ready ? t.brainOn : t.brainOff) : t.brainUnknown} />
             {(() => {
               const s = b ? (ready ? t.brainOnText(b.host, b.model) : t.brainOffText) : t.brainUnknownText;
               return (
-                <span title={s} className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                <span title={s} className="min-w-0 truncate">
                   {s}
                 </span>
               );
@@ -194,11 +160,15 @@ function Panel({ overlay, className }: { overlay: boolean; className: string }) 
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {brain.isError && <p className="m-0 border-b border-hair px-[18px] py-[12px] text-[13px] text-muted">{t.brainStatusFailed} {errorMessage(brain.error, lang)}</p>}
+        {brain.isError && (
+          <p className="m-0 border-b border-hair px-[16px] py-[12px] text-[13px] text-muted">
+            {t.brainStatusFailed} {errorMessage(brain.error, lang)}
+          </p>
+        )}
         {b && !ready && <Connect brain={b} draft={ai.draft} />}
         {b && ready && b.warnings && b.warnings.length > 0 && (
-          <div className="border-b border-hair px-[18px] py-[12px]">
-            <p className={monoLabel}>{t.brainWarnings}</p>
+          <div className="border-b border-hair px-[16px] py-[12px]">
+            <p className={`${smallLabel} mb-[4px]`}>{t.brainWarnings}</p>
             {b.warnings.map((w, i) => (
               <p key={i} className="m-0 text-[13px] text-muted">
                 {tx(w, lang)}
@@ -217,52 +187,11 @@ function Panel({ overlay, className }: { overlay: boolean; className: string }) 
 
 // ---- cách nối bộ não ----
 
-/** Một lệnh chạy trên máy cá nhân của người vận hành: không sudo, không nói "máy chủ" như CommandBlock. */
-function LocalCommand({ command }: { command: string }) {
-  const k = useStrings(khung);
-  const t = useStrings(strings);
-  const { state, copy } = useCopy();
-  return (
-    <div className="bg-pre p-[12px]">
-      <p className="m-0 text-[13px] text-muted">{t.connectLocalWhere}</p>
-      <div className="mt-[8px] flex flex-wrap items-center gap-x-[8px]">
-        <code className="min-w-0 flex-1 py-[3px] font-mono text-[12px] leading-[1.55] whitespace-pre-wrap [overflow-wrap:anywhere] text-ink">
-          <span aria-hidden="true" className="text-muted select-none">
-            ${" "}
-          </span>
-          {command}
-        </code>
-        <button
-          type="button"
-          aria-label={`${k.copyCommand} ${command}`}
-          title={k.copyCommand}
-          onClick={() => copy(command)}
-          className="flex h-[44px] w-[44px] flex-none items-center justify-center bg-transparent text-ink hover:bg-surface sm:h-[28px] sm:w-[28px]"
-        >
-          {state === "copied" ? (
-            <svg {...iconProps} width={16} height={16} strokeWidth={2}>
-              <path d="M5 12l5 5 9-10" />
-            </svg>
-          ) : (
-            <svg {...iconProps} width={16} height={16} strokeWidth={2}>
-              <rect x="9" y="9" width="11" height="11" />
-              <path d="M15 9V4H4v11h5" />
-            </svg>
-          )}
-        </button>
-        <span aria-live="polite" className={state === "failed" ? "block basis-full text-[12px] text-muted" : "sr-only"}>
-          {state === "copied" ? k.copied : state === "failed" ? k.copyFailed : ""}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function Connect({ brain, draft }: { brain: BrainStatus; draft: string }) {
   const t = useStrings(strings);
   const off = brain.mode === "off";
   return (
-    <div id="ai-noi-bo-nao" className="border-b border-hair px-[18px] py-[14px]">
+    <div id="ai-noi-bo-nao" className="border-b border-hair px-[16px] py-[14px]">
       <p className="m-0 text-[14px] font-medium">{off ? t.connectTitleOff : t.connectTitleBridge}</p>
       <p className="m-0 mt-[4px] text-[13px] text-muted">{off ? t.connectBodyOff : t.connectBodyBridge}</p>
       <div className="mt-[10px] flex flex-col gap-[10px]">
@@ -274,8 +203,8 @@ function Connect({ brain, draft }: { brain: BrainStatus; draft: string }) {
         )}
         <div>
           {off && <p className="m-0 mb-[4px] text-[13px]">{t.connectLocalStep}</p>}
-          {/* Tên máy (hostname) thường không phân giải được từ máy cá nhân: dùng địa chỉ đang mở panel. */}
-          <LocalCommand command={brain.connect_command.replace(/@[^@\s]*$/, "@" + window.location.hostname)} />
+          {/* Lệnh chạy trên máy cá nhân của người vận hành: không sudo, và dòng "chạy ở đâu" nói máy cá nhân chứ không phải máy chủ. Tên máy (hostname) thường không phân giải được từ máy cá nhân: dùng địa chỉ đang mở panel. */}
+          <CommandBlock commands={[brain.connect_command.replace(/@[^@\s]*$/, "@" + window.location.hostname)]} addSudo={false} where={t.connectLocalWhere} />
         </div>
         <p className="m-0 text-[13px]">
           {t.connectFullLead}
@@ -308,73 +237,75 @@ function Context({ preview, loading, error }: { preview: AskPreview | undefined;
   const sent = preview ? preview.chips.filter((c) => !c.omitted).length : null;
 
   return (
-    <div className={`border-b border-hair px-[18px] ${open ? "pt-[10px] pb-[14px]" : "py-[4px]"}`}>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls="ai-ngu-canh"
-        onClick={() => setOpen(!open)}
-        className="flex min-h-[36px] w-full items-center gap-[8px] bg-transparent p-0 text-left font-mono text-[11px] tracking-[0.08em] text-muted hover:text-ink"
+    <div className="border-b border-hair px-[16px]">
+      <Disclosure
+        flush
+        open={open}
+        onOpenChange={setOpen}
+        summary={
+          <span className="text-[12px] font-medium text-muted">
+            {t.chipsHeading}
+            {sent !== null && <span className="font-normal"> · {t.chipsCount(sent)}</span>}
+          </span>
+        }
       >
-        <span aria-hidden="true" className={`inline-block transition-transform ${open ? "rotate-90" : ""}`}>
-          ▸
-        </span>
-        <span>{t.chipsHeading}</span>
-        {sent !== null && <span className="normal-case tracking-normal">· {t.chipsCount(sent)}</span>}
-      </button>
-      {open && (
-      <div id="ai-ngu-canh" className="mt-[6px]">
-      {preview && (
-        <ul className="m-0 flex list-none flex-wrap gap-[6px] p-0">
-          {preview.chips.map((c) => (
-            <ChipItem key={c.key} chip={c} open={shown === c.key} onShow={() => setShown(shown === c.key ? null : c.key)} onToggle={() => ai.toggleOmit(c.key)} />
-          ))}
-        </ul>
-      )}
-      {!preview && loading && <p className="m-0 text-[13px] text-muted">{t.previewLoading}</p>}
-      {!preview && error !== null && (
-        <p role="alert" className="m-0 text-[13px] text-fail-text">
-          {t.previewFailed} {errorMessage(error, lang)}
-        </p>
-      )}
-      {chip && (
-        <div id="ai-noi-dung-nhan" className="mt-[10px]">
-          <EvidenceBlock text={chip.content} label={tx(chip.label, lang).toUpperCase()} />
-        </div>
-      )}
-      {ai.trail.length > 1 && <p className="m-0 mt-[10px] text-[12px] leading-[1.5] text-muted">{t.trail(ai.trail.map((v) => v.label))}</p>}
-      {preview && (
-        <div className="mt-[10px]">
-          <button type="button" aria-expanded={full} aria-controls="ai-toan-van" onClick={() => setFull(!full)} className={buttonClass("secondary")}>
-            {full ? t.hideFull : t.viewFull}
-          </button>
-          {full && (
-            <div id="ai-toan-van" className="mt-[8px]">
-              <EvidenceBlock text={preview.prompt} label={t.fullLabel} />
+        <div className="flex flex-col gap-[10px]">
+          {preview && (
+            <ul className="m-0 flex list-none flex-wrap gap-[6px] p-0">
+              {preview.chips.map((c) => (
+                <ChipItem key={c.key} chip={c} open={shown === c.key} onShow={() => setShown(shown === c.key ? null : c.key)} onToggle={() => ai.toggleOmit(c.key)} />
+              ))}
+            </ul>
+          )}
+          {!preview && loading && <p className="m-0 text-[13px] text-muted">{t.previewLoading}</p>}
+          {!preview && error !== null && (
+            <div role="alert">
+              <Notice kind="fail">
+                {t.previewFailed} {errorMessage(error, lang)}
+              </Notice>
+            </div>
+          )}
+          {chip && (
+            <div id="ai-noi-dung-nhan">
+              <EvidenceBlock text={chip.content} label={tx(chip.label, lang)} />
+            </div>
+          )}
+          {ai.trail.length > 1 && <p className="m-0 text-[12px] leading-[1.5] text-muted">{t.trail(ai.trail.map((v) => v.label))}</p>}
+          {preview && (
+            <div>
+              <Button size="sm" aria-expanded={full} aria-controls="ai-toan-van" onClick={() => setFull(!full)}>
+                {full ? t.hideFull : t.viewFull}
+              </Button>
+              {full && (
+                <div id="ai-toan-van" className="mt-[8px]">
+                  <EvidenceBlock text={preview.prompt} label={t.fullLabel} />
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
-      </div>
-      )}
+      </Disclosure>
     </div>
   );
 }
 
-/** Một nhãn ngữ cảnh: bấm tên để xem đúng nội dung sẽ gửi, bấm nút bên cạnh để bỏ hoặc gửi lại. */
+/**
+ * Một nhãn ngữ cảnh: bấm tên để xem đúng nội dung sẽ gửi, bấm nút × bên cạnh để bỏ hoặc gửi lại.
+ * Chưa có thành phần dùng chung cho nó (Tag không bấm được): dựng bằng đúng kiểu dáng của Tag.
+ */
 function ChipItem({ chip, open, onShow, onToggle }: { chip: AIChip & { omitted: boolean }; open: boolean; onShow: () => void; onToggle: () => void }) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const label = tx(chip.label, lang);
   return (
-    <li className={`inline-flex items-center border ${chip.omitted ? "border-hair text-muted" : "border-ink text-ink"}`}>
+    <li className={`inline-flex items-center rounded-full border ${chip.omitted ? "border-hair bg-surface text-muted" : "border-transparent bg-paper text-ink-soft"}`}>
       <button
         type="button"
         aria-label={t.chipShow(label)}
         aria-expanded={open}
         aria-controls="ai-noi-dung-nhan"
         onClick={onShow}
-        className={`h-[44px] bg-transparent pr-[2px] pl-[10px] text-left font-mono text-[12px] whitespace-nowrap sm:h-[32px] ${chip.omitted ? "line-through" : ""}`}
+        className={`h-[44px] rounded-l-full bg-transparent pr-[2px] pl-[12px] text-left text-[13px] whitespace-nowrap sm:h-[32px] ${chip.omitted ? "line-through" : ""}`}
       >
         {label}
         {chip.omitted && <span className="sr-only"> ({t.chipOmitted})</span>}
@@ -384,9 +315,9 @@ function ChipItem({ chip, open, onShow, onToggle }: { chip: AIChip & { omitted: 
         aria-label={chip.omitted ? t.chipRestore(label) : t.chipRemove(label)}
         title={chip.omitted ? t.chipRestore(label) : t.chipRemove(label)}
         onClick={onToggle}
-        className="flex h-[44px] w-[44px] flex-none items-center justify-center bg-transparent p-0 text-muted hover:text-ink sm:h-[32px] sm:w-[32px]"
+        className="flex size-[44px] flex-none items-center justify-center rounded-r-full bg-transparent p-0 text-muted hover:text-ink sm:size-[32px]"
       >
-        {chip.omitted ? <PlusIcon /> : <CloseIcon size={12} width={2.5} />}
+        <Icon name={chip.omitted ? "plus" : "close"} size={14} />
       </button>
     </li>
   );
@@ -408,8 +339,8 @@ function Transcript() {
   }, [ai.turns, ai.running]);
 
   return (
-    <div className="flex flex-col gap-[18px] px-[18px] pt-[16px] pb-[18px]">
-      {ai.turns.length === 0 && <p className="m-0 text-[13px] text-muted">{t.empty}</p>}
+    <div className="flex flex-col gap-[18px] px-[16px] pt-[16px] pb-[18px]">
+      {ai.turns.length === 0 && <EmptyState>{t.empty}</EmptyState>}
       {ai.turns.map((turn) => (
         <TurnBlock key={turn.seq} turn={turn} />
       ))}
@@ -437,31 +368,32 @@ function TurnBlock({ turn }: { turn: TurnView }) {
     <div className="flex flex-col gap-[10px]">
       {/* Câu của bạn: khung nền --pre lệch phải, như tin nhắn đã gửi; nhãn ẩn chỉ cho trình đọc màn hình. */}
       <div className="flex justify-end">
-        <div className="max-w-[85%] bg-pre px-[12px] py-[8px]">
+        <div className="max-w-[85%] rounded-ctl bg-pre px-[12px] py-[8px]">
           <span className="sr-only">{t.you}: </span>
           <p className="m-0 text-[14px] leading-[1.5] whitespace-pre-wrap [overflow-wrap:anywhere]">{turn.question}</p>
         </div>
       </div>
 
-      {/* Phần của AI: vạch trái màu --ink, nhãn "AI" một lần, rồi việc đã đọc (gập) và câu trả lời. */}
-      <div className="flex flex-col gap-[8px] border-l-2 border-ink pl-[12px]">
-        <p className={`${monoLabel} m-0`}>{t.answer}</p>
+      {/* Phần của AI: lệch trái, nhãn "AI" một lần, rồi việc đã đọc (gập) và câu trả lời. */}
+      <div className="flex flex-col gap-[8px]">
+        <p className={smallLabel}>{t.answer}</p>
 
         {tools.length > 0 && (
-          <details className="group">
-            <summary className="flex min-h-[28px] cursor-pointer list-none items-center gap-[8px] text-[12px] text-muted hover:text-ink [&::-webkit-details-marker]:hidden">
-              <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">
-                ▸
+          <Disclosure
+            flush
+            summary={
+              <span className="text-[13px] text-muted">
+                {t.readCount(tools.length)}
+                {tools.some((it) => it.failed) && <span> · {t.toolFailed}</span>}
               </span>
-              {t.readCount(tools.length)}
-              {tools.some((it) => it.failed) && <span>· {t.toolFailed}</span>}
-            </summary>
-            <ul className="m-0 mt-[4px] list-none border-b border-hair p-0">
+            }
+          >
+            <ul className="m-0 list-none p-0">
               {tools.map((it) => (
                 <ToolRow key={it.key} item={it} />
               ))}
             </ul>
-          </details>
+          </Disclosure>
         )}
 
         {!refused && (turn.answer || turn.status === "running") && (
@@ -470,14 +402,14 @@ function TurnBlock({ turn }: { turn: TurnView }) {
       </div>
 
       {turn.status === "refused" && (
-        <p role="status" className="m-0 border border-ink p-[12px] text-[14px]">
+        <Notice kind="warn" role="status">
           {t.refused(turn.message)}
-        </p>
+        </Notice>
       )}
       {turn.status === "error" && (
-        <p role="alert" className="m-0 text-[13px] text-fail-text">
+        <Notice kind="fail" role="alert">
           {t.failed(turn.message)}
-        </p>
+        </Notice>
       )}
 
       {plans.map((id) => (
@@ -486,7 +418,7 @@ function TurnBlock({ turn }: { turn: TurnView }) {
 
       {links.length > 0 && (
         <div>
-          <p className={`${monoLabel} mb-[8px]`}>{t.goTo}</p>
+          <p className={`${smallLabel} mb-[8px]`}>{t.goTo}</p>
           <div className="flex flex-wrap gap-[8px]">
             {links.map((l) => (
               // Màn rộng: ngăn đi theo sang mục mới. Lớp phủ che mất mục mới nên đóng lại.
@@ -501,29 +433,33 @@ function TurnBlock({ turn }: { turn: TurnView }) {
   );
 }
 
+/** Một lần AI gọi công cụ: nhãn "Đọc", tên công cụ, và "dữ liệu đã gửi" mở ra đúng bản đã che. */
 function ToolRow({ item }: { item: ToolItem }) {
   const t = useStrings(strings);
   const name = toolName(item.tool);
   const input = item.input === undefined ? "" : (JSON.stringify(item.input, null, 2) ?? "");
+  const head = (
+    <span className="flex min-w-0 flex-wrap items-center gap-x-[8px] gap-y-[4px]">
+      <Tag>{name.startsWith("propose_") ? t.toolPlan : t.toolRead}</Tag>
+      <Code>{name}</Code>
+      {item.failed && <span className="text-[12px] text-muted">{t.toolFailed}</span>}
+      {input && <span className="text-[13px] text-accent">{t.toolSent}</span>}
+    </span>
+  );
   return (
-    <li className="border-t border-hair">
-      <details>
-        <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-[10px] gap-y-[4px] py-[7px] [&::-webkit-details-marker]:hidden">
-          <span className={tag}>{name.startsWith("propose_") ? t.toolPlan : t.toolRead}</span>
-          <span className="min-w-0 flex-1 basis-[170px] font-mono text-[12px] [overflow-wrap:anywhere]">{name}</span>
-          {item.failed && <span className="text-[12px] text-muted">{t.toolFailed}</span>}
-        </summary>
-        {input && (
-          <div className="pb-[8px]">
-            <EvidenceBlock text={input} label={t.toolInput} />
-          </div>
-        )}
-      </details>
+    <li className="border-t border-hair first:border-t-0">
+      {input ? (
+        <Disclosure flush summary={head}>
+          <EvidenceBlock text={input} label={t.toolInput} />
+        </Disclosure>
+      ) : (
+        <div className="py-[10px]">{head}</div>
+      )}
     </li>
   );
 }
 
-/** Plan AI vừa đề xuất: khung viền --ink, nhãn "AI ĐỀ XUẤT", nút chính tới màn duyệt. */
+/** Plan AI vừa đề xuất: một thẻ có nhãn "AI đề xuất" và nút chính tới màn duyệt. */
 function PlanBox({ id }: { id: string }) {
   const t = useStrings(strings);
   const { lang } = useLang();
@@ -533,15 +469,15 @@ function PlanBox({ id }: { id: string }) {
   const plan = useQuery({ queryKey: ["plans", "detail", id], queryFn: () => get<PendingPlan>(`/api/v1/plans/${encodeURIComponent(id)}`), retry: false });
   const title = plan.data ? tx(plan.data.title, lang) : t.planUntitled(id);
   return (
-    <div className="border border-ink p-[14px]">
+    <Card>
       <div className="flex flex-wrap items-center gap-[8px]">
-        <span className={`${tag} py-[1px] pr-[6px] pl-[6px]`}>{t.planTag}</span>
-        <span className="text-[14px] font-medium">{title}</span>
+        <Tag>{t.planTag}</Tag>
+        <span className="font-medium">{title}</span>
       </div>
       <Link to={`/plans/${encodeURIComponent(id)}`} onClick={() => !wide && ai.setOpen(false)} className={buttonClass("primary", "mt-[12px]")}>
         {t.planOpen}
       </Link>
-    </div>
+    </Card>
   );
 }
 
@@ -568,37 +504,27 @@ function Composer({ ready, brainKnown, previewReady }: { ready: boolean; brainKn
 
   return (
     <form
-      className="flex-none border-t border-hair px-[18px] pt-[14px] pb-[16px]"
+      className="flex-none border-t border-hair px-[16px] pt-[14px] pb-[16px]"
       onSubmit={(e) => {
         e.preventDefault();
         void ai.send();
       }}
     >
-      <label htmlFor="ai-cau-hoi" className="mb-[8px] block font-mono text-[11px] tracking-[0.08em] text-muted">
-        {label[ai.mode]}
-      </label>
-      <div className="flex flex-wrap gap-[8px]">
-        <input
-          id="ai-cau-hoi"
-          ref={field}
-          type="text"
-          autoComplete="off"
-          value={ai.draft}
-          onChange={(e) => ai.setDraft(e.target.value)}
-          className="box-border h-[44px] min-w-0 flex-[1_1_200px] border border-ink bg-surface px-[10px] text-[14px] text-ink sm:h-[40px]"
-        />
-        <button type="submit" disabled={blocked} className={buttonClass("primary")}>
-          {ai.sending ? t.sending : t.send}
-        </button>
-      </div>
+      <Field label={label[ai.mode]} htmlFor="ai-cau-hoi">
+        <div className="flex flex-wrap gap-[8px]">
+          <Input id="ai-cau-hoi" ref={field} type="text" autoComplete="off" value={ai.draft} onChange={(e) => ai.setDraft(e.target.value)} className="min-w-0 flex-[1_1_200px]" />
+          <Button type="submit" variant="primary" disabled={blocked}>
+            {ai.sending ? t.sending : t.send}
+          </Button>
+        </div>
+      </Field>
       {brainKnown && !ready && <p className="m-0 mt-[8px] text-[12px] text-muted">{t.needBrain}</p>}
       {ai.sendError !== null && (
-        <p role="alert" className="m-0 mt-[8px] text-[13px] text-fail-text">
-          {errorMessage(ai.sendError, lang)}
-        </p>
+        <div role="alert" className="mt-[8px]">
+          <Notice kind="fail">{errorMessage(ai.sendError, lang)}</Notice>
+        </div>
       )}
       <p className="m-0 mt-[10px] text-[12px] leading-[1.5] text-muted">{t.footer}</p>
     </form>
   );
 }
-
