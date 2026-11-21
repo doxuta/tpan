@@ -1,59 +1,63 @@
-# M18: thiết kế phần lõi (sao lưu ra kho S3, khôi phục từ S3, cài bằng cloud-init, dựng lại máy)
+# M18: thiết kế phần lõi (sao lưu ra kho S3, khôi phục từ S3, cài bằng cloud-init)
 
 Bản thiết kế của đợt 0, viết ngày 21/11/2026 trên nhánh `moc/M18` (tách từ `dev` ở 025edb6, bản sau v0.2.0). Đặc tả gốc: `agent-dev/TU-CHAY-M18.md`. Bản thử và output thật: `docs/bang-chung/M18-nghien-cuu/`. Cuối mốc file này gộp vào mục 6.16 của `docs/KE-HOACH.md`.
 
-Từ dùng trong file: **kho** là một bucket S3 tương thích ở ngoài máy; **đích** là cấu hình trỏ tới kho (endpoint, vùng, bucket, tiền tố, hai khoá truy cập); **bản sao lưu site** là file `.tar.gz` của M9; **gói panel** là bản sao lưu của chính panel (`tpan.db` và vài file), đã mã hoá; **khoá sao lưu** là khoá mã hoá gói panel.
+**Bản sửa sau soát (09:30 ngày 21/11).** Bản đầu (commit f1f342a) qua một lượt soát tìm ra 34 điểm, 5 điểm nặng (mục 9). Bản này sửa cả 5 điểm nặng và các điểm vừa, nhẹ còn áp dụng; cách xử lý từng điểm ở mục 9.1. Thay đổi lớn nhất: **cắt lệnh dựng lại cả máy** (`tpan machine restore`) và chế độ dựng lại của `tpan cloud-init render`. Lý do ở mục 1.
+
+Từ dùng trong file: **kho** là một bucket S3 tương thích ở ngoài máy; **đích** là cấu hình trỏ tới kho (endpoint, vùng, bucket, tiền tố, hai khoá truy cập); **bản sao lưu site** là file `.tar.gz` của M9; **gói panel** là bản sao lưu của chính panel (`tpan.db`), đã mã hoá; **khoá sao lưu** là khoá mã hoá gói panel; **lượt đẩy** là một lần chạy `Remote.Sync` (mục 3.5).
 
 ## 1. Vấn đề và phạm vi
 
-Một VPS là một cái máy có thể mất bất cứ lúc nào. Hiện nay bản sao lưu của M9 nằm trên chính đĩa của máy, và máy mới phải SSH vào gõ lệnh cài. M18 làm hai việc rồi ghép lại: bản sao lưu rời khỏi máy, và máy mới tự thành máy chạy được; ghép lại thành "máy cũ mất, tạo máy mới, mọi site trở lại từ kho".
+Một VPS là một cái máy có thể mất bất cứ lúc nào. Hiện nay bản sao lưu của M9 nằm trên chính đĩa của máy, và máy mới phải SSH vào gõ lệnh cài. M18 làm cho bản sao lưu rời khỏi máy, và cho máy mới tự thành máy chạy được.
 
 **Làm (phần lõi, không sửa gì trong `web/`):**
 
 1. Một đích S3 tương thích cho cả máy: đặt, thử, xem, gỡ.
 2. Sau mỗi bản sao lưu đầy đủ của site: đẩy lên kho, đọc lại để kiểm sha256, rồi mới coi là "đã lên kho". Kho hỏng thì bản cục bộ vẫn xong, panel cảnh báo, lần sau đẩy bù.
 3. Chính sách giữ bản trên kho tách với chính sách giữ bản trên máy. Bản đã lên kho mà bị dọn trên máy vẫn còn dòng trong bảng `backups` ("chỉ còn trên kho").
-4. Khôi phục từ kho: tải về, kiểm sha256, rồi đi đúng luồng khôi phục của M9.
-5. Gói panel: `tpan.db` và `config.toml`, mã hoá bằng khoá sao lưu, đẩy lên kho cùng nhịp với lịch backup.
-6. `tpan cloud-init render`: sinh file user-data để tạo máy mới có panel, stack và các site trong `sites.yaml`; hoặc máy mới sẵn sàng dựng lại từ kho. Không có bí mật dạng rõ trong user-data.
-7. `tpan machine restore --from-s3`: trên máy trắng đã cài TPAN, kéo gói panel và các bản sao lưu site về, dựng lại stack, từng site, rồi báo cáo.
-8. CLI, API (chỉ admin, trừ khôi phục đã có luật `owner:backup` từ M13), hai phép kiểm health, migration 1800.
+4. Khôi phục từ kho: một job tải về (kiểm sha256), rồi đúng luồng khôi phục của M9.
+5. Gói panel: `tpan.db` mã hoá bằng khoá sao lưu, đẩy lên kho ở cuối mỗi lượt đẩy có thay đổi.
+6. `tpan cloud-init render`: sinh file user-data để tạo máy mới có panel, stack và các site trong `sites.yaml`. Không có bí mật dạng rõ trong user-data. Lần khởi động đầu ghi log từng bước; xong thì `tpan health` phải đạt.
+7. CLI, API (chỉ admin; khôi phục giữ luật `owner:backup` của M13), hai phép kiểm health, migration 1800.
 
 **Không làm, và vì sao:**
 
+- **Dựng lại cả máy (`tpan machine restore --from-s3`) và chế độ dựng lại của `render`: cắt ở bản này.** `TU-CHAY-M18.md` (khung 7) cho cắt nếu đợt 0 kết luận không làm chắc được trong hạn. Kết luận đó dựa trên ba điều: phiên mất 6 giờ vì hết hạn mức model (03:10 tới 09:10); bản soát tìm ra 2 điểm nặng và khoảng 8 điểm vừa chỉ nằm trên đường này (S3 ý 2, 3; S4 phần pha 2; S14; S15; S16; S17; S20; S21; S32); luật cắt viết ở bản đầu ("13:00 mà đợt 4 chưa bắt đầu") chắc chắn sẽ chạm. Những gì đã có: đường dựng lại bằng tay đã chạy thật ở bản thử 09 (hai site trở lại sau 1 phút 50 giây), gói panel trên kho đủ để làm theo đường đó (mở gói bằng lệnh `age` của Ubuntu). Danh sách việc phải giải quyết trước khi làm lệnh này nằm ở mục 3.10.
 - Giao diện (chờ M16 vào `dev`).
 - Mã hoá bản sao lưu của site trên kho. Khung thiết kế chỉ đòi mã hoá gói panel; bản sao lưu site để nguyên `.tar.gz` nên mất khoá sao lưu thì nội dung site vẫn lấy lại được bằng tay. Hệ quả phải nói rõ ở tài liệu: ai đọc được bucket thì đọc được mã nguồn và bản xuất DB của site. Để sau: tuỳ chọn mã hoá cả bản của site.
+- Chặn hai máy cùng ghi vào một tiền tố (S17). Ca chính của điểm này là lệnh dựng lại máy (đã cắt). Ở bản này tài liệu ghi rõ: mỗi máy một tiền tố; tiền tố mặc định chứa tên máy.
 - Nhiều đích cùng lúc; quy tắc vòng đời phía kho; khoá tạm (STS), vai của máy ảo (instance role); gọi API của nhà cung cấp để tạo máy.
-- Sao lưu DB rời (M13). M9 chỉ sao lưu site, nên DB rời không có gì trên kho; dựng lại máy báo rõ các DB rời bị mất. Đây là lỗ có từ trước M18, ghi lại để chủ dự án quyết.
-- Mang chứng chỉ Let's Encrypt sang máy mới. Site có SSL trở lại ở http trước, chứng chỉ xin lại sau bằng một lệnh (mục 3.10, lý do ở mục 2.6).
-- Công cụ MCP mới. `list_backups` có thêm trường `location`, không có công cụ nào chạm tới đích hay khoá.
+- Sao lưu DB rời (M13). M9 chỉ sao lưu site, nên DB rời không có gì trên kho. Đây là lỗ có từ trước M18, ghi lại để chủ dự án quyết.
+- Mang chứng chỉ Let's Encrypt sang máy mới.
+- Công cụ MCP mới. `list_backups` có thêm trường `location`; không công cụ nào chạm tới đích hay khoá.
+- e2e cho kiểu địa chỉ `bucket.host` (`--vhost`): client hỗ trợ và có unit test; máy chủ thử cần DNS kiểu `*.host` nên không thử trên máy ảo ở bản này.
 
 ## 2. Nghiên cứu
 
-Mọi con số dưới đây đo trên máy ảo `tpan-m18` (Ubuntu 24.04.5, aarch64, 2 CPU, 4 GB RAM, cloud-init 26.1) hoặc trên Mac của chủ dự án, ngày 20/11/2026 giờ UTC (rạng sáng 21/11 giờ Việt Nam). Script và output ở `docs/bang-chung/M18-nghien-cuu/`.
+Mọi con số dưới đây đo trên máy ảo `tpan-m18` (Ubuntu 24.04.5, aarch64, 2 CPU, 4 GB RAM, cloud-init 26.1) hoặc trên Mac của chủ dự án, ngày 20 và 21/11/2026. Script và output ở `docs/bang-chung/M18-nghien-cuu/`.
 
-### 2.1 Thư viện S3 hay tự ký SigV4 (`02-thu-vien-s3.sh`, `10-nguon-tra.out`)
+### 2.1 Thư viện S3 hay tự ký SigV4 (`02-thu-vien-s3.out`, `10-nguon-tra.out`)
 
 | Cách | Module ngoài kéo vào | Gói biên dịch thêm | File chạy linux/amd64 tăng | Giấy phép, bảo trì (tra 20/11/2026) |
 |---|---|---|---|---|
 | Tự ký bằng thư viện chuẩn | 0 | 0 | 0 (so với chương trình nền đã có `net/http`) | không có gì để theo dõi |
-| `aws-sdk-go-v2` (service/s3 v1.116.0) | 17 | +81 | +2,48 MiB | Apache-2.0, còn sống (push 19/11/2026) |
-| `minio-go` v7.4.1 | 230 dòng trong đồ thị module (go.mod của nó khai cả công cụ lint) | +64 | +2,30 MiB | Apache-2.0, còn sống (push 12/11/2026); máy chủ MinIO thì đã đóng |
+| `aws-sdk-go-v2` (service/s3 v1.116.0) | 17 | +81 | +2 535 424 byte (2476 KiB) | Apache-2.0, còn sống (push 19/11/2026) |
+| `minio-go` v7.4.1 | 230 dòng trong đồ thị module (go.mod của nó khai cả công cụ lint) | +64 | +2 359 296 byte (2304 KiB) | Apache-2.0, còn sống (push 12/11/2026); máy chủ MinIO thì đã đóng |
 
-**Chọn: tự ký SigV4 bằng thư viện chuẩn** (`crypto/hmac`, `crypto/sha256`, `net/http`, `encoding/xml`). Lý do: TPAN chỉ cần tám lời gọi (PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2, bốn lời gọi của tải nhiều phần, ListMultipartUploads); SigV4 là khoảng 60 dòng; mục 14 của KE-HOACH cấm thêm thư viện khi thư viện chuẩn làm được. Rủi ro của việc tự viết (chuẩn hoá đường dẫn và query sai) được chặn bằng ba lớp kiểm: vectơ mẫu công khai của AWS, một máy chủ giả kiểm lại chữ ký trong unit test, và hai máy chủ S3 thật khác nhau trong e2e.
+**Chọn: tự ký SigV4 bằng thư viện chuẩn** (`crypto/hmac`, `crypto/sha256`, `net/http`, `encoding/xml`). TPAN cần mười lời gọi: PutObject, GetObject, HeadObject, DeleteObject, ListObjectsV2, bốn lời gọi của tải nhiều phần (Create, UploadPart, Complete, Abort) và ListMultipartUploads. Phần ký SigV4 khoảng 60 dòng; mục 14 của KE-HOACH cấm thêm thư viện khi thư viện chuẩn làm được. Rủi ro của việc tự viết (chuẩn hoá đường dẫn và query sai) được chặn bằng ba lớp kiểm: vectơ mẫu công khai của AWS (hai vectơ mức bucket đã khớp với bản thử, `ban-thu-s3/sig_test.go`), một máy chủ giả kiểm lại chữ ký trong unit test, và hai máy chủ S3 thật khác nhau trong e2e.
 
-Bản thử `ban-thu-s3/main.go` (510 dòng, chỉ thư viện chuẩn) đã chạy được với cả hai máy chủ thử ngay lần đầu, kể cả tên object có dấu cách, dấu tiếng Việt, ngoặc và `&` (`05-thu-co-ban-*.out`). Nó là mã tham chiếu cho gói `internal/s3`.
+Bản thử `ban-thu-s3/main.go` (665 dòng kể cả proxy gây lỗi, chỉ thư viện chuẩn) đã chạy được với cả hai máy chủ thử ngay lần đầu, kể cả tên object có dấu cách, dấu tiếng Việt, ngoặc và `&` (`05-thu-co-ban-*.out`), và với kho nghe TLS có chứng chỉ gốc riêng (`14-tls-ca-rieng.out`). Nó là mã tham chiếu cho gói `internal/s3`.
 
 ### 2.2 Máy chủ S3 để thử (`01-may-chu-s3-tra.out`)
 
 | Ứng viên | Tình trạng 20/11/2026 | Kết luận |
 |---|---|---|
 | MinIO | repo `minio/minio` đã lưu trữ (archived, push cuối 24/04/2026); bản phát hành cuối 15/10/2025 không có file đính kèm; `dl.min.io/.../linux-arm64/minio` trả HTTP 410 | không còn cài được dễ dàng, loại |
-| **versitygw** v1.11.0 (06/11/2026) | Apache-2.0, có `.deb` cho arm64 và amd64 kèm `checksums.txt`, một file chạy, có unit systemd mẫu | **máy chủ thử chính** |
-| **Garage** v2.5.0 (24/10/2026) | AGPL-3.0, một file chạy tĩnh cho aarch64 | **máy chủ thử thứ hai** (chỉ chạy bộ thử liên thông) |
+| **versitygw** v1.11.0 (06/11/2026) | Apache-2.0, có `.deb` cho arm64 kèm `checksums.txt` của bản phát hành (đã kiểm sha256), một file chạy, có unit systemd mẫu | **máy chủ thử chính** |
+| **Garage** v2.5.0 | AGPL-3.0, một file chạy tĩnh cho aarch64 | **máy chủ thử thứ hai** (chỉ chạy bộ thử liên thông) |
 | SeaweedFS 4.54, RustFS 1.0.6, rclone v1.76 `serve s3` | còn sống, có bản arm64 | không cần tới; rclone trong apt của Ubuntu 24.04 là 1.60.1, chưa có `serve s3` |
 
-Vì sao versitygw là chính: backend `posix` lưu mỗi object thành một file thường (`<gốc>/<bucket>/<key>`), nên e2e "sửa hỏng một object trên kho" chỉ là ghi đè một byte của file đó; nó kiểm chữ ký thật (sai khoá: 403 `SignatureDoesNotMatch`), kiểm cả vùng trong chữ ký (sai vùng: 400 `AuthorizationHeaderMalformed`), hỗ trợ TLS (`VGW_CERT`, `VGW_KEY`) để thử chứng chỉ gốc riêng. Vì sao thêm Garage: nó là một bản cài đặt S3 khác hẳn (Rust, lưu thành khối có băm, vùng mặc định `garage`, câu lỗi khác: sai khoá ra 403 `AccessDenied`), nên client chạy được với cả hai là bằng chứng cho "không gắn với một nhà cung cấp". Hệ quả cho thiết kế: phân loại lỗi theo **mã HTTP** trước, tên lỗi sau.
+Vì sao versitygw là chính: backend `posix` lưu mỗi object thành một file thường (`<gốc>/<bucket>/<key>`), nên e2e "sửa hỏng một object trên kho" chỉ là ghi đè một byte của file đó; nó kiểm chữ ký thật (sai khoá: 403 `SignatureDoesNotMatch`), kiểm cả vùng trong chữ ký (sai vùng: 400 `AuthorizationHeaderMalformed`), hỗ trợ TLS (`VGW_CERT`, `VGW_KEY`). Vì sao thêm Garage: nó là một bản cài đặt S3 khác hẳn (Rust, lưu thành khối có băm, vùng mặc định `garage`, câu lỗi khác: sai khoá ra 403 `AccessDenied`), nên client chạy được với cả hai là bằng chứng cho "không gắn với một nhà cung cấp". Hệ quả cho thiết kế: phân loại lỗi theo **mã HTTP** trước, tên lỗi sau.
 
 Giấy phép AGPL của Garage không chạm tới TPAN: nó chỉ được tải về máy ảo lúc chạy e2e.
 
@@ -73,41 +77,37 @@ Chạy trên vòng lặp nội bộ của máy ảo (không qua mạng thật), 
 - **Kho trả 503 từ phần thứ 5** (proxy gây lỗi): client thử lại 4 lần rồi tự huỷ; sau đó không còn lần tải dở nào.
 - **Ghi đè 1 byte của object trên đĩa của kho**: HEAD vẫn trả đúng cỡ và đúng ETag cũ; GET trả dữ liệu hỏng; sha256 do ta tính thì khác bản gốc. Đây là bằng chứng cho luật "không tin ETag".
 
-Kết luận: cỡ phần mặc định **8 MiB** (RAM đỉnh khoảng 24 MB cho mọi cỡ file tới 72 GiB); file lớn hơn thì cỡ phần tăng để không quá 9000 phần. Chỉ giữ một phần trong bộ nhớ, tải tuần tự.
+Kết luận: cỡ phần mặc định **8 MiB** (RAM đỉnh khoảng 24 MB cho mọi file tới khoảng 70 GiB, tức 8 MiB × 9000 phần); file lớn hơn thì cỡ phần tăng để không quá 9000 phần. Chỉ giữ một phần trong bộ nhớ, tải tuần tự.
 
 Ghi thêm: chép file chạy 5,7 MB vào máy ảo qua stdin của `multipass exec` bị cắt còn 2,5 MB mà không báo lỗi; `scripts/vm.sh` vì vậy có thêm lệnh con `push`, `pull` dùng `multipass transfer`.
 
-### 2.4 Mã hoá gói panel (`11-age-thu.out`)
+### 2.4 Mã hoá gói panel (`11-age-thu.out`, `12-age-doi-xung-va-gz.out`)
 
-Thư viện `filippo.io/age` v1.3.2 (BSD-3-Clause, push 29/08/2026): file chạy tăng 356 KB, kéo thêm module `filippo.io/hpke` (`golang.org/x/crypto` đã có sẵn vì argon2). Mã hoá theo dòng 300 MiB: 0,39 giây, đỉnh RAM 4,4 MB. File do thư viện ghi **giải mã được bằng lệnh `age` 1.1.1 của apt Ubuntu 24.04**, sha256 khớp. Sửa một byte của bản mã: giải mã dừng với "failed to decrypt and authenticate payload chunk". Sai khoá: "identity did not match".
+Thư viện `filippo.io/age` v1.3.2 (BSD-3-Clause, push 29/08/2026): file chạy tăng 356 KB, kéo thêm module `filippo.io/hpke` (`golang.org/x/crypto` đã có sẵn vì argon2).
 
-**Chọn `age`, chế độ khoá đối xứng (mật khẩu scrypt), không phải cặp khoá X25519.** Lý do nằm ở mô hình đe doạ: mã hoá khoá công khai chỉ giữ kín, không chứng thực người gửi; ai biết khoá công khai và ghi được vào bucket đều tạo được một gói panel "hợp lệ" (một `tpan.db` giả với mật khẩu quản trị và danh sách bản sao lưu do họ chọn), và lệnh dựng lại máy sẽ tin nó. Với khoá đối xứng, chỉ người có khoá mới tạo được bản mã giải ra được, nên gói panel vừa kín vừa không giả được. Cái giá: máy chủ phải giữ khoá (file chỉ root đọc) để tự sao lưu hằng đêm; người quản trị giữ một bản chép. Bản thử chạy với khoá X25519; chế độ scrypt dùng cùng khuôn file và cùng lớp mã hoá theo dòng, đợt 1 thử lại việc giải mã bằng lệnh `age` với đúng chế độ này (mục 7).
+- Chế độ cặp khoá X25519 (bản thử 11): mã hoá theo dòng 300 MiB mất 0,39 giây, đỉnh RAM 4,4 MB; file giải mã được bằng lệnh `age` 1.1.1 của apt.
+- **Chế độ khoá đối xứng (mật khẩu scrypt, hệ số công 15), bản thử 12**: mã hoá 50 MiB mất 0,11 giây, đỉnh RAM 36,7 MB (scrypt với N = 2^15 cần 32 MB); giải mã bằng thư viện đỉnh 70 MB. File **giải mã được bằng lệnh `age` 1.1.1 của apt** (mật khẩu đưa qua một terminal giả), sha256 khớp. Sửa một byte của bản mã: "failed to decrypt and authenticate payload chunk". Sai khoá: "incorrect passphrase".
 
-Vì sao không tự viết: tự nghĩ ra một khuôn file mã hoá theo dòng là chỗ dễ sai nhất của cả mốc; `age` là khuôn công khai, có công cụ độc lập, nên **mở được gói panel mà không cần TPAN**.
+**Chọn `age`, chế độ khoá đối xứng.** Mã hoá khoá công khai chỉ giữ kín, không chứng thực người gửi: ai biết khoá công khai và ghi được vào bucket đều tạo được một gói panel "hợp lệ". Với khoá đối xứng, chỉ người có khoá mới tạo được bản mã giải ra được (tài liệu thư viện, `ScryptRecipient.WrapWithLabels`). Cái giá: máy chủ phải giữ khoá (file chỉ root đọc) để tự sao lưu; người quản trị giữ một bản chép. Không tự viết khuôn mã hoá: `age` là khuôn công khai có công cụ độc lập, nên **mở được gói panel mà không cần TPAN**.
 
-### 2.5 cloud-init (`08-cloud-init-thu.out`, bước 1 của `09-dung-lai-may-thu.out`, `10-nguon-tra.out`)
+### 2.5 cloud-init (`08-cloud-init-thu.out`, bước 1 của `09-dung-lai-may-thu.out`, `10-nguon-tra.out`, `12-…`, `13-hai-may-ao-noi-nhau.out`)
 
 | Câu hỏi | Trả lời (đã thử trên máy ảo phụ `tpan-m18-ci`, trừ dòng ghi "nguồn") |
 |---|---|
 | Chạy bằng quyền gì | `uid=0(root)`, thư mục `/`, umask 0022, `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin`, **không có `HOME`** |
 | Lỗi thấy ở đâu | output của `runcmd` vào `/var/log/cloud-init-output.log` (root:adm 0640) và console. Một lệnh lỗi ở **giữa** `runcmd`: các lệnh sau vẫn chạy, `cloud-init status` vẫn `done`, `errors: []`. Lệnh **cuối** lỗi: `status: error`, mã thoát 1, `/run/cloud-init/result.json` ghi `scripts_user ... 1 failures`. `multipass launch` trả 0 trong cả hai ca |
-| Chạy lại | `runcmd` chạy một lần cho mỗi máy (khởi động lại không chạy nữa). Chạy lại bằng tay: `cloud-init single --name scripts_user --frequency always` chạy lại đúng script đó |
-| Ai đọc được user-data trên máy | `/var/lib/cloud/instance/user-data.txt` là root 0600; user thường gọi `cloud-init query userdata` nhận `<redacted for non-root user>`. Nhưng trên cloud có dịch vụ metadata (169.254.169.254) thì mọi tiến trình hỏi được; Multipass không có dịch vụ đó (nguồn dữ liệu NoCloud, đĩa `cidata`) nên không thử được. Thiết kế coi user-data là **ai trên máy cũng đọc được, mãi mãi** |
-| Dài tối đa | Multipass nhận user-data 308 KB (đã thử). Giới hạn do nhà cung cấp đặt (nguồn, tra 20/11/2026): AWS EC2 16 KB trước khi mã base64; OpenStack 65535 byte sau khi mã; Azure 64 KB; GCP 256 KB mỗi giá trị. DigitalOcean và Hetzner: chưa tra được con số từ trang của họ. cloud-init tự giải nén user-data dạng gzip và nhận `encoding: gz+b64` cho từng file |
+| Chạy lại | `runcmd` chạy một lần cho mỗi máy (khởi động lại không chạy nữa). Chạy lại bằng tay: `cloud-init single --name scripts_user --frequency always` chạy lại đúng script đó. Tạo máy mới từ snapshot cùng user-data (instance-id mới) cũng chạy lại |
+| Ai đọc được user-data trên máy | `/var/lib/cloud/instance/user-data.txt` là root 0600; user thường gọi `cloud-init query userdata` nhận `<redacted for non-root user>`. Trên cloud có dịch vụ metadata (169.254.169.254) thì mọi tiến trình hỏi được; Multipass không có (nguồn NoCloud, đĩa `cidata`). Thiết kế coi user-data là **ai trên máy cũng đọc được, mãi mãi** |
+| Dài tối đa | Multipass nhận user-data 308 KB (đã thử). Giới hạn do nhà cung cấp đặt (nguồn, tra 20/11/2026): AWS EC2 16 KB trước khi mã base64; OpenStack 65535 byte sau khi mã; Azure 64 KB; GCP 256 KB mỗi giá trị. DigitalOcean và Hetzner: chưa tra được con số. cloud-init nhận `encoding: gz+b64` cho từng file (đã thử: file 132 byte có dấu tiếng Việt, `#`, nháy kép ra đúng sha256) |
+| Máy mới nối được máy ảo chính không | Được: trong lúc cloud-init chạy, máy phụ tải được file qua http từ IP của máy ảo chính (bản thử 13) |
 
-Hệ quả cho thiết kế: user-data chỉ có **một** lệnh `runcmd` (script khởi động đầu), để mã thoát của nó là mã thoát của cả lượt; mặc định từ chối sinh user-data lớn hơn 16 KB; TPAN tự ghi log và file trạng thái riêng, không dựa vào `cloud-init status`.
+Hệ quả cho thiết kế: user-data chỉ có **một** lệnh `runcmd` (script khởi động đầu), để mã thoát của nó là mã thoát của cả lượt; mặc định từ chối sinh user-data lớn hơn 16 KB; TPAN tự ghi log và file trạng thái riêng, không dựa vào `cloud-init status`; script không bao giờ đụng lại file chạy sau khi lần khởi động đầu đã xong (mục 3.9).
 
-### 2.6 Dựng lại máy (`09-dung-lai-may-thu.out`)
+### 2.6 Dựng lại máy bằng tay (`09-dung-lai-may-thu.out`)
 
-Làm bằng tay với bản TPAN hiện có (chưa có dòng mã nào của M18) trên một máy ảo mới: cài TPAN, `tpan setup`, thay `tpan.db` bằng bản sao của máy cũ, `tpan stack install`, với mỗi site `tpan site add` (chạy lại trên dòng đã có) rồi chép file backup về đúng đường dẫn và `tpan backup restore`.
+Làm bằng tay với bản TPAN hiện có trên một máy ảo mới: cài TPAN, `tpan setup`, thay `tpan.db` bằng bản sao của máy cũ, `tpan stack install`, với mỗi site `tpan site add` (chạy lại trên dòng đã có) rồi chép file backup về đúng đường dẫn và `tpan backup restore`. Kết quả: hai site trả 200 với đúng bài viết và file đánh dấu của máy cũ; `tpan health` đạt. Từ lúc tạo máy tới lúc cả hai site trả 200 là **1 phút 50 giây**. Thứ tự đúng: TPAN → `tpan.db` cũ → stack → bản PHP → từng site (Plan tạo site) → mã nguồn và DB (Plan khôi phục). Chỗ phụ thuộc tên máy và IP cũ: chứng chỉ tự ký của panel, bản ghi DNS của từng site, tiền tố của đích.
 
-- Kết quả: hai site trả 200 với đúng bài viết và file đánh dấu của máy cũ; `tpan health` đạt, kể cả các phép kiểm lệch (file sinh lại có đúng sha256 đã ghi trong `tpan.db` cũ).
-- Thời gian: từ lúc tạo máy tới lúc cả hai site trả 200 là **1 phút 50 giây** (tạo máy 33 giây, cài stack 39 giây, tạo lại hai site 15 và 5 giây, khôi phục 8 và 7 giây).
-- **Thứ tự đúng**: TPAN → `tpan.db` cũ → stack (web server và nguồn gói đọc từ `tpan.db` cũ, nên không thể lệch với máy cũ) → bản PHP các site cần → từng site: user, thư mục, DB, pool, vhost (Plan tạo site) → mã nguồn và DB từ bản sao lưu (Plan khôi phục).
-- **Chỗ phụ thuộc tên máy và IP cũ**: chứng chỉ tự ký của panel (sinh lại trên máy mới, dấu vân tay mới); bản ghi DNS của từng site (phép kiểm DNS báo cho tới khi trỏ sang IP mới); tiền tố của đích trên kho (là cấu hình ghi rõ, không suy từ tên máy lúc chạy). Không chỗ nào khác: user, DB, pool, socket đều suy từ domain.
-- **Chứng chỉ**: không đem theo ở bản này. Đem theo đòi một đường riêng cho Plan SSL (bỏ điều kiện DNS khi chứng chỉ đã có, dựng site mặc định 443, bật mod ssl của Apache), không thử được trong hạn vì e2e SSL cần một máy chủ ACME thử trên cả hai máy. Thay vào đó site có SSL được dựng lại ở http với URL WordPress đổi về http (không thì WordPress chuyển khách sang https mà cổng 443 chưa có gì), và báo cáo cuối liệt kê lệnh `tpan ssl issue` cho từng site sau khi DNS đã trỏ về máy mới. Để sau: đem `/etc/letsencrypt` theo trong gói panel.
-
-**Quyết định: làm phần dựng lại máy**, vì chuỗi Plan sẵn có đã ghép được trên máy trắng mà không cần sửa Plan nào. Nó nằm ở đợt viết mã cuối; nếu tới mốc giờ kiểm ở mục 8 mà sáu phần trước chưa xanh thì cắt và ghi rõ.
+Bản đầu quyết định làm lệnh tự động hoá đường này. **Sau soát: cắt** (mục 1); đường bằng tay vẫn là bằng chứng rằng bản sao lưu trên kho dùng được để dựng lại, và file giải thích hướng dẫn đúng đường đó.
 
 ## 3. Thiết kế
 
@@ -115,17 +115,17 @@ Làm bằng tay với bản TPAN hiện có (chưa có dòng mã nào của M18)
 
 | Gói (mới trừ khi ghi "sửa") | Việc |
 |---|---|
-| `internal/s3` | Client S3 tự ký: `Config`, `Client`, lỗi có kiểu, kho giả trong bộ nhớ `Mem` cho test |
-| `internal/agebox` | Bọc `filippo.io/age`: sinh và kiểm khoá sao lưu, mã hoá và giải mã theo dòng, bọc một mẩu nhỏ dạng chữ |
+| `internal/s3` | Client S3 tự ký (`client.go`, `sign.go`…), kho giả trong bộ nhớ `Mem` cho test (`mem.go`, đợt 0), kiểu chung (`types.go`, đợt 0) |
+| `internal/agebox` | Bọc `filippo.io/age`: sinh và kiểm khoá sao lưu, mã hoá và giải mã theo dòng |
 | `internal/cloudinit` | Sinh user-data từ tham số đã kiểm; không đọc ghi gì |
 | `internal/system` (sửa) | Thêm đọc ghi file theo dòng: `OpenRead`, `CreateFile` |
-| `internal/engine` (thêm file) | `engine.Note`: bước không chạy lệnh ghi được một dòng tiến độ vào log job |
-| `internal/steps` (thêm file `s3.go`, `panel.go`) | Các Step mới (mục 3.5 đến 3.8) |
-| `internal/core` (thêm `remote.go`, `panel.go`, `cloudinit.go`, `machine.go`; sửa `backup.go`) | Ca sử dụng |
+| `internal/engine` (thêm `note.go`) | `engine.Note`: bước không chạy lệnh ghi được một dòng tiến độ vào log job |
+| `internal/steps` (thêm `m18_types.go`, `s3.go`, `panel.go`) | Các Step mới (mục 3.5 đến 3.8, tên ở 3.16) |
+| `internal/core` (thêm `types_m18.go`, `remote_target.go`, `remote.go`, `panel.go`, `cloudinit.go`; sửa `backup.go`) | Ca sử dụng |
 | `internal/store` (thêm `remote.go`, migration `1800_s3.sql`; sửa `backup.go`) | Cột mới của `backups` và truy vấn |
 | `internal/checks` (thêm `m18.go`), `internal/health` (sửa `collect.go`) | Hai phép kiểm |
-| `internal/server` (thêm `types_m18.go`, `api_m18.go`, `pusher.go`; sửa `routes.go`, `api.go`) | Route, bộ đẩy nền |
-| `cmd/tpan` (thêm `backup_s3.go`, `cloudinit.go`, `machine.go`; sửa một dòng `backup.go`) | CLI |
+| `internal/server` (thêm `types_m18.go`, `api_m18.go`, `pusher.go`; sửa `routes.go`, `api.go`, `api_m9.go`, `server.go`) | Route, bộ đẩy nền |
+| `cmd/tpan` (thêm `backup_s3.go`, `cloudinit.go`; sửa `backup.go`) | CLI |
 
 Thư viện mới: `filippo.io/age` (mục 2.4) và `golang.org/x/term` (hỏi khoá bí mật trên terminal mà không hiện chữ; thư viện chuẩn không tắt được echo). Cả hai ghi vào bảng mục 3 của KE-HOACH.
 
@@ -160,18 +160,18 @@ Migration `1800_s3.sql` (khoảng số 1800 đến 1899 là của M18):
 ALTER TABLE backups ADD COLUMN local         INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE backups ADD COLUMN remote        TEXT    NOT NULL DEFAULT '';
 ALTER TABLE backups ADD COLUMN remote_key    TEXT    NOT NULL DEFAULT '';  -- khoá object, tính từ sau tiền tố của đích
-ALTER TABLE backups ADD COLUMN remote_target TEXT    NOT NULL DEFAULT '';  -- mã của đích lúc đẩy (mục 3.3)
+ALTER TABLE backups ADD COLUMN remote_target TEXT    NOT NULL DEFAULT '';  -- mã của đích (mục 3.3)
 ALTER TABLE backups ADD COLUMN remote_at     TEXT    NOT NULL DEFAULT '';  -- RFC 3339, lúc đọc lại khớp sha256
 ALTER TABLE backups ADD COLUMN remote_error  TEXT    NOT NULL DEFAULT '';  -- lỗi lần đẩy gần nhất (một dòng, không có bí mật)
-ALTER TABLE backups ADD COLUMN remote_tries  INTEGER NOT NULL DEFAULT 0;   -- số lần đẩy lỗi liên tiếp
+ALTER TABLE backups ADD COLUMN remote_tries  INTEGER NOT NULL DEFAULT 0;   -- số lần đẩy lỗi "của riêng bản" liên tiếp
 CREATE INDEX backups_remote ON backups (remote, created_at);
 ```
 
 Mọi cột có DEFAULT nên dòng của v0.2.0 tự thành "trên máy, chưa lên kho", và bản TPAN này đọc được DB cũ mà không cần bước chuyển dữ liệu nào.
 
-`site.Backup` thêm: `Local bool`, `Remote BackupRemote` (`""`, `"stored"`, `"failed"`), `RemoteKey`, `RemoteTarget`, `RemoteAt time.Time`, `RemoteError string`, `RemoteTries int`. JSON: `local`, `remote`, `remote_key`, `remote_at`, `remote_error`; `remote_target` và `remote_tries` không ra JSON (`json:"-"`).
+`site.Backup` thêm: `Local bool` (`json:"local"`), `Remote BackupRemote` (`""`, `"stored"`, `"failed"`; `json:"remote"`), `RemoteKey string` (`json:"remote_key,omitempty"`), `RemoteTarget string` (`json:"-"`), `RemoteAt time.Time` (`json:"remote_at,omitzero"`), `RemoteError string` (`json:"remote_error,omitempty"`), `RemoteTries int` (`json:"-"`). API xoá `remote_key`, `remote_error` trước khi trả cho user thường.
 
-Không có bảng cho gói panel: trạng thái của nó là file trên máy, object trên kho, và một setting ghi lần đẩy thành công gần nhất (mục 3.8).
+Không có bảng cho gói panel: trạng thái của nó là file trên máy, object trên kho, và các setting dưới đây.
 
 Khoá mới trong bảng `settings` (không khoá nào là bí mật):
 
@@ -181,8 +181,12 @@ Khoá mới trong bảng `settings` (không khoá nào là bí mật):
 | `s3.region`, `s3.bucket`, `s3.prefix` | vùng, bucket, tiền tố |
 | `s3.path_style` | `1` (mặc định) hoặc `0` (kiểu `bucket.host`) |
 | `s3.keep` | số bản giữ trên kho cho mỗi site, 1 đến 365, mặc định 7 |
+| `s3.target_error` | lỗi của đích ở lượt đẩy gần nhất (một dòng, đã làm sạch); rỗng khi lượt gần nhất nối được |
+| `s3.target_failures` | số lượt liên tiếp hỏng vì lỗi của đích |
+| `s3.retry_at` | RFC 3339; bộ đẩy nền không mở lượt mới trước giờ này |
 | `s3.panel_last` | `<tên gói>\|<RFC 3339>\|<sha256>` của gói panel mới nhất đã lên kho và đã đọc lại khớp |
 | `s3.panel_error` | lỗi lần tạo hoặc đẩy gói panel gần nhất; rỗng khi lần gần nhất đạt |
+| `s3.panel_due` | `1`: cần một gói panel mới ở lượt đẩy kế tiếp |
 
 File ngoài `tpan.db`, đều `root:root 0600` trong `/etc/tpan` (thư mục 0700 từ M3):
 
@@ -192,7 +196,22 @@ File ngoài `tpan.db`, đều `root:root 0600` trong `/etc/tpan` (thư mục 070
 | `/etc/tpan/s3-ca.pem` | chứng chỉ gốc riêng của kho (tuỳ chọn) |
 | `/etc/tpan/backup.key` | khoá sao lưu, một dòng |
 
-Ba file này **không** nằm trong `managed_files` (bước ghi chúng không khai `Files` trong `Info`, như khoá riêng TLS của panel ở M3): nội dung và sha256 của bí mật không được vào bản xem trước hay vào DB.
+**Ba file này không bao giờ nằm trong `Info().Files` của bước nào**, nên nội dung của chúng không vào bản xem trước (engine đọc nội dung cũ của mọi file trong `Files` vào trường `old`) và sha256 của chúng không vào `managed_files`. Bước ghi là `steps.SecretFile`, bước gỡ là `steps.SecretAbsent` (mục 3.16); không bước nào khác được chạm vào ba đường dẫn này (`steps.File` và `steps.Absent` từ chối chúng).
+
+**Hàm của store cho cột mới** (`internal/store/remote.go`). Mọi chuyển trạng thái là **một transaction có điều kiện**, nên hai tiến trình chạy cùng lúc (dọn trên máy trong `after` của `backup create`, dọn trên kho trong lượt đẩy) không bao giờ để lại dòng `local=0, remote<>'stored'`:
+
+| Hàm | Làm gì |
+|---|---|
+| `MarkBackupStored(ctx, id, key, targetID string, at time.Time) (ok bool, err)` | `remote='stored'`, `remote_key`, `remote_target`, `remote_at`, `remote_error=''`, `remote_tries=0`; `ok=false` khi dòng đã mất |
+| `MarkBackupPushFailed(ctx, id, targetID, msg string, countTry bool) error` | dòng đang `stored` (ở đích khác): giữ `remote`, `remote_key`, `remote_target`, chỉ ghi `remote_error`. Còn lại: `remote='failed'`, `remote_target`, `remote_error`, `remote_tries += 1` khi `countTry` |
+| `ResetBackupTries(ctx, id) error` | `remote_tries = 0` |
+| `SetBackupLocal(ctx, id) (ok bool, err)` | `local = 1` (sau khi tải về) |
+| `ForgetBackupLocal(ctx, id) (deleted bool, err)` | trong một transaction: dòng `remote='stored'` thì `local=0`; không thì xoá dòng |
+| `ForgetBackupRemote(ctx, id) (deleted bool, err)` | trong một transaction: dòng `local=1` thì xoá trạng thái kho (`remote=''`, `remote_key=''`, `remote_target=''`, `remote_at=''`, `remote_error=''`, `remote_tries=0`); không thì xoá dòng |
+| `SetBackupRemoteTarget(ctx, id, targetID) error` | đổi `remote_target` (nối lại khi đích đổi cách viết, mục 3.3) |
+| `AppliedMigrations(ctx) ([]int, error)` | danh sách bảng `schema_migrations`, tăng dần (manifest của gói panel) |
+
+`Backups`, `BackupsOf`, `Backup` đọc thêm bảy cột; `AddBackup` để mặc định.
 
 ### 3.3 Đích và bí mật
 
@@ -209,26 +228,26 @@ Ba file này **không** nằm trong `managed_files` (bước ghi chúng không k
 | keep | 1 đến 365 |
 | CA | PEM có ít nhất một chứng chỉ đọc được, tối đa 64 KB |
 
-Vì sao `http` chỉ cho loopback: bản sao lưu có `wp-config.php` và bản xuất DB; SigV4 không gửi khoá bí mật đi nhưng thân request thì đi dạng rõ. Kho nội bộ dùng chứng chỉ tự ký thì đưa chứng chỉ gốc qua `--ca-file`.
+Vì sao `http` chỉ cho loopback: bản sao lưu có `wp-config.php` và bản xuất DB; SigV4 không gửi khoá bí mật đi nhưng thân request thì đi dạng rõ. Kho nội bộ dùng chứng chỉ riêng thì đưa chứng chỉ gốc qua `--ca-file` (đã thử, `14-tls-ca-rieng.out`).
 
-**Mã của đích** (`TargetID`): 16 ký tự hex đầu của `sha256(endpoint + "\n" + bucket + "\n" + prefix)`. Dòng `backups.remote_target` ghi mã này, nên đổi đích thì TPAN biết bản nào nằm ở đích cũ: bản đó được coi là chưa lên đích mới (còn file trên máy thì sẽ được đẩy), và không tải về được cho tới khi đặt lại đích cũ. Plan đặt đích hiện số bản như vậy trong tiêu đề bước, không từ chối.
+**Mã của đích** (`TargetID`): 16 ký tự hex đầu của `sha256(endpoint + "\n" + bucket + "\n" + prefix)`. Dòng `backups.remote_target` ghi mã này, nên đổi đích thì TPAN biết bản nào nằm ở đích cũ.
 
 **Plan `backup.target.set`** (admin; CLI và API):
 
-1. Điều kiện đầu (chỉ đọc, chạy cả lúc xem trước): kiểm mọi trường; dựng client; `Check` (ListObjectsV2 một kết quả dưới tiền tố). Lỗi thành lời từ chối `s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`, `s3_error` kèm mã HTTP và tên lỗi kho trả.
-2. Bước `s3.probe` (`steps.S3Probe`): ghi một object nhỏ ngẫu nhiên `probe/<16 hex>`, HEAD, đọc lại và so từng byte, xoá, HEAD lần nữa phải ra "không có". Hỏng ở đâu thì cố xoá object rồi báo lỗi. Bước này không hoàn tác (nó tự dọn).
-3. Bước `secret.file:/etc/tpan/s3.json` (`steps.SecretFile`): ghi hai khoá. Hoàn tác: trả nội dung cũ hoặc xoá nếu trước đó chưa có.
-4. Bước `secret.file:/etc/tpan/s3-ca.pem` khi có CA; `steps.Absent` file đó khi đích mới không dùng CA.
-5. Khi chưa có `/etc/tpan/backup.key`: bước `secret.file:/etc/tpan/backup.key` với một khoá sao lưu mới sinh (mục 3.8). Khoá hiện **đúng một lần** trong kết quả lệnh (CLI in ra; API trả qua cơ chế bí mật một lần của job như mật khẩu WordPress).
-6. Job thành công (`after`): ghi các setting `s3.*`. Ghi setting lỗi thì báo lỗi kèm câu "chạy lại lệnh"; chạy lại là an toàn vì mọi bước đều so nội dung trước khi ghi.
+1. Điều kiện đầu (chỉ đọc, chạy cả lúc xem trước): kiểm mọi trường; dựng client; `Check` (ListObjectsV2 một kết quả dưới tiền tố). Lỗi thành lời từ chối `s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`, `s3_error` kèm mã HTTP và tên lỗi kho trả (đã làm sạch, mục 3.4).
+2. Bước `steps.S3Probe`: ghi một object nhỏ ngẫu nhiên `probe/<16 hex>`, HEAD, đọc lại và so từng byte, xoá, HEAD lần nữa phải ra "không có". Hỏng ở đâu thì cố xoá object rồi báo lỗi. Bước này không hoàn tác (nó tự dọn).
+3. Bước `steps.SecretFile` cho `/etc/tpan/s3.json`: ghi hai khoá. Hoàn tác: trả nội dung cũ hoặc xoá nếu trước đó chưa có.
+4. `steps.SecretFile` cho `/etc/tpan/s3-ca.pem` khi có CA; `steps.SecretAbsent` khi đích mới không dùng CA.
+5. **Chỉ ở CLI** và chỉ khi chưa có `/etc/tpan/backup.key`: `steps.SecretFile` với một khoá sao lưu mới sinh (mục 3.8). CLI in khoá **một lần** sau khi job thành công. API không bao giờ sinh, không bao giờ trả khoá (S5): đặt đích qua API trên máy chưa có khoá thì đích vẫn dùng được cho bản sao lưu site; gói panel chưa được tạo, `GET /api/v1/backups/target` ghi `has_backup_key: false`, phép kiểm `tpan.s3:fresh` cảnh báo kèm lệnh `sudo tpan backup key new`.
+6. Job thành công (`after`): ghi các setting `s3.*` của đích; xoá `s3.target_error`, `s3.target_failures`, `s3.retry_at`; đặt `s3.panel_due = 1`. Khi `TargetID` khác mã đang lưu: xoá `s3.panel_last`, `s3.panel_error`, rồi **nối lại** (S18): `List("sites/")` trên đích mới; mỗi dòng `remote='stored'` ở mã khác mà `remote_key` có trong danh sách với đúng cỡ thì `SetBackupRemoteTarget` sang mã mới. Câu kết quả nêu số dòng nối được và số dòng còn ở đích khác. Ghi setting hay nối lại lỗi thì báo lỗi kèm câu "chạy lại lệnh"; chạy lại an toàn vì mọi bước so nội dung trước khi ghi.
 
 Thứ tự "thử thật rồi mới ghi" bảo đảm không bao giờ lưu một đích chưa ghi, đọc, xoá được.
 
-**Plan `backup.target.rm`**: tiêu đề bước nêu số bản chỉ còn trên kho (sẽ không tải về được cho tới khi đặt lại đích); `steps.Absent` cho `s3.json` và `s3-ca.pem`; `after` xoá các setting `s3.endpoint`, `s3.region`, `s3.bucket`, `s3.prefix`, `s3.path_style`, `s3.keep`. Không xoá gì trên kho, không đổi cột `remote*` của dòng nào (đặt lại đúng đích cũ thì các bản đó dùng lại được), không xoá khoá sao lưu.
+**Plan `backup.target.rm`**: tiêu đề bước nêu số bản chỉ còn trên kho (sẽ không tải về được cho tới khi đặt lại đích); `steps.SecretAbsent` cho `s3.json` và `s3-ca.pem`; `after` xoá các setting `s3.endpoint`, `s3.region`, `s3.bucket`, `s3.prefix`, `s3.path_style`, `s3.keep`, `s3.target_error`, `s3.target_failures`, `s3.retry_at`, `s3.panel_last`, `s3.panel_error`, `s3.panel_due`. Không xoá gì trên kho, không đổi cột `remote*` của dòng nào, không xoá khoá sao lưu.
 
-**Plan `backup.target.test`**: một bước `s3.probe` trên đích đang lưu. Là job để có lịch sử và bằng chứng.
+**Plan `backup.target.test`**: một bước `S3Probe` trên đích đang lưu. Là job để có lịch sử và bằng chứng.
 
-**Xem** (`Remote.Target`): mọi trường không bí mật, `access_key_tail` là bốn ký tự cuối của access key (đọc từ file lúc hỏi, không lưu ở đâu), `has_ca`, `key_fingerprint` (8 hex đầu của sha256 khoá sao lưu, rỗng khi chưa có), `panel_last`. Không trường nào mang khoá bí mật, kể cả dạng che.
+**Xem** (`Remote.Target`, kiểu `TargetView`): mọi trường không bí mật; `access_key_hint` là `…` cộng bốn ký tự cuối khi access key dài từ 12 ký tự, không thì chỉ `(N ký tự)` (S31); `has_ca`; `has_backup_key` và `key_fingerprint` (8 hex đầu của sha256 khoá sao lưu); `panel_last`, `panel_error`, `target_error`, `retry_at`. Không trường nào mang khoá bí mật, kể cả dạng che. CLI `target show` và `target set` luôn in dấu vân tay kèm câu "xem lại khoá bằng: sudo tpan backup key show --reveal" (S33).
 
 ### 3.4 Client S3 (`internal/s3`)
 
@@ -245,135 +264,171 @@ type Config struct {
 func New(cfg Config) (*Client, error)
 type Object struct { Key string; Size int64; Modified time.Time; ETag string }
 
-func (c *Client) Check(ctx context.Context) error                                   // chỉ đọc
+func (c *Client) Check(ctx context.Context) error
 func (c *Client) Put(ctx context.Context, key string, r io.Reader, size int64, progress func(done int64)) (sha256Hex string, err error)
 func (c *Client) Get(ctx context.Context, key string, w io.Writer) (n int64, sha256Hex string, err error)
 func (c *Client) Head(ctx context.Context, key string) (Object, error)              // không có: ErrNotFound
 func (c *Client) Delete(ctx context.Context, key string) error                      // không có cũng là xong
 func (c *Client) List(ctx context.Context, prefix string, each func(Object) error) error
-func (c *Client) AbortUploads(ctx context.Context, prefix string) (int, error)      // dọn các lần tải nhiều phần còn dở
+func (c *Client) AbortUploads(ctx context.Context, prefix string, olderThan time.Duration) (int, error)
 ```
 
-- **Mọi `key` và `prefix` người gọi đưa là tương đối với `Config.Prefix`**; client tự ghép `Prefix + "/" + key`, và `List` trả key đã bỏ tiền tố. Không hàm nào ra được ngoài tiền tố của đích. `key` phải khớp `^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$`, không thì lỗi trước khi gọi mạng.
-- **Chữ ký**: SigV4 trong header `Authorization`. Ký `host`, `x-amz-date`, `x-amz-content-sha256` và mọi header `x-amz-*` khác. Đường dẫn mã hoá từng đoạn một lần theo RFC 3986 (chỉ giữ `A-Za-z0-9-_.~`); đường đi trên dây đặt bằng `URL.RawPath` đúng bằng đường đã ký. Query sắp theo tên rồi giá trị, mã hoá cả hai, và `URL.RawQuery` đặt đúng bằng chuỗi đã ký.
+- **Mọi `key` và `prefix` người gọi đưa là tương đối với `Config.Prefix`**; client tự ghép `Prefix + "/" + key`, và `List` trả key đã bỏ tiền tố. `key` phải khớp `^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$` và **không đoạn nào là `.` hay `..`** (S23); tham số `prefix` của `List`, `AbortUploads` là chuỗi rỗng hoặc một `key` hợp lệ có thể kèm `/` cuối. Sai luật thì lỗi trước khi gọi mạng. Không hàm nào ra được ngoài tiền tố của đích.
+- **Chữ ký**: SigV4 trong header `Authorization`. Ký `host`, `x-amz-date`, `x-amz-content-sha256` và mọi header `x-amz-*` khác. Đường dẫn mã hoá từng đoạn một lần theo RFC 3986 (chỉ giữ `A-Za-z0-9-_.~`); đường đi trên dây đặt bằng `URL.RawPath` đúng bằng đường đã ký. Query sắp theo tên rồi giá trị, mã hoá cả hai, `URL.RawQuery` đúng bằng chuỗi đã ký.
 - **Thân có ký**: `x-amz-content-sha256` luôn là sha256 thật của thân (không dùng `UNSIGNED-PAYLOAD`), nên kho tự từ chối một phần bị hỏng trên đường đi. Mỗi phần nằm trọn trong bộ nhớ nên tính băm trước khi gửi và gửi lại được.
-- **Tải nhiều phần**: `size` ≤ cỡ phần thì một PUT. Lớn hơn: `POST ?uploads`, từng phần `PUT ?partNumber=N&uploadId=…`, `POST ?uploadId=…` kèm danh sách ETag. Câu trả lời 200 của bước ghép vẫn phải đọc thân: thân là `<Error>` thì coi là lỗi. Cỡ phần: 8 MiB; khi `size > 8 MiB × 9000` thì `ceil(size / 9000)` làm tròn lên MiB. Lỗi ở bất kỳ đâu sau khi mở: gọi `AbortMultipartUpload` bằng một context riêng có hạn 30 giây (context của người gọi có thể đã huỷ), lỗi huỷ được gộp vào lỗi trả về.
-- **Thử lại**: mỗi request tối đa 4 lần, nghỉ 0,5 giây, 1 giây, 2 giây; chỉ với lỗi mạng, mã 5xx và 429. Mã 4xx khác không thử lại.
-- **Hạn giờ**: nối 15 giây, bắt tay TLS 15 giây, chờ header trả lời 60 giây; trong lúc truyền thân, 120 giây không có byte nào đi hay về thì huỷ lần thử đó. Không có hạn cho cả thao tác (file lớn, mạng chậm); người dùng huỷ job thì context huỷ.
-- **Không đi theo chuyển hướng** (`CheckRedirect` trả `http.ErrUseLastResponse`): chữ ký gắn với host đã ký; mã 3xx thành lỗi nói "sai endpoint hoặc sai vùng" kèm header `x-amz-bucket-region` nếu có.
+- **Tải nhiều phần**: `size` ≤ cỡ phần thì một PUT. Lớn hơn: `POST ?uploads`, từng phần `PUT ?partNumber=N&uploadId=…`, `POST ?uploadId=…` kèm danh sách ETag. Câu trả lời 200 của bước ghép vẫn phải đọc thân: thân là `<Error>` thì coi là lỗi. Cỡ phần: 8 MiB; khi `size > 8 MiB × 9000` thì `ceil(size / 9000)` làm tròn lên MiB. Lỗi ở bất kỳ đâu sau khi mở: gọi `AbortMultipartUpload` bằng một context riêng có hạn 30 giây, lỗi huỷ được gộp vào lỗi trả về.
+- **Bước ghép** (S19): hạn chờ header riêng 10 phút. Lỗi mạng, hết giờ hoặc `NoSuchUpload` ở bước ghép thì `Head(key)`: object có và đúng `size` thì coi là đã ghép (người gọi còn đọc lại để kiểm sha256); không thì lỗi.
+- **Thử lại**: mỗi request tối đa 4 lần, nghỉ 0,5 giây, 1 giây, 2 giây; chỉ với lỗi mạng, mã 5xx và 429. Mã 4xx khác không thử lại. **`Get` chỉ thử lại khi chưa ghi byte thân nào vào `w`**; đã ghi rồi mà đứt thì trả lỗi, người gọi làm lại từ đầu (S19).
+- **Hạn giờ**: nối 15 giây, bắt tay TLS 15 giây, chờ header trả lời 60 giây (trừ bước ghép); trong lúc truyền thân, 120 giây không có byte nào đi hay về thì huỷ lần thử đó. Không có hạn cho cả thao tác; người dùng huỷ job thì context huỷ.
+- **Không đi theo chuyển hướng** (`CheckRedirect` trả `http.ErrUseLastResponse`): mã 3xx thành lỗi nói "sai endpoint hoặc sai vùng" kèm header `x-amz-bucket-region` nếu có.
 - **TLS**: tối thiểu TLS 1.2; `CAPEM` khác rỗng thì chỉ tin các chứng chỉ gốc đó. Không có tuỳ chọn bỏ kiểm chứng chỉ.
-- **Lỗi**: `*s3.Error{Op, Status, Code, Message}`; `Message` đã bỏ ký tự điều khiển và cắt còn 300 ký tự; thân không phải XML thì `Code` là tên mã HTTP. `Classify(err)` trả một trong `s3_unreachable` (lỗi mạng, DNS, TLS, hết giờ), `s3_auth_failed` (401, 403), `s3_bucket_not_found` (404 khi thao tác trên bucket hoặc `NoSuchBucket`), `s3_error` (còn lại). Phân loại theo mã HTTP trước (mục 2.2).
-- **Bí mật**: `SecretKey` là `system.Secret`; không lỗi, không dòng log nào chứa header `Authorization`, khoá bí mật hay access key. URL trong lỗi của `net/http` chỉ có host, đường dẫn và query, không có khoá (ta không ký bằng query).
-- **`Mem`**: kho trong bộ nhớ có đúng bộ phương thức trên, thêm `Fail(op, key, err)` và `Corrupt(key)` cho test của steps, core, server.
+- **Lỗi**: `*s3.Error{Op, Status, Code, Message}`. Trước khi dựng `Error`, **mọi lần xuất hiện của access key, secret key và chữ ký của request trong `Code` và `Message` được thay bằng `••••`** (S11); thân không phải XML thì `Message` rỗng và `Code` là tên mã HTTP; `Message` bỏ ký tự điều khiển, cắt còn 300 ký tự; thân lỗi đọc tối đa 64 KB. Lỗi mạng của `net/http` mang URL (host, đường dẫn, query) nhưng không mang khoá, vì ta không ký bằng query.
+- **Phân loại** (`s3.Classify(err) string`, theo mã HTTP trước, S6):
+  - `s3_auth_failed`: 401, 403.
+  - `s3_bucket_not_found`: `NoSuchBucket`, hoặc 404 ở thao tác trên bucket.
+  - `s3_unreachable`: lỗi mạng, DNS, TLS, hết giờ, và **5xx, 429 sau khi đã thử lại**.
+  - `s3_error`: còn lại (4xx khác, 3xx, thân lạ).
+  - `s3.IsTargetError(err)`: true với ba mã đầu. Đây là "lỗi của đích": nó không nói gì về một bản sao lưu cụ thể.
+- **Bí mật**: `SecretKey` là `system.Secret`; không lỗi, không dòng log nào chứa header `Authorization`, khoá bí mật hay access key.
+- **`Mem`** (đợt 0): kho trong bộ nhớ có đúng bộ phương thức trên, thêm `Fail(op, key string, err error)`, `Corrupt(key string)`, `Objects() map[string][]byte` cho test của steps, core, server.
 
 Giao diện phía dùng (`steps.ObjectStore`) gồm đúng bảy phương thức trên; `*s3.Client` và `*s3.Mem` thoả nó.
 
 ### 3.5 Đẩy lên kho
 
-**Luật chọn bản cần đẩy**, một luật cho cả đẩy tự động và `tpan backup push`:
+**Luật "sống qua lần dọn kho"** (S2), một hàm duy nhất `core.remoteSurvives(row, rows, targetID, keep) bool`, dùng chung cho việc chọn bản cần đẩy **và** cho dọn trên kho, để hai bên không bao giờ lệch nhau:
 
-> `kind = 'full'` và `local = 1` và không phải (`remote = 'stored'` và `remote_target` = mã của đích đang đặt).
+> Bản `R` (`kind='full'`) sống qua lần dọn kho khi `R.reason = 'before-purge'`, hoặc khi số dòng `S` cùng domain, `kind='full'`, `reason <> 'before-purge'`, `remote='stored'`, `remote_target = targetID`, **mới hơn `R`** (so `created_at` rồi `rowid`) nhỏ hơn `keep`.
 
-Đẩy tự động bỏ qua dòng có `remote_tries ≥ 5`; `tpan backup push <id>` thì luôn thử và đặt lại số đếm. `remote_tries` chỉ tăng khi lỗi là **của riêng bản đó** (file cục bộ hỏng, kho trả dữ liệu khác thứ đã gửi, kho từ chối đúng object đó); lỗi **của đích** (`s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`) ghi `remote = 'failed'` kèm lỗi nhưng không tăng số đếm, nên kho sập bao lâu thì khi sống lại mọi bản vẫn được đẩy bù. Bản xuất DB riêng (`kind = 'sql'`) không lên kho: nó là thao tác của màn Cơ sở dữ liệu, và bản đầy đủ đã chứa DB.
+**Luật chọn bản cần đẩy**: `kind='full'`, `local=1`, không phải (`remote='stored'` và `remote_target` = mã của đích đang đặt), `remoteSurvives` đúng, và `remote_tries < 5` (lệnh gõ tay `tpan backup push` bỏ điều kiện cuối và đặt lại số đếm). Ví dụ: `s3.keep = 2`, B3, B4 đã lên kho, B5 mới: B5 có 0 bản mới hơn nên được đẩy; sau đó B3 bị dọn khỏi kho (về `remote=''`) và có hai bản mới hơn nên không bao giờ được chọn lại. Bản xuất DB riêng (`kind='sql'`) không lên kho.
 
-**Plan `backup.push`** (target: domain), một bước `steps.S3Push`:
+**`remote_tries`** chỉ tăng khi lỗi là **của riêng bản đó**: file cục bộ sai cỡ hoặc sai sha256, kho trả về dữ liệu khác thứ đã gửi, hoặc kho từ chối đúng object đó bằng một mã `s3_error`. **Lỗi của đích** (`s3.IsTargetError`) không tăng số đếm (S6).
 
-1. `Stat` file cục bộ: file thường, cỡ bằng `backups.size`. Khác: lỗi "file cục bộ đã đổi".
-2. `sha256sum` file cục bộ (lệnh, nên có bằng chứng trong log job) phải bằng `backups.sha256`. Khác: lỗi "bản cục bộ đã hỏng", không gửi byte nào.
-3. `AbortUploads(key)`: dọn phần tải dở của chính key này từ một lần chạy bị giết. Kho không hỗ trợ lời gọi này (501, `NotImplemented`): bỏ qua.
-4. `OpenRead` rồi `Put`. sha256 của các byte đã gửi phải bằng `backups.sha256`; khác (file đổi giữa bước 2 và 4): xoá object, lỗi.
-5. **Đọc lại**: `Get` cả object vào hư không, tính sha256, phải bằng `backups.sha256` và đủ số byte. Khác: xoá object, lỗi "kho trả về dữ liệu khác thứ đã gửi".
-6. `engine.Note` vài dòng tiến độ (mỗi 10% hoặc 30 giây) và dòng kết quả.
+**Plan `backup.push`** (target: domain; job ghi chủ là `admin`, S10), một bước `steps.S3Push`:
 
-`Check` chỉ đúng sau `Apply` của chính bước (đẩy luôn là việc mới). `Undo`: xoá object. Kiểm chứng của Plan: `s3.object:<id>`, HEAD object, cỡ khớp; bằng chứng ghi key, cỡ, ETag và câu "sha256 đọc lại khớp". Job thành công (`after`): `MarkBackupStored(id, key, targetID, now)`; dòng đã bị xoá trong lúc tải (dọn cục bộ chen vào) thì xoá object vừa tải và coi như không có gì; rồi dọn bản cũ trên kho của domain đó (mục 3.7). Job hỏng: `MarkBackupPushFailed(id, targetID, lỗi một dòng)`.
+1. `Stat` file cục bộ: file thường, cỡ bằng `backups.size`. Khác: lỗi `ErrBackupLocal` "file cục bộ đã đổi".
+2. `sha256sum` file cục bộ (lệnh, nên có bằng chứng trong log job) phải bằng `backups.sha256`. Khác: lỗi `ErrBackupLocal` "bản cục bộ đã hỏng", không gửi byte nào.
+3. `AbortUploads(key, 0)`: dọn phần tải dở của chính key này từ một lần chạy bị giết. Kho không hỗ trợ lời gọi này (501, `NotImplemented`): bỏ qua.
+4. `OpenRead` rồi `Put`. sha256 của các byte đã gửi phải bằng `backups.sha256`; khác (file đổi giữa bước 2 và 4): xoá object, lỗi `ErrBackupLocal`.
+5. **Đọc lại**: `Get` cả object vào `io.Discard`, tính sha256, phải bằng `backups.sha256` và đủ số byte. Khác: xoá object, lỗi `ErrRemoteMismatch` "kho trả về dữ liệu khác thứ đã gửi".
+6. `engine.Note` dòng tiến độ (mỗi 10% hoặc 30 giây) và dòng kết quả.
 
-Khoá object: `sites/<domain>/<tên file cục bộ>`, ví dụ `sites/shop.example/shop.example-20261121-033000.tar.gz`.
+`Check` chỉ đúng sau `Apply` của chính bước. `Undo`: xoá object. Kiểm chứng của Plan: `s3.object:<id>`, HEAD object, cỡ khớp. Job thành công (`after`): `MarkBackupStored`; dòng đã mất (dọn cục bộ chen vào) thì xoá object vừa tải; rồi dọn kho của domain đó (mục 3.7). Job hỏng: `MarkBackupPushFailed(id, targetID, lỗi một dòng, countTry)` với `countTry = errors.Is(err, ErrBackupLocal) || errors.Is(err, ErrRemoteMismatch) || (lỗi kho và !IsTargetError)`.
 
-**Vì sao đọc lại cả object.** Chữ ký từng phần chỉ chứng minh từng phần tới nơi nguyên vẹn; nó không chứng minh object sau khi ghép bằng đúng file, và bản thử cho thấy ETag không đổi khi dữ liệu trên kho hỏng. Đọc lại là phép kiểm duy nhất không phải tin kho. Cái giá: mỗi bản tốn thêm một lượt tải về (với kho tính tiền chiều ra thì tốn tiền). Đo ở mục 2.3: 2 GiB đọc lại mất 4 đến 6 giây trên máy ảo; trên mạng thật thì bằng thời gian tải về. Không có chế độ "kiểm nhanh": bất biến 2 không có ngoại lệ.
+Khoá object: `sites/<domain>/<tên file cục bộ>`.
 
-**Ai gọi đẩy, và vì sao không giữ khoá job của máy.** Tải vài GB qua mạng chậm có thể mất hàng giờ. Nếu job đẩy giữ khoá toàn cục thì trong lúc đó mọi thao tác khác bị từ chối và health bỏ mọi vòng kiểm (health bỏ vòng khi đang có job). Đẩy không đổi gì trên máy, nên:
+**Vì sao đọc lại cả object.** Chữ ký từng phần chỉ chứng minh từng phần tới nơi nguyên vẹn; nó không chứng minh object sau khi ghép bằng đúng file, và bản thử cho thấy ETag không đổi khi dữ liệu trên kho hỏng. Đọc lại là phép kiểm duy nhất không phải tin kho. Cái giá: mỗi bản tốn thêm một lượt tải về. Không có chế độ "kiểm nhanh": bất biến B2 không có ngoại lệ.
 
-- `Remote.Sync(ctx, SyncOptions{Panel bool, Only []string}, onEvent)` là một lượt đẩy: lấy **khoá riêng của lượt đẩy** (`flock` không chờ trên `/run/tpan/remote.lock`; đang có lượt khác thì trả về "đang có lượt đẩy khác", không phải lỗi); khi `Panel` thì tạo và đẩy gói panel (mục 3.8); đẩy lần lượt các bản theo luật trên (hoặc đúng các id trong `Only`), mới nhất trước; mỗi bản một job `backup.push` chạy qua engine với một lớp bọc `System` có `Lock` không làm gì (khoá riêng đã giữ). Job vẫn vào Lịch sử kèm bằng chứng.
-- **Cầu dao**: bản đầu tiên hỏng vì lỗi của đích (`s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`) thì các bản còn lại của lượt đó không thử nữa, chỉ được ghi cùng lỗi (không để 50 site mỗi site chờ hết giờ một lần).
-- Ba nơi gọi `Sync`: CLI sau `tpan backup create` (một site; hoặc `--all`, tức là cả lịch hằng đêm, khi đó `Panel` bật); `tpan backup push`; và **bộ đẩy nền** trong `tpan serve` (`server/pusher.go`): một goroutine được đánh thức sau mỗi job thành công của API và 10 phút một lần; không có bản nào cần đẩy thì nó chỉ tốn một truy vấn. Đích chưa đặt: `Sync` trả về ngay. Bộ đẩy nền còn giữ một hàng chờ nhỏ trong bộ nhớ cho yêu cầu đẩy hoặc tải một bản cụ thể từ API (mục 3.11).
-- `backup create` thoát 0 khi bản cục bộ xong, kể cả khi đẩy lỗi; nó in rõ "đã sao lưu trên máy, CHƯA lên kho: <lý do>; sẽ đẩy bù ở lần sau, hoặc: sudo tpan backup push". `tpan backup push` thoát 1 khi còn bản đẩy lỗi.
-- Phép kiểm "job treo" của M4 bỏ qua loại `backup.push`, `backup.pull`, `backup.panel` (chúng được phép chạy lâu).
+**Lượt đẩy** (`Remote.Sync(ctx, SyncOptions, onEvent) (SyncResult, error)`):
 
-Đây là cách bất biến 1 đứng vững: job sao lưu cục bộ và job đẩy là hai job khác nhau; không bước nào của Plan `backup.create` chạm tới mạng.
+```go
+type SyncOptions struct {
+    Wait     bool     // chờ khoá lượt đẩy tối đa 30 phút (CLI, cron); false: bận thì thôi (bộ đẩy nền)
+    Retry    bool     // lệnh gõ tay: bỏ nhịp lùi, gồm cả dòng remote_tries ≥ 5 (đặt lại về 0)
+    Only     []string // chỉ các id này (tpan backup push <id>, hàng chờ của API); rỗng: theo luật chọn
+    PanelDue bool     // đặt s3.panel_due = 1 trước khi chạy (backup create --all)
+}
+```
+
+1. Chưa đặt đích: trả về ngay (`Ran=false`).
+2. `PanelDue`: ghi `s3.panel_due = 1` (trước khi lấy khoá, để lượt sau thấy dù lượt này bỏ).
+3. Lấy **khoá riêng của lượt đẩy**: `flock` trên `/run/tpan/remote.lock`. `Wait`: thử lại có nghỉ như `LocalSystem.Lock`, in "đang chờ lượt đẩy khác", tối đa 30 phút rồi bỏ (`Skipped`). Không `Wait`: bận thì bỏ ngay (S7).
+4. Không `Retry` và giờ hiện tại trước `s3.retry_at`: bỏ (`Skipped = "đang lùi sau lỗi của đích tới <giờ>"`).
+5. Dọn rác không cần mạng (S29): xoá thư mục `.tmp-*` cũ hơn một giờ trong `site.TPANDBBackupDir`.
+6. Tính danh sách bản cần đẩy. Không có bản nào và không cần gói panel (xem bước 9): trả về, **không gọi mạng**.
+7. `Check` một lần. Lỗi của đích: ghi `s3.target_error`, tăng `s3.target_failures`, đặt `s3.retry_at = now + lùi(failures)` với lùi là 10 phút, 30 phút, 1 giờ, rồi 6 giờ; trả về, **không tạo job nào** (S6). Nối được: xoá ba setting đó.
+8. `AbortUploads("", 24h)` (bỏ qua lỗi): huỷ các lần tải dở dưới tiền tố cũ hơn một ngày (S29). Đẩy lần lượt, mới nhất trước; mỗi bản một job `backup.push` chạy qua engine với một lớp bọc `System` có `Lock` không làm gì (khoá lượt đẩy đã giữ). Sau mỗi bản đạt: dọn kho của domain đó. **Cầu dao**: bản nào hỏng vì lỗi của đích thì dừng đẩy, ghi lỗi và nhịp lùi như bước 7.
+9. **Gói panel ở cuối lượt** (S3): khi có khoá sao lưu và (`s3.panel_due = 1`, hoặc lượt này có dòng thành `stored` hay bị dọn khỏi kho, hoặc `s3.panel_error` khác rỗng, hoặc `s3.panel_last` cũ hơn 24 giờ hay chưa có): job `backup.panel` (mục 3.8). Gói làm sau mọi lần đẩy nên bản `tpan.db` trong gói ghi đúng các dòng vừa `stored`. Đạt: ghi `s3.panel_last`, xoá `s3.panel_error`, `s3.panel_due = 0`, dọn gói cũ. Hỏng: ghi `s3.panel_error` (lỗi của đích thì như bước 7).
+10. Trả `SyncResult{Ran, Skipped, Pushed, Failed []string, Panel string, TargetError string, Reports []engine.Report}`.
+
+**Ai gọi lượt đẩy, và vì sao không giữ khoá job của máy.** Tải vài GB qua mạng chậm có thể mất hàng giờ; nếu job đẩy giữ khoá toàn cục thì trong lúc đó mọi thao tác khác bị từ chối và health bỏ mọi vòng kiểm. Đẩy không đổi gì trên máy, nên:
+
+- CLI `tpan backup create <domain>` và `--all` (cả lịch hằng đêm): sau khi phần cục bộ xong, `Sync{Wait: true, PanelDue: --all}`. Lệnh thoát 0 khi bản cục bộ xong, kể cả khi đẩy lỗi; nó in rõ "đã sao lưu trên máy, CHƯA lên kho: <lý do>; sẽ đẩy bù ở lượt sau, hoặc: sudo tpan backup push".
+- CLI `tpan backup push [<id>]`: `Sync{Wait: true, Retry: true, Only: [id]}`. Thoát 1 khi còn bản đẩy lỗi hoặc lượt bị bỏ.
+- **Bộ đẩy nền** trong `tpan serve` (`server/pusher.go`): 2 phút một lần `Sync{}`. Không có việc thì lượt chỉ là vài truy vấn SQLite (bước 6), không gọi mạng. Bộ đẩy giữ thêm một hàng chờ trong bộ nhớ cho yêu cầu đẩy hoặc tải một bản từ API (mục 3.11); hàng chờ mất khi `tpan serve` khởi động lại, câu trả lời của API nói rõ điều này. Bộ đẩy nền tắt ở chế độ `--demo`.
+- Phép kiểm "job treo" của M4 bỏ qua các loại `backup.push`, `backup.pull`, `backup.panel` (được phép chạy lâu).
+
+Bất biến B1 đứng vững vì job sao lưu cục bộ và job đẩy là hai job khác nhau; không bước nào của Plan `backup.create` chạm tới mạng.
 
 ### 3.6 Tải về và khôi phục từ kho
 
 **Bước `steps.S3Pull`** `{Store, Key, Dest, Dir, Size, SHA256}`:
 
-1. `Dest` phải nằm ngay dưới `Dir`, `Dir` phải là `site.BackupDir` của domain hoặc `site.TPANDBBackupDir`; `SHA256` đúng dạng; `Size > 0`.
-2. `Dest` đã có: lỗi (không ghi đè). `Dest + ".part"` còn sót từ lần trước: xoá (file của chính bước này).
-3. Luật chặn đầy đĩa của M9 với `need = Size`.
-4. Tạo `Dir` (0700 root), `CreateFile(Dest + ".part", 0600, root)`, `Get` vào đó.
-5. Số byte phải bằng `Size` và sha256 phải bằng `SHA256`. Khác: xoá `.part`, lỗi "bản trên kho không khớp sha256 ghi lúc tạo: tải về `<a>`, mong `<b>`".
-6. `Rename` sang `Dest`.
+1. `Dir` phải là `site.BackupDir` của domain, `Dest` nằm ngay dưới `Dir`; `SHA256` đúng dạng; `Size > 0`.
+2. `Check` **theo trạng thái** (S8): `Dest` là file thường, cỡ bằng `Size`, `sha256sum` bằng `SHA256` thì đúng (bước được bỏ qua). `Dest` không có, hoặc có mà sai: chưa đúng.
+3. `Apply`: luật chặn đầy đĩa của M9 với `need = Size`; tạo `Dir` (0700 root); xoá `Dest + ".part"` còn sót; `Dest` có mà sai thì xoá (thư mục chỉ root ghi, file do TPAN đặt tên); `CreateFile(Dest + ".part", 0600, root)`, `Get` vào đó; số byte phải bằng `Size` và sha256 bằng `SHA256`, khác thì xoá `.part` và lỗi "bản trên kho không khớp sha256 ghi lúc tạo: tải về `<a>`, mong `<b>`"; `Rename` sang `Dest`.
+4. `Undo`: xoá `Dest` khi chính `Apply` đã tạo nó.
 
-`Check`: đã `Apply` và `Dest` còn. `Undo`: xoá `Dest`.
+**`S3Pull` chỉ chạy dưới khoá lượt đẩy** (S8, S9). Vì vậy hai lần tải cùng một bản không chạy song song, và dọn trên kho (cũng chỉ chạy trong lượt đẩy) không chen vào giữa lúc tải.
 
-**Khôi phục** giữ nguyên lệnh và route của M9 (`tpan backup restore <domain> [--id]`, `POST /api/v1/backups/{id}/restore`, luật `owner:backup`). `PrepareRestore` đổi như sau: dòng nguồn có `local = 1` thì y như M9. Dòng có `local = 0`: đòi `remote = 'stored'` và `remote_target` bằng mã của đích đang đặt, không thì từ chối `backup_not_on_machine`; Plan có thêm `S3Pull` làm **bước đầu tiên**, trước cả bước tự backup hiện trạng. Job thành công thì `SetBackupLocal(id, true)`. Không chỉ định id thì vẫn lấy bản đầy đủ mới nhất, dù nó nằm ở đâu.
+**Plan `backup.pull`** (target: domain; chủ `admin`): một bước `S3Pull`; `after`: `SetBackupLocal`. Chạy dưới khoá lượt đẩy (lấy như `Sync{Wait:true}`), không giữ khoá job của máy (B10). `after` chạy trước khi nhả khoá lượt đẩy.
 
-Bất biến 4 đứng vững bằng thứ tự bước: `S3Pull` lỗi (kho hỏng, sha256 sai) thì engine dừng khi chưa bước nào khác chạy; sau đó `BackupExtract` của M9 còn kiểm sha256 lần nữa trước khi giải nén, và chỉ giải nén vào thư mục riêng của root rồi mới tráo.
+**Bản cần tải về**: dòng `remote='stored'`, `remote_target` = mã của đích đang đặt, và (`local=0`, hoặc file ở cột `path` không có hay không phải file thường) (S28).
 
-**Plan `backup.pull`** (chỉ admin): một bước `S3Pull`, `after` ghi `local = 1`. Chạy dưới khoá của lượt đẩy, không giữ khoá job của máy.
+**Khôi phục** giữ nguyên lệnh và route của M9. `PrepareRestore` đổi như sau:
 
-**Liệt kê trên kho** (`Remote.ListRemote`, chỉ admin): `List("")`, ghép với bảng `backups` theo `remote_key`; mỗi object: key, cỡ, lúc sửa, và `known` (id và domain của dòng) hoặc "kho có mà tpan.db không biết". Kèm danh sách dòng `stored` mà object không còn ("tpan.db ghi có mà kho không thấy").
+- Bản nguồn là bản cần tải về: từ chối `backup_not_on_machine` "bản này đang ở kho; tải về trước: sudo tpan backup pull <id>, rồi khôi phục".
+- Bản nguồn có `local=0` mà không ở đích đang đặt: từ chối `backup_not_on_machine` "bản này nằm ở một đích khác (…); đặt lại đích đó để tải về".
+- Còn lại: y như M9.
+- Không chỉ định id: bản đầy đủ mới nhất **có lý do `manual` hoặc `schedule`** (S21); không có thì bản đầy đủ mới nhất bất kỳ (như M9). Bản nào cũng có thể là bản cần tải về.
+
+**CLI `tpan backup restore`** gặp `backup_not_on_machine` của bản cần tải về thì tự chạy Plan `backup.pull` (in tiến độ) rồi dựng lại Plan khôi phục; người gõ lệnh thấy hai job. **API** `POST /api/v1/backups/{id}/restore` trả 409 `backup_not_on_machine` (không tự nối hai job): admin gọi `POST /api/v1/backups/{id}/pull` rồi khôi phục. User thường cần nhờ admin tải về; giao diện của mốc sau làm việc này mượt hơn.
+
+Bất biến B4 đứng vững vì tải về là một job riêng xong trước khi job khôi phục bắt đầu; job khôi phục của M9 còn kiểm sha256 lần nữa (`BackupExtract`) trước khi giải nén, và chỉ giải nén vào thư mục riêng của root rồi mới tráo.
+
+**Liệt kê trên kho** (`Remote.ListRemote`, chỉ admin): `List("")`, ghép với bảng `backups` theo `remote_key`; mỗi object: key, cỡ, lúc sửa, và `known` (id và domain) hoặc "kho có mà tpan.db không biết". Kèm danh sách dòng `stored` ở đích này mà object không còn, và số dòng `stored` ở đích khác.
 
 ### 3.7 Giữ bản
 
-- **Trên máy** (sửa `Backups.prune` của M9): chỉ đếm dòng `local = 1`. Bản bị dọn: xoá file; dòng có `remote = 'stored'` thì giữ dòng và đặt `local = 0`, không thì xoá dòng như M9. `fullCount` (hạn mức gói của M13) cũng chỉ đếm `local = 1`.
-- **Trên kho** (`Remote.pruneRemote(domain)`, chạy sau mỗi lần đẩy thành công của domain đó): trong các dòng `kind = 'full'`, `remote = 'stored'`, `remote_target` = đích đang đặt, lý do khác `before-purge`, xếp mới nhất trước, bỏ qua `s3.keep` dòng đầu; mỗi dòng còn lại: `Delete(key)`, rồi dòng còn `local = 1` thì xoá trạng thái kho (`remote = ''`, `remote_key = ''`), không thì xoá dòng. Xoá object trước, sửa DB sau: hỏng giữa chừng thì lần sau làm lại (xoá một object đã mất là thành công).
+- **Trên máy** (sửa `Backups.prune` của M9): chỉ đếm dòng `local=1`. Bản bị dọn: xoá file, rồi `ForgetBackupLocal` (dòng `stored` thì thành `local=0`, không thì xoá dòng). `fullCount` (hạn mức gói của M13) cũng chỉ đếm `local=1`. `prune` xoá thêm mọi dòng `local=0` mà `remote<>'stored'` nếu có (không bao giờ nên có; dọn cho chắc).
+- **Trên kho** (`Remote.pruneRemote(domain)`, chạy trong lượt đẩy sau mỗi lần đẩy đạt của domain đó): mỗi dòng `kind='full'`, `remote='stored'`, `remote_target` = đích đang đặt mà `remoteSurvives` sai: `Delete(key)` rồi `ForgetBackupRemote`. Xoá object trước, sửa DB sau: hỏng giữa chừng thì lần sau làm lại (xoá một object đã mất là thành công).
 - Bản `before-purge` không bao giờ bị dọn, ở cả hai nơi (như M9).
-- Gói panel: trên máy giữ 3 gói mới nhất (cùng thư mục và cùng luật với bản sao `tpan.db` của M9); trên kho giữ `s3.keep` gói mới nhất (sắp theo tên, tên mang giờ UTC).
+- Gói panel: trên máy giữ 3 gói mới nhất (cùng thư mục với bản sao `tpan.db` của M9, khác đuôi tên); trên kho giữ `s3.keep` gói mới nhất (sắp theo tên, tên mang giờ UTC).
 
 ### 3.8 Khoá sao lưu và gói panel
 
-**Khoá sao lưu**: `tpan-key-1-` cộng 52 ký tự base32 chữ thường (RFC 4648, không đệm) của 32 byte ngẫu nhiên từ `crypto/rand`. Luật kiểm: `^tpan-key-1-[a-z2-7]{52}$`. Dùng làm mật khẩu của `age` (người nhận scrypt), hệ số công 15 (khoảng 32 MB RAM và 0,1 giây; khoá đã là 256 bit ngẫu nhiên nên hệ số chỉ để đúng khuôn, không để chống dò). Dấu vân tay để hiển thị: 8 ký tự hex đầu của sha256 chuỗi khoá.
+**Khoá sao lưu**: `tpan-key-1-` cộng 52 ký tự base32 chữ thường (RFC 4648, không đệm) của 32 byte ngẫu nhiên từ `crypto/rand`. Luật kiểm: `^tpan-key-1-[a-z2-7]{52}$`. Dùng làm mật khẩu của `age` (người nhận scrypt), hệ số công 15 khi mã hoá; **khi giải mã luôn gọi `SetMaxWorkFactor(15)`** để file có hệ số công cao hơn bị từ chối trước khi tốn RAM (S26). Dấu vân tay để hiển thị: 8 ký tự hex đầu của sha256 chuỗi khoá.
 
-- Sinh ở `backup.target.set` lần đầu, hoặc `tpan backup key new` (Plan `backup.key.new`: ghi file, hiện khoá một lần). Sinh khoá mới thì các gói panel cũ vẫn mở được bằng khoá cũ nếu người quản trị còn giữ; TPAN không giữ khoá cũ.
-- `tpan backup key show`: dấu vân tay và đường dẫn file; `--reveal` in cả khoá (root đọc được file thì in ra không lộ thêm gì). API chỉ trả dấu vân tay.
+- Chỉ CLI sinh khoá: `tpan backup target set` lần đầu (mục 3.3 bước 5), hoặc `tpan backup key new` (Plan `backup.key.new`: một bước `SecretFile`, in khoá một lần sau khi job thành công). Sinh khoá mới thì các gói panel cũ vẫn mở được bằng khoá cũ nếu người quản trị còn giữ; TPAN không giữ khoá cũ. Sau khi sinh, đặt `s3.panel_due = 1`.
+- `tpan backup key show [--reveal]`: dấu vân tay và đường dẫn file; `--reveal` in cả khoá (root đọc được file thì in ra không lộ thêm gì). **Không route API nào nhận hay trả khoá sao lưu** (S5).
 
 **Mất khoá thì mất gì** (câu này phải có nguyên trong tài liệu giải thích):
 
 | Tình huống | Hậu quả |
 |---|---|
 | Quên khoá, máy còn sống | Không mất gì: khoá nằm ở `/etc/tpan/backup.key`, `sudo tpan backup key show --reveal` in lại |
-| Máy mất, còn khoá | Dựng lại được cả máy bằng `tpan machine restore --from-s3` |
-| Máy mất **và** không còn khoá | Mọi gói panel trên kho không mở được: mất danh sách user, gói, mật khẩu băm, cài đặt, lịch sử và bảng ghi sha256 của các bản sao lưu. **Không mất nội dung site**: các file `.tar.gz` của site trên kho không mã hoá, tải về bằng công cụ S3 bất kỳ, giải nén ra `public/`, `db.sql`, `manifest.json` rồi nhập bằng tay vào site mới tạo cùng domain. Lệnh dựng lại máy không chạy được |
+| Máy mất, còn khoá | Mở được gói panel bằng `age -d` (lệnh có trong apt của Ubuntu), lấy `tpan.db` cũ (danh sách site, user, gói, mật khẩu băm, cài đặt, và sha256 của mọi bản sao lưu), rồi dựng lại theo đường bằng tay ở file giải thích. Lệnh tự động dựng lại máy chưa có ở bản này |
+| Máy mất **và** không còn khoá | Mọi gói panel trên kho không mở được: mất danh sách user, gói, mật khẩu băm, cài đặt, lịch sử và bảng ghi sha256 của các bản sao lưu. **Không mất nội dung site**: các file `.tar.gz` của site trên kho không mã hoá, tải về bằng công cụ S3 bất kỳ, giải nén ra `public/`, `db.sql`, `manifest.json` rồi nhập bằng tay vào site mới tạo cùng domain |
 
 **Gói panel** `tpan-<YYYYMMDD-HHMMSS>.tar.gz.age` (giờ UTC):
 
-- Bên trong (tar, gzip): `manifest.json` `{"format":1,"created","hostname","tpan_version","schema","db_sha256"}` với `schema` là số migration lớn nhất đã áp; `tpan.db` (bản `VACUUM INTO`); `config.toml` nếu `/etc/tpan/config.toml` có.
-- **Không** có: `s3.json`, `backup.key`, khoá TLS của panel, `/etc/letsencrypt`.
-- Bước `steps.PanelBundle` `{Dir: site.TPANDBBackupDir, KeyFile, Snapshot func(ctx, path) error, Manifest…}`: tạo thư mục tạm `.tmp-<giờ>` (0700) trong `Dir`; gọi `Snapshot` (store chép DB) vào đó; ghi `manifest.json`; `tar --create --gzip` ba file ra `panel.tar.gz` trong thư mục tạm; mã hoá theo dòng (`OpenRead` → `agebox.Encrypt` → `CreateFile`) ra `<Dir>/<tên>.part` rồi đổi tên; tính sha256 của file mã; **luôn** xoá thư mục tạm (bản rõ của `tpan.db`) kể cả khi lỗi. Kết quả: `Path`, `Name`, `Size`, `SHA256`. `Undo`: xoá file mã.
-- Plan `backup.panel`: `PanelBundle` rồi `S3Push` với key `panel/<tên>` (đọc đường dẫn và sha256 từ bước trước lúc `Apply`). Job thành công: ghi `s3.panel_last`, xoá `s3.panel_error`, dọn gói cũ trên máy và trên kho. Hỏng: ghi `s3.panel_error`.
-- Chạy trong `Remote.Sync` khi được gọi từ `backup create --all` (tức là cùng nhịp lịch hằng đêm) và từ `tpan backup push --panel`. Điều kiện: đã đặt đích và có khoá sao lưu.
+- Bên trong (tar, gzip): `manifest.json` `{"format":1,"created","hostname","tpan_version","migrations":[…],"db_sha256"}` với `migrations` là **cả danh sách** của bảng `schema_migrations` (S4; dùng "số lớn nhất" thì sai, vì các mốc vào `dev` không theo thứ tự số); `tpan.db` (bản `VACUUM INTO`).
+- **Không** có: `s3.json`, `backup.key`, khoá TLS của panel, `config.toml` (không mã nào của TPAN đọc file này), `/etc/letsencrypt`.
+- Bước `steps.PanelBundle` `{Dir: site.TPANDBBackupDir, Snapshot func(ctx, path string) error, Migrations func(ctx) ([]int, error), Encrypt func(dst io.Writer) (io.WriteCloser, error), Hostname, Version string}`: tạo thư mục tạm `.tmp-<giờ>` (0700) trong `Dir`; gọi `Snapshot` vào đó; ghi `manifest.json`; `tar --create --gzip` hai file ra `panel.tar.gz` trong thư mục tạm; mã hoá theo dòng (`OpenRead` → `Encrypt` → `CreateFile`) ra `<Dir>/<tên>.part` rồi đổi tên; tính sha256 của file mã; **luôn** xoá thư mục tạm (bản rõ của `tpan.db`) kể cả khi lỗi (tiến trình bị giết thì bước 5 của lượt đẩy dọn sau một giờ). Kết quả: `Path`, `Name`, `Size`, `SHA256`. `Undo`: xoá file mã. `Encrypt` do core đưa vào (bọc `agebox` với khoá đọc từ file lúc chạy), nên steps không đọc khoá.
+- Plan `backup.panel` (target: `panel`; chủ `admin`): `PanelBundle` rồi `S3Push` với key `panel/<tên>` (đọc đường dẫn, cỡ, sha256 từ bước trước lúc `Apply`).
+- **Giải mã** (`agebox.Decrypt`): bản rõ chỉ được dùng sau khi đọc tới `io.EOF` không lỗi; người gọi giải mã ra file tạm rồi mới dùng file đó (S26). Bản này chưa có mã nào trong TPAN giải mã gói panel (lệnh dựng lại đã cắt); hàm có để test chứng minh B13, và cho mốc sau.
 
-`tpan.db` trong gói có bảng `sessions` (chỉ sha256 của token) và mật khẩu băm argon2id; không có khoá S3 (mục 3.2), không có mật khẩu DB của site (M9: nằm trong `wp-config.php`).
+`tpan.db` trong gói có bảng `sessions` (chỉ sha256 của token) và mật khẩu băm argon2id; không có khoá S3, không có khoá sao lưu (mục 3.2), không có mật khẩu DB của site (M9: nằm trong `wp-config.php`).
 
 ### 3.9 cloud-init
 
-**Lệnh** `tpan cloud-init render` (chỉ đọc, không cần job):
+**Lệnh** `tpan cloud-init render` (chỉ đọc, không cần job, chỉ chế độ site mới):
 
 ```
 tpan cloud-init render --web nginx|apache [--sites FILE] [--private]
-                       [--base URL] [--sums FILE] [--max-bytes N] [--out FILE]
-tpan cloud-init render --restore [--private] [--base URL] [--sums FILE] [--max-bytes N] [--out FILE]
+                       [--base URL] [--sums FILE] [--max-bytes N] [--out FILE] [--json]
 ```
 
-- `--base`: nơi có `tpan-linux-<arch>`; mặc định `https://github.com/doxuta/tpan/releases/download/<bản đang chạy>`. Nhận `https://` hoặc `http://` (toàn vẹn do sha256 ghim trong user-data bảo đảm, không do kênh truyền), chỉ gồm `[A-Za-z0-9._~:/-]`, không `..`.
-- sha256 của hai file chạy (amd64, arm64) lấy từ `--sums FILE` (một file `SHA256SUMS`); không có cờ thì tải `<base>/SHA256SUMS` bằng `curl` qua `System` lúc sinh. Thiếu một trong hai dòng: từ chối.
-- Chế độ **site mới** (`--web`): `--sites` qua `ParseSitesFile` và `Resolve` của M6 rồi được **ghi lại từ cấu trúc đã kiểm**, không chép nguyên văn file người dùng đưa. Ba thứ bị từ chối ngay lúc sinh (`cloudinit_invalid`), vì chắc chắn hỏng ở lần khởi động đầu: site không có email quản trị (ở dòng hoặc ở `defaults`); `owner` khác `admin` (máy mới chưa có user nào); `ssl: true` (DNS chưa trỏ về máy mới thì chưa xin được chứng chỉ; xin sau bằng `tpan ssl issue`).
-- Chế độ **dựng lại** (`--restore`): đọc đích và khoá sao lưu của máy đang chạy lệnh; thiếu thì từ chối `s3_not_configured`, `backup_key_missing`.
+- `--base`: nơi có `tpan-linux-<arch>`; mặc định `https://github.com/doxuta/tpan/releases/download/<bản đang chạy>`. Nhận `https://` hoặc `http://`, chỉ gồm `[A-Za-z0-9._~:/-]`, không `..`, không `/` cuối.
+- sha256 của hai file chạy (amd64, arm64): từ `--sums FILE` (một file `SHA256SUMS`). Không có `--sums`: **chỉ khi `--base` là `https://`** thì tải `<base>/SHA256SUMS` bằng `curl -fsSL --proto =https --proto-redir =https --max-time 60` qua `System`; `--base` là `http://` mà thiếu `--sums` thì từ chối `cloudinit_invalid` (S12). Thiếu một trong hai dòng: từ chối.
+- Tên bản đi vào dòng chú thích của script: `buildinfo.Version`, phải khớp `^[A-Za-z0-9._+-]{1,64}$`, không thì ghi `unknown`.
+- `--sites` qua `ParseSitesFile` và `Resolve` của M6 rồi được **ghi lại từ cấu trúc đã kiểm**, không chép nguyên văn file người dùng đưa. Từ chối ngay lúc sinh (`cloudinit_invalid`), vì chắc chắn hỏng ở lần khởi động đầu: site không có email quản trị (ở dòng hoặc ở `defaults`); `owner` khác rỗng và khác `admin`; `ssl: true`.
 - `--max-bytes` mặc định 16384 (giới hạn nhỏ nhất đã tra, AWS EC2); lớn hơn thì từ chối `cloudinit_too_large` kèm cỡ thật và bảng giới hạn ở mục 2.5.
-- Kết quả: user-data ra stdout hoặc `--out` (0600). Chế độ site mới còn in ra **stderr, một lần**, mật khẩu quản trị panel của máy mới.
+- Kết quả: user-data ra stdout hoặc `--out` (0600). Mật khẩu quản trị panel của máy mới in ra **stderr, một lần** (`--json`: trường `admin_password` của JSON trên stdout, một lần).
 
-**Quyền quản trị của máy mới.** `render` sinh một mật khẩu ngẫu nhiên 32 ký tự (`store.GeneratePassword`), in ra cho người đang gõ lệnh, và chỉ đặt **bản băm argon2id** vào user-data. Vì sao: bản băm của một bí mật 190 bit không dò ngược được, nên user-data có bị mọi tiến trình đọc mãi mãi cũng không lộ gì; người chủ có mật khẩu trước cả khi máy tồn tại và không phải đọc console. Không nhận mật khẩu do người dùng tự chọn (bản băm của mật khẩu yếu thì dò được). Vì sao không in mã dùng một lần ra console: log console do nhà cung cấp giữ, ai có quyền đọc tài khoản cloud đều xem được, và TPAN chưa có luồng "mã dùng một lần" ở màn đăng nhập. Đường dự phòng không đổi: `sudo tpan admin passwd` qua SSH.
+**Quyền quản trị của máy mới.** `render` sinh một mật khẩu ngẫu nhiên bằng `core.sitePassword` (32 ký tự chữ và số, khoảng 190 bit; S25), in ra cho người đang gõ lệnh, và chỉ đặt **bản băm argon2id** (`store.HashPassword`) vào user-data. Bản băm của một bí mật 190 bit không dò ngược được, nên user-data có bị mọi tiến trình đọc mãi mãi cũng không lộ gì; người chủ có mật khẩu trước cả khi máy tồn tại. Không nhận mật khẩu do người dùng tự chọn (bản băm của mật khẩu yếu thì dò được). Không in mã dùng một lần ra console: log console do nhà cung cấp giữ. Đường dự phòng không đổi: `sudo tpan admin passwd` qua SSH.
 
-**Khuôn user-data** (sinh bằng bộ ghi YAML từ một cấu trúc Go, không ghép chuỗi):
+**Khuôn user-data** (sinh bằng bộ ghi YAML `go.yaml.in/yaml/v3` từ một cấu trúc Go, không ghép chuỗi):
 
 ```yaml
 #cloud-config
@@ -381,9 +436,9 @@ tpan cloud-init render --restore [--private] [--base URL] [--sums FILE] [--max-b
 write_files:
   - path: /etc/tpan/cloud/config.json        # cấu hình của lần khởi động đầu
     permissions: '0600'
-    encoding: b64                            # hoặc gz+b64 khi nhỏ hơn
+    encoding: b64
     content: …
-  - path: /etc/tpan/cloud/sites.yaml         # chỉ ở chế độ site mới có --sites
+  - path: /etc/tpan/cloud/sites.yaml         # chỉ khi có --sites
     permissions: '0600'
     encoding: gz+b64
     content: …
@@ -395,22 +450,27 @@ runcmd:
   - [ /usr/local/sbin/tpan-first-boot ]
 ```
 
-`config.json`: `{"version":1,"mode":"sites"|"restore","web":"nginx"|"apache"|"","private":bool,"admin_hash":"$argon2id$…"|"","sites_file":"/etc/tpan/cloud/sites.yaml"|"","restore":{"endpoint","region","bucket","prefix","path_style","ca_pem","credentials"}}`. `restore.credentials` là hai khoá truy cập của kho, **mã hoá bằng khoá sao lưu** (`agebox`, dạng chữ có đầu `-----BEGIN AGE ENCRYPTED FILE-----`). Trong user-data nó là bản mã; không có khoá sao lưu thì không ai trên máy đọc được.
+`config.json`: `{"version":1,"web":"nginx"|"apache","private":bool,"admin_hash":"$argon2id$…","sites_file":"/etc/tpan/cloud/sites.yaml"|""}`.
 
-**Luật chống chèn nội dung**: giá trị do người dùng đưa chỉ đi vào **nội dung file** (base64), không bao giờ vào `runcmd`, vào đường dẫn hay vào khoá YAML. Bốn giá trị duy nhất đi vào script shell là `base`, tên bản, và hai sha256; chúng đã qua luật ký tự ở trên (không có nháy, khoảng trắng, `$`, dấu chấm phẩy, xuống dòng) và được đặt trong nháy đơn. Script:
+**Luật chống chèn nội dung** (B12): giá trị do người dùng đưa chỉ đi vào **nội dung file** (base64), không bao giờ vào `runcmd`, vào đường dẫn hay vào khoá YAML. Bốn giá trị duy nhất đi vào script shell là `base`, tên bản, và hai sha256; chúng đã qua luật ký tự ở trên (không có nháy, khoảng trắng, `$`, dấu chấm phẩy, xuống dòng) và được đặt trong nháy đơn. Script:
 
 ```sh
 #!/bin/sh
 # Do "tpan cloud-init render" sinh cho tpan <bản>. Tải đúng file chạy đã ghim,
 # kiểm sha256, rồi giao phần còn lại cho chính tpan.
 set -eu
+bin=/usr/local/bin/tpan
+# Lần khởi động đầu đã chạy (có file trạng thái): không bao giờ đụng lại file
+# chạy, vì máy có thể đã self-update lên bản mới hơn bản đã ghim.
+if [ -e /var/lib/tpan/first-boot.json ] && [ -x "$bin" ]; then
+  exec "$bin" cloud-init run
+fi
 arch="$(dpkg --print-architecture)"
 case "$arch" in
   amd64) sum='<64 hex>' ;;
   arm64) sum='<64 hex>' ;;
   *) echo "tpan: kiến trúc $arch không được hỗ trợ" >&2; exit 1 ;;
 esac
-bin=/usr/local/bin/tpan
 if ! { [ -x "$bin" ] && echo "$sum  $bin" | sha256sum -c --status -; }; then
   command -v curl >/dev/null 2>&1 || { apt-get update -q && apt-get install -y -q curl; }
   tmp="$bin.first-boot"
@@ -421,53 +481,25 @@ fi
 exec "$bin" cloud-init run
 ```
 
-**`tpan cloud-init run`** (lệnh ẩn; chỉ root; đọc `/etc/tpan/cloud/config.json`; không có file thì từ chối). Mỗi việc ghi một dòng có giờ vào `/var/log/tpan/first-boot.log` (0600) và cập nhật `/var/lib/tpan/first-boot.json` (`{"mode","started","finished","ok","steps":[{"name","status","job_id","seconds","error"}]}`):
+**`tpan cloud-init run [--force]`** (lệnh ẩn; chỉ root; đọc `/etc/tpan/cloud/config.json`; không có file thì từ chối `cloudinit_no_config`). `/var/lib/tpan/first-boot.json` ghi `"ok": true` mà không có `--force`: in "lần khởi động đầu đã xong lúc <giờ>" và thoát 0 (S13). Mỗi việc ghi một dòng có giờ vào `/var/log/tpan/first-boot.log` (0600) và cập nhật `first-boot.json` (`{"started","finished","ok","steps":[{"name","status","job_id","seconds","error"}]}`; file này được tạo **trước** việc đầu tiên):
 
-1. `setup`: đúng Plan của `tpan setup` (thư mục, chứng chỉ tự ký, unit, dịch vụ), với `--private` nếu có. **Không** sinh và không in mật khẩu quản trị.
-2. `admin`: DB chưa có mật khẩu băm của admin và `admin_hash` khác rỗng thì ghi nó (sau khi kiểm đúng dạng PHC argon2id mà `store` tự sinh). Đã có thì không đụng.
-3. Chế độ site mới: `stack` (`stack install --web`); `sites` (`apply` file site; mật khẩu quản trị WordPress của các site vừa tạo ghi vào `/root/tpan-first-boot-passwords.txt`, 0600, không in ra output); `health` (như `tpan health`; có phép kiểm lỗi thì việc này lỗi).
-4. Chế độ dựng lại: không cài stack (web server và nguồn gói phải đọc từ `tpan.db` cũ, mục 2.6); ghi vào log câu hướng dẫn: `sudo tpan machine restore --from-s3`.
+1. `setup`: đúng Plan của `tpan setup`, với `--private` nếu có. **Không** sinh và không in mật khẩu quản trị.
+2. `admin`: DB chưa có mật khẩu băm của admin thì ghi `admin_hash` (sau khi kiểm đúng dạng PHC argon2id mà `store.VerifyPassword` đọc được). Đã có thì không đụng.
+3. `stack`: `stack install --web`.
+4. `sites` (khi có file): `apply` file site. Ngay khi `apply` trả về (kể cả khi lô lỗi một phần), mật khẩu quản trị WordPress của mọi site có `WPInstalled` được **ghi nối** vào `/root/tpan-first-boot-passwords.txt` (0600), không in ra output (S33).
+5. `health`: như `tpan health`; có phép kiểm lỗi thì việc này lỗi.
 
-Việc nào lỗi thì dừng, mã thoát khác 0; vì script là lệnh duy nhất của `runcmd` nên `cloud-init status` cũng báo lỗi. Chạy lại (`cloud-init single --name scripts_user --frequency always`, hoặc gõ lại `tpan cloud-init run`) an toàn: file chạy đã đúng sha256 thì không tải lại, mọi Plan đều bỏ qua bước đã đúng, site đã có thì `apply` bỏ qua.
+Việc nào lỗi thì dừng, mã thoát khác 0; vì script là lệnh duy nhất của `runcmd` nên `cloud-init status` cũng báo lỗi. Chạy lại bằng `tpan cloud-init run --force` an toàn: mọi Plan bỏ qua bước đã đúng, site đã có thì `apply` bỏ qua.
 
 `tpan cloud-init status` in `first-boot.json` cho người đọc.
 
 `scripts/vm.sh` có thêm: `cloud-init <file> <tên>` (tạo máy ảo phụ), `on <tên> <lệnh con>`, `delete <tên>`, `start`, `push`, `pull`. Ba lệnh đầu chỉ nhận đúng tên `<máy ảo chính>-ci`.
 
-### 3.10 Dựng lại máy
+### 3.10 Dựng lại cả máy: cắt ở bản này
 
-`tpan machine restore --from-s3` (chỉ CLI, chỉ root; không có API vì lệnh thay chính `tpan.db` mà panel đang mở, cùng lý do với `self-update`).
+Những gì bản này để lại cho việc dựng lại: gói panel trên kho (mã hoá, mở được bằng lệnh `age`), các bản sao lưu site trên kho (sha256 nằm trong `tpan.db` của gói), và đường làm bằng tay đã chạy thật (bản thử 09). File giải thích hướng dẫn đúng đường đó.
 
-**Đầu vào.** Đích: từ `/etc/tpan/cloud/config.json` (máy tạo bằng user-data chế độ dựng lại), hoặc từ cờ `--endpoint --bucket [--region] [--prefix] [--vhost] [--ca-file]`, hoặc từ đích đã đặt trên máy. Khoá sao lưu: hỏi trên terminal không hiện chữ, hoặc `--key-stdin`. Hai khoá truy cập: giải mã từ `restore.credentials` bằng khoá sao lưu; không có thì `--keys-stdin` (hai dòng) hoặc hỏi. `--bundle <tên>` chọn gói panel cụ thể (mặc định mới nhất). `--yes`, `--dry-run`, `--json` như mọi lệnh.
-
-**Pha 1, chỉ đọc máy** (ghi trong `/var/lib/tpan/restore/_machine`, root 0700):
-
-1. `List("panel/")`, chọn gói; không có thì `machine_bundle_not_found`.
-2. Tải về (`CreateFile`, theo dòng), giải mã theo dòng bằng khoá sao lưu. Sai khoá: `backup_key_wrong`. Bản mã bị sửa: lỗi của lớp xác thực, dừng.
-3. `tar --list --verbose` trên bản rõ: chỉ nhận đúng ba tên `manifest.json`, `tpan.db`, `config.toml`, đều là file thường; giải nén với `--no-same-owner --no-same-permissions`; sha256 của `tpan.db` phải bằng `manifest.db_sha256`; `manifest.format` phải là 1; `manifest.schema` lớn hơn số migration bản TPAN này biết thì từ chối `machine_bundle_newer` ("cài tpan bản X trở lên").
-4. **Máy phải trắng**: `tpan.db` hiện tại không có site nào, không có DB rời nào, không có user nào ngoài `admin`, và `/var/www` không có thư mục con. Không thì từ chối `machine_not_empty`. Đây là chốt chặn việc gõ nhầm lệnh trên máy đang chạy.
-5. In bản xem trước: gói nào, tạo lúc nào ("mọi thay đổi sau giờ đó không có trong gói"), bao nhiêu site sẽ dựng, bao nhiêu thứ không dựng được (bên dưới). Hỏi xác nhận.
-
-**Pha 2, nhận `tpan.db` cũ**: `systemctl stop tpan`; đổi tên `tpan.db` hiện tại thành `tpan.db.before-machine-restore` (xoá `-wal`, `-shm`); đặt `tpan.db` từ gói (0600 root); mở store (migration tự chạy nếu gói từ bản cũ hơn); `List("sites/")` để biết object nào đang thật sự có trên kho; rồi trong một transaction: xoá mọi dòng `sessions`; với bảng `backups`: dòng `kind = 'full'` có `remote = 'stored'` mà `remote_key` có trên kho với đúng cỡ thì đặt `local = 0` và ghi `remote_target` = mã của đích đang dùng (nối lại theo **object thật**, không theo mã đích cũ: gõ endpoint bằng một tên khác của cùng kho không làm mất chỉ mục); mọi dòng khác bị xoá (file của chúng đã mất cùng máy cũ) và được đếm vào báo cáo; xoá mọi dòng `databases` (DB rời không có bản sao lưu) sau khi ghi tên chúng vào báo cáo. Ghi file trạng thái `/var/lib/tpan/machine-restore.json` (`{"bundle","started","phase","sites":{domain:{"status","flags","job_ids","error"}}}`) trước mỗi việc, để chạy lại thì đi tiếp.
-
-**Pha 3, dựng lại** (mọi việc là Plan sẵn có, job ghi vào `tpan.db` vừa nhận):
-
-1. Ghi `/etc/tpan/backup.key` bằng khoá vừa nhập (bước `SecretFile`), **rồi** Plan `backup.target.set` với đúng đích và hai khoá vừa dùng. Thứ tự này để Plan đặt đích thấy đã có khoá và không sinh khoá mới; từ đây máy mới tự sao lưu tiếp vào cùng chỗ, cùng khoá.
-2. `config.toml` từ gói về `/etc/tpan/config.toml` nếu có.
-3. Stack: `PrepareInstall` với web server ghi trong settings của `tpan.db` cũ (nguồn gói cũng từ đó).
-4. Bản PHP: mỗi bản khác bản mặc định mà một site active đang dùng, `PHP.PrepareInstall`.
-5. Từng site `active`, theo thứ tự domain. Site không có bản đầy đủ nào `stored`: ghi "không có bản sao lưu trên kho", xoá dòng `sites`, sang site sau. Còn lại:
-   a. Ghi các cờ gốc vào file trạng thái: `suspended`, `db_suspended`, `ssl`. Lưu dòng site với ba cờ đó xoá (Plan tạo site từ chối site đang tạm khoá; vhost 443 cần chứng chỉ chưa có).
-   b. `Sites.PrepareAdd` với email `admin@<domain>` (WordPress cài mới ở bước này chỉ là giàn giáo: DB của nó bị thay ngay ở bước c).
-   c. `Backups.PrepareRebuild(domain, id bản đầy đủ mới nhất)`: như khôi phục từ kho, khác ba chỗ: không tự backup hiện trạng (hiện trạng là một WordPress trống); `BackupExtract` **giữ `wp-config.php` của bản sao lưu** (mọi tuỳ chỉnh của chủ site còn nguyên) thay vì bản của site vừa tạo; sau khi nhập DB thêm bước `DBPassword` (đặt mật khẩu mới cho user DB và ghi vào `wp-config.php` đó, vì mật khẩu cũ trong file không còn khớp user DB mới), và khi site vốn có SSL thêm `WPSiteURL` về `http://<domain>`. Kiểm chứng: bộ phép kiểm của site như M9.
-   d. Cờ gốc có tạm khoá: `Sites.PrepareSuspend`, rồi ghi lại đúng nguồn khoá gốc (`self` hay `user`); DB vốn bị khoá: Plan khoá DB của site. Cờ `ssl` không ghi lại (site đang chạy http).
-   e. Một site lỗi không chặn site sau; lỗi và id job vào file trạng thái.
-6. Lịch backup: `backup.at` trong settings khác rỗng thì `PrepareSettings` để ghi lại file cron.
-7. `systemctl start tpan`; chạy health đầy đủ; in báo cáo.
-
-**Báo cáo cuối** (cũng là `--json`): site đã dựng; site lỗi kèm job; và danh sách **không dựng lại được**: site trong thùng rác (dòng giữ nguyên, xoá hẳn bằng `tpan trash purge`), DB rời (đã xoá dòng), bản sao lưu chỉ có trên máy cũ; và **việc phải tự làm**: trỏ DNS, `sudo tpan ssl issue <domain>` cho từng site vốn có SSL, bật lại ufw và fail2ban nếu máy cũ có bật.
-
-Chạy lại sau khi hỏng giữa chừng: có file trạng thái và `tpan.db` đã nhận thì bỏ pha 1 và 2 (vẫn hỏi khoá để kiểm với gói đã ghi), làm tiếp các việc chưa `done`. Mỗi Plan bên trong vốn chạy lại được.
+Trước khi làm lệnh tự động ở một mốc sau, phải giải quyết các điểm bản soát đã tìm (mục 9): nối dòng `backups` theo object thật cho mọi dòng `full` và không xoá dòng `sites` khi kho còn object (S3 ý 2, 3); thử mở bản `tpan.db` của gói trên một bản sao trước khi đụng DB thật (S4); không đổi mật khẩu user DB mà ghi mật khẩu của giàn giáo vào `wp-config.php` của bản sao lưu, hoặc giữ đường M9 (S14); site tạm khoá không bao giờ mở công khai trong lúc dựng (S15); dọn `managed_files`, `check_results`, sự cố và job `running` của máy cũ (S16); chặn hai máy cùng ghi một tiền tố bằng `owner.json` (S17); file trạng thái ghi từng mốc đã xong và vòng đời rõ (S20); chọn bản `manual`, `schedule` (S21); `--prefix` bắt buộc và điều kiện "máy trắng" nói thẳng (S32).
 
 ### 3.11 API
 
@@ -475,21 +507,25 @@ Mọi route mới khai luật trong `internal/server/routes.go`; đều là `adm
 
 | Route | Việc | Ghi chú |
 |---|---|---|
-| `GET /api/v1/backups/target` | `TargetView` (mục 3.3) | không có khoá nào, kể cả dạng che, ngoài `access_key_tail` |
-| `POST /api/v1/backups/target[?dry_run=1]` | Plan `backup.target.set`; thân `TargetRequest{endpoint, region, bucket, prefix, path_style, keep, ca_pem, access_key, secret_key}` | `access_key`, `secret_key` rỗng nghĩa là giữ hai khoá đang lưu (đổi `keep` không phải gõ lại khoá). Khoá sao lưu mới sinh trả qua bí mật một lần của job |
+| `GET /api/v1/backups/target` | `TargetView` (mục 3.3) | không có khoá nào, kể cả dạng che, ngoài `access_key_hint` |
+| `POST /api/v1/backups/target[?dry_run=1]` | Plan `backup.target.set`; thân `TargetRequest{endpoint, region, bucket, prefix, path_style, keep, ca_pem, access_key, secret_key}` (đều là chuỗi, trừ `path_style`, `keep`) | đọc thân bằng `apiReadJSONMax` 128 KiB; handler bọc `secret_key` vào `system.Secret` ngay sau khi đọc (S30). `access_key`, `secret_key` rỗng nghĩa là giữ hai khoá đang lưu. **Không sinh khoá sao lưu** |
 | `DELETE /api/v1/backups/target[?dry_run=1]` | Plan `backup.target.rm` | |
 | `POST /api/v1/backups/target/test` | Plan `backup.target.test` | |
-| `POST /api/v1/backups/key[?dry_run=1]` | Plan `backup.key.new` | khoá trả qua bí mật một lần của job |
-| `POST /api/v1/backups/{id}/push[?dry_run=1]` | Plan `backup.push` cho một bản | `dry_run=1` trả bản xem trước. Chạy thật: kiểm điều kiện (đã đặt đích, bản còn trên máy, là bản đầy đủ), đặt `remote_tries = 0`, đưa vào hàng chờ của bộ đẩy nền, trả 202 `{"queued":true}`. Job hiện ở Lịch sử khi nó chạy; không giữ chỗ chạy job của API |
-| `POST /api/v1/backups/{id}/pull[?dry_run=1]` | Plan `backup.pull` | như trên; bản đã có trên máy: 409 `backup_already_local` |
+| `POST /api/v1/backups/{id}/push[?dry_run=1]` | đẩy một bản | `dry_run=1`: bản xem trước. Chạy thật: kiểm (đã đặt đích, bản còn trên máy, là bản đầy đủ), `ResetBackupTries`, đưa vào hàng chờ của bộ đẩy nền, trả 202 `{"queued":true,"note":{…}}` với `note` nói "chạy ở lượt đẩy kế tiếp; mất nếu panel khởi động lại trước đó; xem kết quả ở Lịch sử" |
+| `POST /api/v1/backups/{id}/pull[?dry_run=1]` | tải một bản về máy | như trên; bản không cần tải về: 409 `backup_already_local` |
 | `GET /api/v1/backups/remote` | `ListRemote` (mục 3.6) | |
-| `POST /api/v1/cloud-init/render` | thân `CloudInitRequest{mode, web, private, base, sha256_amd64, sha256_arm64, max_bytes, sites}`; trả `{user_data, bytes, admin_password}` | không đổi gì trên máy; `admin_password` chỉ có ở chế độ site mới, đúng một lần trong câu trả lời này |
+| `POST /api/v1/cloud-init/render` | thân `CloudInitRequest{web, private, base, sha256_amd64, sha256_arm64, max_bytes, sites}`; trả `{user_data, bytes, admin_password}` | đọc thân 1,5 MiB; **`sha256_amd64`, `sha256_arm64` bắt buộc; server không tải gì từ `base`** (S12); không đổi gì trên máy; `admin_password` đúng một lần trong câu trả lời này |
 
-Route đã có đổi nội dung: `GET /api/v1/backups` (luật `any`, lọc theo chủ như M13): mỗi dòng thêm `local`, `remote`, `remote_at`; `remote_key` và `remote_error` chỉ có khi người gọi là admin. `POST /api/v1/backups/{id}/restore` (luật `owner:backup`): tự tải về khi bản chỉ còn trên kho.
+Không có `POST /api/v1/backups/key` (S5).
 
-Nhật ký (`audit`) của các route trên ghi `target` là `endpoint bucket prefix` hoặc id bản sao lưu; không bao giờ ghi thân request. Thân có khoá chỉ được đọc vào `system.Secret`.
+Route đã có đổi nội dung (`internal/server/api_m9.go`):
 
-Mã HTTP: `s3_endpoint_invalid`, `s3_region_invalid`, `s3_bucket_invalid`, `s3_prefix_invalid`, `s3_keys_invalid`, `s3_keep_invalid`, `s3_ca_invalid`, `cloudinit_invalid`, `cloudinit_too_large`, `backup_key_invalid` là 400; còn lại 409 như mọi lời từ chối.
+- `GET /api/v1/backups` (luật `any`, lọc theo chủ như M13): mỗi dòng thêm `local`, `remote`, `remote_at`; `remote_key` và `remote_error` bị xoá với user thường.
+- `POST /api/v1/backups/{id}/restore` (luật `owner:backup`): bản cần tải về hoặc ở đích khác thì 409 `backup_not_on_machine` (mục 3.6).
+
+Nhật ký (`audit`) của các route trên ghi `target` là `endpoint bucket prefix` **đã qua kiểm**, hoặc `?` khi chưa qua kiểm (S30), hoặc id bản sao lưu; không bao giờ ghi thân request.
+
+Mã HTTP: `s3_endpoint_invalid`, `s3_region_invalid`, `s3_bucket_invalid`, `s3_prefix_invalid`, `s3_keys_invalid`, `s3_keep_invalid`, `s3_ca_invalid`, `cloudinit_invalid`, `cloudinit_too_large` là 400; còn lại 409 như mọi lời từ chối.
 
 ### 3.12 CLI
 
@@ -497,18 +533,19 @@ Mã HTTP: `s3_endpoint_invalid`, `s3_region_invalid`, `s3_bucket_invalid`, `s3_p
 tpan backup target set --endpoint URL --bucket B [--region R] [--prefix P] [--vhost] [--ca-file F] [--keep N] [--keys-stdin]
 tpan backup target show | test | rm
 tpan backup key new | show [--reveal]
-tpan backup push [<id>] [--panel]
+tpan backup push [<id>]
 tpan backup pull <id>
 tpan backup list [<domain>] [--remote]
-tpan cloud-init render …        (mục 3.9)
+tpan backup create …          (như M9, cuối lệnh có một lượt đẩy)
+tpan backup restore …         (như M9, tự tải về khi cần)
+tpan cloud-init render …      (mục 3.9)
 tpan cloud-init status
-tpan cloud-init run             (ẩn)
-tpan machine restore --from-s3 …  (mục 3.10)
+tpan cloud-init run [--force] (ẩn)
 ```
 
-Mọi lệnh có thay đổi nhận `--dry-run`, `--yes`, `--json`. **Không có cờ nào nhận khoá trên dòng lệnh** (dòng lệnh lọt vào `ps` và lịch sử shell): hai khoá truy cập đọc từ stdin khi có `--keys-stdin` (dòng 1 access key, dòng 2 secret key), không thì hỏi trên terminal, secret key và khoá sao lưu hỏi không hiện chữ. `target set` chạy lại không có `--keys-stdin` trên máy đã có khoá và không có terminal thì giữ hai khoá đang lưu.
+Mọi lệnh có thay đổi nhận `--dry-run`, `--yes`, `--json`. **Không có cờ nào nhận khoá trên dòng lệnh**: hai khoá truy cập đọc từ stdin khi có `--keys-stdin` (dòng 1 access key, dòng 2 secret key), không thì hỏi trên terminal (secret key hỏi không hiện chữ). `target set` chạy lại không có `--keys-stdin` trên máy đã có khoá và không có terminal thì giữ hai khoá đang lưu.
 
-`tpan backup list` có thêm cột "Ở ĐÂU": `máy`, `kho`, `máy+kho`, `kho (đích khác)`, `đẩy lỗi`.
+`tpan backup list` có thêm cột "Ở ĐÂU" (`máy`, `kho`, `máy+kho`, `kho (đích khác)`, `đẩy lỗi`) **chỉ khi đã đặt đích hoặc có dòng `remote<>''` hay `local=0`** (B11); `--json` in các trường mới ở mọi trường hợp (thêm trường không làm hỏng người đọc JSON cũ). `--remote` in `ListRemote`.
 
 ### 3.13 Health
 
@@ -516,33 +553,56 @@ Hai phép kiểm, chặng `tpan`, **chỉ tồn tại khi đã đặt đích** (
 
 | ID | Kiểm gì | Trạng thái |
 |---|---|---|
-| `tpan.s3:target` (nặng: chỉ chạy ở vòng đầy đủ mỗi giờ) | Đọc được hai khoá, dựng được client, `Check` | Đạt; `s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`, `s3_error`: **Lỗi** kèm mã HTTP, tên lỗi, cách sửa tay (`tpan backup target test`, `tpan backup target set …`) |
-| `tpan.s3:fresh` (nhẹ, chỉ đọc `tpan.db`) | (a) có dòng `remote = 'failed'`; (b) lịch backup đang bật mà có site active không có bản đầy đủ nào `stored` trên đích này trong 48 giờ; (c) có khoá sao lưu mà `s3.panel_last` cũ hơn 48 giờ hoặc `s3.panel_error` khác rỗng | Đạt; (a), (b), (c): **Cảnh báo**, tóm tắt nêu số bản lỗi, tối đa 5 domain, lỗi gần nhất; cách sửa: `sudo tpan backup push` |
+| `tpan.s3:target` (nặng: chỉ chạy ở vòng đầy đủ mỗi giờ và ở `tpan health`) | Đọc được hai khoá, dựng được client, `Check`; rồi với mỗi site active, `Head` object của bản `stored` mới nhất ở đích này: mất hoặc sai cỡ thì báo (S27) | Đạt; lỗi của đích: **Lỗi** kèm mã HTTP, tên lỗi, cách sửa tay (`tpan backup target test`, `tpan backup target set …`); object mất: **Lỗi** "kho mất bản <id> của <domain>" kèm `sudo tpan backup push` |
+| `tpan.s3:fresh` (nhẹ, chỉ đọc `tpan.db` và settings) | (a) có dòng `remote='failed'`, hoặc `s3.target_error` khác rỗng; (b) lịch backup đang bật mà có site active tạo từ 24 giờ trước không có bản đầy đủ nào lý do `manual` hay `schedule`, `created_at` trong 48 giờ, `stored` ở đích này (S21, S27); (c) lịch backup đang bật và có khoá sao lưu mà `s3.panel_last` cũ hơn 48 giờ hay chưa có, hoặc `s3.panel_error` khác rỗng; (d) chưa có khoá sao lưu | Đạt; (a) đến (d): **Cảnh báo**; tóm tắt nêu số bản lỗi, tối đa 5 domain, lỗi gần nhất; cách sửa: `sudo tpan backup push`, hoặc với (d) `sudo tpan backup key new` |
 
-48 giờ: một ngày lịch cộng một ngày trễ, cùng ngưỡng với `tpan.backup:db` của M9.
+48 giờ: một ngày lịch cộng một ngày trễ, cùng ngưỡng với `tpan.backup:db` của M9. `checks` không import `core` hay `s3`: hai phép kiểm nhận hàm do `health` đưa vào (`probe func(ctx) ([]checks.Evidence, error)`, `state func(ctx) (checks.S3State, error)`).
 
 ### 3.14 Mã từ chối mới
 
-`s3_not_configured`, `s3_endpoint_invalid`, `s3_region_invalid`, `s3_bucket_invalid`, `s3_prefix_invalid`, `s3_keys_invalid`, `s3_keep_invalid`, `s3_ca_invalid`, `s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`, `s3_error`, `backup_not_on_machine`, `backup_already_local`, `backup_key_missing`, `backup_key_invalid`, `backup_key_wrong`, `cloudinit_invalid`, `cloudinit_too_large`, `cloudinit_no_config`, `machine_bundle_not_found`, `machine_bundle_newer`, `machine_bundle_invalid`, `machine_not_empty`.
+`s3_not_configured`, `s3_endpoint_invalid`, `s3_region_invalid`, `s3_bucket_invalid`, `s3_prefix_invalid`, `s3_keys_invalid`, `s3_keep_invalid`, `s3_ca_invalid`, `s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`, `s3_error`, `backup_not_on_machine`, `backup_already_local`, `backup_key_missing`, `cloudinit_invalid`, `cloudinit_too_large`, `cloudinit_no_config`.
 
 ### 3.15 Máy trạng thái của một bản sao lưu
 
 ```
-                  tạo (M9)
-                     │
-                     ▼
-            ┌─ local=1, remote='' ─┐◄────────── dọn trên kho (còn file trên máy)
-   đẩy lỗi  │                      │ đẩy đạt + đọc lại khớp
-            ▼                      ▼
-   local=1, remote='failed' ──► local=1, remote='stored' ──► local=0, remote='stored'
-            │   (đẩy lại đạt)      ▲        (dọn trên máy)         │
-            │                      └────── tải về / khôi phục ─────┘
-            ▼                                                      │ dọn trên kho
-   dọn trên máy: xoá dòng                                          ▼
-                                                               xoá dòng
+                tạo (M9)
+                   │
+                   ▼
+          ┌── local=1, remote='' ◄──────────── dọn trên kho (còn file trên máy)
+ đẩy lỗi  │          │ đẩy đạt + đọc lại khớp           ▲
+          ▼          ▼                                  │
+ local=1, failed ─► local=1, stored ──── dọn trên máy ──┼──► local=0, stored
+   (đẩy lại đạt)        ▲                               │          │
+                        └──────────── tải về ───────────┼──────────┘
+                                                        │          │ dọn trên kho
+ dọn trên máy (local=1, '' hoặc failed): xoá dòng       │          ▼
+                                                        │       xoá dòng
 ```
 
-Không có trạng thái `local=0` mà `remote` khác `stored`: mọi chỗ đặt `local=0` đều đòi `remote='stored'`, và mọi chỗ xoá trạng thái kho của một dòng `local=0` đều xoá luôn dòng.
+- Mọi mũi tên là một hàm của store chạy trong một transaction có điều kiện (mục 3.2), nên không có trạng thái `local=0, remote<>'stored'`.
+- Từ `local=1, remote=''`, bản chỉ được đẩy lại khi `remoteSurvives` đúng (mục 3.5): bản đã bị dọn khỏi kho theo chính sách không bao giờ quay lại hàng chờ (B14).
+- Đẩy lỗi một bản đang `stored` ở đích khác: giữ nguyên `stored` của đích cũ, chỉ ghi `remote_error`.
+
+### 3.16 Tên bước, loại job, giá trị hiển thị
+
+| Bước | `StepInfo.ID` | Ghi chú |
+|---|---|---|
+| `steps.S3Probe` | `s3.probe:<host>/<bucket>/<prefix>` | |
+| `steps.S3Push` | `s3.push:<id bản>`; gói panel: `s3.push:panel` | đường dẫn của gói chỉ biết lúc `Apply`: `Info` dùng chữ giữ chỗ `tpan-<YYYYMMDD-HHMMSS>.tar.gz.age` như `backupLater` của M9 |
+| `steps.S3Pull` | `s3.pull:<id bản>` | |
+| `steps.SecretFile` | `secret.file:<đường dẫn>` | `Info().Files` luôn rỗng |
+| `steps.SecretAbsent` | `secret.absent:<đường dẫn>` | `Info().Files` luôn rỗng |
+| `steps.PanelBundle` | `panel.bundle` | |
+
+| Job (`Plan.Kind`) | `Plan.Target` | Chủ job |
+|---|---|---|
+| `backup.target.set` | `<endpoint> <bucket> <prefix>` | người gọi |
+| `backup.target.rm`, `backup.target.test` | `s3` | người gọi |
+| `backup.key.new` | `backup.key` | (CLI) |
+| `backup.push`, `backup.pull` | domain | `admin` |
+| `backup.panel` | `panel` | `admin` |
+
+Trường `location` của `list_backups` (MCP) và cột "Ở ĐÂU": `machine` (chỉ trên máy), `remote` (chỉ trên kho, đích này), `both`, `other_target` (`stored` ở đích khác), `push_failed`.
 
 ## 4. Bất biến
 
@@ -550,21 +610,21 @@ Mỗi câu gắn với ít nhất một test có tên. B1 đến B6 là sáu b�
 
 | # | Bất biến | Test |
 |---|---|---|
-| B1 | Sao lưu cục bộ không bao giờ hỏng vì kho hỏng: Plan `backup.create` không có bước nào chạm mạng; kho lỗi kiểu gì thì job sao lưu vẫn `succeeded` và dòng `backups` vẫn có | `core.TestSaoLuuCucBoKhongPhuThuocKho` (kho giả lỗi mọi lời gọi); e2e "tắt máy chủ S3" |
-| B2 | Không dòng nào có `remote='stored'` khi chưa đọc lại object và so khớp sha256 | `steps.TestS3PushDocLaiMoiDanhDau` (kho giả trả dữ liệu khác: bước lỗi, object bị xoá, dòng không `stored`); `store.TestMarkBackupStoredChiQuaMotHam` |
-| B3 | Hai khoá truy cập và khoá sao lưu không xuất hiện ở đầu ra nào | `server.TestKhongLoKhoaS3` (đặt đích với khoá đánh dấu, gọi mọi route GET và mọi route M18 với ba vai, quét mọi thân trả lời, `job_events`, `audit`, `settings`); `tools.TestMCPKhongLoKhoaS3`; `core.TestGoiPanelKhongCoKhoa` (mở gói panel, quét); `s3.TestLoiKhongCoKhoa`; e2e quét `tpan.db`, journal, log job, bằng chứng, gói panel đã giải mã |
-| B4 | Khôi phục không ghi gì vào site trước khi bản tải về qua kiểm toàn vẹn | `core.TestKhoiPhucTuKhoSaiSha256KhongDungSite` (so ảnh chụp hệ thống file giả trước và sau: chỉ thư mục backup đổi); e2e "sửa hỏng object" so checksum file và bản xuất DB |
-| B5 | User thường không đặt, xem, thử, gỡ được đích, không sinh được khoá, không sinh được user-data, không thấy bản sao lưu của user khác | `server.TestPhanQuyenMoiRoute` (tự phủ route mới); `server.TestUserKhongDungDuocS3` |
-| B6 | user-data do TPAN sinh không chứa mật khẩu, khoá hay token dạng rõ | `cloudinit.TestKhongCoBiMatDangRo` (sinh với khoá và mật khẩu đánh dấu, quét cả bản đã giải base64 và gzip); e2e quét file thật |
-| B7 | Không lời gọi nào của client ra ngoài tiền tố của đích | `s3.TestKeyKhongRaNgoaiTienTo` |
+| B1 | Sao lưu cục bộ không bao giờ hỏng vì kho hỏng: Plan `backup.create` không có bước nào chạm mạng; kho lỗi kiểu gì thì job sao lưu vẫn `succeeded` và dòng `backups` vẫn có | `core.TestSaoLuuCucBoKhongPhuThuocKho` (kho giả lỗi mọi lời gọi); e2e phần C |
+| B2 | Không dòng nào có `remote='stored'` khi chưa đọc lại object và so khớp sha256 | `steps.TestS3PushDocLaiMoiDanhDau` (kho giả trả dữ liệu khác: bước lỗi, object bị xoá); `core.TestDayChiDanhDauSauKhiDocLai` |
+| B3 | Hai khoá truy cập và khoá sao lưu không xuất hiện ở đầu ra nào: câu trả lời API (kể cả `?dry_run=1`), log job, sự kiện, bằng chứng, nhật ký, `settings`, `tpan.db`, gói panel, user-data, MCP | `server.TestKhongLoKhoaS3` (đặt đích với khoá đánh dấu, gọi mọi route GET và mọi route M18, cả `?dry_run=1`, ba vai; **giải base64 các trường `old`, `new`** rồi quét; quét `job_events`, `audit`, `settings`); `steps.TestBuocBiMatKhongKhaiFiles`; `tools.TestMCPKhongLoKhoaS3`; `core.TestGoiPanelKhongCoKhoa`; `s3.TestLoiKhongCoKhoa` (máy chủ giả chép lại header `Authorization` vào `<Message>`); e2e phần H |
+| B4 | Khôi phục không ghi gì vào site trước khi bản tải về qua kiểm toàn vẹn | `core.TestKhoiPhucBanTrenKhoPhaiTaiVeTruoc`; `steps.TestS3PullSaiSha256KhongDeLaiFile`; e2e phần E so checksum file và bản xuất DB |
+| B5 | User thường không đặt, xem, thử, gỡ được đích; không đẩy, tải, liệt kê kho; không sinh được user-data; không thấy bản sao lưu của user khác; không thấy chi tiết kho trong job (job đẩy, tải, gói panel thuộc `admin`) | `server.TestPhanQuyenMoiRoute` (tự phủ route mới); `server.TestUserKhongDungDuocS3` (quét cả `GET /jobs`, `GET /jobs/{id}` của user) |
+| B6 | user-data do TPAN sinh không chứa mật khẩu, khoá hay token dạng rõ | `cloudinit.TestKhongCoBiMatDangRo` (sinh với mật khẩu đánh dấu, quét cả bản đã giải base64 và gzip); e2e phần H |
+| B7 | Không lời gọi nào của client ra ngoài tiền tố của đích | `s3.TestKeyKhongRaNgoaiTienTo` (ca `..`, `a/../b`, `./a`, `/a`, rỗng) |
 | B8 | Mọi request ký đúng: vectơ mẫu của AWS, và máy chủ giả tính lại chữ ký từ request nhận được | `s3.TestSigV4VectoAWS`, `s3.TestMayChuGiaKiemChuKy` |
-| B9 | Tải nhiều phần hỏng thì không để lại phần tải dở (khi kho còn trả lời), và lần đẩy sau dọn phần dở của lần trước | `s3.TestPutLoiThiHuy`, `steps.TestS3PushDonTaiDo` |
-| B10 | Lượt đẩy (`Sync`) và job `backup.pull` không giữ khoá job của máy. (Riêng bước tải về nằm trong job khôi phục thì chạy dưới khoá đó, vì khôi phục là job đổi máy.) | `core.TestSyncKhongGiuKhoaToanCuc` |
-| B11 | Máy không đặt đích: kết quả health, danh sách route cũ, output của `backup create|list|restore` không đổi so với trước | `health.TestKhongDichKhongCoPhepKiemS3`; e2e nâng cấp |
+| B9 | Tải nhiều phần hỏng thì không để lại phần tải dở (khi kho còn trả lời); lần đẩy sau dọn phần dở của lần trước; lần tải dở cũ hơn một ngày bị huỷ | `s3.TestPutLoiThiHuy`, `steps.TestS3PushDonTaiDo`, `core.TestSyncHuyTaiDoCu` |
+| B10 | Lượt đẩy và job tải về không giữ khoá job của máy | `core.TestSyncKhongGiuKhoaToanCuc`, `core.TestPullKhongGiuKhoaToanCuc` |
+| B11 | Máy không đặt đích: tập ID phép kiểm health, output chữ của `backup create|list|restore`, và không có job mới nào, đều như trước | `health.TestKhongDichKhongCoPhepKiemS3`, `cmd/tpan.TestBackupListKhongDichKhongCoCot`; e2e phần N |
 | B12 | user-data chỉ có một lệnh `runcmd` cố định; mọi giá trị người dùng nằm trong nội dung file | `cloudinit.TestChenNoiDung` (tiêu đề site, email, base có xuống dòng, nháy, `$(…)`, `- [ rm ]`: hoặc bị từ chối, hoặc đọc lại YAML vẫn đúng một `runcmd` và đúng các đường dẫn file) |
-| B13 | Gói panel không giả được và không sửa được khi không có khoá sao lưu | `agebox.TestSuaMotByteThiLoi`, `agebox.TestSaiKhoaThiLoi` |
-| B14 | Dựng lại máy không chạy trên máy đang có site | `core.TestMayKhongTrangThiTuChoi` |
-| B15 | Site đang tạm khoá trên máy cũ không bao giờ ở trạng thái mở sau khi lệnh dựng lại máy kết thúc thành công cho site đó | `core.TestDungLaiSiteTamKhoa` |
+| B13 | Gói panel không giả được, không sửa được khi không có khoá sao lưu; file có hệ số công cao hơn trần bị từ chối; file bị cắt cụt là lỗi | `agebox.TestSuaMotByteThiLoi`, `agebox.TestSaiKhoaThiLoi`, `agebox.TestHeSoCongCaoBiTuChoi`, `agebox.TestCatCutThiLoi` |
+| B14 | Bản đã bị dọn khỏi kho theo chính sách không bao giờ tự được đẩy lại | `core.TestDonTrenKhoKhongDayLai` |
+| B15 | Script khởi động đầu không bao giờ thay file chạy sau khi lần khởi động đầu đã chạy | `cloudinit.TestScriptKhongThayFileChaySauLanDau` (đọc script); e2e phần L |
 
 ## 5. Mô hình đe doạ
 
@@ -572,92 +632,90 @@ Mỗi câu gắn với ít nhất một test có tên. B1 đến B6 là sáu b�
 |---|---|---|---|
 | Người đọc được bucket (lộ khoá chỉ đọc, bucket để công khai nhầm, nhân viên nhà cung cấp) | Đọc gói panel để lấy mật khẩu băm, token, lịch sử | Gói panel mã hoá bằng khoá sao lưu | B13 |
 | | Đọc bản sao lưu site | **Không chặn** ở bản này (mục 1); tài liệu nói rõ; khuyên bucket riêng tư và mã hoá phía kho | |
-| Người **ghi** được vào bucket | Thay một bản sao lưu site bằng bản có mã độc | sha256 ghi lúc tạo nằm trong `tpan.db` của máy, không lấy từ kho; tải về sai sha256 thì dừng | B4 |
-| | Giả một gói panel để lệnh dựng lại máy nhận một `tpan.db` do họ viết | Mã hoá đối xứng có xác thực: không có khoá sao lưu thì không tạo được gói giải ra được (mục 2.4) | B13 |
-| | Đặt lại một gói panel cũ nhưng thật (lùi về quá khứ), hoặc xoá hết | Không chặn được bằng mật mã; lệnh dựng lại in giờ tạo của gói và hỏi xác nhận; mất hết thì bản trên máy vẫn còn tới khi máy mất | |
+| Người **ghi** được vào bucket | Thay một bản sao lưu site bằng bản có mã độc | sha256 ghi lúc tạo nằm trong `tpan.db` của máy, không lấy từ kho; tải về sai sha256 thì dừng; khôi phục kiểm sha256 lần nữa | B4 |
+| | Giả một gói panel | Mã hoá đối xứng có xác thực: không có khoá sao lưu thì không tạo được gói giải ra được | B13 |
+| | Đặt file `age` có hệ số công rất cao để làm hết RAM lúc giải mã | Trần hệ số công 15 khi giải mã | B13 |
+| | Đặt lại một gói panel cũ nhưng thật, hoặc xoá hết | Không chặn được bằng mật mã; bản trên máy vẫn còn tới khi máy mất; `tpan.s3:target` báo khi bản mới nhất của một site không còn trên kho | |
 | | Đặt object có tên lạ trong tiền tố | `ListRemote` chỉ hiển thị (tên đã bỏ ký tự điều khiển), không tự nhận object lạ làm bản sao lưu | `core.TestListRemoteObjectLa` |
 | Kho độc hại hoặc bị giả (kẻ đứng giữa khi không TLS) | Trả dữ liệu sai, trả chuyển hướng sang host khác để lấy chữ ký | Bắt buộc https trừ loopback; không đi theo chuyển hướng; chữ ký gắn host; mọi bản tải về kiểm sha256 | `s3.TestKhongDiTheoChuyenHuong` |
-| | Trả thân lỗi rất dài hoặc có ký tự điều khiển để làm bẩn log và giao diện | Thân lỗi đọc tối đa 64 KB, câu lỗi cắt 300 ký tự và bỏ ký tự điều khiển | `s3.TestLoiDuocLamSach` |
-| User thường của panel | Đặt đích về máy chủ của họ để nhận bản sao lưu của mọi site; đọc khoá; tự sinh user-data có đích | Mọi route M18 là `admin`; khôi phục vẫn theo `owner:backup` và kiểm chủ của site hiện tại như M13 | B5 |
-| | Dùng khôi phục để tải bản của người khác | `owner:backup` trả 404 cho bản không phải của mình | test phân quyền của M13 |
-| Admin bị chiếm phiên | Trỏ endpoint vào dịch vụ nội bộ để dò mạng qua câu lỗi | Câu lỗi chỉ có mã HTTP, tên lỗi, 300 ký tự đầu; không trả thân; không đi theo chuyển hướng. Admin vốn tương đương root nên đây chỉ là giảm bề mặt | |
-| Tiến trình bất kỳ trên máy mới (PHP của một site bị chiếm) | Đọc user-data qua dịch vụ metadata | user-data chỉ có bản băm của mật khẩu 190 bit và bản mã của khoá truy cập | B6 |
-| Người sửa được nơi đặt file chạy (`base`) | Thay `tpan-linux-<arch>` bằng file khác | sha256 ghim trong user-data, kiểm trước khi cài | e2e "sửa file chạy: lần khởi động đầu dừng" |
-| Người viết `sites.yaml` (dán từ nơi không tin) | Chèn lệnh vào user-data qua tiêu đề, email, domain | Mục 3.9: file được ghi lại từ cấu trúc đã kiểm, đi vào user-data dạng base64, không vào `runcmd` | B12 |
+| | Trả thân lỗi rất dài, có ký tự điều khiển, hoặc chép lại khoá | Thân lỗi đọc tối đa 64 KB, câu lỗi cắt 300 ký tự, bỏ ký tự điều khiển, thay khoá và chữ ký bằng `••••` | `s3.TestLoiDuocLamSach`, `s3.TestLoiKhongCoKhoa` |
+| User thường của panel | Đặt đích về máy chủ của họ để nhận bản sao lưu của mọi site; đọc khoá; sinh user-data | Mọi route M18 là `admin` | B5 |
+| | Dùng khôi phục để tải bản của người khác | `owner:backup` trả 404 cho bản không phải của mình (M13) | test phân quyền của M13 |
+| | Đọc endpoint, bucket, câu lỗi của kho qua Lịch sử | Job đẩy, tải, gói panel thuộc `admin`; tải về không nằm trong job khôi phục của user | B5 |
+| Phiên admin bị chiếm (không có root) | Lấy khoá sao lưu hoặc hai khoá truy cập qua API | Không route nào trả khoá sao lưu hay bản mã của khoá truy cập; sinh khoá chỉ ở CLI | B3 |
+| | Trỏ endpoint vào dịch vụ nội bộ để dò mạng qua câu lỗi | `http` chỉ cho loopback; câu lỗi chỉ có mã HTTP, tên lỗi, 300 ký tự đầu; không đi theo chuyển hướng; `render` không tải gì từ `base` do API đưa. Admin vốn tương đương root nên đây chỉ là giảm bề mặt | |
+| Tiến trình bất kỳ trên máy mới (PHP của một site bị chiếm) | Đọc user-data qua dịch vụ metadata | user-data chỉ có bản băm của mật khẩu 190 bit | B6 |
+| Người sửa được nơi đặt file chạy (`base`) **sau** lúc sinh user-data | Thay `tpan-linux-<arch>` bằng file khác | sha256 ghim trong user-data, kiểm trước khi cài | e2e phần L |
+| Người sửa được nơi đặt file chạy **trước** lúc sinh, hoặc đứng giữa | Đưa một `SHA256SUMS` khớp file của họ | `http://` bắt buộc `--sums` (file người chủ có sẵn); tự tải chỉ qua `https://`; API không tải gì. Nguồn đã bị sửa từ trước thì không chặn được | `core.TestRenderHttpCanSums` |
+| Người viết `sites.yaml` (dán từ nơi không tin) | Chèn lệnh vào user-data qua tiêu đề, email, domain | File được ghi lại từ cấu trúc đã kiểm, đi vào user-data dạng base64, không vào `runcmd` | B12 |
 | Người xem `ps`, lịch sử shell, log | Thấy khoá trên dòng lệnh hay trong log job | Khoá chỉ đi qua stdin, file 0600, `system.Secret`; `engine.Note` có luật cấm bí mật | B3 |
 
-**Panel chạy bằng root đụng vào thứ do site kiểm soát.** M18 không mở đường mới vào cây của site: `S3Push` chỉ đọc file `.tar.gz` trong `/var/lib/tpan/backups` (root 0700, do chính TPAN ghi), mở bằng `O_NOFOLLOW` và đòi file thường; `S3Pull` chỉ tạo file mới (`O_EXCL`, `O_NOFOLLOW`) trong thư mục đó. Thứ do site kiểm soát chỉ được đụng tới qua các bước của M9 (GNU tar không theo symlink, giải nén vào thư mục riêng của root, đặt lại chủ và quyền, kiểm danh sách thành viên trước khi giải nén), không đổi gì. Một điểm mới ở dựng lại máy: `wp-config.php` lấy từ bản sao lưu thay vì từ site; file đó do chủ site viết, nên nó chỉ được đặt vào `public/` với chủ là user của site, quyền 0600, và chỉ được chạm bằng `wp config set` chạy dưới user của site (bước `DBPassword` sẵn có đọc nó bằng `ReadFile` có ba lớp chặn của M9). Tên object trên kho không bao giờ thành đường dẫn trên máy: đường dẫn đích của `S3Pull` lấy từ cột `path` của dòng `backups`, và phải nằm dưới thư mục backup của đúng domain.
-
-**Gói panel khi giải nén** (dựng lại máy): nội dung đã qua xác thực của khoá sao lưu nên tin được ngang với khoá; vẫn kiểm danh sách thành viên (đúng ba tên, file thường) và giải nén không lấy chủ, quyền từ tar.
+**Panel chạy bằng root đụng vào thứ do site kiểm soát.** M18 không mở đường mới vào cây của site: `S3Push` chỉ đọc file `.tar.gz` trong `/var/lib/tpan/backups` (root 0700, do chính TPAN ghi), mở bằng `O_NOFOLLOW` và đòi file thường; `S3Pull` chỉ tạo file mới (`O_EXCL`, `O_NOFOLLOW`) trong thư mục đó. Thứ do site kiểm soát chỉ được đụng tới qua các bước của M9 (GNU tar không theo symlink, giải nén vào thư mục riêng của root, đặt lại chủ và quyền, kiểm danh sách thành viên trước khi giải nén), không đổi gì. Tên object trên kho không bao giờ thành đường dẫn trên máy: đường dẫn đích của `S3Pull` lấy từ cột `path` của dòng `backups` và phải nằm dưới thư mục backup của đúng domain.
 
 ## 6. Nâng cấp và lùi
 
-- **Từ v0.2.0 lên**: migration 1800 chỉ thêm cột có DEFAULT và một chỉ mục; không sửa dòng nào. Không đặt đích thì: không có phép kiểm mới, không có job mới, bộ đẩy nền chỉ chạy một truy vấn rồi ngủ, `backup create|restore` đi đúng đường cũ (dòng nào cũng `local = 1`). Lịch backup cũ (`/etc/cron.d/tpan-backup`) gọi đúng lệnh cũ; lệnh đó giờ có thêm lượt đẩy ở cuối, không làm gì khi chưa đặt đích.
+- **Từ v0.2.0 lên**: migration 1800 chỉ thêm cột có DEFAULT và một chỉ mục; không sửa dòng nào. Không đặt đích thì: không có phép kiểm mới, không có job mới, bộ đẩy nền chỉ chạy vài truy vấn rồi ngủ, `backup create|restore` đi đúng đường cũ (dòng nào cũng `local = 1`), `backup list` không có cột mới. Lịch backup cũ (`/etc/cron.d/tpan-backup`) gọi đúng lệnh cũ; lệnh đó giờ có thêm lượt đẩy ở cuối, không làm gì khi chưa đặt đích.
 - **JSON**: `GET /api/v1/backups` thêm trường, không bỏ trường nào; giao diện v0.2.0 bỏ qua trường lạ.
-- **Lùi về v0.2.0** sau khi đã nâng: như mọi mốc từ M1, bản cũ từ chối mở `tpan.db` có migration nó không biết. Muốn lùi thật: chép lại bản sao `tpan.db` từ trước khi nâng. Nếu đã có bản chỉ còn trên kho (`local = 0`) thì bản cũ dù có mở được DB cũng không biết tải về; vì vậy hướng dẫn nâng cấp ghi: trước khi lùi, `tpan backup pull` các bản cần giữ.
-- **Gói panel từ bản TPAN cũ hơn** dựng lại trên bản mới: migration chạy lúc mở. Gói từ bản mới hơn: từ chối `machine_bundle_newer` ở pha 1, chưa đụng gì tới máy.
-- **Đổi khuôn gói panel về sau**: `manifest.format` tăng; bản này từ chối `format` khác 1.
+- **Lùi về v0.2.0** sau khi đã nâng: như mọi mốc từ M1, bản cũ từ chối mở `tpan.db` có migration nó không biết. Muốn lùi thật: chép lại bản sao `tpan.db` từ trước khi nâng. Nếu đã có bản chỉ còn trên kho (`local = 0`) thì bản cũ dù có mở được DB cũng không biết tải về; hướng dẫn nâng cấp ghi: trước khi lùi, `tpan backup pull` các bản cần giữ.
+- **Khuôn gói panel**: `manifest.format = 1` và trường `migrations` là cả danh sách, để một bản TPAN sau (lệnh dựng lại máy) so được tập migration của gói với tập nó biết. Đổi khuôn về sau thì tăng `format`.
 
 ## 7. Kế hoạch kiểm thử
 
 **Unit** (Mac, `make check`): các test có tên ở mục 4, cộng:
 
-- `s3`: mã hoá đường dẫn và query (bảng ca: dấu cách, `+`, `/`, UTF-8, `~`); một PUT và nhiều phần với cỡ phần nhỏ; thử lại khi 503 rồi đạt; 4xx không thử lại; thân 200 chứa `<Error>` ở bước ghép; phân trang của `List`; hết giờ khi không có byte nào đi.
+- `s3`: mã hoá đường dẫn và query (bảng ca: dấu cách, `+`, `/`, UTF-8, `~`); một PUT và nhiều phần với cỡ phần nhỏ; thử lại khi 503 rồi đạt; 4xx không thử lại; `Get` đứt sau byte đầu thì lỗi, không ghi thêm; thân 200 chứa `<Error>` ở bước ghép; ghép lỗi mạng mà object đã có thì đạt; phân trang của `List`; `AbortUploads` theo tuổi; kiểu `bucket.host`.
 - `system`: `OpenRead` từ chối symlink và thư mục; `CreateFile` từ chối file đã có, đặt đúng quyền và chủ; hai bản cài đặt cho cùng kết quả.
-- `agebox`: khoá đúng dạng; mã hoá rồi giải mã 5 MiB theo dòng; bọc và mở mẩu nhỏ dạng chữ.
-- `cloudinit`: hai chế độ; cỡ vượt trần bị từ chối; đọc lại YAML ra đúng cấu trúc; script có đúng bốn chỗ thay.
-- `store`: migration 1800 trên DB của v0.2.0 có sẵn dòng `backups`; luật chọn bản cần đẩy; các hàm đổi trạng thái theo đúng sơ đồ 3.15.
-- `core`: đẩy, cầu dao, dọn trên kho và trên máy theo sơ đồ 3.15, đổi đích, khôi phục từ kho, gói panel, kế hoạch dựng lại máy (bảng ca: site thường, tạm khoá, có SSL, trong thùng rác, không có bản trên kho, DB rời).
-- `server`: phân quyền, B3, bộ đẩy nền được đánh thức sau job backup.
+- `agebox`: khoá đúng dạng; mã hoá rồi giải mã 5 MiB theo dòng.
+- `cloudinit`: cỡ vượt trần bị từ chối; đọc lại YAML ra đúng cấu trúc; script có đúng bốn chỗ thay.
+- `store`: migration 1800 trên DB của v0.2.0 có sẵn dòng `backups`; mỗi hàm ở mục 3.2, kể cả hai tiến trình gọi `ForgetBackupLocal` và `ForgetBackupRemote` trên cùng dòng thì dòng bị xoá chứ không thành `local=0, ''`.
+- `core`: luật chọn và dọn theo sơ đồ 3.15 (bảng ca); cầu dao và nhịp lùi; đổi đích và nối lại; khôi phục bản trên kho bị từ chối với chỉ đường; CLI nối tải về rồi khôi phục; gói panel; render.
+- `server`: phân quyền, B3, hàng chờ của bộ đẩy nền.
 - `checks`, `health`: hai phép kiểm, và không có chúng khi chưa đặt đích.
 
-**E2E bước 21** (`scripts/e2e-m18.sh`, máy ảo `tpan-m18` từ sạch, log `docs/bang-chung/M18.log`; gọi qua `make e2e-m18`). Mỗi khẳng định ghi lệnh và kết quả mong đợi:
+**E2E bước 21** (`scripts/e2e-m18.sh`, máy ảo `tpan-m18` từ sạch, log `docs/bang-chung/M18.log`; gọi qua `make e2e-m18`):
 
 | Phần | Khẳng định |
 |---|---|
-| A. Đặt đích | versitygw chạy trong máy ảo, khoá sinh tại chỗ. `target set` sai khoá: từ chối `s3_auth_failed`, không file nào được ghi. Đúng khoá: job đạt, có bước thử ghi/đọc/xoá, `s3.json` là root 0600, `target show` chỉ hiện bốn ký tự cuối, khoá sao lưu in đúng một lần |
-| B. Đẩy | Sao lưu site A: object có trên kho (file thật trong thư mục của versitygw), `sha256sum` của file đó bằng `backups.sha256`; dòng `remote = 'stored'`; job `backup.push` có bằng chứng đọc lại |
-| C. Kho hỏng | `systemctl stop` versitygw: `backup create` thoát 0, dòng mới `local = 1`, `remote = 'failed'`, `tpan health` có cảnh báo `tpan.s3:fresh` và lỗi `tpan.s3:target`. Bật lại, sao lưu lần nữa: cả hai bản đều `stored` (đẩy bù đủ) |
+| A. Đặt đích | versitygw chạy trong máy ảo, khoá sinh tại chỗ. `target set` sai khoá: từ chối `s3_auth_failed`, không file nào được ghi. Đúng khoá: job đạt, có bước thử ghi/đọc/xoá, `s3.json` là root 0600, `target show` chỉ hiện bốn ký tự cuối và dấu vân tay, khoá sao lưu in đúng một lần |
+| B. Đẩy | Sao lưu site A: object có trên kho (file thật trong thư mục của versitygw), `sha256sum` của file đó bằng `backups.sha256`; dòng `remote = 'stored'`; job `backup.push` có bằng chứng đọc lại; có gói panel trên kho, `age -d` mở được bằng khoá sao lưu, bên trong có `tpan.db` với dòng của site A ở trạng thái `stored` |
+| C. Kho hỏng | `systemctl stop` versitygw: `backup create` thoát 0, dòng mới `local = 1`, `remote` khác `stored`, `tpan health` có cảnh báo `tpan.s3:fresh` và lỗi `tpan.s3:target`. Bật lại, `tpan backup push`: cả hai bản đều `stored` (đẩy bù đủ) |
 | D. Lỗi giữa lúc tải nhiều phần | Site có file 30 MiB; đích trỏ qua proxy gây 503 từ phần 3: đẩy lỗi, `ListMultipartUploads` rỗng. Bỏ proxy: đẩy đạt |
-| E. Object hỏng | Xoá bản cục bộ (dọn bằng `--keep 1` rồi tạo bản mới), ghi đè 1 byte của object: `backup restore --id` dừng với câu nói sha256 không khớp; checksum mọi file của site và bản xuất DB trước và sau giống hệt |
-| F. Khôi phục từ kho | Sửa nội dung site, khôi phục bản chỉ còn trên kho: site trả 200 với nội dung cũ; dòng về `local = 1` |
-| G. Giữ bản | `s3.keep = 2`, tạo 4 bản: kho còn đúng 2 object của site; bảng `backups` khớp sơ đồ 3.15 |
-| H. Quét bí mật | Hai khoá truy cập và khoá sao lưu: 0 lần trong `tpan.db` (cả `-wal`), `journalctl -u tpan`, mọi câu trả lời `GET` của API bằng phiên admin, output của `tpan mcp` khi gọi mọi công cụ đọc, gói panel đã giải mã, user-data đã sinh (cả sau khi giải base64 và gzip) |
+| E. Object hỏng | Bản chỉ còn trên kho (dọn cục bộ bằng `--keep 1` rồi tạo bản mới), ghi đè 1 byte của object: `tpan backup restore --id` dừng ở job tải về với câu nói sha256 không khớp; checksum mọi file của site và bản xuất DB trước và sau giống hệt |
+| F. Khôi phục từ kho | Sửa nội dung site, khôi phục bản chỉ còn trên kho: hai job (tải về, khôi phục), site trả 200 với nội dung cũ; dòng về `local = 1` |
+| G. Giữ bản | `s3.keep = 2`, `backup.keep = 4`, tạo 4 bản: kho còn đúng 2 object của site; chạy thêm `tpan backup push` hai lần: vẫn 2 object và không có job `backup.push` mới (B14) |
+| H. Quét bí mật | Hai khoá truy cập và khoá sao lưu: 0 lần trong `tpan.db` (cả `-wal`), `journalctl -u tpan`, mọi câu trả lời `GET` của API bằng phiên admin, câu trả lời `DELETE /backups/target?dry_run=1` (đã giải base64), output của `tpan mcp` khi gọi mọi công cụ đọc, gói panel đã giải mã, user-data đã sinh (cả sau khi giải base64 và gzip) |
 | I. Hai máy chủ S3 | Đổi đích sang Garage (vùng `garage`): đặt đích, đẩy, khôi phục từ kho đạt |
-| K. Phân quyền | User thường: 403 ở mọi route M18; không thấy bản sao lưu của user khác; khôi phục bản của mình từ kho được |
-| L. cloud-init site mới | `render --web nginx --sites` với hai site; máy ảo `tpan-m18-ci` tạo từ đó (file chạy tải từ máy ảo chính qua http, sha256 ghim): `cloud-init status` là `done`, panel trả 200 ở `/api/v1/health`, đăng nhập được bằng mật khẩu `render` đã in, hai site trả 200, `tpan health` đạt. **Ghi thời gian từ lúc tạo máy tới lúc 200.** Sửa một byte của file chạy trên máy phục vụ rồi tạo lại: lần khởi động đầu dừng, `cloud-init status` là `error`, không có `/usr/local/bin/tpan` |
-| M. Dựng lại máy | Máy ảo chính: ba site (một thường, một tạm khoá, một có file 30 MiB), `backup create --all`, kho versitygw nghe TLS với chứng chỉ gốc riêng. `render --restore`; xoá máy phụ, tạo lại từ user-data đó; `machine restore --from-s3 --key-stdin --yes`: mọi site trả đúng nội dung cũ, site tạm khoá ra 403, đăng nhập panel bằng mật khẩu admin của máy cũ, `tpan health` không có lỗi ngoài DNS. **Ghi thời gian.** Chạy lệnh lần hai trên máy đã dựng: từ chối `machine_not_empty`. Sai khoá sao lưu: từ chối trước khi đụng máy |
-| N. Nâng từ v0.2.0 | Cài gói v0.2.0, hai site, một bản sao lưu, bật lịch; lên bản của nhánh: bản sao lưu cũ khôi phục được, `/etc/cron.d/tpan-backup` không đổi và lệnh trong đó chạy được, `tpan health` trước và sau cùng tập ID phép kiểm, không có job `backup.push` nào |
+| K. Phân quyền | User thường: 403 ở mọi route M18; không thấy bản sao lưu của user khác; khôi phục bản của mình trên máy được; bản của mình chỉ còn trên kho: 409 `backup_not_on_machine` |
+| L. cloud-init | `render --web nginx --sites` với hai site, `--base http://<IP máy ảo chính>:<cổng>` và `--sums`; máy ảo `tpan-m18-ci` tạo từ đó: `cloud-init status` là `done`, panel trả 200 ở `/api/v1/health`, đăng nhập được bằng mật khẩu `render` đã in, hai site trả 200, `tpan health` đạt. **Ghi thời gian từ lúc tạo máy tới lúc 200.** Chạy lại script khởi động đầu sau khi thay file chạy bằng một bản khác (giả một lần nâng bản): file chạy không đổi (B15). Sửa một byte của file chạy trên máy phục vụ rồi tạo lại máy phụ: lần khởi động đầu dừng, `cloud-init status` là `error`, không có `/usr/local/bin/tpan`. Xoá máy phụ khi xong |
+| N. Nâng từ v0.2.0 | Cài gói v0.2.0, hai site, một bản sao lưu, bật lịch; lên bản của nhánh: bản sao lưu cũ khôi phục được, `/etc/cron.d/tpan-backup` không đổi và lệnh trong đó chạy được, `tpan health` trước và sau cùng tập ID phép kiểm, `backup list` không có cột mới, không có job `backup.push` nào |
 
 **Hồi quy**: `scripts/e2e-m9.sh all` và `scripts/e2e-m13.sh` trên bản mới, từ máy sạch (`docs/bang-chung/M18-hoi-quy-m9.log`, `M18-hoi-quy-m13.log`).
 
-**Soát cuối**: một thợ chưa đọc mã mốc này, tìm đường lộ khoá, đường khôi phục nhầm site của người khác, đường chèn nội dung vào user-data, và thử phá trên máy ảo.
+**Soát cuối**: một thợ chưa đọc mã mốc này (opus, effort max), tìm đường lộ khoá, đường khôi phục nhầm site của người khác, đường chèn nội dung vào user-data, và thử phá trên máy ảo.
 
 ## 8. Bảng chia việc
 
-Model theo luật 8 của `agent-dev/LO-TRINH.md` (bản 02:25 ngày 21/11): phần **nhạy cảm** (bí mật, ký và kiểm toàn vẹn, chạy bằng root trên đường dẫn của site, phân quyền, migration trên bảng đang có dữ liệu) do thợ `opus`, `effort: high`; phần không nhạy cảm do thợ `sonnet`; thợ soát `fable`, `effort: max`. Mỗi đợt tối đa 4 thợ, không hai thợ chung file. Phiên chính đọc diff của thợ `sonnet` trước khi nhận.
+Model theo luật 8 của `agent-dev/LO-TRINH.md` với thay đổi tạm của chủ dự án lúc 09:00 ngày 21/11 (hạn mức fable hết tới 25/11): phần **nhạy cảm** (bí mật, ký và kiểm toàn vẹn, chạy bằng root, phân quyền, migration) do thợ `opus`, `effort: high`; phần không nhạy cảm do thợ `sonnet`; thợ soát `opus`, `effort: max`. Không gọi model fable. Mỗi đợt tối đa 4 thợ, không hai thợ chung file. Phiên chính đọc diff của thợ `sonnet` trước khi nhận.
 
 | Đợt | Phần | Vùng file | Thợ | Loại |
 |---|---|---|---|---|
-| 0 | Hợp đồng: migration 1800; cột mới trong `site.Backup` và phần đọc của store; `Streamer` trong `System` (kèm cài đặt ở cả hai bản, vì thiếu thì không biên dịch); phần đọc đích và khoá từ settings và file (`Remote.Target`, `TargetID`, dựng `s3.Config`), vì mọi phần sau dựa vào nó; các file `types_m18.go`, `m18_types.go`; thư viện; móc đăng ký lệnh con của `backup` | `internal/store/migrations/1800_s3.sql`, `internal/site/backup.go`, `internal/store/backup.go`, `internal/system/*`, `internal/s3/types.go`, `internal/core/types_m18.go`, `internal/core/remote_target.go`, `internal/steps/m18_types.go`, `internal/server/types_m18.go`, `go.mod`, `go.sum`, `cmd/tpan/backup.go` | phiên chính | |
-| 1 | Client S3 và kho giả | `internal/s3/` (trừ `types.go`) | `tho-loi` (opus) | nhạy cảm |
-| 1 | Khoá sao lưu, mã hoá theo dòng | `internal/agebox/` | `tho-loi` (opus) | nhạy cảm |
-| 1 | Sinh user-data | `internal/cloudinit/` | `tho-loi` (opus) | nhạy cảm |
-| 1 | Truy vấn của store cho cột mới; hai phép kiểm; `engine.Note` | `internal/store/remote.go`, `internal/checks/m18.go`, `internal/engine/note.go` (kèm test) | `tho-phu` (sonnet) | không nhạy cảm |
-| 2 | Các Step: `S3Probe`, `S3Push`, `S3Pull`, `SecretFile`, `PanelBundle`, `PanelUnpack` | `internal/steps/s3.go`, `internal/steps/panel.go` (kèm test) | `tho-loi` (opus) | nhạy cảm |
-| 2 | Ca sử dụng cloud-init và lần khởi động đầu | `internal/core/cloudinit.go`, `cmd/tpan/cloudinit.go` (kèm test) | `tho-loi` (opus) | nhạy cảm |
-| 2 | Khung e2e và công cụ thử: script, proxy gây lỗi, dựng versitygw và Garage, máy phục vụ file chạy | `scripts/e2e-m18.sh`, `scripts/e2e-m18/`, target `e2e-m18` trong `Makefile` | `tho-may-ao` (opus) | viết script, chưa chạy máy ảo |
-| 3 | Ca sử dụng kho: đích, đẩy, tải, giữ bản trên kho, liệt kê | `internal/core/remote.go` (kèm test) | `tho-loi` (opus) | nhạy cảm |
-| 3 | Sửa luồng M9: dọn trên máy, khôi phục từ kho, khôi phục kiểu dựng lại; gói panel | sửa `internal/core/backup.go`; `internal/core/panel.go` (kèm test) | `tho-loi` (opus) | nhạy cảm |
-| 4 | API, bộ đẩy nền, nối phép kiểm vào health | `internal/server/api_m18.go`, `pusher.go`, sửa `routes.go`, `api.go`; `internal/health/collect.go`; `internal/store/health.go` (bỏ job đẩy khỏi "job treo") | `tho-loi` (opus) | nhạy cảm |
-| 4 | CLI của đích, khoá, đẩy, tải, liệt kê | `cmd/tpan/backup_s3.go` (kèm test) | `tho-loi` (opus) | nhạy cảm (đọc khoá) |
-| 4 | Dựng lại máy | `internal/core/machine.go`, `cmd/tpan/machine.go` (kèm test) | `tho-loi` (opus) | nhạy cảm |
-| 4 | `list_backups` thêm `location`; dữ liệu demo có đích và bản trên kho | `internal/tools/m9.go`, `internal/demo/m18.go` | `tho-phu` (sonnet) | không nhạy cảm |
-| 5 | Chạy e2e bước 21 (A đến N), sửa lỗi gốc, hồi quy M9 và M13 | máy ảo, `docs/bang-chung/M18*.log` | `tho-may-ao` (opus) | |
-| 6 | Soát cuối, thử phá trên máy ảo | chỉ đọc mã; ghi `docs/thay-doi/M18-soat-cuoi.md` | thợ soát (fable, max) | |
-| 6 | Giải thích | `docs/giai-thich/18-m18-cloud.md` | `tho-viet` (sonnet) | không nhạy cảm |
+| 0 | Hợp đồng: migration 1800; cột mới trong `site.Backup` và phần đọc của store; `Streamer` trong `System` (kèm cài đặt ở cả hai bản); `engine.Note`; kiểu chung và kho giả `s3.Mem`; chữ ký `agebox`; kiểu và đọc đích của core (`Remote.config`, `TargetID`, dựng client); kiểu của steps (`ObjectStore`, các struct bước), server, checks; thư viện; móc đăng ký lệnh con | `internal/store/migrations/1800_s3.sql`, `internal/site/backup.go`, `internal/store/backup.go`, `internal/system/*`, `internal/engine/note.go`, `internal/s3/types.go`, `internal/s3/mem.go`, `internal/agebox/types.go`, `internal/core/types_m18.go`, `internal/core/remote_target.go`, `internal/steps/m18_types.go`, `internal/server/types_m18.go`, `internal/checks/m18_types.go`, `go.mod`, `go.sum`, stub ở `cmd/tpan/backup_s3.go` | phiên chính | |
+| 1 | Client S3 | `internal/s3/` (trừ `types.go`, `mem.go`) | `tho-loi` (opus high) | nhạy cảm |
+| 1 | Khoá sao lưu, mã hoá theo dòng; sinh user-data | `internal/agebox/` (trừ `types.go`), `internal/cloudinit/` | `tho-loi` (opus high) | nhạy cảm |
+| 1 | Các Step: `S3Probe`, `S3Push`, `S3Pull`, `SecretFile`, `SecretAbsent`, `PanelBundle` (viết trên `ObjectStore` và `s3.Mem`; `Encrypt` là hàm đưa vào) | `internal/steps/s3.go`, `internal/steps/panel.go` (kèm test) | `tho-loi` (opus high) | nhạy cảm |
+| 1 | Truy vấn của store cho cột mới; hai phép kiểm | `internal/store/remote.go`, `internal/checks/m18.go` (kèm test) | `tho-phu` (sonnet) | không nhạy cảm |
+| 2 | Ca sử dụng kho: đích (đặt, gỡ, thử, xem, nối lại), lượt đẩy, tải về, dọn kho, liệt kê, gói panel | `internal/core/remote.go`, `internal/core/panel.go` (kèm test) | `tho-loi` (opus high) | nhạy cảm |
+| 2 | Sửa luồng M9: dọn trên máy, `fullCount`, khôi phục bản cần tải về, chọn bản mặc định | sửa `internal/core/backup.go` (kèm test) | `tho-loi` (opus high) | nhạy cảm |
+| 2 | Ca sử dụng cloud-init và lần khởi động đầu, CLI `cloud-init` | `internal/core/cloudinit.go`, `cmd/tpan/cloudinit.go` (kèm test) | `tho-loi` (opus high) | nhạy cảm |
+| 2 | Khung e2e: script, proxy gây lỗi, dựng versitygw và Garage, máy phục vụ file chạy (viết, chưa chạy máy ảo) | `scripts/e2e-m18.sh`, `scripts/e2e-m18/`, target `e2e-m18` trong `Makefile` | `tho-may-ao` (opus high) | |
+| 3 | API, bộ đẩy nền, nối phép kiểm vào health, bỏ job đẩy khỏi "job treo" | `internal/server/api_m18.go`, `pusher.go`, sửa `routes.go`, `api.go`, `api_m9.go`, `server.go`; `internal/health/collect.go`; `internal/store/health.go` | `tho-loi` (opus high) | nhạy cảm |
+| 3 | CLI của đích, khoá, đẩy, tải, liệt kê; `backup create` gọi lượt đẩy; `backup restore` nối tải về | `cmd/tpan/backup_s3.go`, sửa `cmd/tpan/backup.go` (kèm test) | `tho-loi` (opus high) | nhạy cảm (đọc khoá) |
+| 3 | `list_backups` thêm `location`; dữ liệu demo có đích và bản trên kho | `internal/tools/m9.go`, `internal/demo/m18.go` (và một dòng gọi nó trong `internal/demo/demo.go`) | `tho-phu` (sonnet) | không nhạy cảm |
+| 4 | Chạy e2e bước 21 (A đến N, không có M), sửa lỗi gốc, hồi quy M9 và M13 | máy ảo, `docs/bang-chung/M18*.log` | `tho-may-ao` (opus high) | |
+| 5 | Soát cuối, thử phá trên máy ảo | chỉ đọc mã; ghi `docs/thay-doi/M18-soat-cuoi.md` | thợ soát (opus, max) | |
+| 5 | Giải thích | `docs/giai-thich/18-m18-cloud.md` | `tho-viet` (sonnet) | không nhạy cảm |
 
-**Mốc giờ kiểm để cắt phần dựng lại máy**: hết đợt 3 mà `make check` chưa xanh, hoặc quá 13:00 ngày 21/11 mà đợt 4 chưa bắt đầu, thì bỏ dòng "Dựng lại máy" của đợt 4 và phần M của e2e, ghi rõ vào `docs/thay-doi/M18.md`, giữ sáu phần còn lại.
+**Mốc giờ**: 17:00 mà đợt 3 chưa xanh thì bỏ phần I (Garage) của e2e trước. 21:00 mà e2e chưa xanh thì dừng ở trạng thái xanh của mã, ghi rõ phần e2e nào chưa chạy, không đẩy vào `dev` (luật của `LO-TRINH.md`).
 
 ## 9. Kết quả soát thiết kế
 
@@ -954,3 +1012,42 @@ Soát ngày 21/11/2026 bởi một thợ `effort: max` chỉ nhận file này. �
 - TLS với chứng chỉ gốc riêng: không đưa CA thì bị từ chối, sai tên thì bị từ chối, `http` vào cổng TLS thì lỗi (`14-tls-ca-rieng.out`).
 
 Không kiểm được từ những gì có trong repo: versitygw có `.deb` cho amd64 và `checksums.txt` (output `01` chỉ liệt kê bản arm64); ngày phát hành của Garage v2.5.0; con số của DigitalOcean và Hetzner (thiết kế đã ghi là chưa tra được).
+
+### 9.1 Cách phiên chính đã xử lý từng điểm (09:40 ngày 21/11)
+
+Thợ soát (model fable) dừng vì hết hạn mức khi đang viết câu trả lời cuối; mục 9 phía trên đã trọn vẹn (S1 tới S34, đoạn "Đã kiểm và thấy đúng", dòng kết), nên không chạy lại việc soát. Bản thiết kế phía trên (mục 1 tới 8) là bản đã sửa; bản gốc ở commit f1f342a.
+
+| Điểm | Xử lý |
+|---|---|
+| S1 (nặng) | Đã sửa (3.2, 3.3, 3.16, B3): bước ghi và gỡ ba file bí mật là `SecretFile`, `SecretAbsent`, không khai `Files`; `steps.File`, `steps.Absent` từ chối ba đường dẫn đó; test B3 giải base64 các trường `old`, `new` |
+| S2 (nặng) | Đã sửa (3.5, 3.7, 3.15, B14): một hàm `remoteSurvives` dùng chung cho chọn bản cần đẩy và dọn kho; e2e phần G đặt `backup.keep = 4`, `s3.keep = 2` và đòi không có job đẩy mới |
+| S3 (nặng) | Ý 1 đã sửa (3.5 bước 9): gói panel làm ở cuối lượt, sau mọi lần đẩy; cờ bền `s3.panel_due`; lượt nào có dòng thành `stored` hay bị dọn đều kết thúc bằng một gói. Ý 2, 3 thuộc lệnh dựng lại máy (đã cắt), ghi ở 3.10 |
+| S4 (nặng) | Phần khuôn đã sửa (3.8, mục 6): `manifest.migrations` là cả danh sách. Phần pha 1, 2 và bước thử mở bản sao thuộc lệnh dựng lại (3.10) |
+| S5 (nặng) | Đã sửa (3.3 bước 5, 3.8, 3.11, mục 5): khoá sao lưu chỉ sinh ở CLI; không route nào nhận hay trả khoá sao lưu hay bản mã của khoá truy cập; chế độ dựng lại của `render` đã cắt |
+| S6 | Đã sửa (3.4 phân loại, 3.5): 5xx, 429 sau khi thử lại là lỗi của đích; `remote_tries` chỉ tăng cho lỗi của riêng bản; nhịp lùi 10 phút, 30 phút, 1 giờ, 6 giờ; `Check` đầu lượt, hỏng thì không tạo job; `tpan backup push` gồm cả dòng `remote_tries ≥ 5` |
+| S7 | Đã sửa (3.5 bước 2, 3): lệnh gõ tay và cron chờ khoá lượt đẩy tối đa 30 phút; bộ đẩy nền bỏ khi bận; `s3.panel_due` bền; `push`, `pull` thoát 1 khi không làm được |
+| S8 | Đã sửa (3.6, 3.2): `S3Pull` kiểm theo trạng thái; chỉ chạy dưới khoá lượt đẩy nên không có hai lượt tải song song và dọn kho không chen vào; mọi chuyển trạng thái là transaction có điều kiện |
+| S9 | Đã sửa (3.6): tải về là job riêng dưới khoá lượt đẩy; khôi phục của M9 chạy sau trên bản đã về máy; API trả 409 kèm chỉ đường, CLI tự nối hai job; B10 không còn ngoại lệ |
+| S10 | Đã sửa (3.5, 3.16, B5): job đẩy, tải, gói panel thuộc `admin`; tải về không còn nằm trong job khôi phục của user |
+| S11 | Đã sửa (3.4): thay access key, secret key, chữ ký bằng `••••` trong `Code`, `Message`; thân không phải XML thì `Message` rỗng; `s3.TestLoiKhongCoKhoa` dùng máy chủ giả chép lại header `Authorization`. Chưa thử Garage với access key không có (để đợt máy ảo) |
+| S12 | Đã sửa (3.9, 3.11, mục 5): `http://` bắt buộc `--sums`; tự tải `SHA256SUMS` chỉ qua `https://`; API bắt buộc hai sha256 và không tải gì từ `base` |
+| S13 | Đã sửa (3.9, B15): script không đụng file chạy khi đã có `first-boot.json`; `cloud-init run` thấy đã xong thì thoát 0, làm lại phải `--force`; e2e phần L có khẳng định |
+| S14, S15, S16, S20, S32 | Không áp dụng ở bản này: thuộc lệnh dựng lại máy (đã cắt); ghi vào danh sách ở 3.10 |
+| S17 | Hoãn (mục 1): ca chính là lệnh dựng lại; tài liệu nói mỗi máy một tiền tố; danh sách ở 3.10 |
+| S18 | Đã sửa (3.3 bước 6, 3.2): đổi `TargetID` thì nối lại theo object thật; đẩy lỗi không ghi đè trạng thái `stored` của đích cũ |
+| S19 | Đã sửa (3.4): `Get` không thử lại sau byte thân đầu; bước ghép hạn 10 phút và `Head` khi lỗi |
+| S21 | Đã sửa cho khôi phục (3.6: mặc định chọn bản `manual`, `schedule`) và health (3.13 ý b). Phần dựng lại: 3.10 |
+| S22 | Đã sửa (mục 8): `cmd/tpan/backup.go` giao thợ CLI; `api_m9.go`, `server.go` giao thợ API; không còn bí mật một lần của job (S5) nên không đụng `types.go`, `api_job.go`; bộ đẩy nền tự thức 2 phút một lần nên không cần móc vào `jobStart`; B11 và 3.12 nói rõ cột mới chỉ hiện khi đã đặt đích; bỏ `backup_key_invalid`, `machine_bundle_invalid` khỏi danh sách mã |
+| S23 | Đã sửa (3.4, B7) |
+| S24 | Đã sửa (2.1, 2.3; `M18.md`) |
+| S25 | Đã sửa (3.9): dùng `core.sitePassword` (32 ký tự chữ và số) |
+| S26 | Đã sửa (3.8, B13): `SetMaxWorkFactor(15)` khi giải mã; bản rõ chỉ dùng sau `io.EOF` |
+| S27 | Đã sửa (3.13): (b) theo `created_at`, bỏ site chưa đủ 24 giờ, chỉ đếm `manual`, `schedule`; (c) chỉ khi lịch bật; đổi đích xoá `s3.panel_last`; `tpan.s3:target` `Head` bản mới nhất của từng site |
+| S28 | Đã sửa (3.2, 3.6, 3.7, 3.15) |
+| S29 | Đã sửa (3.5 bước 5 và 8; bộ đẩy nền tắt ở `--demo`). Dòng ở đích cũ: `ListRemote` đếm; không tự dọn |
+| S30 | Đã sửa (3.11): đọc chuỗi rồi bọc `Secret` ngay; `apiReadJSONMax` 128 KiB và 1,5 MiB; nhật ký chỉ ghi giá trị đã qua kiểm |
+| S31 | Đã sửa (3.3) |
+| S33 | (a), (b) đã sửa (3.3, 3.9); (c) không áp dụng (chế độ dựng lại đã cắt) |
+| S34 | (1) đến (3) đã sửa (3.16, 3.9); (4) đã sửa (3.11); (5) hoãn có ghi (mục 1); (6) thợ client thêm vectơ có đường dẫn object với bộ ký nhận thêm header (B8); (7) đã sửa (3.8: bỏ `config.toml`) |
+
+Còn lại 0 điểm nặng chưa xử lý. Một lượt soát hẹp (opus, effort max) kiểm lại các chỗ đã sửa; kết quả ở 9.2.
