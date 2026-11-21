@@ -10,17 +10,17 @@ import (
 	"github.com/doxuta/tpan/internal/sitefs"
 )
 
-// The fake follows the same gate rules as LocalSystem inside the site zone
-// (M28-thiet-ke.md, 3.3), with the zone root fixed at sitefs.Root: no symlink
-// is followed at the anchor or any component below it; ReadFile only reads a
-// regular file owned by the anchor's user (skipped when the anchor belongs to
-// root), within sitefs.MaxFile; Chown, Chmod only touch a directory or a
-// regular file. Errors are *sitefs.Error, like the real gate. Outside the zone
-// nothing changes. All functions here are called with f.mu held.
+// Bản giả theo cùng luật cổng như LocalSystem bên trong vùng site
+// (M28-thiet-ke.md, 3.3), với thư mục gốc vùng cố định ở sitefs.Root: không
+// đi theo symlink ở neo hay ở bất kỳ thành phần nào bên dưới; ReadFile chỉ
+// đọc file thường thuộc user của neo (bỏ qua khi neo thuộc root), trong
+// giới hạn sitefs.MaxFile; Chown, Chmod chỉ đụng thư mục hoặc file thường.
+// Lỗi là *sitefs.Error, như cổng thật. Ngoài vùng thì không đổi gì. Mọi hàm
+// ở đây được gọi khi đang giữ f.mu.
 
-// SetSite builds dir and dir/public owned by user:www-data, mode 2750, like
-// a real site, so the owner rule of ReadFile is on (S16). A parent made
-// implicitly by SetFile belongs to root, which turns the rule off.
+// SetSite dựng dir và dir/public thuộc user:www-data, mode 2750, giống một
+// site thật, để luật chủ của ReadFile bật (S16). Thư mục cha do SetFile tạo
+// ngầm thì thuộc root, và làm luật đó tắt.
 func (f *FakeSystem) SetSite(dir, user string) {
 	owner := Owner{User: user, Group: "www-data"}
 	f.SetDir(dir, fs.ModeSetgid|0o750, owner)
@@ -29,9 +29,9 @@ func (f *FakeSystem) SetSite(dir, user string) {
 
 func zoneErr(op, p string, err error) error { return &sitefs.Error{Op: op, Path: p, Err: err} }
 
-// zoneWalk resolves anchor/rel without following any symlink. It returns the
-// full path, the anchor entry and the entry at the last name (nil when
-// missing). Middle components must exist and be real directories.
+// zoneWalk phân giải anchor/rel mà không đi theo symlink nào. Nó trả về
+// đường dẫn đầy đủ, mục của neo và mục ở tên cuối (nil khi không có). Các
+// thành phần giữa phải tồn tại và là thư mục thật.
 func (f *FakeSystem) zoneWalk(op, anchor, rel string) (string, *FakeEntry, *FakeEntry, error) {
 	full := anchor + "/" + rel
 	if r, ok := f.entries[sitefs.Root]; ok && (r.Owner.User != "root" || r.Mode&0o022 != 0) {
@@ -55,7 +55,7 @@ func (f *FakeSystem) zoneWalk(op, anchor, rel string) (string, *FakeEntry, *Fake
 	return full, anc, f.entries[full], nil
 }
 
-// zoneDir: the entry at p must be a directory that is not a symlink.
+// zoneDir: mục ở p phải là thư mục và không phải symlink.
 func (f *FakeSystem) zoneDir(op, full, p string) (*FakeEntry, error) {
 	e, ok := f.entries[p]
 	switch {
@@ -69,8 +69,8 @@ func (f *FakeSystem) zoneDir(op, full, p string) (*FakeEntry, error) {
 	return e, nil
 }
 
-// zoneLeaf is the last-name check of the gate: missing, symlink, or neither
-// a regular file nor (when dirOK) a directory.
+// zoneLeaf là phép kiểm tên cuối của cổng: không có, là symlink, hoặc không
+// phải file thường cũng không phải (khi dirOK) thư mục.
 func zoneLeaf(op, full string, e *FakeEntry, dirOK bool) error {
 	switch {
 	case e == nil:
@@ -105,7 +105,7 @@ func (f *FakeSystem) zoneWrite(a, r string, data []byte, perm fs.FileMode, owner
 	if err != nil {
 		return err
 	}
-	// rename replaces a file or a symlink, never a directory.
+	// rename thay thế một file hoặc một symlink, không bao giờ thay thư mục.
 	if e != nil && e.Mode.IsDir() {
 		return zoneErr("ghi", full, syscall.EISDIR)
 	}
@@ -113,8 +113,8 @@ func (f *FakeSystem) zoneWrite(a, r string, data []byte, perm fs.FileMode, owner
 	return nil
 }
 
-// zoneMkdirAll: the anchor and its parents belong to root and are created
-// like outside the zone when missing; below the anchor no symlink is followed.
+// zoneMkdirAll: neo và các thư mục cha của nó thuộc root và được tạo như
+// ngoài vùng khi chưa có; bên dưới neo không đi theo symlink nào.
 func (f *FakeSystem) zoneMkdirAll(a, r string, perm fs.FileMode, owner Owner) error {
 	full := a + "/" + r
 	var missing []string
@@ -166,8 +166,8 @@ func (f *FakeSystem) zoneRemove(a, r string) error {
 	return nil
 }
 
-// renameSrc and renameDst resolve one side of Rename: through the gate rules
-// inside the zone, the old way (following parent symlinks) outside.
+// renameSrc và renameDst phân giải một phía của Rename: theo luật cổng bên
+// trong vùng, theo cách cũ (đi theo symlink của thư mục cha) bên ngoài.
 func (f *FakeSystem) renameSrc(p string) (string, *FakeEntry, error) {
 	if a, r, ok := sitefs.Split(sitefs.Root, p); ok {
 		full, _, e, err := f.zoneWalk("đổi tên", a, r)
@@ -191,7 +191,7 @@ func (f *FakeSystem) renameDst(p string) (string, error) {
 	return path.Join(dir, path.Base(p)), nil
 }
 
-// zoneSymlink gives the new link to the anchor's owner, like the real gate (S14).
+// zoneSymlink giao link mới cho chủ của neo, như cổng thật (S14).
 func (f *FakeSystem) zoneSymlink(target, a, r string) error {
 	full, anc, e, err := f.zoneWalk("tạo symlink", a, r)
 	if err != nil {
@@ -246,7 +246,7 @@ func (f *FakeSystem) zoneReadDir(a, r string) ([]string, error) {
 	return names, nil
 }
 
-// zoneEntry is the target of Chown, Chmod: a directory or a regular file.
+// zoneEntry là đích của Chown, Chmod: một thư mục hoặc một file thường.
 func (f *FakeSystem) zoneEntry(op, a, r string) (*FakeEntry, error) {
 	full, _, e, err := f.zoneWalk(op, a, r)
 	if err != nil {
@@ -271,7 +271,7 @@ func (f *FakeSystem) zoneStatFS(a, r string) (string, error) {
 	return full, nil
 }
 
-// children lists the names directly under dir, sorted.
+// children liệt kê các tên nằm ngay dưới dir, đã sắp xếp.
 func (f *FakeSystem) children(dir string) []string {
 	var names []string
 	for q := range f.entries {
@@ -286,7 +286,7 @@ func (f *FakeSystem) children(dir string) []string {
 func statOf(e *FakeEntry) FileInfo {
 	size := int64(len(e.Data))
 	if e.Mode&fs.ModeSymlink != 0 {
-		size = int64(len(e.Target)) // like lstat: a symlink's size is its target's length
+		size = int64(len(e.Target)) // như lstat: kích thước của symlink là độ dài đích của nó
 	}
 	return FileInfo{Mode: e.Mode, Size: size, Owner: e.Owner}
 }

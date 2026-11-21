@@ -18,9 +18,9 @@ import (
 	"github.com/doxuta/tpan/internal/sitefs"
 )
 
-// zoneFixture is the same tree, relative to the site root, on both systems:
-// anchor a with a normal public; anchor b whose public is a symlink to a's;
-// anchor e that is itself a symlink.
+// zoneFixture là cùng một cây, tính từ thư mục gốc site, trên cả hai system:
+// neo a có public bình thường; neo b có public là symlink trỏ tới public của a;
+// neo e chính nó là một symlink.
 var zoneFixture = []struct{ kind, rel, data string }{
 	{"dir", "a", ""},
 	{"dir", "a/public", ""},
@@ -34,8 +34,8 @@ var zoneFixture = []struct{ kind, rel, data string }{
 	{"symlink", "e", "a"},
 }
 
-// zoneSide is one System with the fixture built under its site root, and a
-// directory outside the zone.
+// zoneSide là một System với fixture dựng dưới thư mục gốc site của nó, và
+// một thư mục nằm ngoài vùng.
 type zoneSide struct {
 	name      string
 	sys       System
@@ -58,8 +58,8 @@ func localSide(t *testing.T) zoneSide {
 		if err := os.Mkdir(d, 0o755); err != nil {
 			t.Fatal(err)
 		}
-		// macOS gives new directories the parent's group (wheel under
-		// /tmp); use ours so setgid and chown work without root.
+		// macOS cho thư mục mới group của thư mục cha (wheel dưới /tmp);
+		// dùng group của ta để setgid và chown chạy được mà không cần root.
 		if err := os.Chown(d, os.Geteuid(), os.Getegid()); err != nil {
 			t.Fatal(err)
 		}
@@ -102,8 +102,9 @@ func fakeSide(t *testing.T) zoneSide {
 	return zoneSide{name: "fake", sys: f, root: "/var/www", out: "/srv/out"}
 }
 
-// zoneRow is one operation on one path. want is the error both systems must
-// give (nil: both succeed); the result summary of the two must also match.
+// zoneRow là một thao tác trên một đường dẫn. want là lỗi mà cả hai system
+// phải trả (nil: cả hai thành công); bản tóm tắt kết quả của hai bên cũng
+// phải khớp nhau.
 type zoneRow struct {
 	name, op, p, arg string
 	want             error
@@ -155,7 +156,7 @@ var zoneRows = []zoneRow{
 
 	{"stat/file", "Stat", "a/public/.htaccess", "", nil},
 	{"stat/symlink-cuoi", "Stat", "a/public/l", "", nil},
-	{"stat/public-symlink", "Stat", "b/public", "", nil},                                    // T21: lstat of the last name
+	{"stat/public-symlink", "Stat", "b/public", "", nil},                                    // T21: lstat của tên cuối
 	{"stat/cha-symlink", "Stat", "b/public/.htaccess", "", sitefs.ErrSymlink},               // T17, T20
 	{"stat/wp-config-cha-symlink", "Stat", "b/public/wp-config.php", "", sitefs.ErrSymlink}, // T19
 	{"stat/neo-symlink", "Stat", "e/public", "", sitefs.ErrSymlink},                         // T21, S11
@@ -180,8 +181,8 @@ var zoneRows = []zoneRow{
 	{"statfs/cha-symlink", "StatFS", "b/public/d", "", sitefs.ErrSymlink},
 }
 
-// runZoneRow runs one row and summarises the result in a way that must be
-// the same on both systems.
+// runZoneRow chạy một dòng và tóm tắt kết quả theo cách phải giống nhau
+// trên cả hai system.
 func runZoneRow(t *testing.T, z zoneSide, r zoneRow) (string, error) {
 	t.Helper()
 	me := currentOwner(t)
@@ -219,7 +220,7 @@ func runZoneRow(t *testing.T, z zoneSide, r zoneRow) (string, error) {
 		if err := s.Symlink(r.arg, p); err != nil {
 			return "", err
 		}
-		// B18: the link belongs to the anchor's owner.
+		// B18: link thuộc chủ của neo.
 		link, err := s.Stat(p)
 		if err != nil {
 			return "", err
@@ -231,7 +232,7 @@ func runZoneRow(t *testing.T, z zoneSide, r zoneRow) (string, error) {
 	case "Stat":
 		fi, err := s.Stat(p)
 		if fi.Mode&fs.ModeSymlink != 0 {
-			// A symlink's own bits are 0777 on Linux, 0755 on macOS.
+			// Các bit của chính symlink là 0777 trên Linux, 0755 trên macOS.
 			return fi.Mode.Type().String(), err
 		}
 		return fi.Mode.String(), err
@@ -283,8 +284,8 @@ func TestVungSiteCaHaiBan(t *testing.T) {
 	}
 }
 
-// TestMoiHamCoLuatVungSite (B5): every System function with a path parameter
-// has rows in TestVungSiteCaHaiBan. A new function without rows turns red.
+// TestMoiHamCoLuatVungSite (B5): mọi hàm của System có tham số đường dẫn đều
+// có dòng trong TestVungSiteCaHaiBan. Hàm mới mà không có dòng thì test đỏ.
 func TestMoiHamCoLuatVungSite(t *testing.T) {
 	covered := map[string]bool{}
 	for _, r := range zoneRows {
@@ -309,7 +310,7 @@ func TestMoiHamCoLuatVungSite(t *testing.T) {
 	}
 }
 
-// ---- 3.4: commands run as root ----
+// ---- 3.4: lệnh chạy bằng root ----
 
 func TestLenhRootKhongNhanDuongDanSite(t *testing.T) {
 	rows := []struct {
@@ -384,7 +385,7 @@ func TestLenhRootKhongNhanDuongDanSite(t *testing.T) {
 		{"goc-giong-ten", Cmd{Name: "ls", Args: []string{"/var/wwwx/a/b"}}, true},
 		{"lenh-thuong", Cmd{Name: "systemctl", Args: []string{"reload", "nginx"}}, true},
 	}
-	// The pure check with the real zone root, and FakeSystem.Run end to end.
+	// Phép kiểm thuần với thư mục gốc vùng thật, và FakeSystem.Run từ đầu đến cuối.
 	for _, r := range rows {
 		t.Run(r.name, func(t *testing.T) {
 			err := checkRootZone(sitefs.Root, r.cmd)
@@ -404,8 +405,8 @@ func TestLenhRootKhongNhanDuongDanSite(t *testing.T) {
 			}
 		})
 	}
-	// LocalSystem.Run refuses before starting anything. Only refused rows are
-	// run here: an allowed tar on the Mac would really start.
+	// LocalSystem.Run từ chối trước khi khởi chạy bất cứ thứ gì. Ở đây chỉ chạy
+	// các dòng bị từ chối: một lệnh tar được phép trên máy Mac sẽ chạy thật.
 	s := &LocalSystem{LockPath: filepath.Join(t.TempDir(), "lock"), SiteRoot: sitefs.Root}
 	for _, r := range rows {
 		if r.ok {
@@ -415,14 +416,14 @@ func TestLenhRootKhongNhanDuongDanSite(t *testing.T) {
 			t.Errorf("LocalSystem.Run %s = %v, muốn ErrRootZoneCommand", r.name, err)
 		}
 	}
-	// SiteRoot empty: no zone, no check (tests that build LocalSystem by hand).
+	// SiteRoot rỗng: không có vùng, không kiểm (các test tự dựng LocalSystem bằng tay).
 	if err := checkRootZone("", Cmd{Name: "rm", Args: []string{"/var/www/a/public"}}); err != nil {
 		t.Errorf("SiteRoot rỗng vẫn xét: %v", err)
 	}
 }
 
-// TestLenhRootHuyKhongDeLaiTienTrinh (B15): runuser forks the real command
-// and waits; cancelling must kill the whole process group, not only runuser.
+// TestLenhRootHuyKhongDeLaiTienTrinh (B15): runuser fork lệnh thật rồi chờ;
+// huỷ phải giết cả process group, không chỉ runuser.
 func TestLenhRootHuyKhongDeLaiTienTrinh(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("cần root: chạy trong máy ảo bằng make m28-test-vm")
@@ -449,9 +450,9 @@ func TestLenhRootHuyKhongDeLaiTienTrinh(t *testing.T) {
 	}
 }
 
-// TestVungSiteDirSetgid (B16): on the real kernel, a site directory set to
-// fs.ModeSetgid|0o750 through LocalSystem comes out 2750, and Stat reads the
-// same Mode back (so steps.Dir.Check passes the second time).
+// TestVungSiteDirSetgid (B16): trên kernel thật, một thư mục site đặt thành
+// fs.ModeSetgid|0o750 qua LocalSystem ra 2750, và Stat đọc lại đúng Mode đó
+// (nên steps.Dir.Check qua được ở lần thứ hai).
 func TestVungSiteDirSetgid(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("cần root: chạy trong máy ảo bằng make m28-test-vm")
@@ -482,8 +483,8 @@ func TestVungSiteDirSetgid(t *testing.T) {
 	}
 }
 
-// TestVungSiteFakeLuatChu: the rules the fake applies that need root on a
-// real machine (owner, caps, special files, unsafe root), with SetSite.
+// TestVungSiteFakeLuatChu: các luật bản giả áp dụng mà trên máy thật cần
+// root (chủ, giới hạn, file đặc biệt, thư mục gốc không an toàn), với SetSite.
 func TestVungSiteFakeLuatChu(t *testing.T) {
 	f := NewFake()
 	f.SetDir("/var/www", 0o755, Root)
@@ -515,19 +516,19 @@ func TestVungSiteFakeLuatChu(t *testing.T) {
 			t.Errorf("%s: %v, muốn %v", c.name, c.err, c.want)
 		}
 	}
-	// An anchor made implicitly by SetFile belongs to root: owner rule off.
+	// Neo do SetFile tạo ngầm thì thuộc root: luật chủ tắt.
 	f.SetFile("/var/www/b/public/x", []byte("x"), 0o640, Owner{User: "khac"})
 	if _, err := f.ReadFile("/var/www/b/public/x"); err != nil {
 		t.Errorf("neo của root bỏ luật chủ: %v", err)
 	}
-	// Too many entries.
+	// Quá nhiều mục.
 	for i := range sitefs.MaxDirEntries + 1 {
 		f.SetFile("/var/www/a/public/many/"+strconv.Itoa(i), nil, 0o640, site)
 	}
 	if _, err := f.ReadDir("/var/www/a/public/many"); !errors.Is(err, sitefs.ErrTooMany) {
 		t.Errorf("ReadDir quá trần: %v", err)
 	}
-	// Unsafe zone root.
+	// Thư mục gốc vùng không an toàn.
 	f.SetDir("/var/www", 0o777, Root)
 	if _, err := f.Stat("/var/www/a/public"); !errors.Is(err, sitefs.ErrRootUnsafe) {
 		t.Errorf("gốc 0777: %v", err)

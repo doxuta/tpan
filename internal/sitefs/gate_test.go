@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// ---- Ordinary use: what the steps rely on ----
+// ---- Dùng bình thường: thứ các Step dựa vào ----
 
 func TestCuaThaoTacThuong(t *testing.T) {
 	z := newZone(t, false)
@@ -37,7 +37,7 @@ func TestCuaThaoTacThuong(t *testing.T) {
 	if err != nil || fi.Mode() != 0o640 {
 		t.Fatalf("mode sau WriteFileAtomic = %v, %v", fi.Mode(), err)
 	}
-	// Writing again replaces the file; no temp file stays behind.
+	// Ghi lần nữa thì thay file; không còn file tạm nào sót lại.
 	if err := WriteFileAtomic(a, "public/.htaccess", []byte("v2"), 0o600, uid, gid); err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestCuaThaoTacThuong(t *testing.T) {
 	if _, _, err := StatFS(a, "public/.htaccess"); err != nil {
 		t.Fatalf("StatFS file: %v", err)
 	}
-	// Rename inside the zone, out of it and back in.
+	// Rename trong vùng, ra ngoài vùng rồi vào lại.
 	if err := Rename(a, "public/.htaccess", a, "public/h2"); err != nil {
 		t.Fatal(err)
 	}
@@ -99,21 +99,21 @@ func TestCuaThaoTacThuong(t *testing.T) {
 	if err := Remove(a, "public"); !errors.Is(err, unix.ENOTEMPTY) && !errors.Is(err, unix.EEXIST) {
 		t.Errorf("Remove thư mục không rỗng = %v", err)
 	}
-	// Missing paths satisfy fs.ErrNotExist, whichever component is missing.
+	// Đường dẫn không có thì thoả fs.ErrNotExist, thiếu thành phần nào cũng vậy.
 	for _, rel := range []string{"public/nope", "nope/x"} {
 		_, err := ReadFile(a, rel, 0)
 		wantIs(t, rel, err, fs.ErrNotExist)
 	}
 	_, err = ReadFile(filepath.Join(z.root, "nope"), "x", 0)
 	wantIs(t, "neo không có", err, fs.ErrNotExist)
-	// A regular file as a middle component keeps ENOTDIR (not a refusal).
+	// File thường làm thành phần giữa thì giữ ENOTDIR (không phải bị từ chối).
 	mustWrite(t, z.p("f"), "x", 0o640)
 	_, err = ReadFile(a, "f/x", 0)
 	wantIs(t, "cha là file", err, unix.ENOTDIR)
 	if Refused(err) {
 		t.Errorf("ENOTDIR bị coi là lời từ chối")
 	}
-	// MkdirAll on an existing tree leaves modes alone.
+	// MkdirAll trên cây đã có thì không đụng vào mode.
 	mustMkdir(t, z.p("keep"), 0o711)
 	if err := MkdirAll(a, "keep/new", 0o750, uid, gid); err != nil {
 		t.Fatal(err)
@@ -123,7 +123,7 @@ func TestCuaThaoTacThuong(t *testing.T) {
 	}
 }
 
-// ---- B1: no symlink is ever followed ----
+// ---- B1: không bao giờ đi theo symlink ----
 
 func TestCuaKhongDiTheoSymlink(t *testing.T) {
 	t.Run("neo", func(t *testing.T) {
@@ -157,8 +157,8 @@ func TestCuaKhongDiTheoSymlink(t *testing.T) {
 			})
 		}
 	})
-	// Last name is a symlink: functions that would open it refuse; Lstat,
-	// Readlink, Remove, Rename, WriteFileAtomic work on the link itself.
+	// Tên cuối là symlink: các hàm sẽ mở nó thì từ chối; Lstat, Readlink,
+	// Remove, Rename, WriteFileAtomic làm việc trên chính cái link.
 	refuse := map[string]bool{"ReadFile": true, "ReadDir": true, "MkdirAll": true, "Chown": true, "Chmod": true, "StatFS": true}
 	for _, target := range []string{"v", "v/v"} {
 		t.Run("cuoi->"+target, func(t *testing.T) {
@@ -187,7 +187,7 @@ func TestCuaKhongDiTheoSymlink(t *testing.T) {
 	}
 }
 
-// ---- B2: only regular files of the site user, capped, never hanging ----
+// ---- B2: chỉ file thường của user site, có giới hạn, không bao giờ treo ----
 
 func TestCuaChiDocFileThuong(t *testing.T) {
 	z := newZone(t, true)
@@ -200,7 +200,7 @@ func TestCuaChiDocFileThuong(t *testing.T) {
 			wantIs(t, rel, err, ErrNotRegular)
 		})
 	}
-	// Chown, Chmod, StatFS do not open a FIFO or socket either.
+	// Chown, Chmod, StatFS cũng không mở FIFO hay socket.
 	for _, rel := range []string{"fifo", "sock"} {
 		wantIs(t, "Chmod "+rel, Chmod(z.anchor, rel, 0o600), ErrNotRegular)
 		wantIs(t, "Chown "+rel, Chown(z.anchor, rel, os.Geteuid(), os.Getegid()), ErrNotRegular)
@@ -243,7 +243,7 @@ func TestCuaTranCo(t *testing.T) {
 	_, err := ReadFile(z.anchor, "ten", 9)
 	wantIs(t, "quá trần một byte", err, ErrTooLarge)
 
-	// A file that grows after fstat: readLimit alone must stop at max+1.
+	// File lớn thêm sau fstat: riêng readLimit phải dừng ở max+1.
 	f, err := os.Open(z.p("ten"))
 	if err != nil {
 		t.Fatal(err)
@@ -261,8 +261,8 @@ func TestCuaKhongTreo(t *testing.T) {
 		_, err := ReadFile(z.anchor, "fifo", 0)
 		wantIs(t, "ReadFile FIFO", err, ErrNotRegular)
 	})
-	// A FIFO swapped in after fstatat: the O_NONBLOCK open returns at once and
-	// the fstat on the fd refuses it.
+	// FIFO bị tráo vào sau fstatat: lần mở O_NONBLOCK trả về ngay và fstat
+	// trên fd từ chối nó.
 	within(t, 2*time.Second, "openLeaf FIFO", func() {
 		p, err := walk(z.anchor, "fifo")
 		if err != nil {
@@ -280,7 +280,7 @@ func TestCuaKhongTreo(t *testing.T) {
 			t.Errorf("checkRead FIFO = %v", err)
 		}
 	})
-	// A FIFO as a middle component.
+	// FIFO làm thành phần giữa.
 	within(t, 2*time.Second, "FIFO ở giữa", func() {
 		err := MkdirAll(z.anchor, "fifo/x", 0o750, os.Geteuid(), os.Getegid())
 		wantIs(t, "MkdirAll qua FIFO", err, unix.ENOTDIR)
@@ -327,7 +327,7 @@ func TestCuaChuFile(t *testing.T) {
 	}
 }
 
-// ---- B3: swapping while reading never yields bytes from outside ----
+// ---- B3: tráo trong lúc đọc không bao giờ cho ra byte từ bên ngoài ----
 
 func TestCuaDua(t *testing.T) {
 	const secretData = "SECRET-BYTES-OUTSIDE"
@@ -381,7 +381,7 @@ func TestCuaDua(t *testing.T) {
 	})
 }
 
-// race runs swap in a loop on its own goroutine until the returned stop is called.
+// race chạy swap trong vòng lặp trên goroutine riêng cho tới khi gọi stop được trả về.
 func race(swap func()) (stop func()) {
 	var halt atomic.Bool
 	done := make(chan struct{})
@@ -394,7 +394,7 @@ func race(swap func()) (stop func()) {
 	return func() { halt.Store(true); <-done }
 }
 
-// ---- B4: root changes nothing outside the anchor, even under a race ----
+// ---- B4: root không đổi gì bên ngoài neo, kể cả khi có race ----
 
 func TestCuaKhongRaNgoai(t *testing.T) {
 	for _, o := range writeOps() {
@@ -472,7 +472,7 @@ func TestCuaDuaGhi(t *testing.T) {
 					_ = os.Remove(d)
 					_ = os.Rename(d+".real", d)
 				}
-				// Put the target file back if the operation removed or moved it.
+				// Đặt file đích về chỗ cũ nếu thao tác đã xoá hoặc dời nó.
 				_ = os.Rename(filepath.Join(x, "w"), filepath.Join(x, "v"))
 			})
 			for range 1000 {
@@ -486,8 +486,8 @@ func TestCuaDuaGhi(t *testing.T) {
 	}
 }
 
-// otherGID is a group the test user can chown to that differs from its
-// primary group (so a chown that escaped would show), or -1.
+// otherGID là một group mà user chạy test chown sang được và khác group
+// chính của nó (để một chown thoát ra ngoài sẽ lộ ra), hoặc -1.
 var otherGID = func() int {
 	if os.Geteuid() == 0 {
 		return 65534
@@ -501,7 +501,7 @@ var otherGID = func() int {
 	return -1
 }()
 
-// ---- Names, modes, ownership ----
+// ---- Tên, mode, quyền sở hữu ----
 
 func TestCuaHardlink(t *testing.T) {
 	z := newZone(t, false)
@@ -544,7 +544,7 @@ func TestCuaTenLa(t *testing.T) {
 			wantIs(t, o.name+" "+strconvQ(rel), o.fn(z.anchor, rel), ErrPath)
 		}
 	}
-	// Exactly MaxDepth components is allowed (it just does not exist).
+	// Đúng MaxDepth thành phần thì được phép (chỉ là nó không tồn tại).
 	_, err := Lstat(z.anchor, strings.Repeat("d/", MaxDepth-1)+"x")
 	wantIs(t, "MaxDepth", err, fs.ErrNotExist)
 	for _, a := range []string{"", "rel/a", z.anchor + "/", "/", z.root + "/.."} {
@@ -585,8 +585,8 @@ func TestCuaGiuSetgid(t *testing.T) {
 func TestCuaModeNhuOS(t *testing.T) {
 	z := newZone(t, true)
 	mustMkdir(t, z.p("d"), 0o750)
-	// /tmp's group may not be ours on macOS, so setgid may not stick there;
-	// compare with whatever os.Lstat says, after trying to set it.
+	// Group của /tmp có thể không phải của ta trên macOS, nên setgid có thể
+	// không giữ được ở đó; so với những gì os.Lstat báo, sau khi thử đặt.
 	_ = os.Chmod(z.p("d"), fs.ModeSetgid|0o750)
 	mustWrite(t, z.p("f"), "data", 0o640)
 	mustSymlink(t, "f", z.p("l"))
@@ -609,7 +609,7 @@ func TestCuaModeNhuOS(t *testing.T) {
 			t.Errorf("%s: Size %d, os %d", rel, info.Size, fi.Size())
 		}
 	}
-	// And the other direction: toKernel(fs.ModeSetgid|0o750) is 02750.
+	// Và chiều ngược lại: toKernel(fs.ModeSetgid|0o750) là 02750.
 	if k := toKernel(fs.ModeSetgid | fs.ModeSetuid | fs.ModeSticky | 0o750); k != 0o7750 {
 		t.Errorf("toKernel = %#o, muốn 07750", k)
 	}
@@ -662,7 +662,7 @@ func TestCuaGocKhongAnToan(t *testing.T) {
 	}
 }
 
-// ---- B14: errors never carry file content or symlink targets ----
+// ---- B14: lỗi không bao giờ mang nội dung file hay đích của symlink ----
 
 func TestLoiCuaKhongLoNoiDung(t *testing.T) {
 	const content, target = "NOI-DUNG-BI-MAT", "/etc/DICH-BI-MAT"
@@ -694,7 +694,7 @@ func TestLoiCuaKhongLoNoiDung(t *testing.T) {
 	}
 }
 
-// ---- B17: no fd leaks ----
+// ---- B17: không rò fd ----
 
 func TestCuaKhongRoFD(t *testing.T) {
 	z := newZone(t, false)
@@ -737,7 +737,7 @@ func TestCuaKhongRoFD(t *testing.T) {
 		}
 		return len(ents)
 	}
-	// Warm up: the runtime opens some fds lazily.
+	// Khởi động trước: runtime mở một số fd theo kiểu lười.
 	for _, fn := range good {
 		if err := fn(); err != nil {
 			t.Fatal(err)

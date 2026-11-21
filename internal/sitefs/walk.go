@@ -9,26 +9,26 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Open flags. O_NONBLOCK everywhere (C9): a FIFO swapped in at any component
-// must not make root wait. O_NOFOLLOW everywhere except on the site root
-// itself (its components belong to root).
+// Cờ mở. O_NONBLOCK ở mọi nơi (C9): FIFO bị tráo vào ở bất kỳ thành phần
+// nào cũng không được làm root phải chờ. O_NOFOLLOW ở mọi nơi trừ chính thư
+// mục gốc của site (các thành phần của nó thuộc về root).
 const (
 	dirFlags  = unix.O_RDONLY | unix.O_DIRECTORY | unix.O_NOFOLLOW | unix.O_NONBLOCK | unix.O_CLOEXEC
 	leafFlags = unix.O_RDONLY | unix.O_NOFOLLOW | unix.O_NONBLOCK | unix.O_CLOEXEC
 	rootFlags = unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC
 )
 
-// parent is the result of walking every component of rel except the last:
-// an open fd on the directory holding the last component, which every
-// operation then uses with *at calls or by opening the last name (C3).
+// parent là kết quả khi đi qua mọi thành phần của rel trừ thành phần cuối:
+// một fd đang mở trên thư mục chứa thành phần cuối, rồi mọi thao tác dùng nó
+// với các lời gọi *at hoặc bằng cách mở tên cuối (C3).
 type parent struct {
 	fd     int
 	name   string
-	anchor unix.Stat_t // fstat of the anchor fd: uid, gid of the site user
+	anchor unix.Stat_t // fstat của fd neo: uid, gid của user site
 }
 
-// fail wraps err in *Error. Path never carries file content (B14): only what
-// the caller passed in.
+// fail bọc err vào *Error. Path không bao giờ chứa nội dung file (B14): chỉ
+// có những gì bên gọi đã đưa vào.
 func fail(op, anchor, rel string, err error) error {
 	p := rel
 	if anchor != "" {
@@ -37,7 +37,7 @@ func fail(op, anchor, rel string, err error) error {
 	return &Error{Op: op, Path: p, Err: err}
 }
 
-// splitRel checks anchor and rel without touching the kernel (C2).
+// splitRel kiểm anchor và rel mà không đụng tới kernel (C2).
 func splitRel(anchor, rel string) ([]string, error) {
 	if !path.IsAbs(anchor) || path.Clean(anchor) != anchor || strings.IndexByte(anchor, 0) >= 0 {
 		return nil, ErrPath
@@ -65,9 +65,9 @@ func splitRel(anchor, rel string) ([]string, error) {
 // WriteFileAtomic thì không đóng bằng hàm này: ở đó lỗi khi đóng là lỗi ghi.
 func closeFD(fd int) { _ = unix.Close(fd) }
 
-// openAnchor checks the site root and opens the anchor (C1). The root must
-// belong to this process and not be writable by group or others: otherwise
-// another user could rename one site's anchor to another's name (S15).
+// openAnchor kiểm thư mục gốc của site rồi mở neo (C1). Thư mục gốc phải
+// thuộc về tiến trình này và nhóm hay người khác không được ghi: nếu không,
+// một user khác có thể đổi tên neo của site này thành tên của site kia (S15).
 func openAnchor(anchor string) (int, unix.Stat_t, error) {
 	var st unix.Stat_t
 	rfd, err := openat(unix.AT_FDCWD, path.Dir(anchor), rootFlags, 0)
@@ -92,8 +92,8 @@ func openAnchor(anchor string) (int, unix.Stat_t, error) {
 	return fd, st, nil
 }
 
-// walk opens the anchor and every middle component of rel, one openat
-// (O_NOFOLLOW) at a time. The caller closes p.fd.
+// walk mở neo và mọi thành phần giữa của rel, mỗi lần một openat
+// (O_NOFOLLOW). Bên gọi đóng p.fd.
 func walk(anchor, rel string) (parent, error) {
 	parts, err := splitRel(anchor, rel)
 	if err != nil {
@@ -114,7 +114,7 @@ func walk(anchor, rel string) (parent, error) {
 	return parent{fd: fd, name: parts[len(parts)-1], anchor: ast}, nil
 }
 
-// openat retries on EINTR.
+// openat thử lại khi gặp EINTR.
 func openat(dirfd int, name string, flags int, mode uint32) (int, error) {
 	for {
 		fd, err := unix.Openat(dirfd, name, flags, mode)
@@ -124,7 +124,7 @@ func openat(dirfd int, name string, flags int, mode uint32) (int, error) {
 	}
 }
 
-// openDir opens a directory under dirfd without following a symlink.
+// openDir mở một thư mục dưới dirfd mà không đi theo symlink.
 func openDir(dirfd int, name string) (int, error) {
 	fd, err := openat(dirfd, name, dirFlags, 0)
 	if err != nil {
@@ -133,9 +133,9 @@ func openDir(dirfd int, name string) (int, error) {
 	return fd, nil
 }
 
-// openLeaf opens the last name (O_NOFOLLOW|O_NONBLOCK). Callers have already
-// checked its type with lstatAt; this open is the race-safe one, and the
-// fstat on the returned fd is the check that counts.
+// openLeaf mở tên cuối (O_NOFOLLOW|O_NONBLOCK). Bên gọi đã kiểm kiểu của nó
+// bằng lstatAt; lần mở này mới là lần an toàn trước race, và fstat trên fd
+// trả về mới là phép kiểm có giá trị.
 func openLeaf(dirfd int, name string) (int, error) {
 	fd, err := openat(dirfd, name, leafFlags, 0)
 	if err != nil {
@@ -144,9 +144,9 @@ func openLeaf(dirfd int, name string) (int, error) {
 	return fd, nil
 }
 
-// classify: O_NOFOLLOW on a symlink gives ELOOP, and O_DIRECTORY|O_NOFOLLOW
-// gives ENOTDIR on Linux 6.8. Look at the name only to report "is a symlink";
-// anything else keeps the kernel error.
+// classify: O_NOFOLLOW trên symlink cho ELOOP, còn O_DIRECTORY|O_NOFOLLOW
+// cho ENOTDIR trên Linux 6.8. Chỉ nhìn tên để báo "là symlink"; mọi trường
+// hợp khác giữ nguyên lỗi của kernel.
 func classify(dirfd int, name string, err error) error {
 	if !errors.Is(err, unix.ELOOP) && !errors.Is(err, unix.ENOTDIR) {
 		return err
@@ -163,8 +163,8 @@ func lstatAt(dirfd int, name string) (unix.Stat_t, error) {
 	return st, err
 }
 
-// leafKind rejects a symlink, and anything other than a regular file (or a
-// directory when dirOK).
+// leafKind từ chối symlink và mọi thứ không phải file thường (hoặc thư mục
+// khi dirOK).
 func leafKind(st *unix.Stat_t, dirOK bool) error {
 	switch fileType(st) {
 	case unix.S_IFREG:

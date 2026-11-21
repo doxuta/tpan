@@ -6,10 +6,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// toKernel turns a Go fs.FileMode into the kernel mode bits, like syscallMode
-// in package os: fs.ModeSetgid is bit 22 in Go but 02000 for the kernel.
-// Passing uint32(perm) straight to fchmod would silently drop setgid and turn
-// a 2750 site directory into 0750 (S3).
+// toKernel đổi fs.FileMode của Go thành các bit mode của kernel, giống
+// syscallMode trong package os: fs.ModeSetgid là bit 22 ở Go nhưng là 02000
+// ở kernel. Đưa thẳng uint32(perm) vào fchmod sẽ lặng lẽ mất setgid và biến
+// thư mục site 2750 thành 0750 (S3).
 func toKernel(perm fs.FileMode) uint32 {
 	m := uint32(perm.Perm())
 	if perm&fs.ModeSetuid != 0 {
@@ -24,8 +24,8 @@ func toKernel(perm fs.FileMode) uint32 {
 	return m
 }
 
-// fromKernel builds an fs.FileMode from a Stat_t, like fillFileStatFromSys in
-// package os, so Lstat gives the same Mode as os.Lstat (B16).
+// fromKernel dựng fs.FileMode từ Stat_t, giống fillFileStatFromSys trong
+// package os, để Lstat cho cùng Mode với os.Lstat (B16).
 func fromKernel(st *unix.Stat_t) fs.FileMode {
 	k := uint32(st.Mode)
 	m := fs.FileMode(k & 0o777)

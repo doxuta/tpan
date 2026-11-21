@@ -14,14 +14,14 @@ import (
 	"testing"
 )
 
-// B7 (M28-thiet-ke.md, mục 4): outside packages system and sitefs, no code
-// touches files directly through os, io/ioutil, filepath.Walk*, syscall or
-// x/sys/unix. Every file operation goes through system.System, which sends
-// site paths through the gate. A direct call is how T1 happened
-// (engine.Preview read .htaccess with os.ReadFile).
+// B7 (M28-thiet-ke.md, mục 4): ngoài package system và sitefs, không mã nào
+// đụng file trực tiếp qua os, io/ioutil, filepath.Walk*, syscall hay
+// x/sys/unix. Mọi thao tác file đi qua system.System, nơi đưa đường dẫn site
+// qua cổng. Gọi trực tiếp chính là cách T1 đã xảy ra
+// (engine.Preview đọc .htaccess bằng os.ReadFile).
 
-// osForbidden lists, per import path, the functions that may not be used.
-// nil means every function of that package.
+// osForbidden liệt kê, theo từng import path, các hàm không được dùng.
+// nil nghĩa là mọi hàm của package đó.
 var osForbidden = map[string]map[string]bool{
 	"os": set("ReadFile", "Open", "OpenFile", "Create", "CreateTemp", "MkdirTemp", "WriteFile",
 		"Stat", "Lstat", "ReadDir", "Chown", "Lchown", "Chmod", "Chtimes", "Remove", "RemoveAll",
@@ -33,8 +33,8 @@ var osForbidden = map[string]map[string]bool{
 	"path/filepath":         set("Walk", "WalkDir", "Glob", "EvalSymlinks"),
 }
 
-// osAllowed: files that may still touch the file system directly, one reason
-// each. None of them takes a path inside the site zone.
+// osAllowed: các file vẫn được đụng file system trực tiếp, mỗi file một lý
+// do. Không file nào nhận đường dẫn nằm trong vùng site.
 var osAllowed = map[string]string{
 	"internal/store/store.go":   "mở tpan.db (SQLite cần đường dẫn thật, thư mục /var/lib/tpan của root)",
 	"internal/store/backup.go":  "sao lưu tpan.db cạnh chính nó",
@@ -52,11 +52,13 @@ func set(names ...string) map[string]bool {
 	return m
 }
 
-// osSkipDirs are not part of the tpan binary, or are the two packages that
-// are the only place allowed to touch files.
-var osSkipDirs = []string{"internal/system", "internal/sitefs", "scripts", "docs", "agent-dev", "web/node_modules"}
+// osSkipDirs không thuộc binary tpan, hoặc là hai package duy nhất được
+// phép đụng file. tmp-phien là thư mục tạm của phiên làm việc (nằm trong
+// .git/info/exclude, không vào git): chương trình thử để ở đó không phải mã
+// của tpan.
+var osSkipDirs = []string{"internal/system", "internal/sitefs", "scripts", "docs", "agent-dev", "tmp-phien", "web/node_modules"}
 
-// osHits parses one Go file and returns "line: pkg.Func" for every forbidden use.
+// osHits phân tích một file Go và trả về "line: pkg.Func" cho mỗi chỗ dùng bị cấm.
 func osHits(src []byte) ([]string, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "", src, 0)
@@ -64,7 +66,7 @@ func osHits(src []byte) ([]string, error) {
 		return nil, err
 	}
 	var hits []string
-	alias := map[string]string{} // local name -> import path
+	alias := map[string]string{} // tên cục bộ -> import path
 	for _, imp := range f.Imports {
 		p, _ := strconv.Unquote(imp.Path.Value)
 		if p == "io/ioutil" {
@@ -102,7 +104,7 @@ func osHits(src []byte) ([]string, error) {
 			return true
 		}
 		names := osForbidden[p]
-		// unix: every call; the others: the listed names, called or passed as a value.
+		// unix: mọi lời gọi; các package khác: những tên trong danh sách, được gọi hoặc truyền như một giá trị.
 		if (names == nil && call) || names[sel.Sel.Name] {
 			hits = append(hits, strconv.Itoa(fset.Position(sel.Pos()).Line)+": "+id.Name+"."+sel.Sel.Name)
 		}
@@ -151,7 +153,7 @@ func TestKhongGoiOSTrucTiep(t *testing.T) {
 		}
 		hits, err := osHits(src)
 		if err != nil {
-			return nil // go vet reports files that do not parse
+			return nil // go vet đã báo các file không phân tích được
 		}
 		if len(hits) == 0 {
 			return nil
@@ -168,7 +170,7 @@ func TestKhongGoiOSTrucTiep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// An exception that no longer needs it is removed, so the list stays honest.
+	// Ngoại lệ nào không còn cần thì bị gỡ, để danh sách luôn trung thực.
 	for f := range osAllowed {
 		if !seen[f] {
 			t.Errorf("%s có trong osAllowed nhưng không còn gọi hàm file nào: bỏ khỏi danh sách", f)
@@ -176,8 +178,8 @@ func TestKhongGoiOSTrucTiep(t *testing.T) {
 	}
 }
 
-// TestMauQuetOS checks the scanner itself, so the test above is not green
-// only because the scanner is blind.
+// TestMauQuetOS kiểm chính bộ quét, để test ở trên không xanh chỉ vì bộ quét
+// bị mù.
 func TestMauQuetOS(t *testing.T) {
 	bad := `package x
 import (

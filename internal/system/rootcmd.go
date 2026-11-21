@@ -11,22 +11,22 @@ import (
 	"github.com/doxuta/tpan/internal/sitefs"
 )
 
-// ErrRootZoneCommand: a command run as root (or as a user that is not a site
-// user) was given a path inside the site zone, and it is not one of the
-// exceptions in rootZoneCommands. This is a programming error in tpan, not a
-// refusal of the gate: the command is not run. Design: M28-thiet-ke.md, 3.4.
+// ErrRootZoneCommand: một lệnh chạy bằng root (hoặc bằng user không phải user
+// site) được đưa một đường dẫn trong vùng site, mà lệnh đó không nằm trong
+// các ngoại lệ ở rootZoneCommands. Đây là lỗi lập trình trong tpan, không
+// phải cổng từ chối: lệnh không được chạy. Thiết kế: M28-thiet-ke.md, 3.4.
 var ErrRootZoneCommand = errors.New("lệnh chạy bằng root nhận đường dẫn trong thư mục site (mục 3.4 của M28-thiet-ke.md): dùng system.System, hoặc chạy bằng user của site")
 
-// siteUserRe is the shape of site.Layout.User. A command run as such a user
-// is limited by the kernel to that user's rights, so it is not checked.
-// www-data, root or any other user is checked like root.
+// siteUserRe là dạng của site.Layout.User. Lệnh chạy bằng một user như vậy bị
+// kernel giới hạn trong quyền của user đó, nên không cần kiểm.
+// www-data, root hay user nào khác thì kiểm như root.
 var siteUserRe = regexp.MustCompile(`^tp_[a-z0-9_]{1,29}$`)
 
-// rootZoneCommands are the only programs root may run on a site path, each
-// with the argument form it is allowed in. Even then every site path in argv
-// must be an anchor or <anchor>/<one name> (see checkRootZone): a deeper path
-// has a middle component the site controls, which the kernel would follow
-// before the program could open it by fd.
+// rootZoneCommands là các chương trình duy nhất root được chạy trên đường dẫn
+// site, mỗi cái kèm dạng tham số được phép. Dù vậy, mọi đường dẫn site trong
+// argv phải là một neo hoặc <anchor>/<một tên> (xem checkRootZone): đường dẫn
+// sâu hơn có thành phần giữa do site điều khiển, mà kernel sẽ đi theo trước
+// khi chương trình kịp mở nó bằng fd.
 //
 // Danh sách trắng theo từng cờ, không theo tên chương trình (soát cuối M28,
 // C5): miễn "tar" hay "du" nói chung thì lọt các cờ nhận một FILE mà chương
@@ -35,12 +35,12 @@ var siteUserRe = regexp.MustCompile(`^tp_[a-z0-9_]{1,29}$`)
 // --files0-from, -X, -L; useradd -P). Mọi cờ ngoài đúng dạng tpan đang dùng
 // làm cả lệnh bị từ chối khi lệnh chạm vùng site.
 var rootZoneCommands = map[string]func(args []string, prefix string) bool{
-	// Backup: tar --create opens the tree by fd with O_NOFOLLOW and stores a
-	// symlink as a symlink (N3). Extracting into a tree the site holds is the
-	// classic symlink attack, so any extract or dereference form is refused.
+	// Backup: tar --create mở cây bằng fd với O_NOFOLLOW và lưu symlink thành
+	// symlink (N3). Giải nén vào một cây do site nắm giữ là kiểu tấn công
+	// symlink kinh điển, nên mọi dạng giải nén hay dereference đều bị từ chối.
 	"tar": tarCreateOnly,
-	// Disk usage: du -sb --one-file-system does not follow symlinks and only
-	// prints numbers (N3). Chỉ đúng dạng đó.
+	// Dung lượng đĩa: du -sb --one-file-system không đi theo symlink và chỉ
+	// in ra số (N3). Chỉ đúng dạng đó.
 	"du": func(args []string, _ string) bool {
 		for _, a := range args {
 			switch {
@@ -51,8 +51,8 @@ var rootZoneCommands = map[string]func(args []string, prefix string) bool{
 		}
 		return true
 	},
-	// Site user: --home-dir <anchor> is only a string written to /etc/passwd,
-	// as long as --no-create-home is there. Chỉ đúng các cờ tpan dùng; giá trị
+	// User site: --home-dir <anchor> chỉ là một chuỗi ghi vào /etc/passwd,
+	// miễn là có --no-create-home. Chỉ đúng các cờ tpan dùng; giá trị
 	// của --shell không được nằm trong vùng.
 	"useradd": func(args []string, prefix string) bool {
 		for i := 0; i < len(args); i++ {
@@ -75,14 +75,14 @@ var rootZoneCommands = map[string]func(args []string, prefix string) bool{
 	},
 }
 
-// tarCreateOnly: --create, and nothing that extracts or follows symlinks.
-// GNU tar takes unambiguous prefixes of long options (--ext, --deref) and
-// clusters of short ones (-xzf), so both are checked.
+// tarCreateOnly: --create, và không gì giải nén hay đi theo symlink.
+// GNU tar nhận tiền tố không mơ hồ của cờ dài (--ext, --deref) và cụm cờ
+// ngắn (-xzf), nên kiểm cả hai.
 //
-// Also refused, because checkRootZone could not follow tar's working
-// directory: a first argument without "-" (old-style "tar h ..." where it is
-// an option cluster), and "C" inside a cluster ("-zC <dir>"); only a bare
-// "-C <dir>" or a --directory form is understood.
+// Cũng bị từ chối, vì checkRootZone không theo dõi được thư mục làm việc của
+// tar: tham số đầu không có "-" (kiểu cũ "tar h ..." mà nó là một cụm cờ),
+// và "C" nằm trong cụm cờ ("-zC <dir>"); chỉ hiểu "-C <dir>" đứng riêng
+// hoặc dạng --directory.
 //
 // Chỉ nhận đúng các cờ tpan dùng cho backup (soát cuối C5): --create, --gzip,
 // --one-file-system, --file=<ngoài vùng> (tar ghi file nén theo đường dẫn, đi
@@ -115,18 +115,18 @@ func tarCreateOnly(args []string, prefix string) bool {
 	return create
 }
 
-// tarDirOption: a is --directory, or an unambiguous prefix of it (--dir),
-// with or without "=<dir>".
+// tarDirOption: a là --directory, hoặc tiền tố không mơ hồ của nó (--dir),
+// có hoặc không có "=<dir>".
 func tarDirOption(a string) (val string, hasVal, ok bool) {
 	name, val, hasVal := strings.Cut(a, "=")
 	return val, hasVal, len(name) > 3 && strings.HasPrefix("--directory", name)
 }
 
-// checkRootZone applies 3.4 to cmd for the site root root. A command touches
-// the zone when Name, Dir, an Args element or an Env value contains
-// "<root>/" anywhere, or an Args element not starting with "-" is a relative
-// path that, joined with Dir ("" is "/"), lies under root. False positives
-// only make a test red; they never open a hole.
+// checkRootZone áp dụng mục 3.4 cho cmd với thư mục gốc site root. Một lệnh
+// chạm vùng khi Name, Dir, một phần tử Args hoặc một giá trị Env chứa
+// "<root>/" ở bất kỳ đâu, hoặc một phần tử Args không bắt đầu bằng "-" là
+// đường dẫn tương đối mà khi nối với Dir ("" là "/") nằm dưới root. Báo nhầm
+// chỉ làm test đỏ; không bao giờ mở ra lỗ hổng.
 func checkRootZone(root string, cmd Cmd) error {
 	if root == "" || siteUserRe.MatchString(cmd.AsUser) {
 		return nil
@@ -145,7 +145,7 @@ func checkRootZone(root string, cmd Cmd) error {
 		return v != "" && !strings.HasPrefix(v, "-") && !path.IsAbs(v) && strings.HasPrefix(path.Join(dir, v), prefix)
 	}
 	for _, a := range cmd.Args {
-		// Also the value of --opt=<relative path> (tar --directory=var/www/...).
+		// Cả giá trị của --opt=<đường dẫn tương đối> (tar --directory=var/www/...).
 		_, v, isOpt := strings.Cut(a, "=")
 		touches = touches || strings.Contains(a, prefix) || relUnder(a) ||
 			(strings.HasPrefix(a, "--") && isOpt && relUnder(v))
@@ -163,8 +163,8 @@ func checkRootZone(root string, cmd Cmd) error {
 			return refuse
 		}
 	}
-	// A working directory is entered with chdir, which follows the last
-	// component too, so inside the zone it must be exactly an anchor.
+	// Thư mục làm việc được vào bằng chdir, mà chdir cũng đi theo thành phần
+	// cuối, nên trong vùng nó phải đúng là một neo.
 	if strings.HasPrefix(dir+"/", prefix) && !sitefs.IsAnchor(root, dir) {
 		return refuse
 	}
@@ -175,8 +175,8 @@ func checkRootZone(root string, cmd Cmd) error {
 	cwd := dir
 	chdirNext := false
 	for _, a := range cmd.Args {
-		// tar -C <dir> / --directory=<dir>: later relative names are taken
-		// from there, and the directory itself is entered with chdir.
+		// tar -C <dir> / --directory=<dir>: các tên tương đối về sau được lấy
+		// từ đó, và chính thư mục được vào bằng chdir.
 		isDir := chdirNext
 		chdirNext = false
 		val := a
@@ -187,7 +187,7 @@ func checkRootZone(root string, cmd Cmd) error {
 			}
 			if v, hasVal, ok := tarDirOption(a); ok {
 				if !hasVal {
-					chdirNext = true // --directory <dir>: the value is the next argument
+					chdirNext = true // --directory <dir>: giá trị là tham số kế tiếp
 					continue
 				}
 				val, isDir = v, true
@@ -199,8 +199,8 @@ func checkRootZone(root string, cmd Cmd) error {
 		var p string
 		switch {
 		case strings.Contains(val, prefix):
-			// Only a clean absolute path, alone or after "--opt=", is
-			// understood; -C/var/www/..., "source /var/www/..." are not.
+			// Chỉ hiểu đường dẫn tuyệt đối sạch, đứng riêng hoặc sau "--opt=";
+			// -C/var/www/..., "source /var/www/..." thì không.
 			if !path.IsAbs(val) || path.Clean(val) != val {
 				return refuse
 			}

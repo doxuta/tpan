@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-// zone is a site root and one anchor below it, both owned by the test user.
+// zone là một thư mục gốc site và một neo dưới nó, cả hai thuộc user chạy test.
 type zone struct {
 	root, anchor string
 }
 
-// newZone builds <tmp>/www (0755) and <tmp>/www/a (0750). short=true puts it
-// under /tmp so a Unix socket path fits (104 bytes on macOS).
+// newZone dựng <tmp>/www (0755) và <tmp>/www/a (0750). short=true đặt nó
+// dưới /tmp để đường dẫn Unix socket vừa đủ (104 byte trên macOS).
 func newZone(t *testing.T, short bool) zone {
 	t.Helper()
 	base := t.TempDir()
@@ -35,9 +35,9 @@ func newZone(t *testing.T, short bool) zone {
 	z.anchor = filepath.Join(z.root, "a")
 	mustMkdir(t, z.root, 0o755)
 	mustMkdir(t, z.anchor, 0o750)
-	// macOS gives a new directory its parent's group (wheel under /tmp), and a
-	// non-root user cannot set setgid or chown to a group it is not in. Use
-	// our own group so the tree below behaves like a site tree.
+	// macOS cho thư mục mới group của thư mục cha (wheel dưới /tmp), và user
+	// không phải root không đặt được setgid hay chown sang group mà nó không
+	// thuộc. Dùng group của chính mình để cây bên dưới hành xử như cây site.
 	for _, p := range []string{z.root, z.anchor} {
 		if err := os.Chown(p, os.Geteuid(), os.Getegid()); err != nil {
 			t.Fatal(err)
@@ -88,13 +88,13 @@ func mustSocket(t *testing.T, p string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Keep the socket file after Close.
+	// Giữ lại file socket sau khi Close.
 	l.(*net.UnixListener).SetUnlinkOnClose(false)
 	_ = l.Close()
 }
 
-// op is one function of the gate with fixed extra arguments, so a test can
-// run "every function" on the same (anchor, rel).
+// op là một hàm của cổng với các tham số phụ cố định, để một test chạy được
+// "mọi hàm" trên cùng một (anchor, rel).
 type op struct {
 	name string
 	fn   func(anchor, rel string) error
@@ -118,7 +118,7 @@ func allOps() []op {
 	}
 }
 
-// writeOps are the functions that change something (B4).
+// writeOps là các hàm làm thay đổi thứ gì đó (B4).
 func writeOps() []op {
 	var out []op
 	for _, o := range allOps() {
@@ -130,7 +130,7 @@ func writeOps() []op {
 	return out
 }
 
-// snap records every entry under dir: mode, owner, content or link target.
+// snap ghi lại mọi mục dưới dir: mode, chủ, nội dung hoặc đích của link.
 func snap(t *testing.T, dir string) string {
 	t.Helper()
 	var lines []string
@@ -178,8 +178,8 @@ func itoa(u uint32) string {
 	}
 }
 
-// victim builds a directory outside the anchor that no site operation may
-// touch: v (file), x/v (file), mode 0755 and 0644.
+// victim dựng một thư mục nằm ngoài neo mà không thao tác site nào được
+// đụng tới: v (file), x/v (file), mode 0755 và 0644.
 func victim(t *testing.T, z zone) string {
 	t.Helper()
 	v := filepath.Join(filepath.Dir(z.root), "victim")
@@ -190,7 +190,7 @@ func victim(t *testing.T, z zone) string {
 	return v
 }
 
-// within fails the test when fn takes longer than d (C9: never hangs).
+// within làm test thất bại khi fn chạy lâu hơn d (C9: không bao giờ treo).
 func within(t *testing.T, d time.Duration, what string, fn func()) {
 	t.Helper()
 	done := make(chan struct{})
