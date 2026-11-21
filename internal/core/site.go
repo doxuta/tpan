@@ -887,6 +887,6 @@ func (s *Sites) health(ctx context.Context, d validate.Domain) (Health, site.Sit
 	}
 	// Cùng bộ phép kiểm với health định kỳ (siteStateChecks): site hay DB
 	// đang tạm khoá thì các chặng bị bỏ hiện xám, không đỏ (M13).
-	h.Results = checks.RunAll(ctx, s.Sys, siteStateChecks(st, cfg, others, false))
+	h.Results = checks.RunAll(ctx, s.Sys, siteStateChecks(st, cfg, others, nil, false))
 	return h, st, nil
 }
