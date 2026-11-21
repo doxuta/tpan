@@ -354,6 +354,7 @@ func photosM16(c *cdp, base, adminPW, out string) error {
 		return err
 	}
 	open := func(path, lang string) error {
+		_ = c.consoleErrors() // lỗi của màn trước (đã báo hoặc không thuộc phần kiểm này) không tính cho màn sắp mở
 		if _, err := c.eval(fmt.Sprintf(`localStorage.setItem('tpan-theme','light');localStorage.setItem('tpan-lang',%q)`, lang)); err != nil {
 			return err
 		}
