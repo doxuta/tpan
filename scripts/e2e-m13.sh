@@ -374,7 +374,11 @@ c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
 for r in c.execute(sys.argv[1], sys.argv[2:]):
     print(*[str(x) for x in r], sep="\t")
 '
-sql() { vroot python3 -c "$SQL_PY" "$@"; }
+# -W ignore::DeprecationWarning: Python 3.12 cảnh báo ra stderr khi tham số
+# ?1..?5 đi kèm một danh sách, và OUT gộp stdout với stderr theo thứ tự không cố
+# định, nên hai lần chạy cùng một câu có thể ra hai chuỗi khác nhau (hồi quy M28
+# ngày 21/11: P2 đỏ dù hai lần đếm đều ra "8 181").
+sql() { vroot python3 -W ignore::DeprecationWarning -c "$SQL_PY" "$@"; }
 # Job do một user chạy (actor) và job trên vài target, kèm số sự kiện command của chúng.
 JOBS_SQL="SELECT COUNT(*), (SELECT COUNT(*) FROM job_events e WHERE e.kind = 'command' AND e.job_id IN (SELECT id FROM jobs WHERE actor = ?1 OR target IN (?2, ?3, ?4, ?5))) FROM jobs WHERE actor = ?1 OR target IN (?2, ?3, ?4, ?5)"
 
