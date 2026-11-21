@@ -208,7 +208,7 @@ func TestUpdatesOnDemo(t *testing.T) {
 	if s.MariaDB.Line != "10.11" || s.MariaDB.Source != core.SourceUbuntu || !slices.Equal(lines, []string{"11.4", "11.8", "12.3"}) {
 		t.Errorf("MariaDB = %+v", s.MariaDB)
 	}
-	if s.Self.Version != "v0.12.0-demo" || s.Self.URL != core.DefaultSelfURL || s.Self.HasOld {
+	if s.Self.Version != "v0.12.0-demo" || s.Self.URL != core.DefaultSelfURL || !s.Self.HasOld {
 		t.Errorf("Self = %+v", s.Self)
 	}
 

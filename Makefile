@@ -29,7 +29,7 @@ build-linux: web ## Build tpan cho Linux amd64 (VPS) và arm64 (máy ảo trên 
 # vào file chạy qua LDFLAGS.
 RELEASE_DIR := dist/release/$(VERSION)
 
-release: build-linux ## Đóng gói phát hành vào dist/release/<version>/ (file chạy, install.sh, SHA256SUMS)
+release: build-linux ## Đóng gói phát hành vào dist/release/<version>/ (file chạy, install.sh, SHA256SUMS, VERSION)
 	rm -rf $(RELEASE_DIR)
 	mkdir -p $(RELEASE_DIR)
 	cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh $(RELEASE_DIR)/
@@ -41,6 +41,10 @@ release: build-linux ## Đóng gói phát hành vào dist/release/<version>/ (fi
 	else \
 	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	fi > SHA256SUMS
+	@# VERSION: tên bản, một dòng. Nút "Kiểm bản mới" của panel (M15) đọc file
+	@# này ở nguồn tải để nói được "bản mới nhất là gì" mà không phải tải cả
+	@# file chạy. Không nằm trong SHA256SUMS: chỉ để hiện, không được chạy.
+	printf '%s\n' '$(VERSION)' > $(RELEASE_DIR)/VERSION
 	@echo "Gói phát hành: $(RELEASE_DIR)/"
 	@ls -l $(RELEASE_DIR)
 

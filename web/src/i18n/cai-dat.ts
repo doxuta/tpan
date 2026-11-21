@@ -4,7 +4,7 @@ import { defineStrings } from "./index";
 
 const vi = {
   title: "Cài đặt",
-  summary: "Mật khẩu của bạn, các phiên đang đăng nhập, ngôn ngữ, sáng hoặc tối, AI và bộ não.",
+  summary: "Mật khẩu của bạn, các phiên đang đăng nhập, phiên bản và cập nhật TPAN, ngôn ngữ, sáng hoặc tối, AI và bộ não.",
   summaryUser: "Mật khẩu của bạn, các phiên đang đăng nhập, ngôn ngữ, sáng hoặc tối.",
 
   // Mật khẩu của tài khoản đang đăng nhập (M13: mỗi user một mật khẩu)
@@ -81,7 +81,7 @@ const vi = {
 
 export const strings = defineStrings(vi, {
   title: "Settings",
-  summary: "Your password, active sessions, language, light or dark, AI and brain.",
+  summary: "Your password, active sessions, TPAN version and updates, language, light or dark, AI and brain.",
   summaryUser: "Your password, active sessions, language, light or dark.",
 
   pwHeading: "Your password",
