@@ -197,16 +197,19 @@ func (s *Store) RunningJobsOf(ctx context.Context, name string) (int, error) {
 
 // ---- Gói ----
 
-const packageColumns = "name, max_sites, max_dbs, disk_mb, max_backups, created_at"
+const packageColumns = "name, max_sites, max_dbs, disk_mb, max_backups, cage, cpu_percent, ram_mb, tasks, io_read_mb, io_write_mb, php_workers, created_at"
 
 func scanPackage(r rowScanner) (account.Package, error) {
 	var (
 		p       account.Package
+		cage    int
 		created string
 	)
-	if err := r.Scan(&p.Name, &p.MaxSites, &p.MaxDBs, &p.DiskMB, &p.MaxBackups, &created); err != nil {
+	if err := r.Scan(&p.Name, &p.MaxSites, &p.MaxDBs, &p.DiskMB, &p.MaxBackups,
+		&cage, &p.CPUPercent, &p.RAMMB, &p.Tasks, &p.IOReadMB, &p.IOWriteMB, &p.PHPWorkers, &created); err != nil {
 		return account.Package{}, err
 	}
+	p.Cage = cage != 0
 	var err error
 	if p.Created, err = parseTime(created); err != nil {
 		return account.Package{}, fmt.Errorf("gói %s: %w", p.Name, err)
@@ -243,8 +246,8 @@ func (s *Store) Packages(ctx context.Context) ([]account.Package, error) {
 	return out, nil
 }
 
-// SavePackage thêm gói mới hoặc ghi đè bốn giới hạn của gói cùng tên. Gói đã có
-// giữ nguyên ngày tạo (cột created_at không bị ghi đè); gói mới có Created zero
+// SavePackage thêm gói mới hoặc ghi đè mọi giới hạn (bốn của M13, cờ lồng và sáu
+// trần của M17) của gói cùng tên. Gói đã có giữ nguyên ngày tạo (cột created_at không bị ghi đè); gói mới có Created zero
 // thì lấy bây giờ.
 func (s *Store) SavePackage(ctx context.Context, p account.Package) error {
 	if p.Name == "" {
@@ -254,11 +257,17 @@ func (s *Store) SavePackage(ctx context.Context, p account.Package) error {
 		p.Created = s.now()
 	}
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO packages (name, max_sites, max_dbs, disk_mb, max_backups, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)
+		`INSERT INTO packages (name, max_sites, max_dbs, disk_mb, max_backups,
+		                       cage, cpu_percent, ram_mb, tasks, io_read_mb, io_write_mb, php_workers, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT (name) DO UPDATE SET max_sites = excluded.max_sites, max_dbs = excluded.max_dbs,
-		   disk_mb = excluded.disk_mb, max_backups = excluded.max_backups`,
-		p.Name, p.MaxSites, p.MaxDBs, p.DiskMB, p.MaxBackups, fmtTime(p.Created))
+		   disk_mb = excluded.disk_mb, max_backups = excluded.max_backups,
+		   cage = excluded.cage, cpu_percent = excluded.cpu_percent, ram_mb = excluded.ram_mb,
+		   tasks = excluded.tasks, io_read_mb = excluded.io_read_mb, io_write_mb = excluded.io_write_mb,
+		   php_workers = excluded.php_workers`,
+		p.Name, p.MaxSites, p.MaxDBs, p.DiskMB, p.MaxBackups,
+		siteBool(p.Cage), p.CPUPercent, p.RAMMB, p.Tasks, p.IOReadMB, p.IOWriteMB, p.PHPWorkers,
+		fmtTime(p.Created))
 	if err != nil {
 		return fmt.Errorf("lưu gói %s: %w", p.Name, err)
 	}
