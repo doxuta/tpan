@@ -77,8 +77,8 @@ do-giao-dien: web ## Đo từng màn trên máy demo (dài mấy màn hình, c�
 anh-m16: web ## Chụp mọi màn (sáng, tối, 390 px) vào docs/bang-chung/M16, kiểm lỗi console, bàn phím, tiếng Anh
 	$(ANH) -bo m16 -out docs/bang-chung/M16
 
-anh-mau: ## Chụp ba trang mẫu bản 2 vào thư mục OUT (mặc định /tmp/tpan-mau), để đặt cạnh ảnh bản thật
-	$(ANH) -bo mau-v2 -out $(or $(OUT),/tmp/tpan-mau)
+anh-mau: ## Chụp ba trang mẫu bản 2 vào thư mục OUT (mặc định tmp-phien/mau, không vào git), để đặt cạnh ảnh bản thật
+	$(ANH) -bo mau-v2 -out $(or $(OUT),tmp-phien/mau)
 
 e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: hai vai, tạo site từ giao diện, nâng từ v0.2.0)
 	bash scripts/e2e-m16.sh
