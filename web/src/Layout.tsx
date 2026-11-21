@@ -9,6 +9,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { errorMessage, loginHref, loginPath, post } from "./api/client";
+import { useSelfAutoCheck } from "./api/m15";
 import { useExitViewAs, useWho, type Who } from "./api/m13-users";
 import { machineStatus, useOverview, useSession } from "./api/queries";
 import type { Overview, StackSummary } from "./api/types";
@@ -25,6 +26,7 @@ import { Tag } from "./components/Tag";
 import { useLang, useStrings, type Lang } from "./i18n";
 import { strings as aiStrings } from "./i18n/ai";
 import { strings } from "./i18n/khung";
+import { strings as phienBan } from "./i18n/phien-ban";
 import { screens, type MenuGroup, type ScreenEntry } from "./routes";
 import { useTheme, type Theme } from "./theme";
 import { useTips } from "./tips";
@@ -41,7 +43,11 @@ export function Layout() {
   const who = useWho();
 
   if (session.isPending) return <p className="px-[32px] py-[24px] text-muted">{t.loading}</p>;
-  if (session.isError) {
+  // Chỉ báo lỗi cả trang khi chưa từng đọc được phiên. Đã có dữ liệu mà lần hỏi
+  // lại hỏng (ví dụ quay lại tab đúng lúc panel restart vì cập nhật TPAN, mục
+  // 6.14) thì giữ khung trang: khối "Phiên bản và cập nhật" phải sống qua lần
+  // restart, và từng màn tự báo lỗi của lời gọi của nó.
+  if (session.isError && !session.data) {
     return (
       <div className="px-[32px] py-[24px]">
         <p className="m-0">{errorMessage(session.error, lang)}</p>
@@ -94,6 +100,33 @@ function Shell({ t, hostname, demo, overview, who, version }: { t: T; hostname: 
     return () => document.removeEventListener("keydown", onKey);
   }, [admin, ai.toggle]);
 
+  // Router không tự cuộn tới neo (#phien-ban, #bm-co-lap). Màn tải lười và đầy
+  // dần khi dữ liệu về, nên cuộn ngay rồi cuộn lại mỗi lần nội dung đổi cỡ
+  // trong 2,5 giây đầu. location.key đổi ở mỗi lần bấm liên kết, kể cả khi đang
+  // ở sẵn đúng đường dẫn đó, nên bấm lại vẫn cuộn.
+  const { hash, key } = useLocation();
+  useEffect(() => {
+    const id = decodeURIComponent(hash.slice(1));
+    const main = document.getElementById("noi-dung");
+    if (!id || !main) return;
+    let focused = false;
+    const go = () => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ block: "start" });
+      // Như neo thường của trình duyệt: Tab kế tiếp đi tiếp từ khối đó (chỉ có tác dụng với phần tử có tabIndex).
+      if (!focused) el.focus({ preventScroll: true });
+      focused = true;
+    };
+    const watch = new ResizeObserver(go); // gọi go ngay lần đầu quan sát
+    watch.observe(main);
+    const stop = setTimeout(() => watch.disconnect(), 2500);
+    return () => {
+      watch.disconnect();
+      clearTimeout(stop);
+    };
+  }, [hash, key]);
+
   return (
     <>
       {who.viewedBy && <ViewAsBar t={t} name={who.name} admin={who.viewedBy} />}
@@ -112,12 +145,38 @@ function Shell({ t, hostname, demo, overview, who, version }: { t: T; hostname: 
         {/* Phiên bản đang chạy, lấy từ /api/v1/session: nhìn là biết máy này đã cập nhật chưa. */}
         {version && (
           <footer className="mt-[40px] border-t border-hair pt-[12px] font-mono text-[12px] text-muted">
-            TPAN {version}
+            {/* Phiên "xem như" chỉ đọc và không phải của admin thật: giữ chữ thường như user. */}
+            <VersionLine version={version} admin={admin && !who.viewedBy} />
           </footer>
         )}
         <CommandPalette open={palette} onOpenChange={setPalette} />
       </div>
     </>
+  );
+}
+
+/**
+ * Dòng phiên bản cuối trang (mục 6.14, quyết định 10). Admin: liên kết tới khối
+ * "Phiên bản và cập nhật" ở màn Cài đặt, kèm một ô vuông nhỏ khi lần kiểm gần
+ * nhất thấy bản mới. "Có bản mới" là thông tin, không phải tình trạng máy, nên
+ * dấu này màu --ink (đen trắng) và không dùng hình nào của bốn dấu trạng thái
+ * (mục 2 của GIAO-DIEN.md). User thường: chữ thường, và không gọi
+ * /api/v1/self (route chỉ admin).
+ */
+function VersionLine({ version, admin }: { version: string; admin: boolean }) {
+  const t = useStrings(phienBan);
+  const hasNew = useSelfAutoCheck(admin);
+  if (!admin) return <>TPAN {version}</>;
+  return (
+    <Link to="/settings#phien-ban" title={t.heading} className="inline-flex min-h-[24px] items-center">
+      TPAN {version}
+      {hasNew && (
+        <>
+          <span aria-hidden="true" className="ml-[6px] inline-block size-[6px] bg-ink" />
+          <span className="sr-only">, {t.footerNew}</span>
+        </>
+      )}
+    </Link>
   );
 }
 

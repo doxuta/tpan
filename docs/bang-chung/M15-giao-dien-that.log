@@ -1,0 +1,37 @@
+Bấm thật nút cập nhật TPAN trên panel của máy ảo tpan-m15 bằng Chrome không giao diện
+Ngày 21/11/2026, ngay sau lần chạy e2e của M15 (docs/bang-chung/M15.log).
+
+Vì sao có file này: e2e gọi API bằng curl nên không chạy dòng mã nào của giao diện.
+Bài này mở panel trong Chrome, bấm đúng các nút người dùng bấm, và theo dõi trang
+mỗi 100ms trong lúc panel khởi động lại.
+
+Chuẩn bị (máy ảo đang ở cuối kịch bản e2e: bản A là bản của nhánh):
+  scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8015 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m15/rel
+  scripts/vm.sh root python3 /home/ubuntu/e2e-m15/db.py seturl http://127.0.0.1:8015/b     (đồ nghề test: đặt nguồn tải)
+  scripts/vm.sh root tpan admin passwd --yes --json                                         (mật khẩu mới cho lần thử, không ghi ở đây)
+Lệnh:
+  TPAN_PANEL_PASSWORD=<mật khẩu> go run ./scripts/anh-readme -bo m15-that -panel https://<vm>:8443 -out docs/bang-chung
+
+Output nguyên văn (IP máy ảo đã che):
+
+bản đang chạy lúc đầu: v0.2.0-13-g06e0e24
+docs/bang-chung/M15-that-1-xem-truoc.png  110 KB
+docs/bang-chung/M15-that-2-dang-cap-nhat.png  91 KB
+từ lúc bấm tới lúc khối báo "Đã lên": 3.1 giây
+cập nhật: trong lúc chờ, trang đã thấy {"paths":["/settings"],"restarting":false,"updating":true,"loginSeen":false}
+bản đang chạy sau khi cập nhật: v0.2.0-13-g06e0e24-e2e-b (phiên đăng nhập cũ còn dùng được: /api/v1/session trả lời có version)
+docs/bang-chung/M15-that-3-da-len.png  93 KB
+dòng cuối trang sau khi lên: "TPAN v0.2.0-13-g06e0e24-e2e-b"
+docs/bang-chung/M15-that-4-hoi-quay-ve.png  126 KB
+từ lúc bấm tới lúc khối báo "Đã quay về": 3.2 giây
+cập nhật: xem dòng trên; quay về: trong lúc chờ, trang đã thấy {"paths":["/settings"],"restarting":false,"updating":true,"loginSeen":false}
+bản đang chạy sau khi quay về: v0.2.0-13-g06e0e24
+
+Đọc kết quả:
+  - Trang ở nguyên /settings suốt lượt chạy, không lần nào văng về trang đăng nhập (loginSeen false).
+  - Khối hiện "Đang cập nhật TPAN…" rồi "Đã lên <bản B>", dòng phiên bản cuối trang tự đổi sang bản B.
+  - Phiên đăng nhập tạo trước khi cập nhật dùng tiếp được sau khi panel lên bản mới.
+  - "restarting": false nghĩa là không lần hỏi lại nào rơi đúng lúc panel mất kết nối: panel chỉ
+    gián đoạn chừng 15 ms (đo ở M15.log), còn trang hỏi 3 giây một lần. Dòng "Panel đang khởi động
+    lại…" vì vậy chưa được thấy bằng mắt trong bài này.
+  - 3 giây từ lúc bấm tới lúc báo xong là một nhịp hỏi lại của trang, không phải thời gian cập nhật.

@@ -38,6 +38,7 @@ Quy tắc:
 - Chú giải bốn hình nằm ngay trên bản đồ tuyến.
 - Xanh lá, vàng, đỏ không dùng cho việc gì khác: không tô nút, không tô tiêu đề, không trang trí.
 - Bấm vào một dấu trạng thái là mở bằng chứng của phép kiểm đó.
+- Dấu thông tin không phải dấu trạng thái. Hiện chỉ có một: ô vuông đặc 6 px màu chữ (`--ink`) cạnh số bản ở dòng phiên bản cuối trang, nghĩa là "có bản TPAN mới" (M15). Nó không nói gì về tình trạng của máy nên không mang hình hay màu nào của bốn trạng thái, và có chữ cho trình đọc màn hình ("có bản mới").
 
 ## 3. Màu
 
@@ -259,6 +260,9 @@ Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới t
 | Áp bản vá cô lập | Apply isolation hardening | Nút và tên Plan của `tpan security harden`. |
 | Chế độ .htaccess | .htaccess mode | Ba giá trị `an-toan`, `tat`, `day-du` giữ nguyên ở cả hai bản, chữ mono. |
 | Đường đi của request | Request path | Nút "Request tới site này đi đường nào" / "Which way a request to this site goes"; mỗi mắt xích là một chặng. |
+| Phiên bản và cập nhật | Version and updates | Khối ở màn Cài đặt và màn Cập nhật (M15): bản đang chạy, nguồn tải, lượt gần nhất. |
+| Kiểm bản mới | Check for a new version | Nút xem trước của việc cập nhật TPAN: chỉ hỏi nguồn tải, chưa tải và chưa thay gì. |
+| Quay về bản trước | Go back to the previous version | Nút và hộp hỏi lại của `tpan self-update --rollback`. Không dùng "hạ cấp" hay "rollback" trong chữ giao diện. |
 | Bấm | Press | Nút và liên kết. Không dùng "click" trong chữ giao diện. |
 | Giờ giấc | `3 s`, `2 min 3 s`, `1 h 5 min`, `2 d` | Tiếng Anh viết số, cách một dấu cách, rồi đơn vị. |
 

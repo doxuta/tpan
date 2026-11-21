@@ -1,6 +1,7 @@
 // Màn Cài đặt (mục 10 của KE-HOACH.md, màn 10): mật khẩu quản trị, các phiên
-// đang đăng nhập, ngôn ngữ, sáng hoặc tối, mục "AI và bộ não" (M8), và mục
-// Agent và MCP (M7).
+// đang đăng nhập, khối "Phiên bản và cập nhật" (M15, mục 6.14; chỉ admin, dùng
+// chung với màn Cập nhật), ngôn ngữ, sáng hoặc tối, mục "AI và bộ não" (M8),
+// và mục Agent và MCP (M7).
 
 import { useWho } from "../../api/m13-users";
 import { ScreenHeader } from "../../components/ScreenHeader";
@@ -9,6 +10,7 @@ import { useLang, useStrings, type Lang } from "../../i18n";
 import { strings } from "../../i18n/cai-dat";
 import { strings as khung } from "../../i18n/khung";
 import { useTheme, type ThemeChoice } from "../../theme";
+import { Self } from "../cap-nhat/Self";
 import { MatKhau } from "./MatKhau";
 import { Phien } from "./Phien";
 import { Agent } from "./Agent";
@@ -26,6 +28,8 @@ export default function CaiDat() {
       <ScreenHeader title={t.title} summary={isAdmin ? t.summary : t.summaryUser} />
       <MatKhau />
       <Phien />
+      {/* Route /api/v1/self chỉ admin: user thường không thấy khối này. */}
+      {isAdmin && <Self />}
 
       <section aria-labelledby="ngon-ngu-tieu-de" className="pt-[28px]">
         <h2 id="ngon-ngu-tieu-de" className="m-0 mb-[10px] text-[16px] font-semibold">

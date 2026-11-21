@@ -114,6 +114,8 @@ type Server struct {
 	phpNotes phpNotes
 	// disk nhớ lần đo dung lượng gần nhất (api_m13.go). Zero value dùng được.
 	disk diskTimer
+	// selfCheck nhớ lần "Kiểm bản mới" gần nhất (api_m15.go). Zero value dùng được.
+	selfCheck selfChecks
 	// pusher là bộ đẩy nền lên kho S3 (M18, pusher.go). Zero value dùng được:
 	// handler đưa id vào hàng chờ; chỉ Run (không --demo) mới chạy nó.
 	pusher pusher

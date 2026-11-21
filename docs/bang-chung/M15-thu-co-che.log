@@ -1,0 +1,330 @@
+Thử cơ chế tách tiến trình cho nút cập nhật TPAN trong panel (M15, đợt 0)
+Ngày 21/11/2026, máy ảo tpan-m15 (Ubuntu 24.04, arm64), từ snapshot sạch.
+
+Chuẩn bị trên Mac (trong thư mục repo):
+  make build-linux                          bản A, v0.2.0-1-g025edb6 (bản đang cài)
+  make build-linux VERSION=v0.2.0-thu-b     bản B, cùng mã, chỉ khác số bản ("bản mới")
+  mỗi bản một thư mục có tpan-linux-arm64 và SHA256SUMS; thư mục "sai" là file
+  chạy của B với SHA256SUMS ghi toàn số 0
+  make vm-reset; chép ba thư mục và scripts/e2e-m15/thu-co-che-vm.sh vào
+  /home/ubuntu/thu của máy ảo; scripts/vm.sh deploy (bản A);
+  scripts/vm.sh root tpan setup --yes
+  scripts/vm.sh root bash /home/ubuntu/thu/thu-co-che-vm.sh
+
+Kết luận (mỗi ý ứng với một phần đánh số bên dưới):
+  1. Chạy self-update như tiến trình con của tpan.service: lúc `systemctl
+     restart tpan`, systemd gửi tín hiệu dừng cho mọi tiến trình trong cgroup
+     của dịch vụ, kể cả chính lệnh self-update. Bước restart báo "context
+     canceled", engine hoàn tác (trả file cũ về), dòng nhật ký không ghi được.
+     Panel restart một lần vô ích và vẫn ở bản cũ.
+  2. Cùng lệnh đó qua `systemd-run --unit tpan-self-update --collect`, gọi từ
+     bên trong cgroup của tpan.service: tiến trình nằm ở cgroup riêng
+     (/system.slice/tpan-self-update.service), sống qua lần restart, job thành
+     công, audit có dòng, panel lên bản B và trả 200.
+  3. Gọi lần hai khi lượt trước còn chạy: systemd-run thoát mã 1 với câu "Unit
+     tpan-self-update.service was already loaded or has a fragment file";
+     `systemctl is-active tpan-self-update` trả "active". Có --collect thì lượt
+     lỗi tự dọn; không có thì đơn vị nằm lại ở "failed" và chặn lượt sau.
+  4. Sai sha256: file chạy và MainPID của tpan.service không đổi, lỗi đọc được
+     nằm ở cột error của bảng jobs và ở journal của đơn vị tạm.
+  5. --rollback chạy cùng cơ chế.
+  Journal của đơn vị tạm vẫn đọc được bằng `journalctl -u tpan-self-update`
+  sau khi đơn vị đã được dọn.
+
+Output nguyên văn:
+
+
+######## 0. Chuẩn bị: máy chủ tải trên loopback (cũng là một đơn vị tạm)
+
+$ systemd-run --unit tpan-thu-http --collect python3 -m http.server 8015 --bind 127.0.0.1 --directory /home/ubuntu/thu
+Running as unit: tpan-thu-http.service; invocation ID: a423564515d74edb9649998893f3e753
+(mã thoát 0)
+
+$ curl -fsS http://127.0.0.1:8015/b/SHA256SUMS
+e54822e51099749a9399e4e8bf105423fb1bf553e282775d826e51ec1e6d4c5a  tpan-linux-arm64
+(mã thoát 0)
+tpan version: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+sha256 /usr/local/bin/tpan: 9f15282cdf96679d   .old:    .new: 
+MainPID=2295 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:07:40 +07 
+
+
+######## 1. Chạy self-update như tiến trình con của tpan.service (cách KHÔNG dùng)
+Lệnh: (trong cgroup của tpan.service) /usr/local/bin/tpan self-update --yes --url http://127.0.0.1:8015/b
+(mã thoát của tiến trình self-update: 1)
+--- output của nó:
+Bắt đầu job bad529fbf44ddd45
+- Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+  xong
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+  xong
+- Khởi động lại tpan ...
+  LỖI: bước service.restart:tpan: thực hiện: khởi động lại tpan: chạy systemctl restart tpan: context canceled
+    | active
+- Hoàn tác: Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+  đã hoàn tác
+- Hoàn tác: Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+  đã hoàn tác
+tpan: ghi nhật ký self.update: context canceled
+
+Job bad529fbf44ddd45: hỏng, đã hoàn tác sạch
+Lỗi: bước service.restart:tpan: thực hiện: khởi động lại tpan: chạy systemctl restart tpan: context canceled
+--- sau đó:
+tpan version: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+sha256 /usr/local/bin/tpan: 9f15282cdf96679d   .old:    .new: 
+MainPID=2349 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:07:42 +07 
+-- 3 dòng cuối của jobs
+   bad529fbf44ddd45 | self.update | http://127.0.0.1:8015/b | rolled_back | 2026-11-20T18:07:42.148946322Z | 2026-11-20T18:07:42.219257404Z | bước service.restart:tpan: thực hiện: khởi động lại tpan: ch
+   0d3cf2876974c547 | self.rollback | /usr/local/bin/tpan | succeeded | 2026-11-20T18:07:19.302226381Z | 2026-11-20T18:07:19.334203548Z | 
+   7bf01d5141ecd604 | self.update | http://127.0.0.1:8015/b | succeeded | 2026-11-20T18:07:16.159775213Z | 2026-11-20T18:07:16.243261630Z | 
+-- 3 dòng cuối của audit
+   2026-11-20T18:07:19.335882215Z | cli | self.rollback | /usr/local/bin/tpan | ok | 0d3cf2876974c547
+   2026-11-20T18:07:16.245486130Z | cli | self.update | http://127.0.0.1:8015/b | ok | 7bf01d5141ecd604
+   2026-11-20T18:07:11.920243378Z | cli | self.update | http://127.0.0.1:8015/sai | rolled_back | e5be4499298036fe
+
+$ journalctl -u tpan --no-pager -o short-precise -n 12
+Nov 21 01:07:19.330431 tpan-m15 tpan[2075]: 2026/11/21 01:07:19 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=v0.2.0-1-g025edb6
+Nov 21 01:07:19.404603 tpan-m15 tpan[2075]: 2026/11/21 01:07:19 INFO health: đang có job, bỏ vòng này full=true domain=""
+Nov 21 01:07:40.057433 tpan-m15 systemd[1]: Stopping tpan.service - tpan panel...
+Nov 21 01:07:40.063394 tpan-m15 systemd[1]: tpan.service: Deactivated successfully.
+Nov 21 01:07:40.063518 tpan-m15 systemd[1]: Stopped tpan.service - tpan panel.
+Nov 21 01:07:40.066635 tpan-m15 systemd[1]: Started tpan.service - tpan panel.
+Nov 21 01:07:40.075675 tpan-m15 tpan[2295]: 2026/11/21 01:07:40 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=v0.2.0-1-g025edb6
+Nov 21 01:07:42.212057 tpan-m15 systemd[1]: Stopping tpan.service - tpan panel...
+Nov 21 01:07:42.224665 tpan-m15 systemd[1]: tpan.service: Deactivated successfully.
+Nov 21 01:07:42.224812 tpan-m15 systemd[1]: Stopped tpan.service - tpan panel.
+Nov 21 01:07:42.228723 tpan-m15 systemd[1]: Started tpan.service - tpan panel.
+Nov 21 01:07:42.236775 tpan-m15 tpan[2349]: 2026/11/21 01:07:42 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=v0.2.0-1-g025edb6
+(mã thoát 0)
+
+
+######## 2. Cùng việc đó qua systemd-run, gọi từ BÊN TRONG tpan.service (cách dùng)
+tpan version: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+sha256 /usr/local/bin/tpan: 9f15282cdf96679d   .old:    .new: 
+MainPID=2383 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:07:45 +07 
+
+$ in_tpan systemd-run --unit tpan-self-update --collect --description tpan: cap nhat tu panel /usr/local/bin/tpan self-update --yes --url http://127.0.0.1:8015/b
+Running as unit: tpan-self-update.service; invocation ID: 6753ef8218ed4c93bfef4d3ae501926e
+(mã thoát 0)
+
+$ systemctl is-active tpan-self-update
+active
+(mã thoát 0)
+MainPID=2412 ControlGroup=/system.slice/tpan-self-update.service 
+(đơn vị tạm đã chạy xong)
+tpan version: tpan v0.2.0-thu-b (commit 025edb6, build 2026-11-20T18:06:17Z)
+sha256 /usr/local/bin/tpan: e54822e51099749a   .old: 9f15282cdf96679d   .new: 
+MainPID=2440 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:07:47 +07 
+MainPID của tpan.service trước: 2383, sau: 2440
+-- 3 dòng cuối của jobs
+   eb4273f4f41ab9ae | self.update | http://127.0.0.1:8015/b | succeeded | 2026-11-20T18:07:47.472699881Z | 2026-11-20T18:07:47.558496461Z | 
+   bad529fbf44ddd45 | self.update | http://127.0.0.1:8015/b | rolled_back | 2026-11-20T18:07:42.148946322Z | 2026-11-20T18:07:42.219257404Z | bước service.restart:tpan: thực hiện: khởi động lại tpan: ch
+   0d3cf2876974c547 | self.rollback | /usr/local/bin/tpan | succeeded | 2026-11-20T18:07:19.302226381Z | 2026-11-20T18:07:19.334203548Z | 
+-- 3 dòng cuối của audit
+   2026-11-20T18:07:47.560343053Z | cli | self.update | http://127.0.0.1:8015/b | ok | eb4273f4f41ab9ae
+   2026-11-20T18:07:19.335882215Z | cli | self.rollback | /usr/local/bin/tpan | ok | 0d3cf2876974c547
+   2026-11-20T18:07:16.245486130Z | cli | self.update | http://127.0.0.1:8015/b | ok | 7bf01d5141ecd604
+
+$ journalctl -u tpan-self-update --no-pager -o short-precise -n 40
+Nov 21 01:07:16.163973 tpan-m15 tpan[1994]: - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+Nov 21 01:07:16.208835 tpan-m15 tpan[1994]:   xong
+Nov 21 01:07:16.210184 tpan-m15 tpan[1994]: - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+Nov 21 01:07:16.211097 tpan-m15 tpan[1994]:   xong
+Nov 21 01:07:16.216996 tpan-m15 tpan[1994]: - Khởi động lại tpan ...
+Nov 21 01:07:16.236751 tpan-m15 tpan[1994]:   xong
+Nov 21 01:07:16.243323 tpan-m15 tpan[1994]:   [đạt] File chạy /usr/local/bin/tpan chạy được
+Nov 21 01:07:16.246377 tpan-m15 tpan[1994]: Job 7bf01d5141ecd604: thành công
+Nov 21 01:07:16.246377 tpan-m15 tpan[1994]: Kiểm chứng:
+Nov 21 01:07:16.246377 tpan-m15 tpan[1994]:   [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-thu-b (commit 025edb6, build 2026-11-20T18:06:17Z)
+Nov 21 01:07:16.249691 tpan-m15 tpan[1994]: tpan đã đổi: v0.2.0-1-g025edb6 -> v0.2.0-thu-b
+Nov 21 01:07:16.249691 tpan-m15 tpan[1994]: Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
+Nov 21 01:07:16.251258 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+Nov 21 01:07:19.294583 tpan-m15 systemd[1]: Started tpan-self-update.service - /usr/local/bin/tpan self-update --rollback --yes.
+Nov 21 01:07:19.305211 tpan-m15 tpan[2060]: Bắt đầu job 0d3cf2876974c547
+Nov 21 01:07:19.306069 tpan-m15 tpan[2060]: - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.old, giữ bản cũ ở /usr/local/bin/tpan.new ...
+Nov 21 01:07:19.307418 tpan-m15 tpan[2060]:   xong
+Nov 21 01:07:19.308256 tpan-m15 tpan[2060]: - Khởi động lại tpan ...
+Nov 21 01:07:19.326444 tpan-m15 tpan[2060]:   xong
+Nov 21 01:07:19.334177 tpan-m15 tpan[2060]:   [đạt] File chạy /usr/local/bin/tpan chạy được
+Nov 21 01:07:19.337204 tpan-m15 tpan[2060]: Job 0d3cf2876974c547: thành công
+Nov 21 01:07:19.337204 tpan-m15 tpan[2060]: Kiểm chứng:
+Nov 21 01:07:19.337204 tpan-m15 tpan[2060]:   [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+Nov 21 01:07:19.339745 tpan-m15 tpan[2060]: tpan đã quay về bản trước: v0.2.0-thu-b -> v0.2.0-1-g025edb6
+Nov 21 01:07:19.340274 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+Nov 21 01:07:47.464306 tpan-m15 systemd[1]: Started tpan-self-update.service - tpan: cap nhat tu panel.
+Nov 21 01:07:47.475482 tpan-m15 tpan[2412]: Bắt đầu job eb4273f4f41ab9ae
+Nov 21 01:07:47.476392 tpan-m15 tpan[2412]: - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+Nov 21 01:07:47.521821 tpan-m15 tpan[2412]:   xong
+Nov 21 01:07:47.522838 tpan-m15 tpan[2412]: - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+Nov 21 01:07:47.526588 tpan-m15 tpan[2412]:   xong
+Nov 21 01:07:47.535665 tpan-m15 tpan[2412]: - Khởi động lại tpan ...
+Nov 21 01:07:47.550343 tpan-m15 tpan[2412]:   xong
+Nov 21 01:07:47.558513 tpan-m15 tpan[2412]:   [đạt] File chạy /usr/local/bin/tpan chạy được
+Nov 21 01:07:47.561679 tpan-m15 tpan[2412]: Job eb4273f4f41ab9ae: thành công
+Nov 21 01:07:47.561679 tpan-m15 tpan[2412]: Kiểm chứng:
+Nov 21 01:07:47.561679 tpan-m15 tpan[2412]:   [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-thu-b (commit 025edb6, build 2026-11-20T18:06:17Z)
+Nov 21 01:07:47.564409 tpan-m15 tpan[2412]: tpan đã đổi: v0.2.0-1-g025edb6 -> v0.2.0-thu-b
+Nov 21 01:07:47.564409 tpan-m15 tpan[2412]: Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
+Nov 21 01:07:47.565645 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+(mã thoát 0)
+
+$ journalctl -u tpan --no-pager -o short-precise -n 8
+Nov 21 01:07:45.371616 tpan-m15 systemd[1]: Started tpan.service - tpan panel.
+Nov 21 01:07:45.380435 tpan-m15 tpan[2383]: 2026/11/21 01:07:45 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=v0.2.0-1-g025edb6
+Nov 21 01:07:47.543243 tpan-m15 systemd[1]: Stopping tpan.service - tpan panel...
+Nov 21 01:07:47.543884 tpan-m15 systemd[1]: tpan.service: Deactivated successfully.
+Nov 21 01:07:47.543963 tpan-m15 systemd[1]: Stopped tpan.service - tpan panel.
+Nov 21 01:07:47.547657 tpan-m15 systemd[1]: Started tpan.service - tpan panel.
+Nov 21 01:07:47.554001 tpan-m15 tpan[2440]: 2026/11/21 01:07:47 INFO tpan đang chạy listen=0.0.0.0:8443 tls=true demo=false version=v0.2.0-thu-b
+Nov 21 01:07:47.650457 tpan-m15 tpan[2440]: 2026/11/21 01:07:47 INFO health: đang có job, bỏ vòng này full=true domain=""
+(mã thoát 0)
+
+$ systemctl is-active tpan-self-update
+inactive
+(mã thoát 4)
+
+$ curl -ksS -o /dev/null -w panel trả %{http_code}\n https://127.0.0.1:8443/api/v1/health
+panel trả 200
+(mã thoát 0)
+
+
+######## 3. Gọi lần hai khi lượt trước đang chạy
+
+$ systemd-run --unit tpan-self-update --collect sleep 8
+Running as unit: tpan-self-update.service; invocation ID: df8575fd52ce495f8cb113f79f34ecc3
+(mã thoát 0)
+
+$ systemctl is-active tpan-self-update
+active
+(mã thoát 0)
+
+$ systemd-run --unit tpan-self-update --collect true
+Failed to start transient service unit: Unit tpan-self-update.service was already loaded or has a fragment file.
+(mã thoát 1)
+
+$ systemctl is-active tpan-self-update
+inactive
+(mã thoát 4)
+--- lượt lỗi có --collect: đơn vị tự dọn, lượt sau chạy được
+
+$ systemd-run --unit tpan-self-update --collect false
+Running as unit: tpan-self-update.service
+(mã thoát 0)
+
+$ systemctl is-active tpan-self-update
+inactive
+(mã thoát 4)
+
+$ systemd-run --unit tpan-self-update --collect true
+Running as unit: tpan-self-update.service
+(mã thoát 0)
+--- lượt lỗi KHÔNG có --collect: đơn vị nằm lại ở trạng thái failed và chặn lượt sau
+
+$ systemd-run --unit tpan-self-update false
+Running as unit: tpan-self-update.service; invocation ID: adf409d4a19f44babbe1d9695b9b55b0
+(mã thoát 0)
+
+$ systemctl is-active tpan-self-update
+failed
+(mã thoát 3)
+
+$ systemd-run --unit tpan-self-update --collect true
+Failed to start transient service unit: Unit tpan-self-update.service was already loaded or has a fragment file.
+(mã thoát 1)
+
+$ systemctl reset-failed tpan-self-update
+(mã thoát 0)
+
+
+######## 4. Sai sha256 trong đơn vị tạm: file cũ phải còn nguyên, panel không restart
+tpan version: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+sha256 /usr/local/bin/tpan: 9f15282cdf96679d   .old:    .new: 
+MainPID=2515 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:08:02 +07 
+
+$ in_tpan systemd-run --unit tpan-self-update --collect /usr/local/bin/tpan self-update --yes --url http://127.0.0.1:8015/sai
+Running as unit: tpan-self-update.service; invocation ID: 5c6488d9c9a14e54880dd5db57274b27
+(mã thoát 0)
+tpan version: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+sha256 /usr/local/bin/tpan: 9f15282cdf96679d   .old:    .new: 
+MainPID=2515 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:08:02 +07 
+MainPID trước: 2515, sau: 2515; sha256 file chạy trước: 9f15282cdf96679d, sau: 9f15282cdf96679d
+-- 3 dòng cuối của jobs
+   f5ffb0f7f037c120 | self.update | http://127.0.0.1:8015/sai | rolled_back | 2026-11-20T18:08:05.081116311Z | 2026-11-20T18:08:05.115628374Z | bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-
+   eb4273f4f41ab9ae | self.update | http://127.0.0.1:8015/b | succeeded | 2026-11-20T18:07:47.472699881Z | 2026-11-20T18:07:47.558496461Z | 
+   bad529fbf44ddd45 | self.update | http://127.0.0.1:8015/b | rolled_back | 2026-11-20T18:07:42.148946322Z | 2026-11-20T18:07:42.219257404Z | bước service.restart:tpan: thực hiện: khởi động lại tpan: ch
+-- 3 dòng cuối của audit
+   2026-11-20T18:08:05.117702083Z | cli | self.update | http://127.0.0.1:8015/sai | rolled_back | f5ffb0f7f037c120
+   2026-11-20T18:07:47.560343053Z | cli | self.update | http://127.0.0.1:8015/b | ok | eb4273f4f41ab9ae
+   2026-11-20T18:07:19.335882215Z | cli | self.rollback | /usr/local/bin/tpan | ok | 0d3cf2876974c547
+
+$ journalctl -u tpan-self-update --no-pager -o short-precise -n 25
+Nov 21 01:07:47.561679 tpan-m15 tpan[2412]: Job eb4273f4f41ab9ae: thành công
+Nov 21 01:07:47.561679 tpan-m15 tpan[2412]: Kiểm chứng:
+Nov 21 01:07:47.561679 tpan-m15 tpan[2412]:   [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-thu-b (commit 025edb6, build 2026-11-20T18:06:17Z)
+Nov 21 01:07:47.564409 tpan-m15 tpan[2412]: tpan đã đổi: v0.2.0-1-g025edb6 -> v0.2.0-thu-b
+Nov 21 01:07:47.564409 tpan-m15 tpan[2412]: Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
+Nov 21 01:07:47.565645 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+Nov 21 01:07:50.691651 tpan-m15 systemd[1]: Started tpan-self-update.service - /usr/bin/sleep 8.
+Nov 21 01:07:58.747016 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+Nov 21 01:07:59.791078 tpan-m15 systemd[1]: Started tpan-self-update.service - /usr/bin/false.
+Nov 21 01:07:59.791910 tpan-m15 systemd[1]: tpan-self-update.service: Main process exited, code=exited, status=1/FAILURE
+Nov 21 01:07:59.792028 tpan-m15 systemd[1]: tpan-self-update.service: Failed with result 'exit-code'.
+Nov 21 01:08:00.819861 tpan-m15 systemd[1]: Started tpan-self-update.service - /usr/bin/true.
+Nov 21 01:08:00.821383 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+Nov 21 01:08:01.856751 tpan-m15 systemd[1]: Started tpan-self-update.service - /usr/bin/false.
+Nov 21 01:08:01.857420 tpan-m15 systemd[1]: tpan-self-update.service: Main process exited, code=exited, status=1/FAILURE
+Nov 21 01:08:01.857553 tpan-m15 systemd[1]: tpan-self-update.service: Failed with result 'exit-code'.
+Nov 21 01:08:05.074803 tpan-m15 systemd[1]: Started tpan-self-update.service - /usr/local/bin/tpan self-update --yes --url http://127.0.0.1:8015/sai.
+Nov 21 01:08:05.083950 tpan-m15 tpan[2547]: Bắt đầu job f5ffb0f7f037c120
+Nov 21 01:08:05.084948 tpan-m15 tpan[2547]: - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+Nov 21 01:08:05.115641 tpan-m15 tpan[2547]:   LỖI: bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 e54822e51099749a9399e4e8bf105423fb1bf553e282775d826e51ec1e6d4c5a, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new
+Nov 21 01:08:05.115641 tpan-m15 tpan[2547]:     | 0000000000000000000000000000000000000000000000000000000000000000  tpan-linux-arm64
+Nov 21 01:08:05.118893 tpan-m15 tpan[2547]: Job f5ffb0f7f037c120: hỏng, đã hoàn tác sạch
+Nov 21 01:08:05.118893 tpan-m15 tpan[2547]: Lỗi: bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-linux-arm64 tải về có sha256 e54822e51099749a9399e4e8bf105423fb1bf553e282775d826e51ec1e6d4c5a, SHA256SUMS ghi 0000000000000000000000000000000000000000000000000000000000000000; đã bỏ file /usr/local/bin/tpan.new
+Nov 21 01:08:05.119988 tpan-m15 systemd[1]: tpan-self-update.service: Main process exited, code=exited, status=1/FAILURE
+Nov 21 01:08:05.120048 tpan-m15 systemd[1]: tpan-self-update.service: Failed with result 'exit-code'.
+(mã thoát 0)
+
+
+######## 5. Quay về (--rollback) cùng cơ chế: lên B rồi về A
+Running as unit: tpan-self-update.service; invocation ID: ba82eda00bc541bb9f591ee6d5aaf994
+tpan version: tpan v0.2.0-thu-b (commit 025edb6, build 2026-11-20T18:06:17Z)
+sha256 /usr/local/bin/tpan: e54822e51099749a   .old: 9f15282cdf96679d   .new: 
+MainPID=2629 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:08:09 +07 
+
+$ in_tpan systemd-run --unit tpan-self-update --collect /usr/local/bin/tpan self-update --rollback --yes
+Running as unit: tpan-self-update.service; invocation ID: 3408d65c2c4146be969b1944c2efc300
+(mã thoát 0)
+tpan version: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+sha256 /usr/local/bin/tpan: 9f15282cdf96679d   .old:    .new: e54822e51099749a
+MainPID=2687 NRestarts=0 ActiveState=active ActiveEnterTimestamp=Sat 2026-11-21 01:08:12 +07 
+-- 3 dòng cuối của jobs
+   ffd9601b42487c1d | self.rollback | /usr/local/bin/tpan | succeeded | 2026-11-20T18:08:12.442324448Z | 2026-11-20T18:08:12.470281286Z | 
+   b1662782c89ea894 | self.update | http://127.0.0.1:8015/b | succeeded | 2026-11-20T18:08:09.342802129Z | 2026-11-20T18:08:09.430825669Z | 
+   f5ffb0f7f037c120 | self.update | http://127.0.0.1:8015/sai | rolled_back | 2026-11-20T18:08:05.081116311Z | 2026-11-20T18:08:05.115628374Z | bước self.download:/usr/local/bin/tpan.new: thực hiện: tpan-
+-- 3 dòng cuối của audit
+   2026-11-20T18:08:12.472495307Z | cli | self.rollback | /usr/local/bin/tpan | ok | ffd9601b42487c1d
+   2026-11-20T18:08:09.432880306Z | cli | self.update | http://127.0.0.1:8015/b | ok | b1662782c89ea894
+   2026-11-20T18:08:05.117702083Z | cli | self.update | http://127.0.0.1:8015/sai | rolled_back | f5ffb0f7f037c120
+
+$ journalctl -u tpan-self-update --no-pager -o short-precise -n 14
+Nov 21 01:08:09.439364 tpan-m15 tpan[2604]: Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
+Nov 21 01:08:09.440963 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+Nov 21 01:08:12.430435 tpan-m15 systemd[1]: Started tpan-self-update.service - /usr/local/bin/tpan self-update --rollback --yes.
+Nov 21 01:08:12.444643 tpan-m15 tpan[2672]: Bắt đầu job ffd9601b42487c1d
+Nov 21 01:08:12.445697 tpan-m15 tpan[2672]: - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.old, giữ bản cũ ở /usr/local/bin/tpan.new ...
+Nov 21 01:08:12.446534 tpan-m15 tpan[2672]:   xong
+Nov 21 01:08:12.447604 tpan-m15 tpan[2672]: - Khởi động lại tpan ...
+Nov 21 01:08:12.463955 tpan-m15 tpan[2672]:   xong
+Nov 21 01:08:12.470287 tpan-m15 tpan[2672]:   [đạt] File chạy /usr/local/bin/tpan chạy được
+Nov 21 01:08:12.473274 tpan-m15 tpan[2672]: Job ffd9601b42487c1d: thành công
+Nov 21 01:08:12.473274 tpan-m15 tpan[2672]: Kiểm chứng:
+Nov 21 01:08:12.473274 tpan-m15 tpan[2672]:   [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.0-1-g025edb6 (commit 025edb6, build 2026-11-20T18:04:49Z)
+Nov 21 01:08:12.475972 tpan-m15 tpan[2672]: tpan đã quay về bản trước: v0.2.0-thu-b -> v0.2.0-1-g025edb6
+Nov 21 01:08:12.476607 tpan-m15 systemd[1]: tpan-self-update.service: Deactivated successfully.
+(mã thoát 0)
+
+
+######## Dọn: tắt máy chủ tải
+
+$ systemctl stop tpan-thu-http
+(mã thoát 0)
