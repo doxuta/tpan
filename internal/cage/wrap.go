@@ -163,7 +163,7 @@ func (s *Sys) Describe(cmd system.Cmd) string {
 	// Chỉ "chắc chắn không có hàng rào" mới in runuser. Stat lỗi khác thì Run
 	// từ chối; in dạng systemd-run để người làm theo dòng "sửa tay" không tự
 	// chạy lệnh của site ở ngoài lồng.
-	if _, err := s.System.Stat(site.CageFenceOfSlug(slug)); errors.Is(err, fs.ErrNotExist) {
+	if _, err := s.Stat(site.CageFenceOfSlug(slug)); errors.Is(err, fs.ErrNotExist) {
 		return cmd.String()
 	}
 	return fenced(cmd, slug, describeTail, noDeadlineSec).String()
@@ -176,7 +176,7 @@ func (s *Sys) cagedSlug(cmd system.Cmd) (string, bool, error) {
 		return "", false, nil
 	}
 	fence := site.CageFenceOfSlug(slug)
-	_, err := s.System.Stat(fence)
+	_, err := s.Stat(fence)
 	switch {
 	case err == nil:
 		return slug, true, nil
