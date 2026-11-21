@@ -43,9 +43,9 @@ const vi = {
 
   // (c) MariaDB
   mariaHeading: "MariaDB",
-  mariaSource: "NGUỒN",
-  mariaLine: "DÒNG",
-  mariaVersion: "BẢN ĐANG CHẠY",
+  mariaSource: "Nguồn",
+  mariaLine: "Dòng",
+  mariaVersion: "Bản đang chạy",
   mariaNotInstalled: "MariaDB chưa được cài trên máy này.",
   mariaWarn:
     "Nâng MariaDB là một chiều. Dữ liệu đã nâng thì bản cũ không đọc lại được, và TPAN không hoàn tác tự động. " +
@@ -98,9 +98,9 @@ export const strings = defineStrings(vi, {
   autoHint: "Installs and enables unattended-upgrades so security patches install daily, and adds the external repositories you chose to the patch list. " + "Pressing it shows a preview; nothing changes yet.",
 
   mariaHeading: "MariaDB",
-  mariaSource: "SOURCE",
-  mariaLine: "SERIES",
-  mariaVersion: "RUNNING VERSION",
+  mariaSource: "Source",
+  mariaLine: "Series",
+  mariaVersion: "Running version",
   mariaNotInstalled: "MariaDB is not installed on this machine.",
   mariaWarn:
     "Upgrading MariaDB goes one way. Once the data is upgraded, the old version cannot read it, and TPAN does not roll it back automatically. " +

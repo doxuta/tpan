@@ -1,8 +1,10 @@
 // Khối "Phiên bản và cập nhật" (mục 6.14 của KE-HOACH.md): cập nhật chính TPAN
 // ngay trong panel. Dùng ở màn Cài đặt và là khối (d) của màn Cập nhật; tự lấy
 // dữ liệu (GET /api/v1/self, chỉ admin) nên nơi dùng chỉ việc đặt <Self />.
-// id="phien-ban" để dòng phiên bản cuối trang dẫn tới (/settings#phien-ban;
-// việc cuộn tới neo do Layout làm).
+// id="phien-ban" để dòng phiên bản cuối menu dẫn tới (/settings#phien-ban;
+// việc cuộn tới neo do Layout làm). Bản 2 (M16): khối là một thẻ; mọi chuỗi
+// kịch bản bấm thật của M15 tìm (mục 3.11) vẫn hiện thẳng trong thẻ, không nằm
+// trong phần mở ra.
 //
 // Từ trên xuống:
 //   bản đang chạy, nguồn tải
@@ -14,21 +16,23 @@
 //
 // Khối đang ở chặng nào do hàm thuần selfPhase quyết định (selfPhase.ts).
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { selfPollMs, selfRunning, useSelf, useSelfCheck, useSelfSessionPoll, useSelfStart } from "../../api/m15";
 import type { SelfCheck, SelfState } from "../../api/m15-types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Dialog } from "../../components/Dialog";
 import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/phien-ban";
+import { Fact, Facts, Row, Rows } from "../cai-dat/Rows";
 import { formatDateTime } from "../lich-su/format";
 import { ErrorNote } from "../site/ErrorNote";
 import { selfPhase } from "./selfPhase";
 import { SelfRollback } from "./SelfRollback";
-import { labelClass, markBox, SelfProgress, SelfResult } from "./SelfRun";
+import { markBox, SelfProgress, SelfResult } from "./SelfRun";
 
 export function Self() {
   const t = useStrings(strings);
@@ -36,11 +40,8 @@ export function Self() {
   const q = useSelf();
 
   return (
-    // tabIndex -1: Layout đưa focus tới đây khi người dùng theo liên kết #phien-ban.
-    <section id="phien-ban" aria-labelledby="pb-tieu-de" tabIndex={-1} className="scroll-mt-[12px] pt-[28px] outline-offset-0">
-      <h2 id="pb-tieu-de" className="m-0 mb-[10px] text-[16px] font-semibold">
-        {t.heading}
-      </h2>
+    // Card có id thì tự nhận tabIndex -1: Layout đưa focus tới đây khi người dùng theo liên kết #phien-ban.
+    <Card id="phien-ban" title={t.heading} titleId="pb-tieu-de">
       {q.data ? (
         // Đã có dữ liệu thì lần hỏi lại hỏng (panel đang restart) không xoá khối: vẫn vẽ theo dữ liệu đang giữ.
         <Loaded state={q.data} unreachable={q.isError} />
@@ -54,7 +55,7 @@ export function Self() {
       ) : (
         <p className="m-0 text-muted">{k.loading}</p>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -89,21 +90,15 @@ function Loaded({ state, unreachable }: { state: SelfState; unreachable: boolean
   }, [live]);
 
   return (
-    <>
-      <dl className="m-0 flex flex-wrap gap-x-[40px] gap-y-[12px] border-t border-hair pt-[12px]">
-        <div>
-          <dt className={labelClass}>{t.version}</dt>
-          <dd className="m-0 mt-[4px]">
-            <MonoText>{state.version}</MonoText>
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className={labelClass}>{t.url}</dt>
-          <dd className="m-0 mt-[4px]">
-            <MonoText>{state.url}</MonoText>
-          </dd>
-        </div>
-      </dl>
+    <div className="flex flex-col gap-[16px]">
+      <Facts>
+        <Fact label={t.version}>
+          <MonoText>{state.version}</MonoText>
+        </Fact>
+        <Fact label={t.url}>
+          <MonoText>{state.url}</MonoText>
+        </Fact>
+      </Facts>
 
       {phase.kind === "updating" ? (
         // Mất kết nối lúc panel restart là bình thường: chỉ một dòng nhỏ, không báo lỗi.
@@ -116,10 +111,10 @@ function Loaded({ state, unreachable }: { state: SelfState; unreachable: boolean
       {!live && <Check state={state} />}
       {!live && state.has_old && <SelfRollback />}
 
-      <p className="mt-[18px] mb-0 text-[13px] text-muted">
-        {t.cli} <MonoText size={12}>sudo tpan self-update</MonoText>
+      <p className="m-0 text-[13px] text-muted">
+        {t.cli} <MonoText>sudo tpan self-update</MonoText>
       </p>
-    </>
+    </div>
   );
 }
 
@@ -135,7 +130,7 @@ function Check({ state }: { state: SelfState }) {
   const busy = check.isPending || start.isPending;
 
   return (
-    <div className="mt-[16px]">
+    <div className="flex flex-col items-start gap-[10px]">
       <Button
         disabled={busy}
         onClick={() => {
@@ -145,43 +140,35 @@ function Check({ state }: { state: SelfState }) {
       >
         {check.isPending ? t.checking : t.checkButton}
       </Button>
-      {!c && !check.isError && <p className="mt-[8px] mb-0 max-w-[720px] text-muted">{t.checkHint}</p>}
-      {check.isError && (
-        <div className="mt-[10px]">
-          <ErrorNote error={check.error} heading={t.checkError} />
-        </div>
-      )}
+      {!c && !check.isError && <p className="m-0 max-w-[72ch] text-muted">{t.checkHint}</p>}
+      {check.isError && <ErrorNote error={check.error} heading={t.checkError} />}
 
       {c &&
         (c.error ? (
           // Không hỏi được nguồn tải không phải là máy hỏng: dấu "chưa kiểm được", không dấu lỗi.
-          <div role="status" className="mt-[10px] flex items-start gap-[10px]">
+          <div role="status" className="flex items-start gap-[10px]">
             <span className={markBox}>
               <StatusMark status="unknown" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="m-0 font-medium">{t.sourceError}</p>
-              <p className="m-0 max-w-[720px] whitespace-pre-line [overflow-wrap:anywhere]">{tx(c.error, lang)}</p>
-              <p className="m-0 mt-[4px] max-w-[720px] text-muted">
+              <p className="m-0 max-w-[72ch] whitespace-pre-line [overflow-wrap:anywhere]">{tx(c.error, lang)}</p>
+              <p className="m-0 mt-[4px] max-w-[72ch] text-muted">
                 {t.sourceErrorHint} {t.checkedAt(formatDateTime(c.checked_at, lang))}
               </p>
             </div>
           </div>
         ) : c.up_to_date ? (
-          <p role="status" className="mt-[10px] mb-0">
+          <p role="status" className="m-0">
             {t.upToDate} <span className="text-muted">{t.checkedAt(formatDateTime(c.checked_at, lang))}</span>
           </p>
         ) : (
           <>
             <Preview check={c} />
-            <Button variant="primary" className="mt-[14px]" disabled={busy} onClick={() => setConfirming(true)}>
+            <Button variant="primary" disabled={busy} onClick={() => setConfirming(true)}>
               {t.updateButton(c.latest)}
             </Button>
-            {start.isError && (
-              <div className="mt-[10px]">
-                <ErrorNote error={start.error} heading={t.updateError} />
-              </div>
-            )}
+            {start.isError && <ErrorNote error={start.error} heading={t.updateError} />}
             <Dialog
               open={confirming}
               onOpenChange={setConfirming}
@@ -209,11 +196,11 @@ function Preview({ check: c }: { check: SelfCheck }) {
   const t = useStrings(strings);
   const { lang } = useLang();
   return (
-    <div className="mt-[12px] max-w-[720px]">
-      <p role="status" className="m-0 mb-[8px]">
+    <div className="max-w-[720px] self-stretch">
+      <p role="status" className="m-0 mb-[10px]">
         {t.found(c.latest)} <span className="text-muted">{t.checkedAt(formatDateTime(c.checked_at, lang))}</span>
       </p>
-      <dl className="m-0 border-t border-hair">
+      <Rows>
         <Row label={t.pvCurrent}>
           <MonoText>{c.current}</MonoText>
         </Row>
@@ -229,16 +216,7 @@ function Preview({ check: c }: { check: SelfCheck }) {
           <MonoText size={12}>{c.sha256}</MonoText>
         </Row>
         <Row label={t.pvBack}>{t.backNote}</Row>
-      </dl>
-    </div>
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap gap-x-[16px] gap-y-[2px] border-b border-hair py-[8px]">
-      <dt className={`flex-[0_0_220px] pt-[2px] ${labelClass}`}>{label}</dt>
-      <dd className="m-0 min-w-0 flex-[1_1_280px]">{children}</dd>
+      </Rows>
     </div>
   );
 }

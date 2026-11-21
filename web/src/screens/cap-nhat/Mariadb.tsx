@@ -4,12 +4,13 @@
 
 import type { MariaDBStatus } from "../../api/types";
 import { Button } from "../../components/Button";
-import { MonoText } from "../../components/MonoText";
+import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
+import { Code, MonoText } from "../../components/MonoText";
 import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/cap-nhat";
+import { Fact, Facts } from "../cai-dat/Rows";
 import { mariadbAction, type Flow } from "./model";
-
-const labelClass = "m-0 font-mono text-[11px] font-normal tracking-[0.08em] text-muted";
 
 export function Mariadb({ status, flow }: { status: MariaDBStatus; flow: Flow }) {
   const t = useStrings(strings);
@@ -18,51 +19,38 @@ export function Mariadb({ status, flow }: { status: MariaDBStatus; flow: Flow })
   const installed = status.version !== "" || status.line !== "";
 
   return (
-    <section aria-labelledby="cn-maria" className="pt-[26px]">
-      <h2 id="cn-maria" className="m-0 pb-[10px] text-[16px] font-semibold">
-        {t.mariaHeading}
-      </h2>
-
+    <Card title={t.mariaHeading} titleId="cn-maria">
       {!installed ? (
-        <p className="m-0 border-t border-hair py-[10px] text-muted">{t.mariaNotInstalled}</p>
+        <EmptyState>{t.mariaNotInstalled}</EmptyState>
       ) : (
         <>
-          <dl className="m-0 grid grid-cols-2 gap-x-[16px] gap-y-[12px] border-t border-hair pt-[12px] sm:flex sm:flex-wrap sm:gap-x-[40px]">
-            <div>
-              <dt className={labelClass}>{t.mariaSource}</dt>
-              <dd className="m-0 mt-[4px]">
-                <MonoText>{status.source}</MonoText>
-              </dd>
-            </div>
-            <div>
-              <dt className={labelClass}>{t.mariaLine}</dt>
-              <dd className="m-0 mt-[4px]">
-                <MonoText>{status.line}</MonoText>
-              </dd>
-            </div>
-            <div>
-              <dt className={labelClass}>{t.mariaVersion}</dt>
-              <dd className="m-0 mt-[4px]">
-                <MonoText>{status.version}</MonoText>
-              </dd>
-            </div>
-          </dl>
+          <Facts>
+            <Fact label={t.mariaSource}>
+              <MonoText>{status.source}</MonoText>
+            </Fact>
+            <Fact label={t.mariaLine}>
+              <MonoText>{status.line}</MonoText>
+            </Fact>
+            <Fact label={t.mariaVersion}>
+              <MonoText>{status.version}</MonoText>
+            </Fact>
+          </Facts>
 
-          <h3 className={`mt-[18px] mb-[6px] uppercase ${labelClass}`}>{t.mariaUpgrades}</h3>
+          <h3 className="m-0 mt-[16px] mb-[8px] border-t border-hair pt-[16px] text-[14px] font-semibold">{t.mariaUpgrades}</h3>
           {upgrades.length === 0 ? (
-            <p className="m-0 max-w-[720px] text-muted">{t.mariaNone}</p>
+            <p className="m-0 max-w-[72ch] text-muted">{t.mariaNone}</p>
           ) : (
             <>
-              <p id="cn-maria-warn" className="m-0 mb-[10px] max-w-[720px] font-medium">
+              <p id="cn-maria-warn" className="m-0 mb-[8px] max-w-[72ch] font-medium">
                 {t.mariaWarn}
               </p>
-              <ul aria-label={t.mariaUpgradesLabel} className="m-0 list-none border-t border-hair p-0">
+              <ul aria-label={t.mariaUpgradesLabel} className="m-0 list-none p-0">
                 {upgrades.map((u) => {
                   const action = mariadbAction(u.line);
                   return (
-                    <li key={u.line} className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[8px] border-t border-hair py-[10px] first:border-t-0">
+                    <li key={u.line} className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[8px] border-t border-hair py-[10px]">
                       <span className="min-w-0">
-                        <span className="font-mono text-[13px]">{u.line}</span>
+                        <Code>{u.line}</Code>
                         {u.eol && <span className="text-muted"> · {t.mariaEol(u.eol)}</span>}
                       </span>
                       <Button id={`act-${action.id}`} aria-describedby="cn-maria-warn" onClick={() => flow.start(action)} disabled={flow.busy}>
@@ -73,11 +61,11 @@ export function Mariadb({ status, flow }: { status: MariaDBStatus; flow: Flow })
                   );
                 })}
               </ul>
-              <p className="mt-[8px] mb-0 text-muted">{t.previewHint}</p>
+              <p className="mt-[8px] mb-0 text-[13px] text-muted">{t.previewHint}</p>
             </>
           )}
         </>
       )}
-    </section>
+    </Card>
   );
 }

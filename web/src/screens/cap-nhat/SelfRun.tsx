@@ -20,7 +20,7 @@ import { strings } from "../../i18n/phien-ban";
 import { formatDateTime } from "../lich-su/format";
 import type { SelfPhase } from "./selfPhase";
 
-export const labelClass = "m-0 font-mono text-[11px] font-normal tracking-[0.08em] text-muted";
+export const labelClass = "m-0 text-[12px] font-medium text-muted";
 
 // Ô giữ dấu trạng thái thẳng hàng với dòng chữ đầu (như ErrorNote): bốn dấu có bốn cỡ khác nhau.
 export const markBox ="flex h-[21px] w-[20px] flex-none items-center justify-center";
@@ -31,7 +31,7 @@ const stuckCommands = [`sudo journalctl -u ${selfUnit} --no-pager -n 50`, "sudo 
 export function SelfProgress({ action, restarting }: { action: SelfAction; restarting: boolean }) {
   const t = useStrings(strings);
   return (
-    <div role="status" className="mt-[16px] flex items-start gap-[10px]">
+    <div role="status" className="flex items-start gap-[10px]">
       {/* Vòng rỗng "chưa kiểm được": chưa biết kết quả, như thẻ theo dõi job lúc đang chạy. */}
       <span className={markBox}>
         <StatusMark status="unknown" />
@@ -75,7 +75,7 @@ export function SelfResult({ phase, run, fresh }: { phase: SettledPhase; run: Se
   const mark = marks[phase.kind];
 
   return (
-    <div role={!fresh ? undefined : phase.kind === "failed" ? "alert" : "status"} className="mt-[16px]">
+    <div role={!fresh ? undefined : phase.kind === "failed" ? "alert" : "status"}>
       {!fresh && <div className={`mb-[6px] ${labelClass}`}>{t.lastLabel}</div>}
       <div className="flex items-start gap-[10px]">
         <span className={markBox}>
@@ -87,7 +87,7 @@ export function SelfResult({ phase, run, fresh }: { phase: SettledPhase; run: Se
 
           {phase.kind === "failed" && run.error && (
             <div className="mt-[10px] max-w-[720px]">
-              <EvidenceBlock text={run.error} label={t.errorLabel} />
+              <EvidenceBlock text={run.error} label={t.errorLabel} clamp={20} />
             </div>
           )}
           {run.job_id && (

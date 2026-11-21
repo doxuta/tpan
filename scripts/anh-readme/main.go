@@ -298,7 +298,7 @@ func shotsM15() []shot {
 	}
 	const (
 		toBlock = `document.getElementById('phien-ban').scrollIntoView({block:'start'})`
-		preview = `document.getElementById('phien-ban').innerText.includes('SHA256 SẼ KIỂM')`
+		preview = `document.getElementById('phien-ban').innerText.includes('SHA256 sẽ kiểm')`
 		dialog  = `!!document.querySelector('[role=dialog],[role=alertdialog]')`
 	)
 	return []shot{
