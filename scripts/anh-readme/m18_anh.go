@@ -47,22 +47,25 @@ func fakeSha(arch string) string {
 	return hex.EncodeToString(s[:])
 }
 
-// markRow đánh dấu bằng data-m18-hang hàng của bản id trên bảng đang mở, để
-// bấm nút trong hàng. Hàng được nhận ra bằng 12 ký tự đầu sha256 của bản (chữ
-// shortSha của web/src/screens/backup/model.ts hiện trên hàng).
+// markRow đánh dấu bằng data-m18-hang hàng của bản id trên bảng backup đang
+// mở, để bấm nút trong hàng. Bảng không lọc hiện đúng các dòng items của GET
+// /api/v1/backups theo đúng thứ tự (List.tsx: rows = items), và khi có cột Ở
+// đâu thì cột sha256, Đường dẫn bị ẩn: nên hàng được chọn theo chỉ số của bản
+// trong API, rồi kiểm lại hàng đó ghi đúng tên site.
 func markRow(c *cdp, id string) error {
-	sha := firstID(c, fmt.Sprintf(`fetch('/api/v1/backups').then(r=>r.json()).then(j=>((j.items||[]).find(b=>b.id===%q)||{}).sha256||'')`, id))
-	if len(sha) < 12 {
-		return fmt.Errorf("API không có sha256 của bản %s", id)
-	}
-	v, err := c.eval(fmt.Sprintf(`(()=>{document.querySelectorAll('[data-m18-hang]').forEach(e=>e.removeAttribute('data-m18-hang'));
-		const tr=[...document.querySelectorAll('main tr')].find(r=>r.textContent.includes(%q)); if(!tr) return false;
-		tr.setAttribute('data-m18-hang','1'); return true})()`, sha[:12]))
+	v, err := c.eval(fmt.Sprintf(`(async()=>{document.querySelectorAll('[data-m18-hang]').forEach(e=>e.removeAttribute('data-m18-hang'));
+		const items=(await fetch('/api/v1/backups').then(r=>r.json())).items||[];
+		const i=items.findIndex(b=>b.id===%q); if(i<0) return 'API không có bản này';
+		const sel=document.querySelector('#o-backup-filter'); if(sel&&sel.value) return 'bảng đang lọc theo '+sel.value;
+		const trs=[...document.querySelectorAll('main section[aria-labelledby="backup-list"] tbody tr')];
+		if(trs.length!==items.length) return 'bảng có '+trs.length+' hàng, API có '+items.length;
+		const tr=trs[i]; if(!tr.textContent.includes(items[i].domain)) return 'hàng '+i+' không ghi '+items[i].domain;
+		tr.setAttribute('data-m18-hang','1'); return ''})()`, id))
 	if err != nil {
 		return err
 	}
-	if v != true {
-		return fmt.Errorf("bảng không có hàng của bản %s (sha %s)", id, sha[:12])
+	if s := fmt.Sprint(v); s != "" {
+		return fmt.Errorf("không tìm được hàng của bản %s: %s", id, s)
 	}
 	return nil
 }
