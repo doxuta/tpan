@@ -340,6 +340,49 @@ Số đo thời gian lần khởi động đầu: xem chỗ giữ chỗ ở mụ
 - Mọi route mới là `admin` (`internal/server/routes.go`). `POST /api/v1/backups/{id}/push` trả 202 và đưa vào hàng chờ của bộ đẩy nền; hàng chờ nằm trong bộ nhớ nên mất khi panel khởi động lại, câu trả lời của API nói rõ điều này. `POST .../pull` chạy trong một goroutine riêng, không qua hàng chờ đó.
 - Phép kiểm "job treo" của M4 bỏ qua ba loại `backup.push`, `backup.pull`, `backup.panel`, vì chúng được phép chạy lâu.
 
+### 3.13 Giao diện: màn Backup, khôi phục từ kho, trang cài máy mới
+
+Giao diện làm sau phần lõi, khi giao diện bản 2 của M16 đã vào `dev`. Nó chỉ ghép các thành phần có sẵn trong `web/src/components/`, theo `docs/GIAO-DIEN.md`. Ảnh sáng, tối và 390 px nằm ở `docs/bang-chung/M18/`.
+
+**Thẻ "Đích ngoài máy"** (`web/src/screens/backup/Target.tsx`, chỉ admin):
+
+- **Xem:** đọc `GET /api/v1/backups/target`. Khoá truy cập chỉ hiện dạng "…" cộng bốn ký tự cuối.
+- **Đặt đích:** form gồm endpoint, vùng, bucket, tiền tố, số bản giữ, kiểu `bucket.host`, chứng chỉ gốc riêng và hai khoá. Bấm "Xem trước" gọi `?dry_run=1` và hiện bản xem trước; chỉ khi bấm chạy máy mới đổi, đúng như mọi việc khác của panel.
+- **Ba chỗ người review hay hỏi**, vì đây là chuyện giữ bí mật ngay trong trình duyệt:
+  1. Hai khoá không đi qua `mutate()` của TanStack Query, vì thư viện này giữ đối số đó trong bộ nhớ đệm của nó. Khoá nằm trong một biến riêng của thẻ, chỉ từ lúc xem trước tới lúc chạy. Hai ô khoá bị xoá ngay sau lượt xem trước.
+  2. Ô secret key có `autoComplete="new-password"`. Chrome bỏ qua giá trị `off` ở ô mật khẩu, nên có thể tự điền mật khẩu đăng nhập panel vào ô này rồi gửi lên kho.
+  3. Để trống hai ô nghĩa là giữ khoá cũ. Máy chủ chỉ cho làm vậy khi đích không đổi chỗ (R1), và giao diện ghi luật đó ngay dưới ô.
+- **Chưa có khoá sao lưu:** thẻ nhắc lệnh `sudo tpan backup key new`, vì API không bao giờ sinh khoá này.
+
+**Cột "Ở đâu" và khôi phục từ kho** (`List.tsx`, `StorageFlow.tsx`):
+
+- Cột chỉ hiện khi máy dùng kho, nên máy không dùng kho thấy màn y như trước (B11).
+- Máy chủ tính sẵn trường `location` (`core.BackupLocation`). Giao diện không tự đoán, vì nó không có mã đích của từng dòng.
+- Khi cột hiện thì hai cột sha256 và Đường dẫn ẩn. Không ẩn thì ở 1440 px bảng rộng quá khung, và nút "Khôi phục" phải cuộn ngang mới thấy.
+- Bấm "Khôi phục" một bản chỉ còn trên kho:
+  1. Hộp hỏi hiện ra: "Tải về máy trước khi khôi phục?".
+  2. Đồng ý thì có bản xem trước của việc tải về, rồi chạy job `backup.pull`. API trả `job_id`, nên thẻ theo dõi job hiện tiến độ; bản trên kho sai sha256 thì thẻ hiện lỗi.
+  3. Tải xong, bấm "Khôi phục" lần nữa mới tới bản xem trước khôi phục.
+  
+  Hai bước tách nhau là cố ý: tải về là một job phải xong hẳn trước khi job khôi phục bắt đầu (B4).
+
+**Trang "Cài lên máy ảo mới"** (`/tools/new-server`):
+
+- Form gửi `POST /api/v1/cloud-init/render`. Hai sha256 bắt buộc, vì máy chủ không tự tải gì.
+- Mật khẩu quản trị của máy mới hiện một lần. Bấm "Đã lưu, ẩn đi" là mật khẩu ra khỏi bộ nhớ của trang.
+
+**Kiểm bằng trình duyệt thật:**
+
+- `make anh-m18` chụp 6 màn ở ba khổ: 18 ảnh, 0 không đạt. Với mỗi ảnh, nó kiểm:
+  - không lỗi console, không cuộn ngang, không chữ dưới 12 px;
+  - đi hết bằng phím Tab;
+  - bản tiếng Anh không tràn chữ;
+  - không nút nào bị khung cắt. Phép kiểm này bắt được ô CA tràn ở 390 px.
+  
+  Một phép kiểm khác đòi nút "Khôi phục" nằm trọn trong khung bảng ở 1440 px; nó bắt được bảng rộng quá khung.
+- `make e2e-m18-gd` làm từ máy ảo sạch: 69 đạt, 0 không đạt (`docs/bang-chung/M18-giao-dien.log`). Chrome không giao diện trên Mac đăng nhập panel thật, gõ khoá vào form đích, xem trước, chạy, thử kết nối. Rồi nó khôi phục một bản chỉ còn trên kho qua hộp hỏi tải về. Trong máy ảo, script kiểm site trả 200 và file đánh dấu về đúng nội dung cũ.
+- Lượt soát cuối phần giao diện: 0 nặng, 1 vừa, 10 nhẹ (`docs/thay-doi/M18-soat-giao-dien.md`). Điểm vừa đã sửa: tải về hỏng trước khi job bắt đầu thì báo ngay cho người bấm, thay vì nói "đang tải về".
+
 ## 4. Kiến thức nền
 
 Chỉ những khái niệm M18 thật sự dùng. Mỗi mục: nó là gì, chỗ trong mã, lệnh để tự nhìn.
@@ -440,5 +483,13 @@ Hai điểm soát hẹp để lại, ghi thẳng vào đây (mục 9.3 của b�
 
 - **R6 (a).** Lượt đẩy dài (đang tải một bản lớn) thì khôi phục một bản chỉ còn trên kho phải chờ khoá lượt đẩy, tối đa 30 phút. API tải về chạy trong goroutine riêng nên không treo panel, nhưng lệnh gõ tay chờ.
 - **R7.** Việc tải về (dưới khoá lượt đẩy) và việc sao lưu (dưới khoá job) có thể chạy song song, và cả hai cùng qua luật chặn đầy đĩa vì mỗi bên chỉ nhìn chỗ trống hiện tại. Giữ chỗ trước bằng `fallocate` cần đổi `Streamer` và hai bước đã xong; làm ở mốc sau.
+
+Phần giao diện để lại (mục "Đã xử lý" của `docs/thay-doi/M18-soat-giao-dien.md`):
+
+- Tải về phải chờ khoá lượt đẩy hơn 30 phút rồi hỏng thì chỉ có dấu trong log và nhật ký `audit`, không có job ở Lịch sử. Hỏng trong 5 giây đầu thì người bấm thấy lỗi ngay.
+- Bản "máy và kho" mà file trên máy bị hỏng thì chưa có nút tải lại trên giao diện. Admin dùng `sudo tpan backup pull <id>`.
+- Setting đích bị sửa hỏng thì bảng không có cột "Ở đâu".
+- Sinh lại user-data không hỏi lại trước khi thay mật khẩu đang hiện.
+- Một số điểm nhỏ về bàn phím, kiểu dáng và câu chữ (G7 tới G11) để sau.
 
 Những giới hạn khác đã ghi ở mục 1 của bản thiết kế, bạn nên nhắc được: bản site không mã hoá trên kho; chưa có lệnh dựng lại cả máy; chưa chặn hai máy ghi cùng một tiền tố; DB rời của M13 không có bản sao lưu; chứng chỉ Let's Encrypt không được mang sang máy mới; kiểu địa chỉ `bucket.host` (`--vhost`) có unit test nhưng chưa thử e2e vì cần DNS kiểu `*.host`; một đích duy nhất cho cả máy, chưa có khoá tạm STS hay vai của máy ảo. Nâng cấp từ v0.2.0 an toàn (migration 1800 chỉ thêm cột có DEFAULT). Lùi về v0.2.0 sau khi nâng thì phải chép lại bản sao `tpan.db` cũ; nếu đã có bản chỉ còn trên kho thì `tpan backup pull` các bản cần giữ trước khi lùi.
