@@ -92,7 +92,7 @@ type SecretFile struct {
 	Title   i18n.Text
 	Why     i18n.Text
 
-	file *File //nolint:unused // đợt 0: thân ở s3.go (đợt 1), thợ gỡ dòng nolint này
+	file *File
 }
 
 // SecretAbsent gỡ một file bí mật. Thân: một *Absent nội bộ với secret=true,
@@ -103,7 +103,7 @@ type SecretAbsent struct {
 	Title i18n.Text
 	Why   i18n.Text
 
-	absent *Absent //nolint:unused // đợt 0: thân ở s3.go (đợt 1), thợ gỡ dòng nolint này
+	absent *Absent
 }
 
 // S3Probe thử thật một đích (mục 3.3 bước 2): ghi object nhỏ ngẫu nhiên
@@ -116,7 +116,7 @@ type S3Probe struct {
 	// Label là "<host>/<bucket>/<tiền tố>" để hiển thị; không có khoá.
 	Label string
 
-	applied bool //nolint:unused // đợt 0: thân ở s3.go (đợt 1), thợ gỡ dòng nolint này
+	applied bool
 }
 
 // S3Push tải một file cục bộ lên kho rồi đọc lại (mục 3.5, sáu việc theo thứ
@@ -143,7 +143,7 @@ type S3Push struct {
 	// Kết quả sau Apply.
 	ETag string
 
-	applied bool //nolint:unused // đợt 0: thân ở s3.go (đợt 1), thợ gỡ dòng nolint này
+	applied bool
 }
 
 // S3Pull tải một object về đúng đường dẫn cục bộ của bản sao lưu (mục 3.6):
@@ -163,8 +163,8 @@ type S3Pull struct {
 	Size   int64
 	SHA256 string
 
-	created bool //nolint:unused // đợt 0: thân ở s3.go (đợt 1), thợ gỡ dòng nolint này
-	applied bool //nolint:unused // đợt 0: thân ở s3.go (đợt 1), thợ gỡ dòng nolint này
+	created bool
+	applied bool
 }
 
 // PanelNameLater là chữ giữ chỗ tên gói panel trong Info (tên chỉ biết lúc
@@ -197,6 +197,6 @@ type PanelBundle struct {
 	Size   int64
 	SHA256 string
 
-	now     func() time.Time //nolint:unused // nil: time.Now; test đặt giờ cố định. Đợt 0: thân ở panel.go (đợt 1), thợ gỡ nolint
-	applied bool             //nolint:unused // đợt 0: thân ở panel.go (đợt 1), thợ gỡ dòng nolint này
+	now     func() time.Time // nil: time.Now; test đặt giờ cố định
+	applied bool
 }
