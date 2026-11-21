@@ -181,6 +181,41 @@ func checkPage(c *cdp, f *m16Fail, what string, dialog bool) {
 	}
 }
 
+// checkMeasure chạy do-giao-dien.js ngay trên trang đang mở và khẳng định hai
+// ngưỡng cứng đúng cho mọi màn (B13): không chữ nào dưới 12 px, không ô nào
+// viền màu chữ chính.
+func checkMeasure(c *cdp, f *m16Fail, what string) {
+	v, err := c.eval(measureJS)
+	if err != nil {
+		f.add("%s: không chạy được script đo: %v", what, err)
+		return
+	}
+	var r measureRow
+	if err := json.Unmarshal([]byte(fmt.Sprint(v)), &r); err != nil {
+		f.add("%s: không đọc được kết quả đo: %v", what, err)
+		return
+	}
+	if r.NhoNhat > 0 && r.NhoNhat < 12 {
+		f.add("%s: có chữ %v px (dưới 12 px): %s", what, r.NhoNhat, strings.Join(r.ChuNho, "; "))
+	}
+	if r.VienDen > 0 {
+		f.add("%s: %d ô viền màu chữ chính: %s", what, r.VienDen, strings.Join(r.MauVien, "; "))
+	}
+}
+
+// pressText bấm phần tử đầu tiên khớp scope có chữ đúng bằng text (bấm chuột thật).
+func (c *cdp) pressText(scope, text string) error {
+	v, err := c.eval(fmt.Sprintf(`(()=>{const b=[...document.querySelectorAll(%q)].find(b=>b.textContent.trim()===%q); if(!b) return false; b.setAttribute('data-bam','1'); return true})()`, scope, text))
+	if err != nil {
+		return err
+	}
+	if v != true {
+		return fmt.Errorf("không thấy «%s» trong %s", text, scope)
+	}
+	defer func() { _, _ = c.eval(`document.querySelector('[data-bam]')?.removeAttribute('data-bam')`) }()
+	return c.press("[data-bam]")
+}
+
 // firstID lấy một giá trị từ API của panel bằng một biểu thức JS trả chuỗi (rỗng khi không có).
 func firstID(c *cdp, js string) string {
 	v, err := c.eval(js)
@@ -191,7 +226,7 @@ func firstID(c *cdp, js string) string {
 	return s
 }
 
-func photosM16(c *cdp, base, adminPW, out string) error {
+func photosM16(c *cdp, base, adminPW, out, only string) error {
 	if err := c.watchConsole(); err != nil {
 		return err
 	}
@@ -242,11 +277,68 @@ func photosM16(c *cdp, base, adminPW, out string) error {
 		{name: "user-co-so-du-lieu", path: "/databases", user: "khach_a"},
 		{name: "user-khong-co-quyen", path: "/users", user: "khach_a"},
 	}
+	// Lớp nổi (B14 của thiết kế): mỗi lớp một ảnh, cũng chạy qua mọi phép kiểm của màn.
+	openWith := func(sel, ready string) func(c *cdp) error {
+		return func(c *cdp) error {
+			if err := c.press(sel); err != nil {
+				return err
+			}
+			return c.waitTrue(ready, 5*time.Second)
+		}
+	}
+	const menuOpen = `!!document.querySelector('[role=menu]')`
+	shots = append(shots,
+		m16Shot{name: "lop-menu-tai-khoan", path: "/tools", prep: openWith(`header button[aria-haspopup="menu"]`, menuOpen)},
+		m16Shot{name: "lop-menu-ba-cham", path: "/databases", prep: openWith(`main button[aria-haspopup="menu"]`, menuOpen)},
+		m16Shot{name: "lop-thanh-lenh", path: "/tools", dialog: true, prep: openWith(`header button[aria-haspopup="dialog"]`, `!!document.querySelector('[role=dialog]')`)},
+		m16Shot{name: "lop-ngan-ai", path: "/tools", dialog: true, prep: openWith(`#nut-hoi-ai`, `!!document.getElementById('ngan-ai')`)},
+		m16Shot{name: "lop-xem-truoc-plan", path: "/sites/new", prep: func(c *cdp) error {
+			if err := c.typeInto("#o-domain", "moi.example.com"); err != nil {
+				return err
+			}
+			if err := c.typeInto("#o-email", "admin@example.com"); err != nil {
+				return err
+			}
+			if _, err := c.eval(`document.querySelector('form button[type=submit]').click()`); err != nil {
+				return err
+			}
+			return c.waitTrue(`!!document.querySelector('[data-plan-run]')`, 15*time.Second)
+		}},
+		// Thẻ theo dõi job: backup một site (xem trước rồi chạy) ở màn Backup.
+		m16Shot{name: "lop-theo-doi-job", path: "/backups", prep: func(c *cdp) error {
+			if err := c.pressText("main button", "Backup ngay"); err != nil {
+				return err
+			}
+			if err := c.waitTrue(`!!document.querySelector('[data-plan-run]')`, 15*time.Second); err != nil {
+				return err
+			}
+			if err := c.press("[data-plan-run]"); err != nil {
+				return err
+			}
+			return c.waitTrue(`!!document.querySelector('[data-job-tracker]')`, 15*time.Second)
+		}},
+	)
 	if aiSession != "" {
 		shots = append(shots, m16Shot{name: "phien-ai-chi-tiet", path: "/ai/" + aiSession})
 	}
 	if plan != "" {
 		shots = append(shots, m16Shot{name: "plan-chi-tiet", path: "/plans/" + plan})
+	}
+	if only != "" {
+		keep := map[string]bool{}
+		for _, n := range strings.Split(only, ",") {
+			keep[strings.TrimSpace(n)] = true
+		}
+		var picked []m16Shot
+		for _, s := range shots {
+			if keep[s.name] {
+				picked = append(picked, s)
+			}
+		}
+		if len(picked) == 0 {
+			return fmt.Errorf("-chi=%q không khớp ảnh nào", only)
+		}
+		shots = picked
 	}
 
 	who := "\x00" // chưa biết đang là ai
@@ -327,7 +419,12 @@ func photosM16(c *cdp, base, adminPW, out string) error {
 			return err
 		}
 		count++
-		return snap(c, out, file)
+		if err := snap(c, out, file); err != nil {
+			return err
+		}
+		// Sau khi chụp, để script đo không làm đổi ảnh.
+		checkMeasure(c, &fail, file)
+		return nil
 	}
 
 	for _, theme := range []string{"light", "dark"} {
@@ -344,6 +441,14 @@ func photosM16(c *cdp, base, adminPW, out string) error {
 				return fmt.Errorf("%s (390, %s): %w", s.name, theme, err)
 			}
 		}
+	}
+
+	if only != "" {
+		fmt.Printf("\nĐã chụp %d ảnh vào %s (chỉ các ảnh của -chi, bỏ phần bàn phím và tiếng Anh). Không đạt: %d\n", count, out, len(fail.list))
+		if len(fail.list) > 0 {
+			return fmt.Errorf("có %d điều không đạt", len(fail.list))
+		}
+		return nil
 	}
 
 	// Từ đây không chụp nữa: kiểm bàn phím và bản tiếng Anh, bằng admin.
@@ -368,15 +473,27 @@ func photosM16(c *cdp, base, adminPW, out string) error {
 		return settle(c)
 	}
 
-	fmt.Println("\nBàn phím (1440 × 900, tiếng Việt):")
-	main4 := []m16Shot{{name: "Người dùng", path: "/users"}, {name: "Cơ sở dữ liệu", path: "/databases"}, {name: "Công cụ", path: "/tools"}, {name: "Trang một site", path: "/sites/" + long}}
-	for _, s := range main4 {
+	// Mọi màn của danh sách ảnh (trừ trang đăng nhập và ảnh lớp nổi): bàn phím và tiếng Anh.
+	var pages []m16Shot
+	for _, s := range shots {
+		if !s.guest && s.prep == nil {
+			pages = append(pages, s)
+		}
+	}
+	fmt.Println("\nBàn phím (1440 × 900, tiếng Việt), mọi màn:")
+	for _, s := range pages {
+		if err := as(s); err != nil {
+			return err
+		}
 		if err := open(s.path, "vi"); err != nil {
 			return fmt.Errorf("bàn phím %s: %w", s.name, err)
 		}
 		if err := tabWalk(c, &fail, s.name); err != nil {
 			return fmt.Errorf("bàn phím %s: %w", s.name, err)
 		}
+	}
+	if err := as(m16Shot{}); err != nil {
+		return err
 	}
 	// Menu ba chấm của hàng đầu ở màn Cơ sở dữ liệu: Enter mở, mũi tên xuống đi, Escape đóng, focus về nút.
 	if err := open("/databases", "vi"); err != nil {
@@ -424,14 +541,15 @@ func photosM16(c *cdp, base, adminPW, out string) error {
 		fmt.Printf("  bàn phím tab: mũi tên phải đổi từ %s sang %s\n", before, after)
 	}
 
-	fmt.Println("\nTiếng Anh (không cuộn ngang, không chữ bị cắt mà thiếu title):")
-	english := []m16Shot{{name: "bang-dieu-khien", path: "/"}, {name: "cong-cu", path: "/tools"}, {name: "site", path: "/sites"},
-		{name: "site-tong-quan", path: "/sites/" + long}, {name: "co-so-du-lieu", path: "/databases"}, {name: "nguoi-dung", path: "/users"}, {name: "cai-dat", path: "/settings"}}
+	fmt.Println("\nTiếng Anh (không cuộn ngang, không chữ bị cắt mà thiếu title), mọi màn:")
 	for _, size := range [][2]int{{width, height}, {390, 844}} {
 		if err := c.viewport(size[0], size[1]); err != nil {
 			return err
 		}
-		for _, s := range english {
+		for _, s := range pages {
+			if err := as(s); err != nil {
+				return err
+			}
 			what := fmt.Sprintf("tiếng Anh %s ở %d px", s.name, size[0])
 			if err := open(s.path, "en"); err != nil {
 				return fmt.Errorf("%s: %w", what, err)

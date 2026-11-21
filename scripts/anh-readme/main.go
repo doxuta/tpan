@@ -80,6 +80,7 @@ func main() {
 	flag.StringVar(&m16.step, "buoc", "", "bộ m16-that: admin, tao-site, user hoặc nang-cap (xem m16_that.go)")
 	flag.StringVar(&m16.userName, "ten", "", "bộ m16-that, bước user: tên user thường (mật khẩu ở biến môi trường TPAN_USER_PASSWORD)")
 	flag.StringVar(&m16.waitFile, "cho-tep", "", "bộ m16-that, bước nang-cap: file mà script e2e tạo ra khi đã nâng cấp xong")
+	flag.StringVar(&m16.only, "chi", "", "bộ m16: chỉ chụp các ảnh có tên này (cách nhau bằng dấu phẩy, ví dụ cong-cu,nguoi-dung), bỏ phần bàn phím và tiếng Anh")
 	flag.Parse()
 	list := shots()
 	switch *set {
@@ -241,7 +242,7 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 	case "m16-do":
 		return measureM16(c, base, m16)
 	case "m16":
-		return photosM16(c, base, password, out)
+		return photosM16(c, base, password, out, m16.only)
 	}
 	jobID, err := siteJob(c)
 	if err != nil {

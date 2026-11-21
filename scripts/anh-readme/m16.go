@@ -45,6 +45,9 @@ type m16Opts struct {
 	// threshold: bộ m16-do kiểm các ngưỡng cứng của M16 (mục 7 của
 	// docs/thay-doi/M16-thiet-ke.md) và thoát mã khác 0 khi sai một cái.
 	threshold bool
+	// only: bộ m16 chỉ chụp các ảnh có tên này (cách nhau bằng dấu phẩy) và bỏ
+	// phần bàn phím, tiếng Anh: để phiên chính soát nhanh sau mỗi đợt thợ.
+	only string
 }
 
 // watchConsole bật các miền CDP phát sự kiện lỗi. Gọi một lần sau khi nối.
@@ -174,17 +177,19 @@ func ensureLongSites(c *cdp) error {
 
 // measureRow là các trường của do-giao-dien.js mà bảng in ra dùng tới.
 type measureRow struct {
-	Man      string  `json:"man"`
-	CuaSo    []int   `json:"cuaSo"`
-	DaiPx    int     `json:"trangDaiPx"`
-	ManHinh  float64 `json:"soManHinh"`
-	KyTu     int     `json:"kyTu"`
-	Nho      int     `json:"phanTramChuTu13pxTroXuong"`
-	Mono     int     `json:"phanTramChuMono"`
-	VienDen  int     `json:"oVienDen"`
-	ChoBam   *int    `json:"choBamDuocTrongNoiDung"`
-	NhoNhat  float64 `json:"coChuNhoNhatPx"`
-	CuonNgng bool    `json:"cuonNgangCaTrang"`
+	Man      string   `json:"man"`
+	CuaSo    []int    `json:"cuaSo"`
+	DaiPx    int      `json:"trangDaiPx"`
+	ManHinh  float64  `json:"soManHinh"`
+	KyTu     int      `json:"kyTu"`
+	Nho      int      `json:"phanTramChuTu13pxTroXuong"`
+	Mono     int      `json:"phanTramChuMono"`
+	VienDen  int      `json:"oVienDen"`
+	MauVien  []string `json:"mauOVienDen"`
+	ChuNho   []string `json:"chuDuoi12px"`
+	ChoBam   *int     `json:"choBamDuocTrongNoiDung"`
+	NhoNhat  float64  `json:"coChuNhoNhatPx"`
+	CuonNgng bool     `json:"cuonNgangCaTrang"`
 	TenSite  *struct {
 		SoDong int    `json:"soDong"`
 		Ten    string `json:"ten"`
