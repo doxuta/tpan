@@ -236,7 +236,7 @@ func (s *Server) secretJob(w http.ResponseWriter, r *http.Request, o jobOpts, pr
 			apiFail(w, r, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, pv)
+		s.writePreview(w, r, pv)
 		return
 	}
 	if !s.api.claim() {

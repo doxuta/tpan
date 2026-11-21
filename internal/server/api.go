@@ -123,6 +123,14 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			status = http.StatusNotFound
 		}
 		return status, ErrorBody{Error: ErrorDetail{Code: re.Code, Message: re.Message, Checks: re.Checks}}
+	}
+	// M28: lỗi của cửa sitefs (file trong thư mục site là symlink, FIFO, quá
+	// lớn, không thuộc site...) là trạng thái site tự tạo ra, không phải lỗi của
+	// tpan: 409 site_path_unsafe. "Không có" thì đi tiếp như cũ.
+	if body, ok := sitePathUnsafe(err); ok {
+		return http.StatusConflict, body
+	}
+	switch {
 	case errors.Is(err, store.ErrNotFound):
 		return http.StatusNotFound, ErrorBody{Error: ErrorDetail{Code: "not_found", Message: i18n.T("Không có.", "Not found.")}}
 	}
