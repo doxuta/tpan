@@ -236,6 +236,8 @@ Bản đầy đủ, kèm quy ước lỗi, nằm ở `internal/system/types.go`.
 | `check_results`, `incidents` | kết quả gần nhất của từng phép kiểm trên từng đối tượng; sự cố mở khi một phép kiểm chuyển sang lỗi, đóng khi nó đạt lại |
 | `ai_sessions` | phiên AI: lối vào (trong panel hay agent nối trực tiếp), câu hỏi nếu có, ngữ cảnh và đường đã đi, các lần gọi công cụ, dữ liệu đã trả về (bản đã che), Plan được đề xuất |
 | `sessions`, `audit` | phiên đăng nhập (chỉ lưu hash của token), nhật ký ai làm gì lúc nào |
+| `usage_samples`, `usage_hourly` | (M17) số liệu của site trong lồng đọc từ cgroup: mẫu 5 phút (giữ 8 ngày, kèm trần đang áp lúc đó) và dòng gộp theo giờ (giữ 30 ngày); `packages` thêm cờ `cage` và sáu trần, `sites` thêm `caged` (mục 6.15) |
+| `probe_runs` | (M17) sổ của `tpan isolation probe`: ghi trước khi tạo site thử, dọn chỉ theo sổ |
 
 Không lưu mật khẩu DB của site (nó nằm trong `wp-config.php`) và không lưu mật khẩu quản trị WordPress (chỉ hiện một lần lúc tạo).
 
@@ -1316,6 +1318,10 @@ tpan health [<domain>] [--fix]
 tpan security status | ufw | fail2ban | harden          (harden: áp bản vá cô lập của M14, mục 6.13)
 tpan site set <domain> --htaccess an-toan|tat|day-du    (M14, chỉ có tác dụng trên Apache)
 tpan route explain <domain>                             (M14: request tới tên miền này đi đường nào)
+tpan cage status [<domain>] | enable <domain>|--all | disable <domain>|--all|--stale   (M17, mục 6.15)
+tpan package add|edit|set <gói> ... [--cage on|off] [--cpu N] [--ram-mb N] [--tasks N] [--io-read-mb N] [--io-write-mb N] [--php-workers N]   (M17)
+tpan usage [<domain>] [--suggest]                       (M17: số liệu đọc từ cgroup, gợi ý trần)
+tpan isolation probe [--only ngoai|trong] [--cleanup]   (M17: thử tấn công bằng hai site thử, dọn sạch)
 tpan plan list | show <id> | approve <id> | reject <id>
 tpan mcp [--session ID]            chạy MCP server qua stdio (gọi qua SSH từ máy cá nhân)
 tpan brain <máy> [--model M]       chạy trên máy cá nhân: nối Claude Code vào panel của <máy>
@@ -1446,9 +1452,9 @@ M1 đến M3 là phần bắt buộc của đề. Từ M4 trở đi các mốc �
 
 Để sau, rút ra từ M14 (chi tiết ở mục 3 của `docs/thay-doi/M14-nghien-cuu.md`):
 
-- **Lồng theo site (ứng viên cho một mốc sau; số M15 đã dùng cho nút cập nhật, mục 6.14).** Mỗi site một dịch vụ PHP-FPM riêng do systemd quản, với `ProtectSystem=strict`, `TemporaryFileSystem=/var/www:ro` + `BindPaths=<thư mục site>`, `PrivateTmp`, `ProtectProc=invisible`, `MemoryMax`, `CPUQuota`, `TasksMax`. Bản thử (`t5`) cho thấy: `ls /var/www` chỉ thấy site của mình, `/tmp` riêng, OPcache riêng, script cấp phát 400 MB bị giết ở trần 200 MB còn site vẫn sống (cần `OOMPolicy=continue`), vòng lặp CPU chậm đi 2,5 lần ở `CPUQuota=50%`. Giá: khoảng 32 MB RAM cho mỗi site kể cả lúc không có khách. Hợp để gắn vào gói của M13 (trần RAM, CPU theo gói).
+- **Lồng theo site: đã làm ở M17 (mục 6.15), phần lõi; giao diện làm sau.** Ghi chú cũ của M14: Mỗi site một dịch vụ PHP-FPM riêng do systemd quản, với `ProtectSystem=strict`, `TemporaryFileSystem=/var/www:ro` + `BindPaths=<thư mục site>`, `PrivateTmp`, `ProtectProc=invisible`, `MemoryMax`, `CPUQuota`, `TasksMax`. Bản thử (`t5`) cho thấy: `ls /var/www` chỉ thấy site của mình, `/tmp` riêng, OPcache riêng, script cấp phát 400 MB bị giết ở trần 200 MB còn site vẫn sống (cần `OOMPolicy=continue`), vòng lặp CPU chậm đi 2,5 lần ở `CPUQuota=50%`. Giá: khoảng 32 MB RAM cho mỗi site kể cả lúc không có khách. Hợp để gắn vào gói của M13 (trần RAM, CPU theo gói).
 - Tên phụ của site (`www.`), chuyển hướng: hiện `www.<domain>` rơi vào vhost mặc định.
-- `tpan isolation probe` (mục 6.13): chưa làm ở M14. `scripts/e2e-m14/tan-cong.sh` làm đúng việc đó trên máy ảo test; đưa nó thành một Plan của panel là việc để sau.
+- `tpan isolation probe` (mục 6.13): đã làm ở M17 (mục 6.15). Ghi chú cũ của M14: chưa làm ở M14. `scripts/e2e-m14/tan-cong.sh` làm đúng việc đó trên máy ảo test; đưa nó thành một Plan của panel là việc để sau.
 - Stack thứ ba "nginx đứng trước Apache": đem `.htaccess` trở lại sau nginx, nên phải đi cùng các chế độ `.htaccess` của mục 6.13.
 
 ## 14. Quy ước làm việc
@@ -2229,3 +2235,19 @@ Mọi thợ chạy model fable, effort high (yêu cầu của chủ dự án cho
 | 4 | README, `docs/HUONG-DAN-CHU-DU-AN.md`, gộp `docs/thay-doi/M15.md` vào KE-HOACH.md, ✅ | các file đó | phiên chính | fable | high |
 
 Mục KE-HOACH.md phải đọc: 4.2, 4.3, 6.11, 6.14, 9, 11; giao diện đọc thêm 10 và `docs/GIAO-DIEN.md`.
+
+### M17 (phần lõi)
+
+Luật 8 của lộ trình đổi giữa mốc: thợ viết phần không nhạy cảm dùng `sonnet`, phần nhạy cảm `opus` effort high, thợ soát `opus` effort max (hạn mức `fable` hết giữa đợt 0, sổ ở `docs/thay-doi/M17.md`). Tối đa 4 thợ cùng lúc, các đợt chạy gối theo phụ thuộc; mỗi phần xong là `make check` và một commit.
+
+| Đợt | Phần | Vùng file | Thợ | Model | Effort |
+|---|---|---|---|---|---|
+| 0 | Nghiên cứu trên máy ảo (`t0` đến `t15`), bản thiết kế tám phần, hai lần soát thiết kế, hợp đồng (kiểu, chữ ký, migration 1700, route có luật, `system.Describer`, tên của lồng trong `site.Layout`) | `docs/bang-chung/M17-nghien-cuu/`, `docs/thay-doi/M17-thiet-ke.md`, khung của các file `cage.go`, `types_m17.go`, `routes.go`, `Makefile` | phiên chính; soát thiết kế: thợ riêng | opus | max |
+| 1 | Template của lồng; lớp bọc lệnh và đọc cgroup; store; script e2e bước 20 (viết trước) | `internal/templates/cage.go` và `files/cage-*.tmpl`; `internal/cage/`; `internal/store/`; `scripts/e2e-m17*` | `tho-loi` (hai phần đầu), `tho-phu` | opus, sonnet | high, mặc định |
+| 2 | Step của lồng; phép kiểm của lồng; số liệu và gợi ý trần; kiểm trần của gói và route explain | `internal/steps/cage.go`; `internal/checks/cage.go`; `internal/core/usage.go`; `internal/core/users.go`, `route_m14.go` | `tho-loi` (Step), `tho-phu` | opus, sonnet | high, mặc định |
+| 3 | Plan của lồng, sửa tự động, health; ghép lồng vào thao tác đã có; thử tấn công; API, CLI, bộ hẹn giờ | `internal/core/cage.go`, `fix.go`, `health.go`; `site.go`, `trash.go`, `suspend.go`, `php.go`, `apply.go`, `ssl.go`, `harden_m14.go`, `selfupdate.go`; `probe.go`, `probe/`; `internal/server/api_m17.go`, `usage_timer.go`, `cmd/tpan/cage.go`, `usage.go`, `isolation.go`, `package.go` | `tho-loi` (ba phần đầu), `tho-phu` | opus, sonnet | high, mặc định |
+| 4 | Chạy thật: e2e bước 20 hai stack, nâng từ v0.2.0, hồi quy M13, M14, M9; sửa lỗi gốc | máy ảo `tpan-m17`, `docs/bang-chung/M17*.log`, chỗ sửa | `tho-may-ao` | opus | high |
+| 5 | Soát cuối (pha 1 đọc mã, pha 2 tấn công trên máy ảo); sửa phát hiện phần core và lớp bọc lệnh; giải thích | `tmp-phien/` (ghi chú), chỗ sửa kèm test; `docs/giai-thich/17-m17-long-theo-site.md` | thợ soát; `tho-loi`; `tho-viet` | opus, opus, sonnet | max, high, mặc định |
+| 6 | Gộp `dev` (M15, M16), mục 6.15, đóng lõi | `docs/KE-HOACH.md`, `docs/thay-doi/M17.md` | phiên chính | opus | max |
+
+Mục KE-HOACH.md phải đọc: 4.2, 4.4, 6.2, 6.4, 6.7, 6.11, 6.12, 6.13, 6.15, 9, 11; bản thiết kế đầy đủ ở `docs/thay-doi/M17-thiet-ke.md`.
