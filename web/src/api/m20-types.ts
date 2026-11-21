@@ -16,7 +16,7 @@
 //   POST /api/v1/account/2fa/recovery  MFAConfirm → RecoveryCodes (hiện một lần)
 //
 // Token của chính mình:
-//   GET    /api/v1/account/tokens               → TokenRow[]
+//   GET    /api/v1/account/tokens               → MyTokens
 //   POST   /api/v1/account/tokens   TokenCreate → 201 TokenCreated (token hiện một lần)
 //   DELETE /api/v1/account/tokens/{id}          → 204
 //
@@ -33,8 +33,10 @@
 // Retry-After), mfa_secret_unavailable (503), mfa_already_enabled, mfa_not_pending,
 // mfa_not_enabled, mfa_required_by_policy, mfa_enroll_self_first, mfa_enroll_required,
 // token_name_invalid, token_scope_invalid, token_days_invalid, policy_invalid,
-// token_not_found, panel_domain_is_site, domain_is_panel; mật khẩu sai ở các thao
-// tác đòi mật khẩu: wrong_password (401) hoặc login_locked (423) như đăng nhập.
+// token_not_found, panel_domain_is_site, domain_is_panel, panel_staging, panel_private,
+// mfa_code_required (thiếu mã khi user đã bật hai bước: tạo token, đổi mật khẩu),
+// host_is_site (421: panel không phục vụ ở tên của site thuộc user thường); mật khẩu
+// sai ở các thao tác đòi mật khẩu: wrong_password (401) hoặc login_locked (423).
 
 import type { CheckResult } from "./types";
 
@@ -104,9 +106,16 @@ export type TokenRow = {
   status: TokenStatus;
 };
 
-export type TokenCreate = { name: string; scopes: string[]; days: number; password: string };
+/** code bắt buộc khi user đã bật hai bước (TOTP hoặc mã dự phòng); thiếu thì 400 mfa_code_required. */
+export type TokenCreate = { name: string; scopes: string[]; days: number; password: string; code?: string };
 
 export type TokenCreated = { token: string; row: TokenRow };
+
+/** GET /api/v1/account/tokens: token của mình, trần số ngày, các nhóm mình được chọn. */
+export type MyTokens = { tokens: TokenRow[]; max_days: number; groups: TokenGroup[] };
+
+/** POST /api/v1/account/password trả 200 thân này khi còn token đang sống (không còn thì 204). */
+export type PasswordChanged = { active_tokens: number };
 
 /** Nhóm phạm vi của token (mục 3.7 của thiết kế). "system" chỉ admin chọn được. */
 export type TokenGroup = "sites" | "databases" | "backups" | "cron" | "jobs" | "health" | "ssl" | "system";

@@ -36,6 +36,8 @@ type TOTPRow struct {
 	LastStep    uint64
 	Failures    int
 	LockedUntil time.Time
+	// LockCount: số lần bị khoá liên tiếp từ lần đúng gần nhất (khoá leo thang).
+	LockCount int
 }
 
 // TOTP đọc dòng hai bước của user; ok=false khi chưa có.
@@ -53,12 +55,14 @@ func (s *Store) SetPendingTOTP(ctx context.Context, user string, secretEnc []byt
 	return errM20Todo
 }
 
-// EnableTOTP trong MỘT transaction: chỉ khi đang chờ (không thì
-// ErrTOTPNotPending); enabled_at=now, last_step=step, failures=0,
-// locked_until=NULL; thay toàn bộ mã dự phòng bằng recoveryHashes; xoá mọi
-// phiên của user (kể cả phiên admin đang "xem như" họ) trừ phiên keepSession
-// (sha256 của token phiên); xoá mọi phiếu chờ của user.
-func (s *Store) EnableTOTP(ctx context.Context, user string, step uint64, recoveryHashes []string, keepSession string, now time.Time) error {
+// EnableTOTP trong MỘT transaction: chỉ khi đang chờ VÀ bí mật chờ đúng là
+// secretEnc (bản đã dùng để so mã; một lần setup chen vào giữa thì không
+// khớp → ErrTOTPNotPending); enabled_at=now, last_step=step, failures=0,
+// locked_until=NULL, lock_count=0; thay toàn bộ mã dự phòng bằng
+// recoveryHashes; xoá mọi phiên của user trừ phiên keepSession (sha256 của
+// token phiên; phiên admin đang "xem như" họ giữ nguyên); xoá mọi phiếu chờ
+// của user.
+func (s *Store) EnableTOTP(ctx context.Context, user string, secretEnc []byte, step uint64, recoveryHashes []string, keepSession string, now time.Time) error {
 	return errM20Todo
 }
 
@@ -93,11 +97,13 @@ func (s *Store) ReplaceRecoveryCodes(ctx context.Context, user string, hashes []
 // RecoveryLeft đếm mã dự phòng chưa dùng.
 func (s *Store) RecoveryLeft(ctx context.Context, user string) (int, error) { return 0, errM20Todo }
 
-// RecordTOTPFailure cộng một lần sai ở bước hai cho user. Lần sai thứ max
-// (liên tiếp, tính từ lần đúng gần nhất) thì đặt locked_until=now+lock, đếm
-// lại từ 0, và trả locked=true.
-func (s *Store) RecordTOTPFailure(ctx context.Context, user string, now time.Time, max int, lock time.Duration) (locked bool, until time.Time, err error) {
-	return false, time.Time{}, errM20Todo
+// RecordTOTPFailure cộng một lần sai ở bước hai cho user (người gọi đã giữ
+// khoá theo user trong tiến trình, mục 11.1 của thiết kế). Lần sai thứ max
+// liên tiếp thì lock_count++, locked_until = now + base×2^(lock_count−1)
+// (trần cap), failures = 0, và trả locked=true cùng until, lockCount. Lần sai
+// ghi lúc đang khoá KHÔNG gỡ khoá và không đếm lại từ đầu.
+func (s *Store) RecordTOTPFailure(ctx context.Context, user string, now time.Time, max int, base, cap time.Duration) (locked bool, until time.Time, lockCount int, err error) {
+	return false, time.Time{}, 0, errM20Todo
 }
 
 // MFAStatus là tình trạng hai bước của một user (tpan user 2fa status, health).
@@ -108,6 +114,9 @@ type MFAStatus struct {
 	Enabled      bool
 	EnabledAt    time.Time
 	RecoveryLeft int
+	// LockCount > 0: có người nhập sai mã nhiều lần cho user này từ lần đúng
+	// gần nhất (phép kiểm tpan.2fa:attempts).
+	LockCount int
 }
 
 // MFAStatuses trả mọi user (có hay không có hai bước), sắp theo tên.
@@ -118,6 +127,8 @@ type Challenge struct {
 	TokenSHA256 string
 	User        string
 	IP          string
+	// Host: tên máy lúc tạo phiếu (Host bỏ cổng, chữ thường).
+	Host        string
 	Created     time.Time
 	Expires     time.Time
 	Attempts    int
@@ -149,6 +160,21 @@ func (s *Store) DeleteChallengesOf(ctx context.Context, user string) error { ret
 
 // DeleteExpiredChallenges dọn phiếu đã hết hạn trước now.
 func (s *Store) DeleteExpiredChallenges(ctx context.Context, now time.Time) error { return errM20Todo }
+
+// DeleteSessionsByHost xoá mọi phiên có host đúng bằng host (đổi hoặc xoá tên
+// panel: cookie đặt dưới tên cũ chết trước khi tên đó có thể thành tên site).
+// host rỗng thì không làm gì (không xoá phiên của bản cũ).
+func (s *Store) DeleteSessionsByHost(ctx context.Context, host string) error { return errM20Todo }
+
+// RevokeTokensOf thu hồi mọi token còn sống của user, trả số token vừa thu hồi.
+func (s *Store) RevokeTokensOf(ctx context.Context, user string, now time.Time) (int, error) {
+	return 0, errM20Todo
+}
+
+// ActiveTokens đếm token chưa thu hồi và chưa hết hạn của user lúc now.
+func (s *Store) ActiveTokens(ctx context.Context, user string, now time.Time) (int, error) {
+	return 0, errM20Todo
+}
 
 // TokenRow là một dòng của api_tokens (không có token thật).
 type TokenRow struct {

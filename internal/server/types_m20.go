@@ -24,7 +24,7 @@ package server
 //
 // Token của chính mình (any, chỉ phiên):
 //
-//	GET    /api/v1/account/tokens                  → []TokenRow
+//	GET    /api/v1/account/tokens                  → MyTokens
 //	POST   /api/v1/account/tokens      TokenCreate → 201 TokenCreated   (no-store)
 //	DELETE /api/v1/account/tokens/{id}             → 204
 //
@@ -48,7 +48,10 @@ package server
 // mfa_enroll_required (403), token_invalid, token_malformed, token_expired,
 // token_revoked (401), token_forbidden, token_scope (403), token_name_invalid,
 // token_scope_invalid, token_days_invalid, policy_invalid (400),
-// token_not_found (404), panel_domain_is_site, domain_is_panel (409).
+// token_not_found (404), panel_domain_is_site, domain_is_panel, panel_staging,
+// panel_private (409), host_is_site (421). Mật khẩu sai ở thao tác đòi mật
+// khẩu: wrong_password (401) / login_locked (423) như đăng nhập. Thiếu mã khi
+// user đã bật hai bước: mfa_code_required (400).
 
 import (
 	"time"
@@ -131,12 +134,28 @@ type TokenRow struct {
 	Status string `json:"status"`
 }
 
-// TokenCreate là thân của POST /account/tokens.
+// TokenCreate là thân của POST /account/tokens. Code bắt buộc khi user đã bật
+// hai bước (TOTP hoặc mã dự phòng; mục 11.5 của thiết kế).
 type TokenCreate struct {
 	Name     string   `json:"name"`
 	Scopes   []string `json:"scopes"`
 	Days     int      `json:"days"`
 	Password string   `json:"password"`
+	Code     string   `json:"code,omitempty"`
+}
+
+// MyTokens là câu trả lời của GET /account/tokens: token của chính mình, kèm
+// trần số ngày và các nhóm người gọi được chọn (để vẽ hộp tạo token).
+type MyTokens struct {
+	Tokens  []TokenRow `json:"tokens"`
+	MaxDays int        `json:"max_days"`
+	Groups  []string   `json:"groups"`
+}
+
+// PasswordChanged là thân 200 của POST /account/password khi user còn token
+// đang sống (giao diện nhắc thu hồi nếu nghi bị lộ); không còn token thì 204.
+type PasswordChanged struct {
+	ActiveTokens int `json:"active_tokens"`
 }
 
 // TokenCreated: Token chỉ có ở đúng câu trả lời này (no-store).

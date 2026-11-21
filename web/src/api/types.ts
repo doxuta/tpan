@@ -318,9 +318,12 @@ export type SessionInfo = {
   mfa_pending?: boolean;
   /** M20: chính sách bắt user này bật hai bước mà họ chưa bật: chỉ vào được /bat-hai-buoc. */
   mfa_enroll_required?: boolean;
+  /** M20: panel đang được mở bằng tên của một site của admin (màn Đăng nhập cảnh báo vàng). */
+  host_is_site?: boolean;
 };
 
-export type PasswordChange = { current: string; new: string };
+/** code (M20): bắt buộc khi user đã bật hai bước; thiếu thì 400 mfa_code_required. */
+export type PasswordChange = { current: string; new: string; code?: string };
 
 export type SessionRow = {
   id: string;

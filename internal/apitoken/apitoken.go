@@ -71,3 +71,25 @@ func (s Scopes) List() []string { panic(errTodo) }
 
 // Allows: phạm vi cho phép đọc (write=false) hay ghi nhóm g. Ghi bao gồm đọc.
 func (s Scopes) Allows(g Group, write bool) bool { panic(errTodo) }
+
+// GroupsFor là các nhóm người có vai này được chọn khi tạo token (admin: mọi
+// nhóm; user thường: mọi nhóm trừ AdminOnly).
+func GroupsFor(isAdmin bool) []Group { panic(errTodo) }
+
+// MaxDaysLimit là trần tuyệt đối của auth.token_max_days; DefaultMaxDays là
+// giá trị khi chưa đặt.
+const (
+	MaxDaysLimit   = 365
+	DefaultMaxDays = 90
+)
+
+// InvalidError là lời từ chối khi tạo token: Code là mã lỗi API
+// (token_name_invalid, token_scope_invalid, token_days_invalid), Vi và En là câu nói.
+type InvalidError struct{ Code, Vi, En string }
+
+func (e *InvalidError) Error() string { return e.Vi }
+
+// CheckNew là luật chung của mọi đường tạo token (API và `tpan token create`):
+// tên 1-64 ký tự, không ký tự điều khiển; ít nhất một phạm vi; user thường
+// không chọn được nhóm AdminOnly; 1 ≤ days ≤ maxDays. Sai thì trả *InvalidError.
+func CheckNew(isAdmin bool, name string, scopes Scopes, days, maxDays int) error { panic(errTodo) }
