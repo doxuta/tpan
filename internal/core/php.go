@@ -232,10 +232,35 @@ func cageRestartSteps(ctx context.Context, store SiteStore) ([]engine.Step, erro
 	var ss []engine.Step
 	for _, st := range all {
 		if st.Caged && st.Status == site.Active {
-			ss = append(ss, &steps.ServiceRestart{Unit: st.Layout().CageServiceUnit(), OnlyIfActive: true})
+			ss = append(ss, &cageRestartStep{ServiceRestart: &steps.ServiceRestart{Unit: st.Layout().CageServiceUnit(), OnlyIfActive: true}})
 		}
 	}
 	return ss, nil
+}
+
+// cageRestartStep bọc ServiceRestart của dịch vụ một lồng để lỗi khởi động lại
+// không làm hỏng job của admin (php.install, security.harden là Plan chính sách,
+// mục 3.6): mã của site lấp được số tiến trình của slice hay giết tiến trình
+// chính, làm `systemctl restart` hỏng; site không được dùng đường đó để chặn
+// việc cài bản PHP hay áp bản vá cho cả máy. Lệnh và output của nó vẫn vào log
+// của job (engine ghi mọi lệnh); lồng không lên lại thì cage.socket của health
+// báo, kèm sửa tự động cage.start.
+type cageRestartStep struct {
+	*steps.ServiceRestart
+	tried bool
+}
+
+func (s *cageRestartStep) Check(ctx context.Context, sys system.System) (bool, error) {
+	if s.tried {
+		return true, nil
+	}
+	return s.ServiceRestart.Check(ctx, sys)
+}
+
+func (s *cageRestartStep) Apply(ctx context.Context, sys system.System) error {
+	s.tried = true
+	_ = s.ServiceRestart.Apply(ctx, sys) // lỗi bỏ qua có chủ ý: xem chú thích của kiểu
+	return nil
 }
 
 // PrepareUse dựng Plan "php.use". Chỉ đọc máy.
