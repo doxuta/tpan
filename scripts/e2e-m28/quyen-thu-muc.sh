@@ -93,7 +93,22 @@ for r in $(seq 1 "$ROUNDS"); do
   ok "vòng $r: thư mục nạn nhân giữ quyền 0755" bash -c '[ "$(stat -c %a "$1")" = 755 ] && [ "$(stat -c %a "$1/con")" = 755 ]' _ "$V"
   ok "vòng $r: public/wp-includes là 2750 ($(stat -c %a "$FDIR/public/wp-includes" 2>/dev/null))" \
     bash -c '[ "$(stat -c %a "$1")" = 2750 ]' _ "$FDIR/public/wp-includes"
-  [ "$rc" = 0 ] || note "vòng $r: site add thoát $rc: stderr: $(tail -c 300 "$W/f.add.err.$r" | tr '\n' ' ') stdout: $(head -c 300 "$W/f.add.$r" | grep -o '"error"[^}]*' | head -c 300)"
+  # Lỗi gốc nằm trong JSON (error.message, report.job.error); stderr chỉ có
+  # phần hoàn tác (lần chạy 11:54 ngày 21/11 chỉ in được đuôi stderr nên không
+  # thấy lỗi gốc).
+  if [ "$rc" != 0 ]; then
+    note "vòng $r: site add thoát $rc: đầu stderr: $(head -c 400 "$W/f.add.err.$r" | tr '\n' ' ')"
+    python3 -I -c '
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception as e:
+    sys.exit(print("  (stdout không phải JSON:", e, ")"))
+err = d.get("error") or {}
+job = (d.get("report") or {}).get("job") or {}
+print("  lỗi:", (err.get("message") if isinstance(err, dict) else err) or "-")
+print("  job.error:", job.get("error") or "-")' "$W/f.add.$r"
+  fi
   rm -f "$W/f.add.$r" "$W/f.add.err.$r"
   xoa_site
 done
