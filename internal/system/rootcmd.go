@@ -59,7 +59,17 @@ var rootZoneCommands = map[string]func(args []string, prefix string) bool{
 			switch a := args[i]; a {
 			case "--system", "--user-group", "--no-create-home":
 			case "--home-dir":
-				i++ // giá trị kiểm ở checkRootZone (phải là neo hay ngoài vùng)
+				// Tuyệt đối, sạch, và trong vùng thì phải đúng là một neo
+				// (checkRootZone còn cho cả <neo>/<một tên>, rộng hơn mức cần;
+				// soát cuối M28, C12).
+				if i+1 >= len(args) {
+					return false
+				}
+				v := args[i+1]
+				if !path.IsAbs(v) || path.Clean(v) != v || (strings.HasPrefix(v, prefix) && !sitefs.IsAnchor(strings.TrimSuffix(prefix, "/"), v)) {
+					return false
+				}
+				i++
 			case "--shell":
 				if i+1 >= len(args) || strings.Contains(args[i+1], prefix) {
 					return false
@@ -102,7 +112,10 @@ func tarCreateOnly(args []string, prefix string) bool {
 			create = true
 		case a == "--gzip", a == "--one-file-system":
 		case strings.HasPrefix(a, "--file="):
-			if strings.Contains(a, prefix) {
+			// Tuyệt đối, sạch, ngoài vùng (soát cuối M28, C12): giá trị tương
+			// đối được tar ghép với thư mục làm việc nên vẫn trỏ được vào vùng
+			// site mà không chứa chuỗi "/var/www/".
+			if v := strings.TrimPrefix(a, "--file="); !path.IsAbs(v) || path.Clean(v) != v || strings.HasPrefix(v+"/", prefix) {
 				return false
 			}
 		case strings.HasPrefix(a, "--directory="):

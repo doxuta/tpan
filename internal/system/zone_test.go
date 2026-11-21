@@ -358,6 +358,16 @@ func TestLenhRootKhongNhanDuongDanSite(t *testing.T) {
 		{"c5-useradd-P", Cmd{Name: "useradd", Args: []string{"-M", "-P", "/var/www/a/x", "tp_a_1"}}, false},
 		{"c5-useradd-shell", Cmd{Name: "useradd", Args: []string{"--system", "--home-dir", "/var/www/a", "--no-create-home", "--shell", "/var/www/a/x", "tp_a_1"}}, false},
 		{"useradd-that", Cmd{Name: "useradd", Args: []string{"--system", "--user-group", "--home-dir", "/var/www/a", "--no-create-home", "--shell", "/usr/sbin/nologin", "tp_a_1"}}, true},
+		// Soát cuối M28, C12: --file= tương đối vẫn trỏ được vào vùng site
+		// (tar ghép nó với thư mục làm việc) mà không chứa chuỗi "/var/www/".
+		{"c12-tar-file-tuong-doi", Cmd{Name: "tar", Args: []string{"--create", "--gzip", "--file=var/www/a/out.tar", "--directory=/var/www/a", "public"}}, false},
+		{"c12-tar-file-dir-neo", Cmd{Name: "tar", Args: []string{"--create", "--file=out.tar", "--directory=/var/www/a", "public"}, Dir: "/var/www/a"}, false},
+		{"c12-tar-file-dir-var", Cmd{Name: "tar", Args: []string{"--create", "--file=www/a/out.tar", "--directory=/var/www/a", "public"}, Dir: "/var"}, false},
+		{"c12-tar-file-cha", Cmd{Name: "tar", Args: []string{"--create", "--file=../a/out.tar", "--directory=/var/www/b", "public"}, Dir: "/var/www/b"}, false},
+		{"c12-tar-file-chua-sach", Cmd{Name: "tar", Args: []string{"--create", "--file=/tmp/../var/www/a/out.tar", "--directory=/var/www/a", "public"}}, false},
+		{"c12-tar-file-goc-vung", Cmd{Name: "tar", Args: []string{"--create", "--file=/var/www", "--directory=/var/www/a", "public"}}, false},
+		{"c12-useradd-home-sau-neo", Cmd{Name: "useradd", Args: []string{"--system", "--user-group", "--home-dir", "/var/www/a/public", "--no-create-home", "--shell", "/usr/sbin/nologin", "tp_a_1"}}, false},
+		{"c12-useradd-home-tuong-doi", Cmd{Name: "useradd", Args: []string{"--system", "--user-group", "--home-dir", "var/www/a", "--no-create-home", "--shell", "/usr/sbin/nologin", "tp_a_1"}}, false},
 		{"tar-dir-viet-tat", Cmd{Name: "tar", Args: []string{"--create", "--dir=/var/www/a/public", "wp-content"}}, false},
 		{"tar-zC-gop", Cmd{Name: "tar", Args: []string{"--create", "-zC", "/var/www/a/public", "wp-content"}}, false},
 		{"tar-kieu-cu", Cmd{Name: "tar", Args: []string{"h", "--create", "--directory=/var/www/a", "public"}}, false},
