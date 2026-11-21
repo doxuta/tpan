@@ -320,6 +320,14 @@ func (p *Probe) Prepare(ctx context.Context, o ProbeOptions) (*ProbeJob, error) 
 			return nil, err
 		}
 	}
+	// --only trong trên máy không dựng được lồng: lượt duy nhất sẽ "bỏ qua" hết,
+	// tức là tạo rồi xoá hai site WordPress mà không thử được gì. Từ chối ngay,
+	// trước khi đụng máy.
+	if o.Only == probeOnlyInside && cageCode != "" {
+		return nil, refuse(cageCode, i18n.T(
+			"--only "+probeOnlyInside+" cần máy dựng được lồng: "+cageWhy.Vi+". Chạy lượt ngoài lồng bằng: sudo tpan isolation probe --only "+probeOnlyOutside,
+			"--only "+probeOnlyInside+" needs a machine that can build a cage: "+cageWhy.En+". Run the outside pass with: sudo tpan isolation probe --only "+probeOnlyOutside))
+	}
 
 	sfx, err := p.rand(12)
 	if err != nil {

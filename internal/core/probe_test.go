@@ -671,19 +671,15 @@ func TestProbeKhongGhiManagedFiles(t *testing.T) {
 	}
 }
 
-// Máy cgroup v1: lượt trong lồng skipped kèm lý do, không phải lỗi (kể cả
-// với --only trong: mọi ô skipped, job chỉ tạo rồi dọn hai site).
+// Máy cgroup v1: lượt trong lồng skipped kèm lý do, không phải lỗi. Riêng
+// --only trong bị từ chối ngay (lượt duy nhất sẽ bỏ qua hết: tạo rồi xoá hai
+// site WordPress mà không thử được gì).
 func TestProbeCgroupV1(t *testing.T) {
 	ctx := context.Background()
 	e := newProbeEnv(t, Nginx)
-	ji, err := e.p.Prepare(ctx, ProbeOptions{Only: probeOnlyInside})
-	if err != nil {
-		t.Fatalf("--only trong trên cgroup v1: %v", err)
-	}
-	for _, r := range ji.report.Results {
-		if r.Inside.Status != ProbeSkipped && r.Inside.Status != ProbeNA {
-			t.Errorf("--only trong trên cgroup v1: %s trong lồng là %q, muốn skipped", r.Path, r.Inside.Status)
-		}
+	var re *RefusedError
+	if ji, err := e.p.Prepare(ctx, ProbeOptions{Only: probeOnlyInside}); !errors.As(err, &re) || re.Code != CodeCageCgroupV1 || ji != nil {
+		t.Fatalf("--only trong trên cgroup v1: muốn từ chối %s, có %v", CodeCageCgroupV1, err)
 	}
 	j, err := e.p.Prepare(ctx, ProbeOptions{})
 	if err != nil {
