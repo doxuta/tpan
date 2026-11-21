@@ -38,6 +38,7 @@ Nguồn:
 - `docs/bang-chung/M28-truoc-ban-va.log`: bộ e2e M28 chạy trên bản chưa vá. Những dòng `KHÔNG ĐẠT` ở đó là điều mong muốn: nó chứng minh bộ thử bắt được lỗ. Dòng cuối: `TỔNG KẾT: 39 khẳng định đạt, 21 khẳng định không đạt`.
 - Năm lệnh `go test` mình vừa chạy trên Mac trong phiên viết (mục 2.5).
 - `docs/bang-chung/M28.log`: bộ e2e trên bản cuối (`81a83b4`, nhãn `tpan v0.2.0-103-g81a83b4`), gồm cả phần C (test cần root trong máy ảo) và phần D (nâng từ v0.2.0). Dòng cuối: `TỔNG KẾT: 170 khẳng định đạt, 0 khẳng định không đạt`.
+- `docs/bang-chung/M28-tren-dev.log`: cùng bộ e2e chạy lại trên đúng commit đẩy lên `dev` (`f403aab`, đã gộp thêm M18): 170 khẳng định đạt, 0 không đạt.
 - Ba hồi quy trên bản cuối (`81a83b4`): M13 293, M14 270, M15 200 khẳng định đạt, 0 không đạt (`docs/bang-chung/M28-hoi-quy-m13.log`, `-m14.log`, `-m15.log`), đúng bằng số của chính các mốc đó.
 
 ### 2.1 Lỗ T1 trên bản chưa vá (n1-t1, dòng 9 tới 36)
