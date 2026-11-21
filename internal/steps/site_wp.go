@@ -414,11 +414,9 @@ func chmodDirs(ctx context.Context, sys system.System, root string, perm fs.File
 		}
 		names, err := sys.ReadDir(dir)
 		// Thư mục con bị tráo (thành symlink, file, hay bị xoá) giữa lúc chmod
-		// nó và lúc liệt kê bên trong: bỏ qua như ở Stat và Chmod (e2e M28 A7
-		// bắt được: trước đây lỗi này làm hỏng cả job tạo site). ENOTDIR và
-		// ELOOP: cửa trả nguyên lỗi của kernel khi tên đổi tiếp giữa lúc mở và
-		// lúc nó nhìn lại. Thư mục gốc (public) thì lỗi thật.
-		if depth > 1 && (chmodVanished(err) || errors.Is(err, syscall.ENOTDIR) || errors.Is(err, syscall.ELOOP)) {
+		// nó và lúc liệt kê bên trong: bỏ qua như ở Stat và Chmod. Thư mục gốc
+		// (public) thì lỗi thật.
+		if depth > 1 && chmodVanished(err) {
 			return nil
 		}
 		if err != nil {
@@ -458,8 +456,13 @@ func chmodDirs(ctx context.Context, sys system.System, root string, perm fs.File
 
 // chmodVanished: mục biến mất hay bị tráo thành symlink giữa lúc liệt kê và
 // lúc dùng (chỉ user của site làm được việc đó, trong chính thư mục của họ).
+// ENOTDIR và ELOOP: tên là symlink đúng lúc cửa mở nó rồi bị tráo lại thành
+// thư mục trước khi cửa nhìn lại, nên cửa trả nguyên lỗi của kernel thay cho
+// ErrSymlink (e2e M28 A7 trên nginx, vòng 4: Chmod trả "too many levels of
+// symbolic links" và job tạo site hỏng).
 func chmodVanished(err error) bool {
-	return errors.Is(err, fs.ErrNotExist) || errors.Is(err, sitefs.ErrSymlink)
+	return errors.Is(err, fs.ErrNotExist) || errors.Is(err, sitefs.ErrSymlink) ||
+		errors.Is(err, syscall.ENOTDIR) || errors.Is(err, syscall.ELOOP)
 }
 
 // Undo xoá mọi thứ bên trong l.Public, giữ chính l.Public (Dir của nó tự Undo).
