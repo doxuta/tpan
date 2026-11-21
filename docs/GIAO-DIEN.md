@@ -272,7 +272,7 @@ Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới t
 | Việc (tên cột) | Action | Cột nút bấm của bảng. Không dùng "Thao tác". |
 | Việc khác | More actions | Nhãn của nút ba chấm, luôn kèm tên đối tượng và các việc bên trong. |
 | Cỡ | Size | Dung lượng file hoặc cơ sở dữ liệu. |
-| Ở đâu (tên cột) | Where | Cột của bảng Backup (M18): bản nằm ở máy, ở kho hay cả hai. Chỉ hiện khi máy có dùng kho. |
+| Ở đâu (tên cột) | Where | Cột của bảng Backup (M18): bản nằm ở máy, ở kho hay cả hai. Chỉ hiện khi máy có dùng kho. Bản còn file trên máy mà bản trên kho nằm ở một kho khác (sau khi đổi hay gỡ đích) ghi "máy", vì khôi phục chạy được ngay; `title` nói thêm phần kho. CLI vẫn ghi "kho (đích khác)" cho ca này (lượt soát giao diện, G2). |
 | kho | storage | Nơi lưu backup ngoài máy (S3). Nhãn: máy, kho, máy và kho, kho khác, đẩy lỗi / server, storage, server and storage, other storage, upload failed. |
 | Đẩy lên kho | Upload to storage | Nút của một bản chỉ trên máy hoặc đẩy lỗi. Không dùng "tải lên" hay "đồng bộ". |
 | Tải về máy | Download to this server | Nút của một bản chỉ còn trên kho. Không dùng "kéo về" hay "khôi phục từ kho". |

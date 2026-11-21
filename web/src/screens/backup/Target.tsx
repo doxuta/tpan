@@ -5,8 +5,9 @@
 // Thử kết nối không có bản xem trước: nó chỉ ghi, đọc rồi xoá một object nhỏ
 // trên kho, không đổi gì trên máy.
 //
-// Bí mật: hai khoá S3 chỉ nằm trong state của form và trong ref `body` giữa
-// lúc xem trước và lúc chạy. Không đưa thân request làm đối số của mutate():
+// Bí mật: hai khoá S3 chỉ nằm trong state của form, trong ref `body` giữa lúc
+// xem trước và lúc chạy, và trong ref `sent` khi lượt chạy đang bay (xoá khi
+// lượt đó xong). Không đưa thân request làm đối số của mutate():
 // TanStack giữ đối số đó trong bộ nhớ đệm của mutation (state.variables), mà
 // hợp đồng ở m18-types.ts cấm khoá vào bộ nhớ đệm. Lượt chạy gửi lại đúng thân
 // đã xem trước (người dùng có thể đã sửa ô sau đó). Hai ô khoá xoá ngay khi
@@ -47,6 +48,14 @@ export function TargetCard() {
 
   /** Thân POST target đã xem trước; null khi không có lượt đặt nào đang mở. */
   const body = useRef<TargetRequest | null>(null);
+  /**
+   * Thân mà lượt chạy đang bay đã gửi (cùng tham chiếu với body lúc bấm chạy). Lượt
+   * chạy xong chỉ dọn khi body vẫn là thân này: nếu không, một bản xem trước mới
+   * đã thay chỗ, và dọn lúc đó sẽ xoá thân của bản mới (G4 của lượt soát). Ref,
+   * không phải đối số của mutate() hay context của onMutate, vì cả hai nằm trong
+   * bộ nhớ đệm của mutation.
+   */
+  const sent = useRef<TargetRequest | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [open, setOpen] = useState<{ op: Op; preview: Preview } | null>(null);
   const [asked, setAsked] = useState<Op | null>(null);
@@ -60,17 +69,26 @@ export function TargetCard() {
     },
   });
   const run = useMutation({
-    mutationFn: (op: Op) => (op === "set" ? post<JobStarted>(targetPath, body.current) : del<JobStarted>(targetPath)),
+    mutationFn: (op: Op) => {
+      sent.current = body.current;
+      return op === "set" ? post<JobStarted>(targetPath, sent.current) : del<JobStarted>(targetPath);
+    },
     onSuccess: (job) => {
-      body.current = null;
       void qc.invalidateQueries({ queryKey: targetKey });
       track(job.job_id);
+      const mine = body.current === sent.current;
+      sent.current = null;
+      if (!mine) return;
+      body.current = null;
       setOpen(null);
       setAsked(null);
       setFormOpen(false);
     },
     // Chạy lỗi thì giữ body: PlanReview vẫn mở với nút chạy, bấm lại phải gửi
     // đúng thân cũ. Gửi null hay khoá rỗng lúc đó là "giữ khoá đang lưu", sai ý người dùng.
+    onError: () => {
+      sent.current = null;
+    },
   });
   const test = useMutation({
     mutationFn: () => post<JobStarted>(targetTestPath),
@@ -113,6 +131,8 @@ export function TargetCard() {
 
   const v = q.data;
   const pending = dry.isPending ? asked : null;
+  // Lượt chạy đang bay (đặt hay gỡ chờ khoá kho tới 10 giây) cũng khoá mọi nút mở việc mới.
+  const busy = dry.isPending || run.isPending;
 
   return (
     <>
@@ -122,10 +142,10 @@ export function TargetCard() {
         actions={
           v?.configured && (
             <>
-              <Button onClick={() => test.mutate()} disabled={test.isPending}>
+              <Button onClick={() => test.mutate()} disabled={test.isPending || run.isPending}>
                 {test.isPending ? t.testing : t.test}
               </Button>
-              <Button onClick={() => void ask("rm")} disabled={dry.isPending}>
+              <Button onClick={() => void ask("rm")} disabled={busy}>
                 {pending === "rm" ? t.previewing : t.remove}
               </Button>
             </>
@@ -146,10 +166,10 @@ export function TargetCard() {
             {v.configured && <TargetRows v={v} t={t} />}
             {v.configured ? (
               <Disclosure open={formOpen} onOpenChange={setFormOpen} summary={<span className="font-medium">{t.change}</span>}>
-                <TargetFormBlock key={formKey(v)} view={v} pending={pending === "set"} busy={dry.isPending} onPreview={previewSet} />
+                <TargetFormBlock key={formKey(v)} view={v} pending={pending === "set"} busy={busy} onPreview={previewSet} />
               </Disclosure>
             ) : (
-              <TargetFormBlock key={formKey(v)} view={v} pending={pending === "set"} busy={dry.isPending} onPreview={previewSet} />
+              <TargetFormBlock key={formKey(v)} view={v} pending={pending === "set"} busy={busy} onPreview={previewSet} />
             )}
           </div>
         )}

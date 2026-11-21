@@ -134,6 +134,7 @@ export function Backups({ domain, active, restoreBlocked }: { domain: string; ac
           rows={items.slice(0, shownCount)}
           rowKey={(x) => x.id}
           empty={active ? t.bkEmpty : t.bkEmptyTrashed}
+          // Bảng này không có cột "Đường dẫn" nên thêm cột "Ở đâu" vẫn vừa khung nội dung (840 px).
           minWidth={where ? 840 : 720}
           // Lời dẫn nằm giữa đầu thẻ và bảng; câu "vì sao chưa khôi phục được" đứng ngay dưới, nút Khôi phục trỏ tới nó.
           above={
@@ -152,7 +153,7 @@ export function Backups({ domain, active, restoreBlocked }: { domain: string; ac
             { header: t.bkColKind, cell: (x) => <Tag title={x.kind === "full" ? b.kindFull : b.kindSql}>{x.kind}</Tag> },
             { header: t.bkColReason, cell: (x) => b.reasons[x.reason] ?? x.reason },
             { header: t.bkColSize, align: "right", cell: (x) => formatSize(x.size, lang) },
-            ...(where ? [{ header: b.colWhere, cell: (x: Backup) => <Where b={x} /> }] : []),
+            ...(where ? [{ header: b.colWhere, cell: (x: Backup) => <Where b={x} configured={flow.configured} /> }] : []),
             { header: t.bkColSha, cell: (x) => <Code>{shortSha(x.sha256)}</Code> },
             {
               header: t.bkColAction,
@@ -179,7 +180,9 @@ export function Backups({ domain, active, restoreBlocked }: { domain: string; ac
                         ariaLabel: label,
                         title: restoreBlocked,
                         disabled: dry.isPending || restoreBlocked !== undefined,
-                        busy: pending?.action === "restore" && pending.backup.id === x.id,
+                        // Tab này không có nút "Tải về máy": bản xem trước tải về (sau hộp hỏi) đổi chữ
+                        // của chính nút Khôi phục đã bấm, để người dùng biết vì sao mọi nút bị khoá.
+                        busy: pending !== null && pending.action !== "create" && pending.backup.id === x.id,
                         busyLabel: t.bkPreviewing,
                         onClick: () => restore(x),
                       },

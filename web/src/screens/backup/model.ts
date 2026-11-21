@@ -76,9 +76,13 @@ export function storageWork(b: Backup, isAdmin: boolean, configured: boolean | u
   return null;
 }
 
-/** Tải về không có job_id: bảng tự tải lại mỗi 3 giây, tối đa 2 phút. */
-export const pullPollMs = 3000;
-export const pullPollWindowMs = 2 * 60 * 1000;
+/**
+ * Tải về không có job_id: một lượt đẩy đang giữ khoá kho, và máy chủ chờ khoá đó
+ * tới 30 phút (core.RemoteLockWait) rồi mới bắt đầu job. Bảng tự tải lại trong
+ * đúng hạn đó, thưa (15 giây một lần) vì việc chờ có thể dài.
+ */
+export const pullPollMs = 15_000;
+export const pullPollWindowMs = 30 * 60 * 1000;
 export type PullWatch = { id: string; until: number };
 
 /**

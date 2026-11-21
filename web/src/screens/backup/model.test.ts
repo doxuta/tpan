@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Backup, BackupLocation } from "../../api/types";
-import { pullPoll, pullPollMs, showWhere, storageWork } from "./model.ts";
+import { pullPoll, pullPollMs, pullPollWindowMs, showWhere, storageWork } from "./model.ts";
 
 const row = (id: string, location: BackupLocation | undefined, kind: Backup["kind"] = "full"): Backup => ({
   id,
@@ -62,11 +62,16 @@ test("admin: bản ở cả hai nơi, bản ở kho khác, bản không rõ nơi
   assert.equal(storageWork(row("a", undefined), true, true), null);
 });
 
-test("tải lại mỗi 3 giây chỉ khi đang chờ, dòng còn là kho, chưa quá hạn", () => {
+test("hạn tự tải lại khớp hạn chờ khoá kho của máy chủ: 15 giây một lần, tối đa 30 phút", () => {
+  assert.equal(pullPollMs, 15_000);
+  assert.equal(pullPollWindowMs, 30 * 60 * 1000);
+});
+
+test("tải lại chỉ khi đang chờ, dòng còn là kho, chưa quá hạn", () => {
   const watch = { id: "a", until: 1000 };
   assert.equal(pullPoll([row("a", "remote")], watch, 500), pullPollMs);
   assert.equal(pullPoll([row("a", "remote")], watch, 1000), pullPollMs);
-  // quá 2 phút
+  // quá hạn
   assert.equal(pullPoll([row("a", "remote")], watch, 1001), false);
   // dòng đã về máy
   assert.equal(pullPoll([row("a", "both")], watch, 500), false);
