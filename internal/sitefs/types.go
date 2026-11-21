@@ -8,15 +8,26 @@
 // Đặc tả: docs/thay-doi/M28-thiet-ke.md, mục 3.1 (vùng site) và 3.2 (luật C1
 // đến C10). Tóm tắt luật:
 //
-//   - Không đi theo symlink ở bất kỳ thành phần nào, kể cả neo: mở neo bằng
-//     O_DIRECTORY|O_NOFOLLOW, rồi openat(O_NOFOLLOW) từng thành phần.
+//   - Gốc (Root, hay SiteRoot của LocalSystem) phải thuộc chính tiến trình
+//     đang chạy và nhóm, người khác không ghi được; kiểm ở mỗi lời gọi bằng
+//     fstat trên fd của gốc, sai thì ErrRootUnsafe. Neo mở bằng
+//     openat(fd của gốc, tên neo, O_DIRECTORY|O_NOFOLLOW).
+//   - Không đi theo symlink ở bất kỳ thành phần nào, kể cả neo: openat
+//     (O_NOFOLLOW) từng thành phần.
 //   - Tên cuối chỉ được thao tác qua fd đã mở (fstat, fchmod, fchown, read)
 //     hoặc lời gọi *at trên fd của thư mục cha. Không hàm nào đưa lại một
 //     đường dẫn đầy đủ cho os.*.
 //   - Đọc: chỉ file thường, chủ là user của site (uid của neo; neo thuộc root
 //     thì bỏ luật này), cỡ ≤ trần. Kiểm trên chính fd đã mở. Không bao giờ
 //     mở thiết bị, FIFO, socket; mọi open có O_NONBLOCK nên không treo.
-//   - Đổi chủ, đổi quyền: chỉ thư mục, hoặc file thường có đúng một tên.
+//   - Đổi chủ, đổi quyền: chỉ thư mục, hoặc file thường có đúng một tên, và
+//     chỉ qua fd đã mở (không bao giờ fchmodat, fchownat theo tên: fchmodat
+//     của Linux đi theo symlink).
+//   - Symlink root tạo trong vùng được đổi chủ về uid, gid của neo
+//     (fchownat AT_SYMLINK_NOFOLLOW).
+//   - Bit quyền đổi hai chiều như gói os: fs.ModeSetgid ↔ 02000, setuid ↔
+//     04000, sticky ↔ 01000 (syscallMode); Info.Mode dựng từ Stat_t như
+//     fillFileStatFromSys (loại file, ba bit đặc biệt).
 //   - Lỗi không bao giờ chứa nội dung file hay đích của symlink.
 //
 // Gói lá: chỉ import thư viện chuẩn và golang.org/x/sys/unix (các lời gọi *at
@@ -92,6 +103,11 @@ var (
 	ErrOwner      = errors.New("không thuộc user của site: tpan chỉ đọc file do chính site làm chủ")
 	ErrLinked     = errors.New("có hơn một tên (hardlink): tpan không đổi chủ hay quyền qua hardlink")
 	ErrTooMany    = errors.New("thư mục có quá nhiều mục")
+	// ErrRootUnsafe: thư mục gốc của các site (/var/www) không thuộc tiến
+	// trình đang chạy (root trên máy chủ) hoặc nhóm, người khác ghi được.
+	// Khi đó một tiến trình khác đổi tên được neo của site này thành site
+	// kia, nên cửa từ chối mọi thao tác.
+	ErrRootUnsafe = errors.New("thư mục gốc của các site không thuộc root hoặc người khác ghi được (sửa: chown root:root /var/www && chmod 755 /var/www)")
 )
 
 // Error là lời từ chối (hoặc lỗi hệ thống) của cửa. Message nêu thao tác, đường
@@ -115,7 +131,7 @@ func (e *Error) Unwrap() error { return e.Err }
 // Refused cho biết err là lời từ chối của cửa (một Err* ở trên), không phải
 // "không có" hay lỗi hệ thống thường. Server dùng để trả 409 site_path_unsafe.
 func Refused(err error) bool {
-	for _, e := range []error{ErrPath, ErrSymlink, ErrNotRegular, ErrTooLarge, ErrOwner, ErrLinked, ErrTooMany} {
+	for _, e := range []error{ErrPath, ErrSymlink, ErrNotRegular, ErrTooLarge, ErrOwner, ErrLinked, ErrTooMany, ErrRootUnsafe} {
 		if errors.Is(err, e) {
 			return true
 		}
