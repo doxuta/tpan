@@ -185,6 +185,7 @@ part_stack() { # part_stack <apache|nginx>
     vm_run "A2 ba mục tiêu T1" t1.sh chan
     vm_run "A4 đua" dua.sh
     vm_run "A5 từ chối phục vụ" tu-choi.sh
+    vm_run "A5 đua FIFO (S1)" tu-choi-fifo.sh
     vm_run "A6 chạy thật" chay-that.sh
     vm_run "A7 đặt quyền thư mục" quyen-thu-muc.sh
     vm_run "A8 admin accept" admin-accept.sh
@@ -194,6 +195,7 @@ part_stack() { # part_stack <apache|nginx>
     vm_run "B7 đặt quyền thư mục" quyen-thu-muc.sh
     vm_run "B9 hồi quy M14, health, backup" hoi-quy.sh
     vm_run "B wp-config.php: đổi mật khẩu DB, file 2 GiB" nginx-db.sh
+    vm_run "B chuyển web server khi public là symlink (S2)" chuyen-symlink.sh
   fi
   part_end "$(tr a-z A-Z <<<"$web")"
 }
