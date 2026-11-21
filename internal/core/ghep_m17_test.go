@@ -381,13 +381,13 @@ func TestMoiThaoTacCuaChuGiuLong(t *testing.T) {
 // lồng (site active trong lồng), chỉ khi nó đang chạy.
 func ghepRestartLast(t *testing.T, p engine.Plan, l site.Layout) {
 	t.Helper()
-	var restarts []*steps.ServiceRestart
+	var restarts []*cageRestartStep
 	for _, s := range p.Steps {
-		if r, ok := s.(*steps.ServiceRestart); ok && strings.HasPrefix(r.Unit, "tpan-cage-") {
+		if r, ok := s.(*cageRestartStep); ok && strings.HasPrefix(r.Unit, "tpan-cage-") {
 			restarts = append(restarts, r)
 		}
 	}
-	last, ok := p.Steps[len(p.Steps)-1].(*steps.ServiceRestart)
+	last, ok := p.Steps[len(p.Steps)-1].(*cageRestartStep)
 	if len(restarts) != 1 || !ok || last.Unit != l.CageServiceUnit() || !last.OnlyIfActive {
 		t.Errorf("%s: muốn đúng một bước cuối khởi động lại %s (OnlyIfActive); có %v", p.Kind, l.CageServiceUnit(), stepIDs(p))
 	}
@@ -541,12 +541,26 @@ func TestRollbackTuChoiKhiConLong(t *testing.T) {
 		want []string // chuỗi phải có trong lời từ chối; nil là không từ chối
 	}{
 		{"sach", func(*testing.T, *SelfUpdate, *system.FakeSystem) {}, nil},
-		{"site caged (ca o thung rac)", func(t *testing.T, s *SelfUpdate, _ *system.FakeSystem) {
+		{"site caged dang chay", func(t *testing.T, s *SelfUpdate, _ *system.FakeSystem) {
 			ms := newMemSites()
-			_ = ms.SaveSite(ctx, site.Site{Domain: mustDomain(t, "a.example.com"), Status: site.Trashed, Caged: true})
+			_ = ms.SaveSite(ctx, site.Site{Domain: mustDomain(t, "a.example.com"), Status: site.Active, Caged: true})
 			_ = ms.SaveSite(ctx, site.Site{Domain: mustDomain(t, "b.example.com"), Status: site.Active})
 			s.Sites = ms
 		}, []string{"a.example.com", "sudo tpan cage disable --all --yes"}},
+		// Site trong lồng đang tạm khoá: cage disable từ chối site tạm khoá, nên
+		// lời khuyên phải là mở khoá trước.
+		{"site caged dang tam khoa", func(t *testing.T, s *SelfUpdate, _ *system.FakeSystem) {
+			ms := newMemSites()
+			_ = ms.SaveSite(ctx, site.Site{Domain: mustDomain(t, "a.example.com"), Status: site.Active, Caged: true, Suspended: account.SuspendSelf})
+			s.Sites = ms
+		}, []string{"a.example.com", "sudo tpan site unsuspend a.example.com --yes", "sudo tpan cage disable a.example.com --yes"}},
+		// Site trong lồng ở thùng rác: file của lồng đã gỡ lúc đưa vào thùng rác,
+		// không chặn (còn file sót thì ca "file tpan-cage-*" bắt).
+		{"site caged o thung rac", func(t *testing.T, s *SelfUpdate, _ *system.FakeSystem) {
+			ms := newMemSites()
+			_ = ms.SaveSite(ctx, site.Site{Domain: mustDomain(t, "a.example.com"), Status: site.Trashed, Caged: true})
+			s.Sites = ms
+		}, nil},
 		{"file tpan-cage-*", func(_ *testing.T, _ *SelfUpdate, f *system.FakeSystem) {
 			f.SetFile(cageUnitDir+"/tpan-cage-a_example_com_abc123-php.service", []byte("x"), 0o644, system.Root)
 		}, []string{"tpan-cage-a_example_com_abc123-php.service", "sudo tpan cage disable --all --yes"}},

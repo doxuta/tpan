@@ -32,9 +32,11 @@ import (
 	"io/fs"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
 )
@@ -144,9 +146,16 @@ func (s *SelfUpdate) refuseCageActive(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("đọc danh sách site: %w", err)
 		}
-		var caged []string
+		// Site trong thùng rác không chặn: file của lồng đã gỡ lúc đưa vào thùng
+		// rác (còn sót thì phần đọc thư mục unit bên dưới bắt). Site đang tạm
+		// khoá thì cage disable từ chối, nên lời khuyên là mở khoá trước.
+		var caged, suspended []string
 		for _, st := range all {
-			if st.Caged {
+			switch {
+			case !st.Caged || st.Status != site.Active:
+			case st.Suspended != account.NotSuspended:
+				suspended = append(suspended, st.Domain.String())
+			default:
 				caged = append(caged, st.Domain.String())
 			}
 		}
@@ -154,6 +163,10 @@ func (s *SelfUpdate) refuseCageActive(ctx context.Context) error {
 			list := strings.Join(caged, ", ")
 			vi = append(vi, "site đang ở trong lồng: "+list+" (đưa ra bằng: sudo tpan cage disable --all --yes)")
 			en = append(en, "caged sites: "+list+" (take them out with: sudo tpan cage disable --all --yes)")
+		}
+		for _, d := range suspended {
+			vi = append(vi, "site trong lồng đang tạm khoá: "+d+" (mở khoá rồi đưa ra: sudo tpan site unsuspend "+d+" --yes, rồi sudo tpan cage disable "+d+" --yes)")
+			en = append(en, "suspended caged site: "+d+" (unsuspend it, then take it out: sudo tpan site unsuspend "+d+" --yes, then sudo tpan cage disable "+d+" --yes)")
 		}
 	}
 	names, err := s.Sys.ReadDir(cageUnitDir)

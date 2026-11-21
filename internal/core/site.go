@@ -758,11 +758,6 @@ func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (Site
 	return res, nil
 }
 
-// codeCageError là mã của CageError khi job cage.enable không dựng hay không
-// chạy được vì một lỗi không phải lời từ chối (đọc DB hỏng, Journal hỏng...):
-// trường CageError chỉ nhận *RefusedError, mà site vẫn phải được báo là đã tạo.
-const codeCageError = "cage_error"
-
 // enableCageIfWanted chạy job cage.enable cho site st vừa tạo khi gói của chủ
 // muốn lồng (dùng cho SiteAdd.Execute và pha sau lô của apply). Trả báo cáo
 // khi job đã chạy (thành hay hỏng), lời từ chối khi không chạy được; cả hai
@@ -775,7 +770,7 @@ func (s *Sites) enableCageIfWanted(ctx context.Context, st site.Site, onEvent fu
 			return re
 		}
 		d := st.Domain.String()
-		return refuse(codeCageError, i18n.T(
+		return refuse(CodeCageError, i18n.T(
 			"site "+d+" đã tạo nhưng chưa đưa được vào lồng: "+err.Error()+". Site vẫn chạy ở ngoài lồng; thử lại bằng: sudo tpan cage enable "+d,
 			"site "+d+" was created but could not be put in its cage: "+err.Error()+". The site still runs outside the cage; try again with: sudo tpan cage enable "+d))
 	}

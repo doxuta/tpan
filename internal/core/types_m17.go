@@ -29,6 +29,10 @@ const (
 	CodeDomainReserved        = "domain_reserved"          // tên miền dành cho phép thử (site.IsProbeDomain)
 	CodeProbeRunning          = "probe_running"            // đang có một lượt thử chưa xong
 	CodeUsageNotCaged         = "usage_not_caged"          // số liệu của site ngoài lồng (404 ở API)
+	// CodeCageError là mã của SiteAddResult.CageError và ApplySiteResult.CageError
+	// khi job cage.enable sau khi tạo site hỏng vì lỗi không phải lời từ chối
+	// (đọc DB, Journal...): site vẫn được tạo, ở ngoài lồng.
+	CodeCageError = "cage_error"
 )
 
 // Tên cách sửa tự động mới (checks.Result.AutoFix; AutoFixName ở health.go).
