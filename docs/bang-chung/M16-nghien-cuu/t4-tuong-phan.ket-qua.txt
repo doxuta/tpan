@@ -11,6 +11,7 @@
   muted         #556070 trên surface      #FFFFFF   6.38  (cần 4.5)  đạt
   muted         #556070 trên soft         #F6F7F9   5.95  (cần 4.5)  đạt
   muted         #556070 trên pre          #E1E4E1   4.98  (cần 4.5)  đạt
+  muted         #556070 trên accent-tint  #E7EDF8   5.43  (cần 4.5)  đạt
   accent        #0B4FB8 trên surface      #FFFFFF   7.43  (cần 4.5)  đạt
   accent        #0B4FB8 trên paper        #EEF1F4   6.56  (cần 4.5)  đạt
   accent        #0B4FB8 trên soft         #F6F7F9   6.94  (cần 4.5)  đạt
@@ -67,6 +68,7 @@
   muted         #A3A9AF trên surface      #1A1D21   7.13  (cần 4.5)  đạt
   muted         #A3A9AF trên soft         #20242A   6.57  (cần 4.5)  đạt
   muted         #A3A9AF trên pre          #101214   7.91  (cần 4.5)  đạt
+  muted         #A3A9AF trên accent-tint  #2D3645   5.13  (cần 4.5)  đạt
   accent        #8FB8FF trên surface      #1A1D21   8.43  (cần 4.5)  đạt
   accent        #8FB8FF trên paper        #111316   9.28  (cần 4.5)  đạt
   accent        #8FB8FF trên soft         #20242A   7.77  (cần 4.5)  đạt

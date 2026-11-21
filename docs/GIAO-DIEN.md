@@ -87,7 +87,7 @@ Tương phản đã đo (công thức WCAG 2.1; chữ cần từ 4,5:1, hình v�
 |---|---|---|
 | `--ink` trên `--paper` / `--surface` / `--soft` / `--pre` / `--accent-tint` | 15,4 / 17,4 / 16,3 / 13,6 / 14,8 | 15,6 / 14,2 / 13,0 / 15,7 / 10,2 |
 | `--ink-soft` trên `--surface` / `--paper` / `--soft` | 13,1 / 11,6 / 12,3 | 11,1 / 12,2 / 10,2 |
-| `--muted` trên `--paper` / `--surface` / `--soft` / `--pre` | 5,6 / 6,4 / 6,0 / 5,0 | 7,8 / 7,1 / 6,6 / 7,9 |
+| `--muted` trên `--paper` / `--surface` / `--soft` / `--pre` / `--accent-tint` | 5,6 / 6,4 / 6,0 / 5,0 / 5,4 | 7,8 / 7,1 / 6,6 / 7,9 / 5,1 |
 | `--accent` trên `--surface` / `--paper` / `--soft` / `--accent-tint` | 7,4 / 6,6 / 6,9 / 6,3 | 8,4 / 9,3 / 7,8 / 6,1 |
 | `--accent-hover` trên `--surface` / `--paper` / `--soft` | 10,7 / 9,4 / 10,0 | 11,1 / 12,2 / 10,2 |
 | `--on-accent` trên `--accent` / `--accent-hover` | 7,4 / 10,7 | 9,3 / 12,2 |

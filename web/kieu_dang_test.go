@@ -27,11 +27,6 @@ import (
 // chuaDoi: tiền tố đường dẫn (tính từ web/) của mã chưa đổi sang bản 2. Chỉ
 // gỡ bớt, không thêm. Phiên chính gỡ khi nhận phần của thợ.
 var chuaDoi = []string{
-	"src/screens/bang-dieu-khien/",
-	"src/screens/site/",
-	"src/screens/bao-mat/",
-	"src/screens/cai-dat/",
-	"src/screens/cap-nhat/",
 	"src/screens/lich-su/",
 	"src/screens/su-co/",
 	"src/screens/ssl/",
@@ -48,12 +43,6 @@ var chuaDoi = []string{
 
 // chuaDoiNhan: file chuỗi i18n còn nhãn viết hoa cả câu (B11). Cùng cơ chế.
 var chuaDoiNhan = []string{
-	"src/i18n/bang-dieu-khien.ts",
-	"src/i18n/site.ts",
-	"src/i18n/bao-mat.ts",
-	"src/i18n/cai-dat.ts",
-	"src/i18n/cap-nhat.ts",
-	"src/i18n/phien-ban.ts",
 	"src/i18n/lich-su.ts",
 	"src/i18n/su-co.ts",
 	"src/i18n/ssl.ts",

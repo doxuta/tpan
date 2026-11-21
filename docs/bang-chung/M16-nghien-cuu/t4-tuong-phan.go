@@ -99,7 +99,7 @@ func main() {
 	}
 	text("ink", "paper", "surface", "soft", "pre", "accent-tint")
 	text("ink-soft", "surface", "paper", "soft")
-	text("muted", "paper", "surface", "soft", "pre")
+	text("muted", "paper", "surface", "soft", "pre", "accent-tint")
 	text("accent", "surface", "paper", "soft", "accent-tint")
 	text("accent-hover", "surface", "paper", "soft")
 	text("on-accent", "accent", "accent-hover")

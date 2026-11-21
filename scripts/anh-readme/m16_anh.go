@@ -419,7 +419,12 @@ func photosM16(c *cdp, base, adminPW, out, only string) error {
 			return err
 		}
 		count++
-		if err := snap(c, out, file); err != nil {
+		// Soát nhanh (-chi) chụp cả trang để thấy phần dưới màn hình đầu; bộ đầy đủ chụp đúng cửa sổ.
+		take := snap
+		if only != "" {
+			take = snapFull
+		}
+		if err := take(c, out, file); err != nil {
 			return err
 		}
 		// Sau khi chụp, để script đo không làm đổi ảnh.
