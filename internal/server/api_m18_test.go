@@ -536,7 +536,7 @@ func TestDayVaTaiVeQuaAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.s.api.claim() // đang có job khác của máy: tải về vẫn chạy (B10)
-	apiDecode[QueuedResponse](t, apiCall(e.s.handleBackupPull, "POST", "/api/v1/backups/x/pull", "", "id", b.ID), http.StatusAccepted)
+	pr := apiDecode[QueuedResponse](t, apiCall(e.s.handleBackupPull, "POST", "/api/v1/backups/x/pull", "", "id", b.ID), http.StatusAccepted)
 	e.s.api.wg.Wait()
 	e.s.api.release()
 	row, _, _ := e.st.Backup(ctx, b.ID)
@@ -546,6 +546,10 @@ func TestDayVaTaiVeQuaAPI(t *testing.T) {
 	a := hAudit(t, e.apiEnv, "backup.pull")
 	if len(a) == 0 || a[len(a)-1].Result != "ok" || a[len(a)-1].JobID == "" || a[len(a)-1].Target != b.ID {
 		t.Errorf("nhật ký backup.pull = %+v", a)
+	}
+	// Câu trả lời kèm mã job khi job đã bắt đầu, để giao diện theo dõi được.
+	if len(a) > 0 && pr.JobID != a[len(a)-1].JobID {
+		t.Errorf("câu trả lời tải về: job_id %q, job thật %q", pr.JobID, a[len(a)-1].JobID)
 	}
 	if p := hAudit(t, e.apiEnv, "backup.push"); len(p) == 0 || p[len(p)-1].Result != "queued" {
 		t.Errorf("nhật ký backup.push = %+v", p)

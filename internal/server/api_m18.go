@@ -262,10 +262,21 @@ func (s *Server) handleBackupPull(w http.ResponseWriter, r *http.Request) {
 	ar := r.WithContext(context.WithoutCancel(r.Context()))
 	ctx, cancel := context.WithCancel(ar.Context())
 	stop := context.AfterFunc(s.bgCtx(), cancel)
+	// Sự kiện đầu tiên của job mang mã job: chuyển ra cho câu trả lời, để
+	// giao diện theo dõi được job tải về (có lỗi thì người bấm thấy ngay).
+	started := make(chan string, 1)
+	onEvent := func(ev engine.Event) {
+		if ev.JobID != "" {
+			select {
+			case started <- ev.JobID:
+			default:
+			}
+		}
+	}
 	s.api.wg.Go(func() {
 		defer cancel()
 		defer stop()
-		rep, err := rem.Pull(ctx, id, nil)
+		rep, err := rem.Pull(ctx, id, onEvent)
 		result := "ok"
 		switch {
 		case err != nil:
@@ -282,8 +293,19 @@ func (s *Server) handleBackupPull(w http.ResponseWriter, r *http.Request) {
 		}
 		s.audit(ar, action, target, result, rep.Job.ID)
 	})
-	writeJSON(w, http.StatusAccepted, QueuedResponse{Queued: true, Note: pullNote})
+	resp := QueuedResponse{Queued: true, Note: pullNote}
+	// Thường job bắt đầu ngay; khoá lượt đẩy bận thì không giữ request lâu.
+	select {
+	case resp.JobID = <-started:
+	case <-time.After(pullStartWait):
+	case <-r.Context().Done():
+	}
+	writeJSON(w, http.StatusAccepted, resp)
 }
+
+// pullStartWait: thời gian tối đa câu trả lời của POST /backups/{id}/pull chờ
+// job tải về bắt đầu để kèm mã job. Biến (không hằng) để test đặt ngắn.
+var pullStartWait = 5 * time.Second
 
 // handleBackupRemote liệt kê trên kho, ghép với bảng backups.
 func (s *Server) handleBackupRemote(w http.ResponseWriter, r *http.Request) {
