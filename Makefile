@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
-  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang
+  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang thu-m20 don-tmp
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -96,6 +96,20 @@ e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: 
 	@# Log ghi ra tmp-phien/ (ngoài git) rồi mới chép vào LOG: file log đã commit mà bị ghi đè lúc
 	@# bắt đầu chạy thì cây làm việc thành "dirty" và tên bản tpan được đóng gói có đuôi -dirty.
 	E2E_LOG=tmp-phien/e2e-m16.log bash scripts/e2e-m16.sh > tmp-phien/e2e-m16.log 2>&1; rc=$$?; cp tmp-phien/e2e-m16.log $(or $(LOG),docs/bang-chung/M16.log); exit $$rc
+
+# ---- M20: hai bước, token API, chứng chỉ panel ----
+# Thử của đợt 0 trên máy ảo trong .tpan-vm (từ máy sạch): ACME cho tên panel qua
+# vhost mặc định (nginx rồi apache), đồng hồ của máy, CSP. Log vào docs/bang-chung/M20-nghien-cuu/.
+M20_THU := docs/bang-chung/M20-nghien-cuu
+thu-m20: build-linux ## Thử của đợt 0 M20 trên máy ảo sạch; log vào docs/bang-chung/M20-nghien-cuu/thu-vm.log
+	scripts/vm.sh reset
+	scripts/vm.sh deploy
+	multipass transfer $(M20_THU)/thu-vm.sh "$$(cat .tpan-vm):/tmp/thu-vm.sh" </dev/null
+	scripts/vm.sh root bash /tmp/thu-vm.sh > tmp-phien/thu-vm.log 2>&1 </dev/null; rc=$$?; cp tmp-phien/thu-vm.log $(M20_THU)/thu-vm.log; exit $$rc
+
+# Dọn file tạm của phiên (tmp-phien/ nằm ngoài git). Không đụng gì khác.
+don-tmp: ## Xoá file tạm trong tmp-phien/
+	find tmp-phien -mindepth 1 -delete
 
 lay-dev: ## git fetch origin (trước khi ghép dev vào nhánh mốc)
 	git fetch origin
