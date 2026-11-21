@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/doxuta/tpan/internal/account"
@@ -106,7 +107,41 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if err != nil {
 		return nil, err
 	}
-	return append(siteEdgeChecks(st.Layout(), st.SSL), siteStateChecks(st, cfg, others, nil, false)...), nil
+	lim, err := siteCageLimits(ctx, s.Accounts, st)
+	if err != nil {
+		return nil, err
+	}
+	cs := append(siteEdgeChecks(st.Layout(), st.SSL), siteStateChecks(st, cfg, others, lim, false)...)
+	state, err := s.cageStateCheck(ctx, st)
+	if err != nil {
+		return nil, err
+	}
+	if state != nil {
+		cs = append(cs, state)
+	}
+	return cs, nil
+}
+
+// cageStateCheck trả checks.CageState cho site có caged=1, gói muốn lồng, hoặc
+// có file hàng rào trên máy (một lần Stat); nil khi không có điều nào (site
+// thường của máy nâng từ v0.2.0: không thêm phép kiểm nào, mục 6 của thiết kế
+// M17). Có ở mọi nhánh, kể cả site tạm khoá. Stat lỗi khác "không có" thì vẫn
+// sinh: phép kiểm tự báo không đọc được.
+func (s *Sites) cageStateCheck(ctx context.Context, st site.Site) (checks.Check, error) {
+	p, err := sitePackage(ctx, s.Accounts, st)
+	if err != nil {
+		return nil, fmt.Errorf("đọc gói của chủ site %s: %w", st.Domain, err)
+	}
+	l := st.Layout()
+	fence := false
+	if s.Sys != nil {
+		_, err := s.Sys.Stat(l.CageFence())
+		fence = !errors.Is(err, fs.ErrNotExist)
+	}
+	if !st.Caged && !p.Cage && !fence {
+		return nil, nil
+	}
+	return checks.CageState(l, st.Caged, p.Cage), nil
 }
 
 // siteStateChecks là bộ phép kiểm của site theo trạng thái tạm khoá (M13, mục
@@ -151,9 +186,15 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Site, lim *acc
 		if st.SSL {
 			cs = append(cs, checks.TLSCert(l))
 		}
+		cs = append(cs, checks.VhostEnabled(web, l))
+		// M17 (mục 3.6): site trong lồng không có pool chung; chặng PHP của nó
+		// là socket và tiến trình chính của lồng.
+		if st.Caged {
+			cs = append(cs, checks.CageSocket(l), checks.CageRuntime(l))
+		} else {
+			cs = append(cs, checks.PoolSocket(l, php))
+		}
 		cs = append(cs,
-			checks.VhostEnabled(web, l),
-			checks.PoolSocket(l, php),
 			checks.Heavy(checks.WPChecksums(l)),
 			checks.WPConfigPerm(l),
 		)
@@ -241,6 +282,13 @@ func AutoFixName(r checks.Result) string {
 		if kind == "php.protectproc" {
 			return FixPHPHarden
 		}
+		switch kind {
+		case "cage.runtime":
+			// M17: đang chạy bản PHP đã bị thay, hay hàng rào mới hơn lúc khởi động.
+			return FixCageRestart
+		case "cage.state":
+			return cageStateFix(r)
+		}
 		return ""
 	default: // Pass, Unknown: không có gì để sửa, hoặc chưa biết sửa gì.
 		return ""
@@ -273,6 +321,36 @@ func AutoFixName(r checks.Result) string {
 		// Vhost thiếu dòng chặn của M14: ghi lại vhost của riêng site đó từ
 		// template hiện tại, theo chế độ .htaccess đang lưu (Fixes.vhostRewrite).
 		return FixWebRewrite
+	// M17 (mục 3.7 của docs/thay-doi/M17-thiet-ke.md).
+	case "cage.socket":
+		return FixCageStart
+	case "cage.runtime":
+		return FixCageRestart
+	case "cage.fence", "cage.limits":
+		return FixCageSync
+	case "cage.state":
+		return cageStateFix(r)
+	case "probe.leftover":
+		return FixProbeCleanup
+	}
+	return ""
+}
+
+// cageStateFix chọn hướng sửa của cage.state từ chính kết quả: checks.CageState
+// đặt lệnh hướng sửa (`tpan cage enable|disable <domain>`) ở dòng đầu của
+// ManualFix, đúng bảng của mục 3.7 (Fail: caged=1 thì enable, caged=0 thì
+// disable; Warn: gói muốn lồng mà site ngoài thì enable, ngược lại disable).
+// Nhờ vậy AutoFixName vẫn thuần. Dòng đầu không khớp: không có sửa tự động.
+func cageStateFix(r checks.Result) string {
+	_, obj, _ := strings.Cut(r.ID, ":")
+	if len(r.ManualFix) == 0 || obj == "" {
+		return ""
+	}
+	switch r.ManualFix[0] {
+	case system.Cmd{Name: "tpan", Args: []string{"cage", "enable", obj}}.String():
+		return FixCageEnable
+	case system.Cmd{Name: "tpan", Args: []string{"cage", "disable", obj}}.String():
+		return FixCageDisable
 	}
 	return ""
 }
@@ -316,6 +394,10 @@ type Fix struct {
 	// ssl có khi Name là FixSSLIssue: Execute đi qua SSLIssue.Execute để job
 	// thành công thì bảng sites ghi site.SSL = true như `tpan ssl issue`.
 	ssl *SSLIssue
+	// planned (M17) có khi Plan có after (cage.enable, cage.disable ghi
+	// sites.caged; probe.cleanup đánh dấu lượt thử đã dọn): Execute đi qua
+	// Planned.Execute để after không bị bỏ.
+	planned *Planned
 }
 
 // Prepare dựng Plan sửa cho r theo r.AutoFix (gọi lại AutoFixName(r) nếu
@@ -332,6 +414,15 @@ func (f *Fixes) Prepare(ctx context.Context, r checks.Result) (*Fix, error) {
 	}
 	if name == FixSSLIssue {
 		return f.sslIssue(ctx, r)
+	}
+	switch name {
+	case FixCageEnable, FixCageDisable, FixProbeCleanup:
+		pl, err := f.plannedFix(ctx, name, r)
+		if err != nil {
+			return nil, err
+		}
+		pl.Plan.Kind = "fix." + name
+		return &Fix{CheckID: r.ID, Name: name, Plan: pl.Plan, fixes: f, planned: pl}, nil
 	}
 	plan, err := f.plan(ctx, name, r)
 	if err != nil {
@@ -373,6 +464,10 @@ func (x *Fix) Execute(ctx context.Context, onEvent func(engine.Event)) (engine.R
 	if x.ssl != nil {
 		x.ssl.Plan = x.Plan
 		return x.ssl.Execute(ctx, onEvent)
+	}
+	if x.planned != nil {
+		x.planned.Plan = x.Plan
+		return x.planned.Execute(ctx, onEvent)
 	}
 	rep, err := engine.New(f.Sys, engine.Options{Journal: f.Journal, OnEvent: onEvent}).Execute(ctx, x.Plan)
 	if err != nil {

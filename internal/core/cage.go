@@ -12,11 +12,15 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/cage"
+	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
@@ -24,9 +28,6 @@ import (
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
-
-// errCageTODO là lỗi của thân hàm chưa viết (đợt 3 thay).
-var errCageTODO = errors.New("lồng theo site: chưa viết (M17 đợt 3)")
 
 // Cages gom những gì ca sử dụng của lồng cần. Dựng mới cho mỗi lệnh.
 type Cages struct {
@@ -158,24 +159,482 @@ func cageEnableSteps(st site.Site, cfg StackConfig, lim account.Limits) ([]engin
 	return append(ss, vh...), nil
 }
 
-// Status trả trạng thái lồng của một site (d khác zero) hoặc mọi site active.
-func (c *Cages) Status(ctx context.Context, d validate.Domain) ([]CageRow, error) {
-	return nil, errCageTODO
+// ---------------------------------------------------------------- đọc
+
+func (c *Cages) now() time.Time {
+	if c.Now != nil {
+		return c.Now()
+	}
+	return time.Now()
 }
 
+// Trạng thái của một site về lồng (CageRow.State).
+const (
+	cageStateIn      = "trong"
+	cageStateOut     = "ngoai"
+	cageStateWantIn  = "can-vao"
+	cageStateWantOut = "can-ra"
+)
+
+func cageStateOf(caged, want bool) string {
+	switch {
+	case caged && want:
+		return cageStateIn
+	case want:
+		return cageStateWantIn
+	case caged:
+		return cageStateWantOut
+	}
+	return cageStateOut
+}
+
+// Status trả trạng thái lồng của một site (d khác zero) hoặc mọi site active.
+// Files đọc máy (một lần Stat hàng rào), Usage đọc cgroup khi site Caged: hai
+// nguồn này có thể khác bảng sites khi panel bị tắt giữa cage.enable/disable.
+func (c *Cages) Status(ctx context.Context, d validate.Domain) ([]CageRow, error) {
+	var list []site.Site
+	if !d.IsZero() {
+		st, err := (&Sites{Store: c.Store}).find(ctx, d)
+		if err != nil {
+			return nil, err
+		}
+		list = []site.Site{st}
+	} else {
+		all, err := c.Store.Sites(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("đọc danh sách site: %w", err)
+		}
+		for _, st := range all {
+			if st.Status == site.Active {
+				list = append(list, st)
+			}
+		}
+		slices.SortFunc(list, func(a, b site.Site) int { return strings.Compare(a.Domain.String(), b.Domain.String()) })
+	}
+	rows := make([]CageRow, 0, len(list))
+	for _, st := range list {
+		row, err := c.row(ctx, st)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	return rows, nil
+}
+
+func (c *Cages) row(ctx context.Context, st site.Site) (CageRow, error) {
+	l := st.Layout()
+	p, err := sitePackage(ctx, c.Accounts, st)
+	if err != nil {
+		return CageRow{}, fmt.Errorf("đọc gói của chủ site %s: %w", st.Domain, err)
+	}
+	files, err := pathExists(c.Sys, l.CageFence())
+	if err != nil {
+		return CageRow{}, err
+	}
+	owner := st.Owner
+	if owner == "" {
+		owner = account.AdminName
+	}
+	row := CageRow{
+		Domain: st.Domain.String(), Owner: owner, Package: p.Name,
+		Caged: st.Caged, Want: p.Cage, Files: files, State: cageStateOf(st.Caged, p.Cage),
+		Suspended: st.Suspended != account.NotSuspended, Limits: p.Limits(),
+	}
+	if st.Caged {
+		u, err := cage.ReadUsage(c.Sys, l, c.now())
+		if err != nil {
+			return CageRow{}, fmt.Errorf("đọc số liệu của lồng %s: %w", st.Domain, err)
+		}
+		row.Usage = &u
+	}
+	return row, nil
+}
+
+// ---------------------------------------------------------------- điều kiện đầu
+
+// cgroupControllers chỉ có trên máy dùng cgroup v2 (hệ thống file cgroup2 gắn ở
+// /sys/fs/cgroup). Trần của lồng (MemoryMax, TasksMax...) cần v2.
+const cgroupControllers = "/sys/fs/cgroup/cgroup.controllers"
+
+// cageSystemdMin: cờ --expand-environment của systemd-run (lớp bọc lệnh, mục
+// 3.4) có từ systemd 254.
+const cageSystemdMin = 254
+
+// cageSite đọc site d: có (site_not_found), active (site_trashed), không tạm
+// khoá (site_suspended). what là việc định làm, cho lời từ chối.
+func (c *Cages) cageSite(ctx context.Context, d validate.Domain, whatVi, whatEn string) (site.Site, error) {
+	st, err := (&Sites{Store: c.Store}).find(ctx, d)
+	if err != nil {
+		return site.Site{}, err
+	}
+	dom := d.String()
+	if st.Status != site.Active {
+		return site.Site{}, refuse("site_trashed", i18n.T(
+			"site "+dom+" đang ở thùng rác; không "+whatVi+" được",
+			"site "+dom+" is in the trash; cannot "+whatEn))
+	}
+	if err := refuseSuspendedPool(st); err != nil {
+		return site.Site{}, err
+	}
+	return st, nil
+}
+
+// cageHostReady kiểm máy chạy được lồng: cgroup v2 và systemd từ 254.
+func (c *Cages) cageHostReady(ctx context.Context) error {
+	v2, err := pathExists(c.Sys, cgroupControllers)
+	if err != nil {
+		return err
+	}
+	if !v2 {
+		return refuse(CodeCageCgroupV1, i18n.T(
+			"máy không dùng cgroup v2 (không có "+cgroupControllers+"); lồng cần cgroup v2 để áp trần. Ubuntu 22.04 trở lên dùng cgroup v2 mặc định",
+			"the machine does not use cgroup v2 (no "+cgroupControllers+"); the cage needs cgroup v2 to apply limits. Ubuntu 22.04 and later use cgroup v2 by default"))
+	}
+	res, err := c.Sys.Run(ctx, system.Cmd{Name: "systemctl", Args: []string{"--version"}})
+	if err != nil {
+		return fmt.Errorf("hỏi bản systemd: %w", err)
+	}
+	first, _, _ := strings.Cut(strings.TrimSpace(res.Stdout), "\n")
+	f := strings.Fields(first)
+	n := 0
+	if len(f) >= 2 && f[0] == "systemd" {
+		n, _ = strconv.Atoi(f[1])
+	}
+	if n < cageSystemdMin {
+		return refuse(CodeCageSystemdOld, i18n.T(
+			fmt.Sprintf("systemd của máy là %q, lồng cần systemd từ %d (cờ --expand-environment của systemd-run)", first, cageSystemdMin),
+			fmt.Sprintf("the machine's systemd is %q, the cage needs systemd %d or later (systemd-run's --expand-environment flag)", first, cageSystemdMin)))
+	}
+	return nil
+}
+
+// cageDrift: site ngoài lồng mà file pool chung hay vhost không khớp đúng bản
+// tpan sinh thì từ chối cage_drift. Ra lồng sinh lại hai file đó từ template,
+// nên chỉ khi lúc vào chúng đã khớp template thì ra lồng mới trả lại đúng từng
+// byte (bất biến 2). Dùng chính Check() của các bước sẽ ghi chúng.
+func (c *Cages) cageDrift(ctx context.Context, st site.Site, cfg StackConfig) error {
+	out := st
+	out.Caged = false
+	ss, err := sitePHPSteps(out, cfg, account.Limits{})
+	if err != nil {
+		return err
+	}
+	vh, err := siteVhost(out, cfg)
+	if err != nil {
+		return err
+	}
+	var bad []string
+	for _, s := range append(ss, vh...) {
+		ok, err := s.Check(ctx, c.Sys)
+		if err != nil {
+			return fmt.Errorf("so pool và vhost của %s với bản của tpan: %w", st.Domain, err)
+		}
+		if ok {
+			continue
+		}
+		info := s.Info()
+		if len(info.Files) == 0 {
+			bad = append(bad, info.ID)
+		}
+		for _, f := range info.Files {
+			bad = append(bad, f.Path)
+		}
+	}
+	if len(bad) == 0 {
+		return nil
+	}
+	dom, list := st.Domain.String(), strings.Join(bad, ", ")
+	return refuse(CodeCageDrift, i18n.T(
+		"pool hoặc vhost của "+dom+" đang khác bản tpan sinh ("+list+"); ra lồng sẽ không trả lại đúng các file này. Đưa về bản của tpan trước bằng: sudo tpan site add "+dom+" (hoặc sudo tpan health --fix), rồi chạy lại",
+		"the pool or vhost of "+dom+" differs from tpan's version ("+list+"); leaving the cage would not give these files back as they are. Restore tpan's version first with: sudo tpan site add "+dom+" (or sudo tpan health --fix), then run again"))
+}
+
+// ---------------------------------------------------------------- kiểm chứng
+
+// policyCheck hạ Fail xuống Warn khi phép kiểm không thuộc tập cứng (policyHard).
+type policyCheck struct{ c checks.Check }
+
+func (p policyCheck) Run(ctx context.Context, sys system.System) checks.Result {
+	r := p.c.Run(ctx, sys)
+	if r.Status == checks.Fail && !policyHard(r) {
+		r.Status = checks.Warn
+	}
+	return r
+}
+
+// policyHard là tập phép cứng của Plan chính sách: điều site không điều khiển
+// được. Chặng web (cấu hình web server, vhost), socket do systemd giữ
+// (cage.socket, và php.socket khi ra lồng), trần trên cgroup (cage.limits).
+func policyHard(r checks.Result) bool {
+	if r.Stage == checks.StageWeb {
+		return true
+	}
+	for _, p := range []string{"cage.socket:", "cage.limits:", "php.socket:"} {
+		if strings.HasPrefix(r.ID, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// policyVerify bọc kiểm chứng của Plan chính sách của admin (cage.enable,
+// cage.disable): Fail của phép ngoài tập cứng thành Warn (như checks.Soft nhưng
+// quyết theo Result). Lý do (mục 3.6 "Hai loại Plan"): mã của site quyết định mã
+// HTTP, giết được tiến trình chính của FPM, và lấp được số tiến trình của slice
+// (bằng exec) làm lệnh systemd-run của cage.fence không khởi động được; hàng rào
+// đã được kiểm khi `php-fpm -t` chạy trong lồng ở bước CageSocket, trước khi mã
+// của site vào slice. Không có vậy thì một site trả 500 giữ được mình ngoài lồng.
+func policyVerify(cs []checks.Check) []checks.Check {
+	out := make([]checks.Check, 0, len(cs))
+	for _, c := range cs {
+		var w checks.Check = policyCheck{c}
+		if checks.IsHeavy(c) {
+			w = checks.Heavy(w)
+		}
+		out = append(out, w)
+	}
+	return out
+}
+
+// markCaged đọc lại dòng của site rồi chỉ đổi Caged: giữa lúc dựng Plan và lúc
+// job xong, dòng có thể đã đổi trường khác (như markSuspended).
+func (c *Cages) markCaged(ctx context.Context, d validate.Domain, caged bool) error {
+	st, err := (&Sites{Store: c.Store}).find(ctx, d)
+	if err == nil {
+		st.Caged = caged
+		err = c.Store.SaveSite(ctx, st)
+	}
+	if err != nil {
+		return fmt.Errorf("ghi trạng thái lồng của site %s (máy đã đổi xong; chạy lại lệnh để ghi nốt): %w", d, err)
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------- Plan
+
 // PrepareEnable dựng Plan "cage.enable" (mục 3.6). after: ghi caged = true.
+// Chỉ đọc máy. Site đã Caged không bị từ chối: Plan chạy lại, bước đúng tự bỏ
+// qua (cách áp lại trần và sửa lệch).
 func (c *Cages) PrepareEnable(ctx context.Context, d validate.Domain) (*Planned, error) {
-	return nil, errCageTODO
+	st, err := c.cageSite(ctx, d, "đưa vào lồng", "put it in a cage")
+	if err != nil {
+		return nil, err
+	}
+	dom := d.String()
+	p, err := sitePackage(ctx, c.Accounts, st)
+	if err != nil {
+		return nil, fmt.Errorf("đọc gói của chủ site %s: %w", dom, err)
+	}
+	if !p.Cage {
+		return nil, refuse(CodeCageNotInPackage, i18n.T(
+			"gói "+p.Name+" của chủ site "+dom+" chưa bật lồng; bật bằng: sudo tpan package edit "+p.Name+" --cage on",
+			"package "+p.Name+" of the owner of "+dom+" does not enable the cage; enable it with: sudo tpan package edit "+p.Name+" --cage on"))
+	}
+	if err := c.cageHostReady(ctx); err != nil {
+		return nil, err
+	}
+	cfg, err := (&Sites{Settings: c.Settings}).stack(ctx)
+	if err != nil {
+		return nil, err
+	}
+	php := sitePHP(st, cfg)
+	if err := checkPHPVersion(php); err != nil {
+		return nil, fmt.Errorf("bản PHP đang ghi cho site %s: %w", dom, err)
+	}
+	ok, err := phpIsInstalled(c.Sys, php)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, refuse("php_not_installed", i18n.T(
+			"PHP "+php+" của site "+dom+" chưa được cài; cài bằng: sudo tpan php install "+php,
+			"PHP "+php+" of site "+dom+" is not installed; install it with: sudo tpan php install "+php))
+	}
+	if !st.Caged {
+		if err := c.cageDrift(ctx, st, cfg); err != nil {
+			return nil, err
+		}
+	}
+	lim := p.Limits()
+	ss, err := cageEnableSteps(st, cfg, lim)
+	if err != nil {
+		return nil, fmt.Errorf("dựng Plan vào lồng cho %s: %w", dom, err)
+	}
+	others, err := (&Sites{Store: c.Store}).others(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	in := st
+	in.Caged = true
+	title := i18n.T("Đưa "+dom+" vào lồng", "Put "+dom+" in a cage")
+	if cfg.Web == Apache && st.Htaccess.OrDefault() == site.HtaccessFull {
+		// Soát thiết kế điểm 14: Apache chạy bằng www-data nối được mọi socket
+		// của lồng, và .htaccess ở chế độ đầy đủ được đặt SetHandler.
+		title.Vi += " (cảnh báo: .htaccess đang ở chế độ day-du; lồng không chặn được đường chuyển request sang socket của site khác bằng .htaccess ở chế độ này)"
+		title.En += " (warning: .htaccess is in day-du mode; the cage cannot block routing requests to another site's socket through .htaccess in this mode)"
+	}
+	plan := engine.Plan{
+		Kind:   "cage.enable",
+		Target: dom,
+		Title:  title,
+		Steps:  ss,
+		Verify: policyVerify(siteChecks(cfg.Web, php, in, others, &lim)),
+	}
+	return newPlanned(c.Sys, c.Journal, plan, func(ctx context.Context, _ engine.Report) error {
+		return c.markCaged(ctx, d, true)
+	}), nil
 }
 
 // PrepareDisable dựng Plan "cage.disable" (mục 3.6). after: ghi caged = false.
+// Điều kiện đọc máy (có file của lồng), không đòi caged=1: đây cũng là Plan
+// dọn lồng dựng dở. Không đòi cờ của gói: admin được đưa site ra để gỡ lỗi.
 func (c *Cages) PrepareDisable(ctx context.Context, d validate.Domain) (*Planned, error) {
-	return nil, errCageTODO
+	st, err := c.cageSite(ctx, d, "đưa ra khỏi lồng", "take it out of its cage")
+	if err != nil {
+		return nil, err
+	}
+	dom, l := d.String(), st.Layout()
+	has := false
+	for _, p := range l.CageFiles() {
+		ok, err := pathExists(c.Sys, p)
+		if err != nil {
+			return nil, err
+		}
+		has = has || ok
+	}
+	if !has {
+		return nil, refuse(CodeCageNotCaged, i18n.T(
+			"site "+dom+" không có file nào của lồng trên máy; không có gì để đưa ra",
+			"site "+dom+" has no cage files on the machine; there is nothing to take out"))
+	}
+	cfg, err := (&Sites{Settings: c.Settings}).stack(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := st
+	out.Caged = false
+	php := sitePHP(st, cfg)
+	ss, err := sitePHPSteps(out, cfg, account.Limits{})
+	if err != nil {
+		return nil, fmt.Errorf("dựng Plan ra lồng cho %s: %w", dom, err)
+	}
+	vh, err := siteVhost(out, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("dựng Plan ra lồng cho %s: %w", dom, err)
+	}
+	ss = append(ss, vh...)
+	// Pool chung và vhost thường đã phục vụ site trước khi lồng tắt: request
+	// không rơi vào khoảng trống nào. Hàng rào gỡ trước tiên trong CageFiles.
+	ss = append(ss,
+		&steps.CageSocket{Layout: l, PHP: php, Disable: true},
+		&steps.CageFiles{Layout: l, PHP: php, Remove: true},
+	)
+	others, err := (&Sites{Store: c.Store}).others(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	plan := engine.Plan{
+		Kind:   "cage.disable",
+		Target: dom,
+		Title:  i18n.T("Đưa "+dom+" ra khỏi lồng", "Take "+dom+" out of its cage"),
+		Steps:  ss,
+		Verify: policyVerify(siteChecks(cfg.Web, php, out, others, nil)),
+	}
+	return newPlanned(c.Sys, c.Journal, plan, func(ctx context.Context, _ engine.Report) error {
+		return c.markCaged(ctx, d, false)
+	}), nil
 }
 
 // PrepareRestart dựng Plan sửa "cage.restart" cho một site trong lồng.
 func (c *Cages) PrepareRestart(ctx context.Context, d validate.Domain) (*Planned, error) {
-	return nil, errCageTODO
+	st, err := c.cageSite(ctx, d, "khởi động lại lồng", "restart its cage")
+	if err != nil {
+		return nil, err
+	}
+	dom := d.String()
+	if !st.Caged {
+		return nil, refuse(CodeCageNotCaged, i18n.T(
+			"site "+dom+" không ở trong lồng; không có lồng để khởi động lại",
+			"site "+dom+" is not caged; there is no cage to restart"))
+	}
+	l := st.Layout()
+	plan := engine.Plan{
+		Kind:   "cage.restart",
+		Target: dom,
+		Title:  i18n.T("Khởi động lại lồng của "+dom, "Restart the cage of "+dom),
+		Steps:  []engine.Step{&steps.CageRestart{Layout: l}},
+		Verify: []checks.Check{checks.CageRuntime(l)},
+	}
+	return newPlanned(c.Sys, c.Journal, plan, nil), nil
+}
+
+// syncPlan dựng Plan "cage.sync": mỗi site caged và active trong sites một bước
+// CageFiles với trần lim (bước bỏ qua khi file đã đúng). Không có phép gọi HTTP:
+// trần đổi qua file slice và daemon-reload, có hiệu lực trên cgroup cả khi dịch
+// vụ đang chết (mục 2.4), và site không điều khiển được bước nào. Kiểm chứng:
+// cage.limits từng site. Site đang dùng RAM (memory.current lúc dựng Plan) quá
+// trần mới thì Title nói rõ; job vẫn chạy (chính sách của admin).
+func (c *Cages) syncPlan(cfg StackConfig, target string, sites []site.Site, lim account.Limits, title i18n.Text) engine.Plan {
+	plan := engine.Plan{Kind: "cage.sync", Target: target, Title: title}
+	var overVi, overEn []string
+	for _, st := range sites {
+		if !st.Caged || st.Status != site.Active {
+			continue
+		}
+		l := st.Layout()
+		plan.Steps = append(plan.Steps, &steps.CageFiles{Layout: l, PHP: sitePHP(st, cfg), Limits: lim})
+		plan.Verify = append(plan.Verify, checks.CageLimits(l, lim))
+		if lim.RAMMB == 0 {
+			continue
+		}
+		// ponytail: đọc cgroup lỗi thì bỏ câu cảnh báo, không chặn chính sách của
+		// admin vì một dòng xem trước.
+		if u, err := cage.ReadUsage(c.Sys, l, c.now()); err == nil && u.Running && u.MemCurrent > int64(lim.RAMMB)<<20 {
+			mib := strconv.FormatInt(u.MemCurrent>>20, 10)
+			overVi = append(overVi, st.Domain.String()+" đang dùng "+mib+" MiB")
+			overEn = append(overEn, st.Domain.String()+" is using "+mib+" MiB")
+		}
+	}
+	if len(overVi) > 0 {
+		ram := strconv.Itoa(lim.RAMMB)
+		plan.Title.Vi += " (cảnh báo: " + strings.Join(overVi, ", ") + ", cao hơn trần RAM mới " + ram + " MiB; request lớn sẽ chết khi chạm trần)"
+		plan.Title.En += " (warning: " + strings.Join(overEn, ", ") + ", above the new RAM limit of " + ram + " MiB; large requests will die when they hit it)"
+	}
+	return plan
+}
+
+// cagedSitesWhere trả các site caged và active mà keep(st) đúng.
+func (c *Cages) cagedSitesWhere(ctx context.Context, keep func(site.Site) (bool, error)) ([]site.Site, error) {
+	all, err := c.Store.Sites(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("đọc danh sách site: %w", err)
+	}
+	var out []site.Site
+	for _, st := range all {
+		if !st.Caged || st.Status != site.Active {
+			continue
+		}
+		ok, err := keep(st)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			out = append(out, st)
+		}
+	}
+	return out, nil
+}
+
+// syncTitle là tiêu đề của cage.sync khi sửa gói hay đổi gói; gói tắt lồng thì
+// nói rõ site vẫn trong lồng nhưng không còn trần.
+func syncTitle(vi, en string, n int, p account.Package) i18n.Text {
+	t := i18n.T(fmt.Sprintf("%s cho %d site trong lồng", vi, n), fmt.Sprintf("%s for %d caged sites", en, n))
+	if !p.Cage {
+		t.Vi += " (gói " + p.Name + " không bật lồng: site vẫn ở trong lồng nhưng trần về 0, tức không giới hạn; health cảnh báo cho tới khi đưa site ra bằng tpan cage disable)"
+		t.En += " (package " + p.Name + " does not enable the cage: the sites stay caged but their limits become 0, that is unlimited; health warns until they are taken out with tpan cage disable)"
+	}
+	return t
 }
 
 // PrepareEditPackage: sửa gói p (mục 3.6). Chỉ đọc. nil, nil khi không có site
@@ -185,7 +644,41 @@ func (c *Cages) PrepareRestart(ctx context.Context, d validate.Domain) (*Planned
 // TRƯỚC khi engine chạy: chính sách của admin không chờ máy, và không bước nào
 // của cage.sync phụ thuộc thứ site điều khiển.
 func (c *Cages) PrepareEditPackage(ctx context.Context, p account.Package) (*Planned, error) {
-	return nil, errCageTODO
+	name, err := validate.ParsePackageName(p.Name)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkPackageLimits(p); err != nil {
+		return nil, err
+	}
+	if c.Accounts == nil {
+		return nil, fmt.Errorf("sửa gói %s: thiếu bảng gói (Accounts)", name)
+	}
+	old, err := lookupPackage(ctx, c.Accounts, name)
+	if err != nil {
+		return nil, err
+	}
+	p.Name = name
+	if old.Limits() == p.Limits() {
+		return nil, nil
+	}
+	sites, err := c.cagedSitesWhere(ctx, func(st site.Site) (bool, error) {
+		sp, err := sitePackage(ctx, c.Accounts, st)
+		return sp.Name == name, err
+	})
+	if err != nil || len(sites) == 0 {
+		return nil, err
+	}
+	cfg, err := (&Sites{Settings: c.Settings}).stack(ctx)
+	if err != nil {
+		return nil, err
+	}
+	plan := c.syncPlan(cfg, name, sites, p.Limits(), syncTitle("Áp trần mới của gói "+name, "Apply the new limits of package "+name, len(sites), p))
+	pl := newPlanned(c.Sys, c.Journal, plan, nil)
+	pl.before = func(ctx context.Context) error {
+		return (&Accounts{Sys: c.Sys, Store: c.Accounts, Now: c.Now}).EditPackage(ctx, p)
+	}
+	return pl, nil
 }
 
 // PrepareUserEdit: sửa user name (mục 3.6). Chỉ đọc. nil, nil khi ch không đổi
@@ -193,5 +686,55 @@ func (c *Cages) PrepareEditPackage(ctx context.Context, p account.Package) (*Pla
 // Accounts.EditUser). Có: Planned của "cage.sync" với trần của gói mới, before
 // = Accounts.EditUser(ctx, name, ch, by) (áp mọi thay đổi của ch).
 func (c *Cages) PrepareUserEdit(ctx context.Context, name string, ch UserChange, by account.Identity) (*Planned, error) {
-	return nil, errCageTODO
+	if ch.Package == nil {
+		return nil, nil
+	}
+	if c.Accounts == nil {
+		return nil, fmt.Errorf("sửa user %s: thiếu bảng user (Accounts)", name)
+	}
+	u, err := lookupUser(ctx, c.Accounts, name)
+	if err != nil {
+		return nil, err
+	}
+	pkg, err := parsePackageRef(ctx, c.Accounts, *ch.Package)
+	if err != nil {
+		return nil, err
+	}
+	if pkg == u.Package {
+		return nil, nil
+	}
+	sites, err := c.cagedSitesWhere(ctx, func(st site.Site) (bool, error) {
+		owner := st.Owner
+		if owner == "" {
+			owner = account.AdminName
+		}
+		return owner == u.Name, nil
+	})
+	if err != nil || len(sites) == 0 {
+		return nil, err
+	}
+	// Mọi site của một user cùng một gói, nên site đầu cho trần cũ.
+	old, err := sitePackage(ctx, c.Accounts, sites[0])
+	if err != nil {
+		return nil, err
+	}
+	next, err := lookupPackage(ctx, c.Accounts, pkg)
+	if err != nil {
+		return nil, err
+	}
+	if old.Limits() == next.Limits() {
+		return nil, nil
+	}
+	cfg, err := (&Sites{Settings: c.Settings}).stack(ctx)
+	if err != nil {
+		return nil, err
+	}
+	plan := c.syncPlan(cfg, u.Name, sites, next.Limits(),
+		syncTitle("Áp trần của gói "+pkg+" (user "+u.Name+")", "Apply the limits of package "+pkg+" (user "+u.Name+")", len(sites), next))
+	pl := newPlanned(c.Sys, c.Journal, plan, nil)
+	pl.before = func(ctx context.Context) error {
+		_, err := (&Accounts{Sys: c.Sys, Store: c.Accounts, Now: c.Now}).EditUser(ctx, name, ch, by)
+		return err
+	}
+	return pl, nil
 }

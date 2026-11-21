@@ -24,6 +24,7 @@ import (
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
+	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -55,6 +56,11 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 		if err := refuseSuspendedPool(st); err != nil {
 			return engine.Plan{}, err
 		}
+		// M17: site trong lồng không có pool chung, php.socket không sinh cho
+		// nó; khởi động lại PHP-FPM chung không chạm gì của lồng.
+		if st.Caged {
+			return engine.Plan{}, noAutoFix(r.ID)
+		}
 		l := st.Layout()
 		php := sitePHP(st, cfg)
 		return engine.Plan{
@@ -64,6 +70,11 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 			Verify: []checks.Check{checks.PoolSocket(l, php)},
 		}, nil
 	case FixFileRewrite:
+		// M17: file của lồng ghi lại bằng chính bước CageFiles (daemon-reload,
+		// php-fpm -t trong lồng, try-restart), không bằng một bước File trần.
+		if plan, ok, err := f.cageFileRewrite(ctx, cfg, r.ID, obj); ok || err != nil {
+			return plan, err
+		}
 		file, err := f.managedFile(ctx, cfg, obj)
 		if err != nil {
 			return engine.Plan{}, err
@@ -148,8 +159,139 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 			Steps:  []engine.Step{&steps.DBUserUnlock{Layout: l}},
 			Verify: []checks.Check{checks.DBAccess(l)},
 		}, nil
+	case FixCageStart, FixCageRestart, FixCageSync:
+		st, err := f.cagedSite(ctx, r.ID, obj)
+		if err != nil {
+			return engine.Plan{}, err
+		}
+		l := st.Layout()
+		switch name {
+		case FixCageStart:
+			return engine.Plan{
+				Target: obj,
+				Title:  i18n.T("Bật lại socket của lồng của "+obj, "Start the cage socket of "+obj+" again"),
+				Steps:  []engine.Step{&steps.CageSocket{Layout: l, PHP: sitePHP(st, cfg)}},
+				Verify: []checks.Check{checks.CageSocket(l)},
+			}, nil
+		case FixCageRestart:
+			pl, err := f.cages().PrepareRestart(ctx, st.Domain)
+			if err != nil {
+				return engine.Plan{}, err
+			}
+			return pl.Plan, nil
+		}
+		// cage.sync: trần của gói trong bảng (cageLimitsOf báo lỗi khi thiếu
+		// Accounts: trần 0 sẽ xoá trần của site).
+		lim, _, err := cageLimitsOf(ctx, f.Accounts, st)
+		if err != nil {
+			return engine.Plan{}, err
+		}
+		return f.cages().syncPlan(cfg, obj, []site.Site{st}, lim,
+			i18n.T("Ghi lại file của lồng của "+obj+" với trần của gói", "Rewrite the cage files of "+obj+" with the package limits")), nil
 	}
 	return engine.Plan{}, noAutoFix(r.ID)
+}
+
+// cages dựng Cages từ các trường của Fixes.
+func (f *Fixes) cages() *Cages {
+	return &Cages{Sys: f.Sys, Settings: f.Settings, Store: f.Store, Accounts: f.Accounts, Journal: f.Journal}
+}
+
+// cagedSite như activeSite, thêm: site phải đang ở trong lồng và không tạm khoá
+// (socket của lồng bị tắt có chủ ý khi khoá; bật lại là mở khoá lén).
+func (f *Fixes) cagedSite(ctx context.Context, id, obj string) (site.Site, error) {
+	st, err := f.activeSite(ctx, id, obj)
+	if err != nil {
+		return site.Site{}, err
+	}
+	if !st.Caged {
+		return site.Site{}, noAutoFix(id)
+	}
+	if err := refuseSuspendedPool(st); err != nil {
+		return site.Site{}, err
+	}
+	return st, nil
+}
+
+// plannedFix dựng sửa tự động mà Plan có after (ghi bảng sau khi job xong):
+// cage.enable, cage.disable (ghi sites.caged) và probe.cleanup (đánh dấu lượt
+// thử đã dọn). Fix.Execute chạy qua Planned để after không bị bỏ.
+func (f *Fixes) plannedFix(ctx context.Context, name string, r checks.Result) (*Planned, error) {
+	kind, obj, _ := strings.Cut(r.ID, ":")
+	if name == FixProbeCleanup {
+		if f.Runs == nil || r.ID != "probe.leftover:tpan" {
+			return nil, noAutoFix(r.ID)
+		}
+		pl, err := (&Probe{Sys: f.Sys, Settings: f.Settings, Store: f.Store, Runs: f.Runs, Journal: f.Journal}).PrepareCleanup(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if pl == nil {
+			return nil, refuse("no_auto_fix", i18n.T(
+				"không còn lượt thử tấn công nào chưa dọn; chạy lại health để cập nhật kết quả",
+				"no attack probe run is left to clean up; run health again to refresh the result"))
+		}
+		return pl, nil
+	}
+	st, err := f.activeSite(ctx, r.ID, obj)
+	if err != nil {
+		return nil, err
+	}
+	c := f.cages()
+	var pl *Planned
+	if name == FixCageEnable {
+		pl, err = c.PrepareEnable(ctx, st.Domain)
+	} else {
+		pl, err = c.PrepareDisable(ctx, st.Domain)
+	}
+	if err != nil {
+		return nil, err
+	}
+	// Sửa của cage.state: kiểm chứng có cả chính phép kiểm đó (cứng), với trạng
+	// thái mà after sắp ghi.
+	if kind == "cage.state" {
+		p, err := sitePackage(ctx, f.Accounts, st)
+		if err != nil {
+			return nil, err
+		}
+		pl.Plan.Verify = append(pl.Plan.Verify, checks.CageState(st.Layout(), name == FixCageEnable, p.Cage))
+	}
+	return pl, nil
+}
+
+// cageFileRewrite: obj là một trong năm file quản lý của lồng của một site
+// active đang trong lồng thì dựng Plan ghi lại bằng CageFiles (trần của gói);
+// sha256 mong đợi lấy từ CageFiles.Want (mục 3.3). ok=false khi obj không phải
+// file của lồng nào: người gọi tìm tiếp trong các file khác.
+func (f *Fixes) cageFileRewrite(ctx context.Context, cfg StackConfig, id, obj string) (engine.Plan, bool, error) {
+	sites, err := f.activeSites(ctx)
+	if err != nil {
+		return engine.Plan{}, false, err
+	}
+	for _, st := range sites {
+		l := st.Layout()
+		if !st.Caged || !l.OwnsCagePath(obj) {
+			continue
+		}
+		lim, _, err := cageLimitsOf(ctx, f.Accounts, st)
+		if err != nil {
+			return engine.Plan{}, true, err
+		}
+		cf := &steps.CageFiles{Layout: l, PHP: sitePHP(st, cfg), Limits: lim}
+		want, ok := cf.Want(obj)
+		if !ok {
+			// passwd, group: nội dung lấy từ getent lúc chạy, không có sha256 để so.
+			return engine.Plan{}, true, noAutoFix(id)
+		}
+		sum := sha256.Sum256(want)
+		return engine.Plan{
+			Target: obj,
+			Title:  i18n.T("Ghi lại "+obj+" từ bản của tpan", "Rewrite "+obj+" from tpan's version"),
+			Steps:  []engine.Step{cf},
+			Verify: []checks.Check{checks.Drift(obj, hex.EncodeToString(sum[:]), checks.DriftStage(obj))},
+		}, true, nil
+	}
+	return engine.Plan{}, false, nil
 }
 
 // dropAccepted bỏ khỏi ss các bước ghi file mà nội dung đang có khớp đúng
@@ -273,16 +415,37 @@ func (f *Fixes) stackPlan(cfg StackConfig) (engine.Plan, error) {
 
 // siteFiles trả các Step File tpan ghi cho site st với web server hiện tại:
 // pool, vhost, và .htaccess khi là Apache. Site tạm khoá (M13) không có pool:
-// file pool đã đổi tên .suspended, và ghi lại nó là mở khoá lén.
+// file pool đã đổi tên .suspended, và ghi lại nó là mở khoá lén. Site trong
+// lồng cần trần của gói: dùng siteFilesLim.
 func siteFiles(cfg StackConfig, st site.Site) ([]*steps.File, error) {
+	return siteFilesLim(cfg, st, nil)
+}
+
+// siteFilesLim như siteFiles; lim là trần của lồng (siteCageLimits), bắt buộc
+// khi st.Caged. Site trong lồng (M17): năm file quản lý của lồng (nội dung từ
+// CageFiles.Want, kể cả khi tạm khoá: khoá chỉ tắt socket) thay cho file pool.
+// Các File này chỉ để đối chiếu; ghi lại file của lồng đi qua CageFiles
+// (Fixes.cageFileRewrite), vì cần daemon-reload và php-fpm -t trong lồng.
+func siteFilesLim(cfg StackConfig, st site.Site, lim *account.Limits) ([]*steps.File, error) {
 	l := st.Layout()
 	var ss []engine.Step
-	if st.Suspended == account.NotSuspended {
-		pool, err := steps.SitePool(l, sitePHP(st, cfg))
+	switch {
+	case st.Caged:
+		if lim == nil {
+			return nil, fmt.Errorf("dựng file của lồng %s: thiếu trần của gói", st.Domain)
+		}
+		cf := &steps.CageFiles{Layout: l, PHP: sitePHP(st, cfg), Limits: *lim}
+		for _, p := range l.CageManagedFiles() {
+			if b, ok := cf.Want(p); ok {
+				ss = append(ss, &steps.File{Path: p, Content: b, Perm: 0o644, Owner: system.Root})
+			}
+		}
+	case st.Suspended == account.NotSuspended:
+		pool, err := sitePHPSteps(st, cfg, account.Limits{})
 		if err != nil {
 			return nil, err
 		}
-		ss = append(ss, pool)
+		ss = append(ss, pool...)
 	}
 	vhost, err := siteVhost(st, cfg)
 	if err != nil {
@@ -320,7 +483,11 @@ func (f *Fixes) managedFile(ctx context.Context, cfg StackConfig, path string) (
 		return nil, err
 	}
 	for _, st := range sites {
-		fl, err := siteFiles(cfg, st)
+		lim, err := siteCageLimits(ctx, f.Accounts, st)
+		if err != nil {
+			return nil, err
+		}
+		fl, err := siteFilesLim(cfg, st, lim)
 		if err != nil {
 			return nil, fmt.Errorf("dựng lại file của site %s: %w", st.Domain, err)
 		}
