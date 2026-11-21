@@ -22,7 +22,7 @@ import { useNavigate } from "react-router";
 import { useWho } from "../api/m13-users";
 import { useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/ai";
-import { screens } from "../routes";
+import { menuPath, screens } from "../routes";
 import { useAi } from "./AiProvider";
 import { useWide } from "./platform";
 import { viewLabel } from "./views";
@@ -62,18 +62,21 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
   const commands = useMemo<Command[]>(() => {
     // Mọi màn không có tham số trong đường dẫn: mở được mà không cần biết domain hay id.
+    // Mục menu đi theo vai (menuPath: Bảng điều khiển của user thường là /dashboard);
+    // /dashboard tự nó không thành một dòng nữa, để không có hai dòng cùng tên (M16, mục 3.6).
     const routes = screens
-      .filter((s) => s.load !== undefined && !s.bare && !s.path.includes(":") && (isAdmin || !s.admin))
+      .filter((s) => s.load !== undefined && !s.bare && !s.path.includes(":") && s.path !== "/dashboard" && (isAdmin || !s.admin))
       .map<Command>((s) => {
-        const name = viewLabel(s.path, lang);
+        const path = menuPath(s, isAdmin);
+        const name = viewLabel(path, lang);
         return {
-          id: s.path,
-          label: s.path === "/sites/new" ? t.paletteCreateSite : t.paletteOpen(name),
-          hint: s.path,
+          id: path,
+          label: path === "/sites/new" ? t.paletteCreateSite : t.paletteOpen(name),
+          hint: path,
           run: () => {
             // Ngăn phủ kín màn hẹp: đóng lại, nếu không người dùng không thấy mục vừa mở.
             if (!wide) ai.setOpen(false);
-            navigate(s.path);
+            navigate(path);
           },
         };
       });

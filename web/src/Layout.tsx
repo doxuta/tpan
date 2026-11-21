@@ -1,7 +1,8 @@
-// Khung trang chung của mọi màn trừ Đăng nhập (mục 6 và 7 của
-// docs/GIAO-DIEN.md; trang mẫu docs/mau-giao-dien/bang-dieu-khien-*.html):
-// thanh đầu trang, rồi một hàng flex có xuống dòng gồm menu chính (192 px) và
-// nội dung. Màn hẹp thì menu nằm trên, nội dung nằm dưới.
+// Khung trang chung của mọi màn trừ Đăng nhập (bản 2: mục 3.5 của
+// docs/thay-doi/M16-thiet-ke.md, trang mẫu docs/mau-giao-dien/v2/*.html):
+// thanh đầu trang dính trên cùng, menu trái 232 px dính dưới nó, rồi nội dung.
+// Dưới 1024 px menu trái ẩn sau nút "Menu" và hiện thành một khối dưới thanh
+// đầu trang.
 //
 // Chưa đăng nhập (GET /api/v1/session trả logged_in=false) thì chuyển tới
 // /dang-nhap, kèm ?next= để đăng nhập xong quay lại đúng chỗ.
@@ -12,23 +13,25 @@ import { errorMessage, loginHref, loginPath, post } from "./api/client";
 import { useSelfAutoCheck } from "./api/m15";
 import { useExitViewAs, useWho, type Who } from "./api/m13-users";
 import { machineStatus, useOverview, useSession } from "./api/queries";
-import type { Overview, StackSummary } from "./api/types";
+import type { Overview } from "./api/types";
 import { AiDrawer } from "./ai/AiDrawer";
 import { AiProvider, useAi } from "./ai/AiProvider";
-import { JobTrackerProvider } from "./components/JobTracker";
 import { CommandPalette } from "./ai/CommandPalette";
 import { drawerShortcut, paletteKbd, paletteShortcut } from "./ai/platform";
-import { buttonClass } from "./components/Button";
+import { Avatar } from "./components/Avatar";
+import { Button, buttonClass, IconButton } from "./components/Button";
+import { Icon } from "./components/Icon";
+import { JobTrackerProvider } from "./components/JobTracker";
 import { Logo } from "./components/Logo";
+import { Menu, MenuCheckboxItem, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator } from "./components/Menu";
 import { ScreenHeader } from "./components/ScreenHeader";
-import { SegmentButton } from "./components/SegmentButton";
-import { Tag } from "./components/Tag";
+import { StatusMark } from "./components/StatusMark";
 import { useLang, useStrings, type Lang } from "./i18n";
 import { strings as aiStrings } from "./i18n/ai";
 import { strings } from "./i18n/khung";
 import { strings as phienBan } from "./i18n/phien-ban";
-import { screens, type MenuGroup, type ScreenEntry } from "./routes";
-import { useTheme, type Theme } from "./theme";
+import { menuPath, screens, type MenuGroup, type ScreenEntry } from "./routes";
+import { useTheme, type ThemeChoice } from "./theme";
 import { useTips } from "./tips";
 
 type T = (typeof strings)["vi"];
@@ -80,6 +83,9 @@ export function Layout() {
 function Shell({ t, hostname, demo, overview, who, version }: { t: T; hostname: string; demo: boolean; overview?: Overview; who: Who; version: string }) {
   const ai = useAi();
   const [palette, setPalette] = useState(false);
+  // Màn hẹp: menu trái mở thành một khối dưới thanh đầu trang.
+  const [navOpen, setNavOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
   const admin = who.isAdmin;
 
   // ⌘K (Ctrl+K) mở hoặc đóng thanh lệnh; ⌘/ (Ctrl+/) mở hoặc đóng ngăn AI. Bắt ở
@@ -103,7 +109,8 @@ function Shell({ t, hostname, demo, overview, who, version }: { t: T; hostname: 
   // Router không tự cuộn tới neo (#phien-ban, #bm-co-lap). Màn tải lười và đầy
   // dần khi dữ liệu về, nên cuộn ngay rồi cuộn lại mỗi lần nội dung đổi cỡ
   // trong 2,5 giây đầu. location.key đổi ở mỗi lần bấm liên kết, kể cả khi đang
-  // ở sẵn đúng đường dẫn đó, nên bấm lại vẫn cuộn.
+  // ở sẵn đúng đường dẫn đó, nên bấm lại vẫn cuộn. scroll-padding-top của html
+  // (styles.css) giữ khối không nằm khuất dưới thanh đầu trang dính.
   const { hash, key } = useLocation();
   useEffect(() => {
     const id = decodeURIComponent(hash.slice(1));
@@ -127,48 +134,73 @@ function Shell({ t, hostname, demo, overview, who, version }: { t: T; hostname: 
     };
   }, [hash, key]);
 
+  const logout = async () => {
+    setLogoutError(false);
+    try {
+      await post<void>("/api/v1/logout");
+      // Tải lại hẳn để bỏ mọi dữ liệu của phiên cũ đang giữ trong bộ nhớ.
+      window.location.assign(loginPath);
+    } catch {
+      setLogoutError(true);
+    }
+  };
+
   return (
     <>
+      <a href="#noi-dung" className="sr-only focus:not-sr-only focus:fixed focus:top-[8px] focus:left-[8px] focus:z-50 focus:rounded-ctl focus:bg-surface focus:p-[8px]">
+        {t.skipToContent}
+      </a>
       {who.viewedBy && <ViewAsBar t={t} name={who.name} admin={who.viewedBy} />}
-      <div className="mx-auto box-border max-w-[1440px] px-[32px] pb-[48px]">
-        <a href="#noi-dung" className="sr-only focus:not-sr-only focus:absolute focus:top-[8px] focus:left-[8px] focus:bg-surface focus:p-[8px]">
-          {t.skipToContent}
-        </a>
-        <Header t={t} hostname={hostname || overview?.hostname || ""} stack={overview?.stack} demo={demo} overview={overview} who={who} onOpenPalette={() => setPalette(true)} />
-        <div className="flex flex-wrap gap-x-[32px]">
-          <Menu t={t} overview={overview} admin={admin} />
-          <main id="noi-dung" tabIndex={-1} className="min-w-0 flex-[999_1_560px]">
-            <Outlet />
-          </main>
-          {admin && <AiDrawer />}
-        </div>
-        {/* Phiên bản đang chạy, lấy từ /api/v1/session: nhìn là biết máy này đã cập nhật chưa. */}
-        {version && (
-          <footer className="mt-[40px] border-t border-hair pt-[12px] font-mono text-[12px] text-muted">
-            {/* Phiên "xem như" chỉ đọc và không phải của admin thật: giữ chữ thường như user. */}
-            <VersionLine version={version} admin={admin && !who.viewedBy} />
-          </footer>
-        )}
-        <CommandPalette open={palette} onOpenChange={setPalette} />
+      <Header
+        t={t}
+        hostname={hostname || overview?.hostname || ""}
+        demo={demo}
+        overview={overview}
+        who={who}
+        navOpen={navOpen}
+        onToggleNav={() => setNavOpen((o) => !o)}
+        onOpenPalette={() => setPalette(true)}
+        onLogout={logout}
+      />
+      {logoutError && (
+        <p role="alert" className="m-0 border-b border-hair bg-surface px-[16px] py-[8px] text-[13px] lg:px-[24px]">
+          {t.logoutFailed}
+        </p>
+      )}
+      <div className="flex flex-col lg:flex-row lg:items-start">
+        <SideMenu t={t} overview={overview} admin={admin} open={navOpen} onNavigate={() => setNavOpen(false)}>
+          {/* Phiên bản đang chạy, lấy từ /api/v1/session: nhìn là biết máy này đã cập nhật chưa. */}
+          {version && (
+            <div id="dong-phien-ban" className="mt-auto px-[10px] pt-[20px] pb-[4px] font-mono text-[12px] text-muted">
+              {/* Phiên "xem như" chỉ đọc và không phải của admin thật: giữ chữ thường như user. */}
+              <VersionLine version={version} admin={admin && !who.viewedBy} />
+            </div>
+          )}
+        </SideMenu>
+        <main id="noi-dung" tabIndex={-1} className="box-border flex w-full max-w-[1264px] min-w-0 flex-1 flex-col gap-[20px] px-[16px] pt-[24px] pb-[40px] focus:outline-none lg:px-[32px]">
+          <Outlet />
+        </main>
       </div>
+      {admin && <AiDrawer />}
+      <CommandPalette open={palette} onOpenChange={setPalette} />
     </>
   );
 }
 
 /**
- * Dòng phiên bản cuối trang (mục 6.14, quyết định 10). Admin: liên kết tới khối
- * "Phiên bản và cập nhật" ở màn Cài đặt, kèm một ô vuông nhỏ khi lần kiểm gần
- * nhất thấy bản mới. "Có bản mới" là thông tin, không phải tình trạng máy, nên
- * dấu này màu --ink (đen trắng) và không dùng hình nào của bốn dấu trạng thái
- * (mục 2 của GIAO-DIEN.md). User thường: chữ thường, và không gọi
- * /api/v1/self (route chỉ admin).
+ * Dòng phiên bản ở cuối menu trái (mục 6.14, quyết định 10; bản 2 bỏ chân
+ * trang). Admin: liên kết tới khối "Phiên bản và cập nhật" ở màn Cài đặt, kèm
+ * một ô vuông nhỏ khi lần kiểm gần nhất thấy bản mới. "Có bản mới" là thông
+ * tin, không phải tình trạng máy, nên dấu này màu --ink và không dùng hình nào
+ * của bốn dấu trạng thái (mục 2 của GIAO-DIEN.md). User thường: chữ thường, và
+ * không gọi /api/v1/self (route chỉ admin).
  */
 function VersionLine({ version, admin }: { version: string; admin: boolean }) {
   const t = useStrings(phienBan);
   const hasNew = useSelfAutoCheck(admin);
   if (!admin) return <>TPAN {version}</>;
   return (
-    <Link to="/settings#phien-ban" title={t.heading} className="inline-flex min-h-[24px] items-center">
+    <Link to="/settings#phien-ban" title={t.heading} className="inline-flex min-h-[24px] items-center text-muted no-underline hover:text-accent hover:underline">
       TPAN {version}
       {hasNew && (
         <>
@@ -189,7 +221,7 @@ function ViewAsBar({ t, name, admin }: { t: T; name: string; admin: string }) {
   const exit = useExitViewAs();
   return (
     <div role="status" className="bg-ink text-on-ink">
-      <div className="mx-auto box-border flex max-w-[1440px] flex-wrap items-center gap-x-[20px] gap-y-[8px] px-[32px] py-[10px]">
+      <div className="box-border flex flex-wrap items-center gap-x-[20px] gap-y-[8px] px-[16px] py-[10px] lg:px-[24px]">
         <div className="min-w-0 flex-[1_1_320px]">
           <span className="font-semibold">{t.viewAsTitle(name)}</span>
           <span className="ml-[10px]">{t.viewAsBody(admin)}</span>
@@ -198,11 +230,15 @@ function ViewAsBar({ t, name, admin }: { t: T; name: string; admin: string }) {
           type="button"
           disabled={exit.isPending}
           onClick={() => exit.mutate()}
-          className="inline-flex h-[44px] items-center border border-on-ink bg-ink px-[14px] text-[14px] font-medium text-on-ink hover:bg-on-ink hover:text-ink disabled:cursor-default sm:h-[40px]"
+          className="inline-flex h-[44px] items-center rounded-ctl border border-on-ink bg-ink px-[14px] text-[14px] font-medium text-on-ink hover:bg-on-ink hover:text-ink disabled:cursor-default sm:h-[40px]"
         >
           {exit.isPending ? t.viewAsExiting : t.viewAsExit}
         </button>
-        {exit.isError && <p role="alert" className="m-0 basis-full text-[13px]">{t.viewAsExitFailed}</p>}
+        {exit.isError && (
+          <p role="alert" className="m-0 basis-full text-[13px]">
+            {t.viewAsExitFailed}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -219,193 +255,181 @@ function Forbidden() {
   return (
     <>
       <ScreenHeader title={t.forbiddenTitle} summary={t.forbiddenBody} />
-      <p className="mt-[16px]">
+      <p className="m-0">
         <Link to="/">{t.notFoundHome}</Link>
       </p>
     </>
   );
 }
 
-function Header({ t, hostname, stack, demo, overview, who, onOpenPalette }: { t: T; hostname: string; stack?: StackSummary; demo: boolean; overview?: Overview; who: Who; onOpenPalette: () => void }) {
+type HeaderProps = {
+  t: T;
+  hostname: string;
+  demo: boolean;
+  overview?: Overview;
+  who: Who;
+  navOpen: boolean;
+  onToggleNav: () => void;
+  onOpenPalette: () => void;
+  onLogout: () => void;
+};
+
+function Header({ t, hostname, demo, overview, who, navOpen, onToggleNav, onOpenPalette, onLogout }: HeaderProps) {
   const a = useStrings(aiStrings);
   const ai = useAi();
-  const { lang, setLang } = useLang();
-  const { theme, setTheme } = useTheme();
-  const { tips, setTips } = useTips();
   // User thường: overview đã lọc theo chủ, nên logo phản ánh site và sự cố của họ.
   const status = overview ? machineStatus(overview) : null;
+  const incidents = overview?.incidents.length ?? 0;
+  const host = hostname || (demo ? t.demo : "");
+  const search = who.isAdmin ? t.command : t.commandUser;
 
   return (
-    <header className="flex flex-wrap items-center gap-x-[24px] gap-y-[12px] border-b-2 border-ink pt-[20px] pb-[18px]">
-      <div className="flex items-center gap-[14px]">
-        <Link
-          to="/"
-          aria-label={status ? `${t.homeLabel} · ${t.machineState(t.status[status])}` : t.homeLabel}
-          className="flex items-center gap-[10px] text-ink no-underline hover:text-ink"
-        >
-          <Logo status={status} />
-          <span className="font-mono text-[22px] leading-none font-semibold tracking-[0.04em]">TPAN</span>
-        </Link>
-        {hostname && <span className="font-mono text-[13px] text-muted">{hostname}</span>}
-      </div>
+    // Từ 1024 px: một hàng, cao đúng 61 px (--header-h trong styles.css) mà menu trái dính theo.
+    <header className="sticky top-0 z-30 box-border flex flex-wrap items-center gap-x-[20px] gap-y-[10px] border-b border-hair bg-surface px-[16px] py-[10px] lg:flex-nowrap lg:px-[24px]">
+      <IconButton icon={navOpen ? "close" : "menu"} label={t.menuToggle} aria-expanded={navOpen} aria-controls="menu-chinh" onClick={onToggleNav} className="-ml-[8px] text-ink lg:hidden" />
+      <Link
+        to="/"
+        aria-label={status ? `${t.homeLabel} · ${t.machineState(t.status[status])}` : t.homeLabel}
+        className="flex flex-none items-center gap-[10px] text-ink no-underline hover:text-ink"
+      >
+        <Logo status={status} size={28} />
+        <span className="font-mono text-[18px] leading-none font-semibold tracking-[0.04em]">TPAN</span>
+      </Link>
+      {host && (
+        <span title={demo ? `${host} · ${t.demoHint}` : host} className="hidden max-w-[220px] min-w-0 flex-none truncate font-mono text-[13px] text-muted sm:block">
+          {host}
+          {demo && <span className="sr-only">: {t.demoHint}</span>}
+        </span>
+      )}
 
-      <div className="flex flex-wrap gap-[6px]">
-        {demo && (
-          <Tag title={t.demoHint}>
-            {t.demo}
-            <span className="sr-only">: {t.demoHint}</span>
-          </Tag>
+      <button
+        type="button"
+        onClick={onOpenPalette}
+        aria-haspopup="dialog"
+        aria-keyshortcuts={paletteShortcut}
+        className="box-border hidden h-[40px] max-w-[440px] min-w-[160px] flex-[1_1_280px] items-center gap-[8px] rounded-ctl border border-line bg-soft px-[12px] text-left text-[14px] text-muted hover:border-field sm:flex"
+      >
+        <Icon name="search" size={16} />
+        <span className="min-w-0 flex-1 truncate">{search}</span>
+        <kbd className="rounded-chip border border-line bg-surface px-[6px] py-[1px] font-mono text-[12px] text-muted">{paletteKbd}</kbd>
+      </button>
+
+      <div className="ml-auto flex flex-none items-center gap-[8px]">
+        <IconButton icon="search" label={t.searchLabel} aria-haspopup="dialog" aria-keyshortcuts={paletteShortcut} onClick={onOpenPalette} className="sm:hidden" />
+        {incidents > 0 && (
+          <Link to="/incidents" className="flex h-[44px] items-center gap-[8px] rounded-ctl px-[10px] font-medium whitespace-nowrap text-fail-text no-underline hover:bg-soft hover:text-fail-text sm:h-[40px]">
+            <StatusMark status="fail" size="sm" />
+            <span>{t.incidentsLink(incidents)}</span>
+          </Link>
         )}
-        {stack && <StackTags t={t} stack={stack} />}
-        {who.identity && who.name !== "" && (
-          // Tên đang đăng nhập và vai (mục 6.12). Nhãn là chữ mono như các nhãn khác trên thanh.
-          <Tag title={t.signedInAs(who.name, t.roles[who.identity.role])}>
-            {who.name} · {t.roles[who.identity.role]}
-            <span className="sr-only">: {t.signedInAs(who.name, t.roles[who.identity.role])}</span>
-          </Tag>
-        )}
-      </div>
-
-      <div className="ml-auto flex flex-[1_1_420px] flex-wrap items-center justify-end gap-[10px]">
-        <button
-          type="button"
-          onClick={onOpenPalette}
-          aria-haspopup="dialog"
-          aria-keyshortcuts={paletteShortcut}
-          className="box-border flex h-[44px] max-w-[400px] flex-[1_1_260px] items-center gap-[8px] border border-ink bg-surface px-[10px] text-left text-[14px] text-muted hover:bg-pre sm:h-[40px]"
-        >
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
-            <circle cx="11" cy="11" r="6.5" />
-            <path d="M16 16l4.5 4.5" />
-          </svg>
-          <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{who.isAdmin ? t.command : t.commandUser}</span>
-          <kbd className="border border-hair px-[5px] py-[1px] font-mono text-[11px] text-muted">{paletteKbd}</kbd>
-        </button>
-
         {who.isAdmin && (
-          <button
-            type="button"
-            id="nut-hoi-ai"
-            aria-expanded={ai.open}
-            aria-controls="ngan-ai"
-            aria-keyshortcuts={drawerShortcut}
-            title={a.askAiHint}
-            onClick={ai.toggle}
-            className={buttonClass("secondary")}
-          >
+          <Button id="nut-hoi-ai" aria-expanded={ai.open} aria-controls="ngan-ai" aria-keyshortcuts={drawerShortcut} title={a.askAiHint} onClick={ai.toggle} className="hidden sm:inline-flex">
             {a.askAi}
-          </button>
+          </Button>
         )}
-
-        <SegmentButton<Lang>
-          label={t.langGroup}
-          value={lang}
-          onChange={setLang}
-          options={[
-            { value: "vi", label: "VI" },
-            { value: "en", label: "EN" },
-          ]}
-        />
-        <SegmentButton<Theme>
-          label={t.themeGroup}
-          value={theme}
-          onChange={setTheme}
-          options={[
-            { value: "light", label: t.light },
-            { value: "dark", label: t.dark },
-          ]}
-        />
-        <button type="button" role="switch" aria-checked={tips} onClick={() => setTips(!tips)} className={buttonClass("secondary")}>
-          {t.tips(tips)}
-        </button>
+        <AccountMenu t={t} who={who} onLogout={onLogout} />
       </div>
     </header>
   );
 }
 
-function StackTags({ t, stack }: { t: T; stack: StackSummary }) {
-  if (!stack.installed) return <Tag>{t.stackMissing}</Tag>;
+/** Menu tài khoản (mục 3.5): ngôn ngữ, giao diện, Gợi ý, đăng xuất. */
+function AccountMenu({ t, who, onLogout }: { t: T; who: Who; onLogout: () => void }) {
+  const { lang, setLang } = useLang();
+  const { choice, setTheme } = useTheme();
+  const { tips, setTips } = useTips();
+  const role = who.identity ? t.roles[who.identity.role] : t.roles.admin;
+  const name = who.name || "TPAN";
+  const label = t.accountMenu(name, role);
   return (
-    <>
-      {stack.web && <Tag>{stack.web === "nginx" ? "LEMP" : "LAMP"}</Tag>}
-      {stack.web && <Tag>{stack.web}</Tag>}
-      {stack.php_version && <Tag>{t.php(stack.php_version)}</Tag>}
-    </>
+    <Menu
+      label={label}
+      trigger={
+        <button type="button" aria-label={label} className="flex h-[44px] items-center gap-[10px] rounded-ctl border border-transparent bg-transparent pr-[8px] pl-[6px] text-ink hover:bg-soft sm:h-[40px]">
+          <Avatar name={name} size={28} />
+          <span className="hidden flex-col items-start leading-[1.2] sm:flex">
+            <span className="max-w-[160px] truncate font-medium">{name}</span>
+            <span className="text-[12px] text-muted">{role}</span>
+          </span>
+          <Icon name="chevron-down" size={16} className="hidden text-muted sm:block" />
+        </button>
+      }
+    >
+      <MenuLabel>
+        {name} · {role}
+      </MenuLabel>
+      <MenuSeparator />
+      <MenuRadioGroup<Lang> label={t.langGroup} value={lang} onValueChange={setLang}>
+        <MenuRadioItem value="vi">{t.langVi}</MenuRadioItem>
+        <MenuRadioItem value="en">{t.langEn}</MenuRadioItem>
+      </MenuRadioGroup>
+      <MenuSeparator />
+      <MenuRadioGroup<ThemeChoice> label={t.themeMenu} value={choice} onValueChange={setTheme}>
+        <MenuRadioItem value="light">{t.light}</MenuRadioItem>
+        <MenuRadioItem value="dark">{t.dark}</MenuRadioItem>
+        <MenuRadioItem value="system">{t.themeSystem}</MenuRadioItem>
+      </MenuRadioGroup>
+      <MenuSeparator />
+      <MenuCheckboxItem checked={tips} onCheckedChange={setTips}>
+        {t.tipsItem}
+      </MenuCheckboxItem>
+      <MenuSeparator />
+      <MenuItem onSelect={onLogout}>{t.menu.logout}</MenuItem>
+    </Menu>
   );
 }
 
 const groupOrder: MenuGroup[] = ["chinh", "may", "ai", "taiKhoan"];
 
-const itemClass =
-  "flex min-h-[44px] items-center justify-between gap-[8px] border-l-[3px] py-[4px] pr-[10px] pl-[12px] text-[14px] text-ink no-underline hover:text-ink sm:min-h-[40px]";
+type MenuEntry = ScreenEntry & { menu: NonNullable<ScreenEntry["menu"]> };
 
-function Menu({ t, overview, admin }: { t: T; overview?: Overview; admin: boolean }) {
-  const [logoutError, setLogoutError] = useState(false);
+function SideMenu({ t, overview, admin, open, onNavigate, children }: { t: T; overview?: Overview; admin: boolean; open: boolean; onNavigate: () => void; children: ReactNode }) {
   // User thường không thấy mục của màn chỉ dành cho admin (routes.tsx, cờ admin).
-  const items = screens.filter((s): s is ScreenEntry & { menu: NonNullable<ScreenEntry["menu"]> } => s.menu !== undefined && (admin || !s.admin));
-
-  const logout = async () => {
-    setLogoutError(false);
-    try {
-      await post<void>("/api/v1/logout");
-      // Tải lại hẳn để bỏ mọi dữ liệu của phiên cũ đang giữ trong bộ nhớ.
-      window.location.assign(loginPath);
-    } catch {
-      setLogoutError(true);
-    }
-  };
-
+  const items = screens.filter((s): s is MenuEntry => s.menu !== undefined && (admin || !s.admin));
   return (
-    <nav aria-label={t.navLabel} className="min-w-0 flex-[1_1_192px] border-r border-hair pt-[20px] pb-[8px]">
+    <nav
+      id="menu-chinh"
+      aria-label={t.navLabel}
+      className={
+        `${open ? "flex" : "hidden"} box-border flex-col gap-[2px] border-b border-hair bg-surface px-[12px] py-[16px] ` +
+        "lg:sticky lg:top-[var(--header-h)] lg:flex lg:h-[calc(100vh-var(--header-h))] lg:w-[232px] lg:flex-none lg:overflow-y-auto lg:border-r lg:border-b-0"
+      }
+    >
       {groupOrder.map((g) => {
         const inGroup = items.filter((s) => s.menu.group === g);
-        if (inGroup.length === 0 && g !== "taiKhoan") return null;
+        if (inGroup.length === 0) return null;
         return (
-          <div key={g}>
-            {g !== "chinh" && <div className="pt-[18px] pb-[6px] pl-[15px] font-mono text-[11px] tracking-[0.08em] text-muted">{t.groups[g]}</div>}
+          <div key={g} className="flex flex-col gap-[2px]">
+            {g !== "chinh" && <div className="px-[10px] pt-[16px] pb-[6px] text-[12px] font-medium text-muted">{t.groups[g]}</div>}
             {inGroup.map((s) => {
+              const to = menuPath(s, admin);
               const n = overview && s.menu.count ? s.menu.count(overview) : undefined;
-              const label = (
-                <>
-                  <span>{t.menu[s.menu.label]}</span>
-                  {n !== undefined && <Count n={n} alert={s.menu.alert === true} t={t} />}
-                </>
-              );
-              // Mục chỉ là liên kết (chưa có màn) thì không bao giờ là "đang mở".
-              if (!s.load) {
-                return (
-                  <Link key={s.menu.label} to={s.path} className={`${itemClass} border-transparent`}>
-                    {label}
-                  </Link>
-                );
-              }
               return (
                 <NavLink
                   key={s.menu.label}
-                  to={s.path}
-                  end={s.path === "/"}
+                  to={to}
+                  end={to === "/" || to === "/dashboard"}
+                  onClick={onNavigate}
                   // NavLink tự đặt aria-current="page" khi đang mở.
-                  className={({ isActive }) => `${itemClass} ${isActive ? "border-ink bg-surface font-semibold" : "border-transparent"}`}
+                  className={({ isActive }) =>
+                    "flex min-h-[44px] items-center gap-[10px] rounded-ctl px-[10px] no-underline sm:min-h-[40px] " +
+                    (isActive ? "bg-accent-tint font-semibold text-accent hover:text-accent" : "text-ink-soft hover:bg-soft hover:text-ink-soft")
+                  }
                 >
-                  {label}
+                  {({ isActive }) => (
+                    <>
+                      <Icon name={s.menu.icon} size={18} className={isActive ? "" : "text-muted"} />
+                      <span className="min-w-0 flex-1">{t.menu[s.menu.label]}</span>
+                      {n !== undefined && <Count n={n} alert={s.menu.alert === true} t={t} />}
+                    </>
+                  )}
                 </NavLink>
               );
             })}
-            {g === "taiKhoan" && (
-              <>
-                <button type="button" onClick={logout} className={`${itemClass} w-full border-transparent text-left`}>
-                  {t.menu.logout}
-                </button>
-                {logoutError && (
-                  <p role="alert" className="m-0 py-[6px] pr-[10px] pl-[15px] text-[13px] text-fail-text">
-                    {t.logoutFailed}
-                  </p>
-                )}
-              </>
-            )}
           </div>
         );
       })}
+      {children}
     </nav>
   );
 }
@@ -413,13 +437,13 @@ function Menu({ t, overview, admin }: { t: T; overview?: Overview; admin: boolea
 function Count({ n, alert, t }: { n: number; alert: boolean; t: T }) {
   if (alert && n > 0) {
     return (
-      <span className="bg-fail px-[7px] py-[1px] font-mono text-[12px] font-semibold text-on-fail">
+      <span className="min-w-[22px] rounded-chip bg-fail px-[6px] py-[1px] text-center text-[12px] font-semibold text-on-fail tabular-nums">
         {n}
         <span className="sr-only">{t.openIncidents}</span>
       </span>
     );
   }
-  return <span className="font-mono text-[12px] text-muted">{n}</span>;
+  return <span className="text-[12px] font-normal text-muted tabular-nums">{n}</span>;
 }
 
 /** Đường dẫn không khớp màn nào. */
@@ -428,7 +452,7 @@ export function NotFound() {
   return (
     <>
       <ScreenHeader title={t.notFoundTitle} summary={t.notFoundBody} />
-      <p className="mt-[16px]">
+      <p className="m-0">
         <Link to="/">{t.notFoundHome}</Link>
       </p>
     </>
