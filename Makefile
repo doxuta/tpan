@@ -9,10 +9,11 @@ LDFLAGS := -s -w \
   -X $(MODULE)/internal/buildinfo.Date=$(DATE)
 
 .DEFAULT_GOAL := help
-.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean
+.PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
+  do-giao-dien anh-m16 anh-mau e2e-m16 lay-dev
 
 help: ## Xem danh sách lệnh
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
 
 web: ## Build giao diện vào web/dist
 	cd web && pnpm install --frozen-lockfile && pnpm build
@@ -65,6 +66,25 @@ test-web: ## Chạy test logic thuần của giao diện (node --test)
 check: lint test test-web ## Chạy hết kiểm tra trước khi commit
 	cd web && pnpm typecheck
 	bash scripts/install_test.sh
+
+# ---- Giao diện: đo, chụp, e2e của mốc M16 (docs/GIAO-DIEN.md mục 10) ----
+# Cổng riêng (1816x) để không đụng script chụp của phiên khác đang chạy trên cùng máy.
+ANH := go run ./scripts/anh-readme -listen 127.0.0.1:18161 -debug-port 18162
+
+do-giao-dien: web ## Đo từng màn trên máy demo (dài mấy màn hình, cỡ chữ, chữ mono...); NGUONG=1: sai một ngưỡng cứng là lỗi
+	$(ANH) -bo m16-do $(if $(NGUONG),-nguong,)
+
+anh-m16: web ## Chụp mọi màn (sáng, tối, 390 px) vào docs/bang-chung/M16, kiểm lỗi console, bàn phím, tiếng Anh
+	$(ANH) -bo m16 -out docs/bang-chung/M16
+
+anh-mau: ## Chụp ba trang mẫu bản 2 vào thư mục OUT (mặc định /tmp/tpan-mau), để đặt cạnh ảnh bản thật
+	$(ANH) -bo mau-v2 -out $(or $(OUT),/tmp/tpan-mau)
+
+e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: hai vai, tạo site từ giao diện, nâng từ v0.2.0)
+	bash scripts/e2e-m16.sh
+
+lay-dev: ## git fetch origin (trước khi ghép dev vào nhánh mốc)
+	git fetch origin
 
 dev-api: ## Chạy backend chế độ demo (máy giả) ở 127.0.0.1:18080; mở thêm một terminal cho dev-web
 	go run ./cmd/tpan serve --demo --listen 127.0.0.1:18080

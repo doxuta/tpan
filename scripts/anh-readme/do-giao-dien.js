@@ -58,6 +58,11 @@
     if (lines > maxLines || (lines === maxLines && name.length > longest.length)) { maxLines = lines; longest = name; }
   }
   const row5 = m ? m.querySelectorAll("tbody tr")[4] : null;
+  // Tên site trên bản đồ tuyến (bản 2 gắn data-site-name): mấy dòng, có bị cắt bằng dấu ba chấm không.
+  const mapNames = [...document.querySelectorAll("[data-site-name]")].filter(vis).map((e) => {
+    const lh = parseFloat(getComputedStyle(e).lineHeight) || parseFloat(getComputedStyle(e).fontSize) * 1.45;
+    return { ten: e.textContent.trim(), soDong: Math.max(1, Math.round(e.getBoundingClientRect().height / lh)), biCat: e.scrollWidth > e.clientWidth };
+  });
   return JSON.stringify({
     man: location.pathname,
     cuaSo: [innerWidth, innerHeight],
@@ -76,5 +81,6 @@
     cuonNgangCaTrang: document.documentElement.scrollWidth > innerWidth,
     tenSiteNhieuDongNhat: siteLinks.length ? { soDong: maxLines, ten: longest, soLienKet: siteLinks.length } : null,
     dayHangThu5Px: row5 ? Math.round(row5.getBoundingClientRect().bottom + scrollY) : null,
+    tenSiteBanDo: mapNames,
   });
 })();

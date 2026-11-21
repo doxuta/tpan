@@ -40,6 +40,11 @@ type m16Opts struct {
 	// passwordFile: file chứa output của `tpan setup` hoặc `tpan admin passwd`
 	// trên máy ảo; dùng khi chạy tay với -panel mà không muốn mật khẩu đi qua dòng lệnh.
 	passwordFile string
+	// Bộ m16-that (m16_that.go).
+	step, userName, waitFile string
+	// threshold: bộ m16-do kiểm các ngưỡng cứng của M16 (mục 7 của
+	// docs/thay-doi/M16-thiet-ke.md) và thoát mã khác 0 khi sai một cái.
+	threshold bool
 }
 
 // watchConsole bật các miền CDP phát sự kiện lỗi. Gọi một lần sau khi nối.
@@ -184,7 +189,63 @@ type measureRow struct {
 		SoDong int    `json:"soDong"`
 		Ten    string `json:"ten"`
 	} `json:"tenSiteNhieuDongNhat"`
-	Hang5 *int `json:"dayHangThu5Px"`
+	Hang5    *int `json:"dayHangThu5Px"`
+	TenBanDo []struct {
+		Ten    string `json:"ten"`
+		SoDong int    `json:"soDong"`
+		BiCat  bool   `json:"biCat"`
+	} `json:"tenSiteBanDo"`
+}
+
+// thresholds kiểm các ngưỡng cứng của M16 trên kết quả đo (cửa sổ 1440 × 900).
+// key là khoá của màn trong measureM16. Trả các điều không đạt.
+func thresholds(key string, r measureRow) []string {
+	var bad []string
+	if r.NhoNhat < 12 {
+		bad = append(bad, fmt.Sprintf("có chữ %v px (ngưỡng: không chữ nào dưới 12 px)", r.NhoNhat))
+	}
+	if r.VienDen > 0 {
+		bad = append(bad, fmt.Sprintf("%d ô viền màu chữ chính (ngưỡng: 0)", r.VienDen))
+	}
+	if r.CuonNgng {
+		bad = append(bad, "cả trang cuộn ngang")
+	}
+	switch key {
+	case "site-list":
+		if r.Mono > 15 {
+			bad = append(bad, fmt.Sprintf("chữ mono %d%% (ngưỡng: không quá 15%%)", r.Mono))
+		}
+	case "site", "site-hong":
+		if r.ManHinh > 1.5 {
+			bad = append(bad, fmt.Sprintf("tab Tổng quan dài %.1f màn hình (ngưỡng: không quá 1,5)", r.ManHinh))
+		}
+		if r.Mono > 30 {
+			bad = append(bad, fmt.Sprintf("chữ mono %d%% (ngưỡng: không quá 30%%)", r.Mono))
+		}
+	case "databases":
+		if r.Hang5 == nil {
+			bad = append(bad, "bảng chưa có tới 5 hàng để đo (dữ liệu mẫu phải có từ 5 DB)")
+		} else if r.Hang5 != nil && len(r.CuaSo) == 2 && *r.Hang5 > r.CuaSo[1] {
+			bad = append(bad, fmt.Sprintf("đáy hàng thứ 5 ở %d px, quá một màn hình %d px", *r.Hang5, r.CuaSo[1]))
+		}
+	case "security":
+		if len(r.CuaSo) == 2 && r.DaiPx > 2*r.CuaSo[1] {
+			bad = append(bad, fmt.Sprintf("lúc mới mở dài %d px, quá 2 màn hình", r.DaiPx))
+		}
+	case "dashboard":
+		if len(r.TenBanDo) == 0 {
+			bad = append(bad, "không thấy tên site nào mang data-site-name trên bản đồ tuyến")
+		}
+		for _, n := range r.TenBanDo {
+			if n.SoDong > 1 {
+				bad = append(bad, fmt.Sprintf("tên %s xuống %d dòng trên bản đồ tuyến", n.Ten, n.SoDong))
+			}
+			if len([]rune(n.Ten)) <= 36 && n.BiCat {
+				bad = append(bad, fmt.Sprintf("tên %s (%d ký tự) bị cắt trên bản đồ tuyến", n.Ten, len([]rune(n.Ten))))
+			}
+		}
+	}
+	return bad
 }
 
 // measureM16 mở lần lượt các màn chính, chạy do-giao-dien.js và in kết quả:
@@ -212,19 +273,26 @@ func measureM16(c *cdp, base string, o m16Opts) error {
 			return errors.New("máy chưa có site nào để đo trang một site (tạo site trước, hoặc truyền -site)")
 		}
 	}
-	type screen struct{ name, path string }
+	type screen struct{ key, name, path string }
 	screens := []screen{
-		{"Bảng điều khiển", "/"},
-		{"Công cụ", "/tools"},
-		{"Site (danh sách)", "/sites"},
-		{"Trang một site", "/sites/" + site},
-		{"Cơ sở dữ liệu", "/databases"},
-		{"Bảo mật", "/security"},
-		{"Cài đặt", "/settings"},
-		{"Người dùng", "/users"},
+		{"dashboard", "Bảng điều khiển", "/"},
+		{"tools", "Công cụ", "/tools"},
+		{"site-list", "Site (danh sách)", "/sites"},
+		{"site", "Trang một site", "/sites/" + site},
 	}
+	// Site đang hỏng của máy demo: tab Tổng quan phải đạt ngưỡng cả khi có lỗi để hiện.
+	if c.str(`fetch('/api/v1/sites').then(r=>r.json()).then(l=>l.some(s=>s.domain==='wiki.example.org'&&s.status==='active')?'có':'')`) != "" && site != "wiki.example.org" {
+		screens = append(screens, screen{"site-hong", "Trang một site đang hỏng", "/sites/wiki.example.org"})
+	}
+	screens = append(screens,
+		screen{"databases", "Cơ sở dữ liệu", "/databases"},
+		screen{"security", "Bảo mật", "/security"},
+		screen{"settings", "Cài đặt", "/settings"},
+		screen{"users", "Người dùng", "/users"},
+	)
 	var rows []measureRow
 	var names []string
+	var failed []string
 	for _, s := range screens {
 		if err := c.goTo(base+s.path, s.path); err != nil {
 			return err
@@ -247,6 +315,11 @@ func measureM16(c *cdp, base string, o m16Opts) error {
 			return fmt.Errorf("%s: đọc kết quả đo: %w", s.name, err)
 		}
 		rows, names = append(rows, r), append(names, s.name)
+		if o.threshold {
+			for _, b := range thresholds(s.key, r) {
+				failed = append(failed, s.name+": "+b)
+			}
+		}
 		if errs := c.consoleErrors(); len(errs) > 0 {
 			// Che địa chỉ panel (IP của máy ảo) trước khi in: log này vào repo.
 			fmt.Printf("  LỖI CONSOLE ở %s:\n    %s\n", s.name, strings.ReplaceAll(strings.Join(errs, "\n    "), base, "<panel>"))
@@ -272,5 +345,17 @@ func measureM16(c *cdp, base string, o m16Opts) error {
 			names[i], strings.Replace(fmt.Sprintf("%.1f", r.ManHinh), ".", ",", 1), r.Nho, r.Mono, bam, r.VienDen,
 			strings.Replace(fmt.Sprint(r.NhoNhat), ".", ",", 1), ten)
 	}
-	return nil
+	if !o.threshold {
+		return nil
+	}
+	fmt.Println()
+	if len(failed) == 0 {
+		fmt.Println("NGƯỠNG CỨNG: đạt hết.")
+		return nil
+	}
+	fmt.Printf("NGƯỠNG CỨNG: %d điều không đạt:\n", len(failed))
+	for _, f := range failed {
+		fmt.Println("  -", f)
+	}
+	return fmt.Errorf("%d ngưỡng cứng không đạt", len(failed))
 }

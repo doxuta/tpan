@@ -76,6 +76,10 @@ func main() {
 	flag.BoolVar(&m16.longNames, "ten-dai", false, "bộ m16-do trên demo: tạo ba site tên dài qua API nếu chưa có")
 	flag.StringVar(&m16.site, "site", "", "bộ m16-do: site dùng cho màn \"trang một site\" (mặc định: site tên dài nhất của máy)")
 	flag.StringVar(&m16.passwordFile, "mat-khau-tep", "", "với -panel: file chứa output của `tpan setup` hoặc `tpan admin passwd`; mật khẩu admin được đọc từ đó")
+	flag.BoolVar(&m16.threshold, "nguong", false, "bộ m16-do: kiểm các ngưỡng cứng của M16, sai một cái là thoát mã khác 0")
+	flag.StringVar(&m16.step, "buoc", "", "bộ m16-that: admin, tao-site, user hoặc nang-cap (xem m16_that.go)")
+	flag.StringVar(&m16.userName, "ten", "", "bộ m16-that, bước user: tên user thường (mật khẩu ở biến môi trường TPAN_USER_PASSWORD)")
+	flag.StringVar(&m16.waitFile, "cho-tep", "", "bộ m16-that, bước nang-cap: file mà script e2e tạo ra khi đã nâng cấp xong")
 	flag.Parse()
 	list := shots()
 	switch *set {
@@ -88,10 +92,16 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lỗi: -bo m15-that cần -panel (panel của máy ảo test; demo không cập nhật được)")
 			os.Exit(2)
 		}
-	case "m16-do":
+	case "m16-do", "m16", "mau-v2":
 		list = nil
+	case "m16-that":
+		list = nil
+		if *panel == "" {
+			fmt.Fprintln(os.Stderr, "lỗi: -bo m16-that cần -panel (panel của máy ảo test)")
+			os.Exit(2)
+		}
 	default:
-		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that hoặc m16-do")
+		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that hoặc mau-v2")
 		os.Exit(2)
 	}
 	if err := run(*listen, *chrome, *debugPort, *out, *set, list, *panel, m16); err != nil {
@@ -128,7 +138,8 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 	if panel != "" && password == "" {
 		return errors.New("-panel cần mật khẩu admin của panel đó: biến môi trường TPAN_PANEL_PASSWORD, hoặc -mat-khau-tep <file có output của tpan setup>")
 	}
-	if panel == "" {
+	needPanel := set != "mau-v2" // trang mẫu tĩnh mở thẳng từ đĩa, không cần panel
+	if panel == "" && needPanel {
 		// 1. build và chạy serve --demo.
 		bin := filepath.Join(tmp, "tpan")
 		if b, err := exec.CommandContext(ctx, "go", "build", "-o", bin, "./cmd/tpan").CombinedOutput(); err != nil {
@@ -156,6 +167,8 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 				if !sent && len(f) > 1 && strings.Contains(strings.ToLower(sc.Text()), "demo") && strings.Contains(sc.Text(), ":") {
 					pwCh <- f[len(f)-1]
 					sent = true
+				} else if sent {
+					noteDemoUser(sc.Text()) // "User demo (vai user): <tên> / <mật khẩu>", cho bộ m16
 				}
 			}
 		}()
@@ -204,6 +217,14 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 		return err
 	}
 
+	if set == "mau-v2" {
+		return samplesV2(c, out)
+	}
+	if set == "m16-that" {
+		// Bộ này tự đăng nhập qua form của giao diện, như người dùng.
+		return liveM16(c, base, password, m16)
+	}
+
 	// 4. đăng nhập bằng fetch cùng origin (cookie HttpOnly nằm trong Chrome).
 	if err := c.goTo(base+"/", "/dang-nhap"); err != nil {
 		return err
@@ -219,6 +240,8 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 		return liveM15(c, base, out)
 	case "m16-do":
 		return measureM16(c, base, m16)
+	case "m16":
+		return photosM16(c, base, password, out)
 	}
 	jobID, err := siteJob(c)
 	if err != nil {
