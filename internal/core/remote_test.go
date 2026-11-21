@@ -320,6 +320,25 @@ func TestDonTrenKhoKhongDayLai(t *testing.T) {
 	}
 }
 
+// R9: đẩy tay (API, CLI) một bản nằm ngoài s3.keep bị từ chối ngay, không
+// nhận vào hàng chờ rồi mới hỏng ở lượt đẩy.
+func TestDayTayBanNgoaiKeepBiTuChoi(t *testing.T) {
+	e := newRtEnv(t) // s3.keep = 2
+	var bs []Backup
+	for i, stamp := range []string{"20261121-070000", "20261121-080000", "20261121-090000"} {
+		bs = append(bs, e.addFull(t, "example.com", stamp, rtNow.Add(time.Duration(i-3)*time.Hour), ReasonSchedule))
+		e.sync(t, SyncOptions{})
+	}
+	_, err := e.r.PreparePush(e.ctx, bs[0].ID)
+	var re *RefusedError
+	if !errors.As(err, &re) || re.Code != CodeBackupOutsideKeep {
+		t.Fatalf("bản ngoài s3.keep phải bị từ chối %s: %v", CodeBackupOutsideKeep, err)
+	}
+	if _, err := e.r.PreparePush(e.ctx, bs[2].ID); err != nil {
+		t.Fatalf("bản mới nhất vẫn dựng được Plan đẩy: %v", err)
+	}
+}
+
 // B9: lần tải dở cũ hơn một ngày bị huỷ.
 func TestSyncHuyTaiDoCu(t *testing.T) {
 	e := newRtEnv(t)

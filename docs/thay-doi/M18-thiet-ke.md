@@ -564,7 +564,7 @@ Hai phép kiểm, chặng `tpan`, **chỉ tồn tại khi đã đặt đích** (
 
 ### 3.14 Mã từ chối mới
 
-`s3_not_configured`, `s3_endpoint_invalid`, `s3_region_invalid`, `s3_bucket_invalid`, `s3_prefix_invalid`, `s3_keys_invalid`, `s3_keep_invalid`, `s3_ca_invalid`, `s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`, `s3_error`, `backup_not_on_machine`, `backup_already_local`, `backup_key_missing`, `cloudinit_invalid`, `cloudinit_too_large`, `cloudinit_no_config`.
+`s3_not_configured`, `s3_endpoint_invalid`, `s3_region_invalid`, `s3_bucket_invalid`, `s3_prefix_invalid`, `s3_keys_invalid`, `s3_keep_invalid`, `s3_ca_invalid`, `s3_unreachable`, `s3_auth_failed`, `s3_bucket_not_found`, `s3_error`, `backup_not_on_machine`, `backup_already_local`, `backup_key_missing`, `backup_outside_keep` (đẩy tay một bản mà luật giữ trên kho sẽ dọn ngay, R9), `cloudinit_invalid`, `cloudinit_too_large`, `cloudinit_no_config`.
 
 ### 3.15 Máy trạng thái của một bản sao lưu
 

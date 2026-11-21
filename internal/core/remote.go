@@ -815,6 +815,19 @@ func (r *Remote) PreparePush(ctx context.Context, id string) (*Planned, error) {
 	if err != nil {
 		return nil, err
 	}
+	// R9: API và CLI từ chối ngay bản nằm ngoài s3.keep, thay vì nhận 202 rồi
+	// để lượt đẩy xếp nó vào Failed (đẩy lên rồi dọn đi ngay là vô ích).
+	if row.Kind == BackupFull && row.Local {
+		rows, err := r.Store.Backups(ctx, row.Domain)
+		if err != nil {
+			return nil, fmt.Errorf("đọc backup của %s: %w", row.Domain, err)
+		}
+		if !remoteSurvives(row, rows, c.ID, c.Keep) {
+			return nil, refuse(CodeBackupOutsideKeep, i18n.T(
+				fmt.Sprintf("bản %s nằm ngoài s3.keep: kho chỉ giữ %d bản mới nhất của %s (bản manual, schedule); đẩy lên sẽ bị dọn ngay", row.ID, c.Keep, row.Domain),
+				fmt.Sprintf("backup %s is outside s3.keep: the store keeps only the %d newest backups of %s (manual, schedule); it would be pruned right after upload", row.ID, c.Keep, row.Domain)))
+		}
+	}
 	p, _, err := r.preparePush(ctx, store, c, row)
 	return p, err
 }
@@ -1424,7 +1437,9 @@ func (r *Remote) Probe(ctx context.Context) (checks.S3Probe, error) {
 		case err == nil && obj.Size == b.Size:
 			ev.Output = fmt.Sprintf("size %d", obj.Size)
 		case err == nil:
-			ev.ExitCode, ev.Output = 1, fmt.Sprintf("size %d, bản có %d byte", obj.Size, b.Size)
+			// Evidence.Output là output thô của "lệnh" (quy ước: tiếng Anh, như
+			// output của lệnh thật), không phải câu cho người đọc.
+			ev.ExitCode, ev.Output = 1, fmt.Sprintf("size %d, expected %d bytes", obj.Size, b.Size)
 			out.Missing = append(out.Missing, dn+" ("+b.ID+")")
 		case errors.Is(err, s3.ErrNotFound):
 			ev.ExitCode, ev.Output = 1, failMsg(err)
