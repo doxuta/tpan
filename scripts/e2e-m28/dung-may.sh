@@ -36,11 +36,17 @@ ok "tpan.service active" test "$(systemctl is-active tpan)" = active
 # "Unable to acquire the dpkg frontend lock"). Đây là đồ nghề của e2e: chờ
 # khoá nhả, tối đa 20 phút, rồi mới cài stack.
 step "chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)"
+# Chỉ xét ai đang giữ khoá của dpkg và apt, và tiến trình apt-get, apt, dpkg:
+# tên tiến trình "unattended-upgr" khớp cả unattended-upgrade-shutdown, một
+# trình nền lúc nào cũng chạy (lần chạy 11:29 chờ phí vì nó).
+LOCKS="/var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock"
 for i in $(seq 1 240); do
-  if ! pgrep -x 'unattended-upgr|apt-get|apt|dpkg' >/dev/null && ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+  # shellcheck disable=SC2086 # LOCKS cố ý tách thành nhiều đường dẫn
+  if ! pgrep -x 'apt-get|apt|dpkg' >/dev/null && ! fuser $LOCKS >/dev/null 2>&1; then
     break
   fi
-  [ "$i" = 1 ] && echo "  đang chờ: $(pgrep -a -x 'unattended-upgr|apt-get|apt|dpkg' | head -3 | tr '\n' ';')"
+  # shellcheck disable=SC2086
+  [ "$i" = 1 ] && echo "  đang chờ: $(fuser $LOCKS 2>&1 | tr '\n' ' ') $(pgrep -a -x 'apt-get|apt|dpkg' | head -3 | tr '\n' ';')"
   sleep 5
 done
 echo "  apt rảnh sau khoảng $(( (i - 1) * 5 )) giây"
