@@ -364,6 +364,14 @@ func applySerial(mu *sync.Mutex, ss []engine.Step) []engine.Step {
 			serial = st.Test != nil
 		case *steps.Absent:
 			serial = st.Test != nil
+		case *cageAbsentPool:
+			// Bước pool của site ngoài lồng (sitePHPSteps) được bọc để từ chối khi
+			// site đã vào lồng (N4 của soát cuối M17): bỏ reload và xếp hàng theo
+			// bước bên trong, như một File thường.
+			steps.WithoutReload([]engine.Step{st.Step})
+			if f, ok := st.Step.(*steps.File); ok {
+				serial = f.Test != nil
+			}
 		}
 		if serial {
 			st = steps.Serial(mu, st)

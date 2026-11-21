@@ -22,8 +22,11 @@ import (
 func TestKhongGoiPoolChungNgoaiHamChon(t *testing.T) {
 	// Tên được canh → các hàm được gọi nó (method ghi kèm kiểu nhận).
 	allow := map[string][]string{
-		// Chỗ chọn duy nhất giữa pool chung và lồng.
-		"steps.SitePool": {"sitePHPSteps"},
+		// Bước pool chung không gác chỉ dựng ở sharedPoolStep; sitePHPSteps
+		// (chỗ chọn giữa pool chung và lồng) bọc nó bằng cageAbsentPool, còn
+		// Cages.PrepareDisable gọi thẳng sharedPoolStep vì phải ghi pool chung
+		// trong lúc hàng rào còn (soát cuối M17, N4).
+		"steps.SitePool": {"sharedPoolStep"},
 		// Tạm khoá và mở khoá site ngoài lồng (đổi tên file pool); site trong
 		// lồng đi nhánh CageSocket và sitePHPSteps trong cùng hai hàm này.
 		"steps.PoolSuspend":   {"Sites.suspendSteps"},
@@ -36,6 +39,9 @@ func TestKhongGoiPoolChungNgoaiHamChon(t *testing.T) {
 		// no_auto_fix), phép kiểm giữa chừng của php.use (site trong lồng có
 		// Plan riêng).
 		"checks.PoolSocket": {"siteStateChecks", "Fixes.plan", "PHP.PrepareUse"},
+		// Hàm trong gói (không có tiền tố gói): bước pool chung không gác chỉ
+		// được lấy ở hàm chọn và ở Plan ra lồng.
+		"sharedPoolStep": {"sitePHPSteps", "Cages.PrepareDisable"},
 	}
 
 	entries, err := os.ReadDir(".")
@@ -61,18 +67,25 @@ func TestKhongGoiPoolChungNgoaiHamChon(t *testing.T) {
 			}
 			fn := funcName(fd)
 			ast.Inspect(fd.Body, func(n ast.Node) bool {
-				sel, ok := n.(*ast.SelectorExpr)
-				if !ok {
+				var key string
+				switch x := n.(type) {
+				case *ast.SelectorExpr:
+					pkg, ok := x.X.(*ast.Ident)
+					if !ok {
+						return true
+					}
+					key = pkg.Name + "." + x.Sel.Name
+				case *ast.Ident:
+					// Tên trần: hàm của chính gói core (sharedPoolStep). Ident
+					// bên phải một SelectorExpr (steps.SitePool) cũng đi qua đây
+					// nhưng không có tên trong allow nên không tính.
+					key = x.Name
+				default:
 					return true
 				}
-				pkg, ok := sel.X.(*ast.Ident)
-				if !ok {
-					return true
-				}
-				key := pkg.Name + "." + sel.Sel.Name
 				if allowed, watched := allow[key]; watched && !slices.Contains(allowed, fn) {
 					t.Errorf("%s: %s gọi %s; chỉ được gọi trong %v (đi qua hàm chọn để site trong lồng không bị đưa về pool chung)",
-						fset.Position(sel.Pos()), fn, key, allowed)
+						fset.Position(n.Pos()), fn, key, allowed)
 				}
 				return true
 			})

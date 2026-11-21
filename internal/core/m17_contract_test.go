@@ -37,9 +37,15 @@ func TestSitePHPStepsNgoaiLong(t *testing.T) {
 	if len(ss) != 1 {
 		t.Fatalf("site ngoài lồng phải có đúng một bước pool, có %d", len(ss))
 	}
-	f, ok := ss[0].(*steps.File)
-	if !ok || f.Path != st.Layout().PoolConf("8.3") {
-		t.Fatalf("bước phải là file pool %s, có %T %+v", st.Layout().PoolConf("8.3"), ss[0], ss[0])
+	// Pool chung bọc gác hàng rào (soát cuối N4); ID và bản xem trước là của
+	// bước pool bên trong.
+	g, ok := ss[0].(*cageAbsentPool)
+	if !ok {
+		t.Fatalf("bước pool phải có gác hàng rào, có %T", ss[0])
+	}
+	f, ok := g.Step.(*steps.File)
+	if !ok || f.Path != st.Layout().PoolConf("8.3") || ss[0].Info().ID != "file:"+f.Path {
+		t.Fatalf("bước phải là file pool %s, có %T %+v", st.Layout().PoolConf("8.3"), g.Step, g.Step)
 	}
 }
 

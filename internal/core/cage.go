@@ -12,7 +12,9 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"slices"
 	"strconv"
 	"strings"
@@ -98,7 +100,8 @@ func siteCageLimits(ctx context.Context, as AccountStore, st site.Site) (*accoun
 }
 
 // sitePHPSteps là các bước dựng nơi phục vụ PHP của site st (mục 3.6):
-//   - st.Caged false: [steps.SitePool(l, php)] như trước M17;
+//   - st.Caged false: [cageAbsentPool{sharedPoolStep(st, cfg)}]: pool chung như
+//     trước M17, bọc để không bao giờ ghi khi site đã có hàng rào;
 //   - st.Caged true: steps.CageFiles{Layout, PHP, Limits: lim} rồi
 //     steps.CageSocket{Layout, PHP} (bật).
 //
@@ -106,16 +109,53 @@ func siteCageLimits(ctx context.Context, as AccountStore, st site.Site) (*accoun
 func sitePHPSteps(st site.Site, cfg StackConfig, lim account.Limits) ([]engine.Step, error) {
 	php := sitePHP(st, cfg)
 	if !st.Caged {
-		pool, err := steps.SitePool(st.Layout(), php)
+		pool, err := sharedPoolStep(st, cfg)
 		if err != nil {
 			return nil, err
 		}
-		return []engine.Step{pool}, nil
+		return []engine.Step{&cageAbsentPool{Step: pool, Layout: st.Layout()}}, nil
 	}
 	return []engine.Step{
 		&steps.CageFiles{Layout: st.Layout(), PHP: php, Limits: lim},
 		&steps.CageSocket{Layout: st.Layout(), PHP: php},
 	}, nil
+}
+
+// sharedPoolStep là chỗ DUY NHẤT gọi steps.SitePool (test tĩnh
+// TestKhongGoiPoolChungNgoaiHamChon): bước ghi pool chung của site st ở bản
+// sitePHP(st, cfg), không có gác. Plan thường lấy pool qua sitePHPSteps (có
+// gác cageAbsentPool); chỉ chỗ nào cố ý ghi pool chung trong lúc hàng rào còn
+// (ra lồng) mới gọi thẳng hàm này.
+func sharedPoolStep(st site.Site, cfg StackConfig) (engine.Step, error) {
+	return steps.SitePool(st.Layout(), sitePHP(st, cfg))
+}
+
+// cageAbsentPool bọc bước ghi pool chung của một site ngoài lồng (soát cuối
+// M17, N4). Plan được dựng trước khi engine lấy khoá toàn cục, nên một Plan
+// dựng lúc site còn ngoài lồng (php.use, chạy lại site add, khôi phục, mở khoá)
+// có thể chạy ngay sau một job cage.enable của admin. Không có gác thì nó ghi
+// lại pool chung, đổi vhost về pool đó, và móc after ghi caged=0: site tự ra
+// khỏi lồng (bất biến 7). Apply xem máy (file hàng rào, như lớp bọc lệnh) ngay
+// trước khi ghi: có hàng rào thì trả lỗi, không ghi gì, và job hoàn tác.
+// Info, Check, Undo đi thẳng tới bước bên trong: ID và bản xem trước không đổi.
+type cageAbsentPool struct {
+	engine.Step
+	Layout site.Layout
+}
+
+func (p *cageAbsentPool) Apply(ctx context.Context, sys system.System) error {
+	l := p.Layout
+	fenced, err := pathExists(sys, l.CageFence())
+	if err != nil {
+		return fmt.Errorf("ghi pool chung của %s: %w", l.Domain, err)
+	}
+	if fenced {
+		d := l.Domain.String()
+		return fmt.Errorf("không ghi pool chung của %s: site đang ở trong lồng (có %s); Plan này được dựng khi site còn ở ngoài lồng, có thể ngay trước khi admin đưa nó vào lồng. Chạy lại thao tác để dựng Plan mới (vẫn báo lỗi này thì lồng của site đang dựng dở: sudo tpan health --fix, hoặc sudo tpan cage enable %s) / "+
+			"not writing the shared pool of %s: the site is caged (%s exists); this Plan was built while the site was still outside the cage, possibly just before an admin caged it. Run the action again to build a new Plan (if this error repeats the site's cage is half built: sudo tpan health --fix, or sudo tpan cage enable %s)",
+			d, l.CageFence(), d, d, l.CageFence(), d)
+	}
+	return p.Step.Apply(ctx, sys)
 }
 
 // cageEnableSteps là các bước của cage.enable (mục 3.6), dùng chung cho
@@ -461,6 +501,9 @@ func (c *Cages) PrepareEnable(ctx context.Context, d validate.Domain) (*Planned,
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan vào lồng cho %s: %w", dom, err)
 	}
+	if ss, err = c.withStalePools(ss, st.Layout(), php); err != nil {
+		return nil, err
+	}
 	others, err := (&Sites{Store: c.Store}).others(ctx, d)
 	if err != nil {
 		return nil, err
@@ -486,6 +529,60 @@ func (c *Cages) PrepareEnable(ctx context.Context, d validate.Domain) (*Planned,
 	}), nil
 }
 
+// withStalePools chèn, ngay sau bước gỡ pool chung của bản php, một bước gỡ
+// pool chung của site ở mỗi bản PHP khác còn file (soát cuối M17, V3: panel bị
+// tắt giữa php.use để lại pool ở bản cũ). Pool sót đó vẫn sinh worker dưới user
+// của site ở ngoài lồng khi socket của nó có kết nối (từ www-data, nên một
+// .htaccess day-du của site Apache nào cũng dẫn tới được), và cage.state, vốn
+// xét mọi /etc/php/<bản>/fpm/pool.d, báo lỗi mãi. Bản được xét đúng như
+// cage.state: mọi thư mục trong /etc/php khớp mẫu số.số. Bản chưa cài (gói đã
+// gỡ, file còn) thì chỉ gỡ file: không có php-fpm để kiểm, không có dịch vụ để
+// reload, và đòi lệnh đó thì job hỏng mãi.
+func (c *Cages) withStalePools(ss []engine.Step, l site.Layout, php string) ([]engine.Step, error) {
+	vers, err := c.Sys.ReadDir(phpConfRoot)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("đọc %s: %w", phpConfRoot, err)
+	}
+	var extra []engine.Step
+	for _, v := range vers {
+		if v == php || !phpVersionRE.MatchString(v) {
+			continue
+		}
+		ok, err := pathExists(c.Sys, l.PoolConf(v))
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			continue
+		}
+		a := &steps.Absent{
+			Path:  l.PoolConf(v),
+			Title: i18n.T("Gỡ pool chung "+l.Pool+" còn sót ở PHP "+v, "Remove the leftover shared pool "+l.Pool+" from PHP "+v),
+			Why: i18n.T(
+				"Site đang dùng PHP "+php+", nhưng pool chung ở PHP "+v+" vẫn còn (sót lại sau một lần đổi bản dở dang). Để lại thì pool này vẫn chạy PHP dưới user "+l.User+" ở ngoài lồng khi có kết nối tới socket của nó. Bước này hoàn tác được.",
+				"The site uses PHP "+php+", but a shared pool on PHP "+v+" is still there (left over from an interrupted version change). If it stays, it still runs PHP as "+l.User+" outside the cage whenever its socket gets a connection. This step can be undone."),
+		}
+		inst, err := phpIsInstalled(c.Sys, v)
+		if err != nil {
+			return nil, err
+		}
+		if inst {
+			a.Test = &system.Cmd{Name: "php-fpm" + v, Args: []string{"-t"}}
+			a.Reload = &system.Cmd{Name: "systemctl", Args: []string{"reload", "php" + v + "-fpm"}}
+		}
+		extra = append(extra, a)
+	}
+	if len(extra) == 0 {
+		return ss, nil
+	}
+	for i, s := range ss {
+		if a, ok := s.(*steps.Absent); ok && a.Path == l.PoolConf(php) {
+			return slices.Insert(ss, i+1, extra...), nil
+		}
+	}
+	return nil, fmt.Errorf("dựng Plan vào lồng cho %s: không thấy bước gỡ pool chung của PHP %s", l.Domain, php)
+}
+
 // PrepareDisable dựng Plan "cage.disable" (mục 3.6). after: ghi caged = false.
 // Điều kiện đọc máy (có file của lồng), không đòi caged=1: đây cũng là Plan
 // dọn lồng dựng dở. Không đòi cờ của gói: admin được đưa site ra để gỡ lỗi.
@@ -496,7 +593,10 @@ func (c *Cages) PrepareDisable(ctx context.Context, d validate.Domain) (*Planned
 	}
 	dom, l := d.String(), st.Layout()
 	has := false
-	for _, p := range l.CageFiles() {
+	// Thư mục cấu hình của lồng cũng tính: còn nó mà mất hàng rào thì lớp bọc
+	// lệnh (internal/cage) từ chối mọi lệnh của site và chỉ tới lệnh này; từ
+	// chối cage_not_caged ở đây là để site kẹt mãi.
+	for _, p := range append(l.CageFiles(), l.CageConfDir()) {
 		ok, err := pathExists(c.Sys, p)
 		if err != nil {
 			return nil, err
@@ -515,10 +615,15 @@ func (c *Cages) PrepareDisable(ctx context.Context, d validate.Domain) (*Planned
 	out := st
 	out.Caged = false
 	php := sitePHP(st, cfg)
-	ss, err := sitePHPSteps(out, cfg, account.Limits{})
+	// Gọi thẳng sharedPoolStep, không qua sitePHPSteps: Plan ra lồng ghi pool
+	// chung trong lúc hàng rào còn (hàng rào chỉ gỡ ở bước CageFiles cuối, để
+	// lệnh của site không chạy ngoài lồng trước khi dịch vụ của lồng dừng), nên
+	// gác cageAbsentPool sẽ chặn đúng việc Plan này phải làm.
+	pool, err := sharedPoolStep(out, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan ra lồng cho %s: %w", dom, err)
 	}
+	ss := []engine.Step{pool}
 	vh, err := siteVhost(out, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan ra lồng cho %s: %w", dom, err)

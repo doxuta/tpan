@@ -75,7 +75,7 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 		if plan, ok, err := f.cageFileRewrite(ctx, cfg, r.ID, obj); ok || err != nil {
 			return plan, err
 		}
-		file, err := f.managedFile(ctx, cfg, obj)
+		step, file, err := f.managedFile(ctx, cfg, obj)
 		if err != nil {
 			return engine.Plan{}, err
 		}
@@ -86,7 +86,7 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 		return engine.Plan{
 			Target: obj,
 			Title:  i18n.T("Ghi lại "+obj+" từ bản của tpan", "Rewrite "+obj+" from tpan's version"),
-			Steps:  []engine.Step{file},
+			Steps:  []engine.Step{step},
 			Verify: []checks.Check{checks.Drift(obj, hex.EncodeToString(sum[:]), checks.DriftStage(obj))},
 		}, nil
 	case FixWebRewrite:
@@ -467,6 +467,10 @@ func siteFilesLim(cfg StackConfig, st site.Site, lim *account.Limits) ([]*steps.
 func files(ss []engine.Step) []*steps.File {
 	var out []*steps.File
 	for _, s := range ss {
+		// Pool của site ngoài lồng đi qua sitePHPSteps nên được bọc cageAbsentPool.
+		if g, ok := s.(*cageAbsentPool); ok {
+			s = g.Step
+		}
 		if f, ok := s.(*steps.File); ok {
 			out = append(out, f)
 		}
@@ -477,40 +481,48 @@ func files(ss []engine.Step) []*steps.File {
 // managedFile tìm Step File ghi đúng path: của một site active, hoặc của stack.
 // So bằng dấu bằng, nên path lạ (kể cả có "..") không bao giờ khớp. Không thấy:
 // nil (file tpan không dựng lại được, như unit systemd của tpan setup).
-func (f *Fixes) managedFile(ctx context.Context, cfg StackConfig, path string) (*steps.File, error) {
+//
+// Trả thêm bước dùng trong Plan sửa: với file pool chung của site ngoài lồng là
+// bước bọc cageAbsentPool, để Plan sửa dựng trước khi admin đưa site vào lồng
+// không ghi lại pool chung sau đó (N4 của soát cuối M17).
+func (f *Fixes) managedFile(ctx context.Context, cfg StackConfig, path string) (engine.Step, *steps.File, error) {
 	sites, err := f.activeSites(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, st := range sites {
 		lim, err := siteCageLimits(ctx, f.Accounts, st)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		fl, err := siteFilesLim(cfg, st, lim)
 		if err != nil {
-			return nil, fmt.Errorf("dựng lại file của site %s: %w", st.Domain, err)
+			return nil, nil, fmt.Errorf("dựng lại file của site %s: %w", st.Domain, err)
 		}
 		for _, file := range fl {
-			if file.Path == path {
-				return file, nil
+			if file.Path != path {
+				continue
 			}
+			if !st.Caged && path == st.Layout().PoolConf(sitePHP(st, cfg)) {
+				return &cageAbsentPool{Step: file, Layout: st.Layout()}, file, nil
+			}
+			return file, file, nil
 		}
 	}
 	// Trang tạm khoá chung (M13): không thuộc site nào, cũng không thuộc stack.
 	if page := steps.SuspendedPageFile(); page.Path == path {
-		return page, nil
+		return page, page, nil
 	}
 	plan, err := f.stackPlan(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("dựng lại file của stack: %w", err)
+		return nil, nil, fmt.Errorf("dựng lại file của stack: %w", err)
 	}
 	for _, file := range files(plan.Steps) {
 		if file.Path == path {
-			return file, nil
+			return file, file, nil
 		}
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 // webRewrite ghi lại mọi file web của tpan cho web server hiện tại: site mặc
