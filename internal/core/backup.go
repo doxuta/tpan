@@ -501,6 +501,12 @@ func (b *Backups) checkOnMachine(ctx context.Context, d validate.Domain, r Backu
 // backup xong rồi mới lỗi ở bước giải nén (bước đó cũng kiểm lại lúc chạy).
 func (b *Backups) checkIntact(ctx context.Context, l site.Layout, r Backup) error {
 	corrupt := func(vi, en string) error {
+		// R16 của M18: bản đã lên kho thì còn một bản tốt ở đó; chỉ đường tải
+		// lại thay vì bảo người dùng bỏ bản này.
+		if r.Remote == site.RemoteStored {
+			return refuse("backup_corrupt", i18n.T("bản backup "+r.ID+" ("+r.Path+") trên máy không dùng được: "+vi+". Bản trên kho còn; tải lại: sudo tpan backup pull "+r.ID,
+				"backup "+r.ID+" ("+r.Path+") on this machine cannot be used: "+en+". The copy in storage is still there; fetch it again: sudo tpan backup pull "+r.ID))
+		}
 		return refuse("backup_corrupt", i18n.T("bản backup "+r.ID+" ("+r.Path+") không dùng được: "+vi+". Chọn bản khác: sudo tpan backup list "+l.Domain.String(),
 			"backup "+r.ID+" ("+r.Path+") cannot be used: "+en+". Pick another one: sudo tpan backup list "+l.Domain.String()))
 	}
