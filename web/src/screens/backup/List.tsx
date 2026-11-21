@@ -4,7 +4,8 @@
 // có nhãn "site đã xoá" thay vì nút.
 //
 // M18: cột "Ở đâu" (nơi bản nằm, chỉ hiện khi máy có dùng kho, B11) và hai việc
-// kho cho admin ở cột Việc: "Đẩy lên kho", "Tải về máy". Luật hiện việc nào ở
+// kho cho admin ở cột Việc: "Đẩy lên kho", "Tải về máy". Khi cột "Ở đâu" hiện
+// thì cột "Đường dẫn" ẩn (lý do ở chỗ minWidth bên dưới). Luật hiện việc nào ở
 // hàng nào nằm trong model.ts (storageWork) để test được.
 
 import type { ReactNode } from "react";
@@ -64,12 +65,28 @@ function Sha({ sha }: { sha: string }) {
   );
 }
 
+/** Câu lỗi của lần đẩy gần nhất, một dòng dưới nhãn (chỉ admin nhận remote_error). */
+function PushError({ error }: { error?: string }) {
+  if (!error) return null;
+  return (
+    <span title={error} className="inline-block max-w-[240px] truncate text-[12.5px] text-muted">
+      {error}
+    </span>
+  );
+}
+
 /**
- * Nơi bản nằm, theo `location` máy chủ đã tính (không tự suy từ local/remote).
+ * Nơi bản nằm, theo `location` máy chủ đã tính, với một ngoại lệ: dòng "kho khác"
+ * mà file vẫn còn trên máy (`local`) thì ghi "máy". Máy chủ tính "kho khác" chỉ
+ * từ cột kho (sau khi gỡ hay đổi đích), nhưng người đọc bảng lúc cần khôi phục
+ * hỏi "bản này có trên máy không": bản đó khôi phục được ngay (G2 của lượt soát).
  * Đẩy lỗi là trạng thái cảnh báo nên dùng dấu cảnh báo kèm chữ; admin có thêm câu
- * lỗi của lần đẩy gần nhất (user thường không nhận trường này nên không có dòng đó).
+ * lỗi của lần đẩy gần nhất (user thường không nhận trường này nên không có dòng đó),
+ * ở cả dòng "kho khác": lần đẩy lên đích mới lỗi thì dòng vẫn giữ đích cũ.
+ * `configured`: đã đặt đích chưa (undefined với user thường, họ không đọc được đích);
+ * chỉ khi chắc là đã đặt mới nói "khác với kho đang đặt".
  */
-export function Where({ b }: { b: Backup }) {
+export function Where({ b, configured }: { b: Backup; configured: boolean | undefined }) {
   const t = useStrings(strings);
   const loc = b.location;
   if (loc === undefined) return null;
@@ -77,11 +94,16 @@ export function Where({ b }: { b: Backup }) {
     return (
       <span className="flex flex-col items-start gap-[2px]">
         <StatusLine status="warn">{t.locations.push_failed}</StatusLine>
-        {b.remote_error && (
-          <span title={b.remote_error} className="inline-block max-w-[240px] truncate text-[12.5px] text-muted">
-            {b.remote_error}
-          </span>
-        )}
+        <PushError error={b.remote_error} />
+      </span>
+    );
+  }
+  if (loc === "other_target") {
+    const which = configured === true ? "set" : configured === false ? "unset" : "unknown";
+    return (
+      <span className="flex flex-col items-start gap-[2px]">
+        {b.local ? <Tag title={t.otherLocalTitles[which]}>{t.locations.machine}</Tag> : <Tag title={t.otherTitles[which]}>{t.locations.other_target}</Tag>}
+        <PushError error={b.remote_error} />
       </span>
     );
   }
@@ -149,14 +171,19 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
     );
   }
 
-  const whereColumn: Column<Backup> = { header: t.colWhere, cell: (b) => <Where b={b} /> };
+  const whereColumn: Column<Backup> = { header: t.colWhere, cell: (b) => <Where b={b} configured={targetConfigured} /> };
+  const pathColumn: Column<Backup> = { header: t.colPath, nowrap: false, className: "min-w-[200px]", cell: (b) => <MonoText size={12} muted>{b.path}</MonoText> };
 
   return (
     <TableList
       title={t.listHeading}
       titleId="backup-list"
       caption={t.tableName}
-      minWidth={where ? 1160 : 1040}
+      // Cột "Ở đâu" thay chỗ cột "Đường dẫn" chứ không thêm vào: thêm vào thì bảng
+      // cần 1160 px, rộng hơn khung nội dung ở 1440 × 900 (khoảng 1144 px), và cột
+      // Việc bị đẩy ra ngoài, phải cuộn ngang mới thấy nút. Đường dẫn là cột rộng
+      // nhất, và với bản chỉ còn trên kho thì đường dẫn trên máy không còn nghĩa.
+      minWidth={1040}
       rows={rows}
       rowKey={(b) => b.id}
       empty={filter ? t.emptyFor(filter) : t.emptyAll}
@@ -198,7 +225,7 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
         { header: t.colSize, align: "right", cell: (b) => formatSize(b.size, lang) },
         ...(where ? [whereColumn] : []),
         { header: t.colSha, cell: (b) => <Sha sha={b.sha256} /> },
-        { header: t.colPath, nowrap: false, className: "min-w-[200px]", cell: (b) => <MonoText size={12} muted>{b.path}</MonoText> },
+        ...(where ? [] : [pathColumn]),
         {
           header: t.colAction,
           align: "right",

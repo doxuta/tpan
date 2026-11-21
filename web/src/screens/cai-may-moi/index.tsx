@@ -10,8 +10,9 @@
 // BÍ MẬT: admin_password chỉ có một lần trong câu trả lời. Nó chỉ nằm trong
 // state của component: useMutation (không useQuery, nên không có queryKey),
 // gcTime 0 và reset() ngay khi đã chép sang state, để MutationCache không giữ
-// bản nào; không localStorage, không địa chỉ trang, không console. Rời trang là
-// mất; đường dự phòng là `sudo tpan admin passwd` trên máy mới.
+// bản nào; không localStorage, không địa chỉ trang, không console. Bấm "Đã lưu,
+// ẩn đi" thì nó bị bỏ khỏi state; rời trang cũng mất. Đường dự phòng là
+// `sudo tpan admin passwd` trên máy mới.
 //
 // Id ổn định cho e2e: form#ci-form, #ci-private, #ci-base, #ci-sha-amd64,
 // #ci-sha-arm64, #ci-site-<thứ tự>, #ci-email, nút gửi `#ci-form button[type=submit]`.
@@ -43,8 +44,11 @@ const groupLabel = "mb-[6px] text-[14px] font-medium";
 /** User quản trị mà lần khởi động đầu đặt mật khẩu (store.adminName); là dữ liệu, không dịch. */
 const adminUser = "admin";
 
-/** Kết quả của lần sinh gần nhất; withSites để biết có nhắc file mật khẩu WordPress không. */
-type Result = { res: CloudInitResponse; withSites: boolean };
+/**
+ * Kết quả của lần sinh gần nhất; withSites để biết có nhắc file mật khẩu WordPress không.
+ * admin_password vắng là người dùng đã bấm ẩn: lúc đó nó bị bỏ khỏi state luôn.
+ */
+type Result = { res: Omit<CloudInitResponse, "admin_password"> & { admin_password?: string }; withSites: boolean };
 
 export default function CaiMayMoi() {
   const t = useStrings(strings);
@@ -63,7 +67,8 @@ export default function CaiMayMoi() {
   /** Đã bấm gửi ít nhất một lần: từ đó mới hiện lỗi dưới ô, và lỗi tự mất khi sửa đúng. */
   const [tried, setTried] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
-  const [pwHidden, setPwHidden] = useState(false);
+  /** "Đã lưu, ẩn đi": thay kết quả bằng bản không có mật khẩu, để bí mật dùng một lần không nằm lại trong state tới lúc rời trang. */
+  const hidePassword = () => setResult((r) => r && { ...r, res: { user_data: r.res.user_data, bytes: r.res.bytes } });
 
   const gen = useMutation({
     mutationFn: (body: CloudInitRequest) => post<CloudInitResponse>(cloudInitRenderPath, body),
@@ -94,7 +99,6 @@ export default function CaiMayMoi() {
     gen.mutate(body, {
       onSuccess: (res) => {
         setResult({ res, withSites: body.sites !== null });
-        setPwHidden(false);
         // Câu trả lời đã nằm trong state: bỏ bản trong MutationCache ngay (gcTime 0 thì nó bị xoá liền).
         gen.reset();
       },
@@ -227,7 +231,7 @@ export default function CaiMayMoi() {
 
       {result && (
         <section aria-label={t.resultHeading} className="flex max-w-[560px] flex-col gap-[20px]">
-          {pwHidden ? <p className="m-0 text-muted">{t.secretHidden}</p> : <PasswordBox password={result.res.admin_password} onDismiss={() => setPwHidden(true)} />}
+          {result.res.admin_password === undefined ? <p className="m-0 text-muted">{t.secretHidden}</p> : <PasswordBox password={result.res.admin_password} onDismiss={hidePassword} />}
           <UserData res={result.res} />
           <HowTo withSites={result.withSites} />
         </section>
@@ -303,7 +307,7 @@ function SecretRow({ label, value, mono = true }: { label: string; value: string
   );
 }
 
-function UserData({ res }: { res: CloudInitResponse }) {
+function UserData({ res }: { res: Pick<CloudInitResponse, "user_data" | "bytes"> }) {
   const t = useStrings(strings);
   const k = useStrings(khung);
   const { state, copy } = useCopy();

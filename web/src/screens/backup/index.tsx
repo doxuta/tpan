@@ -8,8 +8,9 @@
 //
 // M18 thêm hai việc với kho ngoài máy, cũng đi qua bản xem trước: "Đẩy lên kho"
 // (máy chủ nhận vào hàng chờ, không có job_id nên màn hiện câu `note` của máy
-// chủ) và "Tải về máy" (thường có job_id; không có thì bảng tự tải lại mỗi 3
-// giây tới khi dòng hết là "chỉ trên kho", tối đa 2 phút). Khôi phục một bản chỉ
+// chủ) và "Tải về máy" (thường có job_id; không có thì một lượt đẩy đang giữ
+// khoá kho, và bảng tự tải lại mỗi 15 giây tới khi dòng hết là "chỉ trên kho",
+// tối đa 30 phút). Khôi phục một bản chỉ
 // còn trên kho thì hỏi tải về trước; tải xong màn chỉ báo, không tự khôi phục,
 // vì khôi phục ghi đè site nên người dùng phải tự xem bản xem trước của nó.
 

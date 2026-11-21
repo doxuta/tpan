@@ -3,10 +3,15 @@
 //
 //   - "Khôi phục" một bản chỉ còn trên kho: admin được hỏi tải về trước (hộp
 //     thoại), user thường được nhắn nhờ admin; không bên nào gọi API khôi phục,
-//     vì máy chủ sẽ từ chối backup_not_on_machine.
-//   - Sau khi chạy "Đẩy lên kho" hay "Tải về máy": câu `note` của máy chủ khi
-//     không có job_id; tải về không có job_id thì bảng tự hỏi lại mỗi 3 giây
-//     (tối đa 2 phút) tới khi dòng hết là "chỉ trên kho".
+//     vì máy chủ sẽ từ chối backup_not_on_machine. Bản chỉ còn ở một kho khác
+//     (sau khi gỡ hay đổi đích) cũng không gọi API: máy chủ sẽ từ chối kèm lệnh
+//     `sudo` mà user thường không chạy được; màn nói thẳng phải làm gì.
+//   - Sau khi chạy "Đẩy lên kho": câu `note` của máy chủ (đã xếp hàng). Tải về
+//     không có job_id (một lượt đẩy đang giữ khoá kho, có thể tới 30 phút): câu
+//     chờ của màn, và bảng tự hỏi lại mỗi 15 giây (tối đa 30 phút) tới khi dòng
+//     hết là "chỉ trên kho". Hai câu này không mang dấu đạt: việc chưa xong.
+//     Tải về hỏng trước khi job bắt đầu thì máy chủ trả lỗi ngay, và bản xem
+//     trước hiện lỗi đó như mọi lần chạy lỗi khác.
 //   - Tải về do khôi phục xong (dòng thành "máy và kho") thì báo "Đã tải về".
 //     Không tự chạy khôi phục: nó ghi đè site nên người dùng phải tự xem bản xem
 //     trước của nó.
@@ -36,7 +41,11 @@ export type Started = Partial<JobStarted & QueuedResponse>;
 /** Hai việc kho. fromRestore: tải về do người bấm "Khôi phục" một bản chỉ còn trên kho. */
 export type StorageReq = { action: "push"; backup: Backup } | { action: "pull"; backup: Backup; fromRestore?: boolean };
 
-type Msg = { kind: "pass" | "warn"; text: string };
+/**
+ * info: không dấu, cho việc mới xếp hàng hay đang chờ. Chấm xanh chỉ để nói "đạt"
+ * (mục 2 của GIAO-DIEN.md), còn Notice chưa có dấu "chưa kiểm được".
+ */
+type Msg = { kind: "info" | "warn"; text: string };
 
 export function useStorageFlow(askPull: (backup: Backup) => void) {
   const t = useStrings(strings);
@@ -70,13 +79,17 @@ export function useStorageFlow(askPull: (backup: Backup) => void) {
     poll: (query: { state: { data?: BackupsOverview } }) => pullPoll(query.state.data?.items, watch, Date.now()),
 
     /**
-     * Bấm "Khôi phục" một hàng. true: đã xử lý (bản chỉ còn trên kho), người gọi đừng gọi API khôi phục.
-     * Bản "kho khác" trả false: vẫn gọi như cũ, máy chủ nói đặt lại đích nào.
+     * Bấm "Khôi phục" một hàng. true: đã xử lý (bản không có trên máy), người gọi đừng gọi API khôi phục.
+     * Bản "kho khác" mà file còn trên máy trả false: khôi phục chạy được như bản thường.
      */
     restore(backup: Backup): boolean {
-      if (backup.location !== "remote") return false;
+      const elsewhere = backup.location === "other_target" && !backup.local;
+      if (backup.location !== "remote" && !elsewhere) return false;
       setAwaiting(null);
-      if (isAdmin) {
+      if (elsewhere) {
+        // Không có nút tải về cho bản này: phải đặt lại đúng đích cũ trước.
+        setMsg({ kind: "warn", text: isAdmin ? t.otherTargetSetAgain : t.otherTargetAskAdmin });
+      } else if (isAdmin) {
         setMsg(null);
         setPullFirst(backup);
       } else {
@@ -87,7 +100,9 @@ export function useStorageFlow(askPull: (backup: Backup) => void) {
 
     /** Sau khi chạy thật một việc kho (202). */
     ran(req: StorageReq, res: Started) {
-      if (req.action === "push" || !res.job_id) setMsg({ kind: "pass", text: tx(res.note, lang) || t.queued });
+      if (req.action === "push") setMsg({ kind: "info", text: tx(res.note, lang) || t.queued });
+      // Câu chờ viết ở màn chứ không lấy `note` của máy chủ, để khớp đúng hạn tự tải lại của bảng (pullPollWindowMs).
+      else if (!res.job_id) setMsg({ kind: "info", text: t.pullWaiting });
       if (req.action === "pull") {
         if (!res.job_id) setWatch({ id: req.backup.id, until: Date.now() + pullPollWindowMs });
         if (req.fromRestore) setAwaiting(req.backup.id);
@@ -124,11 +139,18 @@ export function useStorageFlow(askPull: (backup: Backup) => void) {
               {t.pulled}
             </Notice>
           )}
-          {msg && (
+          {/* Đã tải về thì câu chờ cũ ("đang chờ… bấm lại") nói sai, nên ẩn đi. */}
+          {msg && !pulled && (
             <div ref={msgRef} tabIndex={-1} className="outline-offset-0">
-              <Notice kind={msg.kind} role="status">
-                {msg.text}
-              </Notice>
+              {msg.kind === "info" ? (
+                <p role="status" className="m-0 max-w-[72ch]">
+                  {msg.text}
+                </p>
+              ) : (
+                <Notice kind={msg.kind} role="status">
+                  {msg.text}
+                </Notice>
+              )}
             </div>
           )}
         </>
