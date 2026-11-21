@@ -153,6 +153,37 @@ func TestChmodDirsThuMucConBiTrao(t *testing.T) {
 	}
 }
 
+// backupPublic: public là symlink hay không phải thư mục thì trả lỗi của cửa
+// (*sitefs.Error), để API ra 409 site_path_unsafe chứ không 500 (soát cuối
+// M28, C14: máy ảo ra 500 internal cho backup và khôi phục dry-run).
+func TestBackupPublicLoiCuaCua(t *testing.T) {
+	owner := system.Owner{User: "tp_e_1", Group: site.WebGroup}
+	src := "/var/www/e.example.com"
+	for _, tc := range []struct {
+		name string
+		set  func(f *system.FakeSystem)
+		want error
+	}{
+		{"symlink", func(f *system.FakeSystem) { f.SetSymlink("/var/www/a.example.com/public", src+"/public") }, sitefs.ErrSymlink},
+		{"file", func(f *system.FakeSystem) { f.SetFile(src+"/public", []byte("x"), 0o640, owner) }, syscall.ENOTDIR},
+	} {
+		f := system.NewFake()
+		f.SetDir(src, fs.ModeSetgid|0o750, owner)
+		f.SetDir("/var/www/a.example.com/public", fs.ModeSetgid|0o750, system.Owner{User: "tp_a_1", Group: site.WebGroup})
+		tc.set(f)
+		_, err := backupPublic(f, src)
+		var se *sitefs.Error
+		if !errors.As(err, &se) || !errors.Is(err, tc.want) {
+			t.Errorf("%s: err = %v, muốn *sitefs.Error bọc %v", tc.name, err, tc.want)
+		}
+	}
+	f := system.NewFake()
+	f.SetDir(src+"/public", fs.ModeSetgid|0o750, owner)
+	if p, err := backupPublic(f, src); err != nil || p != src+"/public" {
+		t.Errorf("public là thư mục thật: %q, %v", p, err)
+	}
+}
+
 // File.Check không đọc file khác cỡ: file trong thư mục site do site ghi nên
 // có thể lớn tuỳ ý.
 type m28CountSys struct {
