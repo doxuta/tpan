@@ -285,6 +285,72 @@ func (s *LocalSystem) WriteFileAtomic(path string, data []byte, perm fs.FileMode
 	return nil
 }
 
+// OpenRead mở file bằng O_NOFOLLOW (thành phần cuối là symlink thì open lỗi
+// ELOOP) rồi fstat trên chính fd đã mở: không có khoảng hở giữa lúc kiểm và
+// lúc đọc để ai tráo file.
+func (s *LocalSystem) OpenRead(path string) (io.ReadCloser, int64, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		if errors.Is(err, syscall.ELOOP) {
+			return nil, 0, fmt.Errorf("mở %s để đọc: là symlink, không đi theo: %w", path, err)
+		}
+		return nil, 0, fmt.Errorf("mở %s để đọc: %w", path, err)
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		_ = f.Close()
+		return nil, 0, fmt.Errorf("stat %s: %w", path, err)
+	}
+	if !fi.Mode().IsRegular() {
+		_ = f.Close()
+		return nil, 0, fmt.Errorf("mở %s để đọc: không phải file thường (%v)", path, fi.Mode().Type())
+	}
+	return f, fi.Size(), nil
+}
+
+// CreateFile tạo file mới bằng O_CREAT|O_EXCL|O_NOFOLLOW (đã có, kể cả là
+// symlink, thì lỗi EEXIST), đặt quyền và chủ trên fd trước byte đầu tiên.
+func (s *LocalSystem) CreateFile(path string, perm fs.FileMode, owner Owner) (io.WriteCloser, error) {
+	uid, gid, err := lookupOwner(owner)
+	if err != nil {
+		return nil, fmt.Errorf("tạo %s: %w", path, err)
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL|syscall.O_NOFOLLOW, 0o600)
+	if err != nil {
+		return nil, fmt.Errorf("tạo %s: %w", path, err)
+	}
+	// Chmod tường minh vì umask cắt quyền lúc tạo.
+	if err := f.Chmod(perm); err != nil {
+		_ = f.Close()
+		_ = os.Remove(path)
+		return nil, fmt.Errorf("chmod %s: %w", path, err)
+	}
+	if err := f.Chown(uid, gid); err != nil {
+		_ = f.Close()
+		_ = os.Remove(path)
+		return nil, fmt.Errorf("chown %s: %w", path, err)
+	}
+	return &syncFile{f: f}, nil
+}
+
+// syncFile fsync rồi mới đóng: tải về xong mà mất điện thì không ra file rỗng
+// mang tên thật (người gọi đổi tên sau Close).
+type syncFile struct{ f *os.File }
+
+func (w *syncFile) Write(p []byte) (int, error) { return w.f.Write(p) }
+
+func (w *syncFile) Close() error {
+	serr := w.f.Sync()
+	cerr := w.f.Close()
+	if serr != nil {
+		return fmt.Errorf("fsync %s: %w", w.f.Name(), serr)
+	}
+	if cerr != nil {
+		return fmt.Errorf("đóng %s: %w", w.f.Name(), cerr)
+	}
+	return nil
+}
+
 func (s *LocalSystem) ReadFile(path string) ([]byte, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {

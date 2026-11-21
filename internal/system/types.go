@@ -36,7 +36,8 @@
 //	// Lệnh không khớp handler nào: ExitCode 0, output rỗng.
 //	func (f *FakeSystem) Handle(prefix []string, fn func(cmd Cmd) Result)
 //	// Fail làm cho thao tác op trên đúng đường dẫn path trả về err.
-//	// op là một trong: "write", "remove", "rename", "mkdir", "symlink", "chown", "chmod".
+//	// op là một trong: "write" (cả CreateFile), "open" (OpenRead), "remove",
+//	// "rename", "mkdir", "symlink", "chown", "chmod".
 //	func (f *FakeSystem) Fail(op, path string, err error)
 //	// Ran trả về các lệnh đã gọi qua Run, theo thứ tự.
 //	func (f *FakeSystem) Ran() []Cmd
@@ -49,6 +50,7 @@ package system
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"strings"
@@ -121,6 +123,27 @@ type System interface {
 	// /run/tpan/tpan.lock (tạo thư mục nếu thiếu); FakeSystem dùng mutex.
 	// Chờ tới khi lấy được khoá hoặc ctx bị huỷ. Gọi unlock đúng một lần.
 	Lock(ctx context.Context) (unlock func(), err error)
+
+	// Streamer (M18): đọc ghi file theo dòng, cho file vài GB (bản sao lưu
+	// tải lên, tải về kho S3) mà ReadFile, WriteFileAtomic giữ cả trong bộ nhớ.
+	Streamer
+}
+
+// Streamer là phần đọc ghi theo dòng của System (M18, mục 3.1 của
+// docs/thay-doi/M18-thiet-ke.md).
+type Streamer interface {
+	// OpenRead mở một file thường để đọc tuần tự và trả cỡ của nó lúc mở.
+	// Thành phần cuối của path là symlink, hoặc không phải file thường: lỗi
+	// (LocalSystem mở bằng O_NOFOLLOW rồi fstat). Không có: lỗi thoả
+	// errors.Is(err, fs.ErrNotExist). Người gọi đóng r.
+	OpenRead(path string) (r io.ReadCloser, size int64, err error)
+	// CreateFile tạo file MỚI để ghi tuần tự, với quyền perm và chủ owner
+	// (đặt ngay lúc tạo, trước byte đầu tiên). Đã có (kể cả là symlink): lỗi
+	// thoả errors.Is(err, fs.ErrExist); không bao giờ ghi đè hay đi theo
+	// symlink (O_CREAT|O_EXCL). Thư mục cha phải có sẵn. Close đồng bộ xuống
+	// đĩa (fsync) rồi mới đóng; lỗi của Close là lỗi ghi. Ghi lỗi giữa chừng
+	// thì file dở vẫn nằm đó: người gọi tự Remove.
+	CreateFile(path string, perm fs.FileMode, owner Owner) (io.WriteCloser, error)
 }
 
 // Cmd là một lệnh sẽ chạy. Không có trường nào nhận cả câu lệnh shell.
