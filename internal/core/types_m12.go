@@ -22,6 +22,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -256,7 +257,11 @@ func (p *Planned) Execute(ctx context.Context, onEvent func(engine.Event)) (engi
 			return engine.Report{}, fmt.Errorf("%s: lấy khoá lượt đẩy: %w", p.Plan.Kind, err)
 		}
 		if !ok {
-			return engine.Report{}, fmt.Errorf("%s: một lượt đẩy lên kho đang chạy quá %s; thử lại sau", p.Plan.Kind, p.remoteWait)
+			// Cùng mã với khoá job bận (409 ở API): người gọi chỉ cần biết
+			// "đang có việc khác, thử lại sau".
+			return engine.Report{}, refuse("job_running", i18n.T(
+				"một lượt đẩy lên kho đang chạy (đã chờ "+p.remoteWait.String()+"); chờ nó xong rồi thử lại",
+				"a storage upload run is in progress (waited "+p.remoteWait.String()+"); wait for it to finish, then try again"))
 		}
 		defer unlock()
 	}
