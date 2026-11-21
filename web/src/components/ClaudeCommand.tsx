@@ -8,6 +8,7 @@
 // prompt đã theo ngôn ngữ giao diện: nơi gọi tự lấy từ i18n/agent.ts.
 
 import { Button } from "./Button";
+import { Disclosure } from "./Disclosure";
 import { EvidenceBlock } from "./EvidenceBlock";
 import { useCopy } from "./useCopy";
 import { useStrings } from "../i18n";
@@ -33,18 +34,23 @@ export function ClaudeCommand({ prompt }: { prompt: string }) {
   const k = useStrings(khung);
   const { state, copy } = useCopy();
   const cmd = claudeCommand(prompt);
+  // Đóng sẵn: lệnh cho Claude Code là đường phụ, không chiếm chỗ của thẻ chứa nó.
   return (
     <div className="mt-[12px]">
-      <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px]">
-        <Button onClick={() => copy(cmd)}>{t.claudeCopy}</Button>
-        <span aria-live="polite" className={`text-[12px] ${state === "idle" ? "sr-only" : "text-muted"}`}>
-          {state === "copied" ? k.copied : state === "failed" ? k.copyFailed : ""}
-        </span>
-      </div>
-      <div className="mt-[8px]">
-        <EvidenceBlock text={cmd} label={t.claudeLabel} />
-      </div>
-      <p className="mt-[6px] mb-0 text-[12px] text-muted">{t.claudeHint}</p>
+      <Disclosure flush summary={<span className="text-[14px] font-medium">{t.claudeCopy}</span>}>
+        <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px]">
+          <Button icon="copy" onClick={() => copy(cmd)}>
+            {t.claudeCopy}
+          </Button>
+          <span aria-live="polite" className={`text-[12px] ${state === "idle" ? "sr-only" : "text-muted"}`}>
+            {state === "copied" ? k.copied : state === "failed" ? k.copyFailed : ""}
+          </span>
+        </div>
+        <div className="mt-[8px]">
+          <EvidenceBlock text={cmd} label={t.claudeLabel} />
+        </div>
+        <p className="mt-[6px] mb-0 text-[12px] text-muted">{t.claudeHint}</p>
+      </Disclosure>
     </div>
   );
 }

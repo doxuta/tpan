@@ -16,6 +16,7 @@ import { useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/khung";
 import { Button } from "./Button";
 import { Dialog } from "./Dialog";
+import { Checkbox } from "./Field";
 import { useJobTracker } from "./JobTracker";
 
 export type Selection = {
@@ -54,15 +55,14 @@ export function useSelection(available: string[]): Selection {
   };
 }
 
-const boxClass = "h-[18px] w-[18px] cursor-pointer accent-[var(--color-ink)]";
-
 export function SelectAll({ sel, label }: { sel: Selection; label: string }) {
   return (
     <input
       type="checkbox"
       aria-label={label}
       title={label}
-      className={boxClass}
+      // Cùng kiểu với Checkbox (Field.tsx); không dùng Checkbox được vì ô này cần ref để đặt trạng thái "một phần".
+      className="size-[16px] flex-none cursor-pointer accent-[var(--accent)] max-sm:size-[20px]"
       checked={sel.all}
       ref={(el) => {
         if (el) el.indeterminate = sel.some;
@@ -73,7 +73,7 @@ export function SelectAll({ sel, label }: { sel: Selection; label: string }) {
 }
 
 export function SelectOne({ sel, id, label }: { sel: Selection; id: string; label: string }) {
-  return <input type="checkbox" aria-label={label} className={boxClass} checked={sel.has(id)} onChange={() => sel.toggle(id)} />;
+  return <Checkbox label={label} checked={sel.has(id)} onChange={() => sel.toggle(id)} />;
 }
 
 export type BulkAction = {
@@ -124,7 +124,8 @@ export function BulkBar({ sel, actions, unit }: { sel: Selection; actions: BulkA
   }
 
   return (
-    <div className="mb-[12px] flex flex-wrap items-center gap-[10px] border border-ink bg-surface px-[12px] py-[10px]">
+    // mx và mb: dải nằm trong thẻ bảng (prop `above` của TableList), nên cách mép thẻ 16 px và cách hàng đầu 12 px.
+    <div className="mx-[16px] mb-[12px] flex flex-wrap items-center gap-[10px] rounded-ctl bg-accent-tint px-[12px] py-[8px]">
       {running && progress ? (
         <span role="status" className="text-[14px] font-medium">
           {t.bulkRunning(progress.done, progress.total)}
@@ -141,13 +142,18 @@ export function BulkBar({ sel, actions, unit }: { sel: Selection; actions: BulkA
       {!running &&
         sel.ids.length > 0 &&
         actions.map((a) => (
-          <Button key={a.key} variant={a.primary ? "primary" : "secondary"} onClick={() => setAsking(a)}>
+          <Button key={a.key} size="sm" variant={a.primary ? "primary" : "secondary"} onClick={() => setAsking(a)}>
             {a.label(sel.ids.length)}
           </Button>
         ))}
-      {!running && sel.ids.length > 0 && <Button onClick={sel.clear}>{t.bulkClear}</Button>}
+      {!running && sel.ids.length > 0 && (
+        <Button size="sm" onClick={sel.clear}>
+          {t.bulkClear}
+        </Button>
+      )}
       {!running && progress && sel.ids.length === 0 && (
         <Button
+          size="sm"
           onClick={() => {
             setProgress(null);
             setError(null);
@@ -167,7 +173,7 @@ export function BulkBar({ sel, actions, unit }: { sel: Selection; actions: BulkA
           onConfirm={() => void start(asking)}
         >
           <div className="text-[14px]">{asking.confirmBody}</div>
-          <ul className="mt-[10px] mb-0 max-h-[240px] overflow-y-auto pl-[18px] font-mono text-[13px]">
+          <ul className="mt-[10px] mb-0 max-h-[240px] overflow-y-auto pl-[18px] text-[14px]">
             {sel.ids.map((id) => (
               <li key={id} className="[overflow-wrap:anywhere]">
                 {id}
