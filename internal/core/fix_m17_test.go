@@ -58,11 +58,19 @@ func TestAutoFixNameM17(t *testing.T) {
 		{"gói muốn, site ngoài", false, true, false, checks.Warn, FixCageEnable},
 		{"gói không muốn, site trong", true, false, true, checks.Warn, FixCageDisable},
 		{"khớp", true, true, true, checks.Pass, ""},
+		{"caged=1 mất passwd riêng", true, true, true, checks.Fail, FixCageEnable},
 	} {
 		m := system.NewFake()
 		m.SetDir("/etc/php/8.3/fpm/pool.d", 0o755, system.Root)
-		if tc.fence {
-			m.SetFile(l.CageFence(), []byte("[Service]\n"), 0o644, system.Root)
+		if tc.fence { // hàng rào có thì đủ bảy file của lồng (cage.state đòi cả bảy)
+			for _, p := range l.CageFiles() {
+				m.SetFile(p, []byte("[Service]\n"), 0o644, system.Root)
+			}
+		}
+		if tc.name == "caged=1 mất passwd riêng" {
+			if err := m.Remove(l.CagePasswd()); err != nil {
+				t.Fatal(err)
+			}
 		}
 		r := checks.CageState(l, tc.caged, tc.want).Run(ctx, m)
 		if r.Status != tc.status {

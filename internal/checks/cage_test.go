@@ -327,6 +327,14 @@ func TestCageRuntimeFail(t *testing.T) {
 		}, "/run/systemd/resolve trỏ vào thư mục đã bị xoá"},
 		// useradd, userdel trên máy thay /etc/passwd bằng rename: kernel gỡ dòng
 		// gắn trong namespace của dịch vụ đang chạy (e2e M17).
+		// Crontab riêng do site cài lúc còn ở pool chung: cron chạy nó ngoài lồng (N3).
+		{"user của site có crontab riêng", func(f *system.FakeSystem) {
+			f.SetFile("/var/spool/cron/crontabs/"+l.User, []byte("* * * * * sleep 55\n"), 0o600, system.Root)
+		}, "có crontab riêng"},
+		{"crontab riêng khi lồng đang ngủ", func(f *system.FakeSystem) {
+			f.SetFile("/var/spool/cron/crontabs/"+l.User, []byte("* * * * * sleep 55\n"), 0o600, system.Root)
+			reply(f, []string{"systemctl", "show"}, 0, "MainPID=0\nActiveEnterTimestamp=\n", "")
+		}, "có crontab riêng"},
 		{"mất dòng gắn passwd riêng", func(f *system.FakeSystem) {
 			f.SetFile(mainFile("mountinfo"), []byte(cageDropLine(rtMountOK, " /etc/passwd ")), 0o444, system.Root)
 		}, "không còn dòng gắn " + l.CagePasswd() + " lên /etc/passwd"},
@@ -861,8 +869,10 @@ func TestCageLimitsUnknown(t *testing.T) {
 
 func stateFixture(l site.Layout, fence bool, pools ...string) *system.FakeSystem {
 	f := system.NewFake()
-	if fence {
-		f.SetFile(l.CageFence(), []byte("[Service]\n"), 0o644, system.Root)
+	if fence { // có hàng rào thì có đủ bảy file của lồng
+		for _, p := range l.CageFiles() {
+			f.SetFile(p, []byte("[Service]\n"), 0o644, system.Root)
+		}
 	}
 	for _, v := range pools {
 		f.SetFile("/etc/php/"+v+"/fpm/pool.d/"+l.Pool+".conf", []byte("[pool]\n"), 0o644, system.Root)
@@ -915,9 +925,32 @@ func TestCageState(t *testing.T) {
 			}
 		})
 	}
+	// Mất passwd riêng (hay bất kỳ file nào của lồng): dịch vụ chết 226 mãi, site
+	// 502; cage.state phải chỉ ra và đưa cách sửa chạy lại cage enable (V4).
+	for _, lostFile := range l.CageFiles() {
+		if lostFile == l.CageFence() {
+			continue
+		}
+		t.Run("trong lồng mà thiếu "+lostFile, func(t *testing.T) {
+			f := stateFixture(l, true)
+			if err := f.Remove(lostFile); err != nil {
+				t.Fatal(err)
+			}
+			r := CageState(l, true, true).Run(bg(), f)
+			assertShape(t, r, id, StagePHP, Fail)
+			if !strings.Contains(r.Summary.Vi, "thiếu file của lồng "+lostFile) {
+				t.Errorf("Summary = %q", r.Summary.Vi)
+			}
+			if len(r.ManualFix) == 0 || r.ManualFix[0] != "tpan cage enable shop.example.com" {
+				t.Errorf("ManualFix = %q", r.ManualFix)
+			}
+		})
+	}
 	t.Run("không có /etc/php thì không có pool chung", func(t *testing.T) {
 		f := system.NewFake()
-		f.SetFile(l.CageFence(), []byte("x"), 0o644, system.Root)
+		for _, p := range l.CageFiles() {
+			f.SetFile(p, []byte("x"), 0o644, system.Root)
+		}
 		assertShape(t, CageState(l, true, true).Run(bg(), f), id, StagePHP, Pass)
 	})
 	t.Run("site ngoài lồng không bị đọc /etc/php", func(t *testing.T) {

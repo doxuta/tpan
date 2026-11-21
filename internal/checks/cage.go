@@ -371,6 +371,21 @@ func CageRuntime(l site.Layout) Check {
 			recheck = psCmd
 		}
 
+		// Crontab riêng của user của site: cron (root) chạy nó dưới uid của site
+		// ngoài hàng rào, ngoài slice, mỗi lần tới giờ, kể cả khi lồng đang ngủ
+		// (soát cuối M17, N3). tpan không dùng crontab của user (việc định kỳ ở
+		// /etc/cron.d), nên có file này là site đã tự cài lúc còn ở pool chung.
+		tab := "/var/spool/cron/crontabs/" + l.User
+		_, tabEv, tabMissing, err := siteStat(sys, tab)
+		evs = append(evs, tabEv)
+		switch {
+		case err != nil:
+			unclear = append(unclear, "could not stat "+tab+": "+err.Error())
+		case !tabMissing:
+			fails.add("user "+l.User+" có crontab riêng ("+tab+"): cron chạy nó ngoài lồng", "user "+l.User+" has its own crontab ("+tab+"): cron runs it outside the cage")
+			fixes = append(fixes, line("crontab", "-r", "-u", l.User))
+		}
+
 		// 2. Dịch vụ có đang chạy không, từ khi nào.
 		showRes, showEv, err := execCmd(ctx, sys, system.Cmd{Name: "systemctl",
 			Args: []string{"show", "--timestamp=unix", "-p", "MainPID", "-p", "ActiveEnterTimestamp", svc}})
@@ -858,7 +873,7 @@ func cageSwapVi(n int64) string {
 
 // CageState: "cage.state:<domain>", chặng PHP. caged là sites.caged, want là
 // cờ lồng của gói. (a) want khác caged: Warn. (b) caged mà thiếu file hàng rào
-// (l.CageFence()) hoặc còn file pool chung (/etc/php/*/fpm/pool.d/<pool>.conf,
+// (l.CageFence()) hay một file khác của l.CageFiles(), hoặc còn file pool chung (/etc/php/*/fpm/pool.d/<pool>.conf,
 // đọc bằng ReadDir từng bản); hoặc không caged mà còn file hàng rào: Fail.
 // Core sinh phép này cho site có caged, want, hoặc có file hàng rào.
 //
@@ -886,6 +901,27 @@ func CageState(l site.Layout, caged, want bool) Check {
 			return siteStatUnknown(b, fence, err, fenceEv)
 		}
 		evs := []Evidence{fenceEv}
+
+		// Site trong lồng: đủ bảy file của lồng (l.CageFiles()), không chỉ hàng
+		// rào. Thiếu passwd hay group riêng thì dịch vụ chết 226/NAMESPACE mãi
+		// (RestartSec=5s nên không bao giờ vào failed), site 502, mà các phép
+		// kiểm khác đều không chỉ ra (soát cuối M17, V4). Hàng rào đã kiểm ở trên.
+		var lost []string
+		if caged && !fenceMissing {
+			for _, f := range l.CageFiles() {
+				if f == fence {
+					continue
+				}
+				_, ev, missing, err := siteStat(sys, f)
+				if err != nil {
+					return siteStatUnknown(b, f, err, append(evs, ev)...)
+				}
+				if missing {
+					lost = append(lost, f)
+					evs = append(evs, ev)
+				}
+			}
+		}
 
 		var shared []string
 		if caged { // chỉ cần biết pool chung khi site đang là "caged"
@@ -921,6 +957,9 @@ func CageState(l site.Layout, caged, want bool) Check {
 		switch {
 		case caged && fenceMissing:
 			fail.add("site ở trong lồng (caged=1) nhưng thiếu file hàng rào "+fence, "the site is caged (caged=1) but the fence file "+fence+" is missing")
+			fixes = append(fixes, line("tpan", "cage", "enable", dom))
+		case len(lost) > 0:
+			fail.add("site ở trong lồng (caged=1) nhưng thiếu file của lồng "+strings.Join(lost, ", "), "the site is caged (caged=1) but cage files are missing: "+strings.Join(lost, ", "))
 			fixes = append(fixes, line("tpan", "cage", "enable", dom))
 		case !caged && !fenceMissing:
 			fail.add("site không ở trong lồng (caged=0) nhưng còn file hàng rào "+fence, "the site is not caged (caged=0) but the fence file "+fence+" is still there")
