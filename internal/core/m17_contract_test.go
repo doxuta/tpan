@@ -6,6 +6,7 @@ package core
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/doxuta/tpan/internal/cage"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
+	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -92,6 +94,28 @@ func TestCageEnableStepsThuTu(t *testing.T) {
 	}
 	if len(ss) != 4+len(want) {
 		t.Fatalf("sau CageReap phải là đúng các bước vhost của lồng (%d), có %d bước", len(want), len(ss)-4)
+	}
+}
+
+// Bất biến 8: Isolated(from, to) chạy lệnh dưới user của "from" ở ngoài lồng,
+// nên không bao giờ sinh khi "from" ở trong lồng (t14 P4); chiều ngược lại (từ
+// site ngoài lồng sang site trong lồng) giữ nguyên.
+func TestIsolatedKhongSinhTuSiteTrongLong(t *testing.T) {
+	a := m17Site(t, "a.example.com")
+	a.Caged = true
+	b := m17Site(t, "b.example.com")
+	lim := account.Limits{}
+	ids := checkIDs(t, system.NewFake(), siteChecks(Nginx, "8.3", a, []site.Site{b}, &lim))
+	if slices.Contains(ids, "isolation:a.example.com:b.example.com") {
+		t.Errorf("site trong lồng a không được là phía chạy lệnh của Isolated: %v", ids)
+	}
+	if !slices.Contains(ids, "isolation:b.example.com:a.example.com") {
+		t.Errorf("thiếu Isolated từ site ngoài lồng b sang a: %v", ids)
+	}
+	// b ở ngoài lồng, a (trong lồng) là "others": chỉ chiều b → a.
+	ids = checkIDs(t, system.NewFake(), siteChecks(Nginx, "8.3", b, []site.Site{a}, nil))
+	if slices.Contains(ids, "isolation:a.example.com:b.example.com") || !slices.Contains(ids, "isolation:b.example.com:a.example.com") {
+		t.Errorf("siteChecks của b: muốn đúng chiều b → a, có %v", ids)
 	}
 }
 
