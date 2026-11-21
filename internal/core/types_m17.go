@@ -90,6 +90,9 @@ type ProbeStore interface {
 	StartProbeRun(ctx context.Context, r cage.ProbeRun) error
 	// FinishProbeRun đặt State ("done" hay "failed"), Finished và Report.
 	FinishProbeRun(ctx context.Context, id, state string, report []byte, at time.Time) error
+	// SaveProbeReport ghi báo cáo dở khi một lượt (ngoài hay trong lồng) vừa
+	// xong, State giữ "running" (mục 3.9: kết quả vào sổ ngay khi lượt xong).
+	SaveProbeReport(ctx context.Context, id string, report []byte) error
 	// MarkProbeCleaned đặt Cleaned = true.
 	MarkProbeCleaned(ctx context.Context, id string) error
 	// ProbeRun trả một dòng; ok=false khi không có.

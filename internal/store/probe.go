@@ -81,6 +81,18 @@ func (s *Store) FinishProbeRun(ctx context.Context, id, state string, report []b
 	return needRow(res, "lượt thử "+id, "kết thúc lượt thử "+id)
 }
 
+// SaveProbeReport ghi báo cáo đang dở của một lượt còn chạy (state giữ nguyên):
+// lượt ngoài lồng xong thì kết quả vào sổ ngay, lượt trong lồng hỏng hay panel
+// bị tắt sau đó thì kết quả lượt đầu vẫn còn (mục 3.9). Không có dòng thì
+// ErrNotFound.
+func (s *Store) SaveProbeReport(ctx context.Context, id string, report []byte) error {
+	res, err := s.db.ExecContext(ctx, "UPDATE probe_runs SET report = ? WHERE id = ?", string(report), id)
+	if err != nil {
+		return fmt.Errorf("ghi báo cáo dở của lượt thử %s: %w", id, err)
+	}
+	return needRow(res, "lượt thử "+id, "ghi báo cáo dở của lượt thử "+id)
+}
+
 // MarkProbeCleaned đặt Cleaned = true. Không có dòng thì ErrNotFound.
 func (s *Store) MarkProbeCleaned(ctx context.Context, id string) error {
 	res, err := s.db.ExecContext(ctx, "UPDATE probe_runs SET cleaned = 1 WHERE id = ?", id)

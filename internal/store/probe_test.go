@@ -15,6 +15,7 @@ import (
 var _ interface {
 	StartProbeRun(ctx context.Context, r cage.ProbeRun) error
 	FinishProbeRun(ctx context.Context, id, state string, report []byte, at time.Time) error
+	SaveProbeReport(ctx context.Context, id string, report []byte) error
 	MarkProbeCleaned(ctx context.Context, id string) error
 	ProbeRun(ctx context.Context, id string) (r cage.ProbeRun, ok bool, err error)
 	ProbeRuns(ctx context.Context, limit int) ([]cage.ProbeRun, error)
@@ -42,6 +43,19 @@ func TestSoPhepThuVongDoi(t *testing.T) {
 	if got.State != "running" || got.Cleaned || !got.Finished.IsZero() || got.Report != nil || !got.Started.Equal(t0) ||
 		got.DomainA != in.DomainA || got.DomainB != in.DomainB || got.Mode != "ngoai" {
 		t.Errorf("sau Start = %+v", got)
+	}
+
+	// Báo cáo dở (lượt ngoài lồng xong): State vẫn running, chưa có Finished.
+	part := []byte(`{"id":"0123456789abcdef","results":[{"path":"L1"}]}`)
+	if err := s.SaveProbeReport(ctx, in.ID, part); err != nil {
+		t.Fatal(err)
+	}
+	got, _, _ = s.ProbeRun(ctx, in.ID)
+	if got.State != "running" || !got.Finished.IsZero() || string(got.Report) != string(part) {
+		t.Errorf("sau SaveProbeReport = %+v", got)
+	}
+	if err := s.SaveProbeReport(ctx, "khong-co", part); !errors.Is(err, ErrNotFound) {
+		t.Errorf("SaveProbeReport không có dòng = %v, muốn ErrNotFound", err)
 	}
 
 	// Report là JSON; dạng []byte vào, []byte ra, nguyên văn.
