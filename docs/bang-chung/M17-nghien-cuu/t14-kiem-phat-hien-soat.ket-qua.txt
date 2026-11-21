@@ -1,0 +1,38 @@
+A trong lồng: HTTP 200
+
+## P4. /proc/<pid>/root của tiến trình cùng uid ngoài lồng
+  trong lồng thấy pid của sleep ngoài lồng: [37294]
+  ls /proc/37294/root/var/www: a.example.com b.example.com c.example.com d.example.com e.example.com f.example.com g.example.com h.example.com html i.example.com j.example.com 
+  ls /proc/37294/root/etc/nginx/sites-enabled: tpan-a.example.com.conf tpan-b.example.com.conf tpan-c.example.com.conf tpan-d.example.com.conf tpan-default.conf tpan-e.example.com.conf tpan-f.example.com.conf tpan-g.example.com.conf tpan-h.example.com.conf tpan-i.example.com.conf tpan-j.example.com.conf 
+  đã giữ fd 3; chờ sleep ngoài lồng thoát...
+  sleep đã thoát; ls /proc/self/fd/3/var/www: a.example.com b.example.com c.example.com d.example.com e.example.com f.example.com g.example.com h.example.com html i.example.com j.example.com 
+  ghi được vào /proc/self/fd/3/tmp: CO
+  file /tmp/tpan-p4-thu ở máy thật: CO
+  kernel.yama.ptrace_scope=1
+
+## P5. /proc/self/net trong lồng
+  số dòng có "tpan" trong /proc/self/net/unix: 17
+    /run/php/tpan-a_example_com_7653e4-8.3.sock
+    /run/php/tpan-b_example_com_cd59d5-8.3.sock
+    /run/php/tpan-c_example_com_6e5b26-8.3.sock
+    /run/php/tpan-d_example_com_316ffc-8.3.sock
+    /run/php/tpan-e_example_com_25cfc7-8.3.sock
+    /run/php/tpan-f_example_com_25e7fe-8.3.sock
+    /run/php/tpan-g_example_com_972c3b-8.3.sock
+    /run/php/tpan-h_example_com_91252f-8.3.sock
+  số dòng trong /proc/self/net/tcp: 9 | tcp6: 3
+
+## P1. Hạ trần RAM xuống 8M khi đang chạy rồi trả lại
+  sau 12 giây ở 8M: dịch vụ failed (signal, NRestarts=20) | socket failed (service-start-limit-hit) | file socket MAT
+  trả 200M + daemon-reload: A HTTP 502 | dịch vụ failed | socket failed
+  thêm try-restart: A HTTP 502
+  reset-failed + start socket: A HTTP 200 | dịch vụ active | socket active
+
+## P11. cpu.max, io.max theo trần
+  không CPUQuota: cpu.max cat: /sys/fs/cgroup/tpan.slice/tpan-a_example_com_7653e4.slice/cpu.max: No such file or directory | io.max [] | memory.max 209715200
+  có trần đĩa: io.max [8:0 rbps=4000000 wbps=5000000 riops=max wiops=max] | thiết bị của /var/www: 2049   8:1  
+  bỏ MemoryMax: memory.max max | memory.swap.max max
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200
