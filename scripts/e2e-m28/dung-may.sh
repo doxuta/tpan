@@ -31,6 +31,20 @@ else
 fi
 ok "tpan.service active" test "$(systemctl is-active tpan)" = active
 
+# Máy ảo vừa về snapshot sạch thì unattended-upgrades của Ubuntu chạy ngay và
+# có lần giữ khoá dpkg lâu hơn 5 phút tpan chờ (lần chạy 11:17 ngày 21/11:
+# "Unable to acquire the dpkg frontend lock"). Đây là đồ nghề của e2e: chờ
+# khoá nhả, tối đa 20 phút, rồi mới cài stack.
+step "chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)"
+for i in $(seq 1 240); do
+  if ! pgrep -x 'unattended-upgr|apt-get|apt|dpkg' >/dev/null && ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+    break
+  fi
+  [ "$i" = 1 ] && echo "  đang chờ: $(pgrep -a -x 'unattended-upgr|apt-get|apt|dpkg' | head -3 | tr '\n' ';')"
+  sleep 5
+done
+echo "  apt rảnh sau khoảng $(( (i - 1) * 5 )) giây"
+
 step "tpan stack install --web $STACK --yes"
 tpan stack install --web "$STACK" --yes >"$W/stack.txt" 2>&1
 rc=$?
