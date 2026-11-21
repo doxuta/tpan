@@ -142,10 +142,11 @@ func liveM15(c *cdp, base, out string) error {
 	if err := shot("M15-that-3-da-len.png"); err != nil {
 		return err
 	}
-	footer := text(`document.querySelector('footer')?.innerText||''`)
-	fmt.Printf("dòng cuối trang sau khi lên: %q\n", strings.TrimSpace(footer))
+	// Dòng phiên bản: bản 2 (M16) đặt ở cuối menu (#dong-phien-ban); bản 1 ở chân trang.
+	footer := text(`(document.getElementById('dong-phien-ban')||document.querySelector('footer'))?.innerText||''`)
+	fmt.Printf("dòng phiên bản sau khi lên: %q\n", strings.TrimSpace(footer))
 	if !strings.Contains(footer, to) {
-		return fmt.Errorf("dòng phiên bản cuối trang chưa đổi sang %s: %q", to, footer)
+		return fmt.Errorf("dòng phiên bản chưa đổi sang %s: %q", to, footer)
 	}
 
 	// 4. Tải lại trang (nút của khối), rồi quay về bản trước.
