@@ -121,6 +121,10 @@ type Backup struct {
 	RemoteError string `json:"remote_error,omitempty"`
 	// RemoteTries: số lần đẩy lỗi "của riêng bản" liên tiếp. Không ra JSON.
 	RemoteTries int `json:"-"`
+	// Location: bản nằm ở đâu (core.BackupLocation: machine, remote, both,
+	// other_target, push_failed). Không lưu trong DB: API tính lúc trả danh
+	// sách, vì giao diện không có remote_target để tự tính.
+	Location string `json:"location,omitempty"`
 }
 
 // CronStatus là kết quả một lần chạy cron WordPress.

@@ -233,8 +233,8 @@ func (s *Server) handleBackupPush(w http.ResponseWriter, r *http.Request) {
 
 // pullNote là câu của 202 của tải về.
 var pullNote = i18n.T(
-	"Đang tải về ở nền (chờ lượt đẩy đang chạy nếu có); xem kết quả ở Lịch sử, rồi khôi phục.",
-	"Downloading in the background (after any upload run in progress); see the result in History, then restore.")
+	"Đang chờ lượt đẩy lên kho khác xong rồi mới tải về (có thể tới 30 phút). Job tải về sẽ hiện ở Lịch sử; không thấy thì bấm lại.",
+	"Waiting for the upload run in progress to finish before downloading (up to 30 minutes). The download job will show in History; if it does not, press again.")
 
 // handleBackupPull tải một bản từ kho về máy. Không dùng claim, jobStart: tải
 // về không giữ khoá job của máy (B10), nên không được giữ chỗ "đang có job"
@@ -265,10 +265,30 @@ func (s *Server) handleBackupPull(w http.ResponseWriter, r *http.Request) {
 	ar := r.WithContext(context.WithoutCancel(r.Context()))
 	ctx, cancel := context.WithCancel(ar.Context())
 	stop := context.AfterFunc(s.bgCtx(), cancel)
+	// Sự kiện đầu tiên của job mang mã job: chuyển ra cho câu trả lời, để
+	// giao diện theo dõi được job tải về (có lỗi thì người bấm thấy ngay).
+	started := make(chan string, 1)
+	onEvent := func(ev engine.Event) {
+		if ev.JobID != "" {
+			select {
+			case started <- ev.JobID:
+			default:
+			}
+		}
+	}
+	// failed nhận lỗi của Pull khi Pull dừng TRƯỚC khi job bắt đầu (từ chối
+	// sau khi lấy khoá, chờ khoá quá hạn, không ghi được job). Lỗi về kịp
+	// trong lúc handler còn chờ thì trả thẳng cho người bấm: không có job thì
+	// Lịch sử không có gì để xem, câu "đang tải về" sẽ là nói sai (G1 của
+	// lượt soát giao diện).
+	failed := make(chan error, 1)
 	s.api.wg.Go(func() {
 		defer cancel()
 		defer stop()
-		rep, err := rem.Pull(ctx, id, nil)
+		rep, err := rem.Pull(ctx, id, onEvent)
+		if err != nil && rep.Job.ID == "" {
+			failed <- err
+		}
 		result := "ok"
 		switch {
 		case err != nil:
@@ -285,8 +305,23 @@ func (s *Server) handleBackupPull(w http.ResponseWriter, r *http.Request) {
 		}
 		s.audit(ar, action, target, result, rep.Job.ID)
 	})
-	writeJSON(w, http.StatusAccepted, QueuedResponse{Queued: true, Note: pullNote})
+	resp := QueuedResponse{Queued: true, Note: pullNote}
+	// Thường job bắt đầu ngay; khoá lượt đẩy bận thì không giữ request lâu.
+	select {
+	case resp.JobID = <-started:
+	case err := <-failed:
+		// Câu lỗi của core đã làm sạch (không khoá); RefusedError ra 409 có mã.
+		apiFail(w, r, err)
+		return
+	case <-time.After(pullStartWait):
+	case <-r.Context().Done():
+	}
+	writeJSON(w, http.StatusAccepted, resp)
 }
+
+// pullStartWait: thời gian tối đa câu trả lời của POST /backups/{id}/pull chờ
+// job tải về bắt đầu để kèm mã job. Biến (không hằng) để test đặt ngắn.
+var pullStartWait = 5 * time.Second
 
 // handleBackupRemote liệt kê trên kho, ghép với bảng backups.
 func (s *Server) handleBackupRemote(w http.ResponseWriter, r *http.Request) {
