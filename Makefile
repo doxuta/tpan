@@ -93,7 +93,9 @@ anh-mau: ## Chụp ba trang mẫu bản 2 vào thư mục OUT (mặc định tmp
 	$(ANH) -bo mau-v2 -out $(or $(OUT),tmp-phien/mau)
 
 e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: hai vai, tạo site từ giao diện, nâng từ v0.2.0); log vào LOG (mặc định docs/bang-chung/M16.log)
-	E2E_LOG=$(or $(LOG),docs/bang-chung/M16.log) bash scripts/e2e-m16.sh > $(or $(LOG),docs/bang-chung/M16.log) 2>&1
+	@# Log ghi ra tmp-phien/ (ngoài git) rồi mới chép vào LOG: file log đã commit mà bị ghi đè lúc
+	@# bắt đầu chạy thì cây làm việc thành "dirty" và tên bản tpan được đóng gói có đuôi -dirty.
+	E2E_LOG=tmp-phien/e2e-m16.log bash scripts/e2e-m16.sh > tmp-phien/e2e-m16.log 2>&1; rc=$$?; cp tmp-phien/e2e-m16.log $(or $(LOG),docs/bang-chung/M16.log); exit $$rc
 
 lay-dev: ## git fetch origin (trước khi ghép dev vào nhánh mốc)
 	git fetch origin
