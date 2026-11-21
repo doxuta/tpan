@@ -774,6 +774,18 @@ func TestProbeFilePHP(t *testing.T) {
 				t.Errorf("%s chứa %q", n, bad)
 			}
 		}
+		// open_basedir của pool chặn PHP mở file: một mô tả "file" trong
+		// proc_open (từng là /dev/null cho stderr) làm proc_open trả false, và
+		// đường gọi lệnh ra "bị chặn" giả (e2e M17). Lệnh không chạy được thì
+		// không được in dòng kết quả.
+		if strings.Contains(s, "tp_run(") {
+			if strings.Contains(s, "['file'") || strings.Contains(s, "'/dev/null'") {
+				t.Errorf("%s: proc_open mở file (open_basedir chặn): %s", n, s)
+			}
+			if !strings.Contains(s, "if (!is_resource($p)) {\n        echo \"\\nTPAN_PROBE_LOI=proc_open\\n\";\n        exit;") {
+				t.Errorf("%s: tp_run không chạy được lệnh mà không dừng trước dòng kết quả", n)
+			}
+		}
 	}
 	bad := v
 	bad.BDir = "/var/www/x'; phpinfo(); '"

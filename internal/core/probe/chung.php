@@ -15,13 +15,23 @@ function tp_user() {
 // trả [mã thoát, stdout]. Đi bằng tiến trình con vì open_basedir chặn hàm đọc
 // file của PHP, còn kẻ tấn công thật thì gọi được lệnh: đường thử phải đo cái
 // lệnh thấy, không phải cái open_basedir chặn.
+//
+// stderr đi vào ống rồi bỏ, không mở file /dev/null: open_basedir của pool
+// chặn chính PHP mở /dev/null, proc_open trả false, và mọi đường gọi lệnh ra
+// "bị chặn" giả (gặp ở e2e M17: C1 ngoài lồng "0 mục"). Không chạy được lệnh
+// thì dừng luôn, không in dòng TPAN_PROBE: ô đó là "không kết luận", không bao
+// giờ là "bị chặn". Các lệnh thử in rất ít ra stderr nên đọc hết stdout rồi
+// mới đọc stderr không kẹt ống.
 function tp_run(array $argv) {
-    $p = @proc_open($argv, [1 => ['pipe', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+    $p = @proc_open($argv, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     if (!is_resource($p)) {
-        return [-1, ''];
+        echo "\nTPAN_PROBE_LOI=proc_open\n";
+        exit;
     }
     $out = stream_get_contents($pipes[1]);
     fclose($pipes[1]);
+    stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
     return [proc_close($p), (string) $out];
 }
 function tp_kq($co, $n) {
