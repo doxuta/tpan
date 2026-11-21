@@ -356,7 +356,7 @@ func Symlink(target, anchor, rel string) error {
 	if err := unix.Symlinkat(target, p.fd, p.name); err != nil {
 		return fail("tạo symlink", anchor, rel, err)
 	}
-	if err := unix.Fchownat(p.fd, p.name, int(p.anchor.Uid), int(p.anchor.Gid), unix.AT_SYMLINK_NOFOLLOW); err != nil {
+	if err := chownLink(p.fd, p.name, int(p.anchor.Uid), int(p.anchor.Gid)); err != nil {
 		_ = unix.Unlinkat(p.fd, p.name, 0)
 		return fail("tạo symlink", anchor, rel, err)
 	}
