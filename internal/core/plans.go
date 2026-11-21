@@ -328,7 +328,7 @@ func (p *Planner) prepareSSLIssue(ctx context.Context, req PlanRequest) (*Prepar
 	if err != nil {
 		return nil, err
 	}
-	s := &SSL{Sys: p.Sites.Sys, Settings: p.Sites.Settings, Store: p.Sites.Store, Journal: p.Sites.Journal}
+	s := &SSL{Sys: p.Sites.Sys, Settings: p.Sites.Settings, Store: p.Sites.Store, Journal: p.Sites.Journal, Accounts: p.Sites.Accounts}
 	in, err := s.PrepareIssue(ctx, d)
 	if err != nil {
 		return nil, err

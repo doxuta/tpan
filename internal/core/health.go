@@ -441,7 +441,7 @@ func (f *Fixes) sslIssue(ctx context.Context, r checks.Result) (*Fix, error) {
 	if err != nil {
 		return nil, noAutoFix(r.ID)
 	}
-	issue, err := (&SSL{Sys: f.Sys, Settings: f.Settings, Store: f.Store, Journal: f.Journal}).PrepareIssue(ctx, d)
+	issue, err := (&SSL{Sys: f.Sys, Settings: f.Settings, Store: f.Store, Journal: f.Journal, Accounts: f.Accounts}).PrepareIssue(ctx, d)
 	if err != nil {
 		return nil, err
 	}
