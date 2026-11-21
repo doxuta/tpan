@@ -115,7 +115,7 @@ func fileOwner(path string, sites []site.Site) string {
 		switch {
 		case strings.HasPrefix(path, l.Dir+"/"), strings.HasPrefix(path, l.LogDir+"/"),
 			path == l.NginxConf, path == l.NginxLink, path == l.ApacheConf, path == l.ApacheLink,
-			isPoolConf(path, l.Pool):
+			isPoolConf(path, l.Pool), l.OwnsCagePath(path): // M17: file của lồng mang slug, không mang domain
 			return st.Domain.String()
 		}
 	}

@@ -150,6 +150,23 @@ type Cmd struct {
 	Env []string
 }
 
+// Describer là giao diện tuỳ chọn của một System bọc (M17: cage.Sys) mà lệnh
+// thật sự chạy khác cmd (ví dụ lệnh của site trong lồng chạy qua
+// `systemd-run`). Bằng chứng phải là lệnh thật, nên engine và checks in
+// Describe(sys, cmd) thay cho cmd.String().
+type Describer interface {
+	Describe(cmd Cmd) string
+}
+
+// Describe trả dòng lệnh sẽ thật sự chạy: sys.Describe(cmd) khi sys là một
+// Describer, không thì cmd.String().
+func Describe(sys System, cmd Cmd) string {
+	if d, ok := sys.(Describer); ok {
+		return d.Describe(cmd)
+	}
+	return cmd.String()
+}
+
 // String trả về lệnh dạng người đọc được, dùng để hiển thị và làm bằng chứng.
 // Không in Stdin. Tham số có khoảng trắng hoặc ký tự đặc biệt được đặt trong
 // nháy đơn, chỉ để dễ đọc: chuỗi này không bao giờ được đem đi chạy.

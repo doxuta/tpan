@@ -282,16 +282,17 @@ func (s *Sites) drift(ctx context.Context, l site.Layout) error {
 	return nil
 }
 
-// others trả Layout của mọi site active khác d, để kiểm cô lập hai chiều.
-func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Layout, error) {
+// others trả mọi site active khác d, để kiểm cô lập hai chiều. Trả cả bản ghi
+// (không chỉ Layout) vì siteChecks cần cờ Caged của từng site (M17).
+func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Site, error) {
 	all, err := s.Store.Sites(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var out []site.Layout
+	var out []site.Site
 	for _, o := range all {
 		if o.Domain != d && o.Status == site.Active {
-			out = append(out, o.Layout())
+			out = append(out, o)
 		}
 	}
 	return out, nil
@@ -301,15 +302,42 @@ func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Layout, e
 // tạo và cho health (mục 6.7): SiteChecks theo đường đi của request (bản SSL
 // khi site đã có chứng chỉ: cổng 80 giờ trả 301), rồi cô lập hai chiều với
 // từng site còn lại. M14 (mục 6.13): thêm các phép kiểm cô lập sâu của riêng
-// site (siteHardeningChecks) theo chế độ .htaccess mode của nó.
-func siteChecks(web WebServer, php string, l site.Layout, others []site.Layout, ssl bool, mode site.HtaccessMode) []checks.Check {
-	cs := checks.SiteChecks(string(web), php, l)
-	if ssl {
+// site (siteHardeningChecks) theo chế độ .htaccess của nó.
+//
+// M17 (mục 3.6, 3.7 của docs/thay-doi/M17-thiet-ke.md): đây là chỗ DUY NHẤT
+// chọn bộ phép kiểm trong hay ngoài lồng. st.Caged chọn bộ của lồng với trần
+// lim (người gọi đọc từ gói qua cageLimitsOf; nil khi site ngoài lồng).
+// Isolated(st, o) chỉ sinh khi st ở ngoài lồng, Isolated(o, st) chỉ khi o ở
+// ngoài lồng: lệnh `test` của Isolated chạy dưới user của site "from" ở NGOÀI
+// lồng, mà một tiến trình cùng uid với một site trong lồng chạy ngoài lồng là
+// cửa cho mã trong lồng mở /proc/<pid>/root ra gốc thật của máy (t14 P4). Site
+// trong lồng không nhìn thấy site khác là điều cage.fence, cage.runtime chứng minh.
+func siteChecks(web WebServer, php string, st site.Site, others []site.Site, lim *account.Limits) []checks.Check {
+	l := st.Layout()
+	var cs []checks.Check
+	switch {
+	case st.Caged:
+		var want account.Limits
+		if lim != nil {
+			want = *lim
+		}
+		cs = checks.SiteChecksCaged(string(web), l, want)
+		if st.SSL {
+			cs = checks.SiteChecksSSLCaged(string(web), l, want)
+		}
+	case st.SSL:
 		cs = checks.SiteChecksSSL(string(web), php, l)
+	default:
+		cs = checks.SiteChecks(string(web), php, l)
 	}
-	cs = append(cs, siteHardeningChecks(web, l, mode)...)
+	cs = append(cs, siteHardeningChecks(web, l, st.Htaccess)...)
 	for _, o := range others {
-		cs = append(cs, checks.Isolated(l, o), checks.Isolated(o, l))
+		if !st.Caged {
+			cs = append(cs, checks.Isolated(l, o.Layout()))
+		}
+		if !o.Caged {
+			cs = append(cs, checks.Isolated(o.Layout(), l))
+		}
 	}
 	return cs
 }
@@ -373,6 +401,14 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	d := in.Domain
 	if d.IsZero() {
 		return nil, refuse(validate.CodeDomainInvalid, i18n.T("thiếu domain", "the domain is missing"))
+	}
+	// M17 (mục 3.9): tên miền của hai site thử do `tpan isolation probe` tạo
+	// là tên dành riêng. Không ai tạo được site mang tên đó, để Plan dọn của
+	// phép thử không bao giờ gặp một site thật trùng tên.
+	if site.IsProbeDomain(d.String()) {
+		return nil, refuse(CodeDomainReserved, i18n.T(
+			"tên miền "+d.String()+" dành cho phép thử tấn công của tpan (tpan-probe-a|b-<12 hex>.test); chọn tên khác",
+			"the domain "+d.String()+" is reserved for tpan's attack probe (tpan-probe-a|b-<12 hex>.test); choose another name"))
 	}
 	title := in.Title
 	if title == "" {
@@ -477,7 +513,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if err != nil {
 		return nil, err
 	}
-	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, l, others, rec.SSL, rec.Htaccess)
+	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, rec, others, nil)
 	return &SiteAdd{
 		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan,
 		sites: s, adminPassword: adminPw, install: install,

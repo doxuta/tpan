@@ -221,6 +221,11 @@ type Planned struct {
 	// owner (M13) khác rỗng thì job ghi chủ này (engine.WithOwner): dùng cho
 	// Plan tạo một thứ chưa có dòng trong bảng lúc job bắt đầu (DB rời mới).
 	owner string
+	// before (M17) khác nil thì chạy đầu Execute, trước engine: ghi một quyết
+	// định của admin (dòng gói, gói của user) mà job theo sau đưa lên máy. Đặt
+	// ở đây chứ không trong Prepare để --dry-run và câu hỏi xác nhận không
+	// đổi gì. before lỗi thì không chạy job.
+	before func(ctx context.Context) error
 }
 
 // newPlanned dựng Planned. journal nil chỉ dùng được cho Preview.
@@ -241,6 +246,11 @@ func (p *Planned) Execute(ctx context.Context, onEvent func(engine.Event)) (engi
 	}
 	if p.owner != "" {
 		ctx = engine.WithOwner(ctx, p.owner)
+	}
+	if p.before != nil {
+		if err := p.before(ctx); err != nil {
+			return engine.Report{}, fmt.Errorf("%s: %w", p.Plan.Kind, err)
+		}
 	}
 	rep, err := engine.New(p.sys, engine.Options{Journal: p.journal, OnEvent: onEvent}).Execute(ctx, p.Plan)
 	if err != nil {

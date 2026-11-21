@@ -192,10 +192,19 @@ type Site struct {
 	// Htaccess là chế độ .htaccess của site (M14). Rỗng chỉ ở bản ghi chưa lưu
 	// và được hiểu là HtaccessSafe (OrDefault); store ghi rỗng thành an-toan.
 	Htaccess HtaccessMode `json:"htaccess"`
+	// Caged: site đang ở trong lồng (M17, sites.caged). Chỉ Plan cage.enable,
+	// cage.disable đổi trường này, khi job thành công.
+	Caged bool `json:"caged"`
 }
 
 // Layout trả tên và đường dẫn của site.
 func (s Site) Layout() Layout { return LayoutOf(s.Domain) }
 
-// Socket là socket của pool site đang dùng (theo PHPVersion).
-func (s Site) Socket() string { return s.Layout().SocketFor(s.PHPVersion) }
+// Socket là socket PHP site đang dùng: của lồng khi Caged (M17), không thì
+// của pool chung theo PHPVersion.
+func (s Site) Socket() string {
+	if s.Caged {
+		return s.Layout().CageSocket()
+	}
+	return s.Layout().SocketFor(s.PHPVersion)
+}

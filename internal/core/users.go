@@ -486,7 +486,7 @@ func (a *Accounts) PrepareUnsuspendUser(ctx context.Context, name string) (*Plan
 		// DB của site đang khoá riêng thì WordPress báo lỗi kết nối DB: kiểm
 		// chứng đó chắc chắn Fail và engine hoàn tác cả lần mở khoá user, nên bỏ.
 		if st.DBSuspended == account.NotSuspended {
-			verify = append(verify, siteChecks(cfg.Web, sitePHP(st, cfg), st.Layout(), nil, st.SSL, st.Htaccess)...)
+			verify = append(verify, siteChecks(cfg.Web, sitePHP(st, cfg), st, nil, nil)...)
 		}
 		opened = append(opened, st)
 	}

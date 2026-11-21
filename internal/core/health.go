@@ -126,7 +126,7 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 // verify=true (kiểm chứng sau thao tác): bỏ các kết quả "tạm khoá", vì chúng
 // không kiểm gì. Các chặng DNS, TLS khi chưa có SSL (siteEdgeChecks) chỉ health
 // thêm, như trước.
-func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify bool) []checks.Check {
+func siteStateChecks(st site.Site, cfg StackConfig, others []site.Site, verify bool) []checks.Check {
 	web, php, l := string(cfg.Web), sitePHP(st, cfg), st.Layout()
 	var cs []checks.Check
 	hold := func(stage checks.Stage, db bool) {
@@ -157,12 +157,18 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify
 		cs = append(cs, siteHardeningChecks(cfg.Web, l, st.Htaccess)...)
 		hold(checks.StageDB, true)
 		hold(checks.StageEndToEnd, true)
+		// Cùng luật với siteChecks (M17): không sinh Isolated từ site trong lồng.
 		for _, o := range others {
-			cs = append(cs, checks.Isolated(l, o), checks.Isolated(o, l))
+			if !st.Caged {
+				cs = append(cs, checks.Isolated(l, o.Layout()))
+			}
+			if !o.Caged {
+				cs = append(cs, checks.Isolated(o.Layout(), l))
+			}
 		}
 		return cs
 	}
-	return siteChecks(cfg.Web, php, l, others, st.SSL, st.Htaccess)
+	return siteChecks(cfg.Web, php, st, others, nil)
 }
 
 // siteEdgeChecks là hai chặng đầu của đường đi request mà chỉ health xét: DNS,

@@ -503,7 +503,7 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 			&steps.MariaDBDump{DB: l.DB, Path: rd + "/db-before.sql"},
 			&steps.DBImport{Layout: l, File: rd + "/db.sql", UndoFile: rd + "/db-before.sql"},
 		},
-		Verify: siteChecks(cfg.Web, php, l, others, st.SSL, st.Htaccess),
+		Verify: siteChecks(cfg.Web, php, st, others, nil),
 	}
 	return newPlanned(b.Sites.Sys, b.Sites.Journal, plan, func(ctx context.Context, rep engine.Report) error {
 		var errs []error

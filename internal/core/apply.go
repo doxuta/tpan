@@ -264,10 +264,10 @@ func (s *Sites) applyBatch(cfg StackConfig, all []site.Site, trashed map[validat
 	// Kiểm cô lập của site mới với các site đang chạy, trừ site lô này đưa vào
 	// thùng rác: thư mục và user của chúng đang được chuyển và khoá song song,
 	// kiểm vào lúc đó có thể Fail và hoàn tác oan một site mới lành.
-	var others []site.Layout
+	var others []site.Site
 	for _, st := range all {
 		if st.Status == site.Active && !trashed[st.Domain] {
-			others = append(others, st.Layout())
+			others = append(others, st)
 		}
 	}
 
@@ -295,7 +295,7 @@ func (s *Sites) applyBatch(cfg StackConfig, all []site.Site, trashed map[validat
 				Target:  l.Domain.String(),
 				Prepare: applySerial(mu, prep),
 				Finish:  []engine.Step{add.install},
-				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, l, others, add.Site.SSL, add.Site.Htaccess),
+				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, add.Site, others, nil),
 			})
 		default:
 			trashes++
