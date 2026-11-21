@@ -85,9 +85,6 @@ e2e-hoi-quy: ## Chạy lại e2e của một mốc cũ trên máy ảo, log vào
 	E2E_LOG=docs/bang-chung/$(L).log bash scripts/e2e-m$(M).sh $(P) </dev/null >docs/bang-chung/$(L).log 2>&1; \
 	  rc=$$?; echo "e2e-m$(M) $(P): mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' docs/bang-chung/$(L).log), không đạt $$(grep -c '=> KHÔNG ĐẠT' docs/bang-chung/$(L).log)"; exit $$rc
 
-m18-nc: ## (M18, đợt 0) chạy một bản thử nghiên cứu trên Mac: make m18-nc S=02-thu-vien-s3
-	bash docs/bang-chung/M18-nghien-cuu/$(S).sh
-
 clean: ## Xoá kết quả build
 	rm -rf bin
 	find web/dist -mindepth 1 ! -name .gitkeep -delete
