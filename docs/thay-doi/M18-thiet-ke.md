@@ -111,6 +111,8 @@ Bản đầu quyết định làm lệnh tự động hoá đường này. **Sau
 
 ## 3. Thiết kế
 
+> Mục 9.3 (cách xử lý lượt soát hẹp) đè lên mục 3 ở chỗ hai bên khác nhau.
+
 ### 3.1 Bố trí mã
 
 | Gói (mới trừ khi ghi "sửa") | Việc |
@@ -508,11 +510,11 @@ Mọi route mới khai luật trong `internal/server/routes.go`; đều là `adm
 | Route | Việc | Ghi chú |
 |---|---|---|
 | `GET /api/v1/backups/target` | `TargetView` (mục 3.3) | không có khoá nào, kể cả dạng che, ngoài `access_key_hint` |
-| `POST /api/v1/backups/target[?dry_run=1]` | Plan `backup.target.set`; thân `TargetRequest{endpoint, region, bucket, prefix, path_style, keep, ca_pem, access_key, secret_key}` (đều là chuỗi, trừ `path_style`, `keep`) | đọc thân bằng `apiReadJSONMax` 128 KiB; handler bọc `secret_key` vào `system.Secret` ngay sau khi đọc (S30). `access_key`, `secret_key` rỗng nghĩa là giữ hai khoá đang lưu. **Không sinh khoá sao lưu** |
+| `POST /api/v1/backups/target[?dry_run=1]` | Plan `backup.target.set`; thân `TargetRequest{endpoint, region, bucket, prefix, path_style, keep, ca_pem, access_key, secret_key}` (đều là chuỗi, trừ `path_style`, `keep`) | đọc thân bằng `apiReadJSONMax` 128 KiB; handler bọc `secret_key` vào `system.Secret` ngay sau khi đọc (S30). `access_key`, `secret_key` rỗng nghĩa là giữ hai khoá đang lưu, **chỉ khi endpoint, vùng, bucket, CA không đổi** (R1); khác thì 400 `s3_keys_invalid`. **Không sinh khoá sao lưu** |
 | `DELETE /api/v1/backups/target[?dry_run=1]` | Plan `backup.target.rm` | |
 | `POST /api/v1/backups/target/test` | Plan `backup.target.test` | |
-| `POST /api/v1/backups/{id}/push[?dry_run=1]` | đẩy một bản | `dry_run=1`: bản xem trước. Chạy thật: kiểm (đã đặt đích, bản còn trên máy, là bản đầy đủ), `ResetBackupTries`, đưa vào hàng chờ của bộ đẩy nền, trả 202 `{"queued":true,"note":{…}}` với `note` nói "chạy ở lượt đẩy kế tiếp; mất nếu panel khởi động lại trước đó; xem kết quả ở Lịch sử" |
-| `POST /api/v1/backups/{id}/pull[?dry_run=1]` | tải một bản về máy | như trên; bản không cần tải về: 409 `backup_already_local` |
+| `POST /api/v1/backups/{id}/push[?dry_run=1]` | đẩy một bản | `dry_run=1`: bản xem trước. Chạy thật: kiểm (đã đặt đích, bản còn trên máy, là bản đầy đủ, nằm trong `s3.keep` theo `remoteSurvives`: R9), `ResetBackupTries`, đưa vào hàng chờ của bộ đẩy nền, trả 202 `{"queued":true,"note":{…}}` với `note` nói "chạy ở lượt đẩy kế tiếp; mất nếu panel khởi động lại trước đó; xem kết quả ở Lịch sử" |
+| `POST /api/v1/backups/{id}/pull[?dry_run=1]` | tải một bản về máy | `dry_run=1`: bản xem trước. Chạy thật: `PreparePull` để kiểm, rồi goroutine gọi `Remote.Pull` (chờ khoá lượt đẩy, không qua hàng chờ của bộ đẩy: R6), trả 202 `{"queued":true,"note":{…}}`. Dòng `stored` ở đích đang đặt luôn được tải (R16); không ở đích này mà có file: 409 `backup_already_local`; không có file: 409 `backup_not_on_machine` (R15) |
 | `GET /api/v1/backups/remote` | `ListRemote` (mục 3.6) | |
 | `POST /api/v1/cloud-init/render` | thân `CloudInitRequest{web, private, base, sha256_amd64, sha256_arm64, max_bytes, sites}`; trả `{user_data, bytes, admin_password}` | đọc thân 1,5 MiB; **`sha256_amd64`, `sha256_arm64` bắt buộc; server không tải gì từ `base`** (S12); không đổi gì trên máy; `admin_password` đúng một lần trong câu trả lời này |
 
@@ -546,6 +548,8 @@ tpan cloud-init run [--force] (ẩn)
 Mọi lệnh có thay đổi nhận `--dry-run`, `--yes`, `--json`. **Không có cờ nào nhận khoá trên dòng lệnh**: hai khoá truy cập đọc từ stdin khi có `--keys-stdin` (dòng 1 access key, dòng 2 secret key), không thì hỏi trên terminal (secret key hỏi không hiện chữ). `target set` chạy lại không có `--keys-stdin` trên máy đã có khoá và không có terminal thì giữ hai khoá đang lưu.
 
 `tpan backup list` có thêm cột "Ở ĐÂU" (`máy`, `kho`, `máy+kho`, `kho (đích khác)`, `đẩy lỗi`) **chỉ khi đã đặt đích hoặc có dòng `remote<>''` hay `local=0`** (B11); `--json` in các trường mới ở mọi trường hợp (thêm trường không làm hỏng người đọc JSON cũ). `--remote` in `ListRemote`.
+
+`tpan backup restore --dry-run` với bản chỉ còn trên kho: in "bản này ở kho (cỡ …), cần tải về trước khi xem được bản xem trước khôi phục", không tải (R15). `target set`, `target rm`, `key new` chờ khoá lượt đẩy tới 30 phút (R4), in một dòng "đang chờ lượt đẩy lên kho xong" khi phải chờ.
 
 ### 3.13 Health
 
@@ -1050,4 +1054,188 @@ Thợ soát (model fable) dừng vì hết hạn mức khi đang viết câu tr�
 | S33 | (a), (b) đã sửa (3.3, 3.9); (c) không áp dụng (chế độ dựng lại đã cắt) |
 | S34 | (1) đến (3) đã sửa (3.16, 3.9); (4) đã sửa (3.11); (5) hoãn có ghi (mục 1); (6) thợ client thêm vectơ có đường dẫn object với bộ ký nhận thêm header (B8); (7) đã sửa (3.8: bỏ `config.toml`) |
 
-Còn lại 0 điểm nặng chưa xử lý. Một lượt soát hẹp (opus, effort max) kiểm lại các chỗ đã sửa; kết quả ở 9.2.
+Còn lại 0 điểm nặng chưa xử lý.
+
+### 9.2 Kết quả soát hẹp (opus, effort max)
+
+Soát ngày 21/11/2026 trên commit 67c22fe: chạy lại kịch bản của S1 tới S5 trên mục 1 tới 8, rồi soát các chỗ 9.1 ghi "Đã sửa". Đã đọc mã ở `internal/engine/engine.go`, `internal/core/backup.go`, `internal/core/types_m12.go`, `internal/core/plans_types.go`, `internal/steps/files.go`, `internal/steps/backup.go`, `internal/system/local.go`, `internal/store/backup.go`, `internal/store/health.go`, `internal/server/routes.go`, `internal/server/api.go`. Không chạy gì trên máy ảo, không chạy test. Số dòng `:N` không kèm tên file là số dòng của file này.
+
+**Năm điểm nặng cũ**
+
+- S1: đóng. Ba file bí mật chỉ qua `SecretFile`, `SecretAbsent` (`Info().Files` rỗng), mà `engine.Preview` chỉ đọc nội dung cũ của file có trong `Files` (`internal/engine/engine.go:52-75`); `File`, `Absent` từ chối ba đường dẫn; B3 giải base64 `old`, `new`.
+- S2: đóng với đúng kịch bản cũ (`s3.keep = 2`: B2 bị dọn còn hai bản `stored` mới hơn nên không bao giờ được chọn lại; số bản `stored` mới hơn một bản chỉ tăng chừng nào `s3.keep` và đích không đổi). Hai đường lặp khác, không phải kịch bản này: R2, R9.
+- S3: đóng ý 1 (gói chụp sau mọi lần đẩy và dọn của lượt; cron bỏ lượt thì `s3.panel_due` vẫn còn). Ý 2, 3 hết đối tượng vì lệnh dựng lại đã cắt. Gói vẫn có thể lặp mỗi 2 phút hoặc chậm tới 24 giờ ở các ca của R3.
+- S4: đóng phần khuôn (`migrations` là cả danh sách, đọc từ DB đang chạy). Phần pha 1, 2 hết đối tượng.
+- S5: đóng với đúng kịch bản cũ (không còn route sinh khoá, không còn chế độ dựng lại của `render`). Câu ở 9.1 "không route nào nhận hay trả … khoá truy cập" thì chưa đúng: R1 là một đường khác để phiên admin lấy access key.
+
+**Phát hiện mới**: 1 nặng, 8 vừa, 7 nhẹ.
+
+#### R1. "Khoá rỗng là giữ khoá đang lưu" cho phiên admin gửi khoá truy cập tới host do nó chọn
+
+- **Mức**: nặng (lộ bí mật mà B3 và hàng "Phiên admin bị chiếm" của mục 5 nói đã chặn).
+- **Ở đâu**: 3.3 (điều kiện đầu của `backup.target.set`, luật endpoint, luật secret key), 3.11 (`POST /api/v1/backups/target`), mục 5.
+- **Chuyện gì xảy ra**:
+  1. Máy đã đặt đích thật. Kẻ giữ phiên admin (không có root) gửi `POST /api/v1/backups/target?dry_run=1` với `endpoint` là `https://k.example.com` (host của chính kẻ đó, chứng chỉ hợp lệ), bucket bất kỳ, `access_key` và `secret_key` rỗng.
+  2. Khoá rỗng nghĩa là giữ hai khoá đang lưu, nên core dựng client bằng khoá trong `/etc/tpan/s3.json` và chạy điều kiện đầu `Check` (ListObjectsV2), kể cả lúc xem trước. Không có job nào, chỉ một dòng `audit`.
+  3. Request tới `k.example.com` mang `Authorization: AWS4-HMAC-SHA256 Credential=<access key đầy đủ>/…, Signature=…`. Kẻ đó có access key đầy đủ (khung 2 chỉ cho hiện bốn ký tự cuối) và một cặp chuỗi cần ký, chữ ký để dò secret key ngoài máy, mỗi lần đoán tốn năm phép HMAC-SHA256.
+  4. 3.3 nhận secret key từ 8 ký tự, và kho tự dựng (versitygw, Garage) để người quản trị tự đặt secret: secret yếu thì dò ra, có đủ hai khoá để đọc, xoá mọi bản sao lưu và gói panel trên kho, ngoài tầm mọi phép kiểm của TPAN, và vẫn dùng được sau khi phiên admin bị thu hồi. Secret ngẫu nhiên dài (khoá do nhà cung cấp sinh) thì chỉ lộ access key.
+- **Căn cứ**: `:511` ("rỗng nghĩa là giữ hai khoá đang lưu"); `:237` (dựng client, `Check`, chạy cả lúc xem trước); `:222` (mọi host https); `:227` (secret từ 8 ký tự); `:277` (SigV4 trong header); `:615` (B3); `:645` (mục 5). Có từ bản đầu (f1f342a, dòng 479), lượt soát đầy đủ chưa bắt.
+- **Đề xuất sửa**: chỉ cho giữ khoá đang lưu khi endpoint, vùng, bucket và CA trùng đích đang lưu; khác một trong bốn thì từ chối `s3_keys_invalid` "gửi lại cả hai khoá". Thêm ca vào `server.TestKhongLoKhoaS3`: máy chủ giả ở endpoint khác mà nhận được request khi thân không có khoá thì test hỏng.
+
+#### R2. Ba đường đẩy lặp không có trần
+
+- **Mức**: vừa (S6 chưa đóng hẳn; ca (b) có hậu quả cùng loại với S2).
+- **Ở đâu**: 3.4 (phân loại, `Get`), 3.5 (bước 5 của `S3Push`, `countTry`, bước 7 và 8 của lượt).
+- **Chuyện gì xảy ra**:
+  - (a) Nhịp lùi không bao giờ tăng khi `Check` đạt mà ghi hỏng: khoá bị đổi thành chỉ đọc (LIST được, PUT 403), kho đầy (PUT 500 hay 507, LIST vẫn được), PUT bị 503 `SlowDown`. Bước 7 `Check` đạt nên xoá `s3.target_failures`; bản đầu ở bước 8 hỏng vì lỗi của đích nên `failures = 1`, lùi 10 phút. Lượt sau lặp y hệt: một job `backup.push` hỏng mỗi 10 phút, 144 job mỗi ngày, đúng S6 (b).
+  - (b) Bản 20 GB, đọc lại mất nửa giờ, đường truyền có lúc im quá 120 giây (hoặc proxy cắt kết nối dài). `Get` không thử lại sau byte đầu nên trả lỗi mạng; `Classify` xếp là `s3_unreachable`, tức lỗi của đích: không tăng `remote_tries`, cầu dao ngắt, lùi 10 phút (rồi bị xoá ở lượt sau như (a)). `S3Push.Check` chỉ đúng sau `Apply` nên lượt sau tải lên lại cả 20 GB rồi đọc lại; không có trần, tốn băng thông và tiền chiều ra mãi. Thợ hiểu "Khác" ở bước 5 gồm cả lỗi mạng thì thành `ErrRemoteMismatch`: năm lần tải lên lại rồi bỏ, và kho bị đổ oan.
+  - (c) `countTry` liệt kê ca được đếm, nên lỗi ngoài danh sách không đếm mà cũng không lùi: `sha256sum` thoát khác 0 vì đĩa có sector hỏng, lỗi đọc file giữa lúc `Put` (lỗi cục bộ, không phải `*s3.Error`), kiểm chứng `s3.object:<id>` thấy HEAD lệch cỡ (engine hoàn tác, xoá object). Bộ đẩy nền tạo lại job mỗi 2 phút, đọc lại cả file, với ca HEAD lệch cỡ thì tải lên lại cả file.
+- **Căn cứ**: `:281`, `:286-291`, `:313`, `:316`, `:339` ("Nối được: xoá ba setting đó"), `:340`, `:348`; `internal/engine/engine.go:232-250` (Check sai thì Apply lại).
+- **Đề xuất sửa**: (a) chỉ xoá `s3.target_failures`, `s3.retry_at` khi một bản hay gói đẩy đạt, không xoá khi `Check` đạt. (b) lỗi của đích xảy ra sau khi `Check` của lượt đã đạt thì `Check` lại: vẫn đạt thì coi là lỗi của riêng bản (đếm); đọc lại đứt mà không lệch sha256 thì giữ object, lần sau HEAD đúng cỡ thì bỏ `Put`, chỉ đọc lại. (c) đảo công thức: `countTry = !s3.IsTargetError(err) && !errors.Is(err, context.Canceled)`.
+
+#### R3. Gói panel ở cuối lượt: lặp khi hỏng, điều kiện không bền, cờ bị xoá mất
+
+- **Mức**: vừa.
+- **Ở đâu**: 3.5 bước 2, 6, 9; 3.8 (`backup key new`, `Encrypt` đọc khoá lúc chạy); 3.2 (`s3.panel_due`).
+- **Chuyện gì xảy ra**:
+  - (a) Gói hỏng vì lỗi không phải của đích (đĩa đầy làm `VACUUM INTO` lỗi; `backup.key` bị sửa tay sai dạng nên `Encrypt` lỗi sau khi đã chụp và nén): bước 9 ghi `s3.panel_error`, không đếm, không lùi. `s3.panel_error` khác rỗng lại là điều kiện của bước 6 và 9, nên mỗi 2 phút bộ đẩy nền chụp lại `tpan.db`, nén, rồi hỏng: 720 job `backup.panel` hỏng mỗi ngày, `job_events` phình làm gói sau càng lớn.
+  - (b) "Lượt này có dòng thành `stored` hay bị dọn" chỉ nằm trong bộ nhớ của lượt. Lượt đẩy được ba bản rồi cầu dao ngắt ở bản thứ tư: 3.5 không nói bước 9 còn chạy sau cầu dao không, cũng không nói gói hỏng vì lỗi của đích có ghi `s3.panel_error` không ("lỗi của đích thì như bước 7"). Nếu không: lượt sau không còn biết ba bản kia chưa nằm trong gói nào; gói kế tiếp chỉ có khi lại có dòng thành `stored`, hoặc sau 24 giờ.
+  - (c) `s3.panel_due = 0` ghi vô điều kiện khi gói đạt. Root chạy `tpan backup key new` lúc lượt đang đẩy một gói đã mã hoá bằng khoá cũ: `key new` ghi khoá mới và `s3.panel_due = 1`, gói cũ đạt sau đó và ghi `0`. Gói mới nhất trên kho mang khoá cũ (người ta thường đổi khoá vì đã mất hay lộ khoá cũ), gói mang khoá mới chờ tới khi có dòng thành `stored` hoặc 24 giờ. Cùng chuyện với `target set` chen vào giữa.
+- **Căn cứ**: `:189`, `:334`, `:338`, `:341`, `:348`, `:392`, `:407`.
+- **Đề xuất sửa**: (a) đếm `s3.panel_failures`, lùi theo cùng bảng 10 phút tới 6 giờ cho mọi lỗi của gói; khoá sai dạng thì không làm gói, `tpan.s3:fresh` (d) báo "khoá sao lưu sai dạng". (b) đặt `s3.panel_due` ngay trong `after` của mỗi lần đẩy đạt và mỗi lần dọn kho, bước 9 chỉ đọc cờ bền; ghi rõ bước 9 có chạy sau cầu dao hay không. (c) `s3.panel_due` mang giờ yêu cầu thay vì `1`; bước 9 nhớ giá trị đọc trước lúc chụp và chỉ xoá khi giá trị còn nguyên (`UPDATE … WHERE value = ?`).
+
+#### R4. Lượt đẩy không loại trừ với `target set`, `target rm`, `key new`
+
+- **Mức**: vừa.
+- **Ở đâu**: 3.3 (job và `after` của `backup.target.set`, `backup.target.rm`), 3.5 bước 1, 3, 7, 9; 3.8.
+- **Chuyện gì xảy ra**: ba Plan này lấy khoá job; lượt đẩy chỉ lấy khoá lượt đẩy, chạy job bằng `Lock` không làm gì, và `after` của mọi Plan chạy sau khi engine đã nhả khoá. Nên chúng chạy song song, và 3.5 không nói lượt đọc lại cấu hình đích sau khi lấy khoá.
+  1. Kho K1 đang lỗi; lượt (client của K1) đang thử lại một bản. Người quản trị đổi sang K2: `after` xoá `s3.target_error`, `s3.target_failures`, `s3.retry_at`, `s3.panel_last`. Bản của lượt cũ hỏng sau đó: cầu dao ghi lỗi của K1 và `s3.retry_at` cho đích giờ là K2; health báo lỗi của K1 như lỗi của K2.
+  2. Lượt cũ tới bước 9: gói lên K1, ghi `s3.panel_last` (của K1) và `s3.panel_due = 0`. Máy không còn bản nào trên đĩa thì không dòng nào thành `stored` ở K2: gói đầu tiên trên K2 chờ 24 giờ, trong khi `tpan.s3:fresh` (c) đạt nhờ gói ở K1, đúng chuyện S27 đã sửa.
+  3. `target rm` giữa lượt: lượt vẫn đẩy và dọn trên đích vừa gỡ, rồi ghi lại `s3.panel_last`, `s3.target_error` mà `after` của `rm` vừa xoá.
+  4. Nối lại (S18) đổi `remote_target` của một dòng trong lúc dọn kho của lượt cũ đang xử lý dòng đó; `ForgetBackupRemote` không có điều kiện theo `remote_target` nên xoá dấu của object ở đích mới.
+- **Căn cứ**: `:235-246`, `:333`, `:335`, `:339-341`, `:392`; `internal/core/types_m12.go:238-255`; `internal/engine/engine.go:93-94`.
+- **Đề xuất sửa**: `backup.target.set`, `backup.target.rm`, `backup.key.new` giữ khoá lượt đẩy (chờ như `Sync{Wait:true}`, cùng cơ chế nhường lượt ở R6) suốt job và `after`; lượt đẩy đọc cấu hình đích sau khi lấy khoá. Thứ tự luôn là khoá lượt đẩy rồi khoá job, và lượt đẩy không bao giờ lấy khoá job, nên không có khoá chéo.
+
+#### R5. Nối lại hỏng thì "chạy lại lệnh" không nối nữa
+
+- **Mức**: vừa.
+- **Ở đâu**: 3.3 bước 6.
+- **Chuyện gì xảy ra**: người quản trị đổi cách viết endpoint của cùng một kho. `after` ghi các setting `s3.*` mới, rồi `List("sites/")` để nối lại; kho trả 503 ở trang thứ mấy đó. Lệnh báo lỗi kèm "chạy lại lệnh". Lần chạy lại: `TargetID` mới đã bằng mã đang lưu nên không nối. Hậu quả đúng như S18 tả: dòng `local=0` bị từ chối khôi phục "nằm ở một đích khác" dù object còn đó; dòng `local=1` bị tải lên lại; các dòng còn mang mã cũ không bao giờ bị dọn, kho vượt `s3.keep` mãi.
+- **Căn cứ**: `:242` ("ghi các setting … Khi `TargetID` khác mã đang lưu … rồi nối lại … chạy lại an toàn").
+- **Đề xuất sửa**: cờ bền `s3.relink_due` ghi cùng lúc với setting của đích mới; nối lại chạy khi cờ bật (ở `after` và ở lượt đẩy kế tiếp, sau bước 7), đạt thì xoá cờ. Hoặc nối lại trước, ghi setting sau.
+
+#### R6. Tải về dưới khoá lượt đẩy: chờ cả lượt, và hàng chờ của API không có chỗ trong `Sync`
+
+- **Mức**: vừa.
+- **Ở đâu**: 3.5 (`SyncOptions`, bước 3, 4, 6, 8, bộ đẩy nền), 3.6 (Plan `backup.pull`, CLI khôi phục), 3.11.
+- **Chuyện gì xảy ra**:
+  - (a) Lượt giữ khoá suốt mọi bản và gói. Lần đặt đích đầu trên máy 30 site, mỗi site ba bản 2 GB: tải lên rồi đọc lại 180 GB mất nhiều giờ. Một site bị phá lúc đó; root gõ `tpan backup restore <domain> --id <bản chỉ còn trên kho>`: CLI chờ khoá lượt đẩy 30 phút rồi bỏ, thoát 1, và không có cách chen trước lượt. Trước bản sửa S9, tải về nằm trong job khôi phục nên không vướng lượt đẩy.
+  - (b) 3.5 cho bộ đẩy nền giữ hàng chờ "đẩy hoặc tải một bản từ API", nhưng `SyncOptions` không có trường cho tải về và mười bước của `Sync` không nhắc tới tải về. Thợ phải đoán: tải về chạy ở bước nào; có bị bước 4 (nhịp lùi) và bước 6 ("không có bản nào cần đẩy thì trả về") bỏ qua không; dòng `backups` được đọc để dựng Plan trước hay sau khi giữ khoá (đọc trước thì trong lúc chờ, dọn kho có thể đã xoá dòng và object).
+- **Căn cứ**: `:324-331`, `:335`, `:336`, `:338`, `:340`, `:344` ("có thể mất hàng giờ"), `:348`, `:362-364`, `:375`, `:515`.
+- **Đề xuất sửa**: (a) người chờ tải về giữ thêm flock `/run/tpan/remote.want` trong lúc chờ; giữa hai bản, lượt thử lấy khoá đó không chờ, không lấy được thì kết thúc lượt sau bản đang đẩy (gói theo cờ bền của R3). (b) thêm `SyncOptions.Pull []string`; tải về chạy ngay sau bước 3, trước bước 4 và 6, đọc lại dòng sau khi đã giữ khoá; ghi rõ có chịu nhịp lùi không.
+
+#### R7. Luật chặn đầy đĩa của M9 không còn đúng khi `S3Pull` chạy ngoài khoá job
+
+- **Mức**: vừa.
+- **Ở đâu**: 3.6 (bước 3 của `S3Pull`, Plan `backup.pull`), B10.
+- **Chuyện gì xảy ra**: ở M9 mọi việc ghi lớn nằm dưới khoá job và `BackupArchive.Apply` đo lại chỗ trống ngay trước khi ghi, nên luật "gấp 1,2 lần và còn 10% đĩa" đứng vững. `S3Pull` giờ chạy dưới khoá lượt đẩy. Đĩa trống 30%: `S3Pull` một bản cỡ 15% đĩa đo thấy đạt, bắt đầu ghi `.part`; cùng lúc job sao lưu một site khác (15%) đo thấy đạt vì `.part` mới ghi được ít. Hai việc cùng ghi tới khi đĩa đầy; MariaDB và các site trên cùng đĩa không ghi được nữa, đúng điều luật của M9 muốn tránh.
+- **Căn cứ**: `:359`, `:364`; `internal/steps/backup.go:343-354`; `internal/engine/engine.go:93-94`.
+- **Đề xuất sửa**: `S3Pull` giữ chỗ trước khi tải: `CreateFile` nhận thêm cỡ dự kiến và `fallocate` đủ cỡ (hợp đồng `Streamer` đang viết ở đợt 0, đổi ngay được), để mọi phép đo sau đó thấy chỗ đã bị chiếm; giữ chỗ lỗi `ENOSPC` thì từ chối như luật cũ.
+
+#### R8. Bản `before-restore` chiếm chỗ trong `s3.keep`: mỗi lần thử khôi phục đẩy bản cũ nhất khỏi kho
+
+- **Mức**: vừa.
+- **Ở đâu**: 3.5 (luật `remoteSurvives`, luật chọn), 3.7.
+- **Chuyện gì xảy ra**: `s3.keep = 7`, kho có B1 tới B7 theo lịch, `backup.keep = 3` nên B1 tới B4 chỉ còn trên kho. Site bị cài mã độc từ sáu ngày trước. Người quản trị thử bản mới nhất trước: khôi phục B7 (vẫn nhiễm), job tạo bản `before-restore` R1, bộ đẩy nền đẩy R1 trong vòng 2 phút; B1 giờ có bảy bản `stored` mới hơn nên bị dọn khỏi kho, và vì `local=0` nên mất hẳn. Khôi phục B6 tạo R2, mất B2; khôi phục B5 tạo R3, mất B3. Lần ngược tìm bản sạch là lúc cần lịch sử nhất, và mỗi lần thử xoá đúng bản cũ nhất còn lại. M9 trên máy cũng đếm bản này nhưng chỉ giữ 3 bản và có `protect`; S21 đã nêu "nó chiếm một chỗ trong `s3.keep`", 9.1 chỉ sửa phần chọn bản mặc định và health.
+- **Căn cứ**: `:301` (`reason <> 'before-purge'`), `:303`, `:384`, `:888`; `internal/core/backup.go:255-262`.
+- **Đề xuất sửa**: trong `remoteSurvives`, `S` chỉ đếm `reason IN ('manual','schedule')`; bản `before-restore` chỉ sống khi là bản `before-restore` mới nhất của domain. Luật vẫn đơn điệu nên không sinh vòng đẩy, dọn. Thêm ca vào `core.TestDonTrenKhoKhongDayLai`.
+
+#### R9. `SyncOptions.Only` chưa nói luật chọn còn áp không
+
+- **Mức**: vừa.
+- **Ở đâu**: 3.5 (`Only`, `tpan backup push <id>`), 3.2 (`MarkBackupPushFailed`), 3.11 (route đẩy), 3.13 (`tpan.s3:target`), 3.15.
+- **Chuyện gì xảy ra**: "rỗng: theo luật chọn" ngụ ý `Only` khác rỗng thì bỏ luật chọn. Khi đó:
+  - (a) `tpan backup push <id>` hay `POST /backups/{id}/push` của một bản đã bị dọn khỏi kho: đẩy đạt, `remoteSurvives` sai nên dọn kho xoá ngay, lệnh vẫn báo đạt.
+  - (b) Đẩy lại một bản đang `stored` ở đích này, hỏng trước bước ghép (object cũ còn nguyên): `MarkBackupPushFailed` chỉ giữ `stored` cho dòng "ở đích khác", nên dòng thành `failed`; lần dọn trên máy sau xoá file và xoá dòng, object còn trên kho mà không dòng nào trỏ tới. Lần dọn trên máy chen vào giữa lúc đẩy (dòng thành `local=0`) thì kết quả là `local=0, failed`, trạng thái 3.15 nói không thể có.
+  - Ngược lại, nếu `Only` vẫn áp luật chọn thì cách sửa mà `tpan.s3:target` đưa khi object mất (`sudo tpan backup push`) không làm gì: dòng đang `stored` ở đích này không bao giờ được chọn.
+- **Căn cứ**: `:206`, `:328`, `:347`, `:514`, `:556`, `:582`.
+- **Đề xuất sửa**: `Only` vẫn áp `remoteSurvives`; dòng đã `stored` ở đích này chỉ được đẩy lại khi HEAD thấy object mất hoặc sai cỡ. API, CLI từ chối bản nằm ngoài `s3.keep` bằng câu rõ. `MarkBackupPushFailed` giữ `stored` cho mọi dòng đang `stored`, trừ khi chính lần đẩy này đã xoá object. Cách sửa của `tpan.s3:target` thành `sudo tpan backup push <id>`.
+
+#### R10. Khoá lượt đẩy chưa có chỗ trong hợp đồng đợt 0
+
+- **Mức**: nhẹ.
+- **Ở đâu**: 3.1 (`internal/system` chỉ thêm `Streamer`), 3.5 bước 3, mục 8 (đợt 0).
+- **Chuyện gì xảy ra**: `System.Lock` chỉ là khoá job (`/run/tpan/tpan.lock`), và core đi qua `System` để test bằng `FakeSystem`. Thợ đợt 2 viết `Sync` không lấy được flock thứ hai mà không sửa `internal/system` (vùng của phiên chính) hoặc gọi `syscall.Flock` thẳng trong core; `core.TestSyncKhongGiuKhoaToanCuc` cần hai khoá tách nhau.
+- **Căn cứ**: `:121`, `:335`, `:702`; `internal/system/types.go:125` (ở HEAD); `internal/system/local.go:33-37`, `:487-511`.
+- **Đề xuất sửa**: ghi vào hợp đồng đợt 0: `core.Remote` có trường `PushLock func(ctx context.Context) (unlock func(), err error)`; `tpan serve` và CLI đưa `(&system.LocalSystem{LockPath: "/run/tpan/remote.lock"}).Lock` (bản không chờ: gọi với ctx đã hết hạn, `Lock` thử `LOCK_NB` đúng một lần); test đưa một mutex riêng.
+
+#### R11. B11 và mục 6 nói khôi phục không đổi khi chưa đặt đích, 3.6 đổi bản mặc định vô điều kiện
+
+- **Mức**: nhẹ.
+- **Ở đâu**: 3.6, B11, mục 6.
+- **Chuyện gì xảy ra**: máy không đặt đích. Người quản trị khôi phục một bản cũ (job tạo bản `before-restore`), rồi muốn quay lại trạng thái ngay trước đó bằng `tpan backup restore <domain>` không `--id`. v0.2.0 chọn bản `before-restore` (bản đầy đủ mới nhất); bản này chọn bản `manual` hay `schedule` mới nhất. Hành vi và output khác, trái B11 và mục 6.
+- **Căn cứ**: `:373`, `:623`, `:657`; `internal/core/backup.go:378-387`.
+- **Đề xuất sửa**: ghi ngoại lệ này vào B11, mục 6 và hướng dẫn nâng cấp; hoặc chỉ đổi bản mặc định khi đã đặt đích.
+
+#### R12. Job đẩy, tải, gói bị giết thì nằm `running` mãi, không phép kiểm nào báo
+
+- **Mức**: nhẹ.
+- **Ở đâu**: 3.5 (gạch cuối của "Ai gọi lượt đẩy").
+- **Chuyện gì xảy ra**: `tpan self-update` khởi động lại `tpan serve` giữa lúc bộ đẩy nền đang đẩy. Job `backup.push` dừng ở `running`; không mã nào đóng job treo lúc khởi động, và 3.5 bỏ ba loại này khỏi phép kiểm job treo. Lịch sử giữ một job "đang chạy" vĩnh viễn.
+- **Căn cứ**: `:349`; `internal/store/health.go:536-550`; `internal/health/health.go:33-34`; trong `internal/` chỉ có truy vấn đọc job `running` (`store/health.go`, `store/users.go`).
+- **Đề xuất sửa**: đầu mỗi lượt (đang giữ khoá lượt đẩy, nên không job đẩy, tải, gói nào khác còn sống) đặt mọi job ba loại đó còn `running` thành hỏng với câu "đứt vì tiến trình dừng"; hoặc giữ chúng trong phép kiểm job treo với ngưỡng riêng (24 giờ).
+
+#### R13. Lỗi đọc `s3.json`, `backup.key` có thể chép nội dung file
+
+- **Mức**: nhẹ.
+- **Ở đâu**: 3.2 (ba file bí mật), 3.8 (luật kiểm khoá), B3.
+- **Chuyện gì xảy ra**: người quản trị sửa tay `backup.key`, dán thiếu một ký tự. Thợ `agebox` viết lỗi theo kiểu quen của repo (`setting %s = %q không hợp lệ`): "khoá sao lưu %q sai dạng". Lỗi vào `jobs.error`, `job_events`, SSE, MCP và `s3.panel_error`, mang gần trọn khoá. Cùng chuyện với access key sai dạng trong `s3.json`. Test B3 chỉ đặt khoá đúng qua đường thường nên không bắt.
+- **Căn cứ**: `:195-197`, `:390`, `:615`; `internal/core/backup.go:70`.
+- **Đề xuất sửa**: ghi luật: lỗi về ba file bí mật chỉ nêu đường dẫn, độ dài và luật bị trái, không bao giờ nêu nội dung. Thêm `agebox.TestLoiKhongChepKhoa` và một ca `s3.json` sai dạng vào `server.TestKhongLoKhoaS3`.
+
+#### R14. Lần khởi động đầu kết thúc `ok: false` thì mọi lần cloud-init chạy lại đều chạy lại `apply`
+
+- **Mức**: nhẹ.
+- **Ở đâu**: 3.9 (script, `tpan cloud-init run`).
+- **Chuyện gì xảy ra**: việc 5 (`health`) có một phép kiểm lỗi, `first-boot.json` ghi `ok: false`; người quản trị sửa tay, dùng máy bình thường, xoá vài site. Vài tháng sau tạo máy mới từ snapshot của máy này: cloud-init chạy lại `runcmd` (instance-id mới), script thấy `first-boot.json` nên `exec tpan cloud-init run`; `ok` không phải `true` nên chạy lại cả năm việc, `apply` tạo lại các site đã xoá.
+- **Căn cứ**: `:465-467`, `:484-492`.
+- **Đề xuất sửa**: `first-boot.json` ghi từng việc đã đạt; không có `--force` thì không chạy lại việc đã đạt (nhất là `sites`), chỉ làm tiếp việc chưa đạt.
+
+#### R15. Ba chỗ thợ phải đoán
+
+- **Mức**: nhẹ.
+- **Ở đâu**: 3.5 bước 6, 8; 3.6; 3.11; 3.12.
+- **Chuyện gì xảy ra**: (a) `tpan backup restore --dry-run` với bản chỉ còn trên kho: CLI không dựng được bản xem trước khôi phục nếu chưa tải về, mà tải về là ghi file và đổi `local` trong lúc dry-run. (b) `POST /backups/{id}/pull` với bản `stored` ở đích khác: theo 3.11 đó là "bản không cần tải về" nên trả `backup_already_local`, sai nghĩa; 3.6 đã có câu đúng cho ca này. (c) Danh sách đẩy tính một lần ở bước 6: sau lần đặt đích đầu khi `s3.keep < backup.keep`, hay sau vài đêm kho hỏng, các bản cũ hơn `s3.keep` được tải lên, đọc lại rồi bị dọn ngay trong cùng lượt.
+- **Căn cứ**: `:338`, `:340`, `:366`, `:371`, `:375`, `:515`, `:546`.
+- **Đề xuất sửa**: (a) dry-run in "bản này ở kho (cỡ …), cần tải về trước khi xem được bản xem trước khôi phục" và không tải. (b) trả `backup_not_on_machine` với câu của 3.6. (c) trước mỗi bản, đọc lại các dòng của domain và tính lại `remoteSurvives`.
+
+#### R16. File trên máy hỏng sha256 mà kho còn bản tốt thì TPAN không lấy về được
+
+- **Mức**: nhẹ.
+- **Ở đâu**: 3.6 (định nghĩa "bản cần tải về", `PrepareRestore`), 3.11 (route tải về).
+- **Chuyện gì xảy ra**: dòng `local=1`, `stored` ở đích đang đặt; file trên máy còn, là file thường, nhưng sha256 lệch (đĩa hỏng bit, ghi dở). Định nghĩa "bản cần tải về" chỉ gồm file không có hoặc không phải file thường, nên `PrepareRestore` đi đường M9: `checkIntact` từ chối `backup_corrupt` với câu "chọn bản khác"; `POST /backups/{id}/pull` trả `backup_already_local` vì đây "không phải bản cần tải về". Bản tốt trên kho không tới được qua TPAN, dù `S3Pull` đã có sẵn nhánh "`Dest` có mà sai thì xoá rồi tải lại" (hiện chỉ chạy tới được sau khi tiến trình chết giữa `Rename` và `after`). Người quản trị phải tự `rm` file trong `/var/lib/tpan/backups` mới khôi phục được.
+- **Căn cứ**: `:358-359`, `:366`, `:370-372`, `:515`; `internal/core/backup.go:405-431`.
+- **Đề xuất sửa**: dòng `stored` ở đích đang đặt mà file trên máy lệch cỡ hay lệch sha256 cũng là "bản cần tải về"; `backup_corrupt` của dòng đó nói "bản trên kho còn; tải lại: sudo tpan backup pull <id>".
+
+### 9.3 Cách xử lý kết quả soát hẹp (phiên chính, 21/11)
+
+**Mục này đè lên mục 3 và mục 4 ở chỗ hai bên khác nhau.** Khi gộp vào `docs/KE-HOACH.md` mục 6.16, các luật dưới đây thay cho câu cũ.
+
+| Điểm | Xử lý | Luật mới |
+|---|---|---|
+| R1 (nặng) | Sửa | `PrepareSetTarget` chỉ cho giữ hai khoá đang lưu khi đã có đích và **endpoint (sau chuẩn hoá), vùng, bucket, nội dung CA** (sau khi áp `CAMode`) đều trùng đích đang lưu. Khác một trong bốn: từ chối `s3_keys_invalid` "đổi endpoint, vùng, bucket hay CA thì gửi lại cả hai khoá". Kiểm **trước** khi dựng kho, nên không request nào ký bằng khoá cũ đi tới host mới. Áp cho cả CLI lẫn API. Test: `core` (số lần dựng kho bằng 0), `server.TestKhongLoKhoaS3` (máy chủ giả ở endpoint khác không nhận request nào). |
+| R2 | Sửa | (a) Bước 7: `Check` đạt **không** xoá `s3.target_error`, `s3.target_failures`, `s3.retry_at`; chỉ một job đẩy hay job gói đạt mới xoá cả ba. (b) Job đẩy hỏng vì lỗi của đích: `Check` lại. Hỏng: không đếm (`target_error` là lỗi của lần `Check` này). Đạt: đếm. Cả hai ca ngắt cầu dao và lùi. (c) Lỗi khác: `countTry = !IsTargetError(err) && !huỷ`, đi tiếp. Huỷ: dừng, không ghi gì vào dòng. Giữ object để chỉ đọc lại ở lần sau: không làm (trần 5 lần đã chặn vòng lặp). |
+| R3 | Sửa | (a) Gói hỏng vì lý do bất kỳ: ghi `s3.panel_error`, tăng `s3.panel_failures`, đặt `s3.panel_retry_at` theo cùng bảng lùi; lỗi của đích thì lùi cả đích. Bước 9 bỏ gói khi chưa tới `panel_retry_at` (trừ `Retry`). Gói đạt: xoá ba setting. Khoá sao lưu sai dạng: không tạo job, ghi `panel_error` "khoá sao lưu sai dạng (<đường dẫn>)". (b) `after` của mỗi job đẩy đạt và mỗi lần dọn kho xoá được object ghi `s3.panel_due = 1`; bước 9 chỉ đọc setting, bỏ điều kiện trong bộ nhớ. (c) Hết đối tượng nhờ R4. |
+| R4 | Sửa | `Planned` có thêm `remoteLock`, `remoteWait`. `backup.target.set`, `backup.target.rm`, `backup.key.new` giữ khoá lượt đẩy (chờ tối đa 30 phút) từ trước engine tới sau `after`. Thứ tự luôn là khoá lượt đẩy rồi khoá job; lượt đẩy không lấy khoá job. Sync đọc cấu hình đích **sau** khi lấy khoá. |
+| R5 | Sửa | `after` của set ghi `s3.relink_due = 1` cùng setting của đích mới (khi mã đích đổi hoặc trước đó chưa có đích), nối lại, đạt thì xoá cờ. Chạy lại `target set` mà cờ còn thì nối tiếp. |
+| R6 | (a) Để sau. (b) Sửa | (a) Lượt đẩy dài thì khôi phục một bản chỉ còn trên kho phải chờ khoá tới 30 phút: ghi vào giới hạn đã biết của giải thích. (b) API tải về không qua bộ đẩy nền: handler chạy `Remote.Pull` trong goroutine (job hiện ở Lịch sử). `Pull` lấy khoá rồi mới đọc dòng và dựng Plan. Hàng chờ của bộ đẩy nền chỉ có yêu cầu đẩy. |
+| R7 | Để sau | Hai việc ghi lớn chạy song song (tải về dưới khoá lượt đẩy, sao lưu dưới khoá job) có thể cùng qua luật chặn đầy đĩa. Giữ chỗ bằng `fallocate` cần đổi `Streamer` và hai bước đã xong; ghi vào giới hạn đã biết, làm ở mốc sau. |
+| R8 | Sửa | `remoteSurvives`: `S` chỉ đếm dòng lý do `manual`, `schedule` (cùng domain, full, `stored` ở targetID, mới hơn R). R lý do `before-purge`: luôn sống. `manual`, `schedule`: sống khi `S < keep`. Lý do khác (`before-restore`, `before-import`): sống khi không có dòng full nào của domain mới hơn R mà cùng lý do. Vẫn đơn điệu, không sinh vòng đẩy, dọn. |
+| R9 | Sửa | `Only` vẫn áp luật chọn (full, `local=1`, `remoteSurvives`); chỉ `remote_tries` được `Retry` đặt lại. id không qua luật vào `Failed` với câu rõ ("nằm ngoài s3.keep: kho chỉ giữ N bản mới nhất", "không còn trên máy", "không phải bản đầy đủ"). Dòng đã `stored` ở đích này: `Head`; còn và đúng cỡ thì coi là đạt, mất hay sai cỡ thì `ForgetBackupRemote` rồi đẩy như thường. |
+| R10 | Đã có | `system.Locker`, `Remote.Lock` (đợt 0e). |
+| R11 | Ghi rõ | Ngoại lệ của B11 và mục 6: `tpan backup restore <domain>` không `--id` chọn bản `manual`/`schedule` mới nhất kể cả khi máy chưa đặt đích. Ghi vào hướng dẫn nâng cấp. |
+| R12 | Sửa | Ngay sau khi lấy khoá lượt đẩy, Sync gọi `Store.AbortStaleJobs` cho `backup.push`, `backup.pull`, `backup.panel`. Phép kiểm job treo vẫn bỏ qua ba loại này. |
+| R13 | Đã đúng, thêm test | Lỗi về ba file bí mật chỉ nêu đường dẫn, độ dài, luật bị trái; không nêu nội dung (đã đúng ở `remote_target.go`, `agebox`). Test ở `server.TestKhongLoKhoaS3` với `s3.json` sai dạng. |
+| R14 | Sửa | `tpan cloud-init run` không `--force`: việc đã đạt (`done`, `skipped`) ở lần chạy trước chưa xong không chạy lại; chỉ làm tiếp việc chưa đạt. |
+| R15 | Sửa | (a) `restore --dry-run` với bản chỉ còn trên kho: in "bản này ở kho (cỡ …), cần tải về trước khi xem được bản xem trước khôi phục", không tải. (b) API tải về bản ở đích khác mà không có trên máy: 409 `backup_not_on_machine`. (c) Trước mỗi bản ở bước 8, đọc lại các dòng của domain và tính lại `remoteSurvives`. |
+| R16 | Sửa | `PreparePull`: dòng `stored` ở đích đang đặt luôn được tải, kể cả khi file trên máy còn; `S3Pull.Check` theo sha256 quyết (file đúng thì job không làm gì, hỏng thì tải lại). `backup_already_local` chỉ khi dòng không ở đích này mà có file; `backup_not_on_machine` khi không ở đích này và không có file. |
