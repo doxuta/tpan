@@ -145,7 +145,7 @@ func (f *FakeSystem) Run(ctx context.Context, cmd Cmd) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{ExitCode: -1}, fmt.Errorf("chạy %s: %w", cmd.String(), err)
 	}
-	// Same rule as LocalSystem (3.4): every test that runs a Plan checks it.
+	// Cùng luật với LocalSystem (3.4): mọi test chạy một Plan đều bị kiểm.
 	if err := checkRootZone(sitefs.Root, cmd); err != nil {
 		return Result{ExitCode: -1}, err
 	}

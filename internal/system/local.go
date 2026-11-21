@@ -328,8 +328,8 @@ func (s *LocalSystem) MkdirAll(path string, perm fs.FileMode, owner Owner) error
 		return fmt.Errorf("tạo thư mục %s: %w", path, err)
 	}
 	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
-		// The anchor and everything above it belong to root: create them the
-		// old way if missing, then the rest through the gate.
+		// Neo và mọi thứ phía trên nó thuộc root: nếu thiếu thì tạo theo cách
+		// cũ, phần còn lại đi qua cổng.
 		if err := mkdirAll(a, perm, uid, gid); err != nil {
 			return err
 		}
@@ -338,7 +338,7 @@ func (s *LocalSystem) MkdirAll(path string, perm fs.FileMode, owner Owner) error
 	return mkdirAll(path, perm, uid, gid)
 }
 
-// mkdirAll is MkdirAll outside the site zone.
+// mkdirAll là MkdirAll cho phần nằm ngoài vùng site.
 func mkdirAll(path string, perm fs.FileMode, uid, gid int) error {
 	var missing []string
 	for p := filepath.Clean(path); ; p = filepath.Dir(p) {
@@ -383,8 +383,8 @@ func (s *LocalSystem) Remove(path string) error {
 	return nil
 }
 
-// Rename: either side inside the zone sends both through the gate; the side
-// outside goes as an absolute path (AT_FDCWD).
+// Rename: hễ một phía nằm trong vùng thì cả hai phía đi qua cổng; phía nằm
+// ngoài đi dưới dạng đường dẫn tuyệt đối (AT_FDCWD).
 func (s *LocalSystem) Rename(oldPath, newPath string) error {
 	oa, or, oin := sitefs.Split(s.SiteRoot, oldPath)
 	na, nr, nin := sitefs.Split(s.SiteRoot, newPath)
