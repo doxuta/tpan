@@ -1,22 +1,36 @@
 #!/usr/bin/env bash
-# e2e M28, khẳng định 7 (đặt quyền thư mục). Chạy bằng root trong máy ảo, sau
-# dung-may.sh. Theo cách của n3-lenh-root.sh mục find-chmod.
+# e2e M28, khẳng định 7 (đặt quyền thư mục, S8). Chạy bằng root trong máy ảo,
+# sau dung-may.sh. Dùng cho cả Apache và nginx.
 #
-# Một thư mục nạn nhân 0755 của root (/srv/m28-victim). User site tráo liên
-# tục một thư mục con trong public (public/wp-includes) với symlink tới nạn
-# nhân trong lúc admin chạy `tpan site add e.example.com --yes` 30 lần. Nạn
-# nhân phải giữ 0755.
+# Bản cũ chạy `site add` lại trên site đã có WordPress nên bước chmod không bao
+# giờ chạy tới (WPFiles không giải nén lại) và khẳng định xanh vô nghĩa. Bản
+# này tạo site MỚI mỗi vòng, đúng lúc WPFiles giải nén và đặt quyền thư mục:
 #
-# CHÚ THÍCH BẮT BUỘC (bản thiết kế mục 7): trên bản CHƯA VÁ, bước chmod
-# (find ... -type d -exec chmod 2750) chỉ chạy khi WPFiles giải nén lại
-# WordPress, mà `site add` trên site đã có WordPress không giải nén lại. Vì
-# vậy khẳng định này có thể ĐẠT cả trước bản vá: nó không phải bằng chứng bắt
-# lỗ, chỉ là kiểm hành vi đúng vẫn đúng. Sau bản vá, chmodDirs đi qua cửa nên
-# vẫn ĐẠT.
+# - Một thư mục nạn nhân 0755 của root (/srv/m28-victim, kèm thư mục con).
+# - Một vòng lặp root chạy nền chờ public của f.example.com có mục đầu tiên
+#   (tar của WordPress đã bắt đầu giải nén, tức là đã qua lần kiểm "public
+#   rỗng"; kiểm mỗi 10 ms, tối đa 120 giây), rồi chạy kẻ tráo dưới user Linux
+#   của site đó (giả lập tiến trình có sẵn của một UID được dùng lại). Kẻ tráo
+#   tạo thư mục RIÊNG public/zz-m28/con (tar không đụng tới, nên không làm hỏng
+#   việc giải nén) và tráo nó với symlink tới nạn nhân trong 15 giây rồi tự
+#   dừng (tra-doi.py, chế độ dir-rieng), để lúc job có lỗi mà hoàn tác thì
+#   userdel không vướng tiến trình nào. Lần chạy đầu tráo chính
+#   wp-includes/js: tar hỏng giữa chừng, site add không tới bước đặt quyền.
+# - admin chạy `tpan site add f.example.com --email admin@example.com --yes
+#   --json`. Khẳng định mỗi vòng: job site.add có sự kiện step.done của bước
+#   wp.files:f.example.com (đọc job_events của tpan.db, chỉ đọc); nạn nhân giữ
+#   0755; public/wp-includes (thư mục của site, không phải chỗ bị tráo) là 2750.
+# - Xong vòng thì xoá hẳn site (site rm rồi trash purge). 5 vòng mặc định.
+#
+# Trên bản CHƯA VÁ, "nạn nhân giữ 0755" có thể ĐỎ: đó là bằng chứng bộ thử chạm
+# tới đúng chỗ. Sau bản vá, chmodDirs đi qua cửa nên phải ĐẠT. Phép thử chính
+# cho lỗ này vẫn là test cần root TestCuaDuaChmod (1000 vòng trên chính cửa).
 . "$(dirname "$0")/chung.sh"
-ROUNDS="${1:-10}"
+ROUNDS="${1:-5}"
+FD=f.example.com
+FDIR=/var/www/$FD
+SUB=$FDIR/public/zz-m28/con
 V=/srv/m28-victim
-SUB=$PUB/wp-includes
 can_may
 
 dung_tra() {
@@ -25,38 +39,61 @@ dung_tra() {
   for _ in $(seq 1 50); do pgrep -f '^python3 - m28-tra-doi' >/dev/null || break; sleep 0.1; done
   pkill -KILL -f '^python3 - m28-tra-doi' 2>/dev/null
 }
+# xoa_site: xoá hẳn site f (vào thùng rác rồi purge). Best effort.
+xoa_site() {
+  tpan site rm "$FD" --yes >"$W/f.rm" 2>&1 || true
+  tpan trash purge "$FD" --yes >"$W/f.purge" 2>&1 || true
+  tail -2 "$W/f.rm" "$W/f.purge" 2>/dev/null | sed 's/^/  | /'
+}
 don() {
   dung_tra
-  if [ -L "$SUB" ] && [ -d "$SUB.m28-lien" ]; then as rm -f "$SUB"; as mv "$SUB.m28-lien" "$SUB"; fi
-  [ -L "$SUB.m28-lien" ] && as rm -f "$SUB.m28-lien"
   rm -rf "$V"
-  tra_lai
+  [ -d "$FDIR" ] && xoa_site
+  rm -f "$W"/f.add.* "$W"/f.rm "$W"/f.purge "$W"/dem-chmod.*
 }
 trap don EXIT
 
-step "7. admin chạy site add $DOM $ROUNDS lần, user site tráo $SUB <-> symlink tới $V (0755 của root)"
-rm -rf "$V"
-mkdir -p "$V/con"
-chmod 0755 "$V" "$V/con"
-chown root:root "$V" "$V/con"
-echo "  nạn nhân trước: $(stat -c '%n %U:%G %a' "$V" "$V/con" | tr '\n' ' ')"
-as mkdir -p "$SUB"
-runuser -u "$SU" -- python3 - m28-tra-doi dir "$SUB" "$V" <"$D/tra-doi.py" >"$W/dem-chmod" 2>&1 &
-sleep 1
-pgrep -f '^python3 - m28-tra-doi' >/dev/null && echo "  kẻ tráo đang chạy (user $SU)" || echo "  kẻ tráo KHÔNG chạy: $(head -c 300 "$W/dem-chmod")"
-rc_all=0
+# step_done <job id>: job có sự kiện step.done của bước wp.files:f.example.com.
+step_done() {
+  python3 -I -c '
+import sqlite3, sys
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+n = c.execute("select count(*) from job_events where job_id=? and kind=? and step_id=?",
+              (sys.argv[1], "step.done", sys.argv[2])).fetchone()[0]
+print(f"  job {sys.argv[1]}: {n} sự kiện step.done của {sys.argv[2]}")
+sys.exit(0 if n >= 1 else 1)' "$1" "wp.files:$FD"
+}
+
+step "7. $ROUNDS vòng: admin site add $FD (mới), user site tráo $SUB <-> symlink tới $V (0755 của root)"
+[ -d "$FDIR" ] && xoa_site
 for r in $(seq 1 "$ROUNDS"); do
-  tpan site add "$DOM" --owner khach1 --email admin@example.com --yes >"$W/add.$r" 2>&1 || rc_all=1
-  m="$(stat -c %a "$V" 2>/dev/null)"
-  if [ "$m" != 755 ]; then
-    echo "  vòng $r: nạn nhân thành $m"
-    break
-  fi
+  step "7. vòng $r/$ROUNDS"
+  rm -rf "$V"
+  mkdir -p "$V/con"
+  chmod 0755 "$V" "$V/con"
+  chown root:root "$V" "$V/con"
+  echo "  nạn nhân trước: $(stat -c '%n %U:%G %a' "$V" "$V/con" | tr '\n' ' ')"
+  (
+    for _ in $(seq 1 12000); do [ -n "$(ls -A "$FDIR/public" 2>/dev/null)" ] && break; sleep 0.01; done
+    [ -n "$(ls -A "$FDIR/public" 2>/dev/null)" ] || exit 3
+    fsu="$(stat -c %U "$FDIR")"
+    runuser -u "$fsu" -- python3 - m28-tra-doi dir-rieng "$SUB" "$V" 15 <"$D/tra-doi.py" >"$W/dem-chmod.$r" 2>&1
+  ) &
+  watcher=$!
+  tpan site add "$FD" --email admin@example.com --yes --json >"$W/f.add.$r" 2>"$W/f.add.err.$r"
+  rc=$?
+  kill "$watcher" 2>/dev/null
+  dung_tra
+  wait "$watcher" 2>/dev/null
+  tr=$(sed -n 's/^so-lan-trao=//p' "$W/dem-chmod.$r" 2>/dev/null)
+  echo "  site add thoát $rc; số lần tráo thành công: ${tr:-không có (kẻ tráo không chạy)}"
+  jid="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["report"]["job"]["id"])' "$W/f.add.$r" 2>/dev/null)"
+  ok "vòng $r: job site.add có sự kiện step.done của wp.files:$FD" step_done "${jid:-none}"
+  echo "  nạn nhân sau: $(stat -c '%n %U:%G %a' "$V" "$V/con" | tr '\n' ' ')"
+  ok "vòng $r: thư mục nạn nhân giữ quyền 0755" bash -c '[ "$(stat -c %a "$1")" = 755 ] && [ "$(stat -c %a "$1/con")" = 755 ]' _ "$V"
+  ok "vòng $r: public/wp-includes là 2750 ($(stat -c %a "$FDIR/public/wp-includes" 2>/dev/null))" \
+    bash -c '[ "$(stat -c %a "$1")" = 2750 ]' _ "$FDIR/public/wp-includes"
+  [ "$rc" = 0 ] || note "vòng $r: site add thoát $rc: stderr: $(tail -c 300 "$W/f.add.err.$r" | tr '\n' ' ') stdout: $(head -c 300 "$W/f.add.$r" | grep -o '"error"[^}]*' | head -c 300)"
+  rm -f "$W/f.add.$r" "$W/f.add.err.$r"
+  xoa_site
 done
-dung_tra
-wait 2>/dev/null
-tr=$(sed -n 's/^so-lan-trao=//p' "$W/dem-chmod")
-echo "  số lần tráo: ${tr:-?}; nạn nhân sau: $(stat -c '%n %U:%G %a' "$V" "$V/con" | tr '\n' ' ')"
-ok "thư mục nạn nhân giữ quyền 0755 qua $ROUNDS vòng site add" bash -c '[ "$(stat -c %a "$1")" = 755 ] && [ "$(stat -c %a "$1/con")" = 755 ]' _ "$V"
-note "site add lặp lại thoát $([ "$rc_all" = 0 ] && echo "0 mọi lần" || echo "khác 0 ít nhất một lần")"
-rm -f "$W"/add.*

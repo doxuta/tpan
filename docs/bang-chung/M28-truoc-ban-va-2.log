@@ -1,0 +1,385 @@
+
+
+######## [2026-11-21 10:08:14] e2e M28 bước 31 — máy ảo tpan-m28 — phần: apache — log docs/bang-chung/M28-truoc-ban-va-2.log
+E2E_BUILD=0  E2E_BIN_PREFIX=bin/tpan-truoc-ban-va-linux
+
+
+######## [2026-11-21 10:08:14] PHẦN APACHE
+
+[2026-11-21 10:08:14] đưa máy ảo tpan-m28 về sạch
+[2026-11-21 10:08:30] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-21 10:08:30] chép bản chưa vá bin/tpan-truoc-ban-va-linux-arm64 vào máy ảo
+tpan v0.2.0-21-gd6b535f-dirty (commit d6b535f, build 2026-11-20T20:27:56Z)
+[2026-11-21 10:08:30] chép scripts/e2e-m28/ vào máy ảo (/home/ubuntu/e2e-m28)
+
+[2026-11-21 10:08:33] >>> dựng máy (apache)  (bash dung-may.sh apache)
+
+--- [10:08:33] tpan version
+tpan v0.2.0-21-gd6b535f-dirty (commit d6b535f, build 2026-11-20T20:27:56Z)
+
+--- [10:08:33] tpan setup
+  xong
+
+Job dfdff2db2196daf0: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    83:EE:8C:9B:4C:18:2D:37:7B:1F:74:EB:79:3B:DF:97:10:BB:DB:67:97:7E:DE:69:3F:4D:31:6A:DC:DC:FC:B6
+Mở: https://<IP của máy>:8443
+  => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m28-admin.pw, không in)
+  => ĐẠT: tpan.service active
+
+--- [10:08:34] tpan stack install --web apache --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web apache thoát 0
+
+--- [10:09:23] tpan site add a.example.com (admin)
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  => ĐẠT: site add a.example.com thoát 0
+
+--- [10:09:43] tpan site add b.example.com (admin)
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+  => ĐẠT: site add b.example.com thoát 0
+
+--- [10:09:49] user khach1 (vai user) và site e.example.com của khach1
+  => ĐẠT: user add khach1 thoát 0, có mật khẩu (không in)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site e.example.com
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com
+  => ĐẠT: site add e.example.com --owner khach1 thoát 0
+
+--- [10:09:55] hiện trạng
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-21 10:09 admin          -
+b.example.com                            active   8.3   không 2026-11-21 10:09 admin          -
+e.example.com                            active   8.3   không 2026-11-21 10:09 khach1         -
+  /var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public/.htaccess  regular file tp_a_example_com_7653e4:www-data 640 696 byte
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  /var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public/.htaccess  regular file tp_b_example_com_cd59d5:www-data 640 696 byte
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  /var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public/.htaccess  regular file tp_e_example_com_25cfc7:www-data 640 696 byte
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+  site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; stack nginx
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+  => ĐẠT: khach1 đăng nhập API: HTTP 204
+  khach1 GET /session: HTTP 200, 0.002100s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 173 byte
+  phiên: khach1 vai user
+  => ĐẠT: phiên của khach1 có vai user
+[2026-11-21 10:09:56] <<< dựng máy (apache) xong trong 83 giây
+
+[2026-11-21 10:09:56] >>> A1,A3 bản xem trước  (bash xem-truoc.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [10:09:56] 1. .htaccess là file thường (hành vi đúng phải giữ)
+  /var/www/e.example.com/public/.htaccess: regular file, tp_e_example_com_25cfc7:www-data 640, 696 byte
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.739414s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41138 byte
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_exists=True, old 696 byte sha=323969eac053238b, file trên đĩa 696 byte sha=323969eac053238b, new 696 byte sha=323969eac053238b
+  => ĐẠT: .htaccess thường: HTTP 200, mục .htaccess có old_exists true, old đúng bằng file trên đĩa, new khác rỗng
+  (bản xem trước mất 0.739414s)
+
+--- [10:09:57] 3a. thư mục cha: public -> symlink tới thư mục chỉ root đọc được
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.417576s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41720 byte
+    phân tích: /srv/m28/nan-nhan/.htaccess (811 byte sha=bb9c9229e5e98cab): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 41720 byte, 4 file trong bản xem trước
+    phân tích: /srv/m28/nan-nhan/wp-config.php (3480 byte sha=ed8b45c4e469d4bc): không chứa; câu trả lời 41720 byte, 4 file trong bản xem trước
+  => KHÔNG ĐẠT: cha là symlink: câu trả lời không chứa file nào của thư mục nạn nhân
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+
+--- [10:09:58] 3b. hardlink tới /etc/shadow
+fs.protected_hardlinks = 1
+  ln: ln: failed to create hard link '/var/www/e.example.com/public/.htaccess' => '/etc/shadow': Operation not permitted
+  => ĐẠT: fs.protected_hardlinks=1: kernel từ chối user site tạo hardlink tới /etc/shadow
+  tắt fs.protected_hardlinks (máy bị cấu hình lỏng) rồi thử lại
+  /var/www/e.example.com/public/.htaccess: regular file, chủ root:shadow, quyền 640, 2 tên
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.421049s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41519 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 41519 byte, 4 file trong bản xem trước
+  => KHÔNG ĐẠT: hardlink tới /etc/shadow: câu trả lời không chứa file đích
+  => KHÔNG ĐẠT: hardlink tới /etc/shadow: HTTP 409, error.code site_path_unsafe
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+fs.protected_hardlinks = 1
+
+--- [10:09:58] 3c. tên lạ trong public do user site tạo (xuống dòng, -rf, 255 ký tự)
+  đã tạo 3 file, độ dài tên: [18, 3, 255]
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.447407s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41138 byte
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_exists=True, old 696 byte sha=323969eac053238b, file trên đĩa 696 byte sha=323969eac053238b, new 696 byte sha=323969eac053238b
+  => ĐẠT: tên lạ trong public: HTTP 200, mục .htaccess có old_exists true, old đúng bằng file trên đĩa, new khác rỗng
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+  => ĐẠT: tên lạ: tpan còn sống, PID không đổi
+[2026-11-21 10:09:59] <<< A1,A3 bản xem trước xong trong 3 giây
+
+[2026-11-21 10:09:59] >>> A2 ba mục tiêu T1  (bash t1.sh chan)
+  đăng nhập khach1: HTTP 204
+
+--- [10:09:59] .htaccess của e.example.com -> symlink tới /var/www/a.example.com/public/wp-config.php
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.518584s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 44851 byte
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=ed8b45c4e469d4bc): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 44851 byte, 4 file trong bản xem trước
+  => KHÔNG ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link không có, old 3480 byte, old_exists=True
+  => KHÔNG ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+
+--- [10:10:00] .htaccess của e.example.com -> symlink tới /etc/shadow
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.401652s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41519 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 41519 byte, 4 file trong bản xem trước
+  => KHÔNG ĐẠT: symlink -> /etc/shadow: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link không có, old 980 byte, old_exists=True
+  => KHÔNG ĐẠT: symlink -> /etc/shadow: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+
+--- [10:10:00] .htaccess của e.example.com -> symlink tới /var/lib/tpan/tpan.db
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.365090s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 995947 byte
+    phân tích: /var/lib/tpan/tpan.db (716800 byte sha=cab15d297b0a8746): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 995947 byte, 4 file trong bản xem trước
+  => KHÔNG ĐẠT: symlink -> /var/lib/tpan/tpan.db: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link không có, old 716800 byte, old_exists=True
+  => KHÔNG ĐẠT: symlink -> /var/lib/tpan/tpan.db: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+[2026-11-21 10:10:01] <<< A2 ba mục tiêu T1 xong trong 2 giây
+
+[2026-11-21 10:10:01] >>> A4 đua  (bash dua.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [10:10:01] 4a. tráo .htaccess <-> symlink tới /etc/shadow, 1000 lần xin bản xem trước (4 song song)
+  kẻ tráo đang chạy (user tp_e_example_com_25cfc7)
+  1000 lần gọi xong trong 363 giây
+  số lần tráo: 4128292 
+  sau khi dừng: /var/www/e.example.com/public/.htaccess là regular file
+  => ĐẠT: 4a: kẻ tráo đã tráo hơn 1000 lần trong lúc gọi (4128292 lần)
+  => ĐẠT: 4a: đủ 1000 câu trả lời
+    phân tích: 1000 lần gọi, theo mã HTTP: {'200': 1000}; 1000 câu trả lời, 933 câu trả lời chứa file đích {'trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích': 933}
+  => KHÔNG ĐẠT: 4a: không câu trả lời nào trong 1000 câu chứa /etc/shadow
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+  => ĐẠT: 4a: tpan còn sống, PID không đổi
+
+--- [10:16:05] 4b. tráo public <-> symlink tới thư mục nạn nhân, 300 lần xin bản xem trước
+  kẻ tráo đang chạy (user tp_e_example_com_25cfc7)
+  300 lần gọi xong trong 29 giây
+  số lần tráo: 7900034 
+  sau khi dừng: /var/www/e.example.com/public là directory
+  => ĐẠT: 4b: kẻ tráo đã tráo hơn 300 lần trong lúc gọi (7900034 lần)
+  => ĐẠT: 4b: đủ 300 câu trả lời
+    phân tích: 300 lần gọi, theo mã HTTP: {'200': 300}; 300 câu trả lời, 183 câu trả lời chứa file đích {'trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích': 183}
+  => KHÔNG ĐẠT: 4b: không câu trả lời nào trong 300 câu chứa file của thư mục nạn nhân
+  tpan: PID 3537 -> 3537 (active), NRestarts 0 -> 0
+  => ĐẠT: 4b: tpan còn sống, PID không đổi
+[2026-11-21 10:16:36] <<< A4 đua xong trong 395 giây
+
+[2026-11-21 10:16:36] >>> A5 từ chối phục vụ  (bash tu-choi.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [10:16:36] 5a. .htaccess là file thường 2 GiB (thưa), đúng chủ và quyền
+  /var/www/e.example.com/public/.htaccess: regular file, 2147483648 byte, chủ tp_e_example_com_25cfc7:www-data, quyền 640
+  khach1 POST /sites?dry_run=1: HTTP 000, 2.453189s (curl thoát 56; 28 là quá hạn 20s), câu trả lời 0 byte
+  => KHÔNG ĐẠT: file 2 GiB: trả lời trong 5 giây
+  => KHÔNG ĐẠT: file 2 GiB: HTTP 409, JSON có error.code
+  tpan: PID 3537 -> 0 (activating), NRestarts 0 -> 0
+  => KHÔNG ĐẠT: file 2 GiB: PID của tpan.service không đổi, NRestarts không tăng
+
+--- [10:16:42] 5b. .htaccess là FIFO
+  /var/www/e.example.com/public/.htaccess: fifo, chủ tp_e_example_com_25cfc7:www-data, quyền 640
+  khach1 POST /sites?dry_run=1: HTTP 000, 20.148132s (curl thoát 28; 28 là quá hạn 20s), câu trả lời 0 byte
+  => KHÔNG ĐẠT: FIFO: trả lời trong 5 giây
+  => KHÔNG ĐẠT: FIFO: HTTP 409, JSON có error.code
+  tpan: PID 31521 -> 31521 (active), NRestarts 1 -> 1
+  => ĐẠT: FIFO: PID của tpan.service không đổi, NRestarts không tăng
+
+--- [10:17:04] 5c. .htaccess -> symlink tới /dev/zero
+  khach1 POST /sites?dry_run=1: HTTP 000, 2.504009s (curl thoát 56; 28 là quá hạn 20s), câu trả lời 0 byte
+  => KHÔNG ĐẠT: /dev/zero: trả lời trong 5 giây
+  => KHÔNG ĐẠT: /dev/zero: HTTP 200, mục .htaccess có old_link, không có old (không đọc đích)
+  tpan: PID 31521 -> 0 (activating), NRestarts 1 -> 1
+  => KHÔNG ĐẠT: /dev/zero: PID của tpan.service không đổi, NRestarts không tăng
+  kernel: Nov 21 10:17:07 tpan-m28 kernel: tpan invoked oom-killer: gfp_mask=0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_COMP|__GFP_ZERO), order=0, oom_score_adj=0
+  kernel: Nov 21 10:17:07 tpan-m28 kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/system.slice/tpan.service,task=tpan,pid=31521,uid=0
+  kernel: Nov 21 10:17:07 tpan-m28 kernel: Out of memory: Killed process 31521 (tpan) total-vm:7323328kB, anon-rss:3590480kB, file-rss:128kB, shmem-rss:0kB, UID:0 pgtables:7260kB oom_score_adj:0
+
+--- [10:17:10] tổng qua cả ba
+  tpan: PID 3537 -> 31827 (active), NRestarts 0 -> 2
+  => KHÔNG ĐẠT: qua cả ba phép: PID của tpan.service không đổi, NRestarts không tăng
+[2026-11-21 10:17:10] <<< A5 từ chối phục vụ xong trong 34 giây
+
+[2026-11-21 10:17:10] >>> A5 đua FIFO (S1)  (bash tu-choi-fifo.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [10:17:10] 5d. đua FIFO: kẻ tráo đặt FIFO đè lên .htaccess, 50 lần xin bản xem trước (tuần tự)
+  kẻ tráo đang chạy (user tp_e_example_com_25cfc7)
+  số lần tráo: 11654166 
+  50 lần gọi: 49 lần quá 5 giây hay không có câu trả lời, 49 lần mã HTTP khác 200 và 409
+  => ĐẠT: 5d: kẻ tráo đã tráo hơn 50 lần trong lúc gọi (11654166 lần)
+  => KHÔNG ĐẠT: 5d: đủ 50 câu trả lời, lần nào cũng trong 5 giây
+  => KHÔNG ĐẠT: 5d: mã HTTP chỉ là 200 hoặc 409
+    phân tích: 50 lần gọi, theo mã HTTP: {'000': 49, '200': 1}; 50 câu trả lời, 0 câu trả lời chứa file đích 
+  => ĐẠT: 5d: không câu trả lời nào chứa /etc/shadow
+  => ĐẠT: 5d: không còn tiến trình dd nào của user tp_e_example_com_25cfc7
+  => KHÔNG ĐẠT: 5d: không còn tiến trình head nào của user tp_e_example_com_25cfc7
+  => ĐẠT: 5d: không còn tiến trình timeout nào của user tp_e_example_com_25cfc7
+  tpan: PID 31827 -> 31827 (active), NRestarts 2 -> 2
+  => ĐẠT: 5d: PID của tpan.service không đổi, NRestarts không tăng
+[2026-11-21 10:33:34] <<< A5 đua FIFO (S1) xong trong 984 giây
+
+[2026-11-21 10:33:34] >>> A6 chạy thật  (bash chay-that.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [10:33:34] 6. .htaccess -> symlink tới /etc/shadow, khach1 chạy thật POST /sites
+  /etc/shadow trước: 980 byte sha=f54b0cec9863a177
+  khach1 POST /sites: HTTP 202, 0.010034s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 30 byte
+  => ĐẠT: POST /sites (chạy thật) nhận job: HTTP 202
+  job_id có 16 ký tự
+  3 lần GET /jobs/{id}; trạng thái cuối: succeeded
+  => ĐẠT: job thành công (status succeeded)
+  sau job: /var/www/e.example.com/public/.htaccess là regular file, chủ tp_e_example_com_25cfc7:www-data, quyền 640, 696 byte
+  => ĐẠT: .htaccess thành file thường của user site
+  /etc/shadow sau: sha=f54b0cec9863a177
+  => ĐẠT: sha256 của /etc/shadow không đổi
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): không chứa; câu trả lời 31526 byte, không phải JSON
+  => ĐẠT: toàn bộ câu trả lời của POST /sites và GET /jobs/{id} không chứa /etc/shadow (thô và base64)
+[2026-11-21 10:33:39] <<< A6 chạy thật xong trong 5 giây
+
+[2026-11-21 10:33:39] >>> A7 đặt quyền thư mục  (bash quyen-thu-muc.sh )
+
+--- [10:33:39] 7. 5 vòng: admin site add f.example.com (mới), user site tráo /var/www/f.example.com/public/wp-includes/js <-> symlink tới /srv/m28-victim (0755 của root)
+
+--- [10:33:39] 7. vòng 1/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 1; số lần tráo thành công: 137979
+  job 5d65986035cf160e: 0 sự kiện step.done của wp.files:f.example.com
+  => KHÔNG ĐẠT: vòng 1: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 1: thư mục nạn nhân giữ quyền 0755
+  => KHÔNG ĐẠT: vòng 1: public/wp-includes là 2750 (2700)
+  -- GHI NHẬN: vòng 1: site add thoát 1: _com_25e7fe: xoá user tp_f_example_com_25e7fe: còn tiến trình đang chạy dưới user này (thường là worker PHP-FPM chưa thoát); chờ vài giây rồi chạy lại: userdel tp_f_example_com_25e7fe: mã thoát 8: userdel: user tp_f_example_com_25e7fe is currently used by process 33986 
+
+--- [10:33:40] 7. vòng 2/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 1; số lần tráo thành công: 1400
+  job none: 0 sự kiện step.done của wp.files:f.example.com
+  => KHÔNG ĐẠT: vòng 2: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 2: thư mục nạn nhân giữ quyền 0755
+  => KHÔNG ĐẠT: vòng 2: public/wp-includes là 2750 (2700)
+  -- GHI NHẬN: vòng 2: site add thoát 1: 
+
+--- [10:33:40] 7. vòng 3/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 1; số lần tráo thành công: 457
+  job none: 0 sự kiện step.done của wp.files:f.example.com
+  => KHÔNG ĐẠT: vòng 3: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 3: thư mục nạn nhân giữ quyền 0755
+  => KHÔNG ĐẠT: vòng 3: public/wp-includes là 2750 (2700)
+  -- GHI NHẬN: vòng 3: site add thoát 1: 
+
+--- [10:33:40] 7. vòng 4/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 1; số lần tráo thành công: 824
+  job none: 0 sự kiện step.done của wp.files:f.example.com
+  => KHÔNG ĐẠT: vòng 4: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 4: thư mục nạn nhân giữ quyền 0755
+  => KHÔNG ĐẠT: vòng 4: public/wp-includes là 2750 (2700)
+  -- GHI NHẬN: vòng 4: site add thoát 1: 
+
+--- [10:33:40] 7. vòng 5/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 1; số lần tráo thành công: 250
+  job none: 0 sự kiện step.done của wp.files:f.example.com
+  => KHÔNG ĐẠT: vòng 5: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 5: thư mục nạn nhân giữ quyền 0755
+  => KHÔNG ĐẠT: vòng 5: public/wp-includes là 2750 (2700)
+  -- GHI NHẬN: vòng 5: site add thoát 1: 
+[2026-11-21 10:33:41] <<< A7 đặt quyền thư mục xong trong 2 giây
+
+[2026-11-21 10:33:41] >>> A8 admin accept  (bash admin-accept.sh )
+  đăng nhập admin: HTTP 204
+
+--- [10:33:41] 8a. precondition: đưa .htaccess vào managed_files (lúc còn là file thường)
+  admin POST /files/accept: HTTP 204, 0.008035s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 0 byte
+  accept lần đầu (file thường): HTTP 204
+  số dòng managed_files cho .htaccess: 1
+  => ĐẠT: precondition: .htaccess có trong managed_files (accept sắp tới không bị 400 rỗng)
+
+--- [10:33:41] 8b. .htaccess -> symlink tới /etc/shadow, admin POST /files/accept
+  admin POST /files/accept: HTTP 204, 0.004216s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 0 byte
+  => KHÔNG ĐẠT: POST /files/accept trên symlink tới /etc/shadow: KHÔNG phải HTTP 204
+  (mã HTTP: 204; sau bản vá mong đợi 409)
+    phân tích: /etc/shadow (1018 byte sha=1fe933e43c812724): không chứa; câu trả lời 0 byte, không phải JSON
+  => ĐẠT: câu trả lời không chứa /etc/shadow
+  => ĐẠT: sha256 của /etc/shadow không đổi
+  tpan: PID 31827 -> 31827 (active), NRestarts 2 -> 2
+  => ĐẠT: tpan còn sống, PID không đổi
+[2026-11-21 10:33:41] <<< A8 admin accept xong trong 0 giây
+
+[2026-11-21 10:33:41] >>> A9 hồi quy M14, health, backup  (bash hoi-quy.sh )
+
+--- [10:33:41] 9a. bộ tấn công L1 đến L9 của M14 (A=e.example.com bị chiếm, B=a.example.com nạn nhân)
+KQ L1  CHAN PHP của A include wp-config.php của B: không lấy được (3 lần thử)
+KQ L2  CHAN opcache_get_status từ A: bị chặn
+KQ L3  CHAN .htaccess SetEnv PHP_ADMIN_VALUE: open_basedir giữ nguyên
+KQ L4  CHAN SetHandler + ProxyFCGISetEnvIf sang socket của B: HTTP 500, mã của A không chạy dưới user B (cả lối RewriteRule [H=])
+KQ N9  DAT  trang chủ của B không dính mã của A sau phép thử L4
+KQ N5  DAT  symlink của A sang file của B qua Apache: HTTP 403 (SymLinksIfOwnerMatch)
+KQ L9  CHAN symlink sang file 640 của B sau khi .htaccess đổi Options: [Options FollowSymLinks: HTTP 500] [Options +FollowSymLinks: HTTP 500] [Options All: HTTP 500]
+KQ N10 DAT  .htaccess có 'Options -Indexes' (plugin hay ghi): trang chủ A vẫn HTTP 200
+KQ N6  DAT  RewriteRule của A trỏ đường dẫn tuyệt đối của B: HTTP 404, không lộ
+KQ L5  BO   symlink qua nginx: stack này là Apache (xem N5 và L9)
+KQ L6  CHAN user A không đọc được access.log của B (drwxr-x--- root:tp_a_example_com_7653e4)
+KQ N7  DAT  user B đọc được access.log của chính mình
+KQ N8  DAT  web server vẫn ghi access.log của B (15 -> 17 dòng)
+KQ L7  CHAN PHP của A gọi ps: thấy 0 tiến trình của user khác
+KQ L8  CHAN vhost lạ trùng tên e.example.com (tên miền đang trả: '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML'): tpan health chỉ ra file aaa-trung-a96c7411f057.conf (4 dòng)
+KQ N1  DAT  user A không đọc được wp-config.php của B
+KQ N2  DAT  user A không liệt kê được thư mục của B
+KQ N3  DAT  user A không ghi được vào public của B
+KQ N4  DAT  user A không ghi được vào socket FPM của B
+KQ N11 DAT  Host viết hoa về đúng site A
+KQ N12 DAT  Host có dấu chấm cuối về đúng site B
+KQ N13 DAT  tên lạ: Apache trả 403
+KQ N14 DAT  trang chủ WordPress của A và B: HTTP 200 / 200
+KQ N15 DAT  permalink của A: /hello-world/ HTTP 200, trang không có HTTP 404 do WordPress trả
+KQ N16 DAT  file tĩnh của A: HTTP 200
+TONG lo=0 chan=8 hong=0
+  TONG lo=0 chan=8 hong=0 (mã thoát 0)
+  => ĐẠT: bộ phép thử chạy hết (có dòng TONG)
+  => ĐẠT: không đường tấn công nào còn lộ (TONG lo=0)
+
+--- [10:33:54] 9b. tpan health không có [lỗi]
+  số dòng [lỗi]: 0
+  => ĐẠT: tpan health không có dòng [lỗi]
+
+--- [10:34:02] 9c. backup create rồi restore site e.example.com
+
+Job a963bde9504ac02b: thành công
+  => ĐẠT: backup create e.example.com thoát 0
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_e_example_com_25cfc7 không chạm được vào file, log và socket của b.example.com (5 phép thử)
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của e.example.com (5 phép thử)
+  => ĐẠT: backup restore e.example.com thoát 0
+  e.example.com: HTTP 200
+  => ĐẠT: site e.example.com vẫn trả 200 sau khôi phục
+
+--- [10:34:13] 9d. sau tất cả: không symlink của root trong /var/www, public của mọi site active là 2750 (S3, S14)
+  => ĐẠT: find /var/www -type l -user root không ra dòng nào
+  => ĐẠT: public của a.example.com là 2750 (2750)
+  => ĐẠT: public của b.example.com là 2750 (2750)
+  => ĐẠT: public của e.example.com là 2750 (2750)
+[2026-11-21 10:34:14] <<< A9 hồi quy M14, health, backup xong trong 33 giây
+
+==== Phần APACHE: 52 khẳng định đạt, 34 không đạt
+
+
+######## [2026-11-21 10:34:14] TỔNG KẾT: 52 khẳng định đạt, 34 khẳng định không đạt

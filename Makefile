@@ -101,10 +101,10 @@ e2e-m28: ## (M28) Chạy e2e bước 31: make e2e-m28 P="apache nginx" L=docs/ba
 # Cua|VungSite|LenhRoot). Gói internal/sitefs có thể chưa tồn tại: không có file
 # test thì bỏ qua gói đó (go test -c không sinh file khi gói không có test).
 m28-test-vm: R ?= Cua|VungSite|LenhRoot
-m28-test-vm: ## (M28) Chạy test cần root của sitefs, system trong máy ảo
+m28-test-vm: ## (M28) Chạy test cần root của sitefs, system, server trong máy ảo
 	@arch="$$(scripts/vm.sh exec dpkg --print-architecture </dev/null | tr -d '[:space:]')"; \
 	ran=0; \
-	for pkg in sitefs system; do \
+	for pkg in sitefs system server; do \
 	  bin="bin/m28-$$pkg-test-linux-$$arch"; \
 	  rm -f "$$bin"; \
 	  mkdir -p bin; \

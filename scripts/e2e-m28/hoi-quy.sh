@@ -44,3 +44,16 @@ tail -2 "$W/bk-restore.out"
 ok "backup restore $DOM thoát 0" test "$rc2" -eq 0
 ok "site $DOM vẫn trả 200 sau khôi phục" web200 "$DOM"
 rm -f "$W/tancong.out" "$W/health.out" "$W"/bk-*.out
+
+step "9d. sau tất cả: không symlink của root trong /var/www, public của mọi site active là 2750 (S3, S14)"
+find /var/www -type l -user root 2>/dev/null | head -5 | sed 's/^/  symlink của root: /'
+ok "find /var/www -type l -user root không ra dòng nào" test -z "$(find /var/www -type l -user root 2>/dev/null)"
+for d in $(tpan site list --json 2>/dev/null | python3 -I -c '
+import json, sys
+d = json.load(sys.stdin)
+d = d.get("sites", d) if isinstance(d, dict) else d
+for s in d:
+    if s.get("status") == "active":
+        print(s["domain"])'); do
+  ok "public của $d là 2750 ($(stat -c %a "/var/www/$d/public" 2>/dev/null))" test "$(stat -c %a "/var/www/$d/public" 2>/dev/null)" = 2750
+done

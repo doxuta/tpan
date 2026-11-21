@@ -7,6 +7,7 @@
 # - tpan health không có dòng [lỗi] mới so với trước khi nâng.
 # - Ba site trả 200.
 # - Ba mục tiêu T1 giờ BỊ CHẶN (câu trả lời không chứa file đích).
+# - Chạy lại site add: các bước dir: bỏ qua, public vẫn 2750 (D6).
 . "$(dirname "$0")/chung.sh"
 can_may
 trap tra_lai EXIT
@@ -36,3 +37,18 @@ for d in "$VICTIM" "$OTHER" "$DOM"; do ok "$d trả 200" web200 "$d"; done
 step "D5. ba mục tiêu T1 giờ bị chặn"
 bash "$D/t1.sh" chan
 rm -f "$W/xt.resp" "$W/health.full"
+
+step "D6. chạy lại site add $DOM sau khi nâng: các bước dir: bỏ qua, public vẫn 2750 (S3)"
+tpan site add "$DOM" --owner khach1 --email admin@example.com --yes --json >"$W/add-sau.json" 2>"$W/add-sau.err"
+rc=$?
+echo "  site add thoát $rc"
+ok "site add $DOM chạy lại thoát 0" test "$rc" -eq 0
+ok "mọi bước có ID bắt đầu bằng dir: có outcome skipped" python3 -I -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+st = [s for s in d["report"]["steps"] if s["id"].startswith("dir:")]
+for s in st:
+    print("  ", s["id"], s["outcome"])
+sys.exit(0 if st and all(s["outcome"] == "skipped" for s in st) else 1)' "$W/add-sau.json"
+ok "public của $DOM vẫn 2750 ($(stat -c %a "$PUB"))" test "$(stat -c %a "$PUB")" = 2750
+rm -f "$W/add-sau.json" "$W/add-sau.err"
