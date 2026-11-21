@@ -267,14 +267,11 @@ func quote(s string) string {
 // engine.Plan đã dựng (newProgress cần nó), còn bản xem trước có đủ id, tiêu
 // đề và ghi chú hoàn tác của từng bước, và chính là bản vừa so dấu vân tay.
 func previewProgress(w io.Writer, lang string, verbose bool, pv engine.Preview) *progress {
-	pr := &progress{w: w, lang: lang, verbose: verbose, titles: map[string]i18n.Text{}, noUndo: map[string]i18n.Text{}, out: map[string][]string{}}
-	for _, s := range pv.Steps {
-		pr.titles[s.Info.ID] = s.Info.Title
-		if !s.Info.NoUndo.IsZero() {
-			pr.noUndo[s.Info.ID] = s.Info.NoUndo
-		}
+	infos := make([]engine.StepInfo, len(pv.Steps))
+	for i, s := range pv.Steps {
+		infos[i] = s.Info
 	}
-	return pr
+	return progressOf(w, lang, verbose, infos)
 }
 
 // planApproveJSON là output --json của plan approve. Như site add --json: mật
