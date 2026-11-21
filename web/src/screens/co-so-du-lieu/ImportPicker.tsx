@@ -9,6 +9,8 @@ import { useState, type FormEvent } from "react";
 import { errorMessage, get } from "../../api/client";
 import type { Backup, BackupsOverview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Field, Select } from "../../components/Field";
 import { MonoText } from "../../components/MonoText";
 import { useLang, useStrings } from "../../i18n";
 import { strings as backupStrings } from "../../i18n/backup";
@@ -27,8 +29,6 @@ type Props = {
   onPreview: (backup: Backup) => void;
   onCancel: () => void;
 };
-
-const selectClass = "box-border h-[44px] w-full border border-ink bg-surface px-[10px] font-mono text-[13px] text-ink sm:h-[40px]";
 
 export function ImportPicker({ domain, pending, anyPending, onPreview, onCancel }: Props) {
   const t = useStrings(strings);
@@ -49,11 +49,8 @@ export function ImportPicker({ domain, pending, anyPending, onPreview, onCancel 
   }
 
   return (
-    <section aria-labelledby="db-import" className="pt-[26px]">
-      <h2 id="db-import" className="m-0 pb-[6px] text-[16px] font-semibold">
-        {t.importHeading(domain)}
-      </h2>
-      <p className="mt-0 mb-[12px] max-w-[720px] text-[13px] text-muted">{t.importHint}</p>
+    <Card title={t.importHeading(domain)} titleId="db-import">
+      <p className="mt-0 mb-[12px] max-w-[72ch] text-[13px] text-muted">{t.importHint}</p>
       {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
       {q.isError && (
         <div>
@@ -72,21 +69,23 @@ export function ImportPicker({ domain, pending, anyPending, onPreview, onCancel 
       )}
       {q.isSuccess && chosen && (
         <form onSubmit={onSubmit} className="flex max-w-[560px] flex-col gap-[12px]">
-          <div>
-            <label htmlFor="o-db-import" className="mb-[4px] block font-medium">
-              {t.importLabel}
-            </label>
-            <select id="o-db-import" value={chosen.id} onChange={(e) => setPicked(e.target.value)} className={selectClass}>
+          <Field
+            label={t.importLabel}
+            htmlFor="o-db-import"
+            hint={
+              <>
+                {t.importFile} <MonoText size={12} muted>{chosen.path}</MonoText>
+              </>
+            }
+          >
+            <Select id="o-db-import" value={chosen.id} onChange={(e) => setPicked(e.target.value)}>
               {exports.map((x) => (
                 <option key={x.id} value={x.id}>
                   {`${formatWhen(x.created, lang)} · ${formatSize(x.size, lang)} · ${b.reasons[x.reason] ?? x.reason}`}
                 </option>
               ))}
-            </select>
-            <p className="mt-[6px] mb-0 text-[13px] text-muted">
-              {t.importFile} <MonoText size={12} muted>{chosen.path}</MonoText>
-            </p>
-          </div>
+            </Select>
+          </Field>
           <div className="flex flex-wrap gap-[8px]">
             <Button variant="primary" type="submit" disabled={anyPending}>
               {pending ? t.previewing : t.importPreview}
@@ -95,6 +94,6 @@ export function ImportPicker({ domain, pending, anyPending, onPreview, onCancel 
           </div>
         </form>
       )}
-    </section>
+    </Card>
   );
 }
