@@ -110,6 +110,8 @@ const (
 	CodeBackupNotOnMachine = "backup_not_on_machine"
 	CodeBackupAlreadyLocal = "backup_already_local"
 	CodeBackupKeyMissing   = "backup_key_missing"
+	// CodeBackupOutsideKeep: đẩy tay một bản mà luật giữ trên kho sẽ dọn ngay (R9).
+	CodeBackupOutsideKeep = "backup_outside_keep"
 	CodeCloudInitInvalid   = "cloudinit_invalid"
 	CodeCloudInitTooLarge  = "cloudinit_too_large"
 	CodeCloudInitNoConfig  = "cloudinit_no_config"
