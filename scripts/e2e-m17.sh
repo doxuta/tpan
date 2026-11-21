@@ -990,7 +990,9 @@ tran_va_goi() {
   vsc cgroup doc "$A" memory.current
   mem0="$(kv memory.current)"
   note "A đang dùng memory.current = $mem0 byte; hạ trần xuống 64 MiB = 67108864"
-  vsc vong-curl bat "$A"
+  # Vòng gọi một trang cần 96 MB (vong-curl.sh "ram"): trang chủ chỉ cần
+  # khoảng 40 MB nên có lúc vẫn 200 dưới trần 64 MiB (gặp ở lượt dò M17).
+  vsc vong-curl bat "$A" ram
   sleep 3
   vroot tpan package edit "$PKL" --ram-mb 64 --yes
   ok "package edit $PKL --ram-mb 64 (dưới mức đang dùng): job thành công (chính sách của admin, không chờ site)" job_ok

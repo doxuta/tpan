@@ -39,7 +39,11 @@ main() {
       dem THU_MUC_RAC "$(ls /var/lib/tpan/trash 2>/dev/null | grep -cE "$PAT")"
       t=$(find /etc /tmp /var/tmp /dev/shm /run /var/lib/php /var/cache/tpan /var/lib/tpan -name '*tpan[-_]probe*' 2>/dev/null)
       dem TEN_FILE "$(printf '%s' "$t" | grep -c .)"
-      dem NOI_DUNG_ETC "$(grep -rlIE "$PAT" /etc 2>/dev/null | wc -l | tr -d ' ')"
+      # Bỏ bốn file sao lưu của shadow-utils (/etc/passwd-, group-, shadow-,
+      # gshadow-): useradd, userdel tự chép bản TRƯỚC lần đổi vào đó, nên sau
+      # lần userdel cuối của phép thử chúng vẫn nhắc user thử tới lần đổi user
+      # kế tiếp trên máy. tpan không ghi các file đó (gặp ở lượt dò M17).
+      dem NOI_DUNG_ETC "$(grep -rlIE "$PAT" /etc 2>/dev/null | grep -vxE '/etc/(passwd|group|shadow|gshadow)-' | wc -l | tr -d ' ')"
       dem DB "$(mysql -N -e 'SHOW DATABASES' </dev/null 2>/dev/null | grep -cE "$PAT")"
       dem USER_DB "$(mysql -N -e 'SELECT user FROM mysql.user' </dev/null 2>/dev/null | grep -cE "$PAT")"
       dem UNIT "$(systemctl list-units --all --no-legend --plain </dev/null | grep -cE "$PAT")"
