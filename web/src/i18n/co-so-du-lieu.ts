@@ -211,8 +211,8 @@ export const strings = defineStrings(vi, {
   footerNone: "No databases are running yet",
   footerRunning: (n) => `${n} ${n === 1 ? "database" : "databases"}`,
   footerAllSite: "all site databases",
-  footerAllStandalone: "all standalone",
-  footerSplit: (site, standalone) => `${site} site, ${standalone} standalone`,
+  footerAllStandalone: "all standalone databases",
+  footerSplit: (site, standalone) => `${site} for sites, ${standalone} standalone`,
   footerTrashed: (n) => `${n} in the trash`,
 
   createButton: "Create DB",

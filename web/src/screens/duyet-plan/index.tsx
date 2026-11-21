@@ -34,9 +34,6 @@ export type PlanReviewProps = {
 
 const labelClass = "text-[12px] font-medium text-muted";
 
-/** Plan chỉ có chừng này bước (hoặc ít hơn) thì mở sẵn lệnh và diff của mọi bước; nhiều hơn thì chỉ mở bước nguy hiểm. */
-const OPEN_ALL_UP_TO = 3;
-
 export function PlanReview({ preview, onRun, running = false, error, onCancel }: PlanReviewProps) {
   const t = useStrings(strings);
   const { lang } = useLang();
@@ -93,7 +90,7 @@ export function PlanReview({ preview, onRun, running = false, error, onCancel }:
       <Section label={t.stepsLabel}>
         <ol className="m-0 list-none rounded-ctl border border-hair px-[12px] py-0">
           {preview.steps.map((s, i) => (
-            <StepItem key={`${i}-${s.info.id}`} n={i + 1} step={s} tips={tips} expanded={toRun.length <= OPEN_ALL_UP_TO || !!s.info.danger} />
+            <StepItem key={`${i}-${s.info.id}`} n={i + 1} step={s} tips={tips} />
           ))}
         </ol>
       </Section>
@@ -164,10 +161,12 @@ function Metric({ label, value, sub }: { label: string; value: string; sub?: str
 
 /**
  * Một bước. Dòng tóm tắt (số bước, tên, nhãn nguy hiểm, lời cảnh báo) luôn thấy;
- * lệnh sẽ chạy và file thay đổi nằm trong khối mở ra để danh sách 11 bước vẫn gọn.
+ * lệnh sẽ chạy và file thay đổi nằm trong khối mở ra, **mở sẵn** như bản 1: bản
+ * xem trước đọc như một pull request (mục 10 của KE-HOACH), người duyệt phải thấy
+ * lệnh và diff mà không bấm từng bước. Gập lại được khi đã đọc xong.
  * Bước đã đúng sẽ bị bỏ qua: không có lệnh hay file nào chạy, nên chỉ là một dòng.
  */
-function StepItem({ n, step, tips, expanded }: { n: number; step: StepPreview; tips: boolean; expanded: boolean }) {
+function StepItem({ n, step, tips }: { n: number; step: StepPreview; tips: boolean }) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const { info, done } = step;
@@ -197,7 +196,7 @@ function StepItem({ n, step, tips, expanded }: { n: number; step: StepPreview; t
   }
   return (
     <li className="border-t border-hair first:border-t-0">
-      <Disclosure flush defaultOpen={expanded} summary={head}>
+      <Disclosure flush defaultOpen heading={4} summary={head}>
         <div className="flex flex-col gap-[12px]">
           {commands.length > 0 && <EvidenceBlock text={commands.map((c) => `$ ${c}`).join("\n")} label={t.commandsLabel} />}
           {files.length > 0 && (
@@ -248,7 +247,8 @@ function FileDiffView({ file }: { file: FileChange }) {
     );
   return (
     <details open={!d.binary && d.changed && size <= 80} className="mt-[8px] overflow-hidden rounded-ctl border border-hair first:mt-0">
-      <summary className="cursor-pointer bg-soft px-[12px] py-[8px]">
+      {/* Khung cha cắt tràn (overflow-hidden) nên viền focus vẽ vào trong dòng tiêu đề. */}
+      <summary className="cursor-pointer bg-soft px-[12px] py-[8px] focus-visible:-outline-offset-2">
         <span className="mr-[12px] font-mono text-[13px] [overflow-wrap:anywhere]">{file.path}</span>
         <span className="mr-[12px] text-[12px] text-muted">{kind}</span>
         {!d.binary && d.changed && <span className="font-mono text-[12px] text-muted">{t.diffStat(d.added, d.removed)}</span>}

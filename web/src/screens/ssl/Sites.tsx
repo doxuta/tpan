@@ -4,7 +4,7 @@
 // ô Chứng chỉ thì một thẻ bằng chứng hiện ngay dưới bảng. Đóng sẵn, trừ site có
 // chứng chỉ đang lỗi (mục 3.7 của M16-thiet-ke.md).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { CheckResult, SSLSiteRow } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -38,12 +38,21 @@ export function SiteTable({ rows, pending, onIssue }: Props) {
   const { lang } = useLang();
   // Chứng chỉ lỗi mở sẵn bằng chứng; còn lại đóng.
   const [open, setOpen] = useState<Set<string>>(() => new Set(rows.filter((r) => r.cert?.status === "fail").map((r) => r.domain)));
-  const toggle = (d: string) =>
+  // Thẻ bằng chứng nằm dưới bảng (TableList không có hàng mở rộng): vừa mở thì cuộn tới và
+  // đưa focus vào thẻ, để máy nhiều site bấm một hàng ở trên vẫn thấy ngay bằng chứng.
+  const [reveal, setReveal] = useState<string | null>(null);
+  const toggle = (d: string) => {
+    const opening = !open.has(d);
     setOpen((prev) => {
       const next = new Set(prev);
       if (!next.delete(d)) next.add(d);
       return next;
     });
+    setReveal(opening ? d : null);
+  };
+  useEffect(() => {
+    if (reveal) document.getElementById(panelId(reveal))?.focus();
+  }, [reveal]);
   const shown = rows.filter((r) => r.cert && open.has(r.domain));
 
   return (

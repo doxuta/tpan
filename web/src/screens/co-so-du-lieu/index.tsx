@@ -18,7 +18,7 @@
 // TableList (tự vẽ thẻ, chân bảng) → các khối kết quả dưới bảng.
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { errorMessage, get } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
@@ -77,6 +77,14 @@ export default function CoSoDuLieu() {
   const [creating, setCreating] = useState(false);
   /** Khối đang mở dưới bảng: chọn bản nhập (DB của site) hoặc Sửa, Đổi charset. Theo tên DB để dữ liệu luôn mới. */
   const [view, setView] = useState<{ kind: "import" | "edit"; db: string } | null>(null);
+  // Khối mở từ menu ba chấm nằm dưới bảng: vừa mở thì đưa focus vào (trình duyệt tự cuộn tới).
+  // setTimeout: Radix trả focus về nút ba chấm trong một setTimeout lúc menu đóng; việc này phải chạy sau nó.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!view) return;
+    const id = setTimeout(() => panelRef.current?.focus(), 0);
+    return () => clearTimeout(id);
+  }, [view]);
 
   const rows = q.data ?? [];
   const viewRow = view ? rows.find((r) => r.db === view.db) : undefined;
@@ -233,20 +241,21 @@ export default function CoSoDuLieu() {
           <p className="m-0 max-w-[720px] text-[13px] text-muted">{t.hint}</p>
           <p className="m-0 max-w-[720px] text-[13px] text-muted">{t.hintM13}</p>
 
-          {view?.kind === "import" && viewRow?.kind === "site" && !op.hasPreview && (
-            <div tabIndex={-1} className="outline-offset-0">
-              <ImportPicker
-                key={viewRow.domain}
-                domain={viewRow.domain}
-                pending={op.busy(`import:${viewRow.db}`)}
-                anyPending={op.pending}
-                onPreview={(backup) => act("import", viewRow, { backup })}
-                onCancel={closeAll}
-              />
+          {view && viewRow && !op.hasPreview && (
+            <div ref={panelRef} tabIndex={-1} className="outline-offset-0">
+              {view.kind === "import" && viewRow.kind === "site" && (
+                <ImportPicker
+                  key={viewRow.domain}
+                  domain={viewRow.domain}
+                  pending={op.busy(`import:${viewRow.db}`)}
+                  anyPending={op.pending}
+                  onPreview={(backup) => act("import", viewRow, { backup })}
+                  onCancel={closeAll}
+                />
+              )}
+              {view.kind === "edit" && <EditPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
             </div>
           )}
-
-          {view?.kind === "edit" && viewRow && !op.hasPreview && <EditPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
 
           {op.panel}
         </>

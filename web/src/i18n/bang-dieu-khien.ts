@@ -215,9 +215,10 @@ export const strings = defineStrings(vi, {
   historyTitle: "Machine history",
   historyEmpty: "No jobs yet. The first one will show up here.",
   historyAll: "See all history",
+  // Cùng chữ với các cột của màn Lịch sử (i18n/lich-su.ts).
   colJob: "Job ID",
-  colWhen: "When",
-  colWhat: "Task",
+  colWhen: "Time",
+  colWhat: "Action",
   colResult: "Result",
   colEvidence: "Evidence",
   evidenceLink: "View",

@@ -289,7 +289,7 @@ function Panel({ id, domain, stage, items, onClose }: { id: string; domain: stri
       ) : (
         <div className="mt-[8px]">
           {items.map(({ check, shared }) => (
-            <CheckDisclosure key={`${shared ? "s" : "x"}:${check.id}`} check={check} shared={shared} />
+            <CheckDisclosure key={`${shared ? "s" : "x"}:${check.id}`} check={check} shared={shared} open />
           ))}
         </div>
       )}

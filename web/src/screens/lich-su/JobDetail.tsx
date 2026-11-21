@@ -290,7 +290,7 @@ function BlockItem({ jobId, label, block, text, mark, open, onOpenChange, lang }
   );
   return (
     <li className="border-t border-hair first:border-t-0">
-      <Disclosure flush open={open} onOpenChange={onOpenChange} summary={summary}>
+      <Disclosure flush heading={3} open={open} onOpenChange={onOpenChange} summary={summary}>
         <div className="pl-[32px]">
           <BlockLog block={block} />
           {/* Chỉ bước hỏng: ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
@@ -366,7 +366,7 @@ function CheckItem({ check, lang }: { check: CheckResult; lang: Lang }) {
   );
   return (
     <li className="border-t border-hair first:border-t-0">
-      <Disclosure flush defaultOpen={check.status === "fail"} summary={summary}>
+      <Disclosure flush heading={3} defaultOpen={check.status === "fail"} summary={summary}>
         <div className="pl-[32px]">{has ? <EvidenceBlock evidence={check.evidence} label={null} clamp={clampLines} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}</div>
       </Disclosure>
     </li>

@@ -88,7 +88,7 @@ export const strings = defineStrings(vi, {
     stack: { label: "Stack", desc: "Web server, PHP and MariaDB of the machine" },
     updates: { label: "Updates", desc: "System packages and the TPAN version" },
     aiSessions: { label: "AI sessions", desc: "Questions asked to AI and what it proposed" },
-    plans: { label: "Plans to review", desc: "Plans sent by AI or an agent, waiting for you" },
+    plans: { label: "Pending plans", desc: "Plans sent by AI or an agent, waiting for you" },
     settings: { label: "Settings", desc: "Password, login sessions, appearance" },
     users: { label: "Users", desc: "Hosting customer and admin accounts" },
     packages: { label: "Packages", desc: "Limits on sites, standalone databases and disk" },

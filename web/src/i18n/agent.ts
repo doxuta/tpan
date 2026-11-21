@@ -59,6 +59,8 @@ const vi = {
 
   // ---- nút chép lệnh cho Claude Code ----
   claudeCopy: "Chép lệnh cho Claude Code",
+  // Dòng tóm tắt của khối mở ra (là danh từ: bấm chỉ mở khối, nút chép nằm bên trong).
+  claudeSummary: "Lệnh cho Claude Code",
   claudeLabel: "Lệnh sẽ chép",
   claudeHint: "Dán vào terminal trên máy cá nhân đã nối Claude Code với TPAN. Plan nó đề xuất sẽ hiện ở đây để bạn duyệt.",
   thisMachine: "máy này",
@@ -129,6 +131,7 @@ export const strings = defineStrings(vi, {
   pendingFailed: "Could not load the pending plans.",
 
   claudeCopy: "Copy command for Claude Code",
+  claudeSummary: "Command for Claude Code",
   claudeLabel: "Command that will be copied",
   claudeHint: "Paste it in a terminal on your own machine where Claude Code is connected to TPAN. The plan it proposes shows up here for you to approve.",
   thisMachine: "this machine",

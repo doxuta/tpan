@@ -36,6 +36,7 @@ const vi = {
 
   skipToContent: "Bỏ qua menu, tới nội dung",
   navLabel: "Menu chính",
+  breadcrumb: "Đường dẫn",
   groups: { may: "Máy chủ", ai: "AI", taiKhoan: "Tài khoản" },
   menu: {
     dashboard: "Bảng điều khiển",
@@ -140,6 +141,7 @@ export const strings = defineStrings(vi, {
 
   skipToContent: "Skip the menu, go to content",
   navLabel: "Main menu",
+  breadcrumb: "Breadcrumb",
   groups: { may: "Server", ai: "AI", taiKhoan: "Account" },
   menu: {
     dashboard: "Dashboard",

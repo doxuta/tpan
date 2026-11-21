@@ -16,7 +16,12 @@ import { useStatusName } from "../../components/useStatusName";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bang-dieu-khien";
 
-export function CheckDisclosure({ check, shared = false }: { check: CheckResult; shared?: boolean }) {
+/**
+ * open: mở sẵn bằng chứng. Mặc định chỉ dòng lỗi (thẻ TPAN tự kiểm). Khối của một
+ * ga vừa bấm trên bản đồ tuyến truyền open để bấm ga là thấy bằng chứng của cả
+ * chặng như bản 1 (mục 3.7: giữ cách bấm ga mở bằng chứng).
+ */
+export function CheckDisclosure({ check, shared = false, open }: { check: CheckResult; shared?: boolean; open?: boolean }) {
   const t = useStrings(strings);
   const statusName = useStatusName();
   const { lang } = useLang();
@@ -44,7 +49,7 @@ export function CheckDisclosure({ check, shared = false }: { check: CheckResult;
   );
 
   return (
-    <Disclosure defaultOpen={check.status === "fail"} summary={summary}>
+    <Disclosure defaultOpen={open ?? check.status === "fail"} summary={summary}>
       <div className="flex flex-col gap-[12px] pl-[32px]">
         {check.status !== "pass" && cause && <p className="m-0">{cause}</p>}
         {check.evidence && check.evidence.length > 0 ? <EvidenceBlock evidence={check.evidence} clamp={20} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}
