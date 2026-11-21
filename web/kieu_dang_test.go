@@ -19,37 +19,18 @@ import (
 // trình biên dịch TypeScript không biết: cỡ chữ, màu viết thẳng, class cấm,
 // chỗ được dùng font-mono, thứ có thể mở lỗ XSS hay gọi ra ngoài origin.
 //
-// Việc đổi giao diện bản 1 sang bản 2 diễn ra theo đợt, nên có hai danh sách
-// "chưa đổi" (chuaDoi, chuaDoiNhan) chỉ được ngắn đi: thư mục nằm trong danh
-// sách không bị kiểm luật 1 đến 6; thư mục đã sạch mà còn nằm trong danh sách
-// thì test lỗi, buộc người nhận phần việc gỡ nó ra. Cuối mốc cả hai rỗng.
+// Việc đổi giao diện bản 1 sang bản 2 (mốc M16) diễn ra theo đợt, nên có hai
+// danh sách "chưa đổi" (chuaDoi, chuaDoiNhan) chỉ được ngắn đi: thư mục nằm
+// trong danh sách không bị kiểm luật 1 đến 6; thư mục đã sạch mà còn nằm trong
+// danh sách thì test lỗi, buộc người nhận phần việc gỡ nó ra. M16 đã đổi xong
+// mọi màn nên cả hai rỗng: test quét toàn bộ web/src. Không thêm lại mục nào;
+// một lần đổi lớn sau này cần danh sách thì ghi lý do trong tài liệu thay đổi.
 
-// chuaDoi: tiền tố đường dẫn (tính từ web/) của mã chưa đổi sang bản 2. Chỉ
-// gỡ bớt, không thêm. Phiên chính gỡ khi nhận phần của thợ.
-var chuaDoi = []string{
-	"src/screens/lich-su/",
-	"src/screens/su-co/",
-	"src/screens/ssl/",
-	"src/screens/backup/",
-	"src/screens/cron/",
-	"src/screens/thung-rac/",
-	"src/screens/stack/",
-	"src/screens/tao-site/",
-	"src/screens/dang-nhap/",
-	"src/screens/phien-ai/",
-	"src/screens/plan-cho-duyet/",
-	"src/ai/",
-}
+// chuaDoi: tiền tố đường dẫn (tính từ web/) của mã chưa đổi sang bản 2.
+var chuaDoi = []string{}
 
 // chuaDoiNhan: file chuỗi i18n còn nhãn viết hoa cả câu (B11). Cùng cơ chế.
-var chuaDoiNhan = []string{
-	"src/i18n/lich-su.ts",
-	"src/i18n/su-co.ts",
-	"src/i18n/ssl.ts",
-	"src/i18n/cron.ts",
-	"src/i18n/ai.ts",
-	"src/i18n/phien-ai.ts",
-}
+var chuaDoiNhan = []string{}
 
 // choPhepVietHoa: chuỗi i18n được phép viết hoa cả câu. Mỗi mục kèm lý do.
 // Rỗng lúc đầu; chỉ thêm khi có lý do thật (ví dụ tên một lệnh phải đúng chữ hoa).

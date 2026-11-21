@@ -87,6 +87,8 @@ export type BulkAction = {
   /** Gửi lệnh thật cho một mục (không dry_run); trả job để theo dõi. */
   run: (id: string) => Promise<JobStarted>;
   primary?: boolean;
+  /** Việc không hoàn tác được (xoá hẳn): nút trên dải và nút làm việc của hộp hỏi lại là nút nguy hiểm. */
+  danger?: boolean;
 };
 
 export function BulkBar({ sel, actions, unit }: { sel: Selection; actions: BulkAction[]; unit: string }) {
@@ -142,7 +144,7 @@ export function BulkBar({ sel, actions, unit }: { sel: Selection; actions: BulkA
       {!running &&
         sel.ids.length > 0 &&
         actions.map((a) => (
-          <Button key={a.key} size="sm" variant={a.primary ? "primary" : "secondary"} onClick={() => setAsking(a)}>
+          <Button key={a.key} size="sm" variant={a.danger ? "danger" : a.primary ? "primary" : "secondary"} onClick={() => setAsking(a)}>
             {a.label(sel.ids.length)}
           </Button>
         ))}
@@ -171,6 +173,7 @@ export function BulkBar({ sel, actions, unit }: { sel: Selection; actions: BulkA
           title={asking.confirmTitle(sel.ids.length)}
           confirmLabel={asking.confirmLabel(sel.ids.length)}
           onConfirm={() => void start(asking)}
+          danger={asking.danger}
         >
           <div className="text-[14px]">{asking.confirmBody}</div>
           <ul className="mt-[10px] mb-0 max-h-[240px] overflow-y-auto pl-[18px] text-[14px]">

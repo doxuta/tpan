@@ -4,7 +4,7 @@
 // 8 px; vô hiệu: nền --soft, viền --hair.
 //
 // Hai cách dùng:
-//   <TextField id="u-ten" label="Tên đăng nhập" hint="…" value={…} onChange={…} />   (gọn, như dang-nhap/Field bản 1)
+//   <TextField id="u-ten" label="Tên đăng nhập" hint="…" value={…} onChange={…} />   (gọn)
 //   <Field label="Bộ ký tự" htmlFor="cs"><Select id="cs" mono>…</Select></Field>       (khi cần ghép)
 
 import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
@@ -77,7 +77,7 @@ export function Textarea({ mono, className, ...rest }: TextareaProps) {
   return <textarea className={inputClass({ mono, extra: `h-auto py-[8px] sm:h-auto ${className ?? ""}` })} {...rest} />;
 }
 
-// ---- Hai dạng gọn, giữ đúng chữ ký của screens/dang-nhap/Field.tsx và SelectField.tsx bản 1 ----
+// ---- Hai dạng gọn: nhãn, ô và dòng gợi ý trong một thẻ (chữ ký của ô nhập bản 1, nên màn đổi sang chỉ đổi dòng import) ----
 
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "className"> & {
   id: string;

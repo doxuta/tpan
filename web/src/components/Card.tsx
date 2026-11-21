@@ -22,12 +22,6 @@ type Props = {
   /** id của cả thẻ (neo). */
   id?: string;
   children?: ReactNode;
-  /**
-   * ponytail: thuộc tính của bản 1 (thẻ sự cố có vạch đỏ), bản 2 bỏ vạch và
-   * không dùng nó nữa. Chỉ giữ để màn chưa đổi (đợt 2, 3) còn biên dịch; gỡ ở
-   * bước dọn cuối mốc M16.
-   */
-  incident?: boolean;
 };
 
 export const cardClass = "overflow-hidden rounded-card border border-hair bg-surface";

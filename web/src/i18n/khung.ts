@@ -13,8 +13,9 @@ const vi = {
   stackMissing: "chưa cài stack",
   php: (v: string) => `php ${v}`,
 
-  command: "Gõ lệnh hoặc hỏi TPAN…",
-  commandUser: "Gõ tên màn cần mở…",
+  // Ô tìm trên thanh đầu trang (mở thanh lệnh). Thanh lệnh có màn, site đang chạy, và lệnh AI (admin).
+  command: "Tìm màn, site hoặc gõ lệnh",
+  commandUser: "Tìm màn hoặc site",
   commandSoon: "Thanh lệnh chưa có trong bản này",
   langGroup: "Ngôn ngữ",
   themeGroup: "Giao diện sáng hoặc tối",
@@ -118,8 +119,8 @@ export const strings = defineStrings(vi, {
   stackMissing: "no stack yet",
   php: (v) => `php ${v}`,
 
-  command: "Type a command or ask TPAN…",
-  commandUser: "Type the name of a screen to open…",
+  command: "Find a screen or site, or type a command",
+  commandUser: "Find a screen or site",
   commandSoon: "The command bar is not in this version yet",
   langGroup: "Language",
   themeGroup: "Light or dark",

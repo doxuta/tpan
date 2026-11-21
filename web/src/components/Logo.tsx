@@ -18,6 +18,11 @@ const favicon: Record<Status | "none", string> = {
   none: "/tpan.svg",
 };
 
+/** Chữ TPAN cạnh logo (mục 11 của GIAO-DIEN.md): mono 18 px đậm 600, giãn chữ 0,04em. Thanh đầu trang và trang Đăng nhập dùng chung. */
+export function Wordmark() {
+  return <span className="font-mono text-[18px] leading-none font-semibold tracking-[0.04em]">TPAN</span>;
+}
+
 /** status null hoặc "unknown": bản một màu, vì chưa có bằng chứng để nói máy đạt hay hỏng. */
 export function Logo({ status, size = 32 }: { status: Status | null; size?: number }) {
   const key = status ?? "none";

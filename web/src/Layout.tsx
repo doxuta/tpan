@@ -22,7 +22,7 @@ import { Avatar } from "./components/Avatar";
 import { Button, buttonClass, IconButton } from "./components/Button";
 import { Icon } from "./components/Icon";
 import { JobTrackerProvider } from "./components/JobTracker";
-import { Logo } from "./components/Logo";
+import { Logo, Wordmark } from "./components/Logo";
 import { Menu, MenuCheckboxItem, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator } from "./components/Menu";
 import { ScreenHeader } from "./components/ScreenHeader";
 import { StatusMark } from "./components/StatusMark";
@@ -293,7 +293,7 @@ function Header({ t, hostname, demo, overview, who, navOpen, onToggleNav, onOpen
         className="flex flex-none items-center gap-[10px] text-ink no-underline hover:text-ink"
       >
         <Logo status={status} size={28} />
-        <span className="font-mono text-[18px] leading-none font-semibold tracking-[0.04em]">TPAN</span>
+        <Wordmark />
       </Link>
       {host && (
         <span title={demo ? `${host} · ${t.demoHint}` : host} className="hidden max-w-[220px] min-w-0 flex-none truncate font-mono text-[13px] text-muted sm:block">
@@ -323,8 +323,16 @@ function Header({ t, hostname, demo, overview, who, navOpen, onToggleNav, onOpen
           </Link>
         )}
         {who.isAdmin && (
-          <Button id="nut-hoi-ai" aria-expanded={ai.open} aria-controls="ngan-ai" aria-keyshortcuts={drawerShortcut} title={a.askAiHint} onClick={ai.toggle} className="hidden sm:inline-flex">
-            {a.askAi}
+          // Nút duy nhất mở ngăn AI (bản 2 bỏ nút nổi ở góc). Dưới 640 px chỉ còn biểu tượng,
+          // nhãn đọc giữ nguyên. "…" khi AI đang trả lời, để đóng ngăn rồi vẫn biết nó còn chạy.
+          <Button id="nut-hoi-ai" aria-label={a.askAi} aria-expanded={ai.open} aria-controls="ngan-ai" aria-keyshortcuts={drawerShortcut} title={a.askAiHint} onClick={ai.toggle} className="max-sm:px-[12px]">
+            <Icon name="chat" size={16} className="sm:hidden" />
+            <span className="hidden sm:inline">{a.askAi}</span>
+            {ai.running && (
+              <span aria-hidden="true" className="text-muted">
+                …
+              </span>
+            )}
           </Button>
         )}
         <AccountMenu t={t} who={who} onLogout={onLogout} />

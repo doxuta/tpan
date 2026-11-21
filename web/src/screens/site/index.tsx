@@ -20,7 +20,7 @@ import { siteSuspendPath, useIdentity } from "../../api/m13-dbs";
 import { useJobTracker } from "../../components/JobTracker";
 import { ApiError, del, errorMessage, get } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
-import type { CheckResult, JobStarted, Preview, SiteInfo, Stage, Suspension } from "../../api/types";
+import type { CheckResult, JobStarted, Preview, SiteInfo, Stage } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
 import { BulkBar, SelectAll, SelectOne, useSelection } from "../../components/Bulk";
 import { Card } from "../../components/Card";
@@ -268,16 +268,6 @@ export function SiteDetail() {
 type TabId = "tong-quan" | "phep-kiem" | "log" | "php" | "backup" | "cai-dat";
 
 /** Nhãn "tạm khoá" đặt thẳng trên nền trang (meta của ScreenHeader): cùng ruột với SuspendTag nhưng nền Tag là --surface. */
-function MetaSuspend({ how, label }: { how: Suspension; label?: string }) {
-  const m = useStrings(chung);
-  return (
-    <Tag tone="surface" title={m.suspendedByHint[how]}>
-      {label ?? m.suspendedState}
-      <span className="sr-only">: {m.suspendedBy[how]}</span>
-    </Tag>
-  );
-}
-
 function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo; updatedAt: number }) {
   const t = useStrings(strings);
   const k = useStrings(khung);
@@ -421,8 +411,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
             {info.web && <Tag tone="surface">{info.web}</Tag>}
             <Tag tone="surface">{k.php(info.site.php_version)}</Tag>
             {isAdmin && <Tag tone="surface">{m.ownerLabel(info.site.owner)}</Tag>}
-            {info.site.suspended && <MetaSuspend how={info.site.suspended} />}
-            {info.site.db_suspended && <MetaSuspend how={info.site.db_suspended} label={m.dbLocked} />}
+            {info.site.suspended && <SuspendTag how={info.site.suspended} tone="surface" />}
+            {info.site.db_suspended && <SuspendTag how={info.site.db_suspended} label={m.dbLocked} tone="surface" />}
             {info.site.status === "trashed" && <Tag tone="surface">{t.trashed}</Tag>}
           </>
         }

@@ -158,15 +158,6 @@
 
   /* Chiều cao thanh đầu trang từ 1024 px trở lên (một hàng): menu dính tính theo nó. */
   --header-h: 61px;
-
-  /*
-   * Bí danh tạm trong lúc đổi các màn sang bản 2 (mốc M16): màn chưa đổi còn
-   * dùng class của biến bản 1. Gỡ ở bước dọn cuối mốc, khi web/kieu_dang_test.go
-   * đã quét mọi file và không còn chỗ nào dùng.
-   */
-  --card-border: var(--hair);
-  --link: var(--accent);
-  --link-hover: var(--accent-hover);
 }
 
 [data-theme="dark"] {
@@ -239,10 +230,6 @@
   --color-fail-text: var(--fail-text);
   --color-unknown: var(--unknown);
   --color-transparent: transparent;
-  /* Bí danh tạm (xem trên). */
-  --color-card-border: var(--card-border);
-  --color-link: var(--link);
-  --color-link-hover: var(--link-hover);
 
   --font-*: initial;
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
