@@ -121,23 +121,26 @@ func TestCageFirstLineAndForbidden(t *testing.T) {
 }
 
 // Mỗi trần một dòng khi khác 0, không có dòng khi bằng 0; MemoryMax đi kèm
-// MemorySwapMax=0.
+// MemorySwapMax=0. Riêng hai dòng đĩa luôn có ("infinity" khi bằng 0): systemd
+// không đặt lại io.max của thiết bị đã bị bỏ khỏi file, nên gỡ trần đĩa phải
+// là đổi giá trị chứ không phải xoá dòng (e2e M17).
 func TestCageSliceLimits(t *testing.T) {
 	l := siteTestLayout(t, "a.example.com")
 	acct := []string{"[Slice]", "MemoryAccounting=yes", "TasksAccounting=yes", "CPUAccounting=yes", "IOAccounting=yes"}
+	ioNone := []string{"IOReadBandwidthMax=/var/www infinity", "IOWriteBandwidthMax=/var/www infinity"}
 	type one struct {
 		lim  account.Limits
 		want []string
 	}
 	cases := map[string]one{
-		"cpu":   {account.Limits{CPUPercent: 50}, []string{"CPUQuota=50%"}},
-		"ram":   {account.Limits{RAMMB: 200}, []string{"MemoryMax=200M", "MemorySwapMax=0"}},
-		"tasks": {account.Limits{Tasks: 30}, []string{"TasksMax=30"}},
-		"read":  {account.Limits{IOReadMB: 4}, []string{"IOReadBandwidthMax=/var/www 4M"}},
-		"write": {account.Limits{IOWriteMB: 4}, []string{"IOWriteBandwidthMax=/var/www 4M"}},
+		"cpu":   {account.Limits{CPUPercent: 50}, append([]string{"CPUQuota=50%"}, ioNone...)},
+		"ram":   {account.Limits{RAMMB: 200}, append([]string{"MemoryMax=200M", "MemorySwapMax=0"}, ioNone...)},
+		"tasks": {account.Limits{Tasks: 30}, append([]string{"TasksMax=30"}, ioNone...)},
+		"read":  {account.Limits{IOReadMB: 4}, []string{"IOReadBandwidthMax=/var/www 4M", "IOWriteBandwidthMax=/var/www infinity"}},
+		"write": {account.Limits{IOWriteMB: 4}, []string{"IOReadBandwidthMax=/var/www infinity", "IOWriteBandwidthMax=/var/www 4M"}},
 		// Worker không phải trần của slice: không sinh dòng nào ở đây.
-		"workers": {account.Limits{PHPWorkers: 9}, nil},
-		"không":   {account.Limits{}, nil},
+		"workers": {account.Limits{PHPWorkers: 9}, ioNone},
+		"không":   {account.Limits{}, ioNone},
 	}
 	for name, c := range cases {
 		out, err := CageSlice(l, c.lim)

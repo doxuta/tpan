@@ -2,15 +2,21 @@
 #
 # Slice của site a.example.com trong lồng: trần tài nguyên tính chung cho dịch vụ
 # PHP của site và mọi lệnh tpan chạy thay cho site (WP-CLI, cron), vì cả hai
-# đều nằm trong slice này. Trần bằng 0 trong gói thì không có dòng tương ứng.
+# đều nằm trong slice này. Trần bằng 0 trong gói thì không có dòng tương ứng
+# (trừ hai dòng đĩa, xem dưới).
 #
 # Bốn dòng Accounting bật bộ đếm của cgroup: tpan usage đọc số liệu từ đó.
 # MemoryMax luôn đi kèm MemorySwapMax=0: không thì site vượt trần sẽ đẩy bộ nhớ
 # ra swap và làm chậm cả máy thay vì chỉ request đó chết. Cố ý không dùng trần
 # RAM mềm của systemd: nó bóp cả site tới mức trang chủ mất gần 28 giây (t3).
-# Đọc ghi đĩa tính bằng MB/giây (10^6 byte) trên ổ chứa /var/www.
+# Đọc ghi đĩa tính bằng MB/giây (10^6 byte) trên ổ chứa /var/www. Hai dòng đĩa
+# luôn có, "infinity" khi gói không đặt trần: systemd chỉ ghi io.max cho thiết
+# bị có trong file, nên bỏ hẳn dòng thì daemon-reload để nguyên trần cũ trong
+# cgroup (đã gặp ở e2e M17: gỡ trần đĩa mà io.max vẫn 4 MB/giây).
 [Slice]
 MemoryAccounting=yes
 TasksAccounting=yes
 CPUAccounting=yes
 IOAccounting=yes
+IOReadBandwidthMax=/var/www infinity
+IOWriteBandwidthMax=/var/www infinity
