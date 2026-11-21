@@ -203,7 +203,11 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 			l.Dir+" already exists: domain "+d.String()+" was created again outside tpan after it went to the trash. tpan will not overwrite it; inspect and clean it up by hand, then restore again."))
 	}
 	php := sitePHP(st, cfg)
-	ss, err := restoreSteps(cfg.Web, php, st)
+	lim, err := siteCageLimits(ctx, s.Accounts, st)
+	if err != nil {
+		return nil, err
+	}
+	ss, err := restoreSteps(ctx, s.Accounts, cfg.Web, php, st)
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan khôi phục site %s: %w", d, err)
 	}
@@ -230,7 +234,7 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 		Target: d.String(),
 		Title:  i18n.T("Khôi phục site "+d.String()+" từ thùng rác", "Restore site "+d.String()+" from the trash"),
 		Steps:  ss,
-		Verify: siteChecks(cfg.Web, php, st, others, nil),
+		Verify: siteChecks(cfg.Web, php, st, others, lim),
 	}}, nil
 }
 
@@ -238,13 +242,27 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 // ghi lại cron của site (M9), mở khoá user DB, ghi lại pool, bật vhost. Pool và vhost dựng y như lúc tạo
 // site (siteVhost chọn bản 443 khi site có SSL): file vhost vẫn nằm trong
 // sites-available nên bước ghi nó tự bỏ qua, chỉ bước bật link chạy.
-func restoreSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) {
+//
+// M17, site trong lồng: hai bước của sitePHPSteps đặt vào hai chỗ. CageFiles
+// (hàng rào) NGAY sau khi mở khoá user, trước mọi bước chạy lệnh dưới user của
+// site (bước cron có `wp config set`), để không lệnh nào của site chạy ở ngoài
+// lồng (soát thiết kế điểm 8); CageSocket bật ở chỗ của pool, trước vhost.
+func restoreSteps(ctx context.Context, as AccountStore, web WebServer, php string, st site.Site) ([]engine.Step, error) {
 	l := st.Layout()
-	pool, err := steps.SitePool(l, php)
+	cfg := StackConfig{Web: web, PHPVersion: php}
+	phpSteps, err := sitePHPStepsFor(ctx, as, st, cfg)
 	if err != nil {
 		return nil, err
 	}
-	vhost, err := siteVhost(st, StackConfig{Web: web, PHPVersion: php})
+	// fence: các bước phải chạy ngay sau mở khoá user (CageFiles); pool: các
+	// bước ở chỗ của pool (pool chung, hoặc CageSocket).
+	var fence, pool []engine.Step
+	if st.Caged {
+		fence, pool = phpSteps[:1], phpSteps[1:]
+	} else {
+		pool = phpSteps
+	}
+	vhost, err := siteVhost(st, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -258,10 +276,12 @@ func restoreSteps(web WebServer, php string, st site.Site) ([]engine.Step, error
 			Title: i18n.T("Chuyển thư mục của "+d+" ra khỏi thùng rác", "Move the directory of "+d+" out of the trash")},
 		&steps.SiteUserLock{Layout: l, Unlock: true},
 	}
+	ss = append(ss, fence...)
 	// M9: cron của site sau khi thư mục về chỗ và user được mở khoá:
 	// WPConstant chạy `wp` dưới user của site trên wp-config.php vừa về.
 	ss = append(ss, cron...)
-	ss = append(ss, &steps.DBUserUnlock{Layout: l}, pool)
+	ss = append(ss, &steps.DBUserUnlock{Layout: l})
+	ss = append(ss, pool...)
 	return append(ss, vhost...), nil
 }
 
@@ -337,7 +357,13 @@ func (s *Sites) PreparePurge(ctx context.Context, d validate.Domain) (*SitePurge
 	}
 	l := st.Layout()
 	php := sitePHP(st, cfg)
-	ss, err := purgeSteps(cfg.Web, php, st)
+	cage := st.Caged
+	if !cage {
+		if cage, err = cageLeft(s.Sys, l); err != nil {
+			return nil, err
+		}
+	}
+	ss, err := purgeSteps(cfg.Web, php, st, cage)
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan xoá hẳn site %s: %w", d, err)
 	}
@@ -409,15 +435,27 @@ func (p *purgeBackup) Undo(ctx context.Context, sys system.System) error {
 // bỏ qua), rồi mới xoá DB, file, log, user (không hoàn tác được). Không có
 // phép kiểm chứng: kiểm chứng lỗi thì engine hoàn tác, mà hoàn tác lúc này chỉ
 // trả lại file vhost cho một site đã mất DB và file, tệ hơn là để yên.
-func purgeSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) {
+//
+// M17: cage true (site có cờ caged, hoặc máy còn file của lồng: lồng dựng dở
+// sau một lần panel bị tắt giữa cage.enable) thì thêm CageSocket{Disable} và
+// CageFiles{Remove}, trước các bước xoá không hoàn tác được và trước khi xoá
+// user (unit của lồng chạy dưới user đó). Site chưa từng có lồng: Plan y như
+// trước M17.
+func purgeSteps(web WebServer, php string, st site.Site, cage bool) ([]engine.Step, error) {
 	l := st.Layout()
 	ss, err := steps.SiteWebAbsent(l, string(web), php)
 	if err != nil {
 		return nil, err
 	}
+	// M9: file cron đã gỡ lúc vào thùng rác; còn (sửa tay) thì gỡ nốt.
+	ss = append(ss, siteCronAbsent(l))
+	if cage {
+		ss = append(ss,
+			&steps.CageSocket{Layout: l, PHP: php, Disable: true},
+			&steps.CageFiles{Layout: l, PHP: php, Remove: true},
+		)
+	}
 	ss = append(ss,
-		// M9: file cron đã gỡ lúc vào thùng rác; còn (sửa tay) thì gỡ nốt.
-		siteCronAbsent(l),
 		&steps.SiteDBAbsent{Layout: l},
 		&steps.RemoveTree{Path: site.TrashDir(l), Under: site.TrashRoot},
 		&steps.RemoveTree{Path: l.LogDir, Under: siteLogRoot},
@@ -431,6 +469,18 @@ func purgeSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) 
 		ss = append(ss, &steps.CertbotDelete{Layout: l})
 	}
 	return ss, nil
+}
+
+// cageLeft: máy còn file hay thư mục nào của lồng của site l (đọc máy như lớp
+// bọc lệnh, không tin cờ caged: cờ chỉ ghi khi job cage.enable thành công).
+func cageLeft(sys system.System, l site.Layout) (bool, error) {
+	for _, p := range append(l.CageFiles(), l.CageFenceDir(), l.CageConfDir()) {
+		ok, err := pathExists(sys, p)
+		if err != nil || ok {
+			return ok, err
+		}
+	}
+	return false, nil
 }
 
 // Preview là bản xem trước. Chỉ đọc máy.
@@ -465,6 +515,13 @@ func (p *SitePurge) Execute(ctx context.Context, onEvent func(engine.Event)) (en
 	}
 	if err := s.Store.DeleteSite(ctx, p.Site.Domain); err != nil {
 		errs = append(errs, fmt.Errorf("job %s đã xoá hẳn site %s khỏi máy nhưng không xoá được dòng trong DB của tpan: %w", rep.Job.ID, p.Site.Domain, err))
+	}
+	// M17: số liệu của domain đi theo site, để site mới cùng tên không thừa
+	// hưởng số cũ (mẫu, dòng giờ, gợi ý trần).
+	if s.Samples != nil {
+		if err := s.Samples.DeleteUsageOf(ctx, p.Site.Domain.String()); err != nil {
+			errs = append(errs, fmt.Errorf("job %s đã xoá hẳn site %s nhưng không xoá được số liệu của nó: %w", rep.Job.ID, p.Site.Domain, err))
+		}
 	}
 	return rep, errors.Join(errs...)
 }

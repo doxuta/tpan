@@ -303,6 +303,14 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		ss = append(ss, reload)
 	}
 
+	// Nhóm 6 (M17): khởi động lại dịch vụ của mọi lồng đang chạy, để hàng rào
+	// che cả những file nhóm 1 vừa ghi (xem cageRestartSteps).
+	restarts, err := cageRestartSteps(ctx, s.Sites)
+	if err != nil {
+		return nil, wrap(err)
+	}
+	ss = append(ss, restarts...)
+
 	// Kiểm chứng: bộ của stack cộng các phép cấp máy của M14 (Stack.Checks đã
 	// gồm cả hai), rồi từng site. Không chạy cả bộ siteChecks: một site hỏng ở
 	// chặng không liên quan (DB, mã nguồn) không được kéo hoàn tác bản vá của
@@ -324,8 +332,15 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		if c := siteHTTP(st); c != nil {
 			verify = append(verify, retryCheck{c: c})
 		}
+		// Cùng luật với siteChecks (M17, bất biến 8): Isolated chạy `test` dưới
+		// user của site "from" ở NGOÀI lồng, nên không sinh từ site trong lồng.
 		for _, o := range active[i+1:] {
-			verify = append(verify, checks.Isolated(l, o.Layout()), checks.Isolated(o.Layout(), l))
+			if !st.Caged {
+				verify = append(verify, checks.Isolated(l, o.Layout()))
+			}
+			if !o.Caged {
+				verify = append(verify, checks.Isolated(o.Layout(), l))
+			}
 		}
 	}
 

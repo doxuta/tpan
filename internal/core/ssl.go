@@ -15,7 +15,8 @@ package core
 //  7. steps.WPSiteURL https://<d>.
 //  8. File hook gia hạn /etc/letsencrypt/renewal-hooks/deploy/tpan (0755,
 //     templates.RenewHook("/usr/local/bin/tpan")).
-//  9. Kiểm chứng: checks.SiteChecksSSL (site tạm khoá: TLSCert, VhostEnabled,
+//  9. Kiểm chứng: siteRequestChecks với SSL (site ngoài lồng: checks.SiteChecksSSL;
+//     M17, site trong lồng: SiteChecksSSLCaged; site tạm khoá: TLSCert, VhostEnabled,
 //     http.suspended), Service certbot.timer, checks.CertRenewDryRun(l, server
 //     tuỳ chỉnh nếu có).
 // Job thành công thì ghi site.SSL = true vào bảng sites.
@@ -280,7 +281,12 @@ func (s *SSL) PrepareIssue(ctx context.Context, d validate.Domain) (*SSLIssue, e
 	if php == "" {
 		php = stack.PHPVersion
 	}
-	plan, err := sslPlan(stack, php, st, email, cfg)
+	// M17: site trong lồng thì kiểm chứng là bộ SSL của lồng, cần trần của gói.
+	lim, err := siteCageLimits(ctx, s.Accounts, st)
+	if err != nil {
+		return nil, err
+	}
+	plan, err := sslPlan(stack, php, st, email, cfg, lim)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +296,11 @@ func (s *SSL) PrepareIssue(ctx context.Context, d validate.Domain) (*SSLIssue, e
 // sslPlan dựng Plan "site.ssl" đúng thứ tự ở đầu file. Vhost 443 ghi qua
 // siteVhost (M13): site đang tạm khoá ra bản tạm khoá có 443, và kiểm chứng
 // đòi 403 đúng trang tạm khoá ở cả hai cổng thay cho bộ phép kiểm của site thường.
-func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, cfg SSLConfig) (engine.Plan, error) {
+//
+// M17: kiểm chứng đi qua siteRequestChecks (lim là trần của lồng, nil khi site
+// ở ngoài lồng): site ngoài lồng giữ đúng checks.SiteChecksSSL như trước, site
+// trong lồng ra SiteChecksSSLCaged (không gọi socket pool chung không có).
+func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, cfg SSLConfig, lim *account.Limits) (engine.Plan, error) {
 	web, l := string(stack.Web), st.Layout()
 	d := l.Domain.String()
 	wrap := func(err error) error { return fmt.Errorf("dựng Plan SSL cho %s: %w", d, err) }
@@ -330,7 +340,7 @@ func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, 
 		},
 	)
 
-	verify := checks.SiteChecksSSL(web, php, l)
+	verify := siteRequestChecks(stack.Web, php, next, lim)
 	if st.Suspended != account.NotSuspended {
 		verify = append([]checks.Check{checks.TLSCert(l), checks.VhostEnabled(web, l)}, suspendedChecks(next)...)
 	}

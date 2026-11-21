@@ -52,6 +52,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -194,6 +195,11 @@ func (p *PHP) PrepareInstall(ctx context.Context, version string) (*Planned, err
 	)
 	ss = append(ss, harden...)
 	ss = append(ss, &steps.Service{Unit: unit})
+	restarts, err := cageRestartSteps(ctx, p.Sites)
+	if err != nil {
+		return nil, err
+	}
+	ss = append(ss, restarts...)
 	plan := engine.Plan{
 		Kind:   "php.install",
 		Target: version,
@@ -206,6 +212,30 @@ func (p *PHP) PrepareInstall(ctx context.Context, version string) (*Planned, err
 		},
 	}
 	return newPlanned(p.Sys, p.Journal, plan, nil), nil
+}
+
+// cageRestartSteps là bước cuối của php.install và security.harden (M17, mục
+// 3.6): khởi động lại dịch vụ PHP của mọi site trong lồng đang chạy. Hàng rào
+// chỉ che những đường dẫn có lúc dịch vụ khởi động, nên thư mục pool.d của bản
+// PHP mới cài (hay file vừa harden ghi) chỉ bị che sau lần khởi động lại này
+// (soát thiết kế điểm 13). Dịch vụ đang nghỉ (chưa request nào đánh thức) thì
+// bỏ qua: lần khởi động sau tự thấy đúng. store nil (xem trước khi chưa có
+// tpan.db): không có site nào.
+func cageRestartSteps(ctx context.Context, store SiteStore) ([]engine.Step, error) {
+	if store == nil {
+		return nil, nil
+	}
+	all, err := store.Sites(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("đọc danh sách site: %w", err)
+	}
+	var ss []engine.Step
+	for _, st := range all {
+		if st.Caged && st.Status == site.Active {
+			ss = append(ss, &steps.ServiceRestart{Unit: st.Layout().CageServiceUnit(), OnlyIfActive: true})
+		}
+	}
+	return ss, nil
 }
 
 // PrepareUse dựng Plan "php.use". Chỉ đọc máy.
@@ -255,12 +285,36 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 	}
 
 	l := st.Layout()
-	pool, err := steps.SitePool(l, version)
+	next := st
+	next.PHPVersion = version
+	others, err := sites.others(ctx, d)
 	if err != nil {
 		return nil, err
 	}
-	next := st
-	next.PHPVersion = version
+	lim, err := siteCageLimits(ctx, p.Accounts, st)
+	if err != nil {
+		return nil, err
+	}
+	dom := d.String()
+	after := func(ctx context.Context, _ engine.Report) error {
+		if err := p.Sites.SaveSite(ctx, next); err != nil {
+			return fmt.Errorf("ghi bản PHP %s cho site %s: %w", version, dom, err)
+		}
+		return nil
+	}
+	if st.Caged {
+		plan, err := phpUseCaged(cfg, next, old, *lim)
+		if err != nil {
+			return nil, err
+		}
+		plan.Verify = siteChecks(cfg.Web, version, next, others, lim)
+		return newPlanned(p.Sys, p.Journal, plan, after), nil
+	}
+	phpSteps, err := sitePHPSteps(next, cfg, account.Limits{})
+	if err != nil {
+		return nil, err
+	}
+	pool := phpSteps[0]
 	vhost, err := siteVhost(next, cfg)
 	if err != nil {
 		return nil, err
@@ -269,7 +323,6 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 	if st.SSL {
 		http = checks.HTTPSSite(l)
 	}
-	dom := d.String()
 	// Kiểm socket trước khi sửa vhost (mục 6.11 ý 3). `systemctl reload
 	// php<bản>-fpm` chỉ gửi USR2 rồi trả về ngay; socket của pool mới chỉ có
 	// khi master đã nạp lại xong. Trên máy ảo M12, php-fpm8.4 của kho sury mất
@@ -308,10 +361,6 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 				"The site now runs on PHP "+version+". The pool on PHP "+old+" is unused but is still a way to run PHP as "+l.User+". This step can be undone."),
 		},
 	)
-	others, err := sites.others(ctx, d)
-	if err != nil {
-		return nil, err
-	}
 	plan := engine.Plan{
 		Kind:   "php.use",
 		Target: dom,
@@ -319,13 +368,43 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 		Steps:  ss,
 		Verify: siteChecks(cfg.Web, version, st, others, nil),
 	}
-	after := func(ctx context.Context, _ engine.Report) error {
-		if err := p.Sites.SaveSite(ctx, next); err != nil {
-			return fmt.Errorf("ghi bản PHP %s cho site %s: %w", version, dom, err)
-		}
-		return nil
-	}
 	return newPlanned(p.Sys, p.Journal, plan, after), nil
+}
+
+// phpUseCaged là Plan "php.use" của site trong lồng (mục 3.6 của
+// docs/thay-doi/M17-thiet-ke.md). next là site đã mang bản mới. Khác hẳn Plan
+// ngoài lồng: socket của lồng không mang số bản, nên không có pool mới, không
+// đổi vhost, không đụng pool chung. CageFiles ghi lại file dịch vụ (dòng
+// ExecStart của bản mới), chạy `php-fpm<mới> -t` trong lồng rồi try-restart
+// (socket giữ nguyên, kết nối xếp hàng). Rồi kiểm 200 hai lần như nhánh ngoài
+// lồng: đây là Plan của chủ site, site tự làm hỏng thì chỉ hỏng việc của mình.
+// Hỏng thì đường trả lại của CageFiles ghi lại file cũ và chạy lại bản cũ.
+func phpUseCaged(cfg StackConfig, next site.Site, old string, lim account.Limits) (engine.Plan, error) {
+	l, version, dom := next.Layout(), next.PHPVersion, next.Domain.String()
+	ss, err := sitePHPSteps(next, cfg, lim)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	http := checks.HTTPSite(l)
+	if next.SSL {
+		http = checks.HTTPSSite(l)
+	}
+	// Chỉ CageFiles: socket của lồng đang bật (site active, không tạm khoá),
+	// bước CageSocket bật không có gì để làm ở Plan này.
+	return engine.Plan{
+		Kind:   "php.use",
+		Target: dom,
+		Title:  i18n.T("Chuyển "+dom+" (trong lồng) từ PHP "+old+" sang "+version, "Move "+dom+" (caged) from PHP "+old+" to "+version),
+		Steps: []engine.Step{ss[0], &midCheck{
+			id:    "php.use.check:" + dom,
+			check: http,
+			need:  2,
+			title: i18n.T("Kiểm "+dom+" trả 200 qua PHP "+version+" trong lồng", "Check that "+dom+" answers 200 through PHP "+version+" in its cage"),
+			why: i18n.T(
+				"Lồng vừa khởi động lại với PHP "+version+". Site không trả 200 thì job dừng ở đây và hoàn tác: file của lồng về bản cũ và lồng chạy lại PHP "+old+".",
+				"The cage was just restarted on PHP "+version+". If the site does not answer 200 the job stops here and rolls back: the cage files go back and the cage runs PHP "+old+" again."),
+		}},
+	}, nil
 }
 
 // PrepareRemove dựng Plan "php.remove". Chỉ đọc máy.
