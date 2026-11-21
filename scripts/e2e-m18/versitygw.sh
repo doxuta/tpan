@@ -31,7 +31,7 @@ if ! dpkg-query -W versitygw >/dev/null 2>&1; then
   # --ignore-missing: checksums.txt kê mọi file của bản phát hành, ta chỉ tải
   # một. Không có dòng nào khớp file đã tải thì sha256sum cũng thoát khác 0.
   sha256sum --ignore-missing -c checksums.txt
-  apt-get -o DPkg::Lock::Timeout=120 install -y -q "./$deb" </dev/null >/dev/null
+  apt-get -o DPkg::Lock::Timeout=600 install -y -q "./$deb" </dev/null >/dev/null
   cd /
 fi
 dpkg-query -W -f 'gói: ${Package} ${Version}\n' versitygw
