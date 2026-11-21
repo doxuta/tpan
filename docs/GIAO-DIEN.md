@@ -2,7 +2,7 @@
 
 Chốt ngày 21/11/2026 (mốc M16), thay bản "Tuyến" ngày 19/11/2026 về màu, chữ, hình khối và khung trang. Tài liệu này là đặc tả hình thức cho thư mục `web/`. Nó đi cùng mục 10 của `docs/KE-HOACH.md` (mục đó nói giao diện có những màn nào và vì sao; tài liệu này nói chúng trông ra sao).
 
-Vì sao có bản 2: chủ dự án dùng bản 1 trên máy thật và thấy khó nhìn. Đo ra thì chữ phải đọc phần lớn là mono 11 đến 13 px, màn Bảo mật dài 6 màn hình, mỗi màn có vài chục ô viền đen, tên site dài xuống hai ba dòng. Số đo trước và sau nằm ở `docs/giai-thich/16-m16-giao-dien-ban-2.md`.
+Vì sao có bản 2: chủ dự án dùng bản 1 trên máy thật và thấy khó nhìn. Đo ra thì chữ phải đọc phần lớn là mono 11 đến 13 px, màn Bảo mật dài 6 màn hình, mỗi màn có vài chục ô viền đen, tên site dài xuống hai ba dòng. Số đo trước và sau nằm ở `docs/thay-doi/M16.md` (sau khi ghép thì ở mục 10 của `docs/KE-HOACH.md`).
 
 Bản 2 **giữ** những thứ làm nên TPAN: logo tuyến chữ T có ga cuối đổi theo tình trạng máy (mục 11); bốn dấu trạng thái, cả hình lẫn màu (mục 2); bản đồ tuyến đường đi request; mọi trạng thái mở ra được bằng chứng; thao tác đi qua xem trước rồi mới chạy; giọng chữ (mục 8); hai ngôn ngữ; sáng và tối (mục 5); font IBM Plex nhúng sẵn; CSP `default-src 'self'`; dùng được bằng bàn phím.
 
@@ -150,10 +150,11 @@ Hình khối chung: thẻ bo 10 px, viền `--hair`, nền `--surface`, đệm 1
 | Nút biểu tượng (`IconButton`) | ô vuông 40 px không viền, biểu tượng `--muted`; luôn có nhãn đọc được |
 | Thẻ (`Card`) | có thể có tiêu đề (`h2`), số đếm cạnh tiêu đề, hành động bên phải tiêu đề, chân thẻ nền `--soft` |
 | Đầu màn (`ScreenHeader`) | đường dẫn (13 px, `--muted`), `h1`, một dòng tóm tắt (tối đa 72 ký tự), hành động chính bên phải, hàng nhãn nhỏ bên dưới khi cần |
-| Bảng (`TableList`) | nằm trong thẻ; đầu bảng nền `--soft`, chữ 12/500 `--muted`; hàng cao 52 đến 56 px, kẻ `--hair`; số canh phải và đều cột; chân bảng nền `--soft`; khung cuộn ngang riêng |
+| Bảng (`TableList`) | tự vẽ thẻ của nó (không bọc thêm `Card`), có thể có tiêu đề và hành động ở đầu thẻ; đầu bảng nền `--soft`, chữ 12/500 `--muted`; hàng cao 52 đến 56 px, kẻ `--hair`; số canh phải và đều cột; chân bảng nền `--soft`; khung cuộn ngang riêng |
+| Chữ mono chỉ để đọc (`Code`) | trong dòng: mono 13 px; `block`: khối nền `--pre`, bo 8 px, 12,5 px dòng 1,55. Thứ người ta bấm để chép thì dùng `MonoText` |
 | Cột Việc (`RowActions`) | tối đa hai nút chữ, phần còn lại vào menu ba chấm. Nút ba chấm có nhãn đọc được, dạng "Việc khác với X: a, b, c" |
 | Menu thả (`Menu`) | Radix DropdownMenu, luôn `modal={false}` (bản modal chèn một thẻ `<style>` và CSP chặn); khung bo 8 px, viền `--hair`, bóng; mục cao 40 px, mục đang tới nền `--soft` |
-| Tab (`Tabs`) | Radix Tabs; hàng tab kẻ dưới `--hair`; tab đang mở chữ `--accent` đậm 600 và gạch dưới 2 px. Phím mũi tên đổi tab |
+| Tab (`Tabs`) | Radix Tabs; hàng tab kẻ dưới `--hair`; tab đang mở chữ `--accent` đậm 600 và gạch dưới 2 px. Phím mũi tên đổi tab. Tab đang mở ghi vào địa chỉ (`?tab=`) bằng `replace` |
 | Nhãn nhỏ (`Tag`) | bo tròn, nền `--paper` (trên thẻ) hoặc `--surface` (trên nền trang), không viền, chữ 12 px `--ink-soft` |
 | Ô mức dùng (`UsageMeter`) | "5 / ∞": số đã dùng đậm, "/ trần" màu `--muted`; có trần thì thêm thanh cao 4 px (rãnh `--track`, đầy `--ink`) |
 | Thanh số liệu (`MetricBar`) | nhãn 12/500, số 24 px, một dòng phụ, thanh cao 6 px có vạch ngưỡng 80% |
@@ -301,9 +302,9 @@ Giữ nguyên tiếng Anh ở cả hai bản: site, request, pool, socket, reloa
 
 Phần máy kiểm được thì để máy kiểm:
 
-1. `make check`: gồm `go test ./web/` (luật kiểu dáng: cỡ chữ, viền, mã màu, mono đúng chỗ, menu không modal, nhãn không viết hoa, bảng tương phản) và `make test-web` (logic thuần của giao diện).
+1. `make check`: gồm `go test ./web/` (luật kiểu dáng: cỡ chữ, viền, mã màu, mono đúng chỗ, không gọi ra mạng, menu không modal, nhãn không viết hoa, bảng tương phản) và `make test-web` (logic thuần của giao diện). Khi đổi riêng một màn: `make kieu-dang DIR=src/screens/<màn>/,src/i18n/<màn>.ts`.
 2. `make do-giao-dien NGUONG=1`: đo từng màn trên máy demo bằng trình duyệt thật. Ngưỡng cứng ở 1440 × 900: không chữ nào dưới 12 px; không ô nào viền màu chữ; danh sách Site có chữ mono không quá 15%; tab Tổng quan của trang một site không quá 1,5 màn hình và chữ mono không quá 30%; Cơ sở dữ liệu 5 hàng vừa một màn hình; Bảo mật lúc mới mở không quá 2 màn hình; tên site 36 ký tự trên bản đồ tuyến nằm một dòng; không màn nào cuộn ngang cả trang.
-3. `make anh-m16`: chụp mọi màn ở 1440 × 900 (sáng, tối) và các màn chính ở 390 × 844; mỗi lần mở màn không được có lỗi console; đi hết các màn chính bằng phím Tab; mở bản tiếng Anh và tìm chữ bị tràn.
+3. `make anh-m16`: chụp mọi màn ở 1440 × 900 (sáng, tối) và các màn chính ở 390 × 844; trên mọi màn: không lỗi console, không cuộn ngang ở 1440 và 390 px, không chữ dưới 12 px, không ô viền màu chữ, đi hết bằng phím Tab, mở bản tiếng Anh và tìm chữ bị tràn.
 
 Phần phải nhìn bằng mắt:
 

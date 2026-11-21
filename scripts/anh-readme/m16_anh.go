@@ -411,7 +411,7 @@ func photosM16(c *cdp, base, adminPW, out string) error {
 	if err := open("/sites/"+long, "vi"); err != nil {
 		return err
 	}
-	const selTab = `(document.querySelector('[role=tab][aria-selected="true"]')||{}).id||''`
+	const selTab = `document.querySelector('[role=tab][aria-selected="true"]')?.getAttribute('data-tab')||''`
 	before := c.str(selTab)
 	if _, err := c.eval(`document.querySelector('[role=tab][aria-selected="true"]')?.focus()`); err != nil {
 		return err
