@@ -20,7 +20,7 @@ Thiết kế đầy đủ ở [docs/KE-HOACH.md](docs/KE-HOACH.md), mục 1 và 
 
 ## Ảnh
 
-Mọi ảnh dưới đây chụp từ `tpan serve --demo`: một máy giả có dữ liệu mẫu (tên máy `demo`, các site `*.example.*`), không phải máy thật. Chụp lại bằng `go run ./scripts/anh-readme`.
+Mọi ảnh dưới đây chụp từ `tpan serve --demo`: một máy giả có dữ liệu mẫu (tên máy `demo`, các site `*.example.*`), không phải máy thật. Giao diện là bản 2 (mốc M16). Chụp lại bằng `make anh-readme`; ảnh mọi màn ở sáng, tối và 390 px nằm ở `docs/bang-chung/M16/`.
 
 ![Bảng điều khiển](docs/anh/bang-dieu-khien.png)
 
@@ -32,7 +32,7 @@ Tạo site: bấm "Xem trước" thì thấy số bước sẽ chạy, bước b
 
 ![Trang một site đang có sự cố](docs/anh/site-su-co.png)
 
-Trang của một site: đường đi request, chặng hỏng, số request và lỗi 5xx trong một giờ, rồi từng phép kiểm theo chặng.
+Trang của một site, tab Tổng quan: đường đi request, chặng hỏng, số request và lỗi 5xx trong một giờ, sự cố của site. Từng phép kiểm theo chặng nằm ở tab Phép kiểm; còn các tab Log, PHP, Backup, Cài đặt site.
 
 ![Chi tiết một job](docs/anh/job.png)
 
@@ -254,8 +254,10 @@ Thử bản cài trên máy ảo trước khi đụng VPS: `make release`, chép
   - [12-m12-phien-ban-va-cap-nhat.md](docs/giai-thich/12-m12-phien-ban-va-cap-nhat.md): phiên bản và cập nhật
   - [13-m13-nhieu-nguoi-dung.md](docs/giai-thich/13-m13-nhieu-nguoi-dung.md): nhiều người dùng, gói, tạm khoá, DB rời
   - [14-m14-co-lap-va-dinh-tuyen.md](docs/giai-thich/14-m14-co-lap-va-dinh-tuyen.md): vì sao request không đi nhầm site, và chín đường tấn công giữa các site bị chặn thế nào
+  - [15-m15-nut-cap-nhat.md](docs/giai-thich/15-m15-nut-cap-nhat.md): nút cập nhật TPAN trong panel, quay về bản trước
+  - [16-m16-giao-dien-ban-2.md](docs/giai-thich/16-m16-giao-dien-ban-2.md): giao diện bản 2, trang Công cụ, trang chủ theo vai, test giữ luật kiểu dáng
 - [docs/HUONG-DAN-CHU-DU-AN.md](docs/HUONG-DAN-CHU-DU-AN.md): thử từng phần trên VPS thật, từng lệnh một (stack, site, SSL, tường lửa, thùng rác, backup, AI).
-- [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M14.log`, và các lần chạy lại sau khi ghép).
+- [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M16.log`, và các lần chạy lại sau khi ghép); ảnh mọi màn của giao diện bản 2 ở `M16/`.
 
 ## Giấy phép
 

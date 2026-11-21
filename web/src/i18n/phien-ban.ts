@@ -7,8 +7,8 @@ import { defineStrings } from "./index";
 
 const vi = {
   heading: "Phiên bản và cập nhật",
-  version: "BẢN ĐANG CHẠY",
-  url: "NGUỒN TẢI",
+  version: "Bản đang chạy",
+  url: "Nguồn tải",
   loadError: "Chưa đọc được phiên bản và trạng thái cập nhật",
 
   // Kiểm bản mới
@@ -23,13 +23,13 @@ const vi = {
 
   // Bản xem trước
   found: (v: string) => (v ? `Nguồn tải có bản ${v}.` : "Nguồn tải có bản khác bản đang chạy."),
-  pvCurrent: "BẢN ĐANG CHẠY",
-  pvLatest: "BẢN MỚI NHẤT",
+  pvCurrent: "Bản đang chạy",
+  pvLatest: "Bản mới nhất",
   latestUnknown: "Có bản khác bản đang chạy; nguồn tải không ghi tên bản.",
-  pvUrl: "NGUỒN TẢI",
-  pvAsset: "FILE SẼ TẢI",
-  pvSha: "SHA256 SẼ KIỂM",
-  pvBack: "LÊN RỒI CÓ LÙI ĐƯỢC KHÔNG",
+  pvUrl: "Nguồn tải",
+  pvAsset: "File sẽ tải",
+  pvSha: "SHA256 sẽ kiểm",
+  pvBack: "Lên rồi có lùi được không",
   backNote:
     "Được. Bản đang chạy được giữ lại ở /usr/local/bin/tpan.old, và sau khi lên khối này có nút quay về. " +
     "Riêng khi bản mới đổi cấu trúc cơ sở dữ liệu của TPAN thì không quay về bằng nút được; lúc đó đường lùi là bản sao tpan.db bạn giữ từ trước khi lên.",
@@ -49,7 +49,7 @@ const vi = {
   restarting: "Panel đang khởi động lại…",
 
   // Kết quả, và dòng "lượt gần nhất"
-  lastLabel: "LƯỢT GẦN NHẤT",
+  lastLabel: "Lượt gần nhất",
   doneUpdate: (v: string) => `Đã lên ${v}`,
   doneRollback: (v: string) => `Đã quay về ${v}`,
   same: "Đang là bản mới nhất, không thay gì",
@@ -58,11 +58,11 @@ const vi = {
   stuckUpdate: "Lượt cập nhật chưa có kết quả",
   stuckRollback: "Lượt quay về chưa có kết quả",
   stuckBody: "Lượt chạy bị ngắt giữa chừng, hoặc đã quá 3 phút mà panel chưa báo lại. Gõ ba lệnh dưới đây trên máy: xem log của lượt chạy, xem dịch vụ tpan, rồi quay về bản trước nếu panel không lên.",
-  manual: "SỬA TAY",
+  manual: "Sửa tay",
   runUpdate: (from: string, to: string) => (to ? `Lên từ ${from} tới ${to}` : `Từ bản ${from}`),
   runRollback: (from: string, to: string) => (to ? `Quay từ ${from} về ${to}` : `Từ bản ${from}`),
   runBy: (when: string, actor: string) => (actor ? `${when}, ${actor} bấm` : when),
-  errorLabel: "LỖI CỦA JOB",
+  errorLabel: "Lỗi của job",
   jobLink: "Xem job này trong Lịch sử",
   reloadWhy: "Mã giao diện trong trình duyệt còn là của bản cũ. Tải lại trang để dùng giao diện của bản mới.",
   reload: "Tải lại trang",
@@ -87,8 +87,8 @@ const vi = {
 
 export const strings = defineStrings(vi, {
   heading: "Version and updates",
-  version: "RUNNING VERSION",
-  url: "DOWNLOAD SOURCE",
+  version: "Running version",
+  url: "Download source",
   loadError: "Could not read the version and update state",
 
   checkButton: "Check for a new version",
@@ -101,13 +101,13 @@ export const strings = defineStrings(vi, {
   upToDate: "This is the latest version.",
 
   found: (v) => (v ? `The download source has version ${v}.` : "The download source has a version different from the running one."),
-  pvCurrent: "RUNNING VERSION",
-  pvLatest: "LATEST VERSION",
+  pvCurrent: "Running version",
+  pvLatest: "Latest version",
   latestUnknown: "The source has a version different from the running one; it does not name the version.",
-  pvUrl: "DOWNLOAD SOURCE",
-  pvAsset: "FILE TO DOWNLOAD",
-  pvSha: "SHA256 TO VERIFY",
-  pvBack: "CAN YOU GO BACK AFTERWARDS",
+  pvUrl: "Download source",
+  pvAsset: "File to download",
+  pvSha: "SHA256 to verify",
+  pvBack: "Can you go back afterwards",
   backNote:
     "Yes. The running version is kept at /usr/local/bin/tpan.old, and after the update this block has a button to go back. " +
     "Only when the new version changes the structure of TPAN's database can the button not go back; the way back then is the copy of tpan.db you kept from before the update.",
@@ -124,7 +124,7 @@ export const strings = defineStrings(vi, {
   updatingHint: "This page asks the server again every 3 s. Leave it open; no need to reload yet.",
   restarting: "The panel is restarting…",
 
-  lastLabel: "LATEST RUN",
+  lastLabel: "Latest run",
   doneUpdate: (v) => `Updated to ${v}`,
   doneRollback: (v) => `Went back to ${v}`,
   same: "This is the latest version; nothing was replaced",
@@ -133,11 +133,11 @@ export const strings = defineStrings(vi, {
   stuckUpdate: "The update has no result yet",
   stuckRollback: "Going back has no result yet",
   stuckBody: "The run was interrupted, or more than 3 min passed without the panel reporting back. Type the three commands below on the machine: read the log of the run, look at the tpan service, then go back to the previous version if the panel does not come up.",
-  manual: "FIX BY HAND",
+  manual: "Fix by hand",
   runUpdate: (from, to) => (to ? `Update from ${from} to ${to}` : `From version ${from}`),
   runRollback: (from, to) => (to ? `Back from ${from} to ${to}` : `From version ${from}`),
   runBy: (when, actor) => (actor ? `${when}, pressed by ${actor}` : when),
-  errorLabel: "JOB ERROR",
+  errorLabel: "Job error",
   jobLink: "See this job in History",
   reloadWhy: "The interface code in your browser is still the old version's. Reload the page to use the new version's interface.",
   reload: "Reload the page",

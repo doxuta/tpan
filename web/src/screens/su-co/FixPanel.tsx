@@ -8,15 +8,17 @@
 
 import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAi } from "../../ai/AiProvider";
 import { post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
 import type { AcceptFileRequest, CheckResult, FixRequest, Incident, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { CommandBlock } from "../../components/CommandBlock";
 import { Dialog } from "../../components/Dialog";
 import { MonoText } from "../../components/MonoText";
+import { Notice } from "../../components/Notice";
 import { tx, useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/su-co";
 import { PlanReview } from "../duyet-plan";
@@ -81,28 +83,34 @@ export function FixPanel({ incident, live }: Props) {
     onError: () => setConfirming(false),
   });
 
+  // Bản 2: mỗi cách sửa là một thẻ (tiêu đề h2 mang đúng id cũ). Bản xem trước (PlanReview) tự là
+  // một thẻ, nên đứng ngay dưới thẻ "Sửa tự động" chứ không nằm trong nó.
   return (
-    <section aria-labelledby="cach-sua">
-      <h2 id="cach-sua" className="m-0 pt-[26px] pb-[4px] text-[16px] font-semibold">
-        {t.fixHeading}
-      </h2>
-      <p className="m-0 pb-[10px] text-muted">{isAdmin ? t.fixHint : t.fixHintUser}</p>
+    <>
+      <div>
+        <h2 id="cach-sua" className="m-0 text-[16px] font-semibold">
+          {t.fixHeading}
+        </h2>
+        <p className="mt-[4px] mb-0 text-muted">{isAdmin ? t.fixHint : t.fixHintUser}</p>
+      </div>
 
       {isAdmin && autoFix && (
-        <Option heading={t.autoHeading} id="sua-tu-dong">
-          <p className="m-0 text-muted">{t.autoBody}</p>
-          {isDrift && <p className="mt-[6px] mb-0 text-muted">{t.autoDrift}</p>}
-          <div className="pt-[10px]">
-            {/* Nút chính của khối là nút "Chạy" của PlanReview khi đã có bản xem trước, nên lúc đó nút này hạ xuống phụ. */}
-            <Button variant={preview ? "secondary" : "primary"} onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending}>
-              {dry.isPending ? t.autoPreviewing : t.autoPreview}
-            </Button>
-          </div>
-          {dry.isError && (
+        <>
+          <Card title={t.autoHeading} titleId="sua-tu-dong">
+            <p className="m-0 text-muted">{t.autoBody}</p>
+            {isDrift && <p className="mt-[6px] mb-0 text-muted">{t.autoDrift}</p>}
             <div className="pt-[12px]">
-              <ErrorNote error={dry.error} heading={t.autoPreviewFailed} />
+              {/* Nút chính của khối là nút "Chạy" của PlanReview khi đã có bản xem trước, nên lúc đó nút này hạ xuống phụ. */}
+              <Button variant={preview ? "secondary" : "primary"} onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending}>
+                {dry.isPending ? t.autoPreviewing : t.autoPreview}
+              </Button>
             </div>
-          )}
+            {dry.isError && (
+              <div className="pt-[12px]">
+                <ErrorNote error={dry.error} heading={t.autoPreviewFailed} />
+              </div>
+            )}
+          </Card>
           {preview && (
             <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
               <PlanReview
@@ -117,24 +125,20 @@ export function FixPanel({ incident, live }: Props) {
               />
             </div>
           )}
-        </Option>
+        </>
       )}
 
-      <Option heading={t.manualHeading} id="sua-tay">
-        {manual.length === 0 ? (
-          <p className="m-0 text-muted">{t.manualNone}</p>
-        ) : (
-          <CommandBlock commands={manual} />
-        )}
-      </Option>
+      <Card title={t.manualHeading} titleId="sua-tay">
+        {manual.length === 0 ? <p className="m-0 text-muted">{t.manualNone}</p> : <CommandBlock commands={manual} />}
+      </Card>
 
       {isAdmin && isDrift && driftPath && (
-        <Option heading={t.acceptHeading} id="nhan-ban-sua-tay">
+        <Card title={t.acceptHeading} titleId="nhan-ban-sua-tay">
           <p className="m-0 text-muted">{t.acceptBody}</p>
-          <p className="mt-[6px] mb-0">
+          <p className="mt-[8px] mb-0">
             <MonoText>{driftPath}</MonoText>
           </p>
-          <div className="pt-[10px]">
+          <div className="pt-[12px]">
             <Button onClick={() => setConfirming(true)} disabled={accept.isPending}>
               {t.accept}
             </Button>
@@ -145,21 +149,23 @@ export function FixPanel({ incident, live }: Props) {
             </div>
           )}
           {accept.isSuccess && (
-            <p role="status" className="mt-[10px] mb-0 text-muted">
-              {t.accepted}
-            </p>
+            <div className="pt-[12px]">
+              <Notice kind="pass" role="status">
+                {t.accepted}
+              </Notice>
+            </div>
           )}
           <Dialog open={confirming} onOpenChange={setConfirming} title={t.acceptTitle} description={t.acceptDescription} confirmLabel={t.acceptConfirm} busy={accept.isPending} onConfirm={() => accept.mutate()}>
             <MonoText>{driftPath}</MonoText>
           </Dialog>
-        </Option>
+        </Card>
       )}
 
       {/* Hỏi AI: cùng lối vào với nút "Chẩn đoán" ở đầu trang. Ngăn AI mở ra ở bước xem trước, người xem rồi tự gửi. */}
       {isAdmin && (
-        <Option heading={t.aiHeading} id="hoi-ai">
+        <Card title={t.aiHeading} titleId="hoi-ai">
           <p className="m-0 text-muted">{t.aiBody}</p>
-          <div className="pt-[10px]">
+          <div className="pt-[12px]">
             <Button
               onClick={() =>
                 openAI({
@@ -172,19 +178,8 @@ export function FixPanel({ incident, live }: Props) {
               {t.aiButton}
             </Button>
           </div>
-        </Option>
+        </Card>
       )}
-    </section>
-  );
-}
-
-function Option({ heading, id, muted = false, children }: { heading: string; id: string; muted?: boolean; children: ReactNode }) {
-  return (
-    <div aria-labelledby={id} role="group" className="border-t border-hair py-[14px]">
-      <h3 id={id} className={`m-0 mb-[6px] text-[14px] font-semibold ${muted ? "text-muted" : ""}`}>
-        {heading}
-      </h3>
-      {children}
-    </div>
+    </>
   );
 }

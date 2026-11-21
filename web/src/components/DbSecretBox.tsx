@@ -1,5 +1,5 @@
 // Mật khẩu DB rời vừa tạo hoặc vừa đổi, hiện MỘT lần (JobDetail.db_secret).
-// Cùng hình thức khối SecretBox của tài khoản WordPress (viền 2 px --ink, có
+// Cùng hình thức khối SecretBox của tài khoản WordPress (một thẻ bản 2, có
 // nút chép từng dòng, chỉ biến mất khi người dùng tự bấm "Đã lưu, ẩn đi").
 //
 // Chỗ gắn: trang job (screens/lich-su/JobDetail.tsx), cạnh SecretBox. Giữ
@@ -12,6 +12,7 @@ import { useStrings } from "../i18n";
 import { strings } from "../i18n/co-so-du-lieu";
 import { strings as khung } from "../i18n/khung";
 import { Button } from "./Button";
+import { cardClass } from "./Card";
 import { useCopy } from "./useCopy";
 
 type Props = {
@@ -32,8 +33,8 @@ export function DbSecretBox({ secret, onDismiss, focus = true }: Props) {
     ref.current?.focus({ preventScroll: true });
   }, [focus]);
   return (
-    <section ref={ref} tabIndex={-1} aria-labelledby={headingId} className="mt-[26px] border-2 border-ink bg-surface p-[18px] outline-offset-4">
-      <div className="font-mono text-[11px] tracking-[0.08em] text-muted">{t.secretLabel}</div>
+    <section ref={ref} tabIndex={-1} aria-labelledby={headingId} className={`${cardClass} p-[16px] outline-offset-4`}>
+      <div className="text-[12px] font-medium text-muted">{t.secretLabel}</div>
       <h2 id={headingId} className="m-0 mt-[4px] text-[16px] font-semibold [overflow-wrap:anywhere]">
         {t.secretTitle(secret.db)}
       </h2>
@@ -60,7 +61,7 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px] border-t border-hair py-[8px]">
       <dt className="flex-[0_0_88px] text-muted">{label}</dt>
       <dd className="m-0 min-w-0 flex-[1_1_220px] select-text font-mono text-[13px] break-all">{value}</dd>
-      <Button onClick={() => copy(value)} aria-label={t.secretCopyOf(label)}>
+      <Button size="sm" icon={state === "copied" ? "check" : "copy"} onClick={() => copy(value)} aria-label={t.secretCopyOf(label)}>
         {t.secretCopy}
       </Button>
       <span aria-live="polite" className={`text-[12px] ${state === "idle" ? "sr-only" : "text-muted"}`}>

@@ -9,9 +9,10 @@ import { useRef, useState, type FormEvent } from "react";
 import { ApiError, errorMessage, post } from "../../api/client";
 import type { PasswordChange } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { TextField } from "../../components/Field";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/cai-dat";
-import { Field } from "../dang-nhap/Field";
 import { Note } from "./Note";
 import { sessionsKey } from "./Phien";
 
@@ -68,14 +69,11 @@ export function MatKhau() {
   const error = localError ?? serverError;
 
   return (
-    <section aria-labelledby="mat-khau-tieu-de" className="pt-[28px]">
-      <h2 id="mat-khau-tieu-de" className="m-0 text-[16px] font-semibold">
-        {t.pwHeading}
-      </h2>
-      <p className="mt-[6px] mb-[14px] text-muted">{t.pwIntro(minLength)}</p>
+    <Card title={t.pwHeading} titleId="mat-khau-tieu-de">
+      <p className="mt-0 mb-[14px] max-w-[72ch] text-muted">{t.pwIntro(minLength)}</p>
 
       <form onSubmit={submit} className="flex max-w-[420px] flex-col gap-[16px]">
-        <Field
+        <TextField
           ref={currentRef}
           id="mk-hien-tai"
           type="password"
@@ -86,7 +84,7 @@ export function MatKhau() {
           onChange={(e) => setCurrent(e.target.value)}
           invalid={change.error instanceof ApiError && change.error.code === "wrong_password"}
         />
-        <Field
+        <TextField
           ref={nextRef}
           id="mk-moi"
           type="password"
@@ -96,7 +94,7 @@ export function MatKhau() {
           value={next}
           onChange={(e) => setNext(e.target.value)}
         />
-        <Field
+        <TextField
           ref={repeatRef}
           id="mk-nhap-lai"
           type="password"
@@ -114,6 +112,6 @@ export function MatKhau() {
         {error && <Note kind="fail">{error}</Note>}
         {change.isSuccess && !error && <Note kind="pass">{t.pwDone}</Note>}
       </form>
-    </section>
+    </Card>
   );
 }

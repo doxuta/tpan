@@ -16,13 +16,13 @@ export function incidentState(inc: Incident, t: (typeof strings)["vi"]): { statu
   return { status: "pass", text: t.stateClosed };
 }
 
-/** Đối tượng của sự cố: "" là máy, "tpan" là chính tpan, còn lại là domain (liên kết tới trang site). */
+/** Đối tượng của sự cố: "" là máy, "tpan" là chính tpan, còn lại là domain (liên kết tới trang site; tên miền là chữ thường, không mono). */
 export function Target({ target }: { target: string }) {
   const t = useStrings(strings);
   if (target === "") return <>{t.targetMachine}</>;
   if (target === "tpan") return <>{t.targetTpan}</>;
   return (
-    <Link to={`/sites/${encodeURIComponent(target)}`} className="font-mono text-[13px] [overflow-wrap:anywhere]">
+    <Link to={`/sites/${encodeURIComponent(target)}`} className="[overflow-wrap:anywhere]">
       {target}
     </Link>
   );

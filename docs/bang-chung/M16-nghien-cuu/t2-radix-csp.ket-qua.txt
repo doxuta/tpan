@@ -1,0 +1,37 @@
+2026/11/21 02:58:04 INFO tpan đang chạy listen=127.0.0.1:18161 tls=false demo=true version=dev
+header CSP của trang: default-src 'self'; frame-ancestors 'none'
+0. Trang tạm đã tải
+  lỗi console sau bước này: 0
+  vi phạm CSP trang đã thấy tới giờ: []
+A. DropdownMenu modal={false}, chỉ dùng bàn phím
+  Enter trên nút: menu mở, role=menu; aria-expanded của nút = true
+  vị trí (nút | menu): 281,159,448,199 | 248,203,448,321
+  style do Radix đặt lên khung bọc menu: position: fixed; left: 0px; top: 0px; transform: translate(248px, 203px); min-width: max-content; --radix-popper-transform-origin: 100% 0px; z-index: auto; --radix-popper-available-width: 1440px; --radix-popper-available-height: 696.90625px; --radix-popper-anchor-width: 167.21875px; --radix-popper-anchor-height: 40px;
+  body có data-scroll-locked không: false
+  mục đang focus sau khi mở: Việc một
+  ArrowDown: mục đang focus = Việc hai
+  ArrowDown lần nữa (mục kế bị khoá, phải bỏ qua hoặc đứng yên): mục đang focus = Việc hai
+  Enter: đã chọn: hai | menu còn mở: false | focus về nút: thu-menu-a
+  bấm chuột: menu mở
+  Escape: menu còn mở: false | focus về nút: thu-menu-a
+  lỗi console sau bước này: 0
+  vi phạm CSP trang đã thấy tới giờ: []
+B. DropdownMenu mặc định (modal)
+  mở: body có data-scroll-locked không: true
+  lỗi console sau bước này: 1
+    log trình duyệt (security): Applying inline style violates the following Content Security Policy directive 'default-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-nzTgYzXYDNe6BAHiiI7NNlfK8n/auuOAhh2t92YvuXo='), or a nonce ('nonce-...') is required to enable inline execution. Note also that 'style-src' was not explicitly set, so 'default-src' is used as a fallback. The action has been blocked. http://127.0.0.1:18161/assets/index-uwtObCBR.js
+  vi phạm CSP trang đã thấy tới giờ: ["style-src-elem | inline | "]
+C. Tabs, chỉ dùng bàn phím
+  lúc đầu: thu-tab-mot=true thu-tab-hai=false thu-tab-ba=false | khối đang hiện: Nội dung mot
+  ArrowRight: thu-tab-mot=false thu-tab-hai=true thu-tab-ba=false | khối đang hiện: Nội dung hai
+  End: thu-tab-mot=false thu-tab-hai=false thu-tab-ba=true | aria-controls của tab khớp id khối: true
+  khối không hiện có còn trong DOM không: 3 khối tabpanel
+  lỗi console sau bước này: 0
+  vi phạm CSP trang đã thấy tới giờ: ["style-src-elem | inline | "]
+D. color-mix(), bóng đổ, <details>
+  nền của ô color-mix (trình duyệt tính): color(srgb 0.161961 0.188627 0.227059)
+  --link và --surface: #8fb8ff , #1e2124
+  <details> mở bằng chuột: true
+  lỗi console sau bước này: 0
+  vi phạm CSP trang đã thấy tới giờ: ["style-src-elem | inline | "]
+KẾT LUẬN: có vi phạm CSP về style (xem trên, bước nào).

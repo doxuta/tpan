@@ -10,12 +10,14 @@ type Props = {
   how: Suspension;
   /** Nhãn khác "tạm khoá", ví dụ "DB khoá" cho user DB của một site. */
   label?: string;
+  /** "surface" khi đặt thẳng trên nền trang (ví dụ trong meta của ScreenHeader), như Tag. */
+  tone?: "paper" | "surface";
 };
 
-export function SuspendTag({ how, label }: Props) {
+export function SuspendTag({ how, label, tone }: Props) {
   const m = useStrings(chung);
   return (
-    <Tag title={m.suspendedByHint[how]}>
+    <Tag title={m.suspendedByHint[how]} tone={tone}>
       {label ?? m.suspendedState}
       <span className="sr-only">: {m.suspendedBy[how]}</span>
     </Tag>

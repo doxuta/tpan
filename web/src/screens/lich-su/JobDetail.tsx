@@ -1,24 +1,34 @@
 // /jobs/:id: một job, từng bước, output chạy trực tiếp và bằng chứng (mục 10 của
 // KE-HOACH.md, màn 6). Dữ liệu và log trực tiếp ở useJob.ts, cách dựng khối từ
 // sự kiện ở jobModel.ts. Ở đây chỉ trình bày.
+//
+// Bản 2: một dãy thẻ. Thẻ thông tin (dòng "Đang chạy" nằm ở chân thẻ), thẻ lỗi
+// khi job hỏng, bảng từng site (job hàng loạt), rồi ba thẻ danh sách: Các bước,
+// Hoàn tác, Kiểm chứng. Mỗi bước là một Disclosure: bước đang chạy và bước hỏng
+// mở sẵn, bước đạt đóng sẵn. Output của bước đang chạy không clamp (người xem
+// đang đọc nó chạy); bước đã xong clamp 20 dòng.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { useAi } from "../../ai/AiProvider";
 import { errorMessage } from "../../api/client";
 import { useWho } from "../../api/m13-users";
-import type { CheckResult } from "../../api/types";
+import type { CheckResult, Status } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { DbSecretBox } from "../../components/DbSecretBox";
+import { Disclosure } from "../../components/Disclosure";
+import { EmptyState } from "../../components/EmptyState";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
-import { MonoText } from "../../components/MonoText";
+import { Code, MonoText } from "../../components/MonoText";
+import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
-import { StatusMark } from "../../components/StatusMark";
+import { StatusLine, StatusMark } from "../../components/StatusMark";
 import { tx, useLang, useStrings, type Lang } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/lich-su";
 import { formatClock, formatDateTime, formatDuration } from "./format";
 import { buildView, elapsedMs, type Block, type JobView } from "./jobModel";
-import { DbSecretBox } from "../../components/DbSecretBox";
 import { SecretBox } from "./SecretBox";
 import { UnitTable } from "./UnitTable";
 import { useAdminSecret, useDbSecret, useJob } from "./useJob";
@@ -28,7 +38,15 @@ type T = (typeof strings)["vi"];
 /** Số dòng log hiện cho mỗi khối; quá số này thì hiện đuôi và có nút "Hiện hết". */
 const tailLines = 400;
 
-const labelClass = "font-mono text-[11px] tracking-[0.08em] text-muted";
+/** Bằng chứng dài hơn chừng này dòng thì chỉ vẽ chừng đó dòng đầu (trừ output đang chạy). */
+const clampLines = 20;
+
+/** Dấu của trạng thái job: đang chạy là "chưa kiểm được" (như các bước đang chạy), hai trạng thái lỗi là lỗi. */
+function jobMark(status: string): Status {
+  if (status === "succeeded") return "pass";
+  if (status === "rolled_back" || status === "undo_failed") return "fail";
+  return "unknown";
+}
 
 export function JobDetail() {
   const t = useStrings(strings);
@@ -43,24 +61,26 @@ export function JobDetail() {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   useFollowLog(running, events.length);
 
+  const crumbs = [{ label: t.title, to: "/jobs" }, { label: <Code>{id.slice(0, 8)}</Code> }];
+
   if (query.isPending) {
     return (
       <>
-        <ScreenHeader title={<span className="font-mono">{id}</span>} summary={t.jobSummary} />
-        <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>
+        <ScreenHeader crumbs={crumbs} title={t.jobTitle} summary={t.jobSummary} />
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
       </>
     );
   }
   if (query.isError || !job) {
     return (
       <>
-        <ScreenHeader title={<span className="font-mono">{id}</span>} summary={t.jobSummary} />
-        <div className="pt-[26px]">
-          <p className="m-0">{errorMessage(query.error, lang)}</p>
-          <div className="mt-[10px]">
-            <Button onClick={() => void query.refetch()}>{k.retry}</Button>
-          </div>
-        </div>
+        <ScreenHeader crumbs={crumbs} title={t.jobTitle} summary={t.jobSummary} />
+        <Card>
+          <p className="mt-0 mb-[12px]">{errorMessage(query.error, lang)}</p>
+          <Button onClick={() => void query.refetch()}>{k.retry}</Button>
+        </Card>
       </>
     );
   }
@@ -89,7 +109,7 @@ export function JobDetail() {
 
   return (
     <>
-      <ScreenHeader title={tx(job.title, lang)} summary={t.jobSummary} />
+      <ScreenHeader crumbs={crumbs} title={tx(job.title, lang)} summary={t.jobSummary} />
       <p role="status" className="sr-only">
         {announce}
       </p>
@@ -99,123 +119,115 @@ export function JobDetail() {
       ))}
       {dbSecret.secret && <DbSecretBox secret={dbSecret.secret} onDismiss={dbSecret.dismiss} />}
 
-      <dl className="m-0 mt-[26px] grid grid-cols-2 gap-x-[16px] gap-y-[12px] border-t border-hair pt-[14px] sm:flex sm:flex-wrap sm:gap-x-[32px]">
-        <Fact label={t.fieldStatus}>{statusText}</Fact>
-        <Fact label={t.fieldJob}>
-          <MonoText>{job.id}</MonoText>
-        </Fact>
-        <Fact label={t.fieldTarget}>
-          <MonoText>{job.target}</MonoText>
-        </Fact>
-        <Fact label={t.colWho}>
-          <span className={`font-mono text-[13px] ${job.actor ? "" : "text-muted"}`}>{job.actor || t.whoCli}</span>
-        </Fact>
-        <Fact label={t.fieldStarted}>
-          <span title={job.started} className="font-mono text-[13px]">
-            {formatDateTime(job.started, lang)}
-          </span>
-        </Fact>
-        {ms !== null && (
-          <Fact label={t.fieldDuration}>
-            <span className="font-mono text-[13px]">{formatDuration(ms, t, lang)}</span>
+      <Card footer={running && stream !== "lost" ? t.liveNote : undefined}>
+        <dl className="m-0 grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:flex sm:flex-wrap sm:gap-x-[40px]">
+          <Fact label={t.fieldStatus}>
+            <StatusLine status={jobMark(status)}>{statusText}</StatusLine>
           </Fact>
-        )}
-      </dl>
+          <Fact label={t.fieldJob}>
+            <MonoText>{job.id}</MonoText>
+          </Fact>
+          <Fact label={t.fieldTarget}>
+            {/* Tên miền dùng chữ thường (GIAO-DIEN mục 4); tên DB, user hệ thống vẫn mono, bấm là chép. */}
+            {/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(job.target) ? <span className="[overflow-wrap:anywhere]">{job.target}</span> : <MonoText>{job.target}</MonoText>}
+          </Fact>
+          <Fact label={t.colWho}>
+            <span className={job.actor ? "" : "text-muted"}>{job.actor || t.whoCli}</span>
+          </Fact>
+          <Fact label={t.fieldStarted}>
+            <span title={job.started}>{formatDateTime(job.started, lang)}</span>
+          </Fact>
+          {ms !== null && <Fact label={t.fieldDuration}>{formatDuration(ms, t, lang)}</Fact>}
+        </dl>
+      </Card>
 
-      {running && stream !== "lost" && <p className="mt-[14px] mb-0 text-muted">{t.liveNote}</p>}
       {stream === "lost" && (
-        <div className="mt-[14px]">
-          <p className="m-0">{t.streamLost}</p>
-          <div className="mt-[10px]">
-            <Button onClick={reconnect}>{t.reconnect}</Button>
-          </div>
-        </div>
+        <Card>
+          <Notice kind="warn">
+            <p className="m-0">{t.streamLost}</p>
+            <div className="mt-[10px]">
+              <Button onClick={reconnect}>{t.reconnect}</Button>
+            </div>
+          </Notice>
+        </Card>
       )}
 
       {failed && (
-        <div className="mt-[14px]">
-          <p className="m-0 font-medium">{batch ? (status === "undo_failed" ? t.unitsFailedUndo : t.unitsFailedAll) : failureText(t, view, status, failedStepOf(view))}</p>
-          {/* Bước hỏng đã mang đúng thông báo này trong khối của nó; chỉ hiện ở đây khi không có bước nào để chỉ tới.
-              Job hàng loạt thì luôn hiện: lỗi của lần reload hoàn tác cuối chỉ nằm ở đây, không thuộc site nào. */}
-          {job.error && (batch || !failedStepOf(view)) && (
-            <div className="mt-[10px]">
-              <EvidenceBlock text={job.error} label={t.errorLabel} />
-            </div>
-          )}
-        </div>
+        <Card>
+          <Notice kind="fail">
+            <p className="m-0 font-medium">{batch ? (status === "undo_failed" ? t.unitsFailedUndo : t.unitsFailedAll) : failureText(t, view, status, failedStepOf(view))}</p>
+            {/* Bước hỏng đã mang đúng thông báo này trong khối của nó; chỉ hiện ở đây khi không có bước nào để chỉ tới.
+                Job hàng loạt thì luôn hiện: lỗi của lần reload hoàn tác cuối chỉ nằm ở đây, không thuộc site nào. */}
+            {job.error && (batch || !failedStepOf(view)) && (
+              <div className="mt-[10px]">
+                <EvidenceBlock text={job.error} label={t.errorLabel} clamp={clampLines} />
+              </div>
+            )}
+          </Notice>
+        </Card>
       )}
 
       {batch && <UnitTable units={view.units} />}
 
-      <section aria-labelledby="steps-heading" className="pt-[26px]">
-        <div className="flex flex-wrap items-baseline justify-between gap-[12px]">
-          <h2 id="steps-heading" className="m-0 text-[16px] font-semibold">
-            {t.stepsHeading}
-          </h2>
-          {allBlocks.length > 0 && <Button onClick={toggleAll}>{allOpen ? t.closeAll : t.openAll}</Button>}
-        </div>
+      <Card
+        title={t.stepsHeading}
+        titleId="steps-heading"
+        actions={allBlocks.length > 0 ? <Button size="sm" onClick={toggleAll}>{allOpen ? t.closeAll : t.openAll}</Button> : undefined}
+      >
         {view.steps.length === 0 ? (
-          <p className="mt-[10px] mb-0 text-muted">{t.noSteps}</p>
+          <EmptyState>{t.noSteps}</EmptyState>
         ) : (
-          <ol className="m-0 mt-[10px] list-none border-b border-hair p-0">
+          <ol className="m-0 list-none p-0">
             {view.steps.map((b, i) => (
               <BlockItem
                 key={i}
-                domId={`s${i}`}
                 jobId={job.id}
                 label={t.stepNumber(i + 1)}
                 block={b}
                 text={t.stepState[b.state]}
                 mark={b.state === "running" ? "unknown" : b.state === "failed" ? "fail" : "pass"}
                 open={isOpen(`s${i}`, b)}
-                onToggle={() => setOpen((o) => ({ ...o, [`s${i}`]: !isOpen(`s${i}`, b) }))}
+                onOpenChange={(v) => setOpen((o) => ({ ...o, [`s${i}`]: v }))}
                 lang={lang}
               />
             ))}
           </ol>
         )}
-      </section>
+      </Card>
 
       {view.undo.length > 0 && (
-        <section aria-labelledby="undo-heading" className="pt-[26px]">
-          <h2 id="undo-heading" className="m-0 text-[16px] font-semibold">
-            {t.undoHeading}
-          </h2>
-          <p className="mt-[6px] mb-0 text-muted">{t.undoHint}</p>
-          <ol className="m-0 mt-[10px] list-none border-b border-hair p-0">
+        <Card title={t.undoHeading} titleId="undo-heading">
+          <p className="mt-0 mb-[8px] text-muted">{t.undoHint}</p>
+          <ol className="m-0 list-none p-0">
             {view.undo.map((b, i) => {
               const n = view.steps.findIndex((s) => s.id === b.id) + 1;
               return (
                 <BlockItem
                   key={i}
-                  domId={`u${i}`}
                   jobId={job.id}
                   label={n > 0 ? t.stepNumber(n) : ""}
                   block={b}
                   text={t.undoState[b.state]}
                   mark={b.state === "running" ? "unknown" : b.state === "failed" ? "fail" : "pass"}
                   open={isOpen(`u${i}`, b)}
-                  onToggle={() => setOpen((o) => ({ ...o, [`u${i}`]: !isOpen(`u${i}`, b) }))}
+                  onOpenChange={(v) => setOpen((o) => ({ ...o, [`u${i}`]: v }))}
                   lang={lang}
                 />
               );
             })}
           </ol>
-        </section>
+        </Card>
       )}
 
       {view.checks.length > 0 && (
-        <section aria-labelledby="checks-heading" className="pt-[26px]">
-          <h2 id="checks-heading" className="m-0 text-[16px] font-semibold">
-            {t.checksHeading}
-          </h2>
-          <p className="mt-[6px] mb-0 text-muted">{t.checksHint}</p>
-          <ul className="m-0 mt-[10px] list-none border-b border-hair p-0">
+        <Card title={t.checksHeading} titleId="checks-heading">
+          <p className="mt-0 mb-[8px] text-muted">{t.checksHint}</p>
+          <ul className="m-0 list-none p-0">
             {view.checks.map((c, i) => (
-              <CheckItem key={`${c.id}-${i}`} check={c} domId={`c${i}`} lang={lang} />
+              <CheckItem key={`${c.id}-${i}`} check={c} lang={lang} />
             ))}
           </ul>
-        </section>
+        </Card>
       )}
     </>
   );
@@ -236,14 +248,13 @@ function failureText(t: T, view: JobView, status: string, failedStep: Block<stri
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <dt className={labelClass}>{label}</dt>
+      <dt className="text-[12px] font-medium text-muted">{label}</dt>
       <dd className="m-0 mt-[4px]">{children}</dd>
     </div>
   );
 }
 
 type BlockItemProps = {
-  domId: string;
   /** Để nút "Giải thích" chỉ đúng bước: ref là "<job>/<bước>". */
   jobId: string;
   /** "Bước 3"; rỗng nếu không biết. */
@@ -253,47 +264,42 @@ type BlockItemProps = {
   text: string;
   mark: "pass" | "fail" | "unknown";
   open: boolean;
-  onToggle: () => void;
+  onOpenChange: (open: boolean) => void;
   lang: Lang;
 };
 
-/** Một bước (hoặc một lần hoàn tác): dấu trạng thái là nút mở ra lệnh và output của nó. */
-function BlockItem({ domId, jobId, label, block, text, mark, open, onToggle, lang }: BlockItemProps) {
+/** Một bước (hoặc một lần hoàn tác): một dòng mở ra lệnh và output của nó. */
+function BlockItem({ jobId, label, block, text, mark, open, onOpenChange, lang }: BlockItemProps) {
   const t = useStrings(strings);
   const { openAI } = useAi();
   const { isAdmin } = useWho();
   const ms = block.ended ? elapsedMs(block.started, block.ended) : null;
+  // Chữ trạng thái nằm ngay cạnh nên dấu để ẩn khỏi trình đọc màn hình (StatusMark.tsx).
+  const summary = (
+    <span className="flex flex-wrap items-center gap-x-[12px] gap-y-[2px]">
+      <span className="inline-flex w-[20px] flex-none justify-center">
+        <StatusMark status={mark} />
+      </span>
+      {label && <span className="text-[13px] text-muted">{label}</span>}
+      <Code className="min-w-0">{block.id}</Code>
+      <span className="text-[13px] text-muted">{text}</span>
+      <span className="ml-auto text-[13px] text-muted tabular-nums">
+        {formatClock(block.started, lang)}
+        {ms !== null && ` · ${formatDuration(ms, t, lang)}`}
+      </span>
+    </span>
+  );
   return (
-    <li className="border-t border-hair">
-      <h3 className="m-0 text-[14px] font-normal">
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={`${domId}-panel`}
-          onClick={onToggle}
-          className="flex min-h-[44px] w-full flex-wrap items-center gap-x-[12px] gap-y-[2px] py-[8px] text-left sm:min-h-[40px]"
-        >
-          {/* Chữ trạng thái nằm ngay cạnh nên dấu để ẩn khỏi trình đọc màn hình (StatusMark.tsx). */}
-          <span className="inline-flex w-[20px] flex-none justify-center">
-            <StatusMark status={mark} />
-          </span>
-          {label && <span className="font-mono text-[12px] text-muted">{label}</span>}
-          <span className="min-w-0 font-mono text-[13px] [overflow-wrap:anywhere]">{block.id}</span>
-          <span className="text-[13px] text-muted">{text}</span>
-          <span className="ml-auto font-mono text-[12px] text-muted">
-            {formatClock(block.started, lang)}
-            {ms !== null && ` · ${formatDuration(ms, t, lang)}`}
-          </span>
-        </button>
-      </h3>
-      {open && (
-        <div id={`${domId}-panel`} className="pb-[12px]">
+    <li className="border-t border-hair first:border-t-0">
+      <Disclosure flush heading={3} open={open} onOpenChange={onOpenChange} summary={summary}>
+        <div className="pl-[32px]">
           <BlockLog block={block} />
           {/* Chỉ bước hỏng: ngăn AI mở ra với câu soạn sẵn, người xem trước rồi tự gửi. Nút vẫn hiện khi AI tắt; ngăn AI tự chỉ cách nối. */}
           {/* User thường không có ngăn AI (mục 6.12), nên không có nút này. */}
           {isAdmin && block.state === "failed" && (
             <div className="mt-[10px]">
               <Button
+                size="sm"
                 title={t.explainStepHint}
                 onClick={() =>
                   openAI({
@@ -308,7 +314,7 @@ function BlockItem({ domId, jobId, label, block, text, mark, open, onToggle, lan
             </div>
           )}
         </div>
-      )}
+      </Disclosure>
     </li>
   );
 }
@@ -327,46 +333,43 @@ function BlockLog({ block }: { block: Block<string> }) {
           {hidden > 0 && (
             <div className="mb-[6px] flex flex-wrap items-center gap-[10px] text-muted">
               <span>{t.hiddenLines(hidden)}</span>
-              <Button onClick={() => setAll(true)}>{t.showAllLines}</Button>
+              <Button size="sm" onClick={() => setAll(true)}>
+                {t.showAllLines}
+              </Button>
             </div>
           )}
-          <EvidenceBlock text={shown.join("\n")} label={null} />
+          {/* Output đang chạy không clamp: người xem đang đọc nó chạy. Xong rồi mới thu gọn. */}
+          <EvidenceBlock text={shown.join("\n")} label={null} clamp={block.state === "running" ? undefined : clampLines} />
         </div>
       )}
-      {block.error && <EvidenceBlock text={block.error} label={t.errorLabel} />}
+      {block.error && <EvidenceBlock text={block.error} label={t.errorLabel} clamp={clampLines} />}
     </div>
   );
 }
 
-/** Một phép kiểm chứng: dấu trạng thái là nút mở ra bằng chứng của đúng phép kiểm đó. */
-function CheckItem({ check, domId, lang }: { check: CheckResult; domId: string; lang: Lang }) {
+/** Một phép kiểm chứng: một dòng mở ra bằng chứng của đúng phép kiểm đó; phép kiểm lỗi mở sẵn. */
+function CheckItem({ check, lang }: { check: CheckResult; lang: Lang }) {
   const t = useStrings(strings);
   const k = useStrings(khung);
-  const [open, setOpen] = useState(check.status === "fail");
   const has = (check.evidence?.length ?? 0) > 0;
+  const summary = (
+    <span className="flex items-start gap-[12px]">
+      <span className="flex h-[21px] w-[20px] flex-none items-center justify-center">
+        <StatusMark status={check.status} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block [overflow-wrap:anywhere]">
+          <span className="font-medium">{tx(check.title, lang)}</span> <span className="text-[13px] text-muted">{k.status[check.status]}</span>
+        </span>
+        <span className="block text-[13px] text-muted [overflow-wrap:anywhere]">{tx(check.summary, lang)}</span>
+      </span>
+    </span>
+  );
   return (
-    <li className="border-t border-hair">
-      <h3 className="m-0 text-[14px] font-normal">
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={`${domId}-panel`}
-          onClick={() => setOpen((o) => !o)}
-          className="flex min-h-[44px] w-full flex-wrap items-center gap-x-[12px] gap-y-[2px] py-[8px] text-left sm:min-h-[40px]"
-        >
-          <span className="inline-flex w-[20px] flex-none justify-center">
-            <StatusMark status={check.status} />
-          </span>
-          <span className="font-medium">{tx(check.title, lang)}</span>
-          <span className="text-[13px] text-muted">{k.status[check.status]}</span>
-          <span className="min-w-0 basis-full pl-[32px] text-[13px] text-muted">{tx(check.summary, lang)}</span>
-        </button>
-      </h3>
-      {open && (
-        <div id={`${domId}-panel`} className="pb-[12px]">
-          {has ? <EvidenceBlock evidence={check.evidence} label={null} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}
-        </div>
-      )}
+    <li className="border-t border-hair first:border-t-0">
+      <Disclosure flush heading={3} defaultOpen={check.status === "fail"} summary={summary}>
+        <div className="pl-[32px]">{has ? <EvidenceBlock evidence={check.evidence} label={null} clamp={clampLines} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}</div>
+      </Disclosure>
     </li>
   );
 }

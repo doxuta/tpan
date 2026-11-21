@@ -1,12 +1,15 @@
 // Tài khoản quản trị WordPress, hiện MỘT lần (JobDetail.secret, hoặc một phần
-// tử của JobDetail.secrets với job hàng loạt: mỗi site một khối). Nổi rõ bằng
-// viền 2 px màu --ink; mật khẩu không vào localStorage hay cache của TanStack
-// Query (xem useJob.ts). Mất mật khẩu này là mất tài khoản quản trị, nên khối
-// chỉ biến mất khi người dùng tự bấm "Đã lưu, ẩn đi".
+// tử của JobDetail.secrets với job hàng loạt: mỗi site một khối). Bản 2: cùng
+// hình thức với components/DbSecretBox.tsx và screens/nguoi-dung/PasswordBox.tsx
+// (một thẻ, nút chép từng dòng). Mật khẩu không vào localStorage hay cache của
+// TanStack Query (xem useJob.ts). Mất mật khẩu này là mất tài khoản quản trị,
+// nên khối chỉ biến mất khi người dùng tự bấm "Đã lưu, ẩn đi".
 
 import { useEffect, useId, useRef } from "react";
 import type { AdminSecret } from "../../api/types";
 import { Button } from "../../components/Button";
+import { cardClass } from "../../components/Card";
+import { Code } from "../../components/MonoText";
 import { useCopy } from "../../components/useCopy";
 import { useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
@@ -42,8 +45,8 @@ export function SecretBox({ secret, onDismiss, many = false, focus = true }: Pro
     ref.current?.focus({ preventScroll: true });
   }, [focus]);
   return (
-    <section ref={ref} tabIndex={-1} aria-labelledby={headingId} className="mt-[26px] border-2 border-ink bg-surface p-[18px] outline-offset-4">
-      <div className="font-mono text-[11px] tracking-[0.08em] text-muted">{t.secretLabel}</div>
+    <section ref={ref} tabIndex={-1} aria-labelledby={headingId} className={`${cardClass} p-[16px] outline-offset-4`}>
+      <div className="text-[12px] font-medium text-muted">{t.secretLabel}</div>
       <h2 id={headingId} className="m-0 mt-[4px] text-[16px] font-semibold [overflow-wrap:anywhere]">
         {many ? t.secretTitleOf(hostOf(secret.url)) : t.secretTitle}
       </h2>
@@ -69,8 +72,10 @@ function SecretRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px] border-t border-hair py-[8px]">
       <dt className="flex-[0_0_88px] text-muted">{label}</dt>
-      <dd className="m-0 min-w-0 flex-[1_1_220px] select-text font-mono text-[13px] break-all">{value}</dd>
-      <Button onClick={() => copy(value)} aria-label={t.secretCopyOf(label)}>
+      <dd className="m-0 min-w-0 flex-[1_1_220px] select-text">
+        <Code>{value}</Code>
+      </dd>
+      <Button size="sm" icon={state === "copied" ? "check" : "copy"} onClick={() => copy(value)} aria-label={t.secretCopyOf(label)}>
         {t.secretCopy}
       </Button>
       <span aria-live="polite" className={`text-[12px] ${state === "idle" ? "sr-only" : "text-muted"}`}>

@@ -1,29 +1,34 @@
-// Màn Cơ sở dữ liệu (mục 6.9 và 6.12 của KE-HOACH.md): bảng kẻ mảnh mọi cơ sở
-// dữ liệu (GET /api/v1/databases), gồm DB đi kèm site và DB rời (M13).
+// Màn Cơ sở dữ liệu (mục 6.9 và 6.12 của KE-HOACH.md; giao diện bản 2, mục 3.7
+// của M16-thiet-ke.md): một bảng mọi cơ sở dữ liệu (GET /api/v1/databases), gồm
+// DB đi kèm site và DB rời (M13).
 //
-//   DB của site: Đổi mật khẩu, Xuất .sql, Nhập từ bản đã xuất (M9), Đổi charset,
-//                Tạm khoá / Mở khoá (admin).
-//   DB rời:      Sửa (charset có xem trước, ghi chú lưu ngay), Đổi mật khẩu,
-//                Tạm khoá / Mở khoá (admin), Xoá (vào thùng rác).
+//   DB của site: Đổi mật khẩu, Xuất .sql; menu ba chấm: Nhập từ bản đã xuất (M9),
+//                Đổi charset, Tạm khoá / Mở khoá (admin).
+//   DB rời:      Sửa (charset có xem trước, ghi chú lưu ngay), Đổi mật khẩu; menu
+//                ba chấm: Tạm khoá / Mở khoá (admin), Đưa vào thùng rác.
 //
 // Mọi việc đi đúng ba chặng như màn Thùng rác (màn mẫu để theo): bấm nút → gọi
-// ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy → máy chủ trả job_id,
-// chuyển tới /jobs/:id. Ba chặng nằm trong hook usePreviewedOp nên cùng lúc chỉ
-// mở một việc. Site trong thùng rác chỉ cho xuất: đổi mật khẩu và nhập sẽ ghi vào
-// wp-config.php và DB của một site đã ngừng chạy. Site đang tạm khoá chưa nhập
-// được (máy chủ từ chối site_suspended: nhập ghi lại pool PHP).
+// ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy → máy chủ trả job_id, ở
+// lại màn, thẻ theo dõi job báo tiến độ. Ba chặng nằm trong hook usePreviewedOp
+// nên cùng lúc chỉ mở một việc. Site trong thùng rác chỉ cho xuất: đổi mật khẩu
+// và nhập sẽ ghi vào wp-config.php và DB của một site đã ngừng chạy. Site đang
+// tạm khoá chưa nhập được (máy chủ từ chối site_suspended: nhập ghi lại pool PHP).
+//
+// Màn này là màn mẫu của bản 2 (cùng màn Người dùng): ScreenHeader → một
+// TableList (tự vẽ thẻ, chân bảng) → các khối kết quả dưới bảng.
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { errorMessage, get } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
 import { useOverview } from "../../api/queries";
 import type { Backup, DatabaseRow } from "../../api/types";
 import { Button } from "../../components/Button";
-import { DomainText } from "../../components/DomainText";
+import { Card } from "../../components/Card";
 import { MonoText } from "../../components/MonoText";
 import { usePreviewedOp } from "../../components/PreviewedOp";
+import { RowActions, type MenuAction, type RowAction as RowButton } from "../../components/RowActions";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { SuspendTag } from "../../components/SuspendTag";
 import { TableList, type Column } from "../../components/TableList";
@@ -36,6 +41,7 @@ import { backupsKey } from "../backup/model";
 import { formatWhen, trashKey } from "../thung-rac/model";
 import { CreateDialog } from "./CreateDialog";
 import { EditPanel } from "./EditPanel";
+import { footerCounts, footerText } from "./footer";
 import { ImportPicker } from "./ImportPicker";
 import { databasesKey, databasesPath, rowOp, type RowAction } from "./model";
 
@@ -45,16 +51,6 @@ function formatSize(bytes: number, lang: Lang): string {
   if (bytes < 1024 * 1024) return `${num.format(bytes / 1024)} KB`;
   if (bytes < 1024 ** 3) return `${num.format(bytes / 1024 ** 2)} MB`;
   return `${num.format(bytes / 1024 ** 3)} GB`;
-}
-
-/**
- * Độ rộng tối thiểu cho chữ mono dài (tên DB, domain). min-width đặt lên ô <td>
- * không được trình duyệt tôn trọng, và MonoText cho ngắt giữa chữ, nên không có
- * khối này thì cột bị ép hẹp và tên bị cắt ra nhiều dòng. Hẹp quá thì cả bảng
- * cuộn ngang trong khung riêng của TableList.
- */
-function Min({ w, children }: { w: string; children: ReactNode }) {
-  return <span className={`block ${w}`}>{children}</span>;
 }
 
 export default function CoSoDuLieu() {
@@ -81,6 +77,14 @@ export default function CoSoDuLieu() {
   const [creating, setCreating] = useState(false);
   /** Khối đang mở dưới bảng: chọn bản nhập (DB của site) hoặc Sửa, Đổi charset. Theo tên DB để dữ liệu luôn mới. */
   const [view, setView] = useState<{ kind: "import" | "edit"; db: string } | null>(null);
+  // Khối mở từ menu ba chấm nằm dưới bảng: vừa mở thì đưa focus vào (trình duyệt tự cuộn tới).
+  // setTimeout: Radix trả focus về nút ba chấm trong một setTimeout lúc menu đóng; việc này phải chạy sau nó.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!view) return;
+    const id = setTimeout(() => panelRef.current?.focus(), 0);
+    return () => clearTimeout(id);
+  }, [view]);
 
   const rows = q.data ?? [];
   const viewRow = view ? rows.find((r) => r.db === view.db) : undefined;
@@ -98,62 +102,50 @@ export default function CoSoDuLieu() {
     setView(null);
   }
 
-  const btn = (action: RowAction, row: DatabaseRow, label: string, aria: string) => (
-    <Button aria-label={aria} disabled={op.pending} onClick={() => act(action, row)}>
-      {op.busy(`${action}:${row.db}`) ? m.previewing : label}
-    </Button>
-  );
-
-  /** Việc của một hàng. Ba việc đầu của DB site là của M9 và giữ nguyên. */
+  /** Việc của một hàng. Điều kiện của từng việc giữ đúng bản 1; ba việc đầu của DB site là của M9. */
   function actions(r: DatabaseRow): ReactNode {
     const site = r.kind === "site";
     const trashed = r.status === "trashed" || (site && siteState.trashed.has(r.domain));
     const siteSuspended = site && siteState.suspended.has(r.domain);
-    const lock = isAdmin ? btn(r.suspended ? "unsuspend" : "suspend", r, r.suspended ? t.unsuspend : t.suspend, r.suspended ? t.unsuspendFor(r.db) : t.suspendFor(r.db)) : null;
+
+    const button = (action: RowAction, label: string, ariaLabel: string): RowButton => ({ label, ariaLabel, disabled: op.pending, onClick: () => act(action, r) });
+    const lock: (MenuAction & { label: string })[] = isAdmin ? [{ label: r.suspended ? t.unsuspend : t.suspend, disabled: op.pending, onSelect: () => act(r.suspended ? "unsuspend" : "suspend", r) }] : [];
+    const row = (primary: RowButton[], more: (MenuAction & { label: string })[] = []) => (
+      <RowActions primary={primary} more={more} moreLabel={t.moreFor(r.db, more.map((x) => x.label.toLowerCase()).join(", "))} />
+    );
 
     if (!site) {
       if (trashed) {
         return (
-          <span className="text-[13px] text-muted">
-            {t.inTrashDb} <Link to="/trash">{t.trashedLink}</Link>
+          <span className="text-[12.5px] text-muted">
+            {t.inTrashDb} <Link to="/trash">{t.openTrash}</Link>
           </span>
         );
       }
-      return (
-        <span className="flex min-w-[150px] flex-wrap items-center gap-[8px]">
-          <Button aria-label={t.editFor(r.db)} disabled={op.pending} onClick={() => open("edit", r)}>
-            {t.edit}
-          </Button>
-          {btn("password", r, t.password, t.passwordForDb(r.db))}
-          {lock}
-          {btn("trash", r, t.trash, t.trashFor(r.db))}
-        </span>
+      return row(
+        [{ label: t.edit, ariaLabel: t.editFor(r.db), disabled: op.pending, onClick: () => open("edit", r) }, button("password", t.password, t.passwordForDb(r.db))],
+        [...lock, { label: t.trash, disabled: op.pending, onSelect: () => act("trash", r) }],
       );
     }
-    return (
-      <span className="flex min-w-[150px] flex-wrap items-center gap-[8px]">
-        {!trashed && btn("password", r, t.password, t.passwordFor(r.domain))}
-        {btn("dump", r, t.dump, t.dumpFor(r.domain))}
-        {!trashed && (
-          <Button aria-label={t.importFor(r.domain)} disabled={op.pending || siteSuspended} onClick={() => open("import", r)}>
-            {t.importOpen}
-          </Button>
-        )}
-        {!trashed && (
-          <Button aria-label={t.charsetFor(r.domain)} disabled={op.pending} onClick={() => open("edit", r)}>
-            {t.charset}
-          </Button>
-        )}
-        {!trashed && lock}
-        {trashed && (
-          <span className="text-[13px] text-muted">
+    if (trashed) {
+      return (
+        <div className="flex flex-col items-end gap-[2px]">
+          {row([button("dump", t.dump, t.dumpFor(r.domain))])}
+          <span className="max-w-[260px] text-[12.5px] text-muted">
             {t.trashedLead}
             <Link to="/trash">{t.trashedLink}</Link>
             {t.trashedTail}
           </span>
-        )}
-        {siteSuspended && !trashed && <span className="basis-full text-[13px] text-muted">{t.importBlocked}</span>}
-      </span>
+        </div>
+      );
+    }
+    return row(
+      [button("password", t.password, t.passwordFor(r.domain)), button("dump", t.dump, t.dumpFor(r.domain))],
+      [
+        { label: t.importOpen, disabled: op.pending || siteSuspended, hint: siteSuspended ? t.importBlocked : undefined, onSelect: () => open("import", r) },
+        { label: t.charset, disabled: op.pending, onSelect: () => open("edit", r) },
+        ...lock,
+      ],
     );
   }
 
@@ -161,100 +153,97 @@ export default function CoSoDuLieu() {
     {
       // DB và user chung một cột (thường cùng tên): bảng bớt một cột rộng, vừa khung khi cửa sổ hẹp.
       header: t.colDbUser,
+      nowrap: false,
       cell: (r) => (
-        <Min w="min-w-[216px]">
-          <span className="flex flex-wrap items-baseline gap-x-[10px] gap-y-[4px]">
+        <div className="flex min-w-[220px] flex-col gap-[2px]">
+          <span className="flex flex-wrap items-center gap-x-[10px]">
             <MonoText>{r.db}</MonoText>
             {r.suspended && <SuspendTag how={r.suspended} />}
           </span>
-          {r.user === r.db ? (
-            <span className="block text-[12px] text-muted">{t.sameUser}</span>
-          ) : (
-            <span className="block">
-              <MonoText>{r.user}</MonoText>
-            </span>
-          )}
-          {r.note && <span className="mt-[2px] block max-w-[320px] text-[13px] text-muted [overflow-wrap:anywhere]">{r.note}</span>}
-        </Min>
+          {r.user === r.db ? <span className="text-[12.5px] text-muted">{t.sameUser}</span> : <MonoText size={12.5} muted>{r.user}</MonoText>}
+          {r.note && <span className="max-w-[320px] text-[12.5px] text-muted [overflow-wrap:anywhere]">{r.note}</span>}
+        </div>
       ),
     },
     {
-      header: t.colType,
+      header: t.colOfSite,
       cell: (r) =>
         r.kind === "site" ? (
-          <Min w="min-w-[130px]">
-            <span className="block text-[13px]">{t.kindSite}</span>
-            <Link to={`/sites/${encodeURIComponent(r.domain)}`} className="font-mono text-[13px]">
-              <DomainText domain={r.domain} />
-            </Link>
-          </Min>
+          // Tên miền dài (44 ký tự trở lên) nằm một dòng, cắt bằng dấu ba chấm; đủ chữ trong title.
+          <Link to={`/sites/${encodeURIComponent(r.domain)}`} title={r.domain} className="inline-block max-w-[320px] truncate align-bottom no-underline hover:underline">
+            {r.domain}
+          </Link>
         ) : (
           <Tag>{t.kindStandalone}</Tag>
         ),
     },
-    ...(isAdmin ? [{ header: m.colOwner, className: "font-mono text-[13px]", cell: (r: DatabaseRow) => r.owner } satisfies Column<DatabaseRow>] : []),
+    ...(isAdmin ? [{ header: m.colOwner, cell: (r: DatabaseRow) => r.owner } satisfies Column<DatabaseRow>] : []),
     {
       header: t.colCharset,
-      cell: (r) =>
-        r.charset ? (
-          <Min w="min-w-[130px]">
-            <span className="block font-mono text-[13px]">{r.charset}</span>
-            <span className="block font-mono text-[12px] text-muted">{r.collation}</span>
-          </Min>
-        ) : (
-          <span className="text-muted">{t.none}</span>
-        ),
+      cell: (r) => (r.charset ? <span title={r.collation}>{r.charset}</span> : <span className="text-muted">{t.none}</span>),
     },
     {
       header: t.colSize,
-      className: "text-right whitespace-nowrap tabular-nums",
-      cell: (r) => (r.size_bytes < 0 ? <span className="text-muted">{t.unreadable}</span> : formatSize(r.size_bytes, lang)),
+      align: "right",
+      cell: (r) => (r.size_bytes < 0 ? <Unreadable label={t.unreadable} /> : formatSize(r.size_bytes, lang)),
     },
     {
       header: t.colTables,
-      className: "text-right whitespace-nowrap tabular-nums",
-      cell: (r) => (r.tables < 0 ? <span className="text-muted">{t.unreadable}</span> : r.tables),
+      align: "right",
+      cell: (r) => (r.tables < 0 ? <Unreadable label={t.unreadable} /> : r.tables),
     },
-    { header: t.colAction, className: "pr-0", cell: actions },
+    { header: t.colAction, align: "right", nowrap: false, cell: actions },
   ];
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
-      <div className="pt-[20px]">
-        {q.isPending && <p className="m-0 text-muted">{k.loading}</p>}
-        {q.isError && (
-          <div>
-            <p className="m-0">{errorMessage(q.error, lang)}</p>
-            <Button className="mt-[12px]" onClick={() => void q.refetch()}>
-              {k.retry}
-            </Button>
-          </div>
-        )}
-        {q.isSuccess && (
-          <>
-            <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pb-[14px]">
-              <h2 className="m-0 text-[16px] font-semibold">{t.listHeading(rows.length)}</h2>
-              <Button variant="primary" onClick={() => setCreating(true)}>
-                {t.createButton}
-              </Button>
-            </div>
-            <TableList
-              caption={t.tableName}
-              rows={rows}
-              rowKey={(r) => r.db}
-              empty={
-                <>
-                  {t.emptyText} <Link to="/sites/new">{t.emptyLink}</Link>
-                </>
-              }
-              columns={columns}
-            />
-            <p className="mt-[16px] mb-0 max-w-[720px] text-[13px] text-muted">{t.hint}</p>
-            <p className="mt-[8px] mb-0 max-w-[720px] text-[13px] text-muted">{t.hintM13}</p>
+      <ScreenHeader
+        title={t.title}
+        summary={t.summary}
+        actions={
+          <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
+            {t.createButton}
+          </Button>
+        }
+      />
 
-            {view?.kind === "import" && viewRow?.kind === "site" && !op.hasPreview && (
-              <div tabIndex={-1} className="outline-offset-0">
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
+      {q.isError && (
+        <Card>
+          <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
+          <Button onClick={() => void q.refetch()}>{k.retry}</Button>
+        </Card>
+      )}
+      {q.isSuccess && (
+        <>
+          <TableList
+            label={t.tableName}
+            caption={t.tableName}
+            minWidth={960}
+            rows={rows}
+            rowKey={(r) => r.db}
+            empty={
+              <>
+                {t.emptyText} <Link to="/sites/new">{t.emptyLink}</Link>
+              </>
+            }
+            columns={columns}
+            footer={rows.length > 0 ? <span>{footerText(t, footerCounts(rows))}</span> : undefined}
+          />
+          {/* Luôn có trong trang (sr-only khi trống): vùng báo được chèn cùng lúc với chữ thì trình đọc màn hình hay bỏ qua. */}
+          <p role="status" className={op.pending ? "m-0 text-muted" : "sr-only"}>
+            {op.pending ? m.previewing : ""}
+          </p>
+          <p className="m-0 max-w-[720px] text-[13px] text-muted">{t.hint}</p>
+          <p className="m-0 max-w-[720px] text-[13px] text-muted">{t.hintM13}</p>
+
+          {view && viewRow && !op.hasPreview && (
+            <div ref={panelRef} tabIndex={-1} className="outline-offset-0">
+              {view.kind === "import" && viewRow.kind === "site" && (
                 <ImportPicker
                   key={viewRow.domain}
                   domain={viewRow.domain}
@@ -263,17 +252,26 @@ export default function CoSoDuLieu() {
                   onPreview={(backup) => act("import", viewRow, { backup })}
                   onCancel={closeAll}
                 />
-              </div>
-            )}
+              )}
+              {view.kind === "edit" && <EditPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
+            </div>
+          )}
 
-            {view?.kind === "edit" && viewRow && !op.hasPreview && <EditPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
-
-            {op.panel}
-          </>
-        )}
-      </div>
+          {op.panel}
+        </>
+      )}
 
       <CreateDialog open={creating} onOpenChange={setCreating} op={op} />
     </>
+  );
+}
+
+/** Cỡ hay số bảng không đọc được: một gạch ngang cho cột số gọn, đủ lời trong title và cho trình đọc màn hình. */
+function Unreadable({ label }: { label: string }) {
+  return (
+    <span title={label} className="text-muted">
+      <span aria-hidden="true">—</span>
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }

@@ -175,7 +175,7 @@ func TestApplyOnDemo(t *testing.T) {
 	if reloads["nginx"] != 1 || reloads["php"+phpVer+"-fpm"] != 1 {
 		t.Errorf("reload = %v; muốn mỗi dịch vụ đúng một lần", reloads)
 	}
-	if n := countActive(ctx, t, s); n != 6 {
-		t.Errorf("có %d site active; muốn 6", n)
+	if n := countActive(ctx, t, s); n != 9 {
+		t.Errorf("có %d site active; muốn 9", n)
 	}
 }

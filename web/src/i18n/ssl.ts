@@ -46,9 +46,11 @@ const vi = {
   emptyLink: "Tạo site đầu tiên",
 
   // Bằng chứng của phép kiểm chứng chỉ
+  certHeading: (d: string) => `Chứng chỉ của ${d}`,
+  certCloseFor: (d: string) => `Đóng bằng chứng chứng chỉ của ${d}`,
   noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
-  cause: "NGUYÊN NHÂN",
-  manualFix: "SỬA TAY",
+  cause: "Nguyên nhân",
+  manualFix: "Sửa tay",
 
   // Xem trước và lỗi
   issueHeading: (d: string) => `Xin chứng chỉ cho ${d}`,
@@ -98,9 +100,11 @@ export const strings = defineStrings(vi, {
   emptyLead: "There are no sites yet, so there is nothing to issue a certificate for. ",
   emptyLink: "Create the first site",
 
+  certHeading: (d) => `Certificate of ${d}`,
+  certCloseFor: (d) => `Close the certificate evidence of ${d}`,
   noEvidence: "This check did not record any command.",
-  cause: "CAUSE",
-  manualFix: "FIX BY HAND",
+  cause: "Cause",
+  manualFix: "Fix by hand",
 
   issueHeading: (d) => `Issue a certificate for ${d}`,
   reissueHeading: (d) => `Issue the certificate for ${d} again`,

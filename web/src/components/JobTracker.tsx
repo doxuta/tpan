@@ -14,6 +14,7 @@ import { get } from "../api/client";
 import type { JobDetail, JobStatus, Text } from "../api/types";
 import { tx, useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/khung";
+import { IconButton } from "./Button";
 import { StatusMark } from "./StatusMark";
 
 type Tracked = { id: string; title?: Text; status: JobStatus | "unknown"; error?: string };
@@ -97,7 +98,9 @@ export function JobTrackerProvider({ children }: { children: ReactNode }) {
     <JobCtx.Provider value={{ track, wait }}>
       {children}
       {jobs.length > 0 && (
-        <div aria-live="polite" className="fixed bottom-[16px] left-[16px] z-30 flex w-[min(380px,calc(100vw-32px))] flex-col gap-[8px]">
+        // lg:left-[248px]: từ 1024 px menu trái (232 px) hiện, thẻ lệch phải menu 16 px cho khỏi che mục cuối.
+        // data-job-tracker: móc cho script chụp của M16 (ảnh lớp nổi "thẻ theo dõi job").
+        <div data-job-tracker aria-live="polite" className="fixed bottom-[16px] left-[16px] z-30 flex w-[min(380px,calc(100vw-32px))] flex-col gap-[8px] lg:left-[248px]">
           {jobs.map((j) => (
             <JobCard key={j.id} job={j} onClose={() => close(j.id)} />
           ))}
@@ -120,7 +123,7 @@ function JobCard({ job, onClose }: { job: Tracked; onClose: () => void }) {
           ? t.jobRolledBack
           : t.jobUndoFailed;
   return (
-    <div className={`border bg-surface p-[12px] ${mark === "fail" ? "border-fail border-t-[4px]" : "border-ink"}`}>
+    <div className="rounded-card border border-hair bg-surface p-[12px] shadow-pop">
       <div className="flex items-start gap-[10px]">
         <span className="mt-[3px] flex-none">
           <StatusMark status={mark} label={text} />
@@ -135,11 +138,8 @@ function JobCard({ job, onClose }: { job: Tracked; onClose: () => void }) {
             {t.jobDetails}
           </Link>
         </div>
-        <button type="button" aria-label={t.close} title={t.close} onClick={onClose} className="flex h-[28px] w-[28px] flex-none items-center justify-center bg-transparent text-muted hover:text-ink">
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
+        {/* Lề âm: nút 40 px không làm thẻ cao hơn nội dung. */}
+        <IconButton icon="close" label={t.close} onClick={onClose} className="-m-[8px]" />
       </div>
     </div>
   );

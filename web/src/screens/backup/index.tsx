@@ -1,8 +1,9 @@
-// Màn Backup (mục 6.5, 10 của KE-HOACH.md): danh sách backup, "Backup ngay"
-// cho một site, "Khôi phục" một bản full, và khối lịch + số bản giữ. Ba việc
-// kia đi đúng ba chặng như màn Thùng rác (màn mẫu để theo): bấm nút → gọi
-// ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy → máy chủ trả job_id,
-// chuyển tới /jobs/:id. Cả ba dùng chung một cặp mutation và một chỗ hiện bản
+// Màn Backup (mục 6.5, 10 của KE-HOACH.md; giao diện bản 2, mục 3.7 của
+// M16-thiet-ke.md): thẻ "Backup ngay" cho một site, bảng các bản backup (có
+// "Khôi phục" một bản full), rồi thẻ lịch và số bản giữ (chỉ admin). Ba việc
+// đi đúng ba chặng như màn Thùng rác: bấm nút → gọi ?dry_run=1 lấy bản xem
+// trước (PlanReview) → bấm chạy → máy chủ trả job_id, ở lại màn và thẻ theo
+// dõi job báo tiến độ. Cả ba dùng chung một cặp mutation và một chỗ hiện bản
 // xem trước, vì cùng lúc chỉ mở một việc.
 
 import { useJobTracker } from "../../components/JobTracker";
@@ -13,6 +14,7 @@ import { useWho } from "../../api/m13-users";
 import { queryKeys, useOverview } from "../../api/queries";
 import type { Backup, BackupsOverview, BackupSettingsRequest, JobStarted, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/backup";
@@ -110,31 +112,46 @@ export default function Backups() {
     <>
       <ScreenHeader title={t.title} summary={t.summary} />
 
-      {(q.isPending || overview.isPending) && <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>}
+      {(q.isPending || overview.isPending) && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div className="pt-[26px]">
+        <Card>
           <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
           <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-        </div>
+        </Card>
       )}
       {q.isSuccess && !overview.isPending && (
         <>
           <CreateNow domains={active} pendingDomain={pendingReq?.action === "create" ? pendingReq.domain : null} anyPending={dry.isPending} onCreate={(domain) => ask({ action: "create", domain })} />
 
-          <section aria-labelledby="backup-list">
-            <h2 id="backup-list" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
-              {t.listHeading}
-            </h2>
-            <BackupList
-              items={q.data.items}
-              filter={filter}
-              onFilter={setFilter}
-              stateOf={stateOf}
-              pendingId={pendingReq?.action === "restore" ? pendingReq.backup.id : null}
-              anyPending={dry.isPending}
-              onRestore={(backup) => ask({ action: "restore", backup })}
-            />
-          </section>
+          <BackupList
+            items={q.data.items}
+            filter={filter}
+            onFilter={setFilter}
+            stateOf={stateOf}
+            pendingId={pendingReq?.action === "restore" ? pendingReq.backup.id : null}
+            anyPending={dry.isPending}
+            onRestore={(backup) => ask({ action: "restore", backup })}
+          />
+
+          {dry.isError && asked && (
+            <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
+              <ErrorNote error={dry.error} heading={errorHeading(asked)} checksHeading={t.checksHeading} />
+              <div className="pt-[12px]">
+                <Button onClick={close}>{k.cancel}</Button>
+              </div>
+            </div>
+          )}
+
+          {open && (
+            <div ref={resultRef} tabIndex={-1} className="flex flex-col gap-[12px] outline-offset-0">
+              {open.req.action === "restore" && <p className="m-0 max-w-[72ch] font-semibold">{t.restoreWarning(open.req.backup.domain, formatWhen(open.req.backup.created, lang))}</p>}
+              <PlanReview preview={open.preview} onRun={() => run.mutate(open.req)} running={run.isPending} error={run.error} onCancel={close} />
+            </div>
+          )}
 
           {isAdmin && (
             <BackupSettingsForm
@@ -144,22 +161,6 @@ export default function Backups() {
               anyPending={dry.isPending}
               onPreview={(body) => ask({ action: "settings", body })}
             />
-          )}
-
-          {dry.isError && asked && (
-            <div ref={resultRef} tabIndex={-1} className="pt-[20px] outline-offset-0">
-              <ErrorNote error={dry.error} heading={errorHeading(asked)} checksHeading={t.checksHeading} />
-              <div className="pt-[12px]">
-                <Button onClick={close}>{k.cancel}</Button>
-              </div>
-            </div>
-          )}
-
-          {open && (
-            <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
-              {open.req.action === "restore" && <p className="m-0 pt-[26px] font-semibold">{t.restoreWarning(open.req.backup.domain, formatWhen(open.req.backup.created, lang))}</p>}
-              <PlanReview preview={open.preview} onRun={() => run.mutate(open.req)} running={run.isPending} error={run.error} onCancel={close} />
-            </div>
           )}
         </>
       )}

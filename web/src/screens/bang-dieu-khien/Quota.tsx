@@ -1,9 +1,10 @@
-// Khối "Hạn mức gói" của user thường (M13, mục 6.12), thay cho khối "Máy": số
+// Thẻ "Hạn mức gói" của user thường (M13, mục 6.12), thay cho thẻ "Máy": số
 // site, số DB rời và dung lượng đang dùng, mỗi số một thanh như MetricBar. Thanh
 // đầy là chạm giới hạn của gói; vạch 80% là ngưỡng báo sắp hết. Giới hạn 0 là
 // không giới hạn nên không vẽ thanh. Dữ liệu: Overview.quota, đã đo ở server.
 
 import type { Quota } from "../../api/types";
+import { Card } from "../../components/Card";
 import { MetricBar } from "../../components/MetricBar";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/bang-dieu-khien";
@@ -27,8 +28,7 @@ export function QuotaBlock({ quota }: { quota: Quota }) {
   const diskMeasured = usage.disk_bytes >= 0;
 
   return (
-    <section className="pt-[28px]">
-      <h2 className="m-0 mb-[14px] text-[16px] font-semibold">{t.quotaTitle(pkg.name)}</h2>
+    <Card title={t.quotaTitle(pkg.name)} titleId="bdk-han-muc">
       <div className="flex flex-wrap gap-x-[32px] gap-y-[20px]">
         <MetricBar label={t.quotaSites} value={String(usage.sites)} sub={sub(usage.sites, pkg.max_sites, pkg.max_sites > 0 ? String(pkg.max_sites) : null)} percent={percentOf(usage.sites, pkg.max_sites)} />
         <MetricBar label={t.quotaDBs} value={String(usage.dbs)} sub={sub(usage.dbs, pkg.max_dbs, pkg.max_dbs > 0 ? String(pkg.max_dbs) : null)} percent={percentOf(usage.dbs, pkg.max_dbs)} />
@@ -42,6 +42,6 @@ export function QuotaBlock({ quota }: { quota: Quota }) {
       <p className="mt-[14px] mb-0 text-[13px] text-muted">
         {t.quotaBackups(pkg.max_backups > 0 ? String(pkg.max_backups) : t.quotaUnlimited)}. {t.quotaHint}
       </p>
-    </section>
+    </Card>
   );
 }
