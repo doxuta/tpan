@@ -17,6 +17,14 @@ import (
 // phải cổng từ chối: lệnh không được chạy. Thiết kế: M28-thiet-ke.md, 3.4.
 var ErrRootZoneCommand = errors.New("lệnh chạy bằng root nhận đường dẫn trong thư mục site (mục 3.4 của M28-thiet-ke.md): dùng system.System, hoặc chạy bằng user của site")
 
+// ErrZoneStream: OpenRead hay CreateFile (M18: đọc ghi theo dòng cho file vài
+// GB của tpan, như bản sao lưu) được đưa một đường dẫn trong vùng site. Hai
+// hàm đó mở theo đường dẫn và chỉ chặn symlink ở tên cuối, nên trong thư mục
+// site chúng mở lại đúng lỗ T1 (thư mục cha bị tráo thành symlink). Lỗi lập
+// trình trong tpan, như ErrRootZoneCommand: file trong thư mục site đi qua
+// ReadFile, WriteFileAtomic (cửa sitefs), không qua hai hàm này.
+var ErrZoneStream = errors.New("đọc ghi theo dòng không làm trên đường dẫn trong thư mục site (mục 3.3 của M28-thiet-ke.md): dùng ReadFile, WriteFileAtomic qua cửa sitefs")
+
 // siteUserRe là dạng của site.Layout.User. Lệnh chạy bằng một user như vậy bị
 // kernel giới hạn trong quyền của user đó, nên không cần kiểm.
 // www-data, root hay user nào khác thì kiểm như root.

@@ -179,6 +179,13 @@ var zoneRows = []zoneRow{
 	{"statfs/public", "StatFS", "a/public", "", nil},
 	{"statfs/symlink", "StatFS", "a/public/l", "", sitefs.ErrSymlink},
 	{"statfs/cha-symlink", "StatFS", "b/public/d", "", sitefs.ErrSymlink},
+
+	// OpenRead, CreateFile (M18) mở theo đường dẫn và chỉ chặn symlink ở tên
+	// cuối, nên trong vùng site chúng từ chối hẳn (gộp M18 vào M28).
+	{"openread/file", "OpenRead", "a/public/.htaccess", "", ErrZoneStream},
+	{"openread/cha-symlink", "OpenRead", "b/public/.htaccess", "", ErrZoneStream},
+	{"createfile/moi", "CreateFile", "a/public/moi", "", ErrZoneStream},
+	{"createfile/cha-symlink", "CreateFile", "b/public/moi", "", ErrZoneStream},
 }
 
 // runZoneRow chạy một dòng và tóm tắt kết quả theo cách phải giống nhau
@@ -254,6 +261,18 @@ func runZoneRow(t *testing.T, z zoneSide, r zoneRow) (string, error) {
 	case "StatFS":
 		du, err := s.StatFS(p)
 		return fmt.Sprint(du.Total > 0), err
+	case "OpenRead":
+		rc, n, err := s.OpenRead(p)
+		if rc != nil {
+			_ = rc.Close()
+		}
+		return fmt.Sprint(n), err
+	case "CreateFile":
+		w, err := s.CreateFile(p, 0o600, me)
+		if w != nil {
+			_ = w.Close()
+		}
+		return "", err
 	}
 	t.Fatalf("thao tác lạ %s", r.op)
 	return "", nil
@@ -305,8 +324,8 @@ func TestMoiHamCoLuatVungSite(t *testing.T) {
 			t.Errorf("System.%s nhận đường dẫn mà bảng của TestVungSiteCaHaiBan không có dòng nào", m.Name)
 		}
 	}
-	if len(covered) != 12 {
-		t.Errorf("bảng phủ %d hàm, muốn 12", len(covered))
+	if len(covered) != 14 {
+		t.Errorf("bảng phủ %d hàm, muốn 14", len(covered))
 	}
 }
 
