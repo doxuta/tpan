@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
-  do-giao-dien anh-m16 anh-mau e2e-m16 lay-dev
+  do-giao-dien anh-m16 anh-mau e2e-m16 lay-dev kieu-dang
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -62,6 +62,12 @@ lint: ## go vet + golangci-lint
 WEB_TESTS ?= web/src/**/*.test.ts
 test-web: ## Chạy test logic thuần của giao diện (node --test)
 	node --test "$(WEB_TESTS)"
+
+# Luật kiểu dáng của giao diện bản 2 (web/kieu_dang_test.go) cho riêng vài thư
+# mục, kể cả thư mục còn trong danh sách "chưa đổi": thợ đổi xong một màn chạy
+# lệnh này cho thư mục của mình. DIR là các tiền tố tính từ web/, cách nhau bằng dấu phẩy.
+kieu-dang: ## Kiểm luật kiểu dáng bản 2 cho một màn: make kieu-dang DIR=src/screens/<màn>/,src/i18n/<màn>.ts
+	KIEU_DANG_THU="$(DIR)" go test ./web/ -run 'TestKieuDang|TestNhanKhongVietHoa' -count=1
 
 check: lint test test-web ## Chạy hết kiểm tra trước khi commit
 	cd web && pnpm typecheck
