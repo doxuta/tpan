@@ -26,6 +26,7 @@ import { useOverview } from "../api/queries";
 import { Code } from "../components/MonoText";
 import { useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/ai";
+import { returnFocus } from "../components/focusReturn";
 import { menuPath, screens } from "../routes";
 import { useAi } from "./AiProvider";
 import { useWide } from "./platform";
@@ -178,7 +179,10 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             if (toAi.current) {
               e.preventDefault();
               toAi.current = false;
+              return;
             }
+            // Mở bằng ⌘K thì không có Dialog.Trigger: tự trả focus về chỗ cũ (ô tìm, hay phần tử đang dùng).
+            returnFocus(e);
           }}
           className="fixed top-[12vh] left-1/2 z-[70] w-[min(560px,calc(100vw-32px))] max-h-[calc(100vh-24vh)] -translate-x-1/2 overflow-y-auto rounded-card border border-hair bg-surface text-ink shadow-pop"
         >

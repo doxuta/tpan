@@ -26,6 +26,7 @@ import { Disclosure } from "../components/Disclosure";
 import { EmptyState } from "../components/EmptyState";
 import { EvidenceBlock } from "../components/EvidenceBlock";
 import { Field, Input } from "../components/Field";
+import { returnFocus } from "../components/focusReturn";
 import { Icon } from "../components/Icon";
 import { Code } from "../components/MonoText";
 import { Notice } from "../components/Notice";
@@ -83,7 +84,7 @@ export function AiDrawer() {
     <RadixDialog.Root open onOpenChange={ai.setOpen}>
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="fixed inset-0 z-40 bg-scrim" />
-        <RadixDialog.Content id="ngan-ai" aria-describedby={undefined} className="fixed inset-y-0 right-0 z-50 w-full max-w-full text-ink sm:w-[440px]">
+        <RadixDialog.Content id="ngan-ai" aria-describedby={undefined} onCloseAutoFocus={returnFocus} className="fixed inset-y-0 right-0 z-50 w-full max-w-full text-ink sm:w-[440px]">
           <Panel overlay className="h-full border-l border-hair shadow-pop" />
         </RadixDialog.Content>
       </RadixDialog.Portal>

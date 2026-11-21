@@ -37,7 +37,8 @@ export function Tabs<T extends string>({ label, value, onValueChange, tabs, chil
               key={t.value}
               value={t.value}
               data-tab={t.value}
-              className="-mb-px inline-flex h-[44px] items-center gap-[6px] border-b-2 border-transparent bg-transparent px-[12px] text-[14px] whitespace-nowrap text-ink-soft hover:text-ink data-[state=active]:border-accent data-[state=active]:font-semibold data-[state=active]:text-accent"
+              // focus-visible:-outline-offset-2: khung cuộn ngang cắt cả chiều dọc, nên viền focus vẽ vào trong nút tab.
+              className="-mb-px inline-flex h-[44px] items-center gap-[6px] border-b-2 border-transparent bg-transparent px-[12px] text-[14px] whitespace-nowrap text-ink-soft hover:text-ink focus-visible:-outline-offset-2 data-[state=active]:border-accent data-[state=active]:font-semibold data-[state=active]:text-accent"
             >
               {t.label}
               {t.count !== undefined && <span className="text-[12px] font-normal text-muted tabular-nums">{t.count}</span>}

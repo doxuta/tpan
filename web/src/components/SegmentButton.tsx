@@ -26,8 +26,9 @@ export function SegmentButton<T extends string>({ label, options, value, onChang
             type="button"
             aria-pressed={on}
             onClick={() => onChange(o.value)}
+            // Khung nhóm cắt tràn (overflow-hidden, để ô đầu và ô cuối theo góc bo), nên viền focus vẽ vào trong ô.
             className={
-              "inline-flex h-[42px] min-w-[44px] items-center justify-center px-[12px] text-[14px] whitespace-nowrap transition-colors sm:h-[38px] " +
+              "inline-flex h-[42px] min-w-[44px] items-center justify-center px-[12px] text-[14px] whitespace-nowrap transition-colors focus-visible:-outline-offset-2 sm:h-[38px] " +
               (i > 0 ? "border-l border-line " : "") +
               (on ? "bg-accent-tint font-semibold text-accent" : "bg-surface text-ink hover:bg-soft")
             }

@@ -37,7 +37,7 @@ export function ClaudeCommand({ prompt }: { prompt: string }) {
   // Đóng sẵn: lệnh cho Claude Code là đường phụ, không chiếm chỗ của thẻ chứa nó.
   return (
     <div className="mt-[12px]">
-      <Disclosure flush summary={<span className="text-[14px] font-medium">{t.claudeCopy}</span>}>
+      <Disclosure flush summary={<span className="text-[14px] font-medium">{t.claudeSummary}</span>}>
         <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px]">
           <Button icon="copy" onClick={() => copy(cmd)}>
             {t.claudeCopy}

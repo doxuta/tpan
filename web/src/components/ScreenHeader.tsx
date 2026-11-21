@@ -7,6 +7,8 @@
 
 import type { ReactNode } from "react";
 import { Link } from "react-router";
+import { useStrings } from "../i18n";
+import { strings } from "../i18n/khung";
 
 export type Crumb = { label: ReactNode; to?: string };
 
@@ -19,13 +21,15 @@ type Props = {
 };
 
 export function ScreenHeader({ title, summary, crumbs, actions, meta }: Props) {
+  const t = useStrings(strings);
   return (
     <div className="flex flex-wrap items-end justify-between gap-[16px]">
       <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-[6px]">
         {crumbs && crumbs.length > 0 && (
-          <nav aria-label="breadcrumb" className="text-[13px] text-muted">
+          <nav aria-label={t.breadcrumb} className="text-[13px] text-muted">
             {crumbs.map((c, i) => (
-              <span key={i}>
+              // Mục cuối là màn đang mở (không là liên kết): aria-current cho trình đọc màn hình.
+              <span key={i} aria-current={i === crumbs.length - 1 && !c.to ? "page" : undefined}>
                 {i > 0 && <span aria-hidden="true"> / </span>}
                 {c.to ? (
                   <Link to={c.to} className="text-muted no-underline hover:text-accent hover:underline">

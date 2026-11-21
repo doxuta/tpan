@@ -128,13 +128,14 @@ type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "class
 export function Checkbox({ label, locked, ...rest }: CheckboxProps) {
   const name = locked ? `${label}: ${locked}` : label;
   return (
+    // disabled đặt sau {...rest}: bên gọi truyền disabled={false} cũng không mở được ô đang khoá.
     <input
       type="checkbox"
       aria-label={name}
       title={locked ?? label}
-      disabled={locked !== undefined || rest.disabled}
       className="size-[16px] flex-none accent-[var(--accent)] disabled:cursor-not-allowed max-sm:size-[20px]"
       {...rest}
+      disabled={locked !== undefined || rest.disabled}
     />
   );
 }

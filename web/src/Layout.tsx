@@ -122,7 +122,10 @@ function Shell({ t, hostname, demo, overview, who, version }: { t: T; hostname: 
       if (!el) return;
       el.scrollIntoView({ block: "start" });
       // Như neo thường của trình duyệt: Tab kế tiếp đi tiếp từ khối đó (chỉ có tác dụng với phần tử có tabIndex).
-      if (!focused) el.focus({ preventScroll: true });
+      // Khối neo có thể bị thay bằng một nút mới khi dữ liệu về (thẻ "đang tải" thành thẻ có dữ liệu,
+      // ví dụ #bm-co-lap): focus khi đó rơi về <body>, nên đặt lại vào nút mới. Người dùng đã đi
+      // chỗ khác (focus không ở <body>) thì không giành lại.
+      if (!focused || document.activeElement === document.body) el.focus({ preventScroll: true });
       focused = true;
     };
     const watch = new ResizeObserver(go); // gọi go ngay lần đầu quan sát
@@ -310,7 +313,9 @@ function Header({ t, hostname, demo, overview, who, navOpen, onToggleNav, onOpen
         className="box-border hidden h-[40px] max-w-[440px] min-w-[160px] flex-[1_1_280px] items-center gap-[8px] rounded-ctl border border-line bg-soft px-[12px] text-left text-[14px] text-muted hover:border-field sm:flex"
       >
         <Icon name="search" size={16} />
-        <span className="min-w-0 flex-1 truncate">{search}</span>
+        <span title={search} className="min-w-0 flex-1 truncate">
+          {search}
+        </span>
         <kbd className="rounded-chip border border-line bg-surface px-[6px] py-[1px] font-mono text-[12px] text-muted">{paletteKbd}</kbd>
       </button>
 
@@ -356,7 +361,9 @@ function AccountMenu({ t, who, onLogout }: { t: T; who: Who; onLogout: () => voi
         <button type="button" aria-label={label} className="flex h-[44px] items-center gap-[10px] rounded-ctl border border-transparent bg-transparent pr-[8px] pl-[6px] text-ink hover:bg-soft sm:h-[40px]">
           <Avatar name={name} size={28} />
           <span className="hidden flex-col items-start leading-[1.2] sm:flex">
-            <span className="max-w-[160px] truncate font-medium">{name}</span>
+            <span title={name} className="max-w-[160px] truncate font-medium">
+              {name}
+            </span>
             <span className="text-[12px] text-muted">{role}</span>
           </span>
           <Icon name="chevron-down" size={16} className="hidden text-muted sm:block" />

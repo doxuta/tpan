@@ -1,5 +1,6 @@
 // Hộp hỏi lại trước một việc (Radix Dialog 1.3: khoá focus trong hộp, Esc để
-// đóng, trả focus về nút đã mở). Nút làm việc là động từ của đúng việc đó
+// đóng). Đóng thì focus về nút đã mở, kể cả khi hộp mở từ menu ba chấm
+// (focusReturn.ts: panel không dùng Dialog.Trigger). Nút làm việc là động từ của đúng việc đó
 // ("Xoá site", không "OK"), theo giọng chữ ở mục 8. danger: việc không hoàn tác
 // được, nút làm việc là nút nguy hiểm (chữ đỏ) thay cho nút chính.
 //
@@ -13,6 +14,7 @@ import type { ReactNode } from "react";
 import { useStrings } from "../i18n";
 import { strings } from "../i18n/khung";
 import { Button } from "./Button";
+import { returnFocus } from "./focusReturn";
 
 type Props = {
   open: boolean;
@@ -37,6 +39,7 @@ export function Dialog({ open, onOpenChange, title, description, children, confi
         <RadixDialog.Overlay className="fixed inset-0 z-40 bg-scrim" />
         <RadixDialog.Content
           {...(description ? {} : { "aria-describedby": undefined })}
+          onCloseAutoFocus={returnFocus}
           className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-32px)] w-[min(480px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-card border border-hair bg-surface p-[20px] text-ink shadow-pop"
         >
           <RadixDialog.Title className="m-0 text-[16px] leading-[1.4] font-semibold">{title}</RadixDialog.Title>

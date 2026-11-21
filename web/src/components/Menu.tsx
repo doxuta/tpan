@@ -62,8 +62,17 @@ type ItemProps = {
 };
 
 export function MenuItem({ onSelect, disabled, danger = false, hint, children }: ItemProps) {
+  // Mục bị khoá mà có lời giải thích (ví dụ "Site đang tạm khoá…"): vẫn tới được bằng
+  // mũi tên để trình đọc màn hình đọc lời đó, nhưng chọn thì không làm gì và menu không đóng.
+  // Radix bỏ qua hẳn mục disabled khi đi bằng phím, nên lời giải thích sẽ không ai nghe thấy.
+  const blocked = disabled === true && hint !== undefined;
   return (
-    <DM.Item disabled={disabled} onSelect={onSelect} className={`${item} ${danger ? "text-fail-text" : ""}`}>
+    <DM.Item
+      disabled={disabled === true && !blocked}
+      aria-disabled={blocked || undefined}
+      onSelect={blocked ? (e) => e.preventDefault() : onSelect}
+      className={`${item} ${blocked ? "text-muted" : danger ? "text-fail-text" : ""}`}
+    >
       <span className="flex min-w-0 flex-col">
         <span>{children}</span>
         {hint && <span className="text-[12.5px] text-muted">{hint}</span>}
