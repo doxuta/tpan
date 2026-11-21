@@ -21,8 +21,8 @@ import { buildRoute, fmtNumber, stationStages, type Item, type Line, type Route,
 
 type Open = { domain: string; stage: StationStage | "e2e" };
 
-const solid = "absolute top-[21px] border-t-2 border-line";
-const dashed = "absolute top-[21px] border-t-2 border-dashed border-line-dash";
+const solid = "absolute top-[21px] border-t-2 border-route";
+const dashed = "absolute top-[21px] border-t-2 border-dashed border-route-dash";
 
 /** Nét tuyến chạy ngang qua một ô ga. Ở ga hỏng, nửa trái liền và nửa phải đứt (như trang mẫu). */
 function Track({ kind }: { kind: Line }) {

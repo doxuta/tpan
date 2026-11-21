@@ -59,7 +59,7 @@ export function RouteMap({ domain, checks, selected, onSelect, suspended = false
     const right = states[j];
     return left?.status === "unknown" || right?.status === "unknown" || (firstFail >= 0 && j - 1 >= firstFail);
   };
-  const seg = (j: number) => (dashed(j) ? "border-dashed border-line-dash" : "border-solid border-line");
+  const seg = (j: number) => (dashed(j) ? "border-dashed border-route-dash" : "border-solid border-route");
 
   return (
     // -m/p 4 px: chừa chỗ cho viền focus của nút ga (nút sát mép khung cuộn), bố cục không đổi.
