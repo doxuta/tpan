@@ -1,0 +1,1377 @@
+
+
+######## [2026-11-21 12:16:01] e2e M28 bước 31 — máy ảo tpan-m28 — phần: nginx goc nang-cap apache — log docs/bang-chung/M28.log
+E2E_BUILD=0  E2E_BIN_PREFIX=bin/tpan-m28-e2e-linux
+
+
+######## [2026-11-21 12:16:01] PHẦN NGINX
+
+[2026-11-21 12:16:01] đưa máy ảo tpan-m28 về sạch
+[2026-11-21 12:16:20] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-21 12:16:20] chép bản chưa vá bin/tpan-m28-e2e-linux-arm64 vào máy ảo
+tpan v0.2.0-46-gb94d11a (commit b94d11a, build 2026-11-21T05:15:51Z)
+[2026-11-21 12:16:21] chép scripts/e2e-m28/ vào máy ảo (/home/ubuntu/e2e-m28)
+
+[2026-11-21 12:16:30] >>> dựng máy (nginx)  (bash dung-may.sh nginx)
+
+--- [12:16:31] tpan version
+tpan v0.2.0-46-gb94d11a (commit b94d11a, build 2026-11-21T05:15:51Z)
+
+--- [12:16:31] tpan setup
+  xong
+
+Job d84baa264d07564e: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    93:A8:60:C4:B9:4B:BF:D4:4A:60:F6:43:0B:D2:F3:0E:6B:01:54:13:8E:27:BE:2C:F4:09:41:10:0B:E4:BE:9B
+Mở: https://<IP của máy>:8443
+  => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m28-admin.pw, không in)
+  => ĐẠT: tpan.service active
+
+--- [12:16:32] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+  đang chờ: /var/lib/dpkg/lock-frontend:  3531 /var/lib/dpkg/lock:   3531  3531 apt-get check -qq;
+  apt rảnh sau khoảng 185 giây
+
+--- [12:19:37] tpan stack install --web nginx --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.5%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web nginx thoát 0
+
+--- [12:20:20] tpan site add a.example.com (admin)
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  => ĐẠT: site add a.example.com thoát 0
+
+--- [12:20:34] tpan site add b.example.com (admin)
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+  => ĐẠT: site add b.example.com thoát 0
+
+--- [12:20:40] user khach1 (vai user) và site e.example.com của khach1
+  => ĐẠT: user add khach1 thoát 0, có mật khẩu (không in)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site e.example.com
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com
+  => ĐẠT: site add e.example.com --owner khach1 thoát 0
+
+--- [12:20:47] hiện trạng
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-21 12:20 admin          -
+b.example.com                            active   8.3   không 2026-11-21 12:20 admin          -
+e.example.com                            active   8.3   không 2026-11-21 12:20 khach1         -
+  /var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public/.htaccess: không có
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  /var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public/.htaccess: không có
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  /var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public/.htaccess: không có
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+  site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; stack nginx
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+  => ĐẠT: khach1 đăng nhập API: HTTP 204
+  khach1 GET /session: HTTP 200, 0.002257s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 167 byte
+  phiên: khach1 vai user
+  => ĐẠT: phiên của khach1 có vai user
+[2026-11-21 12:20:48] <<< dựng máy (nginx) xong trong 258 giây
+
+[2026-11-21 12:20:48] >>> B bản xem trước không có file /var/www, tên lạ  (bash xem-truoc.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:20:48] nginx: bản xem trước của khach1 không có file nào trong vùng site
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.477333s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 32906 byte
+    phân tích: 3 file trong bản xem trước, 0 file dưới /var/www/: []
+  => ĐẠT: nginx: HTTP 200, không file nào trong bản xem trước có đường dẫn bắt đầu bằng /var/www/
+
+--- [12:20:49] 3c. tên lạ trong public do user site tạo (xuống dòng, -rf, 255 ký tự)
+  đã tạo 3 file, độ dài tên: [18, 3, 255]
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.487144s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 32906 byte
+    phân tích: 3 file trong bản xem trước, 0 file dưới /var/www/: []
+  => ĐẠT: tên lạ trong public: HTTP 200, bản xem trước không có file dưới /var/www/
+  tpan: PID 3496 -> 3496 (active), NRestarts 0 -> 0
+  => ĐẠT: tên lạ: tpan còn sống, PID không đổi
+[2026-11-21 12:20:50] <<< B bản xem trước không có file /var/www, tên lạ xong trong 2 giây
+
+[2026-11-21 12:20:50] >>> B7 đặt quyền thư mục  (bash quyen-thu-muc.sh )
+
+--- [12:20:50] 7. 5 vòng: admin site add f.example.com (mới), user site tráo /var/www/f.example.com/public/zz-m28/con <-> symlink tới /srv/m28-victim (0755 của root)
+
+--- [12:20:50] 7. vòng 1/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 2033955
+  job 3239db6449c47154: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 1: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 1: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 1: public/wp-includes là 2750 (2750)
+
+--- [12:21:00] 7. vòng 2/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 2109913
+  job bcae5409c623307e: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 2: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 2: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 2: public/wp-includes là 2750 (2750)
+
+--- [12:21:10] 7. vòng 3/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 1984390
+  job c8ada0b69d75a8b5: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 3: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 3: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 3: public/wp-includes là 2750 (2750)
+
+--- [12:21:20] 7. vòng 4/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 2067396
+  job 9fd0d9862383f8ef: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 4: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 4: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 4: public/wp-includes là 2750 (2750)
+
+--- [12:21:29] 7. vòng 5/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 2029168
+  job ec736dc107c59d80: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 5: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 5: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 5: public/wp-includes là 2750 (2750)
+[2026-11-21 12:21:39] <<< B7 đặt quyền thư mục xong trong 49 giây
+
+[2026-11-21 12:21:39] >>> B9 hồi quy M14, health, backup  (bash hoi-quy.sh )
+
+--- [12:21:39] 9a. bộ tấn công L1 đến L9 của M14 (A=e.example.com bị chiếm, B=a.example.com nạn nhân)
+KQ L1  CHAN PHP của A include wp-config.php của B: không lấy được (3 lần thử)
+KQ L2  HONG trả lời lạ: </html>
+KQ L3  BO   stack nginx không có .htaccess
+KQ L4  BO   stack nginx không có .htaccess
+KQ L9  BO   stack nginx không có .htaccess
+KQ L5  CHAN symlink của A sang file của B: HTTP 404; sang mã nguồn PHP của B: HTTP 404
+KQ N5  DAT  symlink của A trỏ vào file của chính A: HTTP 200
+KQ N6  HONG .user.ini của A đặt open_basedir=/: <html>
+KQ L6  CHAN user A không đọc được access.log của B (drwxr-x--- root:tp_a_example_com_7653e4)
+KQ N7  DAT  user B đọc được access.log của chính mình
+KQ N8  DAT  web server vẫn ghi access.log của B (7 -> 8 dòng)
+KQ L7  HONG trả lời lạ: </html>
+KQ L8  CHAN vhost lạ trùng tên e.example.com (tên miền đang trả: '<html> <head><title>403 Forbidden</titl'): tpan health chỉ ra file aaa-trung-a2348eeb0128.conf (4 dòng)
+KQ N1  DAT  user A không đọc được wp-config.php của B
+KQ N2  DAT  user A không liệt kê được thư mục của B
+KQ N3  DAT  user A không ghi được vào public của B
+KQ N4  DAT  user A không ghi được vào socket FPM của B
+KQ N11 DAT  Host viết hoa về đúng site A
+KQ N12 DAT  Host có dấu chấm cuối về đúng site B
+KQ N13 DAT  tên lạ: nginx đóng kết nối
+KQ N14 DAT  trang chủ WordPress của A và B: HTTP 200 / 200
+KQ N15 DAT  permalink của A: /hello-world/ HTTP 200, trang không có HTTP 404 do WordPress trả
+KQ N16 DAT  file tĩnh của A: HTTP 200
+TONG lo=0 chan=4 hong=3
+  TONG lo=0 chan=4 hong=3 (mã thoát 0)
+  => ĐẠT: bộ phép thử chạy hết (có dòng TONG)
+  => ĐẠT: không đường tấn công nào còn lộ (TONG lo=0)
+  -- GHI NHẬN: bộ phép thử có hong=3 (phép dựng cảnh hỏng, không phải lỗ; xem /root/m28-e2e/tancong.out)
+
+--- [12:21:56] 9b. tpan health không có [lỗi]
+  số dòng [lỗi]: 0
+  => ĐẠT: tpan health không có dòng [lỗi]
+
+--- [12:22:05] 9c. backup create rồi restore site e.example.com
+
+Job 507efc3f0ff566ac: thành công
+  => ĐẠT: backup create e.example.com thoát 0
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_e_example_com_25cfc7 không chạm được vào file, log và socket của b.example.com (5 phép thử)
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của e.example.com (5 phép thử)
+  => ĐẠT: backup restore e.example.com thoát 0
+  e.example.com: HTTP 200
+  => ĐẠT: site e.example.com vẫn trả 200 sau khôi phục
+
+--- [12:22:18] 9d. sau tất cả: không symlink của root trong /var/www, public của mọi site active là 2750 (S3, S14)
+  => ĐẠT: find /var/www -type l -user root không ra dòng nào
+  => ĐẠT: public của a.example.com là 2750 (2750)
+  => ĐẠT: public của b.example.com là 2750 (2750)
+  => ĐẠT: public của e.example.com là 2750 (2750)
+[2026-11-21 12:22:18] <<< B9 hồi quy M14, health, backup xong trong 39 giây
+
+[2026-11-21 12:22:18] >>> B wp-config.php: đổi mật khẩu DB, file 2 GiB  (bash nginx-db.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:22:18] 1. wp-config.php của e.example.com -> symlink tới wp-config.php của a.example.com, đổi mật khẩu DB (chạy thật)
+  a.example.com: HTTP 200
+  => ĐẠT: site a.example.com trả 200 trước phép thử
+  khach1 POST /databases/e.example.com/password: HTTP 202, 0.005228s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 30 byte
+  trạng thái job: rolled_back; HTTP lúc gọi 202
+  wp-config.php của a.example.com: trước sha=f76993f80c76b76f, sau sha=f76993f80c76b76f
+  => ĐẠT: wp-config.php của a.example.com không bị đổi (sha256 giữ nguyên)
+  a.example.com: HTTP 200
+  => ĐẠT: site a.example.com vẫn trả 200
+  => ĐẠT: job hỏng hoặc bị từ chối (không succeeded)
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=f76993f80c76b76f): không chứa; câu trả lời 1419 byte, không phải JSON
+  => ĐẠT: câu trả lời không chứa wp-config.php của a.example.com
+  tpan: PID 3496 -> 3496 (active), NRestarts 0 -> 0
+
+--- [12:22:19] 2. wp-config.php của e.example.com là file thường 2 GiB thưa: gọi đổi mật khẩu DB trả lời trong 30 giây
+  /var/www/e.example.com/public/wp-config.php: regular file, 2147483648 byte, chủ tp_e_example_com_25cfc7:www-data
+  khach1 POST /databases/e.example.com/password: HTTP 202, 0.005566s (curl thoát 0; 28 là quá hạn 35s), câu trả lời 30 byte
+  => ĐẠT: gọi đổi mật khẩu DB trả lời trong 30 giây
+  HTTP 202, 0.005566s; trạng thái job: rolled_back
+  tpan: PID 3496 -> 3496 (active), NRestarts 0 -> 0
+  => ĐẠT: tpan giữ PID, NRestarts không tăng
+[2026-11-21 12:22:21] <<< B wp-config.php: đổi mật khẩu DB, file 2 GiB xong trong 3 giây
+
+[2026-11-21 12:22:21] >>> B chuyển web server khi public là symlink (S2)  (bash chuyen-symlink.sh )
+
+--- [12:22:22] B-S2. public của e.example.com là symlink tới public.that, tpan stack switch --to apache --dry-run
+  => ĐẠT: public của e.example.com là thư mục thật trước khi thử
+  /var/www/e.example.com/public: symbolic link -> '/var/www/e.example.com/public' -> '/var/www/e.example.com/public.that'
+  | tpan: kiểm /var/www/e.example.com/public: là symlink: tpan không đi theo symlink trong thư mục site
+  mã thoát 1
+  => ĐẠT: thoát khác 0 (từ chối)
+  => ĐẠT: lời từ chối nêu e.example.com hoặc /var/www/e.example.com/public
+  => ĐẠT: không có vhost Apache nào của e.example.com được ghi
+  => ĐẠT: cây cấu hình /etc/apache2, /etc/nginx, /etc/php không đổi (255378c6c9eda03b -> 255378c6c9eda03b)
+  => ĐẠT: nginx vẫn active
+
+--- [12:22:22] B-S2. trả public về như cũ
+  => ĐẠT: public của e.example.com lại là thư mục thật
+[2026-11-21 12:22:22] <<< B chuyển web server khi public là symlink (S2) xong trong 1 giây
+
+==== Phần NGINX: 54 khẳng định đạt, 0 không đạt
+
+
+######## [2026-11-21 12:22:22] PHẦN C (test cần root trong máy ảo): make m28-test-vm
+=== internal/sitefs (-test.run 'Cua|VungSite|LenhRoot') ===
+=== RUN   TestCuaSymlinkKhongDoiChuThuBiTrao
+--- PASS: TestCuaSymlinkKhongDoiChuThuBiTrao (0.00s)
+=== RUN   TestCuaThaoTacThuong
+--- PASS: TestCuaThaoTacThuong (0.01s)
+=== RUN   TestCuaKhongDiTheoSymlink
+=== RUN   TestCuaKhongDiTheoSymlink/neo
+=== RUN   TestCuaKhongDiTheoSymlink/neo/ReadFile
+=== RUN   TestCuaKhongDiTheoSymlink/neo/Lstat
+=== RUN   TestCuaKhongDiTheoSymlink/neo/ReadDir
+=== RUN   TestCuaKhongDiTheoSymlink/neo/WriteFileAtomic
+=== RUN   TestCuaKhongDiTheoSymlink/neo/MkdirAll
+=== RUN   TestCuaKhongDiTheoSymlink/neo/Remove
+=== RUN   TestCuaKhongDiTheoSymlink/neo/Rename
+=== RUN   TestCuaKhongDiTheoSymlink/neo/Symlink
+=== RUN   TestCuaKhongDiTheoSymlink/neo/Readlink
+=== RUN   TestCuaKhongDiTheoSymlink/neo/Chown
+=== RUN   TestCuaKhongDiTheoSymlink/neo/Chmod
+=== RUN   TestCuaKhongDiTheoSymlink/neo/StatFS
+=== RUN   TestCuaKhongDiTheoSymlink/giua
+=== RUN   TestCuaKhongDiTheoSymlink/giua/ReadFile
+=== RUN   TestCuaKhongDiTheoSymlink/giua/Lstat
+=== RUN   TestCuaKhongDiTheoSymlink/giua/ReadDir
+=== RUN   TestCuaKhongDiTheoSymlink/giua/WriteFileAtomic
+=== RUN   TestCuaKhongDiTheoSymlink/giua/MkdirAll
+=== RUN   TestCuaKhongDiTheoSymlink/giua/Remove
+=== RUN   TestCuaKhongDiTheoSymlink/giua/Rename
+=== RUN   TestCuaKhongDiTheoSymlink/giua/Symlink
+=== RUN   TestCuaKhongDiTheoSymlink/giua/Readlink
+=== RUN   TestCuaKhongDiTheoSymlink/giua/Chown
+=== RUN   TestCuaKhongDiTheoSymlink/giua/Chmod
+=== RUN   TestCuaKhongDiTheoSymlink/giua/StatFS
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/ReadFile
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/Lstat
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/ReadDir
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/WriteFileAtomic
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/MkdirAll
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/Remove
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/Rename
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/Symlink
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/Readlink
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/Chown
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/Chmod
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/StatFS
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/ReadFile
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/Lstat
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/ReadDir
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/WriteFileAtomic
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/MkdirAll
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/Remove
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/Rename
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/Symlink
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/Readlink
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/Chown
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/Chmod
+=== RUN   TestCuaKhongDiTheoSymlink/cuoi->v/v/StatFS
+--- PASS: TestCuaKhongDiTheoSymlink (0.01s)
+    --- PASS: TestCuaKhongDiTheoSymlink/neo (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/ReadFile (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/Lstat (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/ReadDir (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/WriteFileAtomic (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/MkdirAll (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/Remove (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/Rename (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/Symlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/Readlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/Chown (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/Chmod (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/neo/StatFS (0.00s)
+    --- PASS: TestCuaKhongDiTheoSymlink/giua (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/ReadFile (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/Lstat (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/ReadDir (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/WriteFileAtomic (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/MkdirAll (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/Remove (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/Rename (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/Symlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/Readlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/Chown (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/Chmod (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/giua/StatFS (0.00s)
+    --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/ReadFile (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/Lstat (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/ReadDir (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/WriteFileAtomic (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/MkdirAll (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/Remove (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/Rename (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/Symlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/Readlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/Chown (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/Chmod (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/StatFS (0.00s)
+    --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/ReadFile (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/Lstat (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/ReadDir (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/WriteFileAtomic (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/MkdirAll (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/Remove (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/Rename (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/Symlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/Readlink (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/Chown (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/Chmod (0.00s)
+        --- PASS: TestCuaKhongDiTheoSymlink/cuoi->v/v/StatFS (0.00s)
+=== RUN   TestCuaChiDocFileThuong
+=== RUN   TestCuaChiDocFileThuong/thiet-bi
+--- PASS: TestCuaChiDocFileThuong (0.00s)
+    --- PASS: TestCuaChiDocFileThuong/thiet-bi (0.00s)
+=== RUN   TestCuaTranCo
+--- PASS: TestCuaTranCo (0.00s)
+=== RUN   TestCuaKhongTreo
+--- PASS: TestCuaKhongTreo (0.00s)
+=== RUN   TestCuaChuFile
+--- PASS: TestCuaChuFile (0.00s)
+=== RUN   TestCuaDua
+=== RUN   TestCuaDua/tra-file
+    gate_test.go:355: đọc được 57, từ chối 943
+=== RUN   TestCuaDua/tra-thu-muc-cha
+    gate_test.go:355: đọc được 276, từ chối 724
+--- PASS: TestCuaDua (0.01s)
+    --- PASS: TestCuaDua/tra-file (0.00s)
+    --- PASS: TestCuaDua/tra-thu-muc-cha (0.00s)
+=== RUN   TestCuaKhongRaNgoai
+=== RUN   TestCuaKhongRaNgoai/WriteFileAtomic
+=== RUN   TestCuaKhongRaNgoai/MkdirAll
+=== RUN   TestCuaKhongRaNgoai/Remove
+=== RUN   TestCuaKhongRaNgoai/Rename
+=== RUN   TestCuaKhongRaNgoai/Symlink
+=== RUN   TestCuaKhongRaNgoai/Chown
+=== RUN   TestCuaKhongRaNgoai/Chmod
+--- PASS: TestCuaKhongRaNgoai (0.00s)
+    --- PASS: TestCuaKhongRaNgoai/WriteFileAtomic (0.00s)
+    --- PASS: TestCuaKhongRaNgoai/MkdirAll (0.00s)
+    --- PASS: TestCuaKhongRaNgoai/Remove (0.00s)
+    --- PASS: TestCuaKhongRaNgoai/Rename (0.00s)
+    --- PASS: TestCuaKhongRaNgoai/Symlink (0.00s)
+    --- PASS: TestCuaKhongRaNgoai/Chown (0.00s)
+    --- PASS: TestCuaKhongRaNgoai/Chmod (0.00s)
+=== RUN   TestCuaDuaChmod
+--- PASS: TestCuaDuaChmod (0.00s)
+=== RUN   TestCuaDuaGhi
+=== RUN   TestCuaDuaGhi/Chmod
+=== RUN   TestCuaDuaGhi/Chown
+=== RUN   TestCuaDuaGhi/WriteFileAtomic
+=== RUN   TestCuaDuaGhi/MkdirAll
+=== RUN   TestCuaDuaGhi/Remove
+=== RUN   TestCuaDuaGhi/Rename
+=== RUN   TestCuaDuaGhi/Symlink
+--- PASS: TestCuaDuaGhi (0.15s)
+    --- PASS: TestCuaDuaGhi/Chmod (0.00s)
+    --- PASS: TestCuaDuaGhi/Chown (0.00s)
+    --- PASS: TestCuaDuaGhi/WriteFileAtomic (0.09s)
+    --- PASS: TestCuaDuaGhi/MkdirAll (0.03s)
+    --- PASS: TestCuaDuaGhi/Remove (0.00s)
+    --- PASS: TestCuaDuaGhi/Rename (0.01s)
+    --- PASS: TestCuaDuaGhi/Symlink (0.01s)
+=== RUN   TestCuaHardlink
+--- PASS: TestCuaHardlink (0.00s)
+=== RUN   TestCuaTenLa
+--- PASS: TestCuaTenLa (0.00s)
+=== RUN   TestCuaGiuSetgid
+--- PASS: TestCuaGiuSetgid (0.00s)
+=== RUN   TestCuaModeNhuOS
+--- PASS: TestCuaModeNhuOS (0.00s)
+=== RUN   TestCuaSymlinkDoiChu
+--- PASS: TestCuaSymlinkDoiChu (0.00s)
+=== RUN   TestCuaGocKhongAnToan
+--- PASS: TestCuaGocKhongAnToan (0.00s)
+=== RUN   TestLoiCuaKhongLoNoiDung
+--- PASS: TestLoiCuaKhongLoNoiDung (0.00s)
+=== RUN   TestCuaKhongRoFD
+--- PASS: TestCuaKhongRoFD (16.75s)
+PASS
+=== internal/system (-test.run 'Cua|VungSite|LenhRoot') ===
+=== RUN   TestVungSiteCaHaiBan
+=== RUN   TestVungSiteCaHaiBan/read/file
+=== RUN   TestVungSiteCaHaiBan/read/symlink-cuoi
+=== RUN   TestVungSiteCaHaiBan/read/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/read/neo-symlink
+=== RUN   TestVungSiteCaHaiBan/read/thu-muc
+=== RUN   TestVungSiteCaHaiBan/read/khong-co
+=== RUN   TestVungSiteCaHaiBan/read/cha-la-file
+=== RUN   TestVungSiteCaHaiBan/write/file
+=== RUN   TestVungSiteCaHaiBan/write/de-symlink
+=== RUN   TestVungSiteCaHaiBan/write/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/write/thu-muc
+=== RUN   TestVungSiteCaHaiBan/write/khong-co-cha
+=== RUN   TestVungSiteCaHaiBan/mkdir/moi
+=== RUN   TestVungSiteCaHaiBan/mkdir/co-san
+=== RUN   TestVungSiteCaHaiBan/mkdir/neo-chua-co
+=== RUN   TestVungSiteCaHaiBan/mkdir/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/mkdir/qua-symlink
+=== RUN   TestVungSiteCaHaiBan/mkdir/qua-file
+=== RUN   TestVungSiteCaHaiBan/remove/file
+=== RUN   TestVungSiteCaHaiBan/remove/symlink
+=== RUN   TestVungSiteCaHaiBan/remove/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/remove/khong-rong
+=== RUN   TestVungSiteCaHaiBan/remove/khong-co
+=== RUN   TestVungSiteCaHaiBan/rename/trong
+=== RUN   TestVungSiteCaHaiBan/rename/public
+=== RUN   TestVungSiteCaHaiBan/rename/ra-ngoai
+=== RUN   TestVungSiteCaHaiBan/rename/tu-ngoai
+=== RUN   TestVungSiteCaHaiBan/rename/cha-symlink-nguon
+=== RUN   TestVungSiteCaHaiBan/rename/cha-symlink-dich
+=== RUN   TestVungSiteCaHaiBan/rename/khong-co
+=== RUN   TestVungSiteCaHaiBan/symlink/moi
+=== RUN   TestVungSiteCaHaiBan/symlink/da-co
+=== RUN   TestVungSiteCaHaiBan/symlink/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/readlink/link
+=== RUN   TestVungSiteCaHaiBan/readlink/file
+=== RUN   TestVungSiteCaHaiBan/readlink/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/stat/file
+=== RUN   TestVungSiteCaHaiBan/stat/symlink-cuoi
+=== RUN   TestVungSiteCaHaiBan/stat/public-symlink
+=== RUN   TestVungSiteCaHaiBan/stat/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/stat/wp-config-cha-symlink
+=== RUN   TestVungSiteCaHaiBan/stat/neo-symlink
+=== RUN   TestVungSiteCaHaiBan/stat/khong-co
+=== RUN   TestVungSiteCaHaiBan/readdir/public
+=== RUN   TestVungSiteCaHaiBan/readdir/public-symlink
+=== RUN   TestVungSiteCaHaiBan/readdir/file
+=== RUN   TestVungSiteCaHaiBan/chown/file
+=== RUN   TestVungSiteCaHaiBan/chown/thu-muc
+=== RUN   TestVungSiteCaHaiBan/chown/symlink
+=== RUN   TestVungSiteCaHaiBan/chown/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/chmod/thu-muc-setgid
+=== RUN   TestVungSiteCaHaiBan/chmod/file
+=== RUN   TestVungSiteCaHaiBan/chmod/symlink
+=== RUN   TestVungSiteCaHaiBan/chmod/cha-symlink
+=== RUN   TestVungSiteCaHaiBan/statfs/public
+=== RUN   TestVungSiteCaHaiBan/statfs/symlink
+=== RUN   TestVungSiteCaHaiBan/statfs/cha-symlink
+--- PASS: TestVungSiteCaHaiBan (0.02s)
+    --- PASS: TestVungSiteCaHaiBan/read/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/read/symlink-cuoi (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/read/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/read/neo-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/read/thu-muc (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/read/khong-co (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/read/cha-la-file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/write/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/write/de-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/write/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/write/thu-muc (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/write/khong-co-cha (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/mkdir/moi (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/mkdir/co-san (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/mkdir/neo-chua-co (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/mkdir/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/mkdir/qua-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/mkdir/qua-file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/remove/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/remove/symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/remove/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/remove/khong-rong (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/remove/khong-co (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/rename/trong (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/rename/public (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/rename/ra-ngoai (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/rename/tu-ngoai (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/rename/cha-symlink-nguon (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/rename/cha-symlink-dich (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/rename/khong-co (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/symlink/moi (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/symlink/da-co (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/symlink/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/readlink/link (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/readlink/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/readlink/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/stat/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/stat/symlink-cuoi (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/stat/public-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/stat/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/stat/wp-config-cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/stat/neo-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/stat/khong-co (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/readdir/public (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/readdir/public-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/readdir/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chown/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chown/thu-muc (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chown/symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chown/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chmod/thu-muc-setgid (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chmod/file (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chmod/symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/chmod/cha-symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/statfs/public (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/statfs/symlink (0.00s)
+    --- PASS: TestVungSiteCaHaiBan/statfs/cha-symlink (0.00s)
+=== RUN   TestMoiHamCoLuatVungSite
+--- PASS: TestMoiHamCoLuatVungSite (0.00s)
+=== RUN   TestLenhRootKhongNhanDuongDanSite
+=== RUN   TestLenhRootKhongNhanDuongDanSite/rm-root
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-create
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-backup-that
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-extract
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-extract-viet-tat
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-x-gop
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-h
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-dereference
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-khong-create
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-sau-hon-mot
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-sau-tuong-doi
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-C-tach
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-C-vao-public
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-directory-tach
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-directory-tach-neo
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-file
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-f
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-T
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-files-from
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-exclude-from
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-index-file
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-volno-file
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-listed-incremental
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-I
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-compress-program
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-tar-F
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-du-files0-from
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-du-X
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-du-L
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-useradd-P
+=== RUN   TestLenhRootKhongNhanDuongDanSite/c5-useradd-shell
+=== RUN   TestLenhRootKhongNhanDuongDanSite/useradd-that
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-dir-viet-tat
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-zC-gop
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-kieu-cu
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-C-dinh
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tar-cham-cham
+=== RUN   TestLenhRootKhongNhanDuongDanSite/ten-chuong-trinh
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tuong-doi
+=== RUN   TestLenhRootKhongNhanDuongDanSite/tuong-doi-dir
+=== RUN   TestLenhRootKhongNhanDuongDanSite/dir-trong-vung
+=== RUN   TestLenhRootKhongNhanDuongDanSite/directory-tuong-doi
+=== RUN   TestLenhRootKhongNhanDuongDanSite/mariadb-source
+=== RUN   TestLenhRootKhongNhanDuongDanSite/env
+=== RUN   TestLenhRootKhongNhanDuongDanSite/du-neo
+=== RUN   TestLenhRootKhongNhanDuongDanSite/du-public
+=== RUN   TestLenhRootKhongNhanDuongDanSite/du-sau
+=== RUN   TestLenhRootKhongNhanDuongDanSite/useradd
+=== RUN   TestLenhRootKhongNhanDuongDanSite/useradd-tao-home
+=== RUN   TestLenhRootKhongNhanDuongDanSite/find-chmod
+=== RUN   TestLenhRootKhongNhanDuongDanSite/as-site-user
+=== RUN   TestLenhRootKhongNhanDuongDanSite/as-site-user-rm
+=== RUN   TestLenhRootKhongNhanDuongDanSite/as-www-data
+=== RUN   TestLenhRootKhongNhanDuongDanSite/as-root
+=== RUN   TestLenhRootKhongNhanDuongDanSite/ngoai-vung
+=== RUN   TestLenhRootKhongNhanDuongDanSite/chinh-goc
+=== RUN   TestLenhRootKhongNhanDuongDanSite/goc-giong-ten
+=== RUN   TestLenhRootKhongNhanDuongDanSite/lenh-thuong
+--- PASS: TestLenhRootKhongNhanDuongDanSite (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/rm-root (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-create (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-backup-that (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-extract (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-extract-viet-tat (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-x-gop (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-h (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-dereference (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-khong-create (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-sau-hon-mot (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-sau-tuong-doi (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-C-tach (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-C-vao-public (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-directory-tach (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-directory-tach-neo (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-file (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-f (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-T (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-files-from (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-exclude-from (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-index-file (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-volno-file (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-listed-incremental (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-I (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-compress-program (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-tar-F (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-du-files0-from (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-du-X (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-du-L (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-useradd-P (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/c5-useradd-shell (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/useradd-that (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-dir-viet-tat (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-zC-gop (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-kieu-cu (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-C-dinh (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tar-cham-cham (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/ten-chuong-trinh (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tuong-doi (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/tuong-doi-dir (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/dir-trong-vung (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/directory-tuong-doi (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/mariadb-source (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/env (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/du-neo (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/du-public (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/du-sau (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/useradd (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/useradd-tao-home (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/find-chmod (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/as-site-user (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/as-site-user-rm (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/as-www-data (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/as-root (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/ngoai-vung (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/chinh-goc (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/goc-giong-ten (0.00s)
+    --- PASS: TestLenhRootKhongNhanDuongDanSite/lenh-thuong (0.00s)
+=== RUN   TestLenhRootHuyKhongDeLaiTienTrinh
+--- PASS: TestLenhRootHuyKhongDeLaiTienTrinh (1.27s)
+=== RUN   TestVungSiteDirSetgid
+--- PASS: TestVungSiteDirSetgid (0.00s)
+=== RUN   TestVungSiteFakeLuatChu
+--- PASS: TestVungSiteFakeLuatChu (0.08s)
+PASS
+=== internal/server (-test.run 'Cua|VungSite|LenhRoot') ===
+=== RUN   TestTaoSiteCuaNguoiKhac
+--- PASS: TestTaoSiteCuaNguoiKhac (0.03s)
+=== RUN   TestLoiCuaThanh409
+=== RUN   TestLoiCuaThanh409/symlink
+=== RUN   TestLoiCuaThanh409/FIFO
+=== RUN   TestLoiCuaThanh409/quá_lớn
+=== RUN   TestLoiCuaThanh409/chủ
+=== RUN   TestLoiCuaThanh409/gốc
+=== RUN   TestLoiCuaThanh409/ENOTDIR
+=== RUN   TestLoiCuaThanh409/EACCES
+=== RUN   TestLoiCuaThanh409/ENOENT
+--- PASS: TestLoiCuaThanh409 (0.00s)
+    --- PASS: TestLoiCuaThanh409/symlink (0.00s)
+    --- PASS: TestLoiCuaThanh409/FIFO (0.00s)
+    --- PASS: TestLoiCuaThanh409/quá_lớn (0.00s)
+    --- PASS: TestLoiCuaThanh409/chủ (0.00s)
+    --- PASS: TestLoiCuaThanh409/gốc (0.00s)
+    --- PASS: TestLoiCuaThanh409/ENOTDIR (0.00s)
+    --- PASS: TestLoiCuaThanh409/EACCES (0.00s)
+    --- PASS: TestLoiCuaThanh409/ENOENT (0.00s)
+=== RUN   TestVungSiteDocLaiBangUserSite
+--- PASS: TestVungSiteDocLaiBangUserSite (0.02s)
+PASS
+  => ĐẠT: m28-test-vm PASS, không có dòng SKIP
+
+==== Phần C: 1 khẳng định đạt, 0 không đạt
+
+
+######## [2026-11-21 12:22:57] PHẦN D: nâng từ v0.2.0 lên bản của cây (Apache)
+
+[2026-11-21 12:22:57] đưa máy ảo tpan-m28 về sạch
+[2026-11-21 12:23:13] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-21 12:23:13] chép gói v0.2.0 vào máy ảo
+[2026-11-21 12:23:15] chép scripts/e2e-m28/ vào máy ảo (/home/ubuntu/e2e-m28)
+
+[2026-11-21 12:23:19] $ cài v0.2.0 bằng install.sh của gói (--web apache)
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /home/ubuntu/v0.2.0/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
+Đã đặt /usr/local/bin/tpan
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job 3edc551e45299847
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 3edc551e45299847: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    11:B4:43:52:90:CA:E2:AA:B4:3E:CB:5D:5F:50:E9:52:5E:2B:83:83:6C:64:D8:6A:42:1A:0A:D3:7E:B4:17:7C
+Mở: https://<IP của máy>:8443
+
+==> Cài stack: tpan stack install --web apache
+Bắt đầu job deb1b7659ed5defb
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2 ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Bật kiểm quyền file và khoá API của OPcache cho php<bản>-fpm ...
+  xong
+- Ẩn tiến trình của user khác với PHP của php<bản>-fpm ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Module Apache: bật mpm_event proxy_fcgi setenvif rewrite headers http2; tắt mpm_prefork ...
+  xong
+- Gỡ /etc/apache2/sites-enabled/000-default.conf ...
+  xong
+- Ghi /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Bật /etc/apache2/sites-enabled/000-tpan-default.conf → /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Chạy và bật apache2 khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
+
+Job deb1b7659ed5defb: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+
+Xong. Bước tiếp:
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-21 12:24:19] (mã thoát 0)
+
+[2026-11-21 12:24:19] >>> dựng site trên v0.2.0  (bash dung-may.sh apache)
+
+--- [12:24:19] tpan version
+tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
+
+--- [12:24:19] tpan setup
+  -- GHI NHẬN: tpan đã setup (bỏ qua); /root/m28-admin.pw không có, phần này không cần admin
+  => ĐẠT: tpan.service active
+
+--- [12:24:19] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+  apt rảnh sau khoảng 0 giây
+
+--- [12:24:19] tpan stack install --web apache --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web apache thoát 0
+
+--- [12:24:19] tpan site add a.example.com (admin)
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  => ĐẠT: site add a.example.com thoát 0
+
+--- [12:24:36] tpan site add b.example.com (admin)
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+  => ĐẠT: site add b.example.com thoát 0
+
+--- [12:24:43] user khach1 (vai user) và site e.example.com của khach1
+  => ĐẠT: user add khach1 thoát 0, có mật khẩu (không in)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site e.example.com
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com
+  => ĐẠT: site add e.example.com --owner khach1 thoát 0
+
+--- [12:24:50] hiện trạng
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-21 12:24 admin          -
+b.example.com                            active   8.3   không 2026-11-21 12:24 admin          -
+e.example.com                            active   8.3   không 2026-11-21 12:24 khach1         -
+  /var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public/.htaccess  regular file tp_a_example_com_7653e4:www-data 640 696 byte
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  /var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public/.htaccess  regular file tp_b_example_com_cd59d5:www-data 640 696 byte
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  /var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public/.htaccess  regular file tp_e_example_com_25cfc7:www-data 640 696 byte
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+  site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; stack apache
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+  => ĐẠT: khach1 đăng nhập API: HTTP 204
+  khach1 GET /session: HTTP 200, 0.002250s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 155 byte
+  phiên: khach1 vai user
+  => ĐẠT: phiên của khach1 có vai user
+[2026-11-21 12:24:51] <<< dựng site trên v0.2.0 xong trong 32 giây
+
+[2026-11-21 12:24:51] >>> D pha trước (lưu bản xem trước, health; ba mục tiêu T1 LỘ)  (bash nang-truoc.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:24:51] D0. v0.2.0: lưu mục .htaccess (file thường) của bản xem trước khach1
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.467466s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41138 byte
+    phân tích: đã lưu mục /var/www/e.example.com/public/.htaccess: old sha=323969eac053238b, new sha=323969eac053238b, old_exists=True
+  => ĐẠT: v0.2.0: bản xem trước .htaccess thường HTTP 200, lưu được mục
+
+--- [12:24:52] D0. v0.2.0: tpan health (lưu dòng [lỗi] làm mốc)
+  số dòng [lỗi] của v0.2.0: 0
+
+--- [12:25:01] D0. v0.2.0: ba mục tiêu T1 phải LỘ (bộ thử bắt được lỗ trên bản cũ)
+  đăng nhập khach1: HTTP 204
+
+--- [12:25:02] .htaccess của e.example.com -> symlink tới /var/www/a.example.com/public/wp-config.php
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.534636s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 44851 byte
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=4a3be901023fbe94): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 44851 byte, 4 file trong bản xem trước
+  => ĐẠT: v0.2.0, symlink -> /var/www/a.example.com/public/wp-config.php: bản xem trước CHỨA file đích (bộ thử bắt được lỗ T1 trên bản cũ)
+  tpan: PID 3652 -> 3652 (active), NRestarts 0 -> 0
+
+--- [12:25:02] .htaccess của e.example.com -> symlink tới /etc/shadow
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.416981s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41519 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 41519 byte, 4 file trong bản xem trước
+  => ĐẠT: v0.2.0, symlink -> /etc/shadow: bản xem trước CHỨA file đích (bộ thử bắt được lỗ T1 trên bản cũ)
+  tpan: PID 3652 -> 3652 (active), NRestarts 0 -> 0
+
+--- [12:25:03] .htaccess của e.example.com -> symlink tới /var/lib/tpan/tpan.db
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.440702s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 1198015 byte
+    phân tích: /var/lib/tpan/tpan.db (868352 byte sha=1799884f308867dd): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 1198015 byte, 4 file trong bản xem trước
+  => ĐẠT: v0.2.0, symlink -> /var/lib/tpan/tpan.db: bản xem trước CHỨA file đích (bộ thử bắt được lỗ T1 trên bản cũ)
+  tpan: PID 3652 -> 3652 (active), NRestarts 0 -> 0
+[2026-11-21 12:25:03] <<< D pha trước (lưu bản xem trước, health; ba mục tiêu T1 LỘ) xong trong 12 giây
+
+[2026-11-21 12:25:03] thay file chạy bằng bản của cây rồi restart tpan
+tpan v0.2.0-46-gb94d11a (commit b94d11a, build 2026-11-21T05:15:51Z)
+
+[2026-11-21 12:25:05] >>> D pha sau (xem trước giống, health không lỗi mới, 3 site 200, T1 bị chặn)  (bash nang-sau.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:25:05] D1. phiên bản tpan đang chạy (bản của cây)
+tpan v0.2.0-46-gb94d11a (commit b94d11a, build 2026-11-21T05:15:51Z)
+
+--- [12:25:05] D2. mục .htaccess trong bản xem trước giống hệt lúc trước khi nâng
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.420622s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41162 byte
+    phân tích: trước old sha=323969eac053238b new sha=323969eac053238b; sau old sha=323969eac053238b new sha=323969eac053238b; trường khác: không
+  => ĐẠT: bản xem trước .htaccess thường HTTP 200, mục giống hệt v0.2.0 (path, old, new, old_exists)
+
+--- [12:25:06] D3. tpan health không có [lỗi] mới so với trước khi nâng
+  số dòng [lỗi]: trước 0, sau 0
+  => ĐẠT: không có dòng [lỗi] mới sau khi nâng
+
+--- [12:25:15] D4. ba site trả 200
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+
+--- [12:25:15] D5. ba mục tiêu T1 giờ bị chặn
+  đăng nhập khach1: HTTP 204
+
+--- [12:25:15] .htaccess của e.example.com -> symlink tới /var/www/a.example.com/public/wp-config.php
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.468819s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40283 byte
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=4a3be901023fbe94): không chứa; câu trả lời 40283 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (43 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 19337 -> 19337 (active), NRestarts 0 -> 0
+
+--- [12:25:15] .htaccess của e.example.com -> symlink tới /etc/shadow
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.443135s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40251 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): không chứa; câu trả lời 40251 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /etc/shadow: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (11 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /etc/shadow: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 19337 -> 19337 (active), NRestarts 0 -> 0
+
+--- [12:25:16] .htaccess của e.example.com -> symlink tới /var/lib/tpan/tpan.db
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.620735s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40261 byte
+    phân tích: /var/lib/tpan/tpan.db (1028096 byte sha=ba7c0a9030735c99): không chứa; câu trả lời 40261 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /var/lib/tpan/tpan.db: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (21 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /var/lib/tpan/tpan.db: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 19337 -> 19337 (active), NRestarts 0 -> 0
+
+--- [12:25:17] D6. chạy lại site add e.example.com sau khi nâng: các bước dir: bỏ qua, public vẫn 2750 (S3)
+  site add thoát 0
+  => ĐẠT: site add e.example.com chạy lại thoát 0
+   dir:/var/www/e.example.com skipped
+   dir:/var/www/e.example.com/public skipped
+   dir:/var/www/e.example.com/tmp skipped
+   dir:/var/log/tpan/sites/e.example.com skipped
+  => ĐẠT: mọi bước có ID bắt đầu bằng dir: có outcome skipped
+  => ĐẠT: public của e.example.com vẫn 2750 (2750)
+[2026-11-21 12:25:21] <<< D pha sau (xem trước giống, health không lỗi mới, 3 site 200, T1 bị chặn) xong trong 15 giây
+
+==== Phần D: 29 khẳng định đạt, 0 không đạt
+
+
+######## [2026-11-21 12:25:21] PHẦN APACHE
+
+[2026-11-21 12:25:21] đưa máy ảo tpan-m28 về sạch
+[2026-11-21 12:25:37] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-21 12:25:37] chép bản chưa vá bin/tpan-m28-e2e-linux-arm64 vào máy ảo
+tpan v0.2.0-46-gb94d11a (commit b94d11a, build 2026-11-21T05:15:51Z)
+[2026-11-21 12:25:38] chép scripts/e2e-m28/ vào máy ảo (/home/ubuntu/e2e-m28)
+
+[2026-11-21 12:25:44] >>> dựng máy (apache)  (bash dung-may.sh apache)
+
+--- [12:25:44] tpan version
+tpan v0.2.0-46-gb94d11a (commit b94d11a, build 2026-11-21T05:15:51Z)
+
+--- [12:25:44] tpan setup
+  xong
+
+Job 3a81e2e94ffabbfb: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    98:17:17:80:67:B4:AE:A6:F0:81:23:F0:F5:09:B7:D5:24:CF:32:A0:50:0A:C3:58:B1:CD:4C:E1:98:24:9F:EA
+Mở: https://<IP của máy>:8443
+  => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m28-admin.pw, không in)
+  => ĐẠT: tpan.service active
+
+--- [12:25:44] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+  apt rảnh sau khoảng 0 giây
+
+--- [12:25:44] tpan stack install --web apache --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web apache thoát 0
+
+--- [12:26:32] tpan site add a.example.com (admin)
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  => ĐẠT: site add a.example.com thoát 0
+
+--- [12:26:50] tpan site add b.example.com (admin)
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+  => ĐẠT: site add b.example.com thoát 0
+
+--- [12:26:57] user khach1 (vai user) và site e.example.com của khach1
+  => ĐẠT: user add khach1 thoát 0, có mật khẩu (không in)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site e.example.com
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com
+  => ĐẠT: site add e.example.com --owner khach1 thoát 0
+
+--- [12:27:04] hiện trạng
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-21 12:26 admin          -
+b.example.com                            active   8.3   không 2026-11-21 12:26 admin          -
+e.example.com                            active   8.3   không 2026-11-21 12:27 khach1         -
+  /var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public/.htaccess  regular file tp_a_example_com_7653e4:www-data 640 696 byte
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  /var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public/.htaccess  regular file tp_b_example_com_cd59d5:www-data 640 696 byte
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  /var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public/.htaccess  regular file tp_e_example_com_25cfc7:www-data 640 696 byte
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+  site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; stack nginx
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+  => ĐẠT: khach1 đăng nhập API: HTTP 204
+  khach1 GET /session: HTTP 200, 0.002692s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 167 byte
+  phiên: khach1 vai user
+  => ĐẠT: phiên của khach1 có vai user
+[2026-11-21 12:27:05] <<< dựng máy (apache) xong trong 81 giây
+
+[2026-11-21 12:27:05] >>> A1,A3 bản xem trước  (bash xem-truoc.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:27:05] 1. .htaccess là file thường (hành vi đúng phải giữ)
+  /var/www/e.example.com/public/.htaccess: regular file, tp_e_example_com_25cfc7:www-data 640, 696 byte
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.456128s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41162 byte
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_exists=True, old 696 byte sha=323969eac053238b, file trên đĩa 696 byte sha=323969eac053238b, new 696 byte sha=323969eac053238b
+  => ĐẠT: .htaccess thường: HTTP 200, mục .htaccess có old_exists true, old đúng bằng file trên đĩa, new khác rỗng
+  (bản xem trước mất 0.456128s)
+
+--- [12:27:06] 3a. thư mục cha: public -> symlink tới thư mục chỉ root đọc được
+  khach1 POST /sites?dry_run=1: HTTP 409, 0.006171s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 673 byte
+    phân tích: /srv/m28/nan-nhan/.htaccess (811 byte sha=ba3c5c70cec02806): không chứa; câu trả lời 673 byte, lỗi code=site_path_unsafe
+    phân tích: /srv/m28/nan-nhan/wp-config.php (3480 byte sha=9ef26a5e32d1ea27): không chứa; câu trả lời 673 byte, lỗi code=site_path_unsafe
+  => ĐẠT: cha là symlink: câu trả lời không chứa file nào của thư mục nạn nhân
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+
+--- [12:27:06] 3b. hardlink tới /etc/shadow
+fs.protected_hardlinks = 1
+  ln: ln: failed to create hard link '/var/www/e.example.com/public/.htaccess' => '/etc/shadow': Operation not permitted
+  => ĐẠT: fs.protected_hardlinks=1: kernel từ chối user site tạo hardlink tới /etc/shadow
+  tắt fs.protected_hardlinks (máy bị cấu hình lỏng) rồi thử lại
+  /var/www/e.example.com/public/.htaccess: regular file, chủ root:shadow, quyền 640, 2 tên
+  khach1 POST /sites?dry_run=1: HTTP 409, 0.085932s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 678 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): không chứa; câu trả lời 678 byte, lỗi code=site_path_unsafe
+  => ĐẠT: hardlink tới /etc/shadow: câu trả lời không chứa file đích
+    phân tích: error.code=site_path_unsafe
+  => ĐẠT: hardlink tới /etc/shadow: HTTP 409, error.code site_path_unsafe
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+fs.protected_hardlinks = 1
+
+--- [12:27:06] 3c. tên lạ trong public do user site tạo (xuống dòng, -rf, 255 ký tự)
+  đã tạo 3 file, độ dài tên: [18, 3, 255]
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.427010s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41162 byte
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_exists=True, old 696 byte sha=323969eac053238b, file trên đĩa 696 byte sha=323969eac053238b, new 696 byte sha=323969eac053238b
+  => ĐẠT: tên lạ trong public: HTTP 200, mục .htaccess có old_exists true, old đúng bằng file trên đĩa, new khác rỗng
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: tên lạ: tpan còn sống, PID không đổi
+[2026-11-21 12:27:07] <<< A1,A3 bản xem trước xong trong 2 giây
+
+[2026-11-21 12:27:07] >>> A2 ba mục tiêu T1  (bash t1.sh chan)
+  đăng nhập khach1: HTTP 204
+
+--- [12:27:07] .htaccess của e.example.com -> symlink tới /var/www/a.example.com/public/wp-config.php
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.448478s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40283 byte
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=9ef26a5e32d1ea27): không chứa; câu trả lời 40283 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (43 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+
+--- [12:27:07] .htaccess của e.example.com -> symlink tới /etc/shadow
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.447211s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40251 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): không chứa; câu trả lời 40251 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /etc/shadow: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (11 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /etc/shadow: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+
+--- [12:27:08] .htaccess của e.example.com -> symlink tới /var/lib/tpan/tpan.db
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.426119s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40261 byte
+    phân tích: /var/lib/tpan/tpan.db (888832 byte sha=d6c630ef466c4139): không chứa; câu trả lời 40261 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /var/lib/tpan/tpan.db: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (21 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /var/lib/tpan/tpan.db: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+[2026-11-21 12:27:09] <<< A2 ba mục tiêu T1 xong trong 2 giây
+
+[2026-11-21 12:27:09] >>> A4 đua  (bash dua.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:27:09] 4a. tráo .htaccess <-> symlink tới /etc/shadow, 1000 lần xin bản xem trước (4 song song)
+  kẻ tráo đang chạy (user tp_e_example_com_25cfc7)
+  1000 lần gọi xong trong 468 giây
+  số lần tráo: 3108748 
+  sau khi dừng: /var/www/e.example.com/public/.htaccess là regular file
+  => ĐẠT: 4a: kẻ tráo đã tráo hơn 1000 lần trong lúc gọi (3108748 lần)
+  => ĐẠT: 4a: đủ 1000 câu trả lời
+    phân tích: 1000 lần gọi, theo mã HTTP: {'200': 893, '409': 107}; 1000 câu trả lời, 0 câu trả lời chứa file đích 
+  => ĐẠT: 4a: không câu trả lời nào trong 1000 câu chứa /etc/shadow
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: 4a: tpan còn sống, PID không đổi
+
+--- [12:34:58] 4b. tráo public <-> symlink tới thư mục nạn nhân, 300 lần xin bản xem trước
+  kẻ tráo đang chạy (user tp_e_example_com_25cfc7)
+  300 lần gọi xong trong 17 giây
+  số lần tráo: 2793010 
+  sau khi dừng: /var/www/e.example.com/public là directory
+  => ĐẠT: 4b: kẻ tráo đã tráo hơn 300 lần trong lúc gọi (2793010 lần)
+  => ĐẠT: 4b: đủ 300 câu trả lời
+    phân tích: 300 lần gọi, theo mã HTTP: {'200': 30, '409': 270}; 300 câu trả lời, 0 câu trả lời chứa file đích 
+  => ĐẠT: 4b: không câu trả lời nào trong 300 câu chứa file của thư mục nạn nhân
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: 4b: tpan còn sống, PID không đổi
+[2026-11-21 12:35:17] <<< A4 đua xong trong 488 giây
+
+[2026-11-21 12:35:17] >>> A5 từ chối phục vụ  (bash tu-choi.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:35:17] 5a. .htaccess là file thường 2 GiB (thưa), đúng chủ và quyền
+  /var/www/e.example.com/public/.htaccess: regular file, 2147483648 byte, chủ tp_e_example_com_25cfc7:www-data, quyền 640
+  khach1 POST /sites?dry_run=1: HTTP 409, 0.138348s (curl thoát 0; 28 là quá hạn 20s), câu trả lời 633 byte
+  => ĐẠT: file 2 GiB: trả lời trong 5 giây
+    phân tích: error.code=site_path_unsafe
+  => ĐẠT: file 2 GiB: HTTP 409, JSON có error.code
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: file 2 GiB: PID của tpan.service không đổi, NRestarts không tăng
+
+--- [12:35:19] 5b. .htaccess là FIFO
+  /var/www/e.example.com/public/.htaccess: fifo, chủ tp_e_example_com_25cfc7:www-data, quyền 640
+  khach1 POST /sites?dry_run=1: HTTP 409, 0.103060s (curl thoát 0; 28 là quá hạn 20s), câu trả lời 753 byte
+  => ĐẠT: FIFO: trả lời trong 5 giây
+    phân tích: error.code=site_path_unsafe
+  => ĐẠT: FIFO: HTTP 409, JSON có error.code
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: FIFO: PID của tpan.service không đổi, NRestarts không tăng
+
+--- [12:35:24] 5c. .htaccess -> symlink tới /dev/zero
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.660712s (curl thoát 0; 28 là quá hạn 20s), câu trả lời 40249 byte
+  => ĐẠT: /dev/zero: trả lời trong 5 giây
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (9 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: /dev/zero: HTTP 200, mục .htaccess có old_link, không có old (không đọc đích)
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: /dev/zero: PID của tpan.service không đổi, NRestarts không tăng
+
+--- [12:35:26] tổng qua cả ba
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: qua cả ba phép: PID của tpan.service không đổi, NRestarts không tăng
+[2026-11-21 12:35:26] <<< A5 từ chối phục vụ xong trong 9 giây
+
+[2026-11-21 12:35:26] >>> A5 đua FIFO (S1)  (bash tu-choi-fifo.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:35:26] 5d. đua FIFO: kẻ tráo đặt FIFO đè lên .htaccess, 50 lần xin bản xem trước (tuần tự)
+  kẻ tráo đang chạy (user tp_e_example_com_25cfc7)
+  số lần tráo: 50708 
+  50 lần gọi: 0 lần quá 5 giây hay không có câu trả lời, 0 lần mã HTTP khác 200 và 409
+  => ĐẠT: 5d: kẻ tráo đã tráo hơn 50 lần trong lúc gọi (50708 lần)
+  => ĐẠT: 5d: đủ 50 câu trả lời, lần nào cũng trong 5 giây
+  => ĐẠT: 5d: mã HTTP chỉ là 200 hoặc 409
+    phân tích: 50 lần gọi, theo mã HTTP: {'409': 50}; 50 câu trả lời, 0 câu trả lời chứa file đích 
+  => ĐẠT: 5d: không câu trả lời nào chứa /etc/shadow
+  => ĐẠT: 5d: không còn tiến trình dd nào của user tp_e_example_com_25cfc7
+  => ĐẠT: 5d: không còn tiến trình head nào của user tp_e_example_com_25cfc7
+  => ĐẠT: 5d: không còn tiến trình timeout nào của user tp_e_example_com_25cfc7
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: 5d: PID của tpan.service không đổi, NRestarts không tăng
+[2026-11-21 12:35:38] <<< A5 đua FIFO (S1) xong trong 12 giây
+
+[2026-11-21 12:35:38] >>> A6 chạy thật  (bash chay-that.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [12:35:39] 6. .htaccess -> symlink tới /etc/shadow, khach1 chạy thật POST /sites
+  /etc/shadow trước: 980 byte sha=f54b0cec9863a177
+  khach1 POST /sites: HTTP 202, 0.013082s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 30 byte
+  => ĐẠT: POST /sites (chạy thật) nhận job: HTTP 202
+  job_id có 16 ký tự
+  3 lần GET /jobs/{id}; trạng thái cuối: succeeded
+  => ĐẠT: job thành công (status succeeded)
+  sau job: /var/www/e.example.com/public/.htaccess là regular file, chủ tp_e_example_com_25cfc7:www-data, quyền 640, 696 byte
+  => ĐẠT: .htaccess thành file thường của user site
+  /etc/shadow sau: sha=f54b0cec9863a177
+  => ĐẠT: sha256 của /etc/shadow không đổi
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): không chứa; câu trả lời 31541 byte, không phải JSON
+  => ĐẠT: toàn bộ câu trả lời của POST /sites và GET /jobs/{id} không chứa /etc/shadow (thô và base64)
+[2026-11-21 12:35:43] <<< A6 chạy thật xong trong 5 giây
+
+[2026-11-21 12:35:43] >>> A7 đặt quyền thư mục  (bash quyen-thu-muc.sh )
+
+--- [12:35:43] 7. 5 vòng: admin site add f.example.com (mới), user site tráo /var/www/f.example.com/public/zz-m28/con <-> symlink tới /srv/m28-victim (0755 của root)
+
+--- [12:35:43] 7. vòng 1/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 1880303
+  job 942974ad7fa8815e: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 1: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 1: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 1: public/wp-includes là 2750 (2750)
+
+--- [12:35:55] 7. vòng 2/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 1777394
+  job 4e6618663950c430: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 2: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 2: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 2: public/wp-includes là 2750 (2750)
+
+--- [12:36:08] 7. vòng 3/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 2000008
+  job 5223b87c77e68dfa: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 3: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 3: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 3: public/wp-includes là 2750 (2750)
+
+--- [12:36:22] 7. vòng 4/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 1739451
+  job 914c2918db6e5141: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 4: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 4: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 4: public/wp-includes là 2750 (2750)
+
+--- [12:36:35] 7. vòng 5/5
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  site add thoát 0; số lần tráo thành công: 1683307
+  job f447074a48eb49df: 1 sự kiện step.done của wp.files:f.example.com
+  => ĐẠT: vòng 5: job site.add có sự kiện step.done của wp.files:f.example.com
+  nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: vòng 5: thư mục nạn nhân giữ quyền 0755
+  => ĐẠT: vòng 5: public/wp-includes là 2750 (2750)
+[2026-11-21 12:36:49] <<< A7 đặt quyền thư mục xong trong 66 giây
+
+[2026-11-21 12:36:49] >>> A8 admin accept  (bash admin-accept.sh )
+  đăng nhập admin: HTTP 204
+
+--- [12:36:50] 8a. precondition: đưa .htaccess vào managed_files (lúc còn là file thường)
+  admin POST /files/accept: HTTP 204, 0.012798s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 0 byte
+  accept lần đầu (file thường): HTTP 204
+  số dòng managed_files cho .htaccess: 1
+  => ĐẠT: precondition: .htaccess có trong managed_files (accept sắp tới không bị 400 rỗng)
+
+--- [12:36:50] 8b. .htaccess -> symlink tới /etc/shadow, admin POST /files/accept
+  admin POST /files/accept: HTTP 409, 0.006743s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 657 byte
+  => ĐẠT: POST /files/accept trên symlink tới /etc/shadow: KHÔNG phải HTTP 204
+  (mã HTTP: 409; sau bản vá mong đợi 409)
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): không chứa; câu trả lời 657 byte, lỗi code=site_path_unsafe
+  => ĐẠT: câu trả lời không chứa /etc/shadow
+  => ĐẠT: sha256 của /etc/shadow không đổi
+  tpan: PID 3535 -> 3535 (active), NRestarts 0 -> 0
+  => ĐẠT: tpan còn sống, PID không đổi
+[2026-11-21 12:36:51] <<< A8 admin accept xong trong 2 giây
+
+[2026-11-21 12:36:51] >>> A9 hồi quy M14, health, backup  (bash hoi-quy.sh )
+
+--- [12:36:52] 9a. bộ tấn công L1 đến L9 của M14 (A=e.example.com bị chiếm, B=a.example.com nạn nhân)
+KQ L1  CHAN PHP của A include wp-config.php của B: không lấy được (3 lần thử)
+KQ L2  CHAN opcache_get_status từ A: bị chặn
+KQ L3  CHAN .htaccess SetEnv PHP_ADMIN_VALUE: open_basedir giữ nguyên
+KQ L4  CHAN SetHandler + ProxyFCGISetEnvIf sang socket của B: HTTP 500, mã của A không chạy dưới user B (cả lối RewriteRule [H=])
+KQ N9  DAT  trang chủ của B không dính mã của A sau phép thử L4
+KQ N5  DAT  symlink của A sang file của B qua Apache: HTTP 403 (SymLinksIfOwnerMatch)
+KQ L9  CHAN symlink sang file 640 của B sau khi .htaccess đổi Options: [Options FollowSymLinks: HTTP 500] [Options +FollowSymLinks: HTTP 500] [Options All: HTTP 500]
+KQ N10 DAT  .htaccess có 'Options -Indexes' (plugin hay ghi): trang chủ A vẫn HTTP 200
+KQ N6  DAT  RewriteRule của A trỏ đường dẫn tuyệt đối của B: HTTP 404, không lộ
+KQ L5  BO   symlink qua nginx: stack này là Apache (xem N5 và L9)
+KQ L6  CHAN user A không đọc được access.log của B (drwxr-x--- root:tp_a_example_com_7653e4)
+KQ N7  DAT  user B đọc được access.log của chính mình
+KQ N8  DAT  web server vẫn ghi access.log của B (10 -> 11 dòng)
+KQ L7  CHAN PHP của A gọi ps: thấy 0 tiến trình của user khác
+KQ L8  CHAN vhost lạ trùng tên e.example.com (tên miền đang trả: '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML'): tpan health chỉ ra file aaa-trung-b1cc7b1c64c4.conf (4 dòng)
+KQ N1  DAT  user A không đọc được wp-config.php của B
+KQ N2  DAT  user A không liệt kê được thư mục của B
+KQ N3  DAT  user A không ghi được vào public của B
+KQ N4  DAT  user A không ghi được vào socket FPM của B
+KQ N11 DAT  Host viết hoa về đúng site A
+KQ N12 DAT  Host có dấu chấm cuối về đúng site B
+KQ N13 DAT  tên lạ: Apache trả 403
+KQ N14 DAT  trang chủ WordPress của A và B: HTTP 200 / 200
+KQ N15 DAT  permalink của A: /hello-world/ HTTP 200, trang không có HTTP 404 do WordPress trả
+KQ N16 DAT  file tĩnh của A: HTTP 200
+TONG lo=0 chan=8 hong=0
+  TONG lo=0 chan=8 hong=0 (mã thoát 0)
+  => ĐẠT: bộ phép thử chạy hết (có dòng TONG)
+  => ĐẠT: không đường tấn công nào còn lộ (TONG lo=0)
+
+--- [12:37:07] 9b. tpan health không có [lỗi]
+  số dòng [lỗi]: 0
+  => ĐẠT: tpan health không có dòng [lỗi]
+
+--- [12:37:16] 9c. backup create rồi restore site e.example.com
+
+Job 517caff6c22177fe: thành công
+  => ĐẠT: backup create e.example.com thoát 0
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_e_example_com_25cfc7 không chạm được vào file, log và socket của b.example.com (5 phép thử)
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của e.example.com (5 phép thử)
+  => ĐẠT: backup restore e.example.com thoát 0
+  e.example.com: HTTP 200
+  => ĐẠT: site e.example.com vẫn trả 200 sau khôi phục
+
+--- [12:37:36] 9d. sau tất cả: không symlink của root trong /var/www, public của mọi site active là 2750 (S3, S14)
+  => ĐẠT: find /var/www -type l -user root không ra dòng nào
+  => ĐẠT: public của a.example.com là 2750 (2750)
+  => ĐẠT: public của b.example.com là 2750 (2750)
+  => ĐẠT: public của e.example.com là 2750 (2750)
+[2026-11-21 12:37:36] <<< A9 hồi quy M14, health, backup xong trong 45 giây
+
+==== Phần APACHE: 86 khẳng định đạt, 0 không đạt
+
+
+######## [2026-11-21 12:37:36] TỔNG KẾT: 170 khẳng định đạt, 0 khẳng định không đạt
