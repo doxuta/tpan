@@ -9,7 +9,7 @@ LDFLAGS := -s -w \
   -X $(MODULE)/internal/buildinfo.Date=$(DATE)
 
 .DEFAULT_GOAL := help
-.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean
+.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell m28-nghien-cuu m28-giu-ban-chua-va e2e-m28 m28-test-vm hoi-quy-m28 clean
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -76,6 +76,63 @@ vm-deploy: build-linux ## Build rồi chép tpan vào máy ảo test
 
 vm-shell: ## Mở shell trong máy ảo test
 	scripts/vm.sh shell
+
+# T: tên script (không có .sh), A: tham số của script, S: hậu tố file kết quả.
+m28-nghien-cuu: ## (M28) Chạy một bản thử ở docs/bang-chung/M28-nghien-cuu trên máy ảo: make m28-nghien-cuu T=<tên>
+	bash docs/bang-chung/M28-nghien-cuu/chay.sh '$(T)' '$(A)' '$(S)'
+
+# Tạm (M28): giữ một bản build của mã chưa vá để e2e chạy thử trên nó trong lúc
+# phiên chính sửa mã. bin/ không vào git.
+m28-giu-ban-chua-va: build-linux
+	cp bin/tpan-linux-arm64 bin/tpan-truoc-ban-va-linux-arm64
+	cp bin/tpan-linux-amd64 bin/tpan-truoc-ban-va-linux-amd64
+
+# e2e bước 31 của M28. P: các phần (mặc định chinh). L: file log. B: build hay
+# không (E2E_BUILD, mặc định 1). BIN: tiền tố file chạy (E2E_BIN_PREFIX).
+e2e-m28: P ?= chinh
+e2e-m28: L ?= docs/bang-chung/M28.log
+e2e-m28: B ?= 1
+e2e-m28: BIN ?= bin/tpan-linux
+e2e-m28: ## (M28) Chạy e2e bước 31: make e2e-m28 P="apache nginx" L=docs/bang-chung/M28.log
+	@E2E_BUILD=$(B) E2E_BIN_PREFIX=$(BIN) E2E_LOG=$(L) bash scripts/e2e-m28.sh $(P) >$(L) 2>&1; rc=$$?; echo "--- 5 dòng cuối $(L) ---"; tail -n 5 $(L); exit $$rc
+
+# Test cần root của sitefs và system: build go test -c cho Linux đúng kiến trúc
+# máy ảo, đẩy vào máy ảo, chạy bằng root. R: biểu thức -test.run (mặc định
+# Cua|VungSite|LenhRoot). Gói internal/sitefs có thể chưa tồn tại: không có file
+# test thì bỏ qua gói đó (go test -c không sinh file khi gói không có test).
+m28-test-vm: R ?= Cua|VungSite|LenhRoot
+m28-test-vm: ## (M28) Chạy test cần root của sitefs, system trong máy ảo
+	@arch="$$(scripts/vm.sh exec dpkg --print-architecture </dev/null | tr -d '[:space:]')"; \
+	ran=0; \
+	for pkg in sitefs system; do \
+	  bin="bin/m28-$$pkg-test-linux-$$arch"; \
+	  rm -f "$$bin"; \
+	  mkdir -p bin; \
+	  if CGO_ENABLED=0 GOOS=linux GOARCH="$$arch" go test -c -o "$$bin" "./internal/$$pkg" 2>"bin/m28-test-$$pkg.err"; then \
+	    if [ -f "$$bin" ]; then \
+	      scripts/vm.sh push "$$bin" "/home/ubuntu/e2e-m28/m28-$$pkg-test" </dev/null; \
+	      echo "=== internal/$$pkg (-test.run '$(R)') ==="; \
+	      TPAN_VM_CAPTURE=1 scripts/vm.sh root bash -c "cd /tmp && /home/ubuntu/e2e-m28/m28-$$pkg-test -test.v -test.run '$(R)'" </dev/null; \
+	      ran=1; \
+	    else \
+	      echo "=== internal/$$pkg: không có file test, bỏ qua ==="; \
+	    fi; \
+	  else \
+	    echo "=== internal/$$pkg: go test -c lỗi ==="; cat "bin/m28-test-$$pkg.err"; \
+	  fi; \
+	done; \
+	[ "$$ran" = 1 ] || { echo "Chưa gói nào chạy được (internal/sitefs có thể chưa tồn tại)"; exit 1; }
+
+# Ba e2e hồi quy, mỗi cái từ máy sạch, không dừng khi một cái lỗi. KHÔNG chạy
+# trong lúc thử: mỗi cái mất hàng chục phút (phiên chính chạy).
+hoi-quy-m28: ## (M28) Chạy lại e2e M13, M14, M15 làm hồi quy
+	-E2E_LOG=docs/bang-chung/M28-hoi-quy-m13.log scripts/e2e-m13.sh chinh >docs/bang-chung/M28-hoi-quy-m13.log 2>&1
+	-E2E_LOG=docs/bang-chung/M28-hoi-quy-m14.log scripts/e2e-m14.sh chinh >docs/bang-chung/M28-hoi-quy-m14.log 2>&1
+	-E2E_LOG=docs/bang-chung/M28-hoi-quy-m15.log scripts/e2e-m15.sh >docs/bang-chung/M28-hoi-quy-m15.log 2>&1
+	@for f in m13 m14 m15; do \
+	  l="docs/bang-chung/M28-hoi-quy-$$f.log"; \
+	  echo "$$l: $$(grep -c '=> ĐẠT' "$$l" 2>/dev/null || echo 0) đạt, $$(grep -c '=> KHÔNG ĐẠT' "$$l" 2>/dev/null || echo 0) không đạt"; \
+	done
 
 clean: ## Xoá kết quả build
 	rm -rf bin
