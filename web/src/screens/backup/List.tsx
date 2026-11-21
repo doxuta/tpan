@@ -5,7 +5,7 @@
 //
 // M18: cột "Ở đâu" (nơi bản nằm, chỉ hiện khi máy có dùng kho, B11) và hai việc
 // kho cho admin ở cột Việc: "Đẩy lên kho", "Tải về máy". Khi cột "Ở đâu" hiện
-// thì cột "Đường dẫn" ẩn (lý do ở chỗ minWidth bên dưới). Luật hiện việc nào ở
+// thì hai cột "sha256" và "Đường dẫn" ẩn (lý do ở chỗ minWidth bên dưới). Luật hiện việc nào ở
 // hàng nào nằm trong model.ts (storageWork) để test được.
 
 import type { ReactNode } from "react";
@@ -69,7 +69,7 @@ function Sha({ sha }: { sha: string }) {
 function PushError({ error }: { error?: string }) {
   if (!error) return null;
   return (
-    <span title={error} className="inline-block max-w-[240px] truncate text-[12.5px] text-muted">
+    <span title={error} className="inline-block max-w-[180px] truncate text-[12.5px] text-muted">
       {error}
     </span>
   );
@@ -111,7 +111,7 @@ export function Where({ b, configured }: { b: Backup; configured: boolean | unde
 }
 
 /** Ghi chú thay cho nút ở cột Việc (site trong thùng rác, site đã xoá, bản sql). */
-const note = "inline-block max-w-[260px] text-[12.5px] text-muted";
+const note = "inline-block max-w-[200px] text-[12.5px] text-muted";
 
 export function BackupList({ items, filter, onFilter, stateOf, pending, anyPending, onRestore, isAdmin, targetConfigured, onPush, onPull }: Props) {
   const t = useStrings(strings);
@@ -172,6 +172,7 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
   }
 
   const whereColumn: Column<Backup> = { header: t.colWhere, cell: (b) => <Where b={b} configured={targetConfigured} /> };
+  const shaColumn: Column<Backup> = { header: t.colSha, cell: (b) => <Sha sha={b.sha256} /> };
   const pathColumn: Column<Backup> = { header: t.colPath, nowrap: false, className: "min-w-[200px]", cell: (b) => <MonoText size={12} muted>{b.path}</MonoText> };
 
   return (
@@ -179,10 +180,13 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
       title={t.listHeading}
       titleId="backup-list"
       caption={t.tableName}
-      // Cột "Ở đâu" thay chỗ cột "Đường dẫn" chứ không thêm vào: thêm vào thì bảng
-      // cần 1160 px, rộng hơn khung nội dung ở 1440 × 900 (khoảng 1144 px), và cột
-      // Việc bị đẩy ra ngoài, phải cuộn ngang mới thấy nút. Đường dẫn là cột rộng
-      // nhất, và với bản chỉ còn trên kho thì đường dẫn trên máy không còn nghĩa.
+      // Cột "Ở đâu" thay chỗ hai cột "sha256" và "Đường dẫn" chứ không thêm vào:
+      // thêm vào thì tổng bề rộng tự nhiên của các cột (đa số không xuống dòng)
+      // vượt khung nội dung ở 1440 × 900 (khoảng 1150 px), cột Việc bị đẩy ra
+      // ngoài và phải cuộn ngang mới thấy nút "Khôi phục" (phép kiểm
+      // restoreButtonsInView của make anh-m18 đo được). Hai cột đó là chi tiết để
+      // đối chiếu, còn xem được bằng `tpan backup list --json`; với bản chỉ còn
+      // trên kho thì đường dẫn trên máy cũng không còn nghĩa.
       minWidth={1040}
       rows={rows}
       rowKey={(b) => b.id}
@@ -224,8 +228,7 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
         { header: t.colCreated, cell: (b) => <span className="tabular-nums">{formatWhen(b.created, lang)}</span> },
         { header: t.colSize, align: "right", cell: (b) => formatSize(b.size, lang) },
         ...(where ? [whereColumn] : []),
-        { header: t.colSha, cell: (b) => <Sha sha={b.sha256} /> },
-        ...(where ? [] : [pathColumn]),
+        ...(where ? [] : [shaColumn, pathColumn]),
         {
           header: t.colAction,
           align: "right",
