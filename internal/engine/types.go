@@ -89,6 +89,15 @@ type FileChange struct {
 	// Step để trống.
 	Old       []byte `json:"old,omitempty"`
 	OldExists bool   `json:"old_exists"`
+	// OldLink (M28): ở Path đang là một symlink trỏ tới OldLink. Engine chỉ
+	// điền cho đường dẫn trong vùng site và KHÔNG đọc đích (Old để trống):
+	// lúc chạy thật bước File thay symlink bằng file thường.
+	OldLink string `json:"old_link,omitempty"`
+	// Hidden (M28) khác rỗng: server đã xoá Old, New, OldLink trước khi trả
+	// bản xem trước cho vai user. "foreign": file không thuộc site của người
+	// gọi; "unverified": user Linux của site không đọc lại được đúng những
+	// byte root đã đọc (mục 3.7 của docs/thay-doi/M28-thiet-ke.md).
+	Hidden string `json:"hidden,omitempty"`
 }
 
 // Plan là một thao tác hoàn chỉnh: các bước theo thứ tự, rồi các phép kiểm chứng.
