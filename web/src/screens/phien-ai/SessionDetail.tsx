@@ -2,7 +2,8 @@
 // hành thấy ĐÚNG thứ đã gửi cho AI (bản đã che) và thứ AI đã đọc, để kiểm lại
 // khi có chuyện. Từ trên xuống: thông tin phiên, từng lượt (câu hỏi, ngữ cảnh,
 // bản hướng dẫn, câu trả lời, các lần AI gọi công cụ trong lượt), lần gọi công
-// cụ không thuộc lượt nào (phiên của agent nối thẳng), Plan đã đề xuất.
+// cụ không thuộc lượt nào (phiên của agent nối thẳng), Plan đã đề xuất. Mỗi
+// nhóm là một thẻ (bản 2, mục 3.7 của docs/thay-doi/M16-thiet-ke.md).
 //
 // Lượt đang chạy: nghe luồng SSE của lượt để chữ hiện dần; luồng đóng thì đọc
 // lại phiên để mọi thứ khác (lần gọi công cụ, Plan, trạng thái) cũng mới.
@@ -15,8 +16,12 @@ import type { AISessionDetail, AITurn, PendingPlan } from "../../api/types";
 import { AnswerText } from "../../ai/AnswerText";
 import { extractLinks } from "../../ai/views";
 import { Button, buttonClass } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Disclosure } from "../../components/Disclosure";
+import { EmptyState } from "../../components/EmptyState";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
-import { MonoText } from "../../components/MonoText";
+import { Code, MonoText } from "../../components/MonoText";
+import { Notice } from "../../components/Notice";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { Tag } from "../../components/Tag";
 import { tx, useLang, useStrings } from "../../i18n";
@@ -26,7 +31,7 @@ import { formatDateTime } from "../lich-su/format";
 import { CallList } from "./CallList";
 import { entryText } from "./entry";
 
-const labelClass = "font-mono text-[11px] tracking-[0.08em] text-muted";
+const labelClass = "m-0 text-[12px] font-medium text-muted";
 
 export function SessionDetail() {
   const t = useStrings(strings);
@@ -39,12 +44,16 @@ export function SessionDetail() {
     // Còn lượt chạy thì lần gọi công cụ và Plan còn tăng: đọc lại cho người đang xem.
     refetchInterval: (query) => (query.state.data?.turns.some((x) => x.status === "running") ? 4000 : false),
   });
+  // Trang chi tiết: "Phiên AI / <mã>"; "Phiên AI" là liên kết về danh sách.
+  const crumbs = [{ label: t.title, to: "/ai" }, { label: <Code key="ma">{id}</Code> }];
 
   if (q.isPending) {
     return (
       <>
-        <ScreenHeader title={t.title} />
-        <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>
+        <ScreenHeader crumbs={crumbs} title={t.title} />
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
       </>
     );
   }
@@ -52,10 +61,10 @@ export function SessionDetail() {
     const missing = q.error instanceof ApiError && q.error.status === 404;
     return (
       <>
-        <ScreenHeader title={t.title} />
-        <div className="pt-[26px]" role="alert">
-          <p className="m-0">{missing ? t.notFound(id) : `${t.detailFailed} ${errorMessage(q.error, lang)}`}</p>
-          <div className="mt-[10px]">
+        <ScreenHeader crumbs={crumbs} title={t.title} />
+        <Card>
+          <div role="alert">
+            <p className="mt-0 mb-[12px]">{missing ? t.notFound(id) : `${t.detailFailed} ${errorMessage(q.error, lang)}`}</p>
             {missing ? (
               <Link to="/ai" className={buttonClass("secondary")}>
                 {t.backToList}
@@ -64,14 +73,14 @@ export function SessionDetail() {
               <Button onClick={() => void q.refetch()}>{k.retry}</Button>
             )}
           </div>
-        </div>
+        </Card>
       </>
     );
   }
-  return <DetailView data={q.data} />;
+  return <DetailView data={q.data} crumbs={crumbs} />;
 }
 
-function DetailView({ data }: { data: AISessionDetail }) {
+function DetailView({ data, crumbs }: { data: AISessionDetail; crumbs: { label: ReactNode; to?: string }[] }) {
   const t = useStrings(strings);
   const { lang } = useLang();
   const { session, turns, calls, plans } = data;
@@ -81,61 +90,63 @@ function DetailView({ data }: { data: AISessionDetail }) {
 
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.detailSummary} />
+      <ScreenHeader crumbs={crumbs} title={t.title} summary={t.detailSummary} />
 
-      <dl className="m-0 mt-[26px] grid grid-cols-2 gap-x-[16px] gap-y-[12px] border-t border-hair pt-[14px] sm:flex sm:flex-wrap sm:gap-x-[32px]">
-        <Fact label={t.fieldEntry}>{entryText(t, session)}</Fact>
-        <Fact label={t.fieldSession}>
-          <MonoText>{session.id}</MonoText>
-        </Fact>
-        <Fact label={t.fieldCreated}>
-          <span title={session.created} className="font-mono text-[13px]">
-            {formatDateTime(session.created, lang)}
-          </span>
-        </Fact>
-        <Fact label={t.fieldLast}>
-          <span title={session.last} className="font-mono text-[13px]">
-            {formatDateTime(session.last, lang)}
-          </span>
-        </Fact>
-      </dl>
+      <Card>
+        <dl className="m-0 grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:flex sm:flex-wrap sm:gap-x-[32px]">
+          <Fact label={t.fieldEntry}>{entryText(t, session)}</Fact>
+          <Fact label={t.fieldSession}>
+            <MonoText>{session.id}</MonoText>
+          </Fact>
+          <Fact label={t.fieldCreated}>
+            <span title={session.created}>{formatDateTime(session.created, lang)}</span>
+          </Fact>
+          <Fact label={t.fieldLast}>
+            <span title={session.last}>{formatDateTime(session.last, lang)}</span>
+          </Fact>
+        </dl>
+      </Card>
 
       {session.untrusted && (
-        <p role="note" className="mt-[14px] mb-0 max-w-[760px] border border-ink p-[12px]">
-          {t.untrustedWarning}
-        </p>
+        <Card>
+          <div role="note">
+            <Notice kind="warn">{t.untrustedWarning}</Notice>
+          </div>
+        </Card>
       )}
-      {session.entry === "mcp" && <p className="mt-[14px] mb-0 max-w-[760px] text-muted">{t.mcpNote}</p>}
+      {session.entry === "mcp" && (
+        <Card>
+          <p className="m-0 text-muted">{t.mcpNote}</p>
+        </Card>
+      )}
 
-      {session.entry === "panel" && turns.length === 0 && <p className="mt-[26px] mb-0 text-muted">{t.noTurns}</p>}
+      {session.entry === "panel" && turns.length === 0 && (
+        <Card>
+          <EmptyState>{t.noTurns}</EmptyState>
+        </Card>
+      )}
       {turns.map((turn) => (
         <TurnBlock key={turn.seq} sessionId={session.id} turn={turn} calls={calls.filter((c) => c.seq === turn.seq)} />
       ))}
 
       {(session.entry === "mcp" || loose.length > 0) && (
-        <section aria-labelledby="goi-cong-cu" className="pt-[26px]">
-          <h2 id="goi-cong-cu" className="m-0 text-[16px] font-semibold">
-            {t.callsHeading}
-          </h2>
-          <p className="mt-[6px] mb-[10px] text-muted">{t.callsHint}</p>
+        <Card title={t.callsHeading} titleId="goi-cong-cu">
+          <p className="mt-0 mb-[10px] text-muted">{t.callsHint}</p>
           <CallList calls={loose} />
-        </section>
+        </Card>
       )}
 
-      <section aria-labelledby="plan-de-xuat" className="pt-[26px]">
-        <h2 id="plan-de-xuat" className="m-0 pb-[10px] text-[16px] font-semibold">
-          {t.plansHeading}
-        </h2>
+      <Card title={t.plansHeading} titleId="plan-de-xuat">
         {plans.length === 0 ? (
-          <p className="m-0 border-t border-hair py-[10px] text-muted">{t.noPlans}</p>
+          <EmptyState>{t.noPlans}</EmptyState>
         ) : (
-          <ul aria-label={t.plansLabel} className="m-0 list-none border-b border-hair p-0">
+          <ul aria-label={t.plansLabel} className="m-0 list-none p-0">
             {plans.map((p) => (
               <PlanRow key={p.id} plan={p} />
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </>
   );
 }
@@ -179,98 +190,91 @@ function TurnBlock({ sessionId, turn, calls }: { sessionId: string; turn: AITurn
   const answer = running ? (live ?? turn.answer) : turn.answer;
   const links = turn.status === "done" ? extractLinks(answer, lang) : [];
   const headId = `luot-${turn.seq}`;
-  const promptId = `luot-${turn.seq}-prompt`;
 
   return (
-    <section aria-labelledby={headId} className="mt-[26px] flex flex-col gap-[18px] border-t border-ink pt-[16px]">
-      <h2 id={headId} className="m-0 flex flex-wrap items-baseline gap-x-[12px] text-[16px] font-semibold">
-        {t.turnHeading(turn.seq)}
-        <span className="text-[13px] font-normal text-muted">{t.turnStatus[turn.status]}</span>
-        <span title={turn.started} className="font-mono text-[12px] font-normal text-muted">
-          {formatDateTime(turn.started, lang)}
-        </span>
-      </h2>
+    <Card
+      title={t.turnHeading(turn.seq)}
+      titleId={headId}
+      count={
+        <>
+          {t.turnStatus[turn.status]} · <span title={turn.started}>{formatDateTime(turn.started, lang)}</span>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-[18px]">
+        <div>
+          <p className={`${labelClass} mb-[4px]`}>{t.questionLabel}</p>
+          <p className="m-0 text-[14px] leading-[1.5] whitespace-pre-wrap [overflow-wrap:anywhere]">{turn.question}</p>
+          <p className="mt-[4px] mb-0 text-[12px] text-muted">{t.maskedNote}</p>
+        </div>
 
-      <div>
-        <p className={`m-0 mb-[4px] ${labelClass}`}>{t.questionLabel}</p>
-        <p className="m-0 text-[14px] leading-[1.5] whitespace-pre-wrap [overflow-wrap:anywhere]">{turn.question}</p>
-        <p className="mt-[4px] mb-0 text-[12px] text-muted">{t.maskedNote}</p>
-      </div>
-
-      <div>
-        <p className={`m-0 mb-[6px] ${labelClass}`}>{t.chipsLabel}</p>
-        {turn.chips.length === 0 ? (
-          <p className="m-0 text-muted">{t.noChips}</p>
-        ) : (
-          <ul className="m-0 list-none border-b border-hair p-0">
-            {turn.chips.map((c) => (
-              <li key={c.key} className="border-t border-hair">
-                <details>
-                  <summary className="flex min-h-[44px] cursor-pointer list-none items-center py-[7px] font-mono text-[12px] sm:min-h-[36px] [&::-webkit-details-marker]:hidden">{tx(c.label, lang)}</summary>
-                  <div className="pb-[10px]">
-                    <EvidenceBlock text={c.content} label={null} />
-                  </div>
-                </details>
-              </li>
-            ))}
-          </ul>
-        )}
-        {turn.playbook && (
-          <p className="mt-[10px] mb-0 flex flex-wrap items-baseline gap-x-[10px] gap-y-[4px]">
-            <span className={labelClass}>{t.playbookLabel}</span>
-            <Tag>{turn.playbook}</Tag>
-          </p>
-        )}
-        <div className="mt-[10px]">
-          <button type="button" aria-expanded={full} aria-controls={promptId} onClick={() => setFull(!full)} className={buttonClass("secondary")}>
-            {full ? t.hidePrompt : t.viewPrompt}
-          </button>
-          {full && (
-            <div id={promptId} className="mt-[8px]">
-              <EvidenceBlock text={turn.prompt} label={t.promptLabel} />
-            </div>
+        <div>
+          <p className={`${labelClass} mb-[2px]`}>{t.chipsLabel}</p>
+          {turn.chips.length === 0 ? (
+            <p className="m-0 text-muted">{t.noChips}</p>
+          ) : (
+            <ul className="m-0 list-none p-0">
+              {turn.chips.map((c) => (
+                <li key={c.key} className="border-t border-hair first:border-t-0">
+                  <Disclosure flush summary={<span className="text-[13px]">{tx(c.label, lang)}</span>}>
+                    <EvidenceBlock text={c.content} label={null} clamp={20} />
+                  </Disclosure>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
-      </div>
-
-      {calls.length > 0 && (
-        <div>
-          <p className={`m-0 mb-[6px] ${labelClass}`}>{t.callsOfTurn}</p>
-          <CallList calls={calls} />
-        </div>
-      )}
-
-      {turn.status !== "refused" && (
-        <div>
-          <p className={`m-0 mb-[4px] ${labelClass}`}>{t.answerLabel}</p>
-          {answer ? <AnswerText text={answer} /> : <p className="m-0 text-muted">{running ? t.working : t.noAnswer}</p>}
-          <p className="mt-[4px] mb-0 text-[12px] text-muted">{t.answerNote}</p>
-        </div>
-      )}
-      {turn.status === "refused" && (
-        <p role="status" className="m-0 max-w-[760px] border border-ink p-[12px]">
-          {t.refused(turn.error ?? "")}
-        </p>
-      )}
-      {turn.status === "error" && (
-        <p role="alert" className="m-0 max-w-[760px]">
-          {t.failed(turn.error ?? "")}
-        </p>
-      )}
-
-      {links.length > 0 && (
-        <div>
-          <p className={`m-0 mb-[8px] ${labelClass}`}>{t.goTo}</p>
-          <div className="flex flex-wrap gap-[8px]">
-            {links.map((l) => (
-              <Link key={l.path} to={l.path} className={buttonClass("secondary")}>
-                {l.label}
-              </Link>
-            ))}
+          {turn.playbook && (
+            <p className="mt-[10px] mb-0 flex flex-wrap items-center gap-x-[10px] gap-y-[4px]">
+              <span className={labelClass}>{t.playbookLabel}</span>
+              <Tag>{turn.playbook}</Tag>
+            </p>
+          )}
+          <div className="mt-[6px] border-t border-hair">
+            <Disclosure flush open={full} onOpenChange={setFull} summary={<span className="font-medium">{full ? t.hidePrompt : t.viewPrompt}</span>}>
+              <EvidenceBlock text={turn.prompt} label={t.promptLabel} clamp={20} />
+            </Disclosure>
           </div>
         </div>
-      )}
-    </section>
+
+        {calls.length > 0 && (
+          <div>
+            <p className={`${labelClass} mb-[2px]`}>{t.callsOfTurn}</p>
+            <CallList calls={calls} />
+          </div>
+        )}
+
+        {turn.status !== "refused" && (
+          <div>
+            <p className={`${labelClass} mb-[4px]`}>{t.answerLabel}</p>
+            {answer ? <AnswerText text={answer} /> : <p className="m-0 text-muted">{running ? t.working : t.noAnswer}</p>}
+            <p className="mt-[4px] mb-0 text-[12px] text-muted">{t.answerNote}</p>
+          </div>
+        )}
+        {turn.status === "refused" && (
+          <Notice kind="warn" role="status">
+            {t.refused(turn.error ?? "")}
+          </Notice>
+        )}
+        {turn.status === "error" && (
+          <Notice kind="fail" role="alert">
+            {t.failed(turn.error ?? "")}
+          </Notice>
+        )}
+
+        {links.length > 0 && (
+          <div>
+            <p className={`${labelClass} mb-[8px]`}>{t.goTo}</p>
+            <div className="flex flex-wrap gap-[8px]">
+              {links.map((l) => (
+                <Link key={l.path} to={l.path} className={buttonClass("secondary")}>
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -278,8 +282,8 @@ function PlanRow({ plan }: { plan: PendingPlan }) {
   const t = useStrings(strings);
   const { lang } = useLang();
   return (
-    <li className="flex flex-wrap items-baseline gap-x-[16px] gap-y-[4px] border-t border-hair py-[10px]">
-      <span title={plan.created} className="flex-[0_0_110px] font-mono text-[12px] text-muted">
+    <li className="flex flex-wrap items-center gap-x-[16px] gap-y-[4px] border-t border-hair py-[10px] first:border-t-0">
+      <span title={plan.created} className="flex-[0_0_110px] text-[13px] text-muted">
         {formatDateTime(plan.created, lang)}
       </span>
       <span className="min-w-0 flex-[1_1_240px]">

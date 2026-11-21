@@ -1,7 +1,6 @@
 // Chuỗi của ngăn AI và thanh lệnh ⌘K (mục 8.4 và 10 của KE-HOACH.md, ý 11 và
-// 12 của danh sách màn). Hình chuẩn: docs/mau-giao-dien/ngan-ai-sang.html.
-// Giọng chữ: mục 8 của docs/GIAO-DIEN.md. Nhãn mono viết hoa (BẠN, AI ĐÃ ĐỌC)
-// là ngoại lệ duy nhất được viết hoa.
+// 12 của danh sách màn). Giao diện bản 2 (mục 6 của docs/GIAO-DIEN.md).
+// Giọng chữ: mục 8 của docs/GIAO-DIEN.md. Nhãn viết thường, chỉ hoa chữ đầu.
 
 import { defineStrings } from "./index";
 
@@ -12,7 +11,6 @@ const vi = {
 
   // ---- đầu ngăn ----
   drawerLabel: "Ngăn AI",
-  launcher: "Hỏi AI",
   title: "Hỏi AI",
   close: "Đóng ngăn AI",
   newSession: "Phiên mới",
@@ -41,7 +39,7 @@ const vi = {
   claudePrompt: (question: string) => (question ? `Dùng công cụ tpan: ${question}` : "Dùng công cụ tpan xem mục đang mở trên panel (current_view) rồi cho mình biết có gì cần xử lý."),
 
   // ---- ngữ cảnh gửi kèm ----
-  chipsHeading: "NGỮ CẢNH GỬI KÈM",
+  chipsHeading: "Ngữ cảnh gửi kèm",
   chipsCount: (n: number) => `${n} mục`,
   readCount: (n: number) => `Đã đọc ${n} mục dữ liệu trên máy`,
   chipShow: (label: string) => `Xem nội dung “${label}” sẽ gửi`,
@@ -53,31 +51,31 @@ const vi = {
   previewFailed: "Chưa dựng được nội dung sẽ gửi.",
   viewFull: "Xem toàn văn sẽ gửi",
   hideFull: "Ẩn toàn văn",
-  fullLabel: "TOÀN VĂN SẼ GỬI (ĐÃ CHE)",
+  fullLabel: "Toàn văn sẽ gửi (đã che)",
 
   // ---- cuộc trò chuyện ----
-  you: "BẠN",
-  read: "AI ĐÃ ĐỌC",
+  you: "Bạn",
   answer: "AI",
-  toolRead: "ĐỌC",
-  toolPlan: "LẬP PLAN",
+  toolRead: "Đọc",
+  toolPlan: "Lập Plan",
   toolFailed: "lỗi",
+  toolSent: "dữ liệu đã gửi",
   toolInput: "Đầu vào của công cụ",
   working: "AI đang trả lời…",
   workingDone: "AI đã trả lời xong.",
-  planTag: "AI ĐỀ XUẤT",
+  planTag: "AI đề xuất",
   planUntitled: (id: string) => `Plan ${id}`,
   planOpen: "Mở bản xem trước",
-  goTo: "ĐI TỚI",
+  goTo: "Đi tới",
   refused: (why: string) => (why ? `AI từ chối: ${why}` : "AI từ chối câu hỏi này."),
   failed: (why: string) => (why ? `Lượt này lỗi: ${why}` : "Lượt này bị ngắt giữa chừng. Hỏi lại, hoặc xem phiên ở màn Phiên AI."),
   empty: "Chưa có câu hỏi nào. Hỏi một câu, hoặc bấm “Hỏi AI” ở một sự cố hay một lỗi.",
 
   // ---- ô hỏi ----
-  askLabel: "HỎI AI",
-  askMoreLabel: "HỎI TIẾP",
-  explainLabel: "CẦN GIẢI THÍCH GÌ",
-  diagnoseLabel: "CẦN CHẨN ĐOÁN GÌ",
+  askLabel: "Hỏi AI",
+  askMoreLabel: "Hỏi tiếp",
+  explainLabel: "Cần giải thích gì",
+  diagnoseLabel: "Cần chẩn đoán gì",
   send: "Gửi",
   sending: "Đang gửi…",
   needBrain: "Nối bộ não rồi mới gửi được.",
@@ -106,6 +104,7 @@ const vi = {
   palettePlaceholder: "Gõ tên lệnh hoặc hỏi AI…",
   paletteList: "Lệnh",
   paletteOpen: (name: string) => `Mở ${name}`,
+  paletteSite: (domain: string) => `Site: ${domain}`,
   paletteCreateSite: "Tạo site",
   paletteOpenAi: "Mở ngăn AI",
   paletteCloseAi: "Đóng ngăn AI",
@@ -123,7 +122,6 @@ export const strings = defineStrings(vi, {
   askAiHint: "Open or close the AI drawer",
 
   drawerLabel: "AI drawer",
-  launcher: "Ask AI",
   title: "Ask AI",
   close: "Close the AI drawer",
   newSession: "New session",
@@ -150,7 +148,7 @@ export const strings = defineStrings(vi, {
   connectFullTail: ".",
   claudePrompt: (question) => (question ? `Use the tpan tools: ${question}` : "Use the tpan tools to look at what is open on the panel (current_view) and tell me what needs attention."),
 
-  chipsHeading: "CONTEXT SENT ALONG",
+  chipsHeading: "Context sent along",
   chipsCount: (n) => `${n} ${n === 1 ? "item" : "items"}`,
   readCount: (n) => `Read ${n} ${n === 1 ? "item" : "items"} of machine data`,
   chipShow: (label) => `Show what “${label}” will send`,
@@ -162,29 +160,29 @@ export const strings = defineStrings(vi, {
   previewFailed: "Could not build what will be sent.",
   viewFull: "Show the full text that will be sent",
   hideFull: "Hide the full text",
-  fullLabel: "FULL TEXT THAT WILL BE SENT (MASKED)",
+  fullLabel: "Full text that will be sent (masked)",
 
-  you: "YOU",
-  read: "AI READ",
+  you: "You",
   answer: "AI",
-  toolRead: "READ",
-  toolPlan: "PLAN",
+  toolRead: "Read",
+  toolPlan: "Plan",
   toolFailed: "failed",
+  toolSent: "data sent",
   toolInput: "Tool input",
   working: "AI is answering…",
   workingDone: "AI finished answering.",
-  planTag: "AI PROPOSED",
+  planTag: "AI proposed",
   planUntitled: (id) => `Plan ${id}`,
   planOpen: "Open the preview",
-  goTo: "GO TO",
+  goTo: "Go to",
   refused: (why) => (why ? `AI refused: ${why}` : "AI refused this question."),
   failed: (why) => (why ? `This turn failed: ${why}` : "This turn was cut off. Ask again, or look at the session on the AI sessions screen."),
   empty: "No questions yet. Ask one, or press “Ask AI” on an incident or an error.",
 
-  askLabel: "ASK AI",
-  askMoreLabel: "ASK MORE",
-  explainLabel: "WHAT SHOULD IT EXPLAIN",
-  diagnoseLabel: "WHAT SHOULD IT DIAGNOSE",
+  askLabel: "Ask AI",
+  askMoreLabel: "Ask more",
+  explainLabel: "What should it explain",
+  diagnoseLabel: "What should it diagnose",
   send: "Send",
   sending: "Sending…",
   needBrain: "Connect the brain before sending.",
@@ -210,6 +208,7 @@ export const strings = defineStrings(vi, {
   palettePlaceholder: "Type a command name or ask AI…",
   paletteList: "Commands",
   paletteOpen: (name) => `Open ${name}`,
+  paletteSite: (domain) => `Site: ${domain}`,
   paletteCreateSite: "Create a site",
   paletteOpenAi: "Open the AI drawer",
   paletteCloseAi: "Close the AI drawer",

@@ -12,14 +12,13 @@ import { useUsers } from "../../api/m13-users";
 import type { DBCreate } from "../../api/types";
 import { CharsetPicker, defaultPair } from "../../components/CharsetPicker";
 import { Dialog } from "../../components/Dialog";
+import { Field, Input, Select } from "../../components/Field";
+import { Code } from "../../components/MonoText";
 import type { usePreviewedOp } from "../../components/PreviewedOp";
 import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/co-so-du-lieu";
 import { ErrorNote } from "../site/ErrorNote";
 import { noteTooLong } from "./EditPanel";
-
-const inputClass =
-  "box-border h-[44px] w-full border border-ink bg-surface px-[10px] text-[14px] text-ink placeholder:text-muted disabled:border-hair disabled:text-muted sm:h-[40px]";
 
 type Props = {
   open: boolean;
@@ -80,12 +79,8 @@ export function CreateDialog({ open, onOpenChange, op }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange} title={t.createTitle} description={t.createDescription} confirmLabel={t.createPreview} onConfirm={() => void submit()} busy={op.pending}>
       <div className="flex flex-col gap-[16px]">
         {isAdmin && (
-          <div>
-            <label htmlFor="db-chu" className="mb-[4px] block font-medium">
-              {t.createOwnerLabel}
-            </label>
-            <p className="mt-0 mb-[6px] text-[13px] text-muted">{t.createOwnerHint}</p>
-            <select id="db-chu" value={owner} onChange={(e) => setOwnerSel(e.target.value)} className={`${inputClass} font-mono text-[13px]`}>
+          <Field label={t.createOwnerLabel} htmlFor="db-chu" hint={t.createOwnerHint} hintId="db-chu-goi-y">
+            <Select id="db-chu" value={owner} onChange={(e) => setOwnerSel(e.target.value)} aria-describedby="db-chu-goi-y">
               {/* Danh sách chưa tải xong hoặc lỗi: vẫn có đúng một lựa chọn là chính mình, nên tạo DB cho mình không bị chặn. */}
               {!owners.includes(me) && <option value={me}>{t.createOwnerSelf(me)}</option>}
               {owners.map((n) => (
@@ -93,65 +88,49 @@ export function CreateDialog({ open, onOpenChange, op }: Props) {
                   {n === me ? t.createOwnerSelf(n) : n}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         )}
 
-        <div>
-          <label htmlFor="db-ten" className="mb-[4px] block font-medium">
-            {t.createNameLabel}
-          </label>
-          <p id="db-ten-goi-y" className="mt-0 mb-[6px] text-[13px] text-muted">
-            {t.createNameHint(prefix)}
-          </p>
-          <div className="flex items-stretch">
-            <span className="flex flex-none items-center border border-r-0 border-ink bg-pre px-[10px] font-mono text-[13px] text-muted" aria-hidden="true">
-              {prefix}
-            </span>
-            <input
-              id="db-ten"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setMissing(false);
-              }}
-              aria-describedby="db-ten-goi-y db-ten-day-du"
-              aria-invalid={missing ? true : undefined}
-              autoComplete="off"
-              spellCheck={false}
-              autoCapitalize="none"
-              placeholder="shop"
-              className={`${inputClass} min-w-0 font-mono text-[13px]`}
-            />
-          </div>
-          <p id="db-ten-day-du" className="mt-[6px] mb-0 text-[13px] text-muted">
-            {t.createFullName} <span className="font-mono text-ink">{full}</span> · {t.createFullNameLength(full.length)}
-          </p>
-          {missing && (
-            <p role="alert" className="mt-[6px] mb-0 font-medium">
-              {t.createNameRequired}
-            </p>
-          )}
-        </div>
+        {/* Dòng "Tên đầy đủ" nằm trong phần gợi ý để ô nhập đọc cả hai khi vào ô. */}
+        <Field
+          label={t.createNameLabel}
+          htmlFor="db-ten"
+          hintId="db-ten-goi-y"
+          hint={
+            <>
+              <span className="block">{t.createNameHint(prefix)}</span>
+              <span className="mt-[4px] block">
+                {t.createFullName} <Code>{full}</Code> · {t.createFullNameLength(full.length)}
+              </span>
+            </>
+          }
+          error={missing ? t.createNameRequired : undefined}
+        >
+          <Input
+            id="db-ten"
+            mono
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setMissing(false);
+            }}
+            aria-describedby="db-ten-goi-y"
+            aria-invalid={missing ? true : undefined}
+            autoComplete="off"
+            spellCheck={false}
+            autoCapitalize="none"
+            placeholder="shop"
+          />
+        </Field>
 
         {collations.isPending && <p className="m-0 text-muted">{t.collationsLoading}</p>}
         {collations.isError && <p className="m-0">{t.collationsFailed}</p>}
         {collations.isSuccess && <CharsetPicker collations={collations.data} charset={pair.charset} collation={pair.collation} onChange={(charset, collation) => setPicked({ charset, collation })} />}
 
-        <div>
-          <label htmlFor="db-ghi-chu" className="mb-[4px] block font-medium">
-            {t.noteLabel}
-          </label>
-          <p id="db-ghi-chu-goi-y" className="mt-0 mb-[6px] text-[13px] text-muted">
-            {t.createNoteHint}
-          </p>
-          <input id="db-ghi-chu" value={note} onChange={(e) => setNote(e.target.value)} aria-describedby="db-ghi-chu-goi-y" aria-invalid={noteBad ? true : undefined} autoComplete="off" className={inputClass} />
-          {noteBad && (
-            <p role="alert" className="mt-[6px] mb-0 font-medium">
-              {t.noteTooLong}
-            </p>
-          )}
-        </div>
+        <Field label={t.noteLabel} htmlFor="db-ghi-chu" hint={t.createNoteHint} hintId="db-ghi-chu-goi-y" error={noteBad ? t.noteTooLong : undefined}>
+          <Input id="db-ghi-chu" value={note} onChange={(e) => setNote(e.target.value)} aria-describedby="db-ghi-chu-goi-y" aria-invalid={noteBad ? true : undefined} autoComplete="off" />
+        </Field>
 
         {op.quietError !== null && <ErrorNote error={op.quietError} heading={t.createErrorHeading} checksHeading={t.checksHeading} />}
       </div>

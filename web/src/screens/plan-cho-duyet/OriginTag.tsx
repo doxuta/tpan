@@ -10,7 +10,8 @@ import { strings } from "../../i18n/agent";
 /** Khoá truy vấn của mọi thứ về Plan; invalidate khoá "plans" là làm mới cả danh sách lẫn chi tiết. */
 export const plansKey = ["plans"] as const;
 
-export function OriginTag({ origin }: { origin: PlanOrigin }) {
+/** tone="surface" khi đặt thẳng trên nền trang (đầu màn), mặc định "paper" khi đặt trong thẻ. */
+export function OriginTag({ origin, tone }: { origin: PlanOrigin; tone?: "paper" | "surface" }) {
   const t = useStrings(strings);
-  return <Tag>{origin === "ai" ? t.originAi : origin === "mcp" ? t.originMcp : t.originHuman}</Tag>;
+  return <Tag tone={tone}>{origin === "ai" ? t.originAi : origin === "mcp" ? t.originMcp : t.originHuman}</Tag>;
 }

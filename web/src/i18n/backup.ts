@@ -56,7 +56,7 @@ const vi = {
   sqlLead: "Nhập ở màn ",
   sqlLink: "Cơ sở dữ liệu",
   sqlTail: ".",
-  emptyAll: "Chưa có bản backup nào. Chọn site ở khối Backup ngay phía trên, hoặc đặt giờ backup hằng ngày ở khối Lịch và số bản giữ bên dưới.",
+  emptyAll: "Chưa có bản backup nào. Chọn site ở thẻ Backup ngay phía trên, hoặc đặt giờ backup hằng ngày ở thẻ Lịch và số bản giữ bên dưới.",
   emptyFor: (d: string) => `Chưa có bản backup nào của ${d}.`,
   restoreWarning: (d: string, when: string) =>
     `Khôi phục ${d} ghi đè file và cơ sở dữ liệu hiện tại bằng bản lúc ${when}. TPAN tự backup hiện trạng trước, nên bạn quay lại được.`,
@@ -126,7 +126,7 @@ export const strings = defineStrings(vi, {
   sqlLead: "Import it on the ",
   sqlLink: "Databases",
   sqlTail: " screen.",
-  emptyAll: "There are no backups yet. Pick a site in the Back up now block above, or set a daily time in the Schedule and copies kept block below.",
+  emptyAll: "There are no backups yet. Pick a site in the Back up now card above, or set a daily time in the Schedule and copies kept card below.",
   emptyFor: (d) => `There are no backups of ${d} yet.`,
   restoreWarning: (d, when) =>
     `Restoring ${d} overwrites its current files and database with the backup of ${when}. TPAN backs up the current state first, so you can go back.`,

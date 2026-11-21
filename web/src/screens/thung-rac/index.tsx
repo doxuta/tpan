@@ -1,18 +1,19 @@
-// Màn Thùng rác (mục 6.4, 6.12, 10 của KE-HOACH.md): các site đã xoá và (M13)
-// các DB rời đã xoá, mỗi cái có Khôi phục và Xoá hẳn, cùng khối đổi số ngày giữ
-// (chỉ admin). Hai việc kia đi đúng ba chặng như mọi thao tác: bấm nút → gọi
-// ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy → máy chủ trả job_id,
-// ở lại trang và thẻ theo dõi job báo tiến độ. Ba chặng nằm trong hook usePreviewedOp. Xoá hẳn có thêm
-// một dòng cảnh báo mất dữ liệu trên bản xem trước; hộp hỏi lại lúc bấm chạy là
-// của PlanReview, hiện vì các bước xoá là Danger.
+// Màn Thùng rác (mục 6.4, 6.12, 10 của KE-HOACH.md; giao diện bản 2, mục 3.7
+// của M16-thiet-ke.md): các site đã xoá và (M13) các DB rời đã xoá, mỗi cái có
+// Khôi phục và Xoá hẳn, cùng thẻ đổi số ngày giữ (chỉ admin). Hai việc kia đi
+// đúng ba chặng như mọi thao tác: bấm nút → gọi ?dry_run=1 lấy bản xem trước
+// (PlanReview) → bấm chạy → máy chủ trả job_id, ở lại trang và thẻ theo dõi job
+// báo tiến độ. Ba chặng nằm trong hook usePreviewedOp. Xoá hẳn có thêm một dòng
+// cảnh báo mất dữ liệu trên bản xem trước; hộp hỏi lại lúc bấm chạy là của
+// PlanReview, hiện vì các bước xoá là Danger.
 
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
 import { del, errorMessage, get, post } from "../../api/client";
 import { dbSubPath, trashDbPath, useIdentity } from "../../api/m13-dbs";
 import type { JobStarted, TrashOverview } from "../../api/types";
-import { BulkBar, useSelection, type Selection } from "../../components/Bulk";
+import { BulkBar, useSelection } from "../../components/Bulk";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { usePreviewedOp, type Op } from "../../components/PreviewedOp";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useLang, useStrings } from "../../i18n";
@@ -32,6 +33,10 @@ export default function Trash() {
   const q = useQuery({ queryKey: trashKey, queryFn: () => get<TrashOverview>(trashPath) });
   // Danh sách thùng rác, danh sách DB và số đếm ở menu (overview) đều đổi sau job.
   const op = usePreviewedOp([trashKey, databasesKey]);
+  // Go trả null cho danh sách rỗng, nên sites và dbs có thể vắng.
+  const sites = q.data?.sites ?? [];
+  // Hook phải gọi trước mọi nhánh return/điều kiện: ô chọn của bảng site.
+  const sel = useSelection(sites.map((x) => x.domain));
 
   const siteOp = (action: TrashAction, domain: string): Op =>
     action === "restore"
@@ -47,72 +52,70 @@ export default function Trash() {
     <>
       <ScreenHeader title={t.title} summary={t.summary} />
 
-      {q.isPending && <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>}
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div className="pt-[26px]">
+        <Card>
           <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
           <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-        </div>
+        </Card>
       )}
       {q.isSuccess && (
         <>
-          <section aria-labelledby="trash-list">
-            <h2 id="trash-list" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
-              {t.listHeading}
-            </h2>
-            {/* Go trả null cho danh sách rỗng, nên sites có thể vắng. */}
-            <TrashBulk domains={(q.data.sites ?? []).map((x) => x.domain)}>
-              {(sel) => <TrashTable sites={q.data.sites ?? []} locked={op.pending} busy={op.busy} onAct={(a, d) => void op.ask(siteOp(a, d))} sel={sel} />}
-            </TrashBulk>
-          </section>
+          <TrashTable
+            sites={sites}
+            locked={op.pending}
+            busy={op.busy}
+            onAct={(a, d) => void op.ask(siteOp(a, d))}
+            sel={sel}
+            // Bảng này có tiêu đề nên dải "Đã chọn N" cần một khoảng trên; lúc chưa chọn gì BulkBar không vẽ gì, empty:hidden giấu luôn khoảng đệm.
+            above={
+              <div className="pt-[12px] empty:hidden">
+              <BulkBar
+                sel={sel}
+                unit={t.unitSite}
+                actions={[
+                  {
+                    key: "restore",
+                    label: t.bulkRestore,
+                    confirmTitle: t.bulkRestoreTitle,
+                    confirmBody: <p className="m-0">{t.bulkRestoreBody}</p>,
+                    confirmLabel: t.bulkRestore,
+                    run: (d) => post<JobStarted>(restorePath(d)),
+                  },
+                  {
+                    key: "purge",
+                    label: t.bulkPurge,
+                    confirmTitle: t.bulkPurgeTitle,
+                    // Chữ đậm, không đỏ: đỏ chỉ dành cho tình trạng máy (mục 2 của GIAO-DIEN.md).
+                    confirmBody: <p className="m-0 font-semibold">{t.bulkPurgeBody}</p>,
+                    confirmLabel: t.bulkPurge,
+                    // Xoá hẳn không hoàn tác được: nút nguy hiểm (chữ đỏ), như mục "Xoá hẳn" của từng hàng.
+                    danger: true,
+                    run: (d) => del<JobStarted>(purgePath(d)),
+                  },
+                ]}
+              />
+              </div>
+            }
+            footer={isAdmin ? undefined : <span>{t.retentionUser(q.data.days)}</span>}
+          />
 
-          <section aria-labelledby="trash-dbs">
-            <h2 id="trash-dbs" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
-              {t.dbHeading}
-            </h2>
-            {/* Go trả null cho danh sách rỗng, nên dbs có thể vắng. */}
-            <TrashDbTable dbs={q.data.dbs ?? []} locked={op.pending} busy={op.busy} onAct={(a, n) => void op.ask(dbOp(a, n))} />
-          </section>
+          <TrashDbTable dbs={q.data.dbs ?? []} locked={op.pending} busy={op.busy} onAct={(a, n) => void op.ask(dbOp(a, n))} />
 
-          {isAdmin ? <Retention days={q.data.days} /> : <p className="mt-[26px] mb-0 max-w-[720px] text-[13px] text-muted">{t.retentionUser(q.data.days)}</p>}
+          {/* Luôn có trong trang (sr-only khi trống): vùng báo được chèn cùng lúc với chữ thì trình đọc màn hình hay bỏ qua. */}
+          <p role="status" className={op.pending ? "m-0 text-muted" : "sr-only"}>
+            {op.pending ? t.previewing : ""}
+          </p>
 
           {op.panel}
+
+          {isAdmin && <Retention days={q.data.days} />}
         </>
       )}
-    </>
-  );
-}
-
-/** Khôi phục hay xoá hẳn nhiều site trong thùng rác một lần (mỗi site một job, lần lượt). */
-function TrashBulk({ domains, children }: { domains: string[]; children: (sel: Selection) => ReactNode }) {
-  const t = useStrings(strings);
-  const sel = useSelection(domains);
-  return (
-    <>
-      <BulkBar
-        sel={sel}
-        unit={t.unitSite}
-        actions={[
-          {
-            key: "restore",
-            label: t.bulkRestore,
-            confirmTitle: t.bulkRestoreTitle,
-            confirmBody: <p className="m-0">{t.bulkRestoreBody}</p>,
-            confirmLabel: t.bulkRestore,
-            run: (d) => post<JobStarted>(restorePath(d)),
-          },
-          {
-            key: "purge",
-            label: t.bulkPurge,
-            confirmTitle: t.bulkPurgeTitle,
-            // Chữ đậm, không đỏ: đỏ chỉ dành cho tình trạng máy (mục 2 của GIAO-DIEN.md).
-            confirmBody: <p className="m-0 font-semibold">{t.bulkPurgeBody}</p>,
-            confirmLabel: t.bulkPurge,
-            run: (d) => del<JobStarted>(purgePath(d)),
-          },
-        ]}
-      />
-      {children(sel)}
     </>
   );
 }

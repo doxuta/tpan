@@ -197,7 +197,21 @@ func seedM13(ctx context.Context, m *machine, st *store.Store, s *core.Sites) er
 	if err := addOK(ctx, s, siteLab, "Phòng thí nghiệm", 12*24*time.Hour); err != nil {
 		return err
 	}
-	for dom, owner := range map[string]string{siteShop: userA, siteWiki: userB, siteLab: userB} {
+	// Ba site tên dài của M16. Phải tạo ở đây, sau khi user có, và trước
+	// MeasureDisk ở cuối hàm để dung lượng của khach_a, khach_b tính cả chúng.
+	// khach_a có gói co_ban (tối đa 2 site): có shop và site 44 ký tự là đủ
+	// 2/2, màn Người dùng có một thanh mức dùng đầy. Chủ đặt bằng setOwner như
+	// các site trên (tạo bằng quyền admin nên không đụng hạn mức gói).
+	if err := addOK(ctx, s, siteLongShop, "Cửa hàng số một", 16*24*time.Hour); err != nil {
+		return err
+	}
+	if err := addOK(ctx, s, siteLongEdu, "Học trực tuyến", 6*24*time.Hour); err != nil {
+		return err
+	}
+	if err := addOK(ctx, s, siteLongNews, "Tin tức", 30*time.Hour); err != nil {
+		return err
+	}
+	for dom, owner := range map[string]string{siteShop: userA, siteWiki: userB, siteLab: userB, siteLongShop: userA, siteLongNews: userB} {
 		if err := setOwner(ctx, st, dom, owner); err != nil {
 			return err
 		}

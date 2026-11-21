@@ -16,6 +16,7 @@ import { subscribeSiteLog } from "../../api/client";
 import { useWho } from "../../api/m13-users";
 import type { LogFile } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { SegmentButton } from "../../components/SegmentButton";
 import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/site";
@@ -129,13 +130,7 @@ export function LiveLog({ domain }: { domain: string }) {
               : t.logLive;
 
   return (
-    <section aria-labelledby="log-truc-tiep">
-      <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[6px] pt-[26px] pb-[10px]">
-        <h2 id="log-truc-tiep" className="m-0 text-[16px] font-semibold">
-          {t.logHeading}
-        </h2>
-        <span className="text-[13px] text-muted">{t.logHint}</span>
-      </div>
+    <Card title={t.logHeading} titleId="log-truc-tiep" actions={<span className="text-[13px] text-muted">{t.logHint}</span>}>
       <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[10px] pb-[12px]">
         <SegmentButton label={t.logFileLabel} value={file} onChange={setFile} options={files.map((f) => ({ value: f, label: t.logFiles[f] }))} />
         {over ? (
@@ -184,7 +179,7 @@ export function LiveLog({ domain }: { domain: string }) {
         aria-label={`${t.logHeading}: ${t.logFiles[file]}`}
         onScroll={onScroll}
         onKeyDown={onKeyDown}
-        className="max-h-[360px] min-h-[120px] overflow-y-auto bg-pre p-[12px] font-mono text-[12px] leading-[1.55] text-ink"
+        className="max-h-[360px] min-h-[120px] overflow-y-auto rounded-ctl bg-pre p-[12px] font-mono text-[12.5px] leading-[1.55] text-ink"
       >
         {shown.lines.length === 0 ? (
           <span className="text-muted">{conn === "live" ? t.logEmpty : ""}</span>
@@ -196,6 +191,6 @@ export function LiveLog({ domain }: { domain: string }) {
           ))
         )}
       </div>
-    </section>
+    </Card>
   );
 }

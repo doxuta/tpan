@@ -117,7 +117,7 @@ func TestIsolationDataOnDemo(t *testing.T) {
 	for _, r := range stored {
 		have[r.ID] = r.Status
 	}
-	active := []string{siteBlog, siteLab, siteShop, siteWiki}
+	active := []string{siteBlog, siteLab, siteShop, siteWiki, siteLongShop, siteLongEdu, siteLongNews}
 	for _, from := range active {
 		for _, to := range active {
 			if from != to && have["isolation:"+from+":"+to] != checks.Pass {

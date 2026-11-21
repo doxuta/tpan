@@ -12,11 +12,10 @@ import { packagesKey, refreshAccounts, userPath, usersPath } from "../../api/m13
 import type { PasswordSetResult, Role, UserCreated, UserRow } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
+import { SelectField, TextField } from "../../components/Field";
+import { Notice } from "../../components/Notice";
 import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/nguoi-dung";
-import { Note } from "../cai-dat/Note";
-import { Field } from "../dang-nhap/Field";
-import { SelectField } from "../dang-nhap/SelectField";
 import { ErrorNote } from "../site/ErrorNote";
 import type { Secret } from "./PasswordBox";
 
@@ -98,9 +97,9 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={edit ? t.editTitle(row.user.name) : t.addTitle} confirmLabel={save.isPending ? t.saving : edit ? t.editConfirm : t.addConfirm} onConfirm={submit} busy={save.isPending}>
       <Form onSubmit={submit}>
-        {!edit && <Field id="u-ten" label={t.fName} hint={t.fNameHint} autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus required value={name} onChange={(e) => setName(e.target.value)} />}
-        <Field id="u-day-du" label={t.fFull} autoComplete="off" autoFocus={edit} value={full} onChange={(e) => setFull(e.target.value)} />
-        <Field id="u-email" type="email" label={t.fEmail} autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {!edit && <TextField id="u-ten" label={t.fName} hint={t.fNameHint} autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus required value={name} onChange={(e) => setName(e.target.value)} />}
+        <TextField id="u-day-du" label={t.fFull} autoComplete="off" autoFocus={edit} value={full} onChange={(e) => setFull(e.target.value)} />
+        <TextField id="u-email" type="email" label={t.fEmail} autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} />
         <SelectField id="u-vai" label={t.fRole} value={role} onChange={(e) => setRole(e.target.value as Role)}>
           <option value="user">{t.roleOptionUser}</option>
           <option value="admin">{t.roleOptionAdmin}</option>
@@ -112,8 +111,12 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
             </option>
           ))}
         </SelectField>
-        {!edit && <Field id="u-mat-khau" type="password" label={t.fPassword} hint={t.fPasswordHint} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
-        {local && <Note kind="fail">{local}</Note>}
+        {!edit && <TextField id="u-mat-khau" type="password" label={t.fPassword} hint={t.fPasswordHint} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
+        {local && (
+          <Notice kind="fail" role="alert">
+            {local}
+          </Notice>
+        )}
         {save.isError && <ErrorNote error={save.error} />}
       </Form>
     </Dialog>
@@ -130,7 +133,7 @@ export function SuspendDialog({ title, onClose, onAsk }: { title: string; onClos
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={title} description={t.suspendDesc} confirmLabel={t.suspendConfirm} onConfirm={ask}>
       <Form onSubmit={ask}>
-        <Field id="u-ly-do" label={t.reasonLabel} hint={t.reasonHint} maxLength={200} autoFocus autoComplete="off" value={reason} onChange={(e) => setReason(e.target.value)} />
+        <TextField id="u-ly-do" label={t.reasonLabel} hint={t.reasonHint} maxLength={200} autoFocus autoComplete="off" value={reason} onChange={(e) => setReason(e.target.value)} />
       </Form>
     </Dialog>
   );
@@ -159,8 +162,12 @@ export function PasswordDialog({ name, onClose, onDone }: { name: string; onClos
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={t.pwTitle(name)} description={t.pwDesc} confirmLabel={change.isPending ? t.saving : t.pwConfirm} onConfirm={submit} busy={change.isPending}>
       <Form onSubmit={submit}>
-        <Field id="u-mk-moi" type="password" label={t.fPassword} hint={t.fPasswordHint} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
-        {local && <Note kind="fail">{local}</Note>}
+        <TextField id="u-mk-moi" type="password" label={t.fPassword} hint={t.fPasswordHint} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
+        {local && (
+          <Notice kind="fail" role="alert">
+            {local}
+          </Notice>
+        )}
         {change.isError && <ErrorNote error={change.error} />}
       </Form>
     </Dialog>
@@ -183,7 +190,7 @@ export function DeleteDialog({ name, onClose, onDone, onTrashAll }: { name: stri
   // user_not_empty: còn site hoặc DB (hoặc đang có job). Đưa nút làm trước việc đó.
   const notEmpty = remove.error instanceof ApiError && remove.error.code === "user_not_empty";
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title={t.delTitle(name)} description={t.delDesc} confirmLabel={remove.isPending ? t.working : t.delConfirm} onConfirm={() => remove.mutate()} busy={remove.isPending}>
+    <Dialog open onOpenChange={(o) => !o && onClose()} title={t.delTitle(name)} description={t.delDesc} confirmLabel={remove.isPending ? t.working : t.delConfirm} onConfirm={() => remove.mutate()} busy={remove.isPending} danger>
       {remove.isError && (
         <div className="flex flex-col gap-[12px]">
           <ErrorNote error={remove.error} />

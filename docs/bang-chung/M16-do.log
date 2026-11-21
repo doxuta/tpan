@@ -1,0 +1,37 @@
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 8h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 32ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+✓ 399 modules transformed.
+dist/index.html                                                   0.87 kB │ gzip:   0.53 kB
+
+✓ built in 257ms
+go run ./scripts/anh-readme -listen 127.0.0.1:18161 -debug-port 18162 -bo m16-do -nguong
+2026/11/21 11:46:48 INFO tpan đang chạy listen=127.0.0.1:18161 tls=false demo=true version=dev
+Bảng điều khiển	{"man":"/","cuaSo":[1440,900],"trangDaiPx":1652,"soManHinh":1.8,"kyTu":2678,"phanTramTheoCoChu":{"14px":59,"13px":27,"12px":9,"16px":3,"24px":1,"18px":0},"phanTramChuTu13pxTroXuong":36,"phanTramChuMono":4,"oVienDen":0,"choBamDuocTrongNoiDung":58,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":{"soDong":1,"ten":"cua-hang-so-mot.khach-hang-vi-du.example.com","soLienKet":9},"dayHangThu5Px":1342,"tenSiteBanDo":[{"ten":"blog.example.com","soDong":1,"biCat":false},{"ten":"cua-hang-so-mot.khach-hang-vi-du.example.com","soDong":1,"biCat":true},{"ten":"hoc-truc-tuyen.lop-hoc-a.example.net","soDong":1,"biCat":false},{"ten":"lab.example.org","soDong":1,"biCat":false},{"ten":"shop.example.net","soDong":1,"biCat":false},{"ten":"tin-tuc.to-soan-bao-vi-du.example.org","soDong":1,"biCat":false},{"ten":"wiki.example.org","soDong":1,"biCat":false}]}
+Công cụ	{"man":"/tools","cuaSo":[1440,900],"trangDaiPx":1469,"soManHinh":1.6,"kyTu":1379,"phanTramTheoCoChu":{"12.5px":53,"14px":36,"16px":7,"12px":3,"13px":1,"24px":1,"18px":0},"phanTramChuTu13pxTroXuong":57,"phanTramChuMono":2,"oVienDen":0,"choBamDuocTrongNoiDung":0,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":null,"dayHangThu5Px":null,"tenSiteBanDo":[]}
+Site (danh sách)	{"man":"/sites","cuaSo":[1440,900],"trangDaiPx":900,"soManHinh":1,"kyTu":722,"phanTramTheoCoChu":{"14px":83,"12px":11,"13px":4,"18px":1,"24px":1},"phanTramChuTu13pxTroXuong":16,"phanTramChuMono":5,"oVienDen":0,"choBamDuocTrongNoiDung":7,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":{"soDong":1,"ten":"cua-hang-so-mot.khach-hang-vi-du.example.com","soLienKet":14},"dayHangThu5Px":488,"tenSiteBanDo":[]}
+Trang một site	{"man":"/sites/cua-hang-so-mot.khach-hang-vi-du.example.com","cuaSo":[1440,900],"trangDaiPx":908,"soManHinh":1,"kyTu":884,"phanTramTheoCoChu":{"13px":39,"14px":37,"12px":13,"16px":6,"24px":5,"18px":0},"phanTramChuTu13pxTroXuong":51,"phanTramChuMono":2,"oVienDen":0,"choBamDuocTrongNoiDung":14,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":null,"dayHangThu5Px":null,"tenSiteBanDo":[]}
+Trang một site đang hỏng	{"man":"/sites/wiki.example.org","cuaSo":[1440,900],"trangDaiPx":989,"soManHinh":1.1,"kyTu":1049,"phanTramTheoCoChu":{"13px":42,"14px":40,"12px":11,"16px":5,"24px":2,"18px":0},"phanTramChuTu13pxTroXuong":53,"phanTramChuMono":2,"oVienDen":0,"choBamDuocTrongNoiDung":14,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":null,"dayHangThu5Px":null,"tenSiteBanDo":[]}
+Cơ sở dữ liệu	{"man":"/databases","cuaSo":[1440,900],"trangDaiPx":1059,"soManHinh":1.2,"kyTu":1996,"phanTramTheoCoChu":{"14px":41,"13px":39,"12.5px":14,"12px":5,"24px":1,"18px":0},"phanTramChuTu13pxTroXuong":58,"phanTramChuMono":12,"oVienDen":0,"choBamDuocTrongNoiDung":36,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":{"soDong":1,"ten":"cua-hang-so-mot.khach-hang-vi-du.example.com","soLienKet":8},"dayHangThu5Px":542,"tenSiteBanDo":[]}
+Bảo mật	{"man":"/security","cuaSo":[1440,900],"trangDaiPx":1752,"soManHinh":1.9,"kyTu":2597,"phanTramTheoCoChu":{"13px":61,"14px":28,"12px":9,"16px":2,"24px":0,"18px":0},"phanTramChuTu13pxTroXuong":70,"phanTramChuMono":1,"oVienDen":0,"choBamDuocTrongNoiDung":55,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":null,"dayHangThu5Px":1488,"tenSiteBanDo":[]}
+Cài đặt	{"man":"/settings","cuaSo":[1440,900],"trangDaiPx":2591,"soManHinh":2.9,"kyTu":2655,"phanTramTheoCoChu":{"14px":58,"13px":25,"12px":14,"16px":4,"24px":0,"18px":0},"phanTramChuTu13pxTroXuong":38,"phanTramChuMono":17,"oVienDen":0,"choBamDuocTrongNoiDung":23,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":null,"dayHangThu5Px":null,"tenSiteBanDo":[]}
+Người dùng	{"man":"/users","cuaSo":[1440,900],"trangDaiPx":900,"soManHinh":1,"kyTu":772,"phanTramTheoCoChu":{"14px":62,"13px":17,"12px":12,"12.5px":7,"24px":1,"18px":1},"phanTramChuTu13pxTroXuong":37,"phanTramChuMono":2,"oVienDen":0,"choBamDuocTrongNoiDung":9,"coChuNhoNhatPx":12,"chuDuoi12px":[],"mauOVienDen":[],"cuonNgangCaTrang":false,"tenSiteNhieuDongNhat":null,"dayHangThu5Px":null,"tenSiteBanDo":[]}
+
+Cửa sổ 1440 × 900, chế độ sáng, tiếng Việt. Trang một site: cua-hang-so-mot.khach-hang-vi-du.example.com
+
+| Màn | Trang dài | Chữ từ 13 px trở xuống | Chữ mono | Chỗ bấm được | Ô viền màu chữ | Cỡ chữ nhỏ nhất | Tên site dài nhất |
+|---|---|---|---|---|---|---|---|
+| Bảng điều khiển | 1,8 màn hình | 36% | 4% | 58 | 0 | 12 px | 1 dòng |
+| Công cụ | 1,6 màn hình | 57% | 2% | 0 | 0 | 12 px | — |
+| Site (danh sách) | 1,0 màn hình | 16% | 5% | 7 | 0 | 12 px | 1 dòng |
+| Trang một site | 1,0 màn hình | 51% | 2% | 14 | 0 | 12 px | — |
+| Trang một site đang hỏng | 1,1 màn hình | 53% | 2% | 14 | 0 | 12 px | — |
+| Cơ sở dữ liệu | 1,2 màn hình | 58% | 12% | 36 | 0 | 12 px | 1 dòng |
+| Bảo mật | 1,9 màn hình | 70% | 1% | 55 | 0 | 12 px | — |
+| Cài đặt | 2,9 màn hình | 38% | 17% | 23 | 0 | 12 px | — |
+| Người dùng | 1,0 màn hình | 37% | 2% | 9 | 0 | 12 px | — |
+
+NGƯỠNG CỨNG: đạt hết.

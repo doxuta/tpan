@@ -1,4 +1,4 @@
-// Khối "Cấu hình" của màn SSL: email cho Let's Encrypt và công tắc staging.
+// Thẻ "Cấu hình" của màn SSL: email cho Let's Encrypt và công tắc staging.
 // Lưu bằng POST /api/v1/ssl/settings. Đây là đổi cấu hình của TPAN chứ không
 // đổi máy, nên không qua bản xem trước; riêng tắt staging (từ nay xin chứng
 // chỉ thật, tốn hạn mức) thì hỏi lại một lần.
@@ -8,15 +8,15 @@ import { useState, type FormEvent } from "react";
 import { post } from "../../api/client";
 import type { SSLConfig, SSLOverview, SSLSettings } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Dialog } from "../../components/Dialog";
+import { TextField } from "../../components/Field";
+import { Notice } from "../../components/Notice";
 import { SegmentButton } from "../../components/SegmentButton";
 import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/ssl";
 import { ErrorNote } from "../site/ErrorNote";
 import { sslKey } from "./model";
-
-const inputClass =
-  "box-border h-[44px] w-full border border-ink bg-surface px-[10px] font-mono text-[13px] text-ink placeholder:text-muted sm:h-[40px]";
 
 export function Settings({ config }: { config: SSLConfig }) {
   const t = useStrings(strings);
@@ -65,43 +65,29 @@ export function Settings({ config }: { config: SSLConfig }) {
   };
 
   return (
-    <section aria-labelledby="ssl-cfg">
-      <h2 id="ssl-cfg" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
-        {t.settingsHeading}
-      </h2>
+    <Card title={t.settingsHeading} titleId="ssl-cfg">
       <form onSubmit={onSubmit} noValidate className="flex max-w-[560px] flex-col gap-[20px]">
-        <div>
-          <label htmlFor="o-ssl-email" className="mb-[4px] block font-medium">
-            {t.emailLabel}
-          </label>
-          <p id="h-ssl-email" className="mt-0 mb-[6px] text-[13px] text-muted">
-            {t.emailHint}
-          </p>
-          <input
-            id="o-ssl-email"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              touch();
-            }}
-            aria-describedby="h-ssl-email"
-            autoComplete="off"
-            spellCheck={false}
-            autoCapitalize="none"
-            placeholder="admin@example.com"
-            className={inputClass}
-          />
-        </div>
+        <TextField
+          id="o-ssl-email"
+          name="email"
+          type="email"
+          label={t.emailLabel}
+          hint={t.emailHint}
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            touch();
+          }}
+          autoComplete="off"
+          spellCheck={false}
+          autoCapitalize="none"
+          placeholder="admin@example.com"
+        />
 
         <div>
-          <div id="l-ssl-staging" className="mb-[4px] font-medium">
+          <div id="l-ssl-staging" className="mb-[6px] text-[14px] font-medium">
             {t.stagingLabel}
           </div>
-          <p id="h-ssl-staging" className="mt-0 mb-[8px] text-[13px] text-muted">
-            {t.stagingHint}
-          </p>
           <SegmentButton
             label={t.stagingGroup}
             value={staging ? "on" : "off"}
@@ -114,6 +100,9 @@ export function Settings({ config }: { config: SSLConfig }) {
               { value: "off", label: t.stagingOff },
             ]}
           />
+          <p id="h-ssl-staging" className="mt-[6px] mb-0 text-[13px] text-muted">
+            {t.stagingHint}
+          </p>
         </div>
 
         {save.isError && <ErrorNote error={save.error} heading={t.saveFailed} />}
@@ -123,13 +112,11 @@ export function Settings({ config }: { config: SSLConfig }) {
             {save.isPending ? t.saving : t.save}
           </Button>
           {/* aria-live luôn có mặt trong cây để trình đọc màn hình đọc được chữ vừa hiện. */}
-          <span aria-live="polite" className="text-muted">
-            {justSaved && !dirty ? t.saved : ""}
-          </span>
+          <div aria-live="polite">{justSaved && !dirty && <Notice kind="pass">{t.saved}</Notice>}</div>
         </div>
       </form>
 
       <Dialog open={confirming} onOpenChange={setConfirming} title={t.confirmTitle} description={t.confirmText} confirmLabel={t.confirmLabel} onConfirm={send} busy={save.isPending} />
-    </section>
+    </Card>
   );
 }

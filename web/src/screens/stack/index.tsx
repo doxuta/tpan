@@ -6,6 +6,7 @@
 
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useStrings } from "../../i18n";
+import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/stack";
 import { Config } from "./Config";
 import { Php } from "./Php";
@@ -13,9 +14,10 @@ import { Switch } from "./Switch";
 
 export default function StackScreen() {
   const t = useStrings(strings);
+  const k = useStrings(khung);
   return (
     <>
-      <ScreenHeader title={t.title} summary={t.summary} />
+      <ScreenHeader crumbs={[{ label: k.groups.may }, { label: t.title }]} title={t.title} summary={t.summary} />
       <Config />
       <Switch />
       <Php />

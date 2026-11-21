@@ -56,13 +56,22 @@ const vi = {
   checksHeading: "Điều kiện chưa đạt",
 
   // ---- M13: DB rời, bộ ký tự, tạm khoá (mục 6.12) ----
-  listHeading: (n: number) => `${n} cơ sở dữ liệu`,
+  // Chân bảng: "5 cơ sở dữ liệu, 3 của site, 2 DB rời, 1 trong thùng rác". N là số hàng đang chạy,
+  // cùng con số với menu và trang Công cụ (mục 3.8 của M16-thiet-ke.md).
+  footerNone: "Chưa có cơ sở dữ liệu nào đang chạy",
+  footerRunning: (n: number) => `${n} cơ sở dữ liệu`,
+  footerAllSite: "đều là DB của site",
+  footerAllStandalone: "đều là DB rời",
+  footerSplit: (site: number, standalone: number) => `${site} của site, ${standalone} DB rời`,
+  footerTrashed: (n: number) => `${n} trong thùng rác`,
+
   createButton: "Tạo DB",
   none: "—",
-  colType: "Loại",
+  colOfSite: "Của site",
   colCharset: "Bộ ký tự",
-  kindSite: "DB của site",
   kindStandalone: "DB rời",
+  // Nhãn của nút ba chấm: "Việc khác với tp_blog: nhập từ bản đã xuất, đổi charset" (items đã viết thường).
+  moreFor: (db: string, items: string) => `Việc khác với ${db}: ${items}`,
   noteLabel: "Ghi chú",
   hintM13:
     "DB rời không gắn với site nào: tên là <user>_<tên>, mật khẩu hiện một lần sau khi tạo. Xoá DB rời là đưa vào thùng rác (xuất file .sql trước), khôi phục được tới hạn xoá hẳn. Tạm khoá DB khoá user DB và ngắt các kết nối đang mở; dữ liệu giữ nguyên.",
@@ -76,10 +85,11 @@ const vi = {
   unsuspend: "Mở khoá",
   suspendFor: (db: string) => `Tạm khoá ${db}`,
   unsuspendFor: (db: string) => `Mở khoá ${db}`,
-  trash: "Xoá",
+  trash: "Đưa vào thùng rác",
   trashFor: (db: string) => `Đưa ${db} vào thùng rác`,
   importBlocked: "Site đang tạm khoá nên chưa nhập được. Mở khoá site trước.",
   inTrashDb: "Đang trong thùng rác.",
+  openTrash: "Mở thùng rác",
 
   // Hộp Tạo DB
   createTitle: "Tạo DB rời",
@@ -137,7 +147,7 @@ const vi = {
   charsetErrorHeading: (db: string) => `Chưa dựng được bản xem trước đổi bộ ký tự của ${db}`,
 
   // Mật khẩu DB hiện một lần (trang job)
-  secretLabel: "MẬT KHẨU CƠ SỞ DỮ LIỆU",
+  secretLabel: "Mật khẩu cơ sở dữ liệu",
   secretTitle: (db: string) => `Lưu mật khẩu của ${db} ngay`,
   secretBody: "TPAN không giữ mật khẩu này và sẽ không hiện lại. Chép vào trình quản lý mật khẩu trước khi rời trang.",
   secretDb: "DB",
@@ -198,13 +208,19 @@ export const strings = defineStrings(vi, {
   importErrorHeading: (d) => `Could not build the import preview for ${d}`,
   checksHeading: "Conditions not met",
 
-  listHeading: (n) => `${n} ${n === 1 ? "database" : "databases"}`,
+  footerNone: "No databases are running yet",
+  footerRunning: (n) => `${n} ${n === 1 ? "database" : "databases"}`,
+  footerAllSite: "all site databases",
+  footerAllStandalone: "all standalone databases",
+  footerSplit: (site, standalone) => `${site} for sites, ${standalone} standalone`,
+  footerTrashed: (n) => `${n} in the trash`,
+
   createButton: "Create DB",
   none: "—",
-  colType: "Type",
+  colOfSite: "Site",
   colCharset: "Charset",
-  kindSite: "Site database",
   kindStandalone: "Standalone DB",
+  moreFor: (db, items) => `More actions for ${db}: ${items}`,
   noteLabel: "Note",
   hintM13:
     "A standalone DB belongs to no site: it is named <user>_<name> and its password shows once after creation. Deleting a standalone DB moves it to the trash (a .sql export first) and it can be restored until it is permanently deleted. Suspending a DB locks the DB user and drops open connections; the data stays.",
@@ -218,10 +234,11 @@ export const strings = defineStrings(vi, {
   unsuspend: "Unsuspend",
   suspendFor: (db) => `Suspend ${db}`,
   unsuspendFor: (db) => `Unsuspend ${db}`,
-  trash: "Delete",
+  trash: "Move to the trash",
   trashFor: (db) => `Move ${db} to the trash`,
   importBlocked: "The site is suspended, so it cannot import yet. Unsuspend the site first.",
   inTrashDb: "It is in the trash.",
+  openTrash: "Open the trash",
 
   createTitle: "Create a standalone DB",
   createDescription: "A standalone DB belongs to no site. You see the steps before anything is created.",
@@ -274,7 +291,7 @@ export const strings = defineStrings(vi, {
   trashErrorHeading: (db) => `Could not build the preview to move ${db} to the trash`,
   charsetErrorHeading: (db) => `Could not build the charset change preview for ${db}`,
 
-  secretLabel: "DATABASE PASSWORD",
+  secretLabel: "Database password",
   secretTitle: (db) => `Save the password of ${db} now`,
   secretBody: "TPAN does not keep this password and will not show it again. Copy it into your password manager before you leave this page.",
   secretDb: "DB",

@@ -283,6 +283,11 @@ type Overview struct {
 	// Quota (M13) chỉ có khi người gọi là user thường: gói và phần đã dùng,
 	// hiện thay cho số liệu máy (Machine, StackChecks, TPANChecks khi đó rỗng).
 	Quota *Quota `json:"quota,omitempty"`
+	// DBCount (M16) là số cơ sở dữ liệu đang chạy trong phạm vi của người gọi:
+	// DB của site đang chạy cộng DB rời đang chạy. Bằng đúng số hàng
+	// status "active" mà GET /api/v1/databases trả cho cùng người đó, để số ở
+	// mục "Cơ sở dữ liệu" của menu khớp màn Cơ sở dữ liệu (bản 1 đếm số site).
+	DBCount int `json:"db_count"`
 }
 
 // StackSummary là các nhãn stack trên thanh đầu trang: "LEMP", "nginx",

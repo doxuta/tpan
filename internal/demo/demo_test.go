@@ -70,15 +70,15 @@ func TestNewHasThreeSites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// List trả cả site trong thùng rác (M6); bốn site đang chạy (lab của M13
-	// đang tạm khoá nhưng vẫn active) và site cũ.
+	// List trả cả site trong thùng rác (M6); bảy site đang chạy (lab của M13
+	// đang tạm khoá nhưng vẫn active, ba site tên dài của M16) và site cũ.
 	var got []string
 	for _, s := range sites {
 		if s.Status == site.Active {
 			got = append(got, s.Domain.String())
 		}
 	}
-	if want := []string{siteBlog, siteLab, siteShop, siteWiki}; !slices.Equal(got, want) || len(sites) != 5 {
+	if want := []string{siteBlog, siteLongShop, siteLongEdu, siteLab, siteShop, siteLongNews, siteWiki}; !slices.Equal(got, want) || len(sites) != 8 {
 		t.Fatalf("List = %v (site active %v); muốn active %v và %s trong thùng rác", sites, got, want, siteOld)
 	}
 	for _, s := range sites {
@@ -152,21 +152,25 @@ func TestJobHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Mới nhất trước: wiki, site cũ vào thùng rác, DB rời vào thùng rác, tạm
-	// khoá lab, lần thất bại, hai DB rời, shop, lab, blog, tạo site cũ.
+	// Mới nhất trước: site tin tức (30 giờ), wiki, site cũ vào thùng rác, DB rời
+	// vào thùng rác, tạm khoá lab, lần thất bại, site học trực tuyến (6 ngày),
+	// hai DB rời, shop, lab, site cửa hàng (16 ngày), blog, tạo site cũ.
 	want := []struct {
 		kind, target string
 		status       engine.JobStatus
 	}{
+		{"site.add", siteLongNews, engine.JobSucceeded},
 		{"site.add", siteWiki, engine.JobSucceeded},
 		{"site.rm", siteOld, engine.JobSucceeded},
 		{"dbs.trash", userB + "_" + dbOld, engine.JobSucceeded},
 		{"site.suspend", siteLab, engine.JobSucceeded},
 		{"site.add", siteFail, engine.JobRolledBack},
+		{"site.add", siteLongEdu, engine.JobSucceeded},
 		{"dbs.add", userB + "_" + dbOld, engine.JobSucceeded},
 		{"dbs.add", userA + "_" + dbApp, engine.JobSucceeded},
 		{"site.add", siteShop, engine.JobSucceeded},
 		{"site.add", siteLab, engine.JobSucceeded},
+		{"site.add", siteLongShop, engine.JobSucceeded},
 		{"site.add", siteBlog, engine.JobSucceeded},
 		{"site.add", siteOld, engine.JobSucceeded},
 	}
@@ -228,8 +232,8 @@ func TestAddSiteOnDemoMachine(t *testing.T) {
 	if !res.WPInstalled || len(res.AdminPassword.Reveal()) != 32 {
 		t.Errorf("WPInstalled=%v, độ dài mật khẩu=%d", res.WPInstalled, len(res.AdminPassword.Reveal()))
 	}
-	if n := countActive(ctx, t, s); n != 5 {
-		t.Errorf("có %d site active; muốn 5", n)
+	if n := countActive(ctx, t, s); n != 8 {
+		t.Errorf("có %d site active; muốn 8", n)
 	}
 
 	h, err := s.Health(ctx, in.Domain)
@@ -259,8 +263,8 @@ func TestAddSiteOnDemoMachine(t *testing.T) {
 	if err != nil || rep.Job.Status != engine.JobSucceeded {
 		t.Fatalf("xoá site: %v %s %s", err, rep.Job.Status, rep.Job.Error)
 	}
-	if n := countActive(ctx, t, s); n != 4 {
-		t.Errorf("sau khi xoá có %d site active; muốn 4", n)
+	if n := countActive(ctx, t, s); n != 7 {
+		t.Errorf("sau khi xoá có %d site active; muốn 7", n)
 	}
 }
 
