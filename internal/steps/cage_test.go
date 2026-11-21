@@ -87,13 +87,21 @@ func cageGroupOut(l site.Layout) string {
 	return "root:x:0:\nwww-data:x:33:\n" + l.User + ":x:" + siteUID + ":\nnogroup:x:65534:\n"
 }
 
-// goodMountinfo là mountinfo của tiến trình chính trong lồng như đo ở t1.
-const goodMountinfo = "1 0 8:1 / / ro,relatime shared:1 - ext4 /dev/sda1 rw\n" +
-	"2 1 0:30 / /var rw,nosuid - tmpfs tmpfs rw\n" +
-	"3 1 0:31 / /run rw,nosuid - tmpfs tmpfs rw\n" +
-	"4 1 0:32 / /etc/tpan rw - tmpfs tmpfs rw\n" +
-	"5 3 0:25 /mysqld /run/mysqld rw shared:9 - tmpfs tmpfs rw\n" +
-	"6 3 0:25 /systemd/resolve /run/systemd/resolve rw - tmpfs tmpfs rw\n"
+// goodMountinfo là mountinfo của tiến trình chính trong lồng của
+// shop.example.com (cageLayout) như đo ở t1, cộng hai dòng gắn passwd, group
+// riêng (dạng thật đo trên máy ảo M17).
+var goodMountinfo = func() string {
+	d, _ := validate.ParseDomain("shop.example.com")
+	l := site.LayoutOf(d)
+	return "1 0 8:1 / / ro,relatime shared:1 - ext4 /dev/sda1 rw\n" +
+		"2 1 0:30 / /var rw,nosuid - tmpfs tmpfs rw\n" +
+		"3 1 0:31 / /run rw,nosuid - tmpfs tmpfs rw\n" +
+		"4 1 0:32 / /etc/tpan rw - tmpfs tmpfs rw\n" +
+		"5 3 0:25 /mysqld /run/mysqld rw shared:9 - tmpfs tmpfs rw\n" +
+		"6 3 0:25 /systemd/resolve /run/systemd/resolve rw - tmpfs tmpfs rw\n" +
+		"7 1 8:1 " + l.CagePasswd() + " /etc/passwd ro,nosuid,relatime shared:382 master:1 - ext4 /dev/sda1 rw\n" +
+		"8 1 8:1 " + l.CageGroup() + " /etc/group ro,nosuid,relatime shared:383 master:1 - ext4 /dev/sda1 rw\n"
+}()
 
 func procStatus(uid, state, capEff, nnp string) string {
 	return "Name:\tphp-fpm8.3\nState:\t" + state + "\nUid:\t" + uid + "\t" + uid + "\t" + uid + "\t" + uid +
@@ -1322,6 +1330,13 @@ func TestCageRestartCheck(t *testing.T) {
 		}, false},
 		{"/run/systemd/resolve đã bị xoá", func(f *cageFake) {
 			f.setMain(good, strings.Replace(goodMountinfo, "/systemd/resolve /run", "/systemd/resolve//deleted /run", 1), "/usr/sbin/php-fpm8.3")
+		}, false},
+		// useradd, userdel trên máy gỡ dòng gắn passwd riêng của dịch vụ đang chạy.
+		{"mất dòng gắn passwd riêng", func(f *cageFake) {
+			f.setMain(good, strings.Replace(goodMountinfo, " /etc/passwd ", " /etc/passwd.x ", 1), "/usr/sbin/php-fpm8.3")
+		}, false},
+		{"mất dòng gắn group riêng", func(f *cageFake) {
+			f.setMain(good, strings.Replace(goodMountinfo, " /etc/group ", " /etc/group.x ", 1), "/usr/sbin/php-fpm8.3")
 		}, false},
 		{"bản PHP đã bị thay", func(f *cageFake) { f.setMain(good, goodMountinfo, "/usr/sbin/php-fpm8.3 (deleted)") }, false},
 		{"hàng rào mới hơn lúc dịch vụ khởi động", func(f *cageFake) { f.fenceAt = f.activeAt + 5 }, false},

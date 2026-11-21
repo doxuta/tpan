@@ -1291,6 +1291,10 @@ func (s *CageRestart) runtimeOK(ctx context.Context, sys system.System, pid stri
 	if r, ok := mounts["/run/systemd/resolve"]; ok && strings.Contains(r.root, "//deleted") {
 		return false, nil
 	}
+	// passwd, group riêng bị kernel gỡ khi user trên máy đổi (cageRebindIdentity).
+	if mounts["/etc/passwd"].root != l.CagePasswd() || mounts["/etc/group"].root != l.CageGroup() {
+		return false, nil
+	}
 	exe, err := sys.Readlink(p + "/exe")
 	if err != nil || strings.HasSuffix(exe, " (deleted)") {
 		return false, nil
@@ -1357,6 +1361,54 @@ func (s *CageRestart) Apply(ctx context.Context, sys system.System) error {
 }
 
 func (s *CageRestart) Undo(context.Context, system.System) error { return nil }
+
+// ======================================================= cageRebindIdentity
+
+// cageIdentityUnits là mẫu tên dịch vụ PHP của mọi lồng (systemctl list-units).
+const cageIdentityUnits = "tpan-cage-*-php.service"
+
+// cageRebindIdentity gắn lại passwd, group riêng của mọi lồng đang chạy lên
+// /etc/passwd, /etc/group trong mount namespace của nó. Gọi ngay sau mỗi lệnh
+// đổi user hay nhóm trên máy (useradd, userdel, usermod -aG, gpasswd -d): các
+// lệnh đó thay /etc/passwd, /etc/group bằng rename, và kernel gỡ mọi lần gắn
+// file lên đúng chỗ đó trong mount namespace khác, nên dịch vụ PHP của lồng đã
+// chạy từ trước thấy lại passwd của cả máy (tên user tp_* của mọi site; gặp ở
+// e2e M17). `systemctl bind --read-only` gắn lại mà không khởi động lại dịch
+// vụ (thử trên systemd 255 dưới hàng rào của lồng: được, chạy lại thì thay lần
+// gắn cũ chứ không chồng thêm).
+//
+// Không bao giờ trả lỗi: đây là việc phụ của bước đổi user (bước đó đã xong),
+// và mã của site làm hỏng được nó (tự giết tiến trình chính đúng lúc). Lệnh và
+// output vẫn vào log của job. Lồng nào không gắn lại được thì cage.runtime của
+// health báo lỗi, kèm sửa tự động cage.restart (khởi động lại thì namespace
+// mới có đủ lần gắn); đó cũng là đường bắt các thay đổi user không do tpan
+// làm (gói apt tạo user hệ thống).
+func cageRebindIdentity(ctx context.Context, sys system.System) {
+	res, err := sys.Run(ctx, system.Cmd{Name: "systemctl", Args: []string{
+		"list-units", "--type=service", "--state=active", "--no-legend", "--plain", cageIdentityUnits}})
+	if err != nil {
+		return
+	}
+	for _, ln := range strings.Split(res.Stdout, "\n") {
+		f := strings.Fields(ln)
+		if len(f) == 0 {
+			continue
+		}
+		unit := f[0]
+		rest, ok1 := strings.CutPrefix(unit, "tpan-cage-")
+		slug, ok2 := strings.CutSuffix(rest, "-php.service")
+		if !ok1 || !ok2 {
+			continue
+		}
+		if _, ok := site.CageSlugOfUser("tp_" + slug); !ok {
+			continue // slug lạ: không ghép nó vào đường dẫn
+		}
+		dir := site.CageConfRoot + "/" + slug
+		for _, p := range [][2]string{{dir + "/passwd", "/etc/passwd"}, {dir + "/group", "/etc/group"}} {
+			_, _ = sys.Run(ctx, system.Cmd{Name: "systemctl", Args: []string{"bind", "--read-only", unit, p[0], p[1]}})
+		}
+	}
+}
 
 // ============================================================ SiteVhostCaged
 
