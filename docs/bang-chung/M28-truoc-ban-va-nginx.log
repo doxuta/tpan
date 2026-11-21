@@ -1,0 +1,190 @@
+
+
+######## [2026-11-21 04:04:58] e2e M28 bước 31 — máy ảo tpan-m28 — phần: nginx — log docs/bang-chung/M28-truoc-ban-va-nginx.log
+E2E_BUILD=0  E2E_BIN_PREFIX=bin/tpan-truoc-ban-va-linux
+
+
+######## [2026-11-21 04:04:58] PHẦN NGINX
+
+[2026-11-21 04:04:58] đưa máy ảo tpan-m28 về sạch
+[2026-11-21 04:05:12] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-21 04:05:12] chép bản chưa vá bin/tpan-truoc-ban-va-linux-arm64 vào máy ảo
+tpan v0.2.0-21-gd6b535f-dirty (commit d6b535f, build 2026-11-20T20:27:56Z)
+[2026-11-21 04:05:13] chép scripts/e2e-m28/ vào máy ảo (/home/ubuntu/e2e-m28)
+
+[2026-11-21 04:05:15] >>> dựng máy (nginx)  (bash dung-may.sh nginx)
+
+--- [04:05:15] tpan version
+tpan v0.2.0-21-gd6b535f-dirty (commit d6b535f, build 2026-11-20T20:27:56Z)
+
+--- [04:05:15] tpan setup
+  xong
+
+Job 2de1fdc8e732d78b: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    91:15:B4:25:BE:84:B6:61:81:EC:F7:79:74:23:17:8C:16:C8:61:65:F9:12:B1:16:9A:1C:5B:2F:45:06:1D:DF
+Mở: https://<IP của máy>:8443
+  => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m28-admin.pw, không in)
+  => ĐẠT: tpan.service active
+
+--- [04:05:15] tpan stack install --web nginx --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web nginx thoát 0
+
+--- [04:05:47] tpan site add a.example.com (admin)
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  => ĐẠT: site add a.example.com thoát 0
+
+--- [04:06:03] tpan site add b.example.com (admin)
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+  => ĐẠT: site add b.example.com thoát 0
+
+--- [04:06:08] user khach1 (vai user) và site e.example.com của khach1
+  => ĐẠT: user add khach1 thoát 0, có mật khẩu (không in)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site e.example.com
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com
+  => ĐẠT: site add e.example.com --owner khach1 thoát 0
+
+--- [04:06:13] hiện trạng
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-21 04:06 admin          -
+b.example.com                            active   8.3   không 2026-11-21 04:06 admin          -
+e.example.com                            active   8.3   không 2026-11-21 04:06 khach1         -
+  /var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public/.htaccess: không có
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  /var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public/.htaccess: không có
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  /var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public/.htaccess: không có
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+  site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; stack nginx
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+  => ĐẠT: khach1 đăng nhập API: HTTP 204
+  khach1 GET /session: HTTP 200, 0.001906s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 173 byte
+  phiên: khach1 vai user
+  => ĐẠT: phiên của khach1 có vai user
+[2026-11-21 04:06:14] <<< dựng máy (nginx) xong trong 59 giây
+
+[2026-11-21 04:06:14] >>> B bản xem trước không có file /var/www, tên lạ  (bash xem-truoc.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [04:06:14] nginx: bản xem trước của khach1 không có file nào trong vùng site
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.381390s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 32882 byte
+    phân tích: 3 file trong bản xem trước, 0 file dưới /var/www/: []
+  => ĐẠT: nginx: HTTP 200, không file nào trong bản xem trước có đường dẫn bắt đầu bằng /var/www/
+
+--- [04:06:15] 3c. tên lạ trong public do user site tạo (xuống dòng, -rf, 255 ký tự)
+  đã tạo 3 file, độ dài tên: [18, 3, 255]
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.368684s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 32882 byte
+    phân tích: 3 file trong bản xem trước, 0 file dưới /var/www/: []
+  => ĐẠT: tên lạ trong public: HTTP 200, bản xem trước không có file dưới /var/www/
+  tpan: PID 3341 -> 3341 (active), NRestarts 0 -> 0
+  => ĐẠT: tên lạ: tpan còn sống, PID không đổi
+[2026-11-21 04:06:15] <<< B bản xem trước không có file /var/www, tên lạ xong trong 1 giây
+
+[2026-11-21 04:06:15] >>> B7 đặt quyền thư mục  (bash quyen-thu-muc.sh )
+
+--- [04:06:15] 7. admin chạy site add e.example.com 30 lần, user site tráo /var/www/e.example.com/public/wp-includes <-> symlink tới /srv/m28-victim (0755 của root)
+  nạn nhân trước: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  kẻ tráo đang chạy (user tp_e_example_com_25cfc7)
+  số lần tráo: 1539375; nạn nhân sau: /srv/m28-victim root:root 755 /srv/m28-victim/con root:root 755 
+  => ĐẠT: thư mục nạn nhân giữ quyền 0755 qua 30 vòng site add
+  -- GHI NHẬN: site add lặp lại thoát khác 0 ít nhất một lần
+[2026-11-21 04:06:21] <<< B7 đặt quyền thư mục xong trong 6 giây
+
+[2026-11-21 04:06:21] >>> B9 hồi quy M14, health, backup  (bash hoi-quy.sh )
+
+--- [04:06:21] 9a. bộ tấn công L1 đến L9 của M14 (A=e.example.com bị chiếm, B=a.example.com nạn nhân)
+KQ L1  CHAN PHP của A include wp-config.php của B: không lấy được (3 lần thử)
+KQ L2  HONG trả lời lạ: </html>
+KQ L3  BO   stack nginx không có .htaccess
+KQ L4  BO   stack nginx không có .htaccess
+KQ L9  BO   stack nginx không có .htaccess
+KQ L5  CHAN symlink của A sang file của B: HTTP 404; sang mã nguồn PHP của B: HTTP 404
+KQ N5  DAT  symlink của A trỏ vào file của chính A: HTTP 200
+KQ N6  HONG .user.ini của A đặt open_basedir=/: <html>
+KQ L6  CHAN user A không đọc được access.log của B (drwxr-x--- root:tp_a_example_com_7653e4)
+KQ N7  DAT  user B đọc được access.log của chính mình
+KQ N8  DAT  web server vẫn ghi access.log của B (8 -> 9 dòng)
+KQ L7  HONG trả lời lạ: </html>
+KQ L8  CHAN vhost lạ trùng tên e.example.com (tên miền đang trả: '<html> <head><title>403 Forbidden</titl'): tpan health chỉ ra file aaa-trung-a8450f52fe21.conf (4 dòng)
+KQ N1  DAT  user A không đọc được wp-config.php của B
+KQ N2  DAT  user A không liệt kê được thư mục của B
+KQ N3  DAT  user A không ghi được vào public của B
+KQ N4  DAT  user A không ghi được vào socket FPM của B
+KQ N11 DAT  Host viết hoa về đúng site A
+KQ N12 DAT  Host có dấu chấm cuối về đúng site B
+KQ N13 DAT  tên lạ: nginx đóng kết nối
+KQ N14 DAT  trang chủ WordPress của A và B: HTTP 200 / 200
+KQ N15 DAT  permalink của A: /hello-world/ HTTP 200, trang không có HTTP 404 do WordPress trả
+KQ N16 DAT  file tĩnh của A: HTTP 200
+TONG lo=0 chan=4 hong=3
+  TONG lo=0 chan=4 hong=3 (mã thoát 0)
+  => ĐẠT: bộ phép thử chạy hết (có dòng TONG)
+  => ĐẠT: không đường tấn công nào còn lộ (TONG lo=0)
+  -- GHI NHẬN: bộ phép thử có hong=3 (phép dựng cảnh hỏng, không phải lỗ; xem /root/m28-e2e/tancong.out)
+
+--- [04:06:34] 9b. tpan health không có [lỗi]
+  số dòng [lỗi]: 0
+  => ĐẠT: tpan health không có dòng [lỗi]
+
+--- [04:06:40] 9c. backup create rồi restore site e.example.com
+
+Job 606ee5982a831069: thành công
+  => ĐẠT: backup create e.example.com thoát 0
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_e_example_com_25cfc7 không chạm được vào file, log và socket của b.example.com (5 phép thử)
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của e.example.com (5 phép thử)
+  => ĐẠT: backup restore e.example.com thoát 0
+  e.example.com: HTTP 200
+  => ĐẠT: site e.example.com vẫn trả 200 sau khôi phục
+[2026-11-21 04:06:50] <<< B9 hồi quy M14, health, backup xong trong 29 giây
+
+[2026-11-21 04:06:50] >>> B wp-config.php: đổi mật khẩu DB, file 2 GiB  (bash nginx-db.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [04:06:51] 1. wp-config.php của e.example.com -> symlink tới wp-config.php của a.example.com, đổi mật khẩu DB (chạy thật)
+  a.example.com: HTTP 200
+  => ĐẠT: site a.example.com trả 200 trước phép thử
+  khach1 POST /databases/e.example.com/password: HTTP 202, 0.004422s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 30 byte
+  trạng thái job: rolled_back; HTTP lúc gọi 202
+  wp-config.php của a.example.com: trước sha=4ea2927e955b2c37, sau sha=4ea2927e955b2c37
+  => ĐẠT: wp-config.php của a.example.com không bị đổi (sha256 giữ nguyên)
+  a.example.com: HTTP 200
+  => ĐẠT: site a.example.com vẫn trả 200
+  => ĐẠT: job hỏng hoặc bị từ chối (không succeeded)
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=4ea2927e955b2c37): không chứa; câu trả lời 1419 byte, không phải JSON
+  => ĐẠT: câu trả lời không chứa wp-config.php của a.example.com
+  tpan: PID 3341 -> 3341 (active), NRestarts 0 -> 0
+
+--- [04:06:51] 2. wp-config.php của e.example.com là file thường 2 GiB thưa: gọi đổi mật khẩu DB trả lời trong 30 giây
+  /var/www/e.example.com/public/wp-config.php: regular file, 2147483648 byte, chủ tp_e_example_com_25cfc7:www-data
+  khach1 POST /databases/e.example.com/password: HTTP 202, 0.004096s (curl thoát 0; 28 là quá hạn 35s), câu trả lời 30 byte
+  => ĐẠT: gọi đổi mật khẩu DB trả lời trong 30 giây
+  HTTP 202, 0.004096s; trạng thái job: rolled_back
+  tpan: PID 3341 -> 3341 (active), NRestarts 0 -> 0
+  => ĐẠT: tpan giữ PID, NRestarts không tăng
+[2026-11-21 04:06:54] <<< B wp-config.php: đổi mật khẩu DB, file 2 GiB xong trong 4 giây
+
+==== Phần NGINX: 29 khẳng định đạt, 0 không đạt
+
+
+######## [2026-11-21 04:06:54] TỔNG KẾT: 29 khẳng định đạt, 0 khẳng định không đạt
