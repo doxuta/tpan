@@ -25,6 +25,13 @@ const (
 	siteFail = "news.example.com" // lần tạo thất bại, đã hoàn tác (không có trong bảng sites)
 	// siteOld (trash.go) đang ở thùng rác.
 
+	// Ba site tên dài (M16, mục 3.9 của docs/thay-doi/M16-thiet-ke.md) để thử
+	// các màn có tên site chạy sát lề: bản đồ tuyến, bảng site, menu. Tạo ở
+	// seedM13 vì hai trong ba site thuộc user mà seedM13 mới tạo.
+	siteLongShop = "cua-hang-so-mot.khach-hang-vi-du.example.com" // 44 ký tự, của khach_a
+	siteLongEdu  = "hoc-truc-tuyen.lop-hoc-a.example.net"         // 36 ký tự, của admin
+	siteLongNews = "tin-tuc.to-soan-bao-vi-du.example.org"        // 37 ký tự, của khach_b
+
 	// demoEmail là email quản trị của các site mẫu.
 	demoEmail = "admin@example.com"
 )
