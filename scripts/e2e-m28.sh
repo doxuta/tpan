@@ -107,11 +107,25 @@ part_end() { printf '\n==== Phần %s: %s khẳng định đạt, %s không đ�
 
 reset_vm() {
   printf '\n[%s] đưa máy ảo %s về sạch\n' "$(ts)" "$VMNAME"
-  TPAN_VM_CAPTURE= "$VM" reset </dev/null >/dev/null 2>&1
-  local _
-  for _ in $(seq 1 20); do
-    "$VM" exec cloud-init status --wait </dev/null >/dev/null 2>&1 && break
-    sleep 3
+  local _ try
+  for try in 1 2; do
+    TPAN_VM_CAPTURE= "$VM" reset </dev/null >/dev/null 2>&1
+    for _ in $(seq 1 20); do
+      "$VM" exec cloud-init status --wait </dev/null >/dev/null 2>&1 && break
+      sleep 3
+    done
+    # Snapshot sạch không có tpan. Còn file chạy hay /var/lib/tpan nghĩa là
+    # restore đã không chạy: lần chạy 13:04 ngày 21/11, một bước multipass hỏng,
+    # output bị vứt, và e2e chạy tiếp trên máy cũ mà vẫn in "máy ảo sạch".
+    if ! "$VM" exec test -e /usr/local/bin/tpan -o -e /var/lib/tpan </dev/null >/dev/null 2>&1; then
+      break
+    fi
+    printf '[%s] máy ảo chưa về sạch (lần %s): còn /usr/local/bin/tpan hay /var/lib/tpan\n' "$(ts)" "$try"
+    if [ "$try" = 2 ]; then
+      echo "  => KHÔNG ĐẠT: máy ảo $VMNAME về được snapshot sạch"
+      FAILS=$((FAILS + 1))
+      return 1
+    fi
   done
   VM_IP="$(TPAN_VM_CAPTURE= "$VM" ip </dev/null 2>/dev/null | tr -d '[:space:]')"
   ARCH="$("$VM" exec dpkg --print-architecture </dev/null 2>/dev/null | tr -d '[:space:]')"
@@ -180,7 +194,7 @@ stage_v020() {
 part_stack() { # part_stack <apache|nginx>
   local web=$1
   part_begin "$(tr a-z A-Z <<<"$web")"
-  reset_vm
+  reset_vm || { part_end "$(tr a-z A-Z <<<"$web")"; return; }
   deploy_bin
   push_scripts
   vm_run "dựng máy ($web)" dung-may.sh "$web"
@@ -222,7 +236,7 @@ part_goc() {
 
 part_nangcap() {
   part_begin "D: nâng từ $OLD_VER lên bản của cây (Apache)"
-  reset_vm
+  reset_vm || { part_end D; return; }
   stage_v020
   push_scripts
   vm_plain "cài $OLD_VER bằng install.sh của gói (--web apache)" \
