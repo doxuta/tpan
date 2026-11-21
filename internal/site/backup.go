@@ -73,6 +73,19 @@ const (
 	ReasonBeforeImport  BackupReason = "before-import"
 )
 
+// BackupRemote là trạng thái của bản sao lưu trên kho S3 (M18, migration 1800).
+type BackupRemote string
+
+const (
+	// RemoteNone: chưa lên kho, hoặc đã bị dọn khỏi kho.
+	RemoteNone BackupRemote = ""
+	// RemoteStored: đã lên kho VÀ đã đọc lại cả object, sha256 khớp. Không
+	// có đường nào khác đặt giá trị này (bất biến B2 của M18).
+	RemoteStored BackupRemote = "stored"
+	// RemoteFailed: lần đẩy gần nhất lỗi (lý do ở RemoteError).
+	RemoteFailed BackupRemote = "failed"
+)
+
 // Backup là một dòng của bảng backups. Domain là chuỗi, không phải
 // validate.Domain: dòng của site đã xoá hẳn vẫn được đọc lại nguyên vẹn.
 type Backup struct {
@@ -87,6 +100,27 @@ type Backup struct {
 	PHPVersion string       `json:"php_version,omitempty"`
 	JobID      string       `json:"job_id,omitempty"`
 	Created    time.Time    `json:"created"`
+
+	// Các trường của M18 (migration 1800, mục 3.2 của
+	// docs/thay-doi/M18-thiet-ke.md). AddBackup không ghi chúng: dòng mới luôn
+	// là "trên máy, chưa lên kho" nhờ DEFAULT của cột.
+
+	// Local: file ở Path còn trên máy (theo bảng; người cần chắc thì Stat).
+	Local bool `json:"local"`
+	// Remote: trạng thái trên kho.
+	Remote BackupRemote `json:"remote"`
+	// RemoteKey: khoá object tính từ sau tiền tố của đích. API xoá trường
+	// này trước khi trả cho user thường.
+	RemoteKey string `json:"remote_key,omitempty"`
+	// RemoteTarget: mã của đích lúc đẩy (core.TargetID). Không ra JSON.
+	RemoteTarget string `json:"-"`
+	// RemoteAt: lúc đọc lại khớp sha256.
+	RemoteAt time.Time `json:"remote_at,omitzero"`
+	// RemoteError: lỗi lần đẩy gần nhất, một dòng, đã làm sạch. API xoá
+	// trường này trước khi trả cho user thường.
+	RemoteError string `json:"remote_error,omitempty"`
+	// RemoteTries: số lần đẩy lỗi "của riêng bản" liên tiếp. Không ra JSON.
+	RemoteTries int `json:"-"`
 }
 
 // CronStatus là kết quả một lần chạy cron WordPress.

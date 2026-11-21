@@ -143,6 +143,10 @@ func seed(ctx context.Context, m *machine, st *store.Store) error {
 	if err := seedM13(ctx, m, st, s); err != nil {
 		return err
 	}
+	// M18 (m18.go): đích S3 và backup ở đủ trạng thái trên máy và trên kho.
+	if err := seedM18(ctx, m, st); err != nil {
+		return err
+	}
 
 	// Làm hỏng sau cùng: hoàn tác ở lần thất bại ở trên reload PHP-FPM, và mọi
 	// lần reload đều dựng lại socket.

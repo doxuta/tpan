@@ -1,9 +1,11 @@
 package system
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"path"
 	"slices"
@@ -182,6 +184,83 @@ func (f *FakeSystem) Run(ctx context.Context, cmd Cmd) (Result, error) {
 		return res, &ExitError{Cmd: cmd.String(), Code: res.ExitCode, Stderr: lastLines(res.Stderr, stderrTail)}
 	}
 	return res, nil
+}
+
+// OpenRead như bản thật: tên cuối là symlink thì lỗi (không đi theo), chỉ nhận
+// file thường. Fail("open", path, err) làm nó lỗi.
+func (f *FakeSystem) OpenRead(p string) (io.ReadCloser, int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p = clean(p)
+	if err := f.failed("open", p); err != nil {
+		return nil, 0, err
+	}
+	_, e, err := f.lookup("open", p, false)
+	if err != nil {
+		return nil, 0, err
+	}
+	if e.Mode&fs.ModeSymlink != 0 {
+		return nil, 0, &fs.PathError{Op: "open", Path: p, Err: syscall.ELOOP}
+	}
+	if !e.Mode.IsRegular() {
+		return nil, 0, fmt.Errorf("mở %s để đọc: không phải file thường (%v)", p, e.Mode.Type())
+	}
+	return io.NopCloser(strings.NewReader(e.Data)), int64(len(e.Data)), nil
+}
+
+// CreateFile như bản thật: đã có (kể cả symlink) thì lỗi fs.ErrExist, thư mục
+// cha phải có. Mục được tạo ngay (rỗng, đúng quyền và chủ) để CreateFile thứ
+// hai cùng tên lỗi như O_EXCL; nội dung chỉ vào hệ thống file giả lúc Close.
+// Fail("write", path, err) làm CreateFile lỗi.
+func (f *FakeSystem) CreateFile(p string, perm fs.FileMode, owner Owner) (io.WriteCloser, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p = clean(p)
+	if err := f.failed("write", p); err != nil {
+		return nil, err
+	}
+	dir, err := f.dirOf("open", p)
+	if err != nil {
+		return nil, err
+	}
+	target := path.Join(dir, path.Base(p))
+	if _, ok := f.entries[target]; ok {
+		return nil, &fs.PathError{Op: "open", Path: p, Err: fs.ErrExist}
+	}
+	f.entries[target] = &FakeEntry{Mode: keepMode(perm), Owner: normOwner(owner)}
+	return &fakeWriter{f: f, path: target}, nil
+}
+
+// fakeWriter gom nội dung, ghi vào mục của nó lúc Close.
+type fakeWriter struct {
+	f      *FakeSystem
+	path   string
+	buf    bytes.Buffer
+	closed bool
+}
+
+func (w *fakeWriter) Write(b []byte) (int, error) {
+	if w.closed {
+		return 0, fs.ErrClosed
+	}
+	return w.buf.Write(b)
+}
+
+func (w *fakeWriter) Close() error {
+	if w.closed {
+		return fs.ErrClosed
+	}
+	w.closed = true
+	w.f.mu.Lock()
+	defer w.f.mu.Unlock()
+	e, ok := w.f.entries[w.path]
+	if !ok || !e.Mode.IsRegular() {
+		// File bị xoá hay thay giữa lúc tạo và lúc đóng: như ghi vào một inode
+		// đã unlink, nội dung không còn ở đường dẫn nào.
+		return nil
+	}
+	e.Data = w.buf.String()
+	return nil
 }
 
 func (f *FakeSystem) ReadFile(p string) ([]byte, error) {

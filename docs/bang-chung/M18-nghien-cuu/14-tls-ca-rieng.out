@@ -1,0 +1,22 @@
+== 2026-11-20T20:09:40Z: IP của máy 192.168.252.24
+subject=CN = 192.168.252.24 X509v3 Subject Alternative Name:      IP Address:192.168.252.24, IP Address:127.0.0.1 
+active
+LISTEN 0      4096               *:7443            *:*          
+--- 1. https tới IP của máy, KHÔNG đưa CA: phải bị từ chối vì không tin chứng chỉ
+(thời gian 0.1s, đỉnh RAM VmHWM 10592 kB)
+LỖI: ghi: Put "https://192.168.252.24:7443/tpan-thu/tpan-thu/dn0b72w4ibi4%20d%E1%BA%A5u%20c%C3%A1ch%2B%28ngo%E1%BA%B7c%29%26.txt": tls: failed to verify certificate: x509: certificate signed by unknown authority
+mã thoát 1
+--- 2. https tới IP của máy, có CA riêng: đạt
+ĐẠT: ghi, head (size=29 etag="e7d71e23846a450fa208adc82fd7fb6c"), đọc lại sha256 khớp, xoá, head sau xoá báo không có
+(thời gian 0.0s, đỉnh RAM VmHWM 7352 kB)
+mã thoát 0
+--- 3. đúng CA nhưng gọi bằng tên không có trong chứng chỉ (localhost): phải bị từ chối
+(thời gian 0.0s, đỉnh RAM VmHWM 6640 kB)
+LỖI: ghi: Put "https://localhost:7443/tpan-thu/tpan-thu/dn0b72x9ihfi%20d%E1%BA%A5u%20c%C3%A1ch%2B%28ngo%E1%BA%B7c%29%26.txt": tls: failed to verify certificate: x509: certificate is not valid for any names, but wanted to match localhost
+mã thoát 1
+--- 4. http thường vào cổng TLS: phải lỗi, không lặng lẽ chạy
+(thời gian 0.0s, đỉnh RAM VmHWM 6356 kB)
+LỖI: ghi: S3 trả 400 Bad Request: Client sent an HTTP request to an HTTPS server.
+This listener serves TLS; retry with https:// instead of http://.
+mã thoát 1
+đã dọn

@@ -1,0 +1,107 @@
+bash docs/bang-chung/M18-nghien-cuu/08-cloud-init-thu.sh
+== user-data thử:   308059 byte (2026-11-20T19:26:51Z)
+[2K[0A[0ECreating tpan-m18-ci in zone1  /-\|/ [2K[0A[0E[2K[0A[0EConfiguring tpan-m18-ci  / [2K[0A[0E[2K[0A[0EStarting tpan-m18-ci  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\ [2K[0A[0E[2K[0A[0EWaiting for initialization to complete  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0ELaunched: tpan-m18-ci in zone1
+== multipass launch trả về mã 0 sau 39 giây
+
+--- cloud-init status --long
+status: done
+extended_status: done
+boot_status_code: enabled-by-generator
+last_update: Thu, 01 Jan 1970 00:00:31 +0000
+detail: DataSourceNoCloud [seed=/dev/vda]
+errors: []
+recoverable_errors: {}
+
+--- /run/cloud-init/result.json
+{
+ "v1": {
+  "datasource": "DataSourceNoCloud [seed=/dev/vda]",
+  "errors": []
+ }
+}
+
+--- lệnh của user-data chạy bằng quyền gì
+id: uid=0(root) gid=0(root) groups=0(root)
+pwd: /
+umask: 0022
+env:
+  INVOCATION_ID=bc4685ba9c944c4b9eace3c8e7f41b09
+  JOURNAL_STREAM=8:8485
+  LANG=C.UTF-8
+  MEMORY_PRESSURE_WATCH=/sys/fs/cgroup/system.slice/cloud-final.service/memory.pressure
+  MEMORY_PRESSURE_WRITE=c29tZSAyMDAwMDAgMjAwMDAwMAA=
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin
+  PWD=/
+  SYSTEMD_EXEC_PID=1159
+  TERM=vt220
+  USER=root
+
+--- file do write_files ghi
+-rw-r----- 1 root root      9 Nov 21 02:27 /etc/tpan-ci/b64.txt
+-rw-r--r-- 1 root root 230400 Nov 21 02:27 /root/ci-don.bin
+-rw------- 1 root root     29 Nov 21 02:27 /root/ci-thuong.txt
+-rwx------ 1 root root    264 Nov 21 02:27 /usr/local/sbin/tpan-ci-thu
+xin chao
+drwxr-xr-x 2 root root 4096 Nov 21 02:27 /etc/tpan-ci
+
+--- lỗi thấy ở đâu: cloud-init-output.log (đuôi) và dòng lỗi trong cloud-init.log
+-rw-r----- 1 root   adm  9390 Nov 21 02:27 /var/log/cloud-init-output.log
+-rw-r----- 1 syslog adm 96232 Nov 21 02:27 /var/log/cloud-init.log
+Fetched 40.5 MB in 14s (2936 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+pollinate is already the newest version (4.33-3.1ubuntu1.3).
+pollinate set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 62 not upgraded.
+dong nay phai co trong cloud-init-output.log
+lenh loi co chu y (ma 7)
+lenh sau lenh loi van chay
+Cloud-init v. 26.1-0ubuntu1~24.04.1 finished at Fri, 20 Nov 2026 19:27:29 +0000. Datasource DataSourceNoCloud [seed=/dev/vda].  Up 31.25 seconds
+...
+608:2026-11-20 19:27:06,142 - modules.py[DEBUG]: Running module runcmd (<module 'cloudinit.config.cc_runcmd' from '/usr/lib/python3/dist-packages/cloudinit/config/cc_runcmd.py'>) with frequency once-per-instance
+609:2026-11-20 19:27:06,142 - handlers.py[DEBUG]: start: modules-config/config-runcmd: running config-runcmd with frequency once-per-instance
+610:2026-11-20 19:27:06,143 - util.py[DEBUG]: Writing to /var/lib/cloud/instances/tpan-m18-ci/sem/config_runcmd - wb: [644] 23 bytes
+611:2026-11-20 19:27:06,143 - helpers.py[DEBUG]: Running config-runcmd using lock (<FileLock using file '/var/lib/cloud/instances/tpan-m18-ci/sem/config_runcmd'>)
+613:2026-11-20 19:27:06,143 - util.py[DEBUG]: Writing to /var/lib/cloud/instances/tpan-m18-ci/scripts/runcmd - wb: [700] 165 bytes
+614:2026-11-20 19:27:06,143 - handlers.py[DEBUG]: finish: modules-config/config-runcmd: SUCCESS: config-runcmd ran successfully and took 0.000 seconds (duration: 0.000s)
+683:2026-11-20 19:27:29,580 - subp.py[DEBUG]: Running command ['/var/lib/cloud/instance/scripts/runcmd'] with allowed return codes [0] (shell=False, capture=False)
+
+lenh sau lenh loi van chay
+
+--- ai đọc được user-data trên máy
+-rwx------ 1 root root    165 Nov 21 02:27 /var/lib/cloud/instance/scripts/runcmd
+-rw------- 1 root root 308040 Nov 21 02:27 /var/lib/cloud/instance/user-data.txt
+drwxr-xr-x 5 root root 4096 Nov 21 02:27 /var/lib/cloud/instance/
+drwxr-xr-x 3 root root 4096 Nov 21 02:27 /var/lib/cloud/instances
+user thuong (ubuntu) doc user-data.txt:
+head: cannot open '/var/lib/cloud/instance/user-data.txt' for reading: Permission denied
+
+cloud-init query userdata:
+<redacted for non-root user> file:/var/lib/cloud/instance/user-data.txt
+
+doc o dia chi metadata 169.254.169.254:
+000
+datasource: multipass
+NAME    TYPE FSTYPE  LABEL            SIZE MOUNTPOINT
+sda     disk                           10G 
+├─sda1  part ext4    cloudimg-rootfs    9G /
+├─sda15 part vfat    UEFI              99M /boot/efi
+└─sda16 part ext4    BOOT             923M /boot
+vda     disk iso9660 cidata           354K 
+
+--- chạy lại: khởi động lại máy thì runcmd có chạy lần nữa không
+2026-11-20T19:27:29Z
+config_apt_configure config_byobu config_grub_dpkg config_install_hotplug config_keys_to_console config_locale config_mounts config_package_update_upgrade_install config_reset_rmc config_runcmd config_scripts_per_instance config_scripts_user config_scripts_vendor config_seed_random config_set_hostname config_set_passwords config_ssh config_ssh_authkey_fingerprints config_ssh_import_id config_timezone config_users_groups config_write_files config_write_files_deferred consume_data update_sources 
+[2K[0A[0EStopping tpan-m18-ci  /-\|/- [2K[0A[0Esau khi khoi dong lai:
+2026-11-20T19:27:29Z
+status: done
+
+--- chạy lại bằng tay: cloud-init single --name scripts_user --frequency always
+ma thoat 0
+2026-11-20T19:27:29Z
+2026-11-20T19:28:08Z
+
+--- dọn: xoá máy ảo phụ
+0

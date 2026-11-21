@@ -139,6 +139,10 @@ type BackupStore interface {
 	Backups(ctx context.Context, domain string) ([]Backup, error)
 	// DeleteBackup xoá dòng; không có thì không lỗi.
 	DeleteBackup(ctx context.Context, id string) error
+	// ForgetBackupLocal (M18): file của dòng đã bị dọn khỏi máy. Dòng đã lên
+	// kho (remote='stored') thì thành local=0; không thì xoá dòng. Một
+	// transaction có điều kiện. deleted: dòng đã bị xoá.
+	ForgetBackupLocal(ctx context.Context, id string) (deleted bool, err error)
 	// SnapshotDB chép tpan.db đang mở ra path bằng `VACUUM INTO` (bản sao
 	// nhất quán dù đang có người ghi). path chưa được tồn tại.
 	SnapshotDB(ctx context.Context, path string) error
