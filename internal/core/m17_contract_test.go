@@ -41,6 +41,60 @@ func TestSitePHPStepsNgoaiLong(t *testing.T) {
 	}
 }
 
+// Site trong lồng: đúng hai bước của lồng, không có pool chung (một nơi phục
+// vụ PHP duy nhất cho mỗi site).
+func TestSitePHPStepsTrongLong(t *testing.T) {
+	st := m17Site(t, "a.example.com")
+	st.Caged = true
+	lim := account.Limits{RAMMB: 256}
+	ss, err := sitePHPSteps(st, StackConfig{Web: Nginx, PHPVersion: "8.3"}, lim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ss) != 2 {
+		t.Fatalf("site trong lồng phải có đúng hai bước, có %d", len(ss))
+	}
+	f, ok := ss[0].(*steps.CageFiles)
+	if !ok || f.Limits != lim || f.PHP != "8.3" || f.Remove {
+		t.Fatalf("bước đầu phải là CageFiles ghi với trần của gói, có %T %+v", ss[0], ss[0])
+	}
+	if s, ok := ss[1].(*steps.CageSocket); !ok || s.Disable {
+		t.Fatalf("bước hai phải là CageSocket bật, có %T %+v", ss[1], ss[1])
+	}
+}
+
+// cage.enable: thứ tự CageFiles, CageSocket, gỡ pool chung, CageReap, rồi vhost
+// trỏ socket của lồng (mục 3.6).
+func TestCageEnableStepsThuTu(t *testing.T) {
+	st := m17Site(t, "a.example.com")
+	ss, err := cageEnableSteps(st, StackConfig{Web: Nginx, PHPVersion: "8.3"}, account.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ss) < 6 {
+		t.Fatalf("thiếu bước: %d", len(ss))
+	}
+	if _, ok := ss[0].(*steps.CageFiles); !ok {
+		t.Fatalf("bước 1 phải là CageFiles, có %T", ss[0])
+	}
+	if _, ok := ss[1].(*steps.CageSocket); !ok {
+		t.Fatalf("bước 2 phải là CageSocket, có %T", ss[1])
+	}
+	if a, ok := ss[2].(*steps.Absent); !ok || a.Path != st.Layout().PoolConf("8.3") {
+		t.Fatalf("bước 3 phải gỡ pool chung, có %T %+v", ss[2], ss[2])
+	}
+	if _, ok := ss[3].(*steps.CageReap); !ok {
+		t.Fatalf("bước 4 phải là CageReap, có %T", ss[3])
+	}
+	want, err := siteVhost(func() site.Site { c := st; c.Caged = true; return c }(), StackConfig{Web: Nginx, PHPVersion: "8.3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ss) != 4+len(want) {
+		t.Fatalf("sau CageReap phải là đúng các bước vhost của lồng (%d), có %d bước", len(want), len(ss)-4)
+	}
+}
+
 // Không có bảng user (xem trước khi chưa có tpan.db): gói default, không lồng.
 func TestSitePackageKhongCoBang(t *testing.T) {
 	st := m17Site(t, "a.example.com")
@@ -54,16 +108,16 @@ func TestSitePackageKhongCoBang(t *testing.T) {
 	}
 }
 
-// siteCageLimits: ngoài lồng là nil (siteChecks chọn bộ thường); trong lồng
-// luôn khác nil, kể cả khi không có bảng gói (trần 0).
+// siteCageLimits: ngoài lồng là nil (siteChecks chọn bộ thường); trong lồng mà
+// không có bảng gói thì lỗi: trần 0 sẽ xoá trần của site ở lần ghi file kế tiếp.
 func TestSiteCageLimits(t *testing.T) {
 	st := m17Site(t, "a.example.com")
 	if lim, err := siteCageLimits(context.Background(), nil, st); err != nil || lim != nil {
 		t.Fatalf("site ngoài lồng: muốn nil, có %v, %v", lim, err)
 	}
 	st.Caged = true
-	if lim, err := siteCageLimits(context.Background(), nil, st); err != nil || lim == nil || lim.Any() {
-		t.Fatalf("site trong lồng không có bảng gói: muốn trần 0 khác nil, có %v, %v", lim, err)
+	if lim, err := siteCageLimits(context.Background(), nil, st); err == nil {
+		t.Fatalf("site trong lồng không có bảng gói: muốn lỗi, có %v", lim)
 	}
 }
 
