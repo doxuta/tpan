@@ -83,9 +83,10 @@ func TestChmodDirsLoi(t *testing.T) {
 		f.SetDir(root+"/b", 0o755, owner)
 		return f, root
 	}
-	for _, skip := range []error{fs.ErrNotExist, sitefs.ErrSymlink} {
+	// ELOOP là đúng lỗi e2e A7 bắt được trên máy ảo (vòng 4, nginx).
+	for _, skip := range []error{fs.ErrNotExist, sitefs.ErrSymlink, syscall.ELOOP, syscall.ENOTDIR} {
 		f, root := setup()
-		f.Fail("chmod", root+"/a", skip)
+		f.Fail("chmod", root+"/a", &sitefs.Error{Op: "đổi quyền", Path: root + "/a", Err: skip})
 		if err := chmodDirs(context.Background(), f, root, wpDirMode); err != nil {
 			t.Errorf("chmod lỗi %v phải được bỏ qua: %v", skip, err)
 		}
