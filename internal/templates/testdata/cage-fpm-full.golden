@@ -1,0 +1,40 @@
+; # Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+;
+; Cấu hình PHP-FPM riêng của site a.example.com trong lồng. File theo cú pháp INI
+; của PHP: chú thích bắt đầu bằng dấu chấm phẩy, không dùng dấu #.
+;
+; Không có user, group, listen.owner, listen.group, listen.mode, pid: PHP-FPM
+; chạy thẳng bằng user của site (không qua root) và nhận socket systemd đã mở,
+; nên các dòng đó không có tác dụng.
+[global]
+; stderr của unit systemd là socket của journald, không mở lại được qua
+; /proc/self/fd/2 (PHP-FPM không khởi động). syslog đi vào journal của đúng unit.
+error_log = syslog
+syslog.ident = php-fpm-a_example_com_7653e4
+; systemd giữ tiến trình chính (Type=notify), không cho nó tách ra chạy nền.
+daemonize = no
+; Mặc định 0: khi dừng hay reload, PHP-FPM cắt ngay request đang chạy (t1: 1
+; trong 40 request ra 502). 25 giây, dưới TimeoutStopSec=30 của unit một chút.
+process_control_timeout = 25s
+
+[tpan-a_example_com_7653e4]
+listen = /run/tpan-cage/7653e4959f8eac25/php.sock
+
+; ondemand: site không có khách thì không có tiến trình con nào. Số tiến trình
+; con tối đa lấy từ gói; rảnh 10 giây thì thoát; mỗi tiến trình phục vụ 500
+; request rồi thay mới, để rò rỉ bộ nhớ của plugin không tích luỹ mãi.
+pm = ondemand
+pm.max_children = 12
+pm.process_idle_timeout = 10s
+pm.max_requests = 500
+
+; Các dòng dưới giống hệt pool ngoài lồng (site-pool.conf.tmpl): vào hay ra
+; lồng thì PHP của site vẫn thấy cùng giới hạn.
+php_admin_value[open_basedir] = /var/www/a.example.com/
+php_admin_value[upload_tmp_dir] = /var/www/a.example.com/tmp
+php_admin_value[session.save_path] = /var/www/a.example.com/tmp
+php_admin_value[sys_temp_dir] = /var/www/a.example.com/tmp
+php_admin_value[upload_max_filesize] = 64M
+php_admin_value[post_max_size] = 64M
+php_admin_flag[log_errors] = on
+php_admin_value[error_log] = /var/log/tpan/sites/a.example.com/php-error.log

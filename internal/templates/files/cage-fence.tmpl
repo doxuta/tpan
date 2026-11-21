@@ -1,0 +1,75 @@
+{{.Header}}
+#
+# Hàng rào của site {{.Domain}}: phần "nhìn thấy gì" của lồng. Đây là drop-in
+# theo tiền tố tên unit, nên systemd áp nó cho dịch vụ PHP của site lẫn mọi lệnh
+# tpan chạy thay cho site (WP-CLI, cron): mã PHP của site chạy ở đâu cũng nằm
+# trong cùng hàng rào. Danh sách đã thử với WordPress đầy đủ (t2): mọi việc chạy
+# như ngoài lồng.
+[Service]
+# Danh tính: user của site, trong slice có trần của site.
+User={{.User}}
+Group={{.User}}
+Slice={{.Slice}}
+# Đặc quyền: không có capability nào, không lấy thêm quyền qua sudo, su hay
+# file setuid.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Cả máy chỉ đọc; /tmp, /dev và vùng nhớ chung là của riêng lồng.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+# Chỉ thấy tiến trình của chính mình trong /proc.
+ProtectProc=invisible
+ProcSubset=pid
+# Thu hẹp phần nhân mà mã của site chạm tới được.
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+# Lệnh hệ thống bị cấm trả lỗi EPERM như khi user thường gọi, thay vì giết
+# tiến trình.
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0022
+# Dưới /var chỉ thấy đồ của mình: thư mục site (ghi được), log của site, cache
+# chung của tpan, socket của MariaDB.
+TemporaryFileSystem=/var:ro
+BindPaths={{.Dir}}
+BindPaths={{.LogDir}}
+BindReadOnlyPaths=/var/cache/tpan
+# Dấu "-" trước nguồn: thư mục chưa có (MariaDB chưa lên) thì bỏ qua lệnh gắn
+# thay vì làm dịch vụ chết vòng (t11).
+BindReadOnlyPaths=-/run/mysqld:/var/run/mysqld
+# /run là tmpfs trống: không thấy socket và tên unit của site khác; chỉ gắn lại
+# DB, phân giải tên, kênh báo READY cho systemd và kênh ghi log.
+TemporaryFileSystem=/run:ro
+BindReadOnlyPaths=-/run/mysqld
+BindReadOnlyPaths=-/run/systemd/resolve
+BindReadOnlyPaths=/run/systemd/notify
+BindReadOnlyPaths=/run/systemd/journal/dev-log
+# /dev/shm là chỗ ghi chung thứ hai sau /tmp; PrivateDevices không che nó.
+TemporaryFileSystem=/dev/shm:rw,nosuid,nodev,noexec,mode=1777
+# /etc/tpan chỉ còn thư mục của lồng này; passwd và group là bản riêng 4 dòng,
+# không đọc ra user tp_* của site khác.
+TemporaryFileSystem=/etc/tpan:ro
+BindReadOnlyPaths={{.ConfDir}}
+BindReadOnlyPaths={{.Passwd}}:/etc/passwd
+BindReadOnlyPaths={{.Group}}:/etc/group
+# Các chỗ còn lại đọc ra tên site khác. pool.d che mọi bản PHP, không chỉ bản
+# site đang dùng (t6); dấu "-": bản chưa cài thì bỏ qua.
+InaccessiblePaths=-/etc/nginx -/etc/apache2 -/etc/cron.d -/etc/letsencrypt -/etc/systemd
+InaccessiblePaths={{.PoolDirs}}
+InaccessiblePaths=-/etc/passwd- -/etc/group- -/etc/shadow -/etc/shadow- -/etc/gshadow -/etc/gshadow-
+InaccessiblePaths=-/sys/fs/cgroup -/boot -/mnt -/media -/srv

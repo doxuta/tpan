@@ -1,0 +1,22 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Slice của site a.example.com trong lồng: trần tài nguyên tính chung cho dịch vụ
+# PHP của site và mọi lệnh tpan chạy thay cho site (WP-CLI, cron), vì cả hai
+# đều nằm trong slice này. Trần bằng 0 trong gói thì không có dòng tương ứng.
+#
+# Bốn dòng Accounting bật bộ đếm của cgroup: tpan usage đọc số liệu từ đó.
+# MemoryMax luôn đi kèm MemorySwapMax=0: không thì site vượt trần sẽ đẩy bộ nhớ
+# ra swap và làm chậm cả máy thay vì chỉ request đó chết. Cố ý không dùng trần
+# RAM mềm của systemd: nó bóp cả site tới mức trang chủ mất gần 28 giây (t3).
+# Đọc ghi đĩa tính bằng MB/giây (10^6 byte) trên ổ chứa /var/www.
+[Slice]
+MemoryAccounting=yes
+TasksAccounting=yes
+CPUAccounting=yes
+IOAccounting=yes
+CPUQuota=150%
+MemoryMax=512M
+MemorySwapMax=0
+TasksMax=64
+IOReadBandwidthMax=/var/www 20M
+IOWriteBandwidthMax=/var/www 10M

@@ -1,0 +1,75 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Hàng rào của site a.example.com: phần "nhìn thấy gì" của lồng. Đây là drop-in
+# theo tiền tố tên unit, nên systemd áp nó cho dịch vụ PHP của site lẫn mọi lệnh
+# tpan chạy thay cho site (WP-CLI, cron): mã PHP của site chạy ở đâu cũng nằm
+# trong cùng hàng rào. Danh sách đã thử với WordPress đầy đủ (t2): mọi việc chạy
+# như ngoài lồng.
+[Service]
+# Danh tính: user của site, trong slice có trần của site.
+User=tp_a_example_com_7653e4
+Group=tp_a_example_com_7653e4
+Slice=tpan-a_example_com_7653e4.slice
+# Đặc quyền: không có capability nào, không lấy thêm quyền qua sudo, su hay
+# file setuid.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Cả máy chỉ đọc; /tmp, /dev và vùng nhớ chung là của riêng lồng.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+# Chỉ thấy tiến trình của chính mình trong /proc.
+ProtectProc=invisible
+ProcSubset=pid
+# Thu hẹp phần nhân mà mã của site chạm tới được.
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+# Lệnh hệ thống bị cấm trả lỗi EPERM như khi user thường gọi, thay vì giết
+# tiến trình.
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0022
+# Dưới /var chỉ thấy đồ của mình: thư mục site (ghi được), log của site, cache
+# chung của tpan, socket của MariaDB.
+TemporaryFileSystem=/var:ro
+BindPaths=/var/www/a.example.com
+BindPaths=/var/log/tpan/sites/a.example.com
+BindReadOnlyPaths=/var/cache/tpan
+# Dấu "-" trước nguồn: thư mục chưa có (MariaDB chưa lên) thì bỏ qua lệnh gắn
+# thay vì làm dịch vụ chết vòng (t11).
+BindReadOnlyPaths=-/run/mysqld:/var/run/mysqld
+# /run là tmpfs trống: không thấy socket và tên unit của site khác; chỉ gắn lại
+# DB, phân giải tên, kênh báo READY cho systemd và kênh ghi log.
+TemporaryFileSystem=/run:ro
+BindReadOnlyPaths=-/run/mysqld
+BindReadOnlyPaths=-/run/systemd/resolve
+BindReadOnlyPaths=/run/systemd/notify
+BindReadOnlyPaths=/run/systemd/journal/dev-log
+# /dev/shm là chỗ ghi chung thứ hai sau /tmp; PrivateDevices không che nó.
+TemporaryFileSystem=/dev/shm:rw,nosuid,nodev,noexec,mode=1777
+# /etc/tpan chỉ còn thư mục của lồng này; passwd và group là bản riêng 4 dòng,
+# không đọc ra user tp_* của site khác.
+TemporaryFileSystem=/etc/tpan:ro
+BindReadOnlyPaths=/etc/tpan/cage/a_example_com_7653e4
+BindReadOnlyPaths=/etc/tpan/cage/a_example_com_7653e4/passwd:/etc/passwd
+BindReadOnlyPaths=/etc/tpan/cage/a_example_com_7653e4/group:/etc/group
+# Các chỗ còn lại đọc ra tên site khác. pool.d che mọi bản PHP, không chỉ bản
+# site đang dùng (t6); dấu "-": bản chưa cài thì bỏ qua.
+InaccessiblePaths=-/etc/nginx -/etc/apache2 -/etc/cron.d -/etc/letsencrypt -/etc/systemd
+InaccessiblePaths=-/etc/php/5.6/fpm/pool.d -/etc/php/7.0/fpm/pool.d -/etc/php/7.1/fpm/pool.d -/etc/php/7.2/fpm/pool.d -/etc/php/7.3/fpm/pool.d -/etc/php/7.4/fpm/pool.d -/etc/php/8.0/fpm/pool.d -/etc/php/8.1/fpm/pool.d -/etc/php/8.2/fpm/pool.d -/etc/php/8.3/fpm/pool.d -/etc/php/8.4/fpm/pool.d -/etc/php/8.5/fpm/pool.d -/etc/php/8.6/fpm/pool.d -/etc/php/8.7/fpm/pool.d -/etc/php/8.8/fpm/pool.d -/etc/php/8.9/fpm/pool.d -/etc/php/9.0/fpm/pool.d -/etc/php/9.1/fpm/pool.d -/etc/php/9.2/fpm/pool.d -/etc/php/9.3/fpm/pool.d -/etc/php/9.4/fpm/pool.d -/etc/php/9.5/fpm/pool.d -/etc/php/9.6/fpm/pool.d -/etc/php/9.7/fpm/pool.d -/etc/php/9.8/fpm/pool.d -/etc/php/9.9/fpm/pool.d
+InaccessiblePaths=-/etc/passwd- -/etc/group- -/etc/shadow -/etc/shadow- -/etc/gshadow -/etc/gshadow-
+InaccessiblePaths=-/sys/fs/cgroup -/boot -/mnt -/media -/srv

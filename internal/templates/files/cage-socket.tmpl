@@ -1,0 +1,25 @@
+{{.Header}}
+#
+# Socket PHP của site {{.Domain}} trong lồng. systemd tạo và giữ socket này, rồi
+# trao cho PHP-FPM qua FPM_SOCKETS: nhờ vậy PHP-FPM chạy bằng user của site mà
+# không cần root để chown socket. Dịch vụ dừng hay khởi động lại thì socket vẫn
+# nghe, request xếp hàng chờ chứ không ra 502; request đầu đánh thức dịch vụ.
+#
+# Tên thư mục là 16 ký tự hex băm từ tên miền, không mang tên site: mọi tiến
+# trình trên máy đều đọc được danh sách Unix socket (/proc/net/unix).
+[Socket]
+# Lúc máy vừa lên, lồng có thể được đánh thức trước MariaDB, khi /run/mysqld
+# chưa có; lồng chỉ thấy thư mục có từ lúc dịch vụ khởi động nên sẽ không bao
+# giờ nối được DB. Unit socket chạy bằng root ở máy thật trước khi nghe nên tạo
+# sẵn thư mục, đúng lệnh MariaDB tự chạy. Dấu "-": lỗi ở đây không chặn socket.
+ExecStartPre=-{{.MySQLDirCmd}}
+ListenStream={{.Socket}}
+# Chỉ web server (www-data) đọc ghi được socket; user của site khác thì không.
+SocketUser=www-data
+SocketGroup=www-data
+SocketMode=0660
+DirectoryMode=0755
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

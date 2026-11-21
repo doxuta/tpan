@@ -12,6 +12,8 @@ package templates
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/site"
@@ -32,6 +34,93 @@ var CagePHPVersions = []string{
 // cage.restart cũng chạy đúng lệnh này. Tham số cố định, không lấy từ đâu.
 var CageMySQLDirCmd = []string{"/usr/bin/install", "-d", "-m", "0755", "-o", "mysql", "-g", "root", "/run/mysqld"}
 
+// cageMaxWorkers là trần trên của pm.max_children (mục 3.1: 1 đến 200).
+const cageMaxWorkers = 200
+
+// cageAnyPHP là một bản PHP hợp lệ bất kỳ, chỉ để đi qua siteDataOf (cửa kiểm
+// Layout chung của gói). Socket theo bản PHP mà nó sinh ra luôn bị thay bằng
+// socket của lồng, nên giá trị này không lọt vào file nào.
+const cageAnyPHP = "8.3"
+
+// cageSlug: slug chỉ gồm [a-z0-9_] (validate.SlugOf). Kiểm lại ở đây vì slug
+// đi thẳng vào tên unit và tên slice: một dấu "-" lọt vào là systemd lồng
+// slice thành nhiều tầng (t6), một ký tự lạ là phá cú pháp file unit.
+var cageSlug = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// cageData là dữ liệu đưa vào năm template của lồng.
+type cageData struct {
+	Header      string
+	Domain      string
+	Slug        string
+	User        string
+	Pool        string
+	Dir         string
+	Tmp         string
+	LogDir      string
+	PHPErrorLog string
+	ConfDir     string
+	Passwd      string
+	Group       string
+	FPMConf     string
+	Slice       string
+	Socket      string
+	MySQLDirCmd string
+	PoolDirs    string
+	PHP         string
+	Workers     int
+	Lim         account.Limits
+}
+
+// cageDataOf kiểm Layout bằng đúng cửa kiểm của site (siteDataOf: Layout phải
+// là LayoutOf(Domain), tên và đường dẫn qua danh sách ký tự cho phép), rồi kiểm
+// thêm slug và các đường dẫn riêng của lồng, theo cùng luật.
+func cageDataOf(l site.Layout) (cageData, error) {
+	sd, err := siteDataOf(l, cageAnyPHP)
+	if err != nil {
+		return cageData{}, err
+	}
+	if !cageSlug.MatchString(l.Slug.String()) {
+		return cageData{}, fmt.Errorf("%w: slug %q có ký tự không cho phép", ErrParam, l.Slug)
+	}
+	for _, p := range []string{l.CageConfDir(), l.CagePasswd(), l.CageGroup(), l.CageFPMConf(), l.CageSocket()} {
+		if err := siteCheckPath(p); err != nil {
+			return cageData{}, err
+		}
+	}
+	// CagePHPVersions là biến xuất ra ngoài, nên vẫn kiểm từng bản trước khi
+	// ghép vào hàng rào, như mọi chuỗi khác đi vào file config.
+	dirs := make([]string, 0, len(CagePHPVersions))
+	for _, v := range CagePHPVersions {
+		if !phpVersion.MatchString(v) {
+			return cageData{}, fmt.Errorf("%w: CagePHPVersions có bản %q không hợp lệ", ErrParam, v)
+		}
+		dirs = append(dirs, "-/etc/php/"+v+"/fpm/pool.d")
+	}
+	return cageData{
+		Header:      Header,
+		Domain:      sd.Domain,
+		Slug:        l.Slug.String(),
+		User:        sd.User,
+		Pool:        sd.Pool,
+		Dir:         sd.Dir,
+		Tmp:         sd.Tmp,
+		LogDir:      sd.LogDir,
+		PHPErrorLog: sd.PHPErrorLog,
+		ConfDir:     l.CageConfDir(),
+		Passwd:      l.CagePasswd(),
+		Group:       l.CageGroup(),
+		FPMConf:     l.CageFPMConf(),
+		Slice:       l.CageSlice(),
+		Socket:      l.CageSocket(),
+		MySQLDirCmd: strings.Join(CageMySQLDirCmd, " "),
+		PoolDirs:    strings.Join(dirs, " "),
+	}, nil
+}
+
+func cageRender(name string, d cageData) ([]byte, error) {
+	return sslRender(name, d)
+}
+
 // CageSlice sinh file slice tpan-<slug>.slice: bốn dòng Accounting=yes và các
 // dòng trần của lim (trần bằng 0 thì không có dòng đó):
 //
@@ -43,7 +132,26 @@ var CageMySQLDirCmd = []string{"/usr/bin/install", "-d", "-m", "0755", "-o", "my
 //
 // Không có MemoryHigh (mục 2.4: trần mềm làm cả site treo). Số âm là ErrParam.
 func CageSlice(l site.Layout, lim account.Limits) ([]byte, error) {
-	return nil, fmt.Errorf("sinh slice của lồng: %w: chưa viết (đợt 1)", ErrParam)
+	d, err := cageDataOf(l)
+	if err != nil {
+		return nil, fmt.Errorf("sinh slice của lồng: %w", err)
+	}
+	// Chỉ chặn số âm: khoảng hợp lệ của từng trường (5..6400, 64.. ...) do core
+	// kiểm; lặp lại ở đây thì hai nơi dễ lệch nhau. Số âm thì không bao giờ đúng
+	// và sẽ sinh một dòng systemd đọc sai ("MemoryMax=-1M").
+	for _, f := range []struct {
+		name string
+		v    int
+	}{
+		{"CPUPercent", lim.CPUPercent}, {"RAMMB", lim.RAMMB}, {"Tasks", lim.Tasks},
+		{"IOReadMB", lim.IOReadMB}, {"IOWriteMB", lim.IOWriteMB}, {"PHPWorkers", lim.PHPWorkers},
+	} {
+		if f.v < 0 {
+			return nil, fmt.Errorf("sinh slice của lồng %s: %w: trần %s = %d là số âm", d.Domain, ErrParam, f.name, f.v)
+		}
+	}
+	d.Lim = lim
+	return cageRender("cage-slice.tmpl", d)
 }
 
 // CageSocketUnit sinh tpan-cage-<slug>-php.socket đúng như mục 3.3: dòng
@@ -51,7 +159,11 @@ func CageSlice(l site.Layout, lim account.Limits) ([]byte, error) {
 // SocketUser/SocketGroup www-data, SocketMode=0660, DirectoryMode=0755,
 // RemoveOnStop=yes, [Install] WantedBy=sockets.target.
 func CageSocketUnit(l site.Layout) ([]byte, error) {
-	return nil, fmt.Errorf("sinh unit socket của lồng: %w: chưa viết (đợt 1)", ErrParam)
+	d, err := cageDataOf(l)
+	if err != nil {
+		return nil, fmt.Errorf("sinh unit socket của lồng: %w", err)
+	}
+	return cageRender("cage-socket.tmpl", d)
 }
 
 // CageServiceUnit sinh tpan-cage-<slug>-php.service đúng như mục 3.3: [Unit]
@@ -64,7 +176,15 @@ func CageSocketUnit(l site.Layout) ([]byte, error) {
 // Restart=on-failure, RestartSec=5s (t15). Không có [Install]: dịch vụ chỉ
 // chạy khi socket đánh thức.
 func CageServiceUnit(l site.Layout, php string) ([]byte, error) {
-	return nil, fmt.Errorf("sinh unit dịch vụ của lồng: %w: chưa viết (đợt 1)", ErrParam)
+	d, err := cageDataOf(l)
+	if err == nil && !phpVersion.MatchString(php) {
+		err = fmt.Errorf("%w: bản PHP %q không hợp lệ (dạng 8.3)", ErrParam, php)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("sinh unit dịch vụ của lồng: %w", err)
+	}
+	d.PHP = php
+	return cageRender("cage-service.tmpl", d)
 }
 
 // CageFence sinh drop-in hàng rào fence.conf: [Service] rồi đúng danh sách của
@@ -74,7 +194,11 @@ func CageServiceUnit(l site.Layout, php string) ([]byte, error) {
 // gắn /run/mysqld (cả hai) và /run/systemd/resolve có dấu "-"; mỗi bản trong
 // CagePHPVersions một mục -/etc/php/<bản>/fpm/pool.d trong InaccessiblePaths.
 func CageFence(l site.Layout) ([]byte, error) {
-	return nil, fmt.Errorf("sinh hàng rào của lồng: %w: chưa viết (đợt 1)", ErrParam)
+	d, err := cageDataOf(l)
+	if err != nil {
+		return nil, fmt.Errorf("sinh hàng rào của lồng: %w", err)
+	}
+	return cageRender("cage-fence.tmpl", d)
 }
 
 // CageFPMConf sinh /etc/tpan/cage/<slug>/php-fpm.conf đúng như mục 3.3
@@ -83,7 +207,16 @@ func CageFence(l site.Layout) ([]byte, error) {
 // và đúng các dòng php_admin_* của pool ngoài lồng, files/site-pool.conf.tmpl).
 // workers là pm.max_children, 1..200 (account.Limits.Workers() đã đổi 0 thành 5).
 func CageFPMConf(l site.Layout, workers int) ([]byte, error) {
-	return nil, fmt.Errorf("sinh php-fpm.conf của lồng: %w: chưa viết (đợt 1)", ErrParam)
+	d, err := cageDataOf(l)
+	if err == nil && (workers < 1 || workers > cageMaxWorkers) {
+		err = fmt.Errorf("%w: số worker %d ngoài khoảng 1..%d", ErrParam, workers, cageMaxWorkers)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("sinh php-fpm.conf của lồng: %w", err)
+	}
+	d.Header = sitePoolComment
+	d.Workers = workers
+	return cageRender("cage-fpm.conf.tmpl", d)
 }
 
 // SiteVhostCaged sinh vhost của site trong lồng: giống hệt SiteVhost(l, web,
@@ -91,5 +224,49 @@ func CageFPMConf(l site.Layout, workers int) ([]byte, error) {
 // l.SocketFor(php). Không đổi template nào của vhost ngoài lồng: golden của
 // chúng giữ nguyên từng byte (bất biến 1).
 func SiteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode) ([]byte, error) {
-	return nil, fmt.Errorf("sinh vhost trong lồng: %w: chưa viết (đợt 1)", ErrParam)
+	out, err := siteVhostCaged(l, web, acmeRoot, ssl, mode)
+	if err != nil {
+		return nil, fmt.Errorf("sinh vhost trong lồng: %w", err)
+	}
+	return out, nil
+}
+
+// siteVhostCaged dựng dữ liệu bằng đúng cửa kiểm của vhost ngoài lồng
+// (siteVhostData, sslSiteData), chỉ thay trường Socket, rồi render đúng tên
+// template mà SiteVhost chọn. Bốn nhánh dưới phải khớp bốn nhánh của SiteVhost.
+func siteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode) ([]byte, error) {
+	if web != "nginx" && web != "apache" {
+		return nil, fmt.Errorf("%w: web %q phải là \"nginx\" hoặc \"apache\"", ErrParam, web)
+	}
+	if ssl {
+		d, err := sslSiteData(l, cageAnyPHP, acmeRoot)
+		if err == nil {
+			d.siteData, err = cageVhostData(l, d.siteData, web, mode)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return sslRender("site-"+web+"-ssl.conf.tmpl", d)
+	}
+	d, err := siteVhostData(l, cageAnyPHP, acmeRoot)
+	if err == nil {
+		d, err = cageVhostData(l, d, web, mode)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return siteRender("site-"+web+".conf.tmpl", d)
+}
+
+// cageVhostData thay socket bằng socket của lồng (qua cùng luật đường dẫn) và,
+// với Apache, điền khối .htaccess như ApacheSite.
+func cageVhostData(l site.Layout, d siteData, web string, mode site.HtaccessMode) (siteData, error) {
+	if err := siteCheckPath(l.CageSocket()); err != nil {
+		return siteData{}, err
+	}
+	d.Socket = l.CageSocket()
+	if web == "apache" {
+		return withHtaccess(d, mode)
+	}
+	return d, nil
 }
