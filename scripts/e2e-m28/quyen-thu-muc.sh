@@ -108,6 +108,14 @@ err = d.get("error") or {}
 job = (d.get("report") or {}).get("job") or {}
 print("  lỗi:", (err.get("message") if isinstance(err, dict) else err) or "-")
 print("  job.error:", job.get("error") or "-")' "$W/f.add.$r"
+    # Hoàn tác của job hỏng không xoá được user Linux khi kẻ tráo còn chạy
+    # dưới user đó, và vòng sau hỏng dây chuyền ("trên máy đã có user Linux
+    # ..."). Kẻ tráo đã dừng ở trên: dọn user sót để các vòng độc lập.
+    for u in $(getent passwd | cut -d: -f1 | grep '^tp_f_example_com_'); do
+      pkill -KILL -u "$u" 2>/dev/null
+      sleep 0.5
+      userdel "$u" 2>/dev/null && echo "  đã dọn user sót $u"
+    done
   fi
   rm -f "$W/f.add.$r" "$W/f.add.err.$r"
   xoa_site
