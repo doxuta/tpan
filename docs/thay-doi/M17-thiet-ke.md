@@ -235,7 +235,7 @@ Thêm vào `site.Layout` (hàm, không thêm trường; mọi tên suy từ slug
 
 Bảy file, sinh từ template trong `internal/templates` (golden test), dòng đầu là dòng "Do tpan quản lý" theo đúng dấu chú thích của loại file.
 
-**Slice** (`tpan-<slug>.slice`): `[Slice]` với `MemoryAccounting`, `TasksAccounting`, `CPUAccounting`, `IOAccounting` (đều `yes`) và các dòng trần của bảng 3.1; trần bằng 0 thì không có dòng đó.
+**Slice** (`tpan-<slug>.slice`): `[Slice]` với `MemoryAccounting`, `TasksAccounting`, `CPUAccounting`, `IOAccounting` (đều `yes`) và các dòng trần của bảng 3.1; trần bằng 0 thì không có dòng đó, **trừ hai dòng đĩa**: chúng luôn có, ghi `infinity` khi gói không đặt trần. Lý do (gặp ở e2e của đợt 4): systemd chỉ ghi `io.max` cho thiết bị có trong file, nên bỏ hẳn dòng rồi `daemon-reload` thì trần đĩa cũ nằm nguyên trên cgroup (`io.max` vẫn 4 MB/giây sau khi gỡ trần), `cage.limits` báo lệch và `cage.sync` hoàn tác; `infinity` làm `io.max` rỗng.
 
 **Socket** (`tpan-cage-<slug>-php.socket`):
 
@@ -320,6 +320,8 @@ Bằng chứng phải là lệnh thật: `system.Describe(sys, cmd)` (giao diệ
 **`cage.ReadUsage(sys, layout) (Usage, error)`.** Đọc các file cgroup của slice (bảng ở 3.8). Thư mục cgroup không có: `Usage{Running: false}`, không lỗi.
 
 ### 3.5 Step mới (`internal/steps/cage.go`)
+
+**passwd và group riêng của lồng đang chạy** (gặp ở e2e của đợt 4). Hàng rào gắn `/etc/tpan/cage/<slug>/passwd` lên `/etc/passwd` (và `group`) trong không gian riêng của dịch vụ. `useradd`, `userdel`, `usermod -aG`, `gpasswd -d` thay `/etc/passwd`, `/etc/group` của máy bằng cách ghi file mới rồi đổi tên đè lên; file cũ (chỗ gắn) bị gỡ nên kernel gỡ luôn lệnh gắn trong mọi lồng đang chạy, và lồng A thấy `passwd` thật của máy, có user `tp_*` của site B (tái hiện: A thấy 37 dòng sau khi tạo B). Cách giữ: sau mỗi lệnh đổi user hay nhóm, bước gọi `cageRebindIdentity`: `systemctl bind --read-only <dịch vụ của lồng> /etc/tpan/cage/<slug>/passwd /etc/passwd` (và `group`) cho mọi dịch vụ lồng đang chạy (systemd 255 làm được dưới hàng rào; chạy lại thì thay, không chồng); lỗi không làm hỏng job. `cage.runtime` báo lỗi khi tiến trình chính thiếu hai dòng gắn đó (sửa tự động `cage.restart`). Lệnh mới chạy thay cho site (`systemd-run`) luôn nhận đúng bản riêng vì dựng không gian mới.
 
 **`CageFiles{Layout, PHP, Limits, Remove}`**
 
