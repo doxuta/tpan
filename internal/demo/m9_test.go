@@ -42,6 +42,10 @@ func TestM9Seed(t *testing.T) {
 			purged = true
 		}
 		// File có trên máy giả và sha256 khớp dòng (kiểm của khôi phục, nhập DB).
+		// Bản chỉ còn trên kho (M18, local=0) không có file trên máy.
+		if !r.Local {
+			continue
+		}
 		res, err := sys.Run(ctx, system.Cmd{Name: "sha256sum", Args: []string{"--", r.Path}})
 		if err != nil || !strings.HasPrefix(res.Stdout, r.SHA256+" ") {
 			t.Errorf("sha256 của %s = %q, %v; dòng ghi %s", r.Path, res.Stdout, err, r.SHA256)
