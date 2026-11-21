@@ -206,13 +206,17 @@ func (s *Sites) unsuspendSteps(ctx context.Context, st site.Site) ([]engine.Step
 			return nil, err
 		}
 		p, err := steps.PoolUnsuspend(l, php)
-		if !parked && err == nil {
-			p, err = steps.SitePool(l, php)
-		}
 		if err != nil {
 			return nil, err
 		}
 		pool = []engine.Step{p}
+		if !parked {
+			// Không có file pool đã đổi tên (mất trong lúc khoá): ghi lại pool
+			// từ template qua hàm chọn (site ngoài lồng nên ra đúng pool chung).
+			if pool, err = sitePHPSteps(st, cfg, account.Limits{}); err != nil {
+				return nil, err
+			}
+		}
 	}
 	cron, err := steps.CronUnsuspend(l)
 	if err != nil {
