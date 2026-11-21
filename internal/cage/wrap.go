@@ -44,8 +44,10 @@ const (
 //  1. cmd.AsUser rỗng, hoặc AsUser không có dạng tp_<slug>
 //     (site.CageSlugOfUser): chuyển thẳng xuống System bên dưới. AsUser kèm
 //     Env (Env chỉ dành cho `tpan brain`): trả lỗi, không chạy gì.
-//  2. Stat(site.CageFenceOfSlug(slug)): không có (fs.ErrNotExist) thì chuyển
-//     thẳng xuống dưới; lỗi khác thì trả lỗi, KHÔNG chạy gì. Không có ngoại lệ
+//  2. Stat(site.CageFenceOfSlug(slug)): không có (fs.ErrNotExist) mà thư mục
+//     site.CageConfRoot/<slug> cũng không có thì chuyển thẳng xuống dưới;
+//     thư mục đó còn (lồng thiếu hàng rào, soát cuối V1) hay mọi lỗi khác thì
+//     trả lỗi, KHÔNG chạy gì. Không có ngoại lệ
 //     nào chạy lệnh của site trong lồng ở ngoài hàng rào (mục 3.4: một tiến
 //     trình cùng uid ở ngoài lồng mở cửa /proc/<pid>/root, t14 P4).
 //  3. Có hàng rào: chạy, dưới dạng argv, đúng thứ tự tham số này:
@@ -160,16 +162,27 @@ func (s *Sys) Describe(cmd system.Cmd) string {
 	if !ok {
 		return cmd.String()
 	}
-	// Chỉ "chắc chắn không có hàng rào" mới in runuser. Stat lỗi khác thì Run
-	// từ chối; in dạng systemd-run để người làm theo dòng "sửa tay" không tự
-	// chạy lệnh của site ở ngoài lồng.
-	if _, err := s.Stat(site.CageFenceOfSlug(slug)); errors.Is(err, fs.ErrNotExist) {
+	// Chỉ khi Run chắc chắn chạy bằng runuser (không hàng rào, không còn gì
+	// của lồng) mới in runuser. Run từ chối (Stat lỗi, lồng thiếu hàng rào) thì
+	// in dạng systemd-run để người làm theo dòng "sửa tay" không tự chạy lệnh
+	// của site ở ngoài lồng.
+	if _, caged, err := s.cagedSlug(cmd); !caged && err == nil {
 		return cmd.String()
 	}
 	return fenced(cmd, slug, describeTail, noDeadlineSec).String()
 }
 
 // cagedSlug trả slug khi cmd phải chạy trong lồng (bước 1, 2).
+//
+// Không có hàng rào chỉ được hiểu là "site không có lồng" khi thư mục cấu hình
+// riêng của lồng (site.CageConfRoot/<slug>) cũng không có (soát cuối V1). Còn
+// thư mục đó mà mất hàng rào (xoá nhầm drop-in, đường trả lại của CageFiles
+// hỏng giữa chừng) thì dịch vụ của lồng có thể vẫn đang chạy: một lệnh của site
+// chạy ở ngoài lúc đó mở cửa /proc/<pid>/root cho mã trong lồng (mục 3.4, t14
+// P4). Nên trả lỗi, không chạy gì. Thứ tự của steps.CageFiles giữ cho đường đi
+// thường không rơi vào đây: lúc ghi, thư mục có trước nhưng giữa đó và lúc có
+// hàng rào không lệnh nào chạy dưới user của site; lúc gỡ, hàng rào đi trước
+// tiên rồi tới thư mục, và giữa hai việc đó cũng không có lệnh nào như vậy.
 func (s *Sys) cagedSlug(cmd system.Cmd) (string, bool, error) {
 	slug, ok := site.CageSlugOfUser(cmd.AsUser)
 	if !ok {
@@ -180,10 +193,22 @@ func (s *Sys) cagedSlug(cmd system.Cmd) (string, bool, error) {
 	switch {
 	case err == nil:
 		return slug, true, nil
+	case !errors.Is(err, fs.ErrNotExist):
+		return "", false, fmt.Errorf("chạy %s: không biết site có lồng hay không (đọc %s): %w", cmd.String(), fence, err)
+	}
+	conf := site.CageConfRoot + "/" + slug
+	_, err = s.Stat(conf)
+	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		return "", false, nil
+	case err != nil:
+		return "", false, fmt.Errorf("chạy %s: không biết site có lồng hay không (đọc %s): %w", cmd.String(), conf, err)
 	}
-	return "", false, fmt.Errorf("chạy %s: không biết site có lồng hay không (đọc %s): %w", cmd.String(), fence, err)
+	// Lớp bọc chỉ biết user, không biết tên miền của site.
+	return "", false, fmt.Errorf("chạy %s: lồng của user %s thiếu hàng rào %s (còn %s), nên không chạy lệnh nào dưới user này: chạy ở ngoài thì mã trong lồng có thể với ra gốc thật của máy. "+
+		"Sửa bằng: sudo tpan cage disable <tên miền của site> (đưa site ra khỏi lồng), hoặc sudo tpan health --fix (ghi lại hàng rào) / "+
+		"the cage of user %s is missing its fence %s (%s is still there), so no command runs as this user. Fix with: sudo tpan cage disable <site domain>, or sudo tpan health --fix",
+		cmd.String(), cmd.AsUser, fence, conf, cmd.AsUser, fence, conf)
 }
 
 func (s *Sys) randHex() (string, error) {

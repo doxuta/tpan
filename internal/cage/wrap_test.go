@@ -378,3 +378,71 @@ func TestDescribe(t *testing.T) {
 		t.Fatalf("không hàng rào: Describe = %s", got)
 	}
 }
+
+// confDir là thư mục cấu hình riêng của lồng của tSlug (php-fpm.conf, passwd).
+var confDir = site.CageConfRoot + "/" + tSlug
+
+// halfCaged: không có hàng rào nhưng thư mục cấu hình của lồng còn (hàng rào bị
+// xoá nhầm, hay đường trả lại của CageFiles hỏng giữa chừng): lồng có thể vẫn
+// đang chạy.
+func halfCaged(t *testing.T) (*system.FakeSystem, *Sys) {
+	t.Helper()
+	f := system.NewFake()
+	f.SetDir(confDir, 0o755, system.Root)
+	return f, Wrap(f)
+}
+
+// V1: thiếu hàng rào mà lồng còn thì không chạy gì (đóng khi nghi ngờ), và lời
+// lỗi nói cách sửa.
+func TestRunThieuHangRaoMaConLongKhongChay(t *testing.T) {
+	f, s := halfCaged(t)
+	_, err := s.Run(context.Background(), system.Cmd{Name: "wp", Args: []string{"core", "is-installed"}, AsUser: tUser})
+	if err == nil {
+		t.Fatal("thiếu hàng rào mà lồng còn: phải trả lỗi")
+	}
+	for _, want := range []string{"hàng rào", "tpan cage disable", "tpan health --fix"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("lời lỗi thiếu %q: %v", want, err)
+		}
+	}
+	if n := len(f.Ran()); n != 0 {
+		t.Fatalf("không lệnh nào được chạy, đã chạy %d: %+v", n, f.Ran())
+	}
+}
+
+// V1: dòng "sửa tay" cũng không in runuser khi lồng còn mà thiếu hàng rào.
+func TestDescribeThieuHangRaoMaConLong(t *testing.T) {
+	_, s := halfCaged(t)
+	cmd := system.Cmd{Name: "wp", Args: []string{"core", "verify-checksums"}, AsUser: tUser, Dir: "/var/www/a.example.com"}
+	want := system.Cmd{Name: "systemd-run", Args: wantArgs("xem", "3600", "/var/www/a.example.com", "wp", "core", "verify-checksums")}.String()
+	if got := s.Describe(cmd); got != want {
+		t.Fatalf("Describe =\n%s\nmuốn\n%s", got, want)
+	}
+}
+
+// confStatErrSys: Stat của thư mục cấu hình lồng lỗi khác ErrNotExist.
+type confStatErrSys struct{ *system.FakeSystem }
+
+func (c confStatErrSys) Stat(p string) (system.FileInfo, error) {
+	if p == confDir {
+		return system.FileInfo{}, &fs.PathError{Op: "lstat", Path: p, Err: syscall.EACCES}
+	}
+	return c.FakeSystem.Stat(p)
+}
+
+// V1: không biết lồng còn hay không thì cũng không chạy gì, Describe in dạng
+// systemd-run.
+func TestRunThuMucLongStatLoiKhongChay(t *testing.T) {
+	f := system.NewFake()
+	s := Wrap(confStatErrSys{f})
+	cmd := system.Cmd{Name: "wp", AsUser: tUser}
+	if _, err := s.Run(context.Background(), cmd); err == nil || !errors.Is(err, syscall.EACCES) {
+		t.Fatalf("lỗi = %v, muốn bọc EACCES", err)
+	}
+	if n := len(f.Ran()); n != 0 {
+		t.Fatalf("không lệnh nào được chạy, đã chạy %d", n)
+	}
+	if got := s.Describe(cmd); !strings.HasPrefix(got, "systemd-run ") {
+		t.Fatalf("Describe = %s, muốn dạng systemd-run", got)
+	}
+}
