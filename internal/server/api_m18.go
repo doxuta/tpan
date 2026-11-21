@@ -178,8 +178,11 @@ func backupAuditID(id string) string {
 	return "?"
 }
 
-// previewPlan trả bản xem trước của một Plan core vừa dựng.
-func previewPlan(w http.ResponseWriter, r *http.Request, p *core.Planned, err error) {
+// previewPlan trả bản xem trước của một Plan core vừa dựng, qua writePreview
+// như mọi bản xem trước khác (M28, bất biến B12): route hôm nay chỉ admin gọi
+// được nên bộ lọc theo vai không đổi gì, nhưng route mở cho vai user về sau
+// vẫn tự có lọc.
+func (s *Server) previewPlan(w http.ResponseWriter, r *http.Request, p *core.Planned, err error) {
 	if err != nil {
 		apiFail(w, r, err)
 		return
@@ -189,7 +192,7 @@ func previewPlan(w http.ResponseWriter, r *http.Request, p *core.Planned, err er
 		apiFail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, pv)
+	s.writePreview(w, r, pv)
 }
 
 // pushNote là câu của 202: việc chưa chạy, và hàng chờ mất nếu panel khởi
@@ -207,7 +210,7 @@ func (s *Server) handleBackupPush(w http.ResponseWriter, r *http.Request) {
 	rem := s.apiRemote()
 	if apiDryRun(r) {
 		p, err := rem.PreparePush(r.Context(), id)
-		previewPlan(w, r, p, err)
+		s.previewPlan(w, r, p, err)
 		return
 	}
 	target := backupAuditID(id)
@@ -243,7 +246,7 @@ func (s *Server) handleBackupPull(w http.ResponseWriter, r *http.Request) {
 	rem := s.apiRemote()
 	if apiDryRun(r) {
 		p, err := rem.PreparePull(r.Context(), id)
-		previewPlan(w, r, p, err)
+		s.previewPlan(w, r, p, err)
 		return
 	}
 	target := backupAuditID(id)
