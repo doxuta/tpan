@@ -59,10 +59,17 @@ func Run(ctx context.Context, o RunOptions) error {
 			defer close(trashDone)
 			s.newTrashTimer().Run(sctx)
 		}()
+		// Bộ hẹn giờ số liệu và dọn lượt thử sót (M17, usage_timer.go); lúc
+		// khởi động nó cũng dọn unit tạm hỏng của lệnh chạy thay cho site.
+		usageDone := make(chan struct{})
+		go func() {
+			defer close(usageDone)
+			s.newUsageTimer().Run(sctx)
+		}()
 		// Dừng rồi chờ vòng kiểm đang dở xong hẳn (ctx đã huỷ nên nó dừng
 		// nhanh) và vòng dọn thùng rác đang dở (nó không dừng giữa chừng, xem
 		// trash_timer.go) trước khi trả về: người gọi đóng store ngay sau Run.
-		defer func() { cancel(); <-done; <-trashDone }()
+		defer func() { cancel(); <-done; <-trashDone; <-usageDone }()
 	}
 	srv := &http.Server{
 		Addr:              o.Listen,

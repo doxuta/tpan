@@ -348,8 +348,26 @@ func (s *Server) handleUserEdit(w http.ResponseWriter, r *http.Request) {
 		}
 		ch.Email = &e
 	}
+	// M17: đổi gói làm đổi trần của site trong lồng thì đổi gói và đồng bộ lồng
+	// là một job (mọi thay đổi của thân áp ở móc before, trước job).
+	by := who(r)
+	plan, err := s.apiCages().PrepareUserEdit(r.Context(), name, ch, by)
+	if err != nil {
+		s.m17Refused(w, r, action, name, err)
+		return
+	}
+	if plan != nil {
+		s.planJobKick(w, r, jobOpts{action: action, target: name}, func(context.Context) (apiPlan, error) { return plan, nil })
+		return
+	}
+	if apiDryRun(r) {
+		writeJSON(w, http.StatusOK, emptyPreview(action, name, i18n.T(
+			"Sửa user "+name+": chỉ ghi dòng user, không có site trong lồng cần đồng bộ",
+			"Edit user "+name+": only the user row is written, no caged site needs syncing")))
+		return
+	}
 	a := s.apiAccounts()
-	_, err := a.EditUser(r.Context(), name, ch, who(r))
+	_, err = a.EditUser(r.Context(), name, ch, by)
 	if !s.auditDone(w, r, action, name, err) {
 		return
 	}
@@ -519,17 +537,55 @@ func (s *Server) handlePackageCreate(w http.ResponseWriter, r *http.Request) {
 	s.packageRow(w, r, body.Name)
 }
 
-// handlePackageEdit: tên gói lấy từ đường dẫn, không từ thân.
+// handlePackageEdit: tên gói lấy từ đường dẫn, không từ thân. Thân là
+// PackageEdit (M17): bốn giới hạn cũ như trước, bảy trường của lồng vắng mặt là
+// giữ nguyên giá trị đang có. Có site trong lồng dùng gói mà trần đổi thì dòng
+// gói và đồng bộ lồng là một job (202; dòng gói ghi ở móc before, trước job);
+// không thì ghi dòng gói như trước M17 và trả PackageRow.
 func (s *Server) handlePackageEdit(w http.ResponseWriter, r *http.Request) {
-	var body account.Package
+	const action = "package.edit"
+	var body PackageEdit
 	if !apiReadJSON(w, r, &body) {
 		return
 	}
-	body.Name = r.PathValue("name")
-	if !s.auditDone(w, r, "package.edit", packageTarget(body.Name), s.apiAccounts().EditPackage(r.Context(), body)) {
+	raw := r.PathValue("name")
+	target := packageTarget(raw)
+	ctx := r.Context()
+	name, err := validate.ParsePackageName(raw)
+	if err != nil {
+		s.m17Refused(w, r, action, target, err)
 		return
 	}
-	s.packageRow(w, r, body.Name)
+	cur, ok, err := s.deps.Store.Package(ctx, name)
+	if err == nil && !ok {
+		err = &core.RefusedError{Code: core.CodePackageNotFound, Message: i18n.T("không có gói "+name, "no package "+name)}
+	}
+	if err != nil {
+		s.m17Refused(w, r, action, target, err)
+		return
+	}
+	pkg := body.over(cur)
+	plan, err := s.apiCages().PrepareEditPackage(ctx, pkg)
+	if err != nil {
+		s.m17Refused(w, r, action, target, err)
+		return
+	}
+	if plan != nil {
+		s.planJobKick(w, r, jobOpts{action: action, target: name}, func(context.Context) (apiPlan, error) { return plan, nil })
+		return
+	}
+	if apiDryRun(r) {
+		writeJSON(w, http.StatusOK, emptyPreview(action, name, i18n.T(
+			"Sửa gói "+name+": chỉ ghi dòng gói, không có site trong lồng cần đồng bộ",
+			"Edit package "+name+": only the package row is written, no caged site needs syncing")))
+		return
+	}
+	if err := s.apiAccounts().EditPackage(ctx, pkg); err != nil {
+		s.m17Refused(w, r, action, target, err)
+		return
+	}
+	s.audit(r, action, target, "ok", "")
+	s.packageRow(w, r, name)
 }
 
 func (s *Server) handlePackageDelete(w http.ResponseWriter, r *http.Request) {
