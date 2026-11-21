@@ -535,11 +535,17 @@ func (s *Store) IntegrityCheck(ctx context.Context) (string, error) {
 
 // StuckJobs trả các job còn status "running" mà bắt đầu trước before (tiến
 // trình chạy nó đã chết giữa chừng, hoặc treo).
+//
+// M18: bỏ qua ba loại job của kho S3 (backup.push, backup.pull, backup.panel):
+// tải vài GB qua mạng chậm hợp lệ mất hàng giờ, báo "treo" sau một giờ là báo
+// giả. Job của ba loại này bị tiến trình chết bỏ lại thì lượt đẩy kế tiếp tự
+// đóng (Store.AbortStaleJobs, R12 của bản soát hẹp).
 func (s *Store) StuckJobs(ctx context.Context, before time.Time) ([]engine.Job, error) {
 	// started_at có độ rộng cố định (timeLayout) nên so chuỗi là so thời gian.
 	out := []engine.Job{}
 	err := queryEach(ctx, s.db,
-		"SELECT "+jobColumns+" FROM jobs WHERE status = ? AND started_at < ? ORDER BY started_at, rowid",
+		"SELECT "+jobColumns+" FROM jobs WHERE status = ? AND started_at < ?"+
+			" AND kind NOT IN ('backup.push', 'backup.pull', 'backup.panel') ORDER BY started_at, rowid",
 		func(r rowScanner) error {
 			j, err := scanJob(r)
 			if err != nil {
