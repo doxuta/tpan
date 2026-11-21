@@ -15,10 +15,14 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
+	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/health"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/s3"
+	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/store"
+	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/web"
 )
 
@@ -59,10 +63,17 @@ func Run(ctx context.Context, o RunOptions) error {
 			defer close(trashDone)
 			s.newTrashTimer().Run(sctx)
 		}()
+		// M18: bộ đẩy nền lên kho S3 (pusher.go), tắt ở --demo. Goroutine tải
+		// về của POST /backups/{id}/pull dừng theo sctx (s.bg).
+		s.bg = sctx
+		pushDone := s.startPusher(sctx, syncFunc(func(ctx context.Context, opt core.SyncOptions, onEvent func(engine.Event)) (core.SyncResult, error) {
+			return s.apiRemote().Sync(ctx, opt, onEvent)
+		}))
 		// Dừng rồi chờ vòng kiểm đang dở xong hẳn (ctx đã huỷ nên nó dừng
-		// nhanh) và vòng dọn thùng rác đang dở (nó không dừng giữa chừng, xem
-		// trash_timer.go) trước khi trả về: người gọi đóng store ngay sau Run.
-		defer func() { cancel(); <-done; <-trashDone }()
+		// nhanh), vòng dọn thùng rác đang dở (nó không dừng giữa chừng, xem
+		// trash_timer.go) và lượt đẩy đang dở trước khi trả về: người gọi đóng
+		// store ngay sau Run.
+		defer func() { cancel(); <-done; <-trashDone; <-pushDone }()
 	}
 	srv := &http.Server{
 		Addr:              o.Listen,
@@ -105,6 +116,26 @@ type Server struct {
 	disk diskTimer
 	// selfCheck nhớ lần "Kiểm bản mới" gần nhất (api_m15.go). Zero value dùng được.
 	selfCheck selfChecks
+	// pusher là bộ đẩy nền lên kho S3 (M18, pusher.go). Zero value dùng được:
+	// handler đưa id vào hàng chờ; chỉ Run (không --demo) mới chạy nó.
+	pusher pusher
+	// bg sống tới khi server dừng (Run gán): goroutine tải về của
+	// POST /backups/{id}/pull dừng theo nó. nil (test): context.Background.
+	bg context.Context
+	// newS3Store dựng kho từ cấu hình (core.Remote.NewStore); nil là client
+	// thật. Chỉ test đặt (đưa *s3.Mem vào).
+	newS3Store func(s3.Config) (steps.ObjectStore, error)
+	// remoteLock là khoá lượt đẩy; nil là system.FileLock trên
+	// system.DefaultRemoteLockPath. Chỉ test đặt (system.MemLock): /run/tpan
+	// không ghi được trên máy dev.
+	remoteLock system.Locker
+}
+
+func (s *Server) bgCtx() context.Context {
+	if s.bg != nil {
+		return s.bg
+	}
+	return context.Background()
 }
 
 func (s *Server) now() time.Time {

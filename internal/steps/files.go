@@ -45,6 +45,9 @@ type File struct {
 
 	prev    saved
 	applied bool
+	// secret (M18): chỉ SecretFile đặt được; File thường từ chối ba file bí
+	// mật (IsSecretPath), vì Info của File khai nội dung mới vào bản xem trước.
+	secret bool
 }
 
 func (s *File) Info() engine.StepInfo {
@@ -63,6 +66,9 @@ func (s *File) Info() engine.StepInfo {
 
 func (s *File) validate() error {
 	if err := checkPath("đường dẫn file", s.Path); err != nil {
+		return err
+	}
+	if err := secretGuard(s.Path, s.secret); err != nil {
 		return err
 	}
 	return checkPerm(s.Perm)
@@ -241,6 +247,9 @@ type Absent struct {
 
 	prev    saved
 	applied bool
+	// secret (M18): chỉ SecretAbsent đặt được; Absent thường từ chối ba file
+	// bí mật, vì engine đọc nội dung cũ của mọi file trong Info vào bản xem trước.
+	secret bool
 }
 
 func (s *Absent) Info() engine.StepInfo {
@@ -269,6 +278,9 @@ func (s *Absent) Check(_ context.Context, sys system.System) (bool, error) {
 	if err := checkPath("đường dẫn cần gỡ", s.Path); err != nil {
 		return false, err
 	}
+	if err := secretGuard(s.Path, s.secret); err != nil {
+		return false, err
+	}
 	fi, err := sys.Stat(s.Path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return true, nil
@@ -284,6 +296,9 @@ func (s *Absent) Check(_ context.Context, sys system.System) (bool, error) {
 
 func (s *Absent) Apply(ctx context.Context, sys system.System) error {
 	if err := checkPath("đường dẫn cần gỡ", s.Path); err != nil {
+		return err
+	}
+	if err := secretGuard(s.Path, s.secret); err != nil {
 		return err
 	}
 	// capture từ chối thư mục, nên Remove dưới đây không bao giờ xoá thư mục.

@@ -179,6 +179,14 @@ hoi-quy-m28: ## (M28) Chạy lại e2e M13, M14, M15 làm hồi quy
 	  echo "$$l: $$(grep -c '=> ĐẠT' "$$l" 2>/dev/null || echo 0) đạt, $$(grep -c '=> KHÔNG ĐẠT' "$$l" 2>/dev/null || echo 0) không đạt"; \
 	done
 
+e2e-m18: ## Chạy e2e bước 21 của M18 trên máy ảo, log vào docs/bang-chung: make e2e-m18 P="chinh" [L=M18]
+	E2E_LOG=docs/bang-chung/$(or $(L),M18).log bash scripts/e2e-m18.sh $(P) </dev/null >docs/bang-chung/$(or $(L),M18).log 2>&1; \
+	  rc=$$?; echo "e2e-m18 $(P): mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' docs/bang-chung/$(or $(L),M18).log), không đạt $$(grep -c '=> KHÔNG ĐẠT' docs/bang-chung/$(or $(L),M18).log)"; exit $$rc
+
+e2e-hoi-quy: ## Chạy lại e2e của một mốc cũ trên máy ảo, log vào docs/bang-chung: make e2e-hoi-quy M=9 P=all L=M18-hoi-quy-m9
+	E2E_LOG=docs/bang-chung/$(L).log bash scripts/e2e-m$(M).sh $(P) </dev/null >docs/bang-chung/$(L).log 2>&1; \
+	  rc=$$?; echo "e2e-m$(M) $(P): mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' docs/bang-chung/$(L).log), không đạt $$(grep -c '=> KHÔNG ĐẠT' docs/bang-chung/$(L).log)"; exit $$rc
+
 clean: ## Xoá kết quả build
 	rm -rf bin
 	find web/dist -mindepth 1 ! -name .gitkeep -delete

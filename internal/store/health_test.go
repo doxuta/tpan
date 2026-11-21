@@ -273,3 +273,24 @@ func TestStuckJobs(t *testing.T) {
 		t.Errorf("StuckJobs = %+v", got)
 	}
 }
+
+// TestStuckJobsBoQuaJobKho: job đẩy, tải, gói panel được phép chạy lâu (M18,
+// mục 3.5), nên không bao giờ là "job treo"; loại khác vẫn là.
+func TestStuckJobsBoQuaJobKho(t *testing.T) {
+	s, _ := openTemp(t)
+	ctx := context.Background()
+	for _, kind := range []string{"backup.push", "backup.pull", "backup.panel", "backup.create"} {
+		j := sampleJob(kind, t0)
+		j.Kind = kind
+		if err := s.CreateJob(ctx, j); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := s.StuckJobs(ctx, t0.Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Kind != "backup.create" {
+		t.Errorf("StuckJobs = %+v, muốn chỉ backup.create", got)
+	}
+}
