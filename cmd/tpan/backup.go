@@ -28,6 +28,8 @@ func backupCmd(e *env) *cobra.Command {
 		Short: "Backup site (mã nguồn và DB), xem, khôi phục, đặt lịch backup hằng ngày",
 	}
 	c.AddCommand(backupCreateCmd(e), backupListCmd(e), backupRestoreCmd(e), backupSettingsCmd(e))
+	// M18: target, key, push, pull (backup_s3.go).
+	c.AddCommand(backupS3Cmds(e)...)
 	return c
 }
 
