@@ -293,6 +293,19 @@ func TestS3PullSaiSha256KhongDeLaiFile(t *testing.T) {
 	s3NoPath(t, f, s3TestFile, s3TestFile+".part")
 }
 
+// F1 của lượt soát cuối: kho gửi dài hơn cỡ đã biết thì dừng ngay ở byte vượt
+// trần, không ghi tiếp ra đĩa, không để lại file.
+func TestS3PullKhoGuiDaiHonCoThiDung(t *testing.T) {
+	f, mem := s3Sys(t), s3.NewMem()
+	s := s3TestPull(f, mem)
+	mem.SetObject(s3TestKey, bytes.Repeat([]byte("x"), int(s.Size)+4096))
+	err := s.Apply(context.Background(), f)
+	if !errors.Is(err, errObjectTooLong) {
+		t.Fatalf("phải dừng vì vượt cỡ: %v", err)
+	}
+	s3NoPath(t, f, s3TestFile, s3TestFile+".part")
+}
+
 func TestS3PullThuong(t *testing.T) {
 	f, mem := s3Sys(t), s3.NewMem()
 	s := s3TestPull(f, mem)

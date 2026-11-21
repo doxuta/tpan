@@ -168,9 +168,20 @@ type countWriter struct {
 	w  io.Writer
 	n  int64
 	fn func(int64)
+	// max > 0: nhận quá chừng này byte thì lỗi errObjectTooLong (F1 của lượt
+	// soát cuối). Cỡ của object đã biết trước (cột size, hay số byte vừa
+	// gửi); kho độc hại hay hỏng gửi thân dài vô hạn thì không được làm đầy
+	// đĩa gốc, cũng không được giữ lượt đẩy mãi.
+	max int64
 }
 
+// errObjectTooLong: kho gửi nhiều byte hơn cỡ đã biết của object.
+var errObjectTooLong = errors.New("kho gửi nhiều byte hơn cỡ đã biết của object")
+
 func (c *countWriter) Write(b []byte) (int, error) {
+	if c.max > 0 && c.n+int64(len(b)) > c.max {
+		return 0, fmt.Errorf("%w (%d byte)", errObjectTooLong, c.max)
+	}
 	n, err := c.w.Write(b)
 	c.n += int64(n)
 	c.fn(c.n)
@@ -243,7 +254,7 @@ func (s *S3Probe) Apply(ctx context.Context, sys system.System) error {
 		return fail("xem", fmt.Errorf("kho báo cỡ %d, đã ghi %d byte", obj.Size, len(data)))
 	}
 	var got bytes.Buffer
-	if _, _, err := s.Store.Get(ctx, key, &got); err != nil {
+	if _, _, err := s.Store.Get(ctx, key, &countWriter{w: &got, fn: func(int64) {}, max: int64(len(data))}); err != nil {
 		return fail("đọc lại", err)
 	}
 	if !bytes.Equal(got.Bytes(), data) {
@@ -414,7 +425,11 @@ func (s *S3Push) Apply(ctx context.Context, sys system.System) error {
 	}
 	// 5. Đọc lại cả object: phép kiểm duy nhất không phải tin kho (mục 3.5).
 	down := newProgress(sys, "đọc lại "+key+" từ kho", size)
-	rn, rsum, err := s.Store.Get(ctx, key, &countWriter{w: io.Discard, fn: down.update})
+	rn, rsum, err := s.Store.Get(ctx, key, &countWriter{w: io.Discard, fn: down.update, max: size})
+	if errors.Is(err, errObjectTooLong) {
+		// Kho trả dài hơn thứ đã gửi: cùng loại với sai sha256.
+		return drop(fmt.Errorf("%w: đọc lại %s: %w", ErrRemoteMismatch, key, err))
+	}
 	if err != nil {
 		// Object chưa qua đọc lại thì không để trên kho: không ai được
 		// tưởng nó là một bản tốt.
@@ -558,7 +573,7 @@ func (s *S3Pull) Apply(ctx context.Context, sys system.System) error {
 		return fmt.Errorf("tạo %s: %w", part, err)
 	}
 	down := newProgress(sys, "tải "+s.Key+" về", s.Size)
-	n, sum, err := s.Store.Get(ctx, s.Key, &countWriter{w: w, fn: down.update})
+	n, sum, err := s.Store.Get(ctx, s.Key, &countWriter{w: w, fn: down.update, max: s.Size})
 	// Close đồng bộ xuống đĩa: lỗi của nó là lỗi ghi, phải kiểm.
 	if cerr := w.Close(); err == nil && cerr != nil {
 		err = fmt.Errorf("ghi %s: %w", part, cerr)
