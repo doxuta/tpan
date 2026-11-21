@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"regexp"
 	"strings"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/doxuta/tpan/internal/engine"
@@ -412,6 +413,14 @@ func chmodDirs(ctx context.Context, sys system.System, root string, perm fs.File
 			return fmt.Errorf("%s sâu quá %d tầng", dir, sitefs.MaxDepth)
 		}
 		names, err := sys.ReadDir(dir)
+		// Thư mục con bị tráo (thành symlink, file, hay bị xoá) giữa lúc chmod
+		// nó và lúc liệt kê bên trong: bỏ qua như ở Stat và Chmod (e2e M28 A7
+		// bắt được: trước đây lỗi này làm hỏng cả job tạo site). ENOTDIR và
+		// ELOOP: cửa trả nguyên lỗi của kernel khi tên đổi tiếp giữa lúc mở và
+		// lúc nó nhìn lại. Thư mục gốc (public) thì lỗi thật.
+		if depth > 1 && (chmodVanished(err) || errors.Is(err, syscall.ENOTDIR) || errors.Is(err, syscall.ELOOP)) {
+			return nil
+		}
 		if err != nil {
 			return fmt.Errorf("liệt kê %s: %w", dir, err)
 		}

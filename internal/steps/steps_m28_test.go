@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/doxuta/tpan/internal/site"
@@ -101,6 +102,53 @@ func TestChmodDirsLoi(t *testing.T) {
 	cancel()
 	if err := chmodDirs(ctx, f, root, wpDirMode); !errors.Is(err, context.Canceled) {
 		t.Errorf("ctx đã huỷ: err = %v", err)
+	}
+}
+
+// Thư mục con bị tráo giữa lúc chmod nó và lúc liệt kê bên trong (ReadDir trả
+// ErrSymlink, ENOENT, ENOTDIR, ELOOP): bỏ qua, không làm hỏng bước (e2e M28 A7
+// bắt được trên máy ảo). Thư mục gốc không liệt kê được thì vẫn là lỗi, và lỗi
+// khác ở thư mục con (EACCES) cũng vậy.
+type m28ReadDirSys struct {
+	*system.FakeSystem
+	fail map[string]error
+}
+
+func (s *m28ReadDirSys) ReadDir(p string) ([]string, error) {
+	if err := s.fail[p]; err != nil {
+		return nil, err
+	}
+	return s.FakeSystem.ReadDir(p)
+}
+
+func TestChmodDirsThuMucConBiTrao(t *testing.T) {
+	owner := system.Owner{User: "tp_a_1", Group: site.WebGroup}
+	root := "/var/www/a.example.com/public"
+	for _, e := range []error{sitefs.ErrSymlink, fs.ErrNotExist, syscall.ENOTDIR, syscall.ELOOP} {
+		f := system.NewFake()
+		f.SetDir("/var/www/a.example.com", fs.ModeSetgid|0o750, owner)
+		f.SetDir(root+"/a/b", 0o755, owner)
+		f.SetDir(root+"/c", 0o755, owner)
+		s := &m28ReadDirSys{FakeSystem: f, fail: map[string]error{root + "/a": &sitefs.Error{Op: "liệt kê", Path: root + "/a", Err: e}}}
+		if err := chmodDirs(context.Background(), s, root, wpDirMode); err != nil {
+			t.Errorf("ReadDir thư mục con lỗi %v phải được bỏ qua: %v", e, err)
+		}
+		if f.Snapshot()[root+"/c"].Mode != fs.ModeDir|fs.ModeSetgid|0o750 {
+			t.Errorf("bỏ qua a thì vẫn phải làm c")
+		}
+	}
+	f := system.NewFake()
+	f.SetDir(root, fs.ModeSetgid|0o750, owner)
+	s := &m28ReadDirSys{FakeSystem: f, fail: map[string]error{root: &sitefs.Error{Op: "liệt kê", Path: root, Err: sitefs.ErrSymlink}}}
+	if err := chmodDirs(context.Background(), s, root, wpDirMode); !errors.Is(err, sitefs.ErrSymlink) {
+		t.Errorf("thư mục gốc không liệt kê được phải là lỗi: %v", err)
+	}
+	f = system.NewFake()
+	f.SetDir("/var/www/a.example.com", fs.ModeSetgid|0o750, owner)
+	f.SetDir(root+"/a", 0o755, owner)
+	s = &m28ReadDirSys{FakeSystem: f, fail: map[string]error{root + "/a": &sitefs.Error{Op: "liệt kê", Path: root + "/a", Err: fs.ErrPermission}}}
+	if err := chmodDirs(context.Background(), s, root, wpDirMode); !errors.Is(err, fs.ErrPermission) {
+		t.Errorf("lỗi khác ở thư mục con phải làm hỏng bước: %v", err)
 	}
 }
 
