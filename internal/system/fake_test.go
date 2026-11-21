@@ -98,9 +98,9 @@ func TestFakeSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Thư mục cha là symlink: đi theo như bản thật.
-	f.SetFile("/var/www/releases/1/index.php", []byte("v1"), 0o644, Root)
-	f.SetSymlink("releases/1", "/var/www/current")
-	if got, err := f.ReadFile("/var/www/current/index.php"); err != nil || string(got) != "v1" {
+	f.SetFile("/srv/releases/1/index.php", []byte("v1"), 0o644, Root)
+	f.SetSymlink("releases/1", "/srv/current")
+	if got, err := f.ReadFile("/srv/current/index.php"); err != nil || string(got) != "v1" {
 		t.Fatalf("ReadFile qua thư mục link = %q, %v", got, err)
 	}
 	// Vòng lặp symlink thì lỗi, không treo.
@@ -148,21 +148,21 @@ func TestFakeMkdirAll(t *testing.T) {
 	f := NewFake()
 	f.SetDir("/var", 0o700, Root)
 	owner := Owner{User: "site1", Group: "site1"}
-	if err := f.MkdirAll("/var/www/site1/public", 0o750, owner); err != nil {
+	if err := f.MkdirAll("/var/srv/site1/public", 0o750, owner); err != nil {
 		t.Fatal(err)
 	}
 	// Thư mục đã có giữ nguyên quyền và chủ.
 	if fi, _ := f.Stat("/var"); fi.Mode != fs.ModeDir|0o700 || fi.Owner != Root {
 		t.Fatalf("/var bị đổi: %+v", fi)
 	}
-	for _, p := range []string{"/var/www", "/var/www/site1", "/var/www/site1/public"} {
+	for _, p := range []string{"/var/srv", "/var/srv/site1", "/var/srv/site1/public"} {
 		fi, err := f.Stat(p)
 		if err != nil || fi.Mode != fs.ModeDir|0o750 || fi.Owner != owner {
 			t.Fatalf("Stat %s = %+v, %v", p, fi, err)
 		}
 	}
 	// Gọi lại không lỗi.
-	if err := f.MkdirAll("/var/www/site1/public", 0o750, owner); err != nil {
+	if err := f.MkdirAll("/var/srv/site1/public", 0o750, owner); err != nil {
 		t.Fatal(err)
 	}
 	// Một phần là file thường thì lỗi.

@@ -7,10 +7,11 @@ import (
 	"io/fs"
 	"path"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/doxuta/tpan/internal/sitefs"
 )
 
 // FakeSystem giữ hệ thống file và danh sách lệnh trong bộ nhớ. Dùng cho unit
@@ -144,6 +145,10 @@ func (f *FakeSystem) Run(ctx context.Context, cmd Cmd) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{ExitCode: -1}, fmt.Errorf("chạy %s: %w", cmd.String(), err)
 	}
+	// Same rule as LocalSystem (3.4): every test that runs a Plan checks it.
+	if err := checkRootZone(sitefs.Root, cmd); err != nil {
+		return Result{ExitCode: -1}, err
+	}
 	argv := append([]string{cmd.Name}, cmd.Args...)
 
 	f.mu.Lock()
@@ -182,6 +187,9 @@ func (f *FakeSystem) Run(ctx context.Context, cmd Cmd) (Result, error) {
 func (f *FakeSystem) ReadFile(p string) ([]byte, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if a, rel, ok := sitefs.Split(sitefs.Root, p); ok {
+		return f.zoneReadFile(a, rel)
+	}
 	r, e, err := f.lookup("open", p, true)
 	if err != nil {
 		return nil, err
@@ -198,6 +206,9 @@ func (f *FakeSystem) WriteFileAtomic(p string, data []byte, perm fs.FileMode, ow
 	p = clean(p)
 	if err := f.failed("write", p); err != nil {
 		return err
+	}
+	if a, r, ok := sitefs.Split(sitefs.Root, p); ok {
+		return f.zoneWrite(a, r, data, perm, owner)
 	}
 	// Như bản thật: thư mục cha đi theo symlink, còn tên cuối thì không
 	// (rename thay chính symlink chứ không ghi vào đích của nó).
@@ -217,6 +228,9 @@ func (f *FakeSystem) MkdirAll(p string, perm fs.FileMode, owner Owner) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	p = clean(p)
+	if a, r, ok := sitefs.Split(sitefs.Root, p); ok {
+		return f.zoneMkdirAll(a, r, perm, owner)
+	}
 	// Tìm các thư mục còn thiếu trước, kiểm Fail cho cả loạt, rồi mới tạo:
 	// lỗi giữa chừng thì hệ thống file giả không bị đổi.
 	var missing []string
@@ -254,6 +268,9 @@ func (f *FakeSystem) Remove(p string) error {
 	if err := f.failed("remove", p); err != nil {
 		return err
 	}
+	if a, rel, ok := sitefs.Split(sitefs.Root, p); ok {
+		return f.zoneRemove(a, rel)
+	}
 	r, e, err := f.lookup("remove", p, false)
 	if err != nil {
 		return err
@@ -274,15 +291,14 @@ func (f *FakeSystem) Rename(oldPath, newPath string) error {
 			return err
 		}
 	}
-	src, e, err := f.lookup("rename", oldPath, false)
+	src, e, err := f.renameSrc(oldPath)
 	if err != nil {
 		return err
 	}
-	dir, err := f.dirOf("rename", newPath)
+	dst, err := f.renameDst(newPath)
 	if err != nil {
 		return err
 	}
-	dst := path.Join(dir, path.Base(newPath))
 	if dst == src {
 		return nil
 	}
@@ -323,6 +339,9 @@ func (f *FakeSystem) Symlink(target, link string) error {
 	if err := f.failed("symlink", link); err != nil {
 		return err
 	}
+	if a, r, ok := sitefs.Split(sitefs.Root, link); ok {
+		return f.zoneSymlink(target, a, r)
+	}
 	dir, err := f.dirOf("symlink", link)
 	if err != nil {
 		return err
@@ -338,6 +357,9 @@ func (f *FakeSystem) Symlink(target, link string) error {
 func (f *FakeSystem) Readlink(p string) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if a, r, ok := sitefs.Split(sitefs.Root, p); ok {
+		return f.zoneReadlink(a, r)
+	}
 	_, e, err := f.lookup("readlink", p, false)
 	if err != nil {
 		return "", err
@@ -351,20 +373,22 @@ func (f *FakeSystem) Readlink(p string) (string, error) {
 func (f *FakeSystem) Stat(p string) (FileInfo, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if a, r, ok := sitefs.Split(sitefs.Root, p); ok {
+		return f.zoneStat(a, r)
+	}
 	_, e, err := f.lookup("lstat", p, false)
 	if err != nil {
 		return FileInfo{}, err
 	}
-	size := int64(len(e.Data))
-	if e.Mode&fs.ModeSymlink != 0 {
-		size = int64(len(e.Target)) // như lstat: kích thước symlink là độ dài đích
-	}
-	return FileInfo{Mode: e.Mode, Size: size, Owner: e.Owner}, nil
+	return statOf(e), nil
 }
 
 func (f *FakeSystem) ReadDir(p string) ([]string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if a, rel, ok := sitefs.Split(sitefs.Root, p); ok {
+		return f.zoneReadDir(a, rel)
+	}
 	r, e, err := f.lookup("open", p, true)
 	if err != nil {
 		return nil, err
@@ -372,14 +396,7 @@ func (f *FakeSystem) ReadDir(p string) ([]string, error) {
 	if !e.Mode.IsDir() {
 		return nil, &fs.PathError{Op: "readdirent", Path: p, Err: syscall.ENOTDIR}
 	}
-	var names []string
-	for q := range f.entries {
-		if q != "/" && path.Dir(q) == r {
-			names = append(names, path.Base(q))
-		}
-	}
-	sort.Strings(names)
-	return names, nil
+	return f.children(r), nil
 }
 
 func (f *FakeSystem) Chown(p string, owner Owner) error {
@@ -388,6 +405,14 @@ func (f *FakeSystem) Chown(p string, owner Owner) error {
 	p = clean(p)
 	if err := f.failed("chown", p); err != nil {
 		return err
+	}
+	if a, r, ok := sitefs.Split(sitefs.Root, p); ok {
+		e, err := f.zoneEntry("đổi chủ", a, r)
+		if err != nil {
+			return err
+		}
+		e.Owner = normOwner(owner)
+		return nil
 	}
 	_, e, err := f.lookup("lchown", p, false)
 	if err != nil {
@@ -404,6 +429,14 @@ func (f *FakeSystem) Chmod(p string, perm fs.FileMode) error {
 	if err := f.failed("chmod", p); err != nil {
 		return err
 	}
+	if a, r, ok := sitefs.Split(sitefs.Root, p); ok {
+		e, err := f.zoneEntry("đổi quyền", a, r)
+		if err != nil {
+			return err
+		}
+		e.Mode = e.Mode.Type() | keepMode(perm)
+		return nil
+	}
 	_, e, err := f.lookup("chmod", p, true) // os.Chmod đi theo symlink
 	if err != nil {
 		return err
@@ -415,7 +448,13 @@ func (f *FakeSystem) Chmod(p string, perm fs.FileMode) error {
 func (f *FakeSystem) StatFS(p string) (DiskUsage, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	r, _, err := f.lookup("statfs", p, true)
+	var r string
+	var err error
+	if a, rel, ok := sitefs.Split(sitefs.Root, p); ok {
+		r, err = f.zoneStatFS(a, rel)
+	} else {
+		r, _, err = f.lookup("statfs", p, true)
+	}
 	if err != nil {
 		return DiskUsage{}, err
 	}
