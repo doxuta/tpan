@@ -26,3 +26,15 @@ func TestInBanXemTruocKhongChuoiEscape(t *testing.T) {
 		t.Errorf("noCtl = %q", got)
 	}
 }
+
+// Soát cuối M28, C6: output của lệnh (wp chạy mã PHP của site) và lời lỗi của
+// bước in ra terminal không mang chuỗi escape.
+func TestTienDoKhongChuoiEscape(t *testing.T) {
+	var b strings.Builder
+	p := newProgress(&b, "vi", true, engine.Plan{})
+	p.onEvent(engine.Event{Kind: engine.EventOutput, StepID: "x", Message: "Error: \x1b]0;bi-chiem\x07xoá"})
+	p.onEvent(engine.Event{Kind: engine.EventStepFail, StepID: "x", Message: "wp lỗi \x1b[2K"})
+	if strings.ContainsAny(b.String(), "\x1b\x07") {
+		t.Errorf("tiến độ để lọt ký tự điều khiển: %q", b.String())
+	}
+}
