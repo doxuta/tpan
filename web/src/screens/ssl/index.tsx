@@ -1,9 +1,10 @@
-// Màn SSL (mục 6.3 và mục 10 của KE-HOACH.md): cấu hình Let's Encrypt, rồi bảng
-// site kèm tình trạng chứng chỉ. Xin chứng chỉ đi đúng ba chặng: bấm nút ở hàng
-// site → POST /sites/{domain}/ssl?dry_run=1 trả bản xem trước (PlanReview) →
-// bấm chạy → POST thật trả job_id, chuyển tới /jobs/:id. Máy chủ từ chối (409
-// kèm checks: thiếu email, DNS chưa trỏ về...) thì hiện câu của nó và các phép
-// kiểm chưa đạt ngay dưới bảng.
+// Màn SSL (mục 6.3 và mục 10 của KE-HOACH.md; giao diện bản 2, mục 3.7 của
+// M16-thiet-ke.md): bảng site kèm tình trạng chứng chỉ, rồi thẻ cấu hình Let's
+// Encrypt (chỉ admin). Xin chứng chỉ đi đúng ba chặng: bấm nút ở hàng site →
+// POST /sites/{domain}/ssl?dry_run=1 trả bản xem trước (PlanReview) → bấm chạy →
+// POST thật trả job_id, ở lại màn và thẻ theo dõi job báo tiến độ. Máy chủ từ
+// chối (409 kèm checks: thiếu email, DNS chưa trỏ về...) thì hiện câu của nó và
+// các phép kiểm chưa đạt ngay dưới bảng.
 
 import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { useWho } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, Preview, SSLOverview, SSLSiteRow } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
@@ -82,27 +84,23 @@ export default function SSLScreen() {
     <>
       <ScreenHeader title={t.title} summary={t.summary} />
 
-      {q.isPending && <p className="mt-[26px] mb-0 text-muted">{k.loading}</p>}
+      {q.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {q.isError && (
-        <div className="pt-[26px]">
+        <Card>
           <p className="mt-0 mb-[12px]">{errorMessage(q.error, lang)}</p>
           <Button onClick={() => void q.refetch()}>{k.retry}</Button>
-        </div>
+        </Card>
       )}
       {q.isSuccess && (
         <>
-          {/* POST /ssl/settings là route chỉ admin. */}
-          {isAdmin && <Settings config={q.data.config} />}
-
-          <section aria-labelledby="ssl-sites">
-            <h2 id="ssl-sites" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
-              {t.sitesHeading}
-            </h2>
-            <SiteTable rows={q.data.sites} pending={dry.isPending ? failed : null} onIssue={issue} />
-          </section>
+          <SiteTable rows={q.data.sites} pending={dry.isPending ? failed : null} onIssue={issue} />
 
           {dry.isError && failed && (
-            <div ref={resultRef} tabIndex={-1} className="pt-[20px] outline-offset-0">
+            <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
               <ErrorNote error={dry.error} heading={t.errorHeading(failed)} checksHeading={t.checksHeading} />
               <div className="pt-[12px]">
                 <Button onClick={close}>{k.cancel}</Button>
@@ -111,11 +109,14 @@ export default function SSLScreen() {
           )}
 
           {open && (
-            <div ref={resultRef} tabIndex={-1} className="outline-offset-0">
-              {open.reissue && <p className="m-0 pt-[26px] text-muted">{t.reissueNote}</p>}
+            <div ref={resultRef} tabIndex={-1} className="flex flex-col gap-[12px] outline-offset-0">
+              {open.reissue && <p className="m-0 text-muted">{t.reissueNote}</p>}
               <PlanReview preview={open.preview} onRun={() => run.mutate(open.domain)} running={run.isPending} error={run.error} onCancel={close} />
             </div>
           )}
+
+          {/* POST /ssl/settings là route chỉ admin. */}
+          {isAdmin && <Settings config={q.data.config} />}
         </>
       )}
     </>

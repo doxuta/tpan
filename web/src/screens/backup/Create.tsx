@@ -1,4 +1,4 @@
-// Khối "Backup ngay": chọn một site đang chạy rồi bấm. Bấm chỉ mở bản xem
+// Thẻ "Backup ngay": chọn một site đang chạy rồi bấm. Bấm chỉ mở bản xem
 // trước (việc của màn gọi); máy chỉ đổi sau khi người dùng bấm chạy ở đó.
 // Chỉ liệt kê site đang chạy. Core vẫn cho backup site trong thùng rác
 // (PrepareCreate nhận cả hai), nhưng việc đó không có nút ở đây: site đó nên
@@ -7,6 +7,8 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
+import { Field, Select } from "../../components/Field";
 import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/backup";
 
@@ -18,8 +20,6 @@ type Props = {
   anyPending: boolean;
   onCreate: (domain: string) => void;
 };
-
-const selectClass = "box-border h-[44px] w-full border border-ink bg-surface px-[10px] font-mono text-[13px] text-ink sm:h-[40px]";
 
 export function CreateNow({ domains, pendingDomain, anyPending, onCreate }: Props) {
   const t = useStrings(strings);
@@ -33,10 +33,7 @@ export function CreateNow({ domains, pendingDomain, anyPending, onCreate }: Prop
   }
 
   return (
-    <section aria-labelledby="backup-create">
-      <h2 id="backup-create" className="m-0 pt-[26px] pb-[14px] text-[16px] font-semibold">
-        {t.createHeading}
-      </h2>
+    <Card title={t.createHeading} titleId="backup-create">
       {domains.length === 0 ? (
         <p className="m-0 text-muted">
           {t.createNoSitesLead}
@@ -44,22 +41,16 @@ export function CreateNow({ domains, pendingDomain, anyPending, onCreate }: Prop
           {t.createNoSitesTail}
         </p>
       ) : (
-        <form onSubmit={onSubmit} className="flex max-w-[560px] flex-col gap-[12px]">
-          <div>
-            <label htmlFor="o-backup-site" className="mb-[4px] block font-medium">
-              {t.createLabel}
-            </label>
-            <p id="h-backup-site" className="mt-0 mb-[6px] text-[13px] text-muted">
-              {t.createHint}
-            </p>
-            <select id="o-backup-site" value={domain} onChange={(e) => setPicked(e.target.value)} aria-describedby="h-backup-site" className={selectClass}>
+        <form onSubmit={onSubmit} className="flex max-w-[560px] flex-col gap-[16px]">
+          <Field label={t.createLabel} htmlFor="o-backup-site" hint={t.createHint} hintId="h-backup-site">
+            <Select id="o-backup-site" value={domain} onChange={(e) => setPicked(e.target.value)} aria-describedby="h-backup-site">
               {domains.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
           <div>
             <Button variant="primary" type="submit" disabled={anyPending}>
               {pendingDomain === domain ? t.previewing : t.createButton}
@@ -67,6 +58,6 @@ export function CreateNow({ domains, pendingDomain, anyPending, onCreate }: Prop
           </div>
         </form>
       )}
-    </section>
+    </Card>
   );
 }

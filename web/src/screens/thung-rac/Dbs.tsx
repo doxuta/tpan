@@ -1,11 +1,12 @@
-// Bảng DB rời trong thùng rác (M13, mục 6.12 của KE-HOACH.md): cùng hình thức
-// bảng site, mỗi hàng hai việc: Khôi phục và Xoá hẳn. Cả hai chỉ mở bản xem trước
-// (việc của màn gọi), không chạy ngay. Admin thấy thêm cột Chủ.
+// Bảng DB rời trong thùng rác (M13, mục 6.12 của KE-HOACH.md; bản 2): cùng hình
+// thức bảng site, mỗi hàng hai việc: Khôi phục (nút chữ) và Xoá hẳn (menu ba
+// chấm). Cả hai chỉ mở bản xem trước (việc của màn gọi), không chạy ngay. Admin
+// thấy thêm cột Chủ.
 
 import { useIdentity } from "../../api/m13-dbs";
 import type { StandaloneDB } from "../../api/types";
-import { Button } from "../../components/Button";
 import { MonoText } from "../../components/MonoText";
+import { RowActions } from "../../components/RowActions";
 import { TableList } from "../../components/TableList";
 import { useLang, useStrings } from "../../i18n";
 import { strings as chung } from "../../i18n/m13-chung";
@@ -30,27 +31,27 @@ export function TrashDbTable({ dbs, locked, busy, onAct }: Props) {
 
   return (
     <TableList
+      title={t.dbHeading}
+      titleId="trash-dbs"
       caption={t.dbTableName}
+      minWidth={720}
       rows={dbs}
       rowKey={(d) => d.name}
       empty={t.dbEmpty}
       columns={[
         { header: t.colDbName, cell: (d) => <MonoText>{d.name}</MonoText> },
-        ...(isAdmin ? [{ header: m.colOwner, className: "font-mono text-[13px]", cell: (d: StandaloneDB) => d.owner }] : []),
-        { header: t.colTrashed, cell: (d) => <span className="font-mono text-[12px] whitespace-nowrap text-muted">{formatWhen(d.trashed_at, lang)}</span> },
+        ...(isAdmin ? [{ header: m.colOwner, cell: (d: StandaloneDB) => d.owner }] : []),
+        { header: t.colTrashed, cell: (d) => <span className="tabular-nums">{formatWhen(d.trashed_at, lang)}</span> },
         { header: t.colPurge, cell: (d) => <PurgeCell purgeAt={d.purge_at} /> },
         {
           header: t.colAction,
-          className: "pr-0",
+          align: "right",
           cell: (d) => (
-            <span className="flex flex-wrap gap-[8px]">
-              <Button aria-label={t.restoreDbFor(d.name)} disabled={locked} onClick={() => onAct("restore", d.name)}>
-                {busy(`dbrestore:${d.name}`) ? t.previewing : t.restore}
-              </Button>
-              <Button aria-label={t.purgeDbFor(d.name)} disabled={locked} onClick={() => onAct("purge", d.name)}>
-                {busy(`dbpurge:${d.name}`) ? t.previewing : t.purge}
-              </Button>
-            </span>
+            <RowActions
+              moreLabel={t.moreFor(d.name, t.purge.toLowerCase())}
+              primary={[{ label: t.restore, ariaLabel: t.restoreDbFor(d.name), disabled: locked, busy: busy(`dbrestore:${d.name}`), busyLabel: t.previewing, onClick: () => onAct("restore", d.name) }]}
+              more={[{ label: t.purge, danger: true, disabled: locked, onSelect: () => onAct("purge", d.name) }]}
+            />
           ),
         },
       ]}
