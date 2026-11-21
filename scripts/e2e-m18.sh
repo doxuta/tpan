@@ -195,9 +195,17 @@ cap_fetch() { # cap_fetch <file trong máy ảo> <file trên Mac>: đọc lại 
   return 1
 }
 # vm_cap <file stdin> <exec|root> <lệnh...>: output gộp ở $TMPD/run.out, mã thoát ở RC.
+#
+# multipass 1.17 trên Mac không gửi EOF khi stdin là /dev/null (thiết bị ký
+# tự): lệnh trong máy ảo đọc stdin (quet.sh, api.sh) chờ mãi, multipass exec
+# quay CPU không bao giờ trả về (phần H1 ngày 21/11 treo 24 phút). Một file
+# thường rỗng thì có EOF ngay, nên /dev/null được thay bằng $STDIN_EMPTY.
+STDIN_EMPTY="$TMPD/stdin-rong"
+: >"$STDIN_EMPTY"
 vm_cap() {
   local in=$1 how=$2 line n
   shift 2
+  [ "$in" = /dev/null ] && in="$STDIN_EMPTY"
   [ "$how" = root ] && set -- sudo "$@"
   multipass exec "$(capvm)" -- bash -c "$CAP_MERGED" _ "$@" <"$in" >"$TMPD/cap.raw" 2>&1
   RC=$?
@@ -224,7 +232,7 @@ vm_cap2() {
   [ "$how" = root ] && set -- sudo "$@"
   : >"$TMPD/cap.out"
   : >"$TMPD/cap.err"
-  multipass exec "$(capvm)" -- bash -c "$CAP_SPLIT" _ "$@" </dev/null >"$TMPD/cap.raw" 2>&1
+  multipass exec "$(capvm)" -- bash -c "$CAP_SPLIT" _ "$@" <"$STDIN_EMPTY" >"$TMPD/cap.raw" 2>&1
   RC=$?
   line="$(tr -d '\r' <"$TMPD/cap.raw" | grep -a '^__E2E_CAP rc=' | tail -1)"
   if [ -z "$line" ]; then
@@ -619,7 +627,10 @@ part_a() {
   reset_vm
   deploy_new
   push_tools
-  vroot bash -c 'export DEBIAN_FRONTEND=noninteractive; apt-get -o DPkg::Lock::Timeout=120 update -q >/dev/null && apt-get -o DPkg::Lock::Timeout=120 install -y -q jq age >/dev/null; command -v jq age; dpkg-query -W -f "\${Package} \${Version}\n" jq age'
+  # Ngay sau vm-reset, apt-daily/unattended-upgrades có lúc giữ khoá dpkg quá
+  # 120 giây (lần chạy 21/11 10:42), và `apt-get update` không chờ khoá
+  # lists/lock: thử lại cả chuỗi tới 5 lần, mỗi lần chờ khoá tới 300 giây.
+  vroot bash -c 'export DEBIAN_FRONTEND=noninteractive; for i in 1 2 3 4 5; do apt-get -o DPkg::Lock::Timeout=300 update -q >/dev/null && apt-get -o DPkg::Lock::Timeout=300 install -y -q jq age >/dev/null && break; echo "apt lần $i chưa xong, thử lại"; sleep 20; done; command -v jq age; dpkg-query -W -f "\${Package} \${Version}\n" jq age'
   ok "(đồ nghề) jq và age của apt đã cài" bash -c 'grep -qx "/usr/bin/jq" <<<"$1" && grep -qx "/usr/bin/age" <<<"$1"' _ "$OUT"
 
   section "A: setup, stack, user thường, ba site"
@@ -1097,8 +1108,8 @@ part_k() {
 
   api a GET /api/v1/backups
   ok "user thường GET /api/v1/backups: 200, chỉ bản của $C (ít nhất 2), không có remote_key, remote_error" \
-    code_bq 200 --arg c "$C" 'length >= 2 and all(.[]; .domain == $c) and all(.[]; (has("remote_key") or has("remote_error")) | not)'
-  ok "các dòng có trường local và remote" bq 'all(.[]; has("local") and has("remote"))'
+    code_bq 200 --arg c "$C" '.items | length >= 2 and all(.[]; .domain == $c) and all(.[]; (has("remote_key") or has("remote_error")) | not)'
+  ok "các dòng có trường local và remote" bq '.items | length >= 1 and all(.[]; has("local") and has("remote"))'
   API_MAX=300 api a GET "/api/v1/jobs?limit=500"
   ok "user thường không thấy job backup.push, backup.pull, backup.panel (B5)" \
     code_bq 200 '[.[] | select(.kind | test("^backup[.](push|pull|panel)$"))] | length == 0'

@@ -41,7 +41,7 @@ show() { get "$1"; echo "$CODE $(wc -c <"$LAST") $1"; }
 for p in /api/v1/health /api/v1/session /api/v1/account/sessions /api/v1/overview /api/v1/machine \
   /api/v1/stack /api/v1/checks /api/v1/sites /api/v1/databases /api/v1/ssl /api/v1/security \
   /api/v1/trash /api/v1/export /api/v1/ai/brain /api/v1/agent /api/v1/php /api/v1/updates \
-  /api/v1/cron /api/v1/users /api/v1/packages /api/v1/collations /api/v1/security/isolation \
+  /api/v1/cron /api/v1/users /api/v1/packages /api/v1/collations /api/v1/security/isolation /api/v1/self \
   /api/v1/backups /api/v1/backups/target /api/v1/backups/remote \
   "/api/v1/sites/$dom" "/api/v1/sites/$dom/traffic" "/api/v1/sites/$dom/log" "/api/v1/sites/$dom/route" \
   "/api/v1/users/$usr"; do

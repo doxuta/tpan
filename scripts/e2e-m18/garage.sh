@@ -16,7 +16,17 @@ case "$(dpkg --print-architecture)" in
 esac
 url="https://garagehq.deuxfleurs.fr/_releases/v2.5.0/$triple/garage"
 if [ ! -x /usr/local/bin/garage ]; then
-  curl -fsSL --max-time 300 -o /root/e2e-m18/garage.tai "$url"
+  # File ~63 MiB; mạng của máy ảo có lúc chỉ ~180 KB/s (21/11: hết 300 giây ở
+  # 54 MB). Tải nối tiếp phần đã có (-C -), tối đa 5 lượt, mỗi lượt 600 giây.
+  ok=0
+  for i in 1 2 3 4 5; do
+    if curl -fsSL -C - --max-time 600 -o /root/e2e-m18/garage.tai "$url"; then
+      ok=1
+      break
+    fi
+    echo "tải Garage lượt $i chưa xong ($(stat -c %s /root/e2e-m18/garage.tai 2>/dev/null || echo 0) byte), tải tiếp" >&2
+  done
+  [ "$ok" = 1 ] || { echo "không tải được file chạy Garage" >&2; exit 1; }
   install -m 0755 /root/e2e-m18/garage.tai /usr/local/bin/garage
   rm -f /root/e2e-m18/garage.tai
 fi
