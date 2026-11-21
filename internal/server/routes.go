@@ -213,6 +213,19 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "GET /api/v1/security/isolation", rule: adminOnly, h: s.handleIsolation},
 		{pattern: "POST /api/v1/security/harden", rule: adminOnly, h: s.handleSecurityHarden},
 
+		// M18: kho S3 và cloud-init (types_m18.go, api_m18.go). Mọi route là
+		// admin (B5): đích quyết định bản sao lưu của MỌI site đi đâu, job đẩy,
+		// tải mang endpoint và câu lỗi của kho, user-data mang cấu hình của cả
+		// máy mới.
+		{pattern: "GET /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTarget},
+		{pattern: "POST /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTargetSet},
+		{pattern: "DELETE /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTargetRemove},
+		{pattern: "POST /api/v1/backups/target/test", rule: adminOnly, h: s.handleBackupTargetTest},
+		{pattern: "POST /api/v1/backups/{id}/push", rule: adminOnly, h: s.handleBackupPush},
+		{pattern: "POST /api/v1/backups/{id}/pull", rule: adminOnly, h: s.handleBackupPull},
+		{pattern: "GET /api/v1/backups/remote", rule: adminOnly, h: s.handleBackupRemote},
+		{pattern: "POST /api/v1/cloud-init/render", rule: adminOnly, h: s.handleCloudInitRender},
+
 		// Còn lại: đường dẫn API lạ là 404 JSON; mọi thứ khác là giao diện web
 		// (đã nhúng). Cũng nằm trong bảng để test duyệt đủ mọi mẫu của mux.
 		{pattern: "/api/", rule: public, h: handleAPINotFound},
