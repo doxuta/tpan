@@ -1043,7 +1043,15 @@ Một VPS có thể mất bất cứ lúc nào. Trước M18, bản sao lưu c�
 - Bản sao lưu site trên kho không mã hoá; DB rời (M13) không có bản sao lưu nào.
 - Lệnh dựng lại cả máy chưa có; đường bằng tay ở bản thử 09.
 
-<!-- SỐ LIỆU e2e: điền sau khi có docs/bang-chung/M18.log -->
+**Kết quả kiểm (21/11/2026).**
+- `make check` xanh.
+- e2e bước 21 trên máy ảo, từ máy sạch, cây sạch 88ebe9a: **230 khẳng định đạt, 0 không đạt** (`docs/bang-chung/M18.log`; phần A tới L và N).
+- Hồi quy e2e M9 đạt 128/0, e2e M13 đạt 355/0 (`M18-hoi-quy-m9.log`, `M18-hoi-quy-m13.log`). Phần rollback của script M13 được sửa theo chốt chặn của M15 (bản trước không mở được `tpan.db` thì từ chối). Không phải lỗi của M18: e2e M13 trên `dev` đã hỏng ở đúng chỗ đó từ khi có M15.
+- Số đo:
+  - máy phụ tạo từ user-data có hai site trả 200 sau 238 giây và `tpan health` đạt sau 247 giây;
+  - gói panel 102 089 byte;
+  - job đẩy một bản 67 MB, gồm cả đọc lại, 0,51 giây (kho thử cùng máy, nên đây là chi phí của TPAN, không phải tốc độ mạng).
+- Không dòng mã Go nào phải sửa ở đợt chạy máy ảo. Các lỗi gặp đều nằm ở script e2e hoặc ở môi trường: apt bị khoá sau khi reset; `multipass exec` 1.17 không gửi EOF khi stdin là `/dev/null`; mạng máy ảo chậm khi tải Garage.
 
 **Bảng chia việc thật.** Đợt 0 (nghiên cứu, bản thử, thiết kế, hai lượt soát) do phiên chính làm; đợt 1 bốn thợ (client S3, agebox và cloud-init, các Step, store và phép kiểm); đợt 2 bốn thợ (ca sử dụng kho và gói panel, sửa luồng backup M9, cloud-init ở core và CLI, script e2e); đợt 3 ba thợ (server, bộ đẩy nền và health; CLI; MCP và demo); đợt 4 một thợ máy ảo; đợt 5 một người soát cuối và một thợ viết giải thích. Thợ mã nhạy cảm dùng opus effort high, thợ còn lại sonnet, người soát opus effort max.
 
