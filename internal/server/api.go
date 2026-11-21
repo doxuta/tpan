@@ -81,6 +81,7 @@ func (s *Server) apiSites() *core.Sites {
 		// Accounts (M13): thiếu thì tạo site bỏ qua hạn mức gói và không kiểm
 		// chủ có thật, đang active.
 		Accounts: st,
+		Samples:  st, // M17: xoá hẳn site thì xoá số liệu của nó
 		WPHash:   s.deps.WPHash,
 	}
 }

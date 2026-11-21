@@ -138,7 +138,7 @@ func openSites(ctx context.Context, e *env, dryRun bool) (*core.Sites, func(), e
 	if err != nil {
 		return nil, nil, err
 	}
-	s.Settings, s.Store, s.Backups, s.Accounts = st, st, st, st
+	s.Settings, s.Store, s.Backups, s.Accounts, s.Samples = st, st, st, st, st
 	if !dryRun {
 		s.Journal = st
 	}

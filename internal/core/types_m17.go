@@ -106,8 +106,13 @@ type CageRow struct {
 	Owner   string `json:"owner"`
 	Package string `json:"package"`
 	// Caged: đang ở trong lồng (sites.caged). Want: gói của chủ bật lồng.
+	// Files: file hàng rào của site có trên máy (một lần Stat). Khác Caged khi
+	// panel bị tắt giữa cage.enable hay cage.disable; `cage disable --all` chọn
+	// theo Files (đọc máy), `--stale` là Files mà không Want, `cage enable
+	// --all` là Want mà không Caged.
 	Caged bool `json:"caged"`
 	Want  bool `json:"want"`
+	Files bool `json:"files"`
 	// State: "trong" (caged và want), "ngoai" (cả hai false), "can-vao" (want
 	// mà chưa caged), "can-ra" (caged mà gói không còn want).
 	State     string         `json:"state"`

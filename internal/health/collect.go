@@ -33,7 +33,7 @@ func (r *Runner) clock() func() time.Time {
 // stack đã cài chưa.
 func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, installed bool, err error) {
 	stack := &core.Stack{Sys: r.Sys, Settings: r.Store, WPCLISHA512: r.WPCLISHA512, Sites: r.Store}
-	sites := &core.Sites{Sys: r.Sys, Settings: r.Store, Store: r.Store}
+	sites := &core.Sites{Sys: r.Sys, Settings: r.Store, Store: r.Store, Accounts: r.Store} // M17: trần của gói cho phép kiểm của lồng
 
 	stackChecks, installed, err := stack.Checks(ctx)
 	if err != nil {

@@ -80,7 +80,12 @@ type Sites struct {
 	Backups BackupStore
 	// Accounts (M13) là bảng users, packages: kiểm hạn mức gói khi tạo site.
 	// nil (test, xem trước khi máy chưa có tpan.db) thì không kiểm hạn mức.
+	// M17: cũng là nguồn cờ lồng và trần của gói (cageLimitsOf); nil thì mọi
+	// site coi như thuộc gói default (không lồng, không trần).
 	Accounts AccountStore
+	// Samples (M17) là bảng số liệu: xoá hẳn một site thì xoá mọi mẫu và dòng
+	// giờ của domain đó. nil (xem trước, test): không xoá số liệu.
+	Samples UsageStore
 }
 
 func (s *Sites) now() time.Time {
@@ -392,6 +397,13 @@ type SiteAddResult struct {
 	// AdminPassword chỉ có khi WPInstalled. JSON của nó luôn là "••••": người
 	// gọi muốn hiện cho người dùng thì tự gọi Reveal, đúng một lần.
 	AdminPassword system.Secret `json:"admin_password"`
+	// M17 (mục 3.6, bảng "Ghép"): lần tạo đầu thành công và gói của chủ bật
+	// lồng thì Execute chạy tiếp job cage.enable. CageJob là báo cáo của job đó
+	// khi nó đã chạy (thành hay hỏng); CageError là lời từ chối khi job không
+	// chạy được (ví dụ máy có cgroup v1). Cả hai hỏng thì site vẫn dùng được ở
+	// ngoài lồng; health cảnh báo cage.state.
+	CageJob   *engine.Report `json:"cage_job,omitempty"`
+	CageError *RefusedError  `json:"cage_error,omitempty"`
 }
 
 // PrepareAdd làm phần chỉ đọc của "tạo site" (mục 6.2): kiểm đầu vào, kiểm

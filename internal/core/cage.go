@@ -13,6 +13,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
@@ -71,6 +72,20 @@ func cageLimitsOf(ctx context.Context, as AccountStore, st site.Site) (account.L
 		return account.Limits{}, false, err
 	}
 	return p.Limits(), p.Cage, nil
+}
+
+// siteCageLimits là đối số lim của siteChecks cho site st: nil khi st ở ngoài
+// lồng; trỏ tới trần của gói khi st.Caged. Mọi chỗ gọi siteChecks và
+// siteStateChecks lấy trần qua đây (một cách đọc gói duy nhất).
+func siteCageLimits(ctx context.Context, as AccountStore, st site.Site) (*account.Limits, error) {
+	if !st.Caged {
+		return nil, nil
+	}
+	lim, _, err := cageLimitsOf(ctx, as, st)
+	if err != nil {
+		return nil, fmt.Errorf("đọc trần của gói cho site %s: %w", st.Domain, err)
+	}
+	return &lim, nil
 }
 
 // sitePHPSteps là các bước dựng nơi phục vụ PHP của site st (mục 3.6):

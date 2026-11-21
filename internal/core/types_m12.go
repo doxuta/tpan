@@ -111,6 +111,9 @@ type PHP struct {
 	Sites    SiteStore
 	// Journal nhận job khi Execute; nil chỉ hợp lệ khi xem trước.
 	Journal engine.Journal
+	// Accounts (M17): trần của gói khi đổi bản PHP của site trong lồng (file
+	// của lồng ghi lại với trần đó). nil: coi như gói default (trần 0).
+	Accounts AccountStore
 }
 
 // ---- Cập nhật ----
@@ -204,6 +207,11 @@ type SelfUpdate struct {
 	Arch string
 	// Version là buildinfo.Version của bản đang chạy.
 	Version string
+	// Sites và Runs (M17): --rollback từ chối cage_active khi còn site caged
+	// hay lượt thử tấn công chưa dọn (mục 6 của docs/thay-doi/M17-thiet-ke.md).
+	// nil (xem trước khi máy chưa có tpan.db): chỉ xét file tpan-cage-* trên máy.
+	Sites SiteStore
+	Runs  ProbeStore
 }
 
 // ---- Plan đã dựng, dùng chung cho mọi ca sử dụng của M12 ----

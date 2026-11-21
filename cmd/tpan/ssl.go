@@ -32,7 +32,7 @@ func openSSL(ctx context.Context, e *env, dryRun bool) (*core.SSL, func(), error
 	if err != nil {
 		return nil, nil, err
 	}
-	return &core.SSL{Sys: s.Sys, Settings: s.Settings, Store: s.Store, Journal: s.Journal}, done, nil
+	return &core.SSL{Sys: s.Sys, Settings: s.Settings, Store: s.Store, Journal: s.Journal, Accounts: s.Accounts}, done, nil
 }
 
 // emailOverlay là bảng settings thấy ssl.email là email của cờ --email mà
@@ -177,7 +177,7 @@ func sslIssueCmd(e *env) *cobra.Command {
 // ghi lại. Trả báo cáo khi Plan đã chạy, lời từ chối khi bị từ chối; err là các
 // lỗi khác (kể cả mã thoát khi người dùng huỷ).
 func siteAddSSL(ctx context.Context, e *env, f *planRun, sites *core.Sites, d validate.Domain, em validate.Email) (*engine.Report, *core.RefusedError, error) {
-	s := &core.SSL{Sys: sites.Sys, Settings: sites.Settings, Store: sites.Store, Journal: sites.Journal}
+	s := &core.SSL{Sys: sites.Sys, Settings: sites.Settings, Store: sites.Store, Journal: sites.Journal, Accounts: sites.Accounts}
 	cfg, err := s.Config(ctx)
 	if err != nil {
 		return nil, nil, err

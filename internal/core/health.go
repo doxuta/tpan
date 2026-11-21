@@ -287,6 +287,12 @@ type Fixes struct {
 	// web.rewrite dùng nó để không ghi đè file người dùng đã nhận bản sửa tay
 	// làm chuẩn. nil: không lọc, mọi file web khác template đều được ghi lại.
 	Files FileRecords
+	// Accounts (M17): cờ lồng và trần của gói cho các cách sửa của lồng
+	// (cage.sync, cage.enable...). nil: coi như gói default (không lồng, trần 0).
+	Accounts AccountStore
+	// Runs (M17): sổ phép thử tấn công, cho cách sửa probe.cleanup. nil: từ
+	// chối no_auto_fix.
+	Runs ProbeStore
 }
 
 // FileRecords là phần của store mà sửa tự động cần từ bảng managed_files.

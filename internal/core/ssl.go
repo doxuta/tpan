@@ -105,6 +105,9 @@ type SSL struct {
 	Store    SiteStore
 	// Journal nhận job và sự kiện khi Execute; nil chỉ hợp lệ khi xem trước.
 	Journal engine.Journal
+	// Accounts (M17): trần của gói cho phép kiểm của site trong lồng sau khi
+	// xin chứng chỉ (siteChecks). nil: coi như gói default (trần 0).
+	Accounts AccountStore
 }
 
 // Config đọc cấu hình SSL.

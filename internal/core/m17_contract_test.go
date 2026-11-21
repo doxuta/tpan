@@ -54,6 +54,19 @@ func TestSitePackageKhongCoBang(t *testing.T) {
 	}
 }
 
+// siteCageLimits: ngoài lồng là nil (siteChecks chọn bộ thường); trong lồng
+// luôn khác nil, kể cả khi không có bảng gói (trần 0).
+func TestSiteCageLimits(t *testing.T) {
+	st := m17Site(t, "a.example.com")
+	if lim, err := siteCageLimits(context.Background(), nil, st); err != nil || lim != nil {
+		t.Fatalf("site ngoài lồng: muốn nil, có %v, %v", lim, err)
+	}
+	st.Caged = true
+	if lim, err := siteCageLimits(context.Background(), nil, st); err != nil || lim == nil || lim.Any() {
+		t.Fatalf("site trong lồng không có bảng gói: muốn trần 0 khác nil, có %v, %v", lim, err)
+	}
+}
+
 // Tên miền của site thử bị từ chối khi tạo site.
 func TestTaoSiteTuChoiTenPhepThu(t *testing.T) {
 	d, err := validate.ParseDomain("tpan-probe-a-0123456789ab.test")

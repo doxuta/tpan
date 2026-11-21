@@ -405,6 +405,10 @@ type ApplySiteResult struct {
 	// chưa có email cho Let's Encrypt...): job SSL không chạy, site vẫn được
 	// tạo. Job SSL đã chạy (thành hay hỏng) thì nằm ở ApplyResult.SSL.
 	SSLError *RefusedError `json:"ssl_error,omitempty"`
+	// CageError (M17) là lời từ chối của job cage.enable sau lô cho site này
+	// (gói của chủ bật lồng); site vẫn được tạo, ở ngoài lồng. Job đã chạy thì
+	// nằm ở ApplyResult.Cage.
+	CageError *RefusedError `json:"cage_error,omitempty"`
 }
 
 // ApplyResult là kết quả của Apply.Execute.
@@ -418,6 +422,9 @@ type ApplyResult struct {
 	Isolation []checks.Result `json:"isolation,omitempty"`
 	// SSL: job SSL của pha D, theo thứ tự (site lỗi SSL không làm hỏng site).
 	SSL []engine.Report `json:"ssl,omitempty"`
+	// Cage (M17): job cage.enable chạy sau lô cho mỗi site mới mà gói của chủ
+	// bật lồng, theo thứ tự (site hỏng lồng vẫn được tạo, ở ngoài lồng).
+	Cage []engine.Report `json:"cage,omitempty"`
 }
 
 // Execute chạy job hàng loạt (engine.ExecuteBatch), ghi bảng sites cho từng
