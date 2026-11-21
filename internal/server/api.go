@@ -25,6 +25,7 @@ import (
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/monitor"
+	"github.com/doxuta/tpan/internal/s3"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -112,7 +113,13 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			// M13: tên, mật khẩu, vai, giới hạn gói, charset, ghi chú sai.
 			"args_invalid", "password_too_short", "note_invalid", core.CodeCollationInvalid,
 			validate.CodeUserNameInvalid, validate.CodeUserNameReserved,
-			validate.CodePackageNameInvalid, validate.CodeDBNameInvalid:
+			validate.CodePackageNameInvalid, validate.CodeDBNameInvalid,
+			// M18: trường của đích S3 và đầu vào của cloud-init sai. Mã M18
+			// khác (s3_not_configured, s3_unreachable, backup_not_on_machine…)
+			// là "máy chưa đạt điều kiện": 409 như mặc định.
+			s3.CodeEndpointInvalid, s3.CodeRegionInvalid, s3.CodeBucketInvalid, s3.CodePrefixInvalid,
+			s3.CodeKeysInvalid, s3.CodeKeepInvalid, s3.CodeCAInvalid,
+			core.CodeCloudInitInvalid, core.CodeCloudInitTooLarge:
 			status = http.StatusBadRequest
 		case "site_not_found",
 			// M9: id backup không có (hoặc không thuộc site đó) là "không có".

@@ -256,6 +256,35 @@ func sameNotFound(a, b *httptest.ResponseRecorder, extra ...string) bool {
 	return a.Code == b.Code && ea.Error.Code == eb.Error.Code && norm(ea.Error.Message.Vi) == norm(eb.Error.Message.Vi)
 }
 
+// TestRouteM18ChiAdmin: mọi route của M18 có trong bảng và là luật admin (B5).
+// TestPhanQuyenMoiRoute ở trên đã duyệt chúng với ba vai; test này chặn việc
+// một route bị đổi luật hay bị xoá khỏi bảng mà không ai thấy.
+func TestRouteM18ChiAdmin(t *testing.T) {
+	rules := map[string]rule{}
+	for _, rt := range newServer(Deps{}).routes(authzDist) {
+		rules[rt.pattern] = rt.rule
+	}
+	for _, p := range []string{
+		"GET /api/v1/backups/target",
+		"POST /api/v1/backups/target",
+		"DELETE /api/v1/backups/target",
+		"POST /api/v1/backups/target/test",
+		"POST /api/v1/backups/{id}/push",
+		"POST /api/v1/backups/{id}/pull",
+		"GET /api/v1/backups/remote",
+		"POST /api/v1/cloud-init/render",
+	} {
+		r, ok := rules[p]
+		if !ok {
+			t.Errorf("thiếu route %s", p)
+			continue
+		}
+		if r != adminOnly {
+			t.Errorf("%s: luật %+v, muốn admin", p, r)
+		}
+	}
+}
+
 // TestMountRouteThieuLuat: route quên luật thì server không khởi động.
 func TestMountRouteThieuLuat(t *testing.T) {
 	s := newServer(Deps{})
