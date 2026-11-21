@@ -666,7 +666,7 @@ nhin_tu_a() {
   ok "/etc/tpan/cage chỉ có slug của A" kv_is ETC_TPAN_CAGE "$(slug_of "$A")"
   ok "/run/tpan-cage không thấy" has '^RUN_TPAN_CAGE=.*cannot (access|open)'
   ok "cgroupfs không thấy slice nào" hasnt '^CGROUPFS=.*tpan.*slice'
-  ok "C5: /proc/self/net/unix không nhắc slug hay phần băm socket của $B" kv_is UNIX_SOCKET_B 0
+  ok "C5: /proc/self/net/unix không nhắc slug hay tên miền của $B (phần băm thì thấy, đúng mục 3.2)" kv_is UNIX_SOCKET_B 0
   ok "K1.4: crontab -l không chạy được" kv_not CRONTAB_RC 0
   ok "K1.4: sudo không chạy được" kv_not SUDO_RC 0
   ok "K1.4: CapEff rỗng, NoNewPrivs bằng 1" bash -c '[ "$1" = 0000000000000000 ] && [ "$2" = 1 ]' _ "$(kv CAPEFF)" "$(kv NONEWPRIVS)"

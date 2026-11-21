@@ -19,8 +19,12 @@
 #   ETC_TPAN_CAGE     các mục của /etc/tpan/cage (mong đợi: chỉ slug của A)
 #   RUN_TPAN_CAGE     ls /run/tpan-cage (mong đợi: báo không có)
 #   CGROUPFS          ls /sys/fs/cgroup (mong đợi: báo không có hay rỗng)
-#   UNIX_SOCKET_B     số dòng của /proc/self/net/unix nhắc slug hay phần băm của B
-#                     (mong đợi: 0, C5)
+#   UNIX_SOCKET_B     số dòng của /proc/self/net/unix nhắc slug hay tên miền của B
+#                     (mong đợi: 0, C5). Không đếm phần băm: socket của lồng B
+#                     nằm ở /run/tpan-cage/<16 hex của sha256(B)>/php.sock và
+#                     thấy được từ mọi lồng vì mạng dùng chung; thiết kế (mục
+#                     3.2, 3.9) chọn phần băm chính là để tên đó không mang tên
+#                     miền, và phép thử C5 của tpan cũng chỉ đếm slug.
 #   CRONTAB_RC        mã thoát của `crontab -l` (mong đợi: khác 0)
 #   SUDO_RC           mã thoát của `sudo -n true` (mong đợi: khác 0)
 #   CAPEFF            CapEff của tiến trình shell (mong đợi: 0000000000000000)
@@ -34,10 +38,9 @@ set -u
 slug_of() { stat -c %U "/var/www/$1" | sed 's/^tp_//'; }
 
 main() {
-  local A=${1:?thiếu A} B=${2:?thiếu B} ua sb hb r t
+  local A=${1:?thiếu A} B=${2:?thiếu B} ua sb r t
   ua=$(stat -c %U "/var/www/$A")
   sb=$(slug_of "$B")
-  hb=$(printf '%s' "$B" | sha256sum | cut -c1-16)
   r=$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \n')
   F=/var/www/$A/public/e2e-m17-nhin-$r.php
   trap 'rm -f "$F"' EXIT
@@ -58,7 +61,7 @@ echo "ETC_NGINX=" . str_replace("\n", " ", sh('ls /etc/nginx /etc/apache2')) . "
 echo "ETC_TPAN_CAGE=" . str_replace("\n", ",", sh('ls -A /etc/tpan/cage')) . "\n";
 echo "RUN_TPAN_CAGE=" . str_replace("\n", " ", sh('ls -A /run/tpan-cage')) . "\n";
 echo "CGROUPFS=" . str_replace("\n", " ", sh('ls -A /sys/fs/cgroup')) . "\n";
-echo "UNIX_SOCKET_B=" . sh('grep -c -e "@SB@" -e "@HB@" /proc/self/net/unix') . "\n";
+echo "UNIX_SOCKET_B=" . sh('grep -c -F -e "@SB@" -e "@B@" /proc/self/net/unix') . "\n";
 exec('crontab -l >/dev/null 2>&1', $o, $rc);
 echo "CRONTAB_RC=" . $rc . "\n";
 exec('sudo -n true >/dev/null 2>&1', $o, $rc);
@@ -67,8 +70,8 @@ echo "CAPEFF=" . sh('awk \'/^CapEff:/ {print $2}\' /proc/self/status') . "\n";
 echo "NONEWPRIVS=" . sh('awk \'/^NoNewPrivs:/ {print $2}\' /proc/self/status') . "\n";
 echo "CGROUP_CUA_A=" . sh('cat /proc/self/cgroup') . "\n";
 PHP
-  # Chỗ giữ chỗ @B@, @SB@, @HB@: thay bằng tên miền, slug và phần băm của B.
-  sed -i -e "s|@B@|$B|g" -e "s|@SB@|$sb|g" -e "s|@HB@|$hb|g" "$t"
+  # Chỗ giữ chỗ @B@, @SB@: thay bằng tên miền và slug của B.
+  sed -i -e "s|@B@|$B|g" -e "s|@SB@|$sb|g" "$t"
   install -o "$ua" -g www-data -m 640 "$t" "$F"
   rm -f "$t"
   curl -s -m 30 --resolve "$A:80:127.0.0.1" "http://$A/${F##*/}"
