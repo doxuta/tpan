@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/cage"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
@@ -527,8 +528,8 @@ func TestCageFilesThuTuGhiVaQuyen(t *testing.T) {
 	if b, _ := f.ReadFile(l.CagePasswd()); string(b) != cagePasswdOut(l) {
 		t.Errorf("passwd = %q", b)
 	}
-	// Dịch vụ không chạy: có -t (file dịch vụ, php-fpm.conf mới) mà không try-restart.
-	if !cageRanHas(f, "php-fpm8.3", "-t", "--fpm-config", l.CageFPMConf()) || cageRanHas(f, "systemctl", "try-restart") {
+	// Dịch vụ không chạy: có -t -R bằng root (file dịch vụ, php-fpm.conf mới) mà không try-restart.
+	if !cageRanHas(f, "php-fpm8.3", "-t", "-R", "--fpm-config", l.CageFPMConf()) || cageRanHas(f, "systemctl", "try-restart") {
 		t.Errorf("lệnh: %v", ranStrings(f.Ran()))
 	}
 }
@@ -654,7 +655,7 @@ func TestCageFilesUndoKhongRestartKhiKhongCan(t *testing.T) {
 func TestCageFilesDoiFPMConf(t *testing.T) {
 	lim := cageLim
 	lim.PHPWorkers = 8
-	t.Run("dịch vụ đang chạy: -t trong lồng rồi try-restart", func(t *testing.T) {
+	t.Run("dịch vụ đang chạy: -t -R bằng root rồi try-restart", func(t *testing.T) {
 		f := newCageFake(t)
 		f.applied(t)
 		f.running()
@@ -665,13 +666,17 @@ func TestCageFilesDoiFPMConf(t *testing.T) {
 		if !slices.Equal(f.writes, []string{f.l.CageFPMConf()}) {
 			t.Errorf("ghi %v, muốn chỉ php-fpm.conf", f.writes)
 		}
-		test := cageRanIndex(f, "php-fpm8.3", "-t", "--fpm-config", f.l.CageFPMConf())
+		test := cageRanIndex(f, "php-fpm8.3", "-t", "-R", "--fpm-config", f.l.CageFPMConf())
 		restart := cageRanIndex(f, "systemctl", "try-restart", f.l.CageServiceUnit())
 		if test < 0 || restart < test {
 			t.Fatalf("muốn -t rồi try-restart; lệnh %v", ranStrings(f.Ran()))
 		}
-		if u := f.Ran()[test].AsUser; u != f.l.User {
-			t.Errorf("-t chạy bằng %q, muốn %q (trong lồng)", u, f.l.User)
+		// Bằng root ngoài lồng: mã của site cùng uid không giết được nó (N1).
+		if u := f.Ran()[test].AsUser; u != "" {
+			t.Errorf("-t chạy bằng %q, muốn root (ngoài lồng)", u)
+		}
+		if cageRanHas(f, "php-fpm8.3", "-t", "--fpm-config") {
+			t.Error("CageFiles không được chạy -t dưới user của site")
 		}
 		if f.pid == oldPID {
 			t.Error("dịch vụ không được khởi động lại")
@@ -1051,26 +1056,57 @@ func TestCageSocketLifecycle(t *testing.T) {
 func TestCageSocketBat(t *testing.T) {
 	ctx := context.Background()
 	shortCageWaits(t)
-	t.Run("-t trong lồng, reset-failed trước enable, không start dịch vụ", func(t *testing.T) {
+	t.Run("-t -R bằng root, -t trong lồng, reset-failed trước enable, không start dịch vụ", func(t *testing.T) {
 		f := newCageFake(t)
 		f.applied(t)
 		l := f.l
 		if err := (&CageSocket{Layout: l, PHP: "8.3"}).Apply(ctx, f); err != nil {
 			t.Fatal(err)
 		}
+		root := cageRanIndex(f, "php-fpm8.3", "-t", "-R", "--fpm-config", l.CageFPMConf())
 		test := cageRanIndex(f, "php-fpm8.3", "-t", "--fpm-config", l.CageFPMConf())
 		reset := cageRanIndex(f, "systemctl", "reset-failed", l.CageSocketUnit(), l.CageServiceUnit())
 		enable := cageRanIndex(f, "systemctl", "enable", "--now", l.CageSocketUnit())
-		if test < 0 || reset < test || enable < reset {
-			t.Fatalf("muốn -t, reset-failed, enable --now theo thứ tự; lệnh %v", ranStrings(f.Ran()))
+		if root < 0 || test < root || reset < test || enable < reset {
+			t.Fatalf("muốn -t -R, -t trong lồng, reset-failed, enable --now theo thứ tự; lệnh %v", ranStrings(f.Ran()))
 		}
-		if f.Ran()[test].AsUser != l.User {
-			t.Errorf("-t chạy bằng %q", f.Ran()[test].AsUser)
+		if f.Ran()[root].AsUser != "" || f.Ran()[test].AsUser != l.User {
+			t.Errorf("-t -R chạy bằng %q (muốn root), -t trong lồng chạy bằng %q", f.Ran()[root].AsUser, f.Ran()[test].AsUser)
 		}
 		if cageRanHas(f, "systemctl", "start", l.CageServiceUnit()) || f.units[l.CageServiceUnit()].Active {
 			t.Error("bật socket mà khởi động cả dịch vụ")
 		}
 	})
+	// Mã của site giết được lệnh -t chạy dưới uid của nó, hay lấp số tiến trình
+	// của slice (soát cuối M17, N1): việc đó không được làm hỏng bước bật lồng
+	// của admin. Hàng rào không dựng được (226) hay -t hỏng thật thì vẫn hỏng.
+	for _, c := range []struct {
+		name string
+		err  error
+		ok   bool
+	}{
+		{"-t trong lồng bị giết bằng tín hiệu 9: vẫn bật", &cage.KilledError{Cmd: "php-fpm8.3 -t", Unit: "u", Result: "signal", Status: 9}, true},
+		{"-t trong lồng không có tài nguyên (slice bị lấp): vẫn bật", &cage.KilledError{Cmd: "php-fpm8.3 -t", Unit: "u", Result: "resources"}, true},
+		{"systemd không dựng được lồng (226): hỏng", errors.New("không chạy được lệnh php-fpm8.3 -t: systemd không dựng được unit u (mã 226)"), false},
+		{"-t trong lồng thoát 78: hỏng", &system.ExitError{Code: 78, Stderr: "ERROR: cannot read php.ini"}, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			f := newCageFake(t)
+			f.applied(t)
+			l := f.l
+			sys := fenceErrSys{cageFake: f, user: l.User, err: c.err}
+			err := (&CageSocket{Layout: l, PHP: "8.3"}).Apply(ctx, sys)
+			if c.ok && err != nil {
+				t.Fatalf("Apply = %v, muốn bật được", err)
+			}
+			if !c.ok && err == nil {
+				t.Fatal("Apply đạt, muốn hỏng")
+			}
+			if c.ok != cageRanHas(f, "systemctl", "enable", "--now", l.CageSocketUnit()) {
+				t.Errorf("enable --now: %v, muốn %v", !c.ok, c.ok)
+			}
+		})
+	}
 	t.Run("socket và dịch vụ đang failed: reset-failed rồi bật được", func(t *testing.T) {
 		f := newCageFake(t)
 		f.applied(t)
@@ -1180,6 +1216,22 @@ func TestCageSocketTat(t *testing.T) {
 	})
 }
 
+// fenceErrSys trả err cho lệnh -t chạy dưới user (lệnh trong lồng), như lớp
+// bọc trả khi mã của site giết lệnh đó hay systemd không dựng được lồng.
+type fenceErrSys struct {
+	*cageFake
+	user string
+	err  error
+}
+
+func (s fenceErrSys) Run(ctx context.Context, c system.Cmd) (system.Result, error) {
+	if c.AsUser == s.user && c.Name == "php-fpm8.3" {
+		res, _ := s.cageFake.Run(ctx, c)
+		return res, s.err
+	}
+	return s.cageFake.Run(ctx, c)
+}
+
 // ================================================================= CageReap
 
 // reapProcs đặt /proc giả: tiến trình của site trong và ngoài slice, của user
@@ -1222,8 +1274,10 @@ func TestCageReapChiGietNgoaiSlice(t *testing.T) {
 			kills = append(kills, c.String())
 		}
 	}
-	if !slices.Equal(kills, []string{"kill -KILL 200 201 202"}) {
-		t.Errorf("kill: %v, muốn chỉ ba tiến trình của site ngoài slice", kills)
+	// Một vòng: kill -1 dưới uid của site (qua lớp bọc), rồi root giết đúng ba
+	// pid của site ngoài slice (dự phòng khi unit tạm không lên được).
+	if !slices.Equal(kills, []string{"runuser -u " + f.l.User + " -- kill -KILL -1", "kill -KILL 200 201 202"}) {
+		t.Errorf("kill: %v, muốn kill -1 dưới user của site rồi chỉ ba tiến trình của site ngoài slice", kills)
 	}
 	for _, pid := range []string{"100", "101", "300", "400"} {
 		if _, err := f.Stat("/proc/" + pid + "/status"); err != nil {
@@ -1234,6 +1288,96 @@ func TestCageReapChiGietNgoaiSlice(t *testing.T) {
 		t.Error("không lấy uid bằng id -u")
 	}
 
+	// Chuỗi "fork rồi tự thoát" (soát cuối M17, N2): mỗi lần root giết theo
+	// pid thì tiến trình đã sinh con mang pid mới, không lần quét nào sạch;
+	// chỉ kill(-1) dưới uid của site (kernel duyệt mọi tiến trình cùng uid trong
+	// một lượt) giết được cả chuỗi.
+	t.Run("tiến trình nhảy pid: kill -1 dưới uid của site giết được", func(t *testing.T) {
+		f := newCageFake(t)
+		next := 600
+		f.setProc("600", siteUID, "S (sleeping)", "0::/system.slice/php8.3-fpm.service\n")
+		live := map[string]bool{"600": true}
+		f.Handle([]string{"kill", "-KILL"}, func(c system.Cmd) system.Result {
+			if c.AsUser == f.l.User && slices.Equal(c.Args, []string{"-KILL", "-1"}) {
+				for p := range live {
+					f.killProc(p)
+				}
+				clear(live)
+				return system.Result{}
+			}
+			for _, p := range c.Args[1:] {
+				if live[p] {
+					f.killProc(p)
+					delete(live, p)
+					next++
+					np := strconv.Itoa(next)
+					f.setProc(np, siteUID, "S (sleeping)", "0::/system.slice/php8.3-fpm.service\n")
+					live[np] = true
+				}
+			}
+			return system.Result{}
+		})
+		if err := (&CageReap{Layout: f.l}).Apply(ctx, f); err != nil {
+			t.Fatalf("Apply = %v", err)
+		}
+		if ok, err := (&CageReap{Layout: f.l}).Check(ctx, f); err != nil || !ok {
+			t.Errorf("Check sau Apply = %v, %v", ok, err)
+		}
+	})
+	t.Run("kill -1 không chạy được (lấp slice): vẫn giết bằng root theo pid", func(t *testing.T) {
+		f := newCageFake(t)
+		reapProcs(f)
+		f.Handle([]string{"kill", "-KILL", "-1"}, func(system.Cmd) system.Result {
+			return system.Result{ExitCode: 1, Stderr: "Failed to start transient service unit: Resource temporarily unavailable\n"}
+		})
+		if err := (&CageReap{Layout: f.l}).Apply(ctx, f); err != nil {
+			t.Fatalf("Apply = %v", err)
+		}
+	})
+	// Crontab riêng của user site cài từ lúc còn ở pool chung: cron chạy nó
+	// ngoài hàng rào mãi (soát cuối M17, N3). CageReap gỡ nó.
+	t.Run("crontab riêng của user site bị gỡ", func(t *testing.T) {
+		f := newCageFake(t)
+		tab := "/var/spool/cron/crontabs/" + f.l.User
+		f.SetFile(tab, []byte("* * * * * sleep 55\n"), 0o600, system.Owner{User: f.l.User, Group: "crontab"})
+		f.Handle([]string{"crontab", "-r", "-u", f.l.User}, func(system.Cmd) system.Result {
+			_ = f.FakeSystem.Remove(tab)
+			return system.Result{}
+		})
+		s := &CageReap{Layout: f.l}
+		if ok, err := s.Check(ctx, f); err != nil || ok {
+			t.Fatalf("Check khi còn crontab = %v, %v; muốn false", ok, err)
+		}
+		if err := s.Apply(ctx, f); err != nil {
+			t.Fatal(err)
+		}
+		if !cageRanHas(f, "crontab", "-r", "-u", f.l.User) {
+			t.Error("không chạy crontab -r -u")
+		}
+		if ok, err := s.Check(ctx, f); err != nil || !ok {
+			t.Errorf("Check sau Apply = %v, %v", ok, err)
+		}
+	})
+	t.Run("crontab -r không gỡ được: lỗi", func(t *testing.T) {
+		f := newCageFake(t)
+		tab := "/var/spool/cron/crontabs/" + f.l.User
+		f.SetFile(tab, []byte("* * * * * sleep 55\n"), 0o600, system.Root)
+		f.Handle([]string{"crontab"}, func(system.Cmd) system.Result {
+			return system.Result{ExitCode: 1, Stderr: "crontab: some error\n"}
+		})
+		if err := (&CageReap{Layout: f.l}).Apply(ctx, f); err == nil || !strings.Contains(err.Error(), "crontab") {
+			t.Errorf("Apply = %v, muốn lỗi về crontab", err)
+		}
+	})
+	t.Run("không có crontab thì không gọi crontab", func(t *testing.T) {
+		f := newCageFake(t)
+		if err := (&CageReap{Layout: f.l}).Apply(ctx, f); err != nil {
+			t.Fatal(err)
+		}
+		if cageRanHas(f, "crontab") {
+			t.Error("gọi crontab khi user không có crontab")
+		}
+	})
 	t.Run("kill thoát 1 vì một pid vừa chết: vẫn thành công", func(t *testing.T) {
 		f := newCageFake(t)
 		reapProcs(f)

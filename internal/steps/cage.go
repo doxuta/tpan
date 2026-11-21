@@ -21,6 +21,7 @@ import (
 	"unicode"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/cage"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
@@ -80,10 +81,38 @@ func cageCheck(l site.Layout, php string) error {
 
 // ---- Lệnh dùng chung ----
 
-// cageFPMTest kiểm cấu hình FPM của lồng. Chạy bằng user của site (qua lớp bọc
-// nên ở trong lồng): chạy bằng root thì FPM đòi dòng `user` và hỏng (mục 2.1, t4).
+// cageFPMTest kiểm cú pháp cấu hình FPM của lồng bằng root ở máy thật, với -R
+// (cho FPM chạy bằng root: pool của lồng không có dòng `user`, thiếu -R thì -t
+// báo "user has not been defined", mục 2.1, t4). Không chạy dưới uid của site:
+// mã của site cùng uid giết được tiến trình -t (kill -9 -1, pkill) hay lấp số
+// tiến trình của slice, và đây là bước của Plan chính sách (cage.enable,
+// cage.sync): site không được làm hỏng nó (soát cuối M17, N1; thử trên máy ảo:
+// -t -R đạt với cấu hình tốt, thoát 78 với cấu hình hỏng). Cấu hình do tpan
+// sinh, -t không nạp mã nào của site.
 func cageFPMTest(l site.Layout, php string) system.Cmd {
+	return system.Cmd{Name: "php-fpm" + php, Args: []string{"-t", "-R", "--fpm-config", l.CageFPMConf()}}
+}
+
+// cageFenceTest chạy `php-fpm -t` dưới user của site qua lớp bọc, tức trong
+// hàng rào và slice của site: chứng minh systemd dựng được không gian riêng
+// của lồng (lỗi gắn, 226/NAMESPACE) và PHP chạy được trong đó, trước khi bật
+// socket. Chỉ CageSocket (bật lồng) dùng, qua runFenceTest.
+func cageFenceTest(l site.Layout, php string) system.Cmd {
 	return system.Cmd{Name: "php-fpm" + php, Args: []string{"-t", "--fpm-config", l.CageFPMConf()}, AsUser: l.User}
+}
+
+// runFenceTest: lệnh trong lồng bị giết hay không có tài nguyên để chạy
+// (cage.ErrKilled: tín hiệu, oom-kill, Result=resources khi mã của site lấp
+// pids.max của slice) là việc mã của site làm được, nên không làm bước hỏng;
+// lệnh vẫn vào log của job. Mọi lỗi khác (systemd không dựng được unit, -t
+// thoát khác 0 trong lồng) là hàng rào hay cấu hình hỏng: bước hỏng.
+func runFenceTest(ctx context.Context, sys system.System, l site.Layout, php string) error {
+	test := cageFenceTest(l, php)
+	err := runTest(ctx, sys, &test, "dựng hàng rào của lồng")
+	if errors.Is(err, cage.ErrKilled) {
+		return nil
+	}
+	return err
 }
 
 var cageDaemonReload = system.Cmd{Name: "systemctl", Args: []string{"daemon-reload"}}
@@ -867,6 +896,9 @@ func (s *CageSocket) applyEnable(ctx context.Context, sys system.System) error {
 	if err := runTest(ctx, sys, &test, "bật lồng"); err != nil {
 		return err
 	}
+	if err := runFenceTest(ctx, sys, l, s.PHP); err != nil {
+		return err
+	}
 	// Bỏ trạng thái failed và bộ đếm giới hạn khởi động còn lại từ lần trước
 	// (mục 2.1: quá giới hạn thì cả socket lẫn dịch vụ vào failed). Unit chưa
 	// từng nạp thì systemd báo "not loaded": bỏ qua.
@@ -1081,41 +1113,73 @@ func cageScan(sys system.System, uid, cg string) ([]string, error) {
 	return pids, nil
 }
 
-// cageReap giết mọi tiến trình của site ở ngoài slice và chờ chúng biến mất.
+// cageCrontab là crontab riêng của user của site trong spool của cron (Debian).
+// Mã của site cài được nó lúc còn ở pool chung (crontab là setgid, pool chung
+// không có NoNewPrivileges), rồi cron (root) chạy nó dưới uid của site ngoài
+// hàng rào và ngoài slice mãi mãi, kể cả sau khi vào lồng (soát cuối M17, N3).
+// tpan không bao giờ dùng crontab của user: việc định kỳ của site nằm ở
+// /etc/cron.d.
+func cageCrontab(l site.Layout) string { return "/var/spool/cron/crontabs/" + l.User }
+
+func cageCrontabRemove(l site.Layout) system.Cmd {
+	return system.Cmd{Name: "crontab", Args: []string{"-r", "-u", l.User}}
+}
+
+// cageKillAll là `kill -KILL -1` chạy dưới user của site (AsUser: qua lớp bọc
+// thì trong lồng). kill(-1) gửi tín hiệu tới mọi tiến trình cùng uid trên máy
+// trong một lượt duyệt của kernel (lồng không có PID namespace riêng), nên một
+// chuỗi tiến trình "fork rồi tự thoát" không nhảy pid thoát được như với
+// `kill <pid>` (soát cuối M17, N2). Nó giết cả tiến trình của site trong
+// slice: chỉ chạy khi đằng nào cũng phải giết (cage.enable trước khi request
+// đầu vào lồng, cage.restart ngay trước khi khởi động lại).
+func cageKillAll(l site.Layout) system.Cmd {
+	return system.Cmd{Name: "kill", Args: []string{"-KILL", "-1"}, AsUser: l.User}
+}
+
+// cageReap gỡ crontab riêng của user của site, giết mọi tiến trình của site ở
+// ngoài slice và chờ chúng biến mất. Mỗi vòng: `kill -KILL -1` dưới uid của
+// site, rồi `kill -KILL <pid>` bằng root cho những pid quét thấy (đường dự
+// phòng khi mã của site lấp số tiến trình của slice và unit tạm của lớp bọc
+// không khởi động được), rồi quét lại; tới cageReapWait mà còn thì lỗi.
 func cageReap(ctx context.Context, sys system.System, l site.Layout) error {
 	uid, err := cageUID(ctx, sys, l)
 	if err != nil {
 		return err
 	}
-	cg := cageCgroupPath(l)
-	pids, err := cageScan(sys, uid, cg)
-	if err != nil || len(pids) == 0 {
+	if err := cageCrontabGone(ctx, sys, l); err != nil {
 		return err
 	}
-	// pid có thể đã được dùng lại giữa lần quét và lúc giết: đọc lại ngay
-	// trước kill, chỉ giữ pid vẫn cùng uid và vẫn ngoài slice (mục 5, K3).
-	var kill []string
-	for _, p := range pids {
-		if cageStray(sys, p, uid, cg) {
-			kill = append(kill, p)
-		}
-	}
-	if len(kill) > 0 {
-		res, err := sys.Run(ctx, system.Cmd{Name: "kill", Args: append([]string{"-KILL"}, kill...)})
-		// Mã thoát khác 0: thường là một pid vừa tự thoát ("No such process").
-		// Lần quét dưới mới là câu trả lời; chỉ lỗi không chạy được kill mới dừng.
-		if _, isEx := isExit(err); err != nil && !isEx {
-			return withStdout(fmt.Errorf("giết tiến trình của %s ngoài lồng: %w", l.User, err), res)
-		}
-	}
+	cg := cageCgroupPath(l)
 	deadline := time.Now().Add(cageReapWait)
 	for {
-		left, err := cageScan(sys, uid, cg)
-		if err != nil || len(left) == 0 {
+		pids, err := cageScan(sys, uid, cg)
+		if err != nil || len(pids) == 0 {
 			return err
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("sau %v vẫn còn tiến trình của %s ngoài lồng: %s", cageReapWait, l.User, strings.Join(left, " "))
+			return fmt.Errorf("sau %v vẫn còn tiến trình của %s ngoài lồng: %s", cageReapWait, l.User, strings.Join(pids, " "))
+		}
+		// Mọi lỗi bỏ qua trừ ctx: chính lệnh kill cũng có thể bị giết theo
+		// (KilledError), hay unit tạm không lên được; lần quét sau là câu trả lời.
+		_, _ = sys.Run(ctx, cageKillAll(l))
+		if ctx.Err() != nil {
+			return fmt.Errorf("giết tiến trình của %s ngoài lồng: %w", l.User, ctx.Err())
+		}
+		// pid có thể đã được dùng lại giữa lần quét và lúc giết: đọc lại ngay
+		// trước kill, chỉ giữ pid vẫn cùng uid và vẫn ngoài slice (mục 5, K3).
+		var kill []string
+		for _, p := range pids {
+			if cageStray(sys, p, uid, cg) {
+				kill = append(kill, p)
+			}
+		}
+		if len(kill) > 0 {
+			res, err := sys.Run(ctx, system.Cmd{Name: "kill", Args: append([]string{"-KILL"}, kill...)})
+			// Mã thoát khác 0: thường là một pid vừa tự thoát ("No such process").
+			// Lần quét sau mới là câu trả lời; chỉ lỗi không chạy được kill mới dừng.
+			if _, isEx := isExit(err); err != nil && !isEx {
+				return withStdout(fmt.Errorf("giết tiến trình của %s ngoài lồng: %w", l.User, err), res)
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -1125,30 +1189,55 @@ func cageReap(ctx context.Context, sys system.System, l site.Layout) error {
 	}
 }
 
-// cageNoStray: không còn tiến trình nào của site ở ngoài slice.
+// cageCrontabGone gỡ crontab riêng của user của site (cageCrontab) bằng root.
+// `crontab -r` thoát khác 0 khi user không có crontab: không phải lỗi; file
+// còn sau lệnh thì mới là lỗi.
+func cageCrontabGone(ctx context.Context, sys system.System, l site.Layout) error {
+	if _, err := sys.Stat(cageCrontab(l)); errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	res, rerr := sys.Run(ctx, cageCrontabRemove(l))
+	if _, err := sys.Stat(cageCrontab(l)); !errors.Is(err, fs.ErrNotExist) {
+		if rerr == nil {
+			rerr = fmt.Errorf("file vẫn còn")
+		}
+		return withStdout(fmt.Errorf("gỡ crontab riêng của %s (%s): %w", l.User, cageCrontab(l), rerr), res)
+	}
+	return nil
+}
+
+// cageNoStray: không còn tiến trình nào của site ở ngoài slice, và user của
+// site không có crontab riêng.
 func cageNoStray(ctx context.Context, sys system.System, l site.Layout) (bool, error) {
 	uid, err := cageUID(ctx, sys, l)
 	if err != nil {
 		return false, err
 	}
+	if _, err := sys.Stat(cageCrontab(l)); !errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
 	pids, err := cageScan(sys, uid, cageCgroupPath(l))
 	return len(pids) == 0, err
 }
 
-// CageReap giết (SIGKILL) mọi tiến trình có uid là user của site mà không nằm
-// trong slice của site (mục 3.5, soát thiết kế điểm 4). Uid: `id -u <user>`.
-// Đọc /proc bằng System (ReadDir("/proc"), ReadFile status và cgroup của từng
-// số; tiến trình biến mất giữa chừng thì bỏ qua); đọc lại status ngay trước
-// khi giết (cùng uid, vẫn ngoài slice); giết bằng `kill -KILL <pid>...` (argv).
-// Check đúng khi không còn tiến trình nào như vậy. Undo không làm gì (NoUndo).
+// CageReap gỡ crontab riêng của user của site (`crontab -r -u <user>`, soát
+// cuối M17 N3) và giết (SIGKILL) mọi tiến trình có uid là user của site mà
+// không nằm trong slice của site (mục 3.5, soát thiết kế điểm 4). Uid: `id -u
+// <user>`. Đọc /proc bằng System (ReadDir("/proc"), ReadFile status và cgroup
+// của từng số; tiến trình biến mất giữa chừng thì bỏ qua). Giết theo vòng
+// (cageReap): `kill -KILL -1` dưới uid của site, rồi `kill -KILL <pid>...`
+// bằng root cho pid đọc lại vẫn cùng uid và vẫn ngoài slice. Check đúng khi
+// không còn tiến trình nào như vậy và không còn crontab. Undo không làm gì.
 type CageReap struct {
 	Layout site.Layout
 }
 
 func cageReapCmds(l site.Layout) []string {
 	id := system.Cmd{Name: "id", Args: []string{"-u", l.User}}
+	cron := cageCrontabRemove(l)
+	all := cageKillAll(l)
 	kill := system.Cmd{Name: "kill", Args: []string{"-KILL", "<pid>..."}}
-	return cmdStrings(&id, &kill)
+	return cmdStrings(&id, &cron, &all, &kill)
 }
 
 func (s *CageReap) Info() engine.StepInfo {
