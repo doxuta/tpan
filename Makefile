@@ -9,7 +9,7 @@ LDFLAGS := -s -w \
   -X $(MODULE)/internal/buildinfo.Date=$(DATE)
 
 .DEFAULT_GOAL := help
-.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean
+.PHONY: help web build build-linux release test lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean nc-m17 e2e
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -83,6 +83,15 @@ nc-m17: ## (M17) Chạy một bản thử nghiên cứu trong máy ảo: make nc
 	@{ case "$(T)" in t0-*) ;; *) cat $(NC17)/lib.sh ;; esac; cat $(NC17)/$(T).sh; } | \
 	  TPAN_VM_CAPTURE=1 scripts/vm.sh root bash -s > $(NC17)/$(T).ket-qua.txt 2>&1; \
 	  rc=$$?; cat $(NC17)/$(T).ket-qua.txt; echo "(mã thoát $$rc; đã lưu $(NC17)/$(T).ket-qua.txt)"
+
+# Chạy một kịch bản e2e trên máy ảo của mốc và lưu log. Có target này vì phiên tự
+# chạy chỉ được gọi `make` và `scripts/vm.sh` (luật 9 của agent-dev/LO-TRINH.md);
+# cách gọi giống scripts/hoi-quy.sh (E2E_LOG để script tự soát bí mật trong log).
+e2e: ## Chạy một kịch bản e2e, lưu log: make e2e S=e2e-m13.sh P=chinh L=M17-hoi-quy-m13
+	@test -f scripts/$(S) || { echo "không có scripts/$(S)" >&2; exit 2; }
+	@test -n "$(L)" || { echo "thiếu L=<tên log, không đuôi>" >&2; exit 2; }
+	@E2E_LOG=docs/bang-chung/$(L).log bash scripts/$(S) $(P) </dev/null >docs/bang-chung/$(L).log 2>&1; rc=$$?; \
+	  echo "$(S) $(P): mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' docs/bang-chung/$(L).log), không đạt $$(grep -c '=> KHÔNG ĐẠT' docs/bang-chung/$(L).log); log: docs/bang-chung/$(L).log"; exit $$rc
 
 clean: ## Xoá kết quả build
 	rm -rf bin

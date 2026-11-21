@@ -1,0 +1,56 @@
+## a. ExecStartPre=-+ trong unit dịch vụ
+unit: ExecStartPre=-+/usr/bin/install -d -m 0755 -o mysql -g root /run/mysqld | A HTTP 200
+Stopping 'tpan-cage-a_example_com_7653e4-php.service', but its triggering units are still active:
+tpan-cage-a_example_com_7653e4-php.socket
+MariaDB tắt và /run/mysqld bị xoá, request đánh thức lồng: HTTP 500 | sau khi MariaDB lên, không đụng lồng: HTTP 500 | mountinfo có /run/mysqld: 0
+không có tiến trình | NRestarts=0
+restart lồng lúc /run/mysqld không có: lồng active, mountinfo 0
+không có tiến trình | A HTTP 500
+/run/mysqld: 755 mysql:root
+install -d trên thư mục đã có (đổi quyền về 0700 trước): sau khi restart lồng /run/mysqld là 700 mysql:root
+
+## b. Cài lại php8.3-fpm khi lồng đang chạy
+needrestart: install ok installed 3.6-7ubuntu4.6 | cấu hình restart: 
+trước: lồng MainPID=30388 exe=/usr/sbin/php-fpm8.3 | php8.3-fpm MainPID=23479
+apt-get install --reinstall: mã 0 |  systemctl restart systemd-logind.service  systemctl restart unattended-upgrades.service No containers need to be restarted. 
+sau: lồng MainPID=31822 exe=/usr/sbin/php-fpm8.3 | php8.3-fpm MainPID=31723 | A HTTP 200
+needrestart -r l (chỉ liệt kê): NEEDRESTART-SVC: dbus.service NEEDRESTART-SVC: getty@tty1.service NEEDRESTART-SVC: serial-getty@ttyAMA0.service NEEDRESTART-SVC: systemd-logind.service NEEDRESTART-SVC: unattended-upgrades.service 
+sau khi restart lồng: exe=/usr/sbin/php-fpm8.3
+
+## c. Mẫu file cgroup
+đã chép: 15 và 13 file
+--- dang-chay/memory.events
+low 0
+high 0
+max 0
+oom 0
+oom_kill 0
+oom_group_kill 0
+--- cham-tran/memory.events
+low 0
+high 0
+max 35
+oom 1
+oom_kill 1
+oom_group_kill 0
+--- cham-tran/pids.events (slice) và dich-vu.pids.events
+max 0
+max 1
+--- cham-tran/cpu.stat
+usage_usec 1777679
+user_usec 1447780
+system_usec 329899
+core_sched.force_idle_usec 0
+nr_periods 64
+nr_throttled 40
+throttled_usec 2751263
+nr_bursts 0
+burst_usec 0
+--- cham-tran/io.stat
+8:0 rbytes=28672 wbytes=0 rios=7 wios=0 dbytes=0 dios=0
+--- cham-tran/memory.peak, pids.peak, cpu.max, io.max
+209715200
+40
+50000 100000
+slice sau khi gỡ lồng: khong-con (mẫu 'chưa có cgroup' = thư mục không tồn tại)
+sau khi dọn: A HTTP 200, B HTTP 200

@@ -1,6 +1,6 @@
 # M17: lồng theo site, trần tài nguyên theo gói, thử tấn công (bản thiết kế)
 
-Bản thiết kế của đợt 0, viết ngày 21/11/2026 trước khi có dòng mã nào của mốc. Phiên chính của M17 viết; mọi con số ở đây đều có lệnh và output thật ở `docs/bang-chung/M17-nghien-cuu/` (script `t0` đến `t9b`, chạy trên máy ảo `tpan-m17`: Ubuntu 24.04.5, kernel 6.8.0-147, systemd 255.4, PHP 8.3.6, nginx 1.24.0, Apache 2.4.58, MariaDB 10.11.14). Khi mốc xong, file này được gộp vào mục 6.15 của `docs/KE-HOACH.md`.
+Bản thiết kế của đợt 0, viết ngày 21/11/2026 trước khi có dòng mã nào của mốc. Phiên chính của M17 viết; mọi con số ở đây đều có lệnh và output thật ở `docs/bang-chung/M17-nghien-cuu/` (script `t0` đến `t13b`, chạy trên máy ảo `tpan-m17`: Ubuntu 24.04.5, kernel 6.8.0-147, systemd 255.4, PHP 8.3.6, nginx 1.24.0, Apache 2.4.58, MariaDB 10.11.14). Khi mốc xong, file này được gộp vào mục 6.15 của `docs/KE-HOACH.md`.
 
 Từ dùng trong file: **lồng** là toàn bộ những thứ bao quanh PHP của một site; **hàng rào** là phần "nhìn thấy gì" (namespace); **trần** là phần "dùng được bao nhiêu" (cgroup); **ngoài lồng** là cách chạy của v0.2.0 (mọi site chung một dịch vụ PHP-FPM cho mỗi bản PHP).
 
@@ -90,8 +90,8 @@ Hàng rào đã chốt (file `fence.conf`, mục 3.3). Mọi thuộc tính dư�
 |---|---|---|
 | Danh tính | `User`, `Group`, `Slice` | chạy bằng user của site, trong slice của site |
 | Đặc quyền | `NoNewPrivileges=yes`, `CapabilityBoundingSet=` (rỗng), `AmbientCapabilities=` (rỗng), `RestrictSUIDSGID=yes` | không lấy thêm được quyền qua `sudo`, `su`, `crontab`, file setuid |
-| Cây thư mục | `ProtectSystem=strict`, `ProtectHome=yes`, `PrivateTmp=yes`, `PrivateDevices=yes`, `TemporaryFileSystem=/var:ro` rồi gắn lại đúng `/var/www/<domain>` (ghi được), `/var/log/tpan/sites/<domain>`, `/var/cache/tpan` (chỉ đọc), `/var/run/mysqld` | cả máy chỉ đọc; dưới `/var` chỉ thấy đồ của mình |
-| | `TemporaryFileSystem=/run:ro` rồi gắn lại `/run/mysqld`, `/run/systemd/resolve`, `/run/systemd/notify`, `/run/systemd/journal/dev-log` | không thấy socket và tên unit của site khác; vẫn nối DB, phân giải tên, báo `READY` cho systemd, ghi log |
+| Cây thư mục | `ProtectSystem=strict`, `ProtectHome=yes`, `PrivateTmp=yes`, `PrivateDevices=yes`, `TemporaryFileSystem=/var:ro` rồi gắn lại đúng `/var/www/<domain>` (ghi được), `/var/log/tpan/sites/<domain>`, `/var/cache/tpan` (chỉ đọc), `-/run/mysqld:/var/run/mysqld` (chỉ đọc) | cả máy chỉ đọc; dưới `/var` chỉ thấy đồ của mình |
+| | `TemporaryFileSystem=/run:ro` rồi gắn lại `-/run/mysqld`, `-/run/systemd/resolve`, `/run/systemd/notify`, `/run/systemd/journal/dev-log` (đều chỉ đọc) | không thấy socket và tên unit của site khác; vẫn nối DB, phân giải tên, báo `READY` cho systemd, ghi log. Dấu `-`: thư mục chưa có thì bỏ qua thay vì làm dịch vụ chết vòng (mục 2.8) |
 | | `TemporaryFileSystem=/dev/shm:...` | `/dev/shm` là chỗ ghi chung thứ hai sau `/tmp`; `PrivateDevices` không che nó |
 | | `TemporaryFileSystem=/etc/tpan:ro` rồi gắn lại `/etc/tpan/cage/<slug>`; `/etc/passwd` và `/etc/group` thay bằng bản riêng 4 dòng (root, www-data, user của site, nobody) | không đọc ra user `tp_*` của site khác |
 | | `InaccessiblePaths=` cho `/etc/nginx`, `/etc/apache2`, `/etc/cron.d`, `/etc/letsencrypt`, `/etc/systemd`, `/etc/php/<mọi bản>/fpm/pool.d`, `/etc/passwd-`, `/etc/group-`, `/etc/shadow*`, `/etc/gshadow*`, `/sys/fs/cgroup`, `/boot`, `/mnt`, `/media`, `/srv` | các chỗ còn lại đọc ra tên site khác, và vài thư mục PHP không có việc gì ở đó |
@@ -157,6 +157,23 @@ Ghi chú về OPcache: ở ngoài lồng mọi site chen nhau trong một vùng 
 - File ini OPcache của M14 (`99-tpan.ini`) nằm ở `conf.d` của bản PHP nên lồng cũng đọc: `validate_permission=1`, API bị khoá. Trong lồng hai dòng đó là lớp thứ hai: OPcache của lồng chỉ chứa file của chính site, và file của site khác không còn nhìn thấy, nên L1 và L2 không còn đường đi.
 - Drop-in `ProtectProc` của M14 gắn vào `php<bản>-fpm.service`, không đụng tới lồng; lồng có `ProtectProc` riêng trong hàng rào.
 - `wp` trong lồng chạy bằng PHP CLI mặc định của máy (như ngoài lồng), không theo bản PHP của site. Không đổi ở mốc này.
+
+### 2.8 Dịch vụ nền khởi động lại, máy khởi động lại, cập nhật gói PHP (`t10` đến `t13b`)
+
+Lồng gắn vài thứ dưới `/run` vào không gian riêng của nó. Một lần gắn trỏ vào thư mục lúc dịch vụ khởi động; thư mục bị tạo lại sau đó thì lồng không thấy bản mới.
+
+| Tình huống | Kết quả |
+|---|---|
+| MariaDB restart, hoặc stop rồi start, khi lồng đang chạy (`t10`) | `/run/mysqld` giữ nguyên (cùng inode): trong lúc MariaDB tắt site ra 500, MariaDB lên lại thì 200, không phải đụng lồng |
+| `systemd-resolved`, `systemd-journald` restart (`t10`) | thư mục giữ nguyên (`RuntimeDirectoryPreserve=yes`): phân giải tên và log của FPM vẫn chạy |
+| Lồng được đánh thức lúc `/run/mysqld` chưa có (như lúc máy vừa lên), lệnh gắn bắt buộc (`t11`) | dịch vụ chết với `226/NAMESPACE`, systemd thử lại liên tục (`NRestarts=5`); chậm thêm chút là chạm giới hạn khởi động và site 502 cho tới khi có người reset |
+| Như trên, lệnh gắn có dấu `-` (`t11`) | dịch vụ chạy nhưng **không bao giờ thấy MariaDB** (site 500 mãi, kể cả sau khi MariaDB lên) cho tới khi lồng khởi động lại. Nhận ra được: `/proc/<MainPID>/mountinfo` không có dòng ` /run/mysqld ` |
+| Thêm `After=mariadb.service` vào dịch vụ (`t11`) | không giúp gì: `After=` chỉ xếp thứ tự hai việc cùng được khởi động, không chờ MariaDB khi MariaDB không nằm trong cùng lượt |
+| `ExecStartPre=+install -d ... /run/mysqld` trong unit **dịch vụ** (`t13`, `t13b`) | không tạo được thư mục: trên systemd 255 lệnh có dấu `+` vẫn thấy `/etc/passwd` riêng của lồng (`install: invalid user 'mysql'`), tức vẫn nằm trong không gian riêng; `mkdir` cũng không tới được `/run` thật |
+| `ExecStartPre=-/usr/bin/install -d -m 0755 -o mysql -g root /run/mysqld` trong unit **socket**, thử thật lúc máy khởi động với một unit gọi site trước MariaDB (`t12`) | lúc gọi thư mục đã có, MariaDB chưa chạy: 500; MariaDB lên: **200 mà không phải đụng lồng**; mountinfo có ` /run/mysqld `. Unit socket chạy bằng root ở máy thật trước khi nghe, nên tạo được thư mục; lệnh và tham số cố định, giống hệt dòng MariaDB tự chạy |
+| Cài lại `php8.3-fpm` (giả lập cập nhật bản vá) khi lồng đang chạy (`t13`) | `needrestart` 3.6 của Ubuntu tự khởi động lại dịch vụ của lồng (`MainPID` đổi), site 200. Máy không có `needrestart` thì lồng chạy tiếp bản cũ: `/proc/<MainPID>/exe` kết thúc bằng ` (deleted)` |
+
+Vì vậy: unit socket có dòng `ExecStartPre` trên; các lệnh gắn `/run/mysqld` và `/run/systemd/resolve` có dấu `-`; phép kiểm `cage.socket` đọc mountinfo và `exe` của tiến trình chính để bắt hai trường hợp còn lại (thư mục mất giữa chừng rồi lồng khởi động lại; lồng chạy bản PHP đã bị thay), kèm sửa tự động `cage.restart` (mục 3.7).
 
 ## 3. Thiết kế
 
@@ -224,6 +241,7 @@ Bảy file, sinh từ template trong `internal/templates` (golden test), dòng �
 
 ```ini
 [Socket]
+ExecStartPre=-/usr/bin/install -d -m 0755 -o mysql -g root /run/mysqld
 ListenStream=/run/tpan-cage/<slug>/php.sock
 SocketUser=www-data
 SocketGroup=www-data
@@ -260,7 +278,13 @@ Restart=on-failure
 
 **Cấu hình FPM** (`php-fpm.conf`): `[global]` có `error_log = syslog`, `syslog.ident = php-fpm-<slug>`, `daemonize = no`, `process_control_timeout = 10s`; pool `[tpan-<slug>]` có `listen = <socket của lồng>`, `pm = ondemand`, `pm.max_children = <worker>`, `pm.process_idle_timeout = 10s`, `pm.max_requests = 500`, và đúng các dòng `php_admin_*` của pool ngoài lồng (`open_basedir`, ba đường dẫn tạm, hai giới hạn upload, `log_errors`, `error_log`). Không có `user`, `group`, `listen.owner`, `listen.group`, `listen.mode`, `pid`: FPM không chạy bằng root nên các dòng đó không có tác dụng.
 
-**`passwd`, `group`**: mỗi file 4 dòng lấy từ `getent` lúc Step chạy (root, www-data, user của site, nobody; nhóm tương ứng với `nogroup`).
+**`passwd`, `group`**: mỗi file 4 dòng lấy từ `getent` lúc Step chạy (root, www-data, user của site, nobody; nhóm tương ứng với `nogroup`). Nội dung chỉ biết được khi user của site đã có (uid, gid), nên hai file này **không** khai trong `Info().Files` (engine chụp danh sách đó trước khi chạy bước nào) và không vào `managed_files`; `Check` của Step vẫn so chúng, và phép kiểm `cage.fence` kiểm chúng bằng con đường độc lập (`getent passwd` trong lồng ra đúng 4 dòng).
+
+**Lệch và sửa tự động của năm file còn lại** (slice, socket, dịch vụ, hàng rào, `php-fpm.conf`): chúng vào `managed_files` như mọi file tpan ghi. Ba chỗ của health phải biết chúng:
+
+- `checks.DriftStage`: đường dẫn bắt đầu bằng `/etc/systemd/system/tpan-` hoặc `/etc/tpan/cage/` là chặng PHP (trước M17 rơi vào chặng TPAN). `tpan.service` của `tpan setup` không có dấu `-` sau `tpan` nên không bị xếp nhầm.
+- `health.fileOwner`: thêm `site.Layout.OwnsCagePath(p)` (đúng năm đường dẫn của slug đó, so bằng dấu bằng hoặc tiền tố có dấu `-`, `/` ở cuối nên slug này không nhận nhầm đường dẫn của slug dài hơn).
+- `core.Fixes`: sửa `file.rewrite` cho một đường dẫn của lồng dựng Plan gồm đúng `steps.CageFiles` của site đó (bước chỉ ghi file khác nội dung, rồi `daemon-reload` và `try-restart` theo luật ở 3.5); sha256 mong đợi lấy từ `CageFiles.Want(path)`.
 
 ### 3.4 Lệnh chạy thay cho site: `internal/cage`
 
@@ -294,7 +318,7 @@ Bằng chứng phải là lệnh thật: `system.Describe(sys, cmd)` (giao diệ
 
 **`CageFiles{Layout, PHP, Limits, Remove}`**
 
-- `Remove=false`: `Check` đúng khi cả bảy file có đúng nội dung, quyền `0644 root:root` (thư mục `0755`). `Apply`: giữ bản cũ, ghi cả bảy bằng `WriteFileAtomic`, `systemctl daemon-reload`; nếu dịch vụ đang chạy và một trong ba file (dịch vụ, hàng rào, cấu hình FPM) đổi thì `systemctl try-restart <dịch vụ>`. Chỉ file slice đổi thì không restart. Lỗi ở giữa: trả mọi file về rồi `daemon-reload`. `Undo`: trả bản cũ (file mới tạo thì xoá, thư mục mới tạo thì gỡ), `daemon-reload`, `try-restart` theo cùng luật.
+- `Remove=false`: `Check` đúng khi cả bảy file có đúng nội dung, quyền `0644 root:root` (thư mục `0755`). `Apply`: giữ bản cũ của mọi file, chỉ ghi (bằng `WriteFileAtomic`) những file khác nội dung, quyền hay chủ; rồi `systemctl daemon-reload`; nếu dịch vụ đang chạy và một trong các file dịch vụ, hàng rào, `php-fpm.conf`, `passwd`, `group` vừa được ghi thì `systemctl try-restart <dịch vụ>` (hai file sau được gắn vào lồng theo inode: thay file bằng rename thì lồng đang chạy vẫn thấy bản cũ cho tới khi khởi động lại). Chỉ file slice đổi thì không restart (trần đổi ngay sau `daemon-reload`, mục 2.4). Lỗi ở giữa: trả mọi file đã ghi về rồi `daemon-reload`. `Undo`: trả bản cũ (file mới tạo thì xoá, thư mục mới tạo thì gỡ), `daemon-reload`, `try-restart` theo cùng luật. `Want(path) ([]byte, bool)` trả nội dung mong đợi của một trong năm file có trong `managed_files` (cho sửa tự động).
 - `Remove=true`: `Check` đúng khi không còn file hay thư mục nào của lồng. `Apply` gỡ hết rồi `daemon-reload`; gỡ `/etc/tpan/cage` và `/etc/tpan` nếu rỗng. `Undo` trả lại.
 - `Info().Files` kê cả bảy file kèm nội dung (trừ `passwd`, `group` khi user chưa có lúc dựng Plan), để bản xem trước có diff và engine ghi sha256 vào `managed_files`.
 
@@ -329,7 +353,13 @@ Kiểm chứng: bộ phép kiểm của site bản trong lồng (3.7) gồm `cag
 
 Bước: `steps.SitePool` (ghi, kiểm, reload, chờ socket) → vhost bản thường → kiểm 200 hai lần → `CageSocket{Disable}` → `CageFiles{Remove}`. Kiểm chứng: bộ phép kiểm thường. Thành công thì `caged=0`. File pool và vhost sinh lại từ template nên giống từng byte bản trước khi vào lồng.
 
-**`cage.sync`** (không có lệnh riêng; dùng khi sửa gói, đổi gói của user, và sửa tự động của `cage.limits`): với mỗi site đang trong lồng trong danh sách: `CageFiles` với trần hiện tại của gói, rồi kiểm site trả 200 một lần (bỏ với site tạm khoá). Kiểm chứng: `cage.limits` của từng site. Trần mới thấp tới mức site không trả 200 thì job hoàn tác về trần cũ.
+**`cage.sync`** (không có lệnh riêng; dùng khi sửa gói, đổi gói của user, và sửa tự động của `cage.limits`): với mỗi site đang trong lồng trong danh sách: `CageFiles` với trần mong muốn, rồi kiểm site trả 200 một lần (bỏ với site tạm khoá hoặc DB tạm khoá). Kiểm chứng: `cage.limits` của từng site so với **trần mong muốn đưa vào Plan** (không đọc lại từ bảng `packages`). Trần mới thấp tới mức site không trả 200 thì job hoàn tác về trần cũ.
+
+**Sửa gói và đổi gói của user khi có site trong lồng** (nhà của phần này: `internal/core/cage.go`, đợt 3):
+
+- `Cages.PrepareEditPackage(ctx, p account.Package) (*Planned, error)`: kiểm trần như `Accounts.EditPackage`; tìm site `caged` và `active` của mọi user dùng gói `p.Name`. Không có site nào, hoặc sáu số trần và số worker không đổi: trả `nil` (người gọi dùng `Accounts.EditPackage` như trước, không có job). Có: Plan `cage.sync` với trần của `p`, và **`after` mới ghi dòng gói** (`Accounts.EditPackage`). Thứ tự này giữ bất biến 4: job hoàn tác thì gói không đổi, trần trên máy cũng không đổi. Ghi gói trong `after` lỗi thì máy đã mang trần mới mà bảng còn trần cũ: `cage.limits` báo lỗi, và sửa tự động của nó (`cage.sync` với trần trong bảng) đưa máy về trần cũ; lời lỗi nói rõ điều này.
+- `Cages.PrepareUserPackage(ctx, user, pkg string) (*Planned, error)`: như trên cho mọi site `caged` của một user khi đổi gói; `after` ghi gói mới của user (`Accounts.EditUser` với `Package`). Gói mới tắt cờ lồng: không tự đưa site ra; `cage.state` cảnh báo.
+- CLI (`package edit`, `user edit --package`) và API (`POST /packages/{name}`, `POST /users/{name}`) gọi hai hàm này trước; `nil` thì đi đường cũ.
 
 **Ghép với thao tác đã có** (site đang `caged`):
 
@@ -344,6 +374,7 @@ Bước: `steps.SitePool` (ghi, kiểm, reload, chờ socket) → vhost bản th
 | Chuyển web server, SSL, harden, sửa tự động vhost | đi qua `siteVhost` nên tự ra vhost của lồng |
 | Sao lưu, khôi phục, DB | lệnh `wp` tự chạy trong lồng qua `cage.Wrap`; bộ phép kiểm chứng là bản trong lồng |
 | Cron | `tpan cron run` gọi `wp` với `AsUser`, tự vào lồng; hạn 4 phút thành `TimeoutStartSec` |
+| Cập nhật gói PHP (`update.apply`, `unattended-upgrades`) | không có bước riêng: `needrestart` của Ubuntu khởi động lại dịch vụ của lồng (đo ở `t13`); máy không có nó thì `cage.socket` cảnh báo "đang chạy bản PHP đã bị thay" kèm sửa tự động `cage.restart` |
 | `self-update --rollback` | từ chối `cage_active` khi còn site `caged` (mục 6) |
 
 ### 3.7 Phép kiểm (`internal/checks/cage.go`)
@@ -352,7 +383,7 @@ Site trong lồng dùng `SiteChecksCaged` / `SiteChecksSSLCaged`: như bản th�
 
 | ID | Chặng | Kiểm gì | Không đạt | Sửa tự động |
 |---|---|---|---|---|
-| `cage.socket:<domain>` | PHP | file socket là socket, `www-data:www-data 0660`; unit socket `active`; dịch vụ không `failed` | lỗi | `cage.start`: `CageSocket` bật |
+| `cage.socket:<domain>` | PHP | file socket là socket, `www-data:www-data 0660`; unit socket `active`; dịch vụ không `failed`. Khi dịch vụ đang chạy: `/proc/<MainPID>/mountinfo` có ` /run/mysqld ` (chỉ xét khi `mariadb` đang `active`), và `/proc/<MainPID>/exe` không kết thúc bằng ` (deleted)` | socket, unit, dịch vụ hỏng hoặc thiếu ` /run/mysqld `: lỗi; `exe` đã bị thay: cảnh báo | socket hay unit hỏng: `cage.start` (`CageSocket` bật). Thiếu ` /run/mysqld ` hoặc `exe` bị thay: `cage.restart` (tpan tạo `/run/mysqld` bằng đúng lệnh `install` của unit socket, rồi `systemctl try-restart <dịch vụ>`; socket giữ kết nối nên không rớt request) |
 | `cage.fence:<domain>` | PHP, nặng (mỗi giờ) | bảy lệnh ở 2.3 chạy trong lồng (qua `AsUser`), mỗi lệnh một dòng bằng chứng | lỗi | `cage.sync` |
 | `cage.limits:<domain>` | PHP | `memory.max`, `memory.swap.max`, `cpu.max`, `pids.max`, `io.max` của slice bằng trần của gói. Slice chưa có cgroup (lồng chưa chạy từ khi máy lên): đạt, ghi rõ lý do | lỗi | `cage.sync` |
 | `cage.state:<domain>` | PHP | (a) gói muốn lồng mà site ở ngoài, hoặc ngược lại: **cảnh báo**; (b) `caged=1` mà thiếu file hàng rào hoặc còn file pool chung; `caged=0` mà còn file hàng rào: **lỗi** | như cột bên | (a) `cage.enable` hoặc `cage.disable`; (b) chạy lại Plan đúng với `caged` |
@@ -400,7 +431,7 @@ Một job `isolation.probe`. Tên hai site thử: `tpan-probe-a-<12 hex>.test` v
 Thứ tự:
 
 1. **Ghi sổ trước**: một dòng `probe_runs(id, started_at, state='running', domain_a, domain_b, mode)` trước khi tạo bất cứ thứ gì.
-2. Bước tạo A rồi B: đúng các bước của `site.add` (WordPress thật). Hai site không có dòng trong bảng `sites`.
+2. Bước tạo A rồi B: đúng các bước của `site.add` (WordPress thật), trừ hai bước cron (site thử không cần việc định kỳ, và file cron là thêm một thứ phải dọn). Hai site không có dòng trong bảng `sites`, nên health, ma trận cô lập và mọi danh sách không bao giờ thấy chúng. Job chạy với một `Journal` bọc bỏ qua `RecordFile`, `ForgetFile`: file của site thử không vào `managed_files` (không thì health báo lệch cho file đã bị dọn).
 3. Lượt **ngoài lồng**: một bước chạy mọi đường, ghi kết quả.
 4. Đưa cả hai vào lồng (bước của `cage.enable`) với trần cố định của phép thử: RAM 160 MB, CPU 100%, 60 tiến trình, 3 worker.
 5. Lượt **trong lồng**: chạy lại mọi đường.
@@ -421,7 +452,7 @@ Thứ tự:
 | L5 | symlink của A sang file của B (chỉ nginx) | bị chặn | bị chặn |
 | L6 | A đọc `access.log` của B | bị chặn | bị chặn |
 | L7 | PHP của A đếm tiến trình của user khác | bị chặn | bị chặn |
-| L8 | vhost lạ trùng tên miền của A: phép kiểm `web.server_name.unique` phải chỉ ra file | bị chặn (phát hiện) | như ngoài lồng (không chạy lại) |
+| L8 | vhost lạ trùng tên miền của A: `checks.ServerNameUnique` gọi với Layout của hai site thử truyền thẳng vào (chúng không có trong bảng `sites`) phải chỉ ra đúng file lạ; file lạ mang tên `aaa-tpan-probe-<đuôi>.conf` và nằm trong danh sách dọn | bị chặn (phát hiện) | như ngoài lồng (không chạy lại) |
 | C1 | A gọi shell: thư mục của B có trong `/var/www` không; `/var/www` có mấy mục | **lộ (cần lồng)** | bị chặn |
 | C2 | A ghi một file vào `/tmp`; B có thấy không | **lộ (cần lồng)** | bị chặn |
 | C3 | A cấp phát 320 MB | **lộ (cần lồng)** | bị chặn: tiến trình bị giết, `oom_kill` tăng 1, B vẫn 200 |
@@ -443,7 +474,7 @@ tpan usage [<domain>] [--suggest] [--json]
 tpan isolation probe [--only ngoai|trong] [--cleanup] [--dry-run] [--yes] [--json]
 ```
 
-`package edit` đổi trần của gói có site trong lồng: ghi gói, rồi chạy job `cage.sync` cho các site đó (với `--dry-run`: in cả hai). `user edit --package` cũng vậy cho site của user đó. Job hỏng thì gói đã đổi, trần cũ còn áp: `cage.limits` báo lỗi và có sửa tự động.
+`package edit` đổi trần của gói có site trong lồng: một job `cage.sync` cho các site đó, và dòng gói chỉ được ghi khi job thành công (`Cages.PrepareEditPackage`, mục 3.6; `--dry-run` in bản xem trước của job). Job hỏng thì gói giữ nguyên, trần trên máy cũng giữ nguyên. `user edit --package` cũng vậy cho site của user đó (`Cages.PrepareUserPackage`). Gói không có site nào trong lồng: chỉ ghi dòng gói như trước M17, không có job.
 
 | Route | Luật |
 |---|---|
@@ -469,7 +500,7 @@ Mỗi câu gắn với test. `U` là unit test (tên hàm), `E` là khẳng đ�
 | 2 | Vào lồng rồi ra lồng: file cấu hình của site về đúng từng byte | U `TestCageEnableDisableTraLaiTungByte` (FakeSystem, so `Snapshot`); E "sha256 pool, vhost, cron, wp-config, .htaccess trước khi vào bằng sau khi ra" |
 | 3 | Mỗi site đúng một nơi phục vụ PHP; không hai tiến trình chính cùng một socket | U `TestSitePHPStepsChiMotNoi`; U `TestCageStateBaoCaHaiCungCo`; E "trong lồng: không có file pool chung, đúng một `php-fpm: master` của user đó; ngoài lồng: không có unit `tpan-cage-<slug>-*`" |
 | 4 | Trần ghi trong gói bằng trần trên cgroup; lệch thì health báo và sửa được | U `TestCageLimitsSoTungFile`; E "sửa tay file slice rồi `daemon-reload`: `cage.limits` lỗi; `tpan health --fix` đưa về; `package edit` đổi RAM: `memory.max` đổi, `MainPID` giữ" |
-| 5 | Thử tấn công luôn dọn sạch, kể cả khi hỏng giữa chừng hoặc panel bị tắt | U `TestProbeHongGiuaChungVanDon`; U `TestProbeCleanupChiNhanTenTrongSo`; E "`kill -9` tpan giữa lượt thử, rồi `--cleanup`: không còn user, thư mục, DB, vhost, unit, cron, file `/tmp` nào mang tên phép thử" |
+| 5 | Thử tấn công luôn dọn sạch, kể cả khi hỏng giữa chừng hoặc panel bị tắt | U `TestProbeHongGiuaChungVanDon`; U `TestProbeCleanupChiNhanTenTrongSo`; U `TestProbeKhongGhiManagedFiles`; E "`kill -9` tpan giữa lượt thử, rồi `--cleanup`: không còn user, thư mục, DB, vhost, unit, cron, file `/tmp` nào mang tên phép thử; không dòng nào của `managed_files`, `check_results`, `incidents` nhắc `tpan-probe-`" |
 | 6 | Con số hiện ra bằng con số đọc từ cgroup | U `TestReadUsageDocDungFile`; E "sau một lần cấp phát vượt trần: `tpan usage --json` có `oom_kills` tăng đúng 1 và `mem_peak` bằng `memory.peak` đọc tay" |
 | 7 | User thường không tự nâng trần, không tự ra khỏi lồng | U `TestPhanQuyenMoiRoute` (phủ route mới); U `TestMoiThaoTacCuaChuGiuLong` (đổi PHP, khôi phục, chạy lại, sao lưu trên site `caged` đều ra Plan của lồng); E "user chủ gọi `POST /sites/{d}/cage` và `POST /packages/...`: 403; sau đổi PHP, tạm khoá rồi mở, khôi phục, thùng rác rồi khôi phục, chuyển stack: `caged` vẫn 1 và `cage.limits` đạt" |
 | 8 (thêm) | Mã PHP của site trong lồng không bao giờ chạy ngoài hàng rào do tpan gọi | U `TestWrapLuonCoUserTrenDongLenh`; U `TestBareChiOChecksIsolated`; U `TestWrapStatLoiThiKhongChay` |
@@ -528,33 +559,34 @@ Mỗi câu gắn với test. `U` là unit test (tên hàm), `E` là khẳng đ�
 | `nang-cap` | cài gói v0.2.0 thật, stack, hai site, ghi sha256 mọi file dưới `/etc/nginx`, `/etc/php`, `/etc/cron.d`, `/etc/systemd/system`; lên bản của nhánh; sha256 không đổi, health như trước, không unit `tpan-cage-*`; bật lồng cho gói: hai site 200 trong lồng; tắt lồng: sha256 về đúng như trước; `self-update --rollback` khi còn site trong lồng bị từ chối `cage_active` |
 | hồi quy | `scripts/e2e-m13.sh chinh`, `scripts/e2e-m14.sh chinh`, `scripts/e2e-m9.sh`: vẫn 0 không đạt |
 
-**Soát cuối**: một thợ `fable`, `effort: max`, chưa đọc mã của mốc, trên máy ảo: thử thoát lồng, thử nâng trần bằng tài khoản user thường, thử làm hỏng lượt thử tấn công giữa chừng. Phát hiện và cách sửa ghi vào `docs/thay-doi/M17.md`.
+**Soát cuối**: một thợ `opus`, `effort: max` (luật 8 tạm thời: hạn mức `fable` đã hết tới 25/11), chưa đọc mã của mốc, trên máy ảo: thử thoát lồng, thử nâng trần bằng tài khoản user thường, thử làm hỏng lượt thử tấn công giữa chừng. Phát hiện và cách sửa ghi vào `docs/thay-doi/M17.md`.
 
 ## 8. Bảng chia việc
 
-Luật 8 của `agent-dev/LO-TRINH.md` (bản 02:25 ngày 21/11): phần nhạy cảm dùng `opus`, `effort: high`; phần không nhạy cảm dùng `sonnet`; thợ soát dùng `fable`, `effort: max`. Mỗi đợt tối đa 4 thợ, không hai thợ chung file. Phiên chính đọc diff của thợ `sonnet` trước khi nhận, chạy `make check`, commit, đẩy `moc/M17`.
+Luật 8 của `agent-dev/LO-TRINH.md` (bản 02:25 ngày 21/11) cộng thay đổi tạm thời lúc hạn mức `fable` hết (sáng 21/11, tới 25/11): phần nhạy cảm dùng `opus`, `effort: high`; phần không nhạy cảm dùng `sonnet`; thợ soát dùng `opus`, `effort: max`; không gọi `fable`. Mỗi đợt tối đa 4 thợ, không hai thợ chung file. Phiên chính đọc diff của thợ `sonnet` trước khi nhận, chạy `make check`, commit, đẩy `moc/M17` ở cuối mỗi đợt (dừng giữa chừng vì hết hạn mức thì `dev` không nhận gì làm dở, nhánh vẫn có mọi đợt đã xanh).
+
+Thứ tự đợt chọn để mỗi đợt xong là một trạng thái xanh dùng được, và phần cắt được (lấy mẫu, gợi ý) không chặn phần chính: lồng và trần, rồi ghép với thao tác cũ và số liệu đọc ngay, rồi thử tấn công.
 
 | Đợt | Phần | Vùng file | Thợ | Loại | Model |
 |---|---|---|---|---|---|
-| 0 | Hợp đồng: kiểu và chữ ký (thân rỗng trả lỗi "chưa viết"), migration 1700, dòng route kèm luật, trường `Bare` và `Describer` | `internal/account/types.go`, `internal/site/cage.go`, `internal/system/types.go`, `internal/*/cage_types.go` hoặc `types_m17.go` của từng gói, `internal/store/migrations/1700_cage.sql`, `internal/server/routes.go` | phiên chính | | |
-| 1 | Template của lồng và vhost bản trong lồng, golden | `internal/templates/cage.go`, `cage_test.go`, `files/cage-*.tmpl`, `testdata/cage-*`, phần thêm ở `site.go`, `ssl.go` | `tho-loi` | nhạy cảm (sinh unit, vhost, pool) | opus |
-| 1 | Store: cột mới của `sites`, `packages`; mẫu, gộp giờ, sổ phép thử | `internal/store/sites.go`, `users.go`, `usage.go`, `probe.go` và test | `tho-phu` | không | sonnet |
-| 1 | `cage.Wrap`, `ReadUsage`; engine và checks dùng `system.Describe` | `internal/cage/`, `internal/engine/engine.go` (chỉ `recSys`), `internal/checks/run.go` (chỉ `execCmd`) | `tho-loi` | nhạy cảm (chạy lệnh thay cho site) | opus |
-| 1 | Phép kiểm của lồng; `Isolated` thêm `Bare` và socket của lồng | `internal/checks/cage.go`, `cage_test.go`, `site.go` (chỉ `Isolated`) | `tho-phu` | không | sonnet |
-| 2 | Step `CageFiles`, `CageSocket`, vhost bản trong lồng | `internal/steps/cage.go`, `cage_test.go`, phần thêm ở `site_web.go`, `ssl.go` | `tho-loi` | nhạy cảm | opus |
-| 2 | Số liệu: lấy mẫu, gộp, gợi ý | `internal/core/usage.go`, `usage_test.go` | `tho-phu` | không | sonnet |
-| 2 | Kiểm trần của gói; `route explain` cho site trong lồng | `internal/core/users.go` (chỉ phần gói), `route_m14.go` và test | `tho-phu` | không | sonnet |
-| 3 | Plan của lồng và ghép với thao tác đã có | `internal/core/cage.go`, `cage_test.go`, `site.go`, `suspend.go`, `trash.go`, `php.go`, `fix.go`, `health.go`, `backup.go`, `apply.go`, `selfupdate.go` | `tho-loi` | nhạy cảm | opus |
-| 4 | Thử tấn công | `internal/core/probe.go`, `probe_test.go`, `internal/core/probe/` (file PHP thử) | `tho-loi` | nhạy cảm (root ghi file, tạo và xoá user) | opus |
-| 4 | API của lồng, số liệu, gói; bộ hẹn giờ lấy mẫu | `internal/server/api_m17.go`, `api_m17_test.go`, `usage_timer.go`, `api_m13.go` (chỉ hai handler của gói), `internal/health/collect.go` | `tho-phu` | không (luật của route do phiên chính ghi ở đợt 0) | sonnet |
-| 4 | CLI `cage`, `usage`, cờ mới của `package` | `cmd/tpan/cage.go`, `usage.go`, `package.go` và test | `tho-phu` | không | sonnet |
-| 5 | API và CLI của thử tấn công; dọn tự động trong bộ hẹn giờ | `internal/server/api_probe.go`, `cmd/tpan/isolation.go` và test | `tho-phu` | không | sonnet |
-| 5 | Script e2e (viết, chưa chạy) | `scripts/e2e-m17.sh`, `scripts/e2e-m17/`, target `e2e-m17` trong `Makefile` | `tho-may-ao` | | opus |
-| 6 | Chạy e2e bước 20 hai stack, nâng cấp, hồi quy; sửa lỗi gốc | máy ảo `tpan-m17`, `docs/bang-chung/M17*.log` | `tho-may-ao` | | opus |
-| 7 | Soát cuối trên máy ảo | chỉ đọc mã; ghi `docs/thay-doi/M17.md` | thợ soát | | fable, max |
-| 7 | Giải thích | `docs/giai-thich/17-m17-long-theo-site.md` | `tho-viet` | không | sonnet |
+| 0 | Hợp đồng: kiểu, chữ ký (thân tạm giữ hành vi cũ hoặc trả lỗi "chưa viết"), migration 1700, các dòng route kèm luật (handler tạm trả 501), trường `Bare` và `Describer`, các hàm tên của `site.Layout`, `siteChecks` nhận thêm cờ lồng (mọi chỗ gọi truyền `st.Caged`), `health.fileOwner` nhận đường dẫn của lồng | các file `types*.go`, `internal/site/cage.go`, `internal/system/types.go`, `internal/store/migrations/1700_cage.sql`, `internal/server/routes.go`, `internal/core/cage.go` (chữ ký), `internal/core/site.go` (chỉ chữ ký `siteChecks`), `internal/health/collect.go` | phiên chính | | |
+| 1 | Template của lồng và vhost bản trong lồng, golden | `internal/templates/cage.go`, `cage_test.go`, `files/cage-*.tmpl`, `testdata/cage-*`; hàm vhost bản trong lồng thêm ở `site.go`, `ssl.go` của gói này | `tho-loi` | nhạy cảm (sinh unit, vhost, pool) | opus |
+| 1 | `cage.Wrap`, `cage.ReadUsage`; engine và checks in lệnh thật qua `system.Describe` | `internal/cage/` (dùng mẫu ở `docs/bang-chung/M17-nghien-cuu/cgroup-mau/`), `internal/engine/engine.go` (chỉ `recSys.Run`), `internal/checks/run.go` (chỉ `execCmd`), `cmd/tpan/main.go` (bọc `NewLocal`) | `tho-loi` | nhạy cảm (chạy lệnh thay cho site) | opus |
+| 1 | Store: cột mới của `sites`, `packages`; bảng mẫu, gộp giờ, sổ phép thử | `internal/store/sites.go`, `users.go` (chỉ phần gói), `usage.go`, `probe.go` và test | `tho-phu` | không | sonnet |
+| 1 | Script e2e bước 20 (viết theo hợp đồng CLI và JSON; chạy ở đợt 4) | `scripts/e2e-m17.sh`, `scripts/e2e-m17/` | `tho-phu` | không (test) | sonnet |
+| 2 | Step `CageFiles`, `CageSocket`, `CageRestart`, vhost bản trong lồng | `internal/steps/cage.go`, `cage_test.go`; hàm thêm ở `site_web.go`, `ssl.go` của gói này | `tho-loi` | nhạy cảm | opus |
+| 2 | Phép kiểm của lồng (`cage.socket`, `cage.fence`, `cage.limits`, `cage.state`, `probe.leftover`), `SiteChecksCaged`, `Isolated` thêm `Bare` và socket của lồng, `DriftStage` | `internal/checks/cage.go`, `cage_test.go`, `site.go` (chỉ `Isolated` và `SiteChecks*`), `health.go` (chỉ `DriftStage`) | `tho-phu` | không | sonnet |
+| 2 | Số liệu: đọc ngay, lấy mẫu, gộp giờ, gợi ý | `internal/core/usage.go`, `usage_test.go` | `tho-phu` | không | sonnet |
+| 2 | Kiểm trần của gói; `route explain` cho site trong lồng | `internal/core/users.go` (chỉ `checkPackageLimits` và chỗ gọi), `route_m14.go` và test | `tho-phu` | không | sonnet |
+| 3 | Plan của lồng, sửa tự động, chọn bộ phép kiểm | `internal/core/cage.go`, `cage_test.go`, `fix.go`, `health.go` | `tho-loi` | nhạy cảm | opus |
+| 3 | Ghép lồng vào thao tác đã có | `internal/core/site.go`, `suspend.go`, `trash.go`, `php.go`, `backup.go`, `apply.go`, `selfupdate.go`, `dbops.go` và test | `tho-loi` | nhạy cảm | opus |
+| 3 | Thử tấn công | `internal/core/probe.go`, `probe_test.go`, `internal/core/probe/` (file PHP thử, nhúng bằng `embed`) | `tho-loi` | nhạy cảm (root ghi file, tạo và xoá user) | opus |
+| 3 | API và CLI: lồng, số liệu, gói, thử tấn công; bộ hẹn giờ lấy mẫu và dọn phép thử | `internal/server/api_m17.go`, `api_m17_test.go`, `usage_timer.go`, `api_m13.go` (chỉ handler sửa gói và sửa user), `cmd/tpan/cage.go`, `usage.go`, `isolation.go`, `package.go`, `user.go` (chỉ `edit`) và test | `tho-phu` | không (luật của route đã chốt ở đợt 0) | sonnet |
+| 4 | Chạy e2e bước 20 hai stack, nâng cấp, hồi quy M13, M14, M9; sửa lỗi gốc | máy ảo `tpan-m17`, `scripts/e2e-m17*`, `docs/bang-chung/M17*.log`, mã ở bất kỳ gói nào (kèm test) | `tho-may-ao` | | opus |
+| 5 | Soát cuối trên máy ảo (sau đợt 4) | chỉ đọc mã; ghi `docs/thay-doi/M17.md` | thợ soát | | opus, max |
+| 5 | Giải thích (song song với soát cuối, không dùng máy ảo) | `docs/giai-thich/17-m17-long-theo-site.md` | `tho-viet` | không | sonnet |
 
-Mục phải đọc trong file này: đợt 1 đọc 2.1 đến 2.4, 3.1 đến 3.4, 3.7, 3.8, 5; đợt 2 đọc thêm 3.5, 3.8; đợt 3 đọc 3.5, 3.6, 4, 5; đợt 4 và 5 đọc 3.8 đến 3.10, 4, 5; đợt 6 đọc mục 7.
+Mục phải đọc trong file này: mọi đợt đọc mục 1 và 3.1, 3.2; đợt 1 thêm 2.1 đến 2.4, 2.8, 3.3, 3.4, 3.8 (phần đọc cgroup), 3.10 (cho script e2e), 5, 7; đợt 2 thêm 3.5, 3.7, 3.8; đợt 3 thêm 3.5 đến 3.10, 4, 5, 6; đợt 4 đọc mục 7 và 4; đợt 5 đọc cả file.
 
 ## Soát thiết kế
 
