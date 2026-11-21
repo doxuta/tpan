@@ -7,6 +7,7 @@
 
 import type { Site } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { SuspendTag } from "../../components/SuspendTag";
 import { usePreviewedOp, type Op } from "../../components/PreviewedOp";
 import { useLang, useStrings } from "../../i18n";
@@ -45,58 +46,55 @@ export function SuspendBlock({ site, admin }: Props) {
   if (!suspended && !dbSuspended && !admin) return null;
 
   return (
-    <section aria-labelledby="tam-khoa">
-      <h2 id="tam-khoa" className="m-0 pt-[26px] pb-[10px] text-[16px] font-semibold">
-        {t.suspendHeading}
-      </h2>
-
-      {suspended ? (
-        <div className="border-t border-hair pt-[12px]">
-          <p className="m-0 flex flex-wrap items-center gap-x-[10px] gap-y-[6px] font-medium">
-            <SuspendTag how={suspended} />
-            {t.suspendedNow}
-            {site.suspended_at && <span className="font-normal text-muted">{t.suspendedSince(formatWhen(site.suspended_at, lang))}</span>}
-          </p>
-          <p className="mt-[8px] mb-0 max-w-[720px]">{suspended === "self" ? t.suspendedSelf : t.suspendedUser}</p>
-          <p className="mt-[6px] mb-0 max-w-[720px] text-muted">{t.suspendedEffect}</p>
-          {admin && (
-            <div className="pt-[12px]">
-              <Button disabled={op.pending} aria-label={t.unsuspendFor(d)} onClick={() => void op.ask(siteOp(false))}>
-                {op.busy("unsuspend") ? m.previewing : t.unsuspend}
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        admin && (
-          <div className="border-t border-hair pt-[12px]">
-            <p className="m-0 max-w-[720px] text-muted">{t.suspendHint}</p>
-            <div className="pt-[12px]">
-              <Button disabled={op.pending} aria-label={t.suspendFor(d)} onClick={() => void op.ask(siteOp(true))}>
-                {op.busy("suspend") ? m.previewing : t.suspend}
-              </Button>
-            </div>
+    <>
+      <Card title={t.suspendHeading} titleId="tam-khoa">
+        {suspended ? (
+          <div>
+            <p className="m-0 flex flex-wrap items-center gap-x-[10px] gap-y-[6px] font-medium">
+              <SuspendTag how={suspended} />
+              {t.suspendedNow}
+              {site.suspended_at && <span className="font-normal text-muted">{t.suspendedSince(formatWhen(site.suspended_at, lang))}</span>}
+            </p>
+            <p className="mt-[8px] mb-0 max-w-[72ch]">{suspended === "self" ? t.suspendedSelf : t.suspendedUser}</p>
+            <p className="mt-[6px] mb-0 max-w-[72ch] text-muted">{t.suspendedEffect}</p>
+            {admin && (
+              <div className="pt-[12px]">
+                <Button disabled={op.pending} aria-label={t.unsuspendFor(d)} onClick={() => void op.ask(siteOp(false))}>
+                  {op.busy("unsuspend") ? m.previewing : t.unsuspend}
+                </Button>
+              </div>
+            )}
           </div>
-        )
-      )}
-
-      {dbSuspended && (
-        <div className="mt-[12px] border-t border-hair pt-[12px]">
-          <p className="m-0 flex flex-wrap items-center gap-x-[10px] gap-y-[6px] font-medium">
-            <SuspendTag how={dbSuspended} label={m.dbLocked} />
-            {t.dbSuspendedLine}
-          </p>
-          {admin && (
-            <div className="pt-[12px]">
-              <Button disabled={op.pending} aria-label={t.dbUnsuspendFor(d)} onClick={() => void op.ask(dbOp)}>
-                {op.busy("db-unsuspend") ? m.previewing : t.dbUnsuspend}
-              </Button>
+        ) : (
+          admin && (
+            <div>
+              <p className="m-0 max-w-[72ch] text-muted">{t.suspendHint}</p>
+              <div className="pt-[12px]">
+                <Button disabled={op.pending} aria-label={t.suspendFor(d)} onClick={() => void op.ask(siteOp(true))}>
+                  {op.busy("suspend") ? m.previewing : t.suspend}
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-      )}
+          )
+        )}
 
+        {dbSuspended && (
+          <div className={suspended || admin ? "mt-[14px] border-t border-hair pt-[14px]" : ""}>
+            <p className="m-0 flex flex-wrap items-center gap-x-[10px] gap-y-[6px] font-medium">
+              <SuspendTag how={dbSuspended} label={m.dbLocked} />
+              {t.dbSuspendedLine}
+            </p>
+            {admin && (
+              <div className="pt-[12px]">
+                <Button disabled={op.pending} aria-label={t.dbUnsuspendFor(d)} onClick={() => void op.ask(dbOp)}>
+                  {op.busy("db-unsuspend") ? m.previewing : t.dbUnsuspend}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
       {op.panel}
-    </section>
+    </>
   );
 }

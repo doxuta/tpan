@@ -12,6 +12,7 @@ import { useRouteTrace } from "../../api/m14";
 import type { RouteHop } from "../../api/m14-types";
 import { Button } from "../../components/Button";
 import { EvidenceBlock } from "../../components/EvidenceBlock";
+import { Icon } from "../../components/Icon";
 import { MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
 import { Tag } from "../../components/Tag";
@@ -50,7 +51,8 @@ export function RouteExplain({ domain }: { domain: string }) {
   const hops = trace.data?.hops ?? [];
 
   return (
-    <div className="pt-[14px]">
+    // Nằm trong thẻ "Đường đi request": kẻ một đường phân với bản đồ tuyến phía trên.
+    <div className="mt-[16px] border-t border-hair pt-[16px]">
       <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px]">
         <Button onClick={run} disabled={trace.isPending}>
           {trace.isPending ? t.traceRunning : done ? t.traceAgain : t.traceButton}
@@ -71,9 +73,7 @@ export function RouteExplain({ domain }: { domain: string }) {
       {trace.isSuccess && (
         <div className="pt-[14px]">
           <div className="flex flex-wrap items-center gap-x-[10px] gap-y-[6px]">
-            <h3 className="m-0 font-mono text-[11px] font-normal tracking-[0.08em] text-muted">
-              {t.traceLabel}
-            </h3>
+            <h3 className="m-0 text-[12px] font-medium text-muted">{t.traceLabel}</h3>
             {trace.data.web && <Tag>{trace.data.web}</Tag>}
           </div>
           {hops.length === 0 ? (
@@ -108,17 +108,15 @@ function Hop({ hop, open, onToggle }: { hop: RouteHop; open: boolean; onToggle: 
           <span className="sr-only">{statusName(hop.status)}: </span>
           {tx(hop.title, lang)}
         </span>
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`mt-[3px] flex-none text-muted ${open ? "rotate-180" : ""}`}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <Icon name="chevron-down" size={16} className={`mt-[3px] flex-none text-muted transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <div className="pb-[10px] pl-[32px]">
-        <div>{hop.value ? <MonoText>{hop.value}</MonoText> : <span className="font-mono text-[13px] text-muted">{t.traceNoValue}</span>}</div>
+        <div>{hop.value ? <MonoText>{hop.value}</MonoText> : <span className="text-[13px] text-muted">{t.traceNoValue}</span>}</div>
         <p className="m-0 text-muted">{tx(hop.summary, lang)}</p>
       </div>
       {open && (
         <div id={panelId} className="pb-[16px] pl-[32px]">
-          {hop.evidence && hop.evidence.length > 0 ? <EvidenceBlock evidence={hop.evidence} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}
+          {hop.evidence && hop.evidence.length > 0 ? <EvidenceBlock evidence={hop.evidence} clamp={20} /> : <p className="m-0 text-muted">{t.noEvidence}</p>}
         </div>
       )}
     </li>

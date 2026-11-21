@@ -1,28 +1,41 @@
-// Màn Site (mục 10 của KE-HOACH.md, mục 7 của docs/GIAO-DIEN.md):
-//   /sites         danh sách site, bảng kẻ mảnh như "Lịch sử máy"
-//   /sites/:domain một site: tuyến đường đi request, phép kiểm kèm bằng chứng,
-//                  tên và đường dẫn, kiểm lại, đưa site vào thùng rác (qua bản
-//                  xem trước; M6: DELETE không còn xoá hẳn, xoá hẳn ở màn Thùng rác).
-//                  M14: "Request tới site này đi đường nào" (RouteExplain) và
-//                  chế độ .htaccess khi web server là Apache (HtaccessBlock)
+// Màn Site (mục 10 của KE-HOACH.md, mục 7 của docs/GIAO-DIEN.md; giao diện bản 2,
+// mục 3.7 của docs/thay-doi/M16-thiet-ke.md):
+//   /sites         danh sách site: một TableList (tự vẽ thẻ), tên miền là liên kết,
+//                  cột Việc (admin) là một nút Tạm khoá hoặc Mở khoá
+//   /sites/:domain một site, chia sáu tab (Radix Tabs; tab đang mở nằm trong ?tab=):
+//                  Tổng quan (đường đi request, request một giờ qua, sự cố của site),
+//                  Phép kiểm (theo chặng; phép cô lập gộp một khối), Log, PHP, Backup,
+//                  Cài đặt site (.htaccess, tạm khoá, tên và đường dẫn, thùng rác).
+//                  Đưa site vào thùng rác đi qua bản xem trước (M6: DELETE không còn xoá
+//                  hẳn, xoá hẳn ở màn Thùng rác). M14: "Request tới site này đi đường
+//                  nào" (RouteExplain) và chế độ .htaccess khi web server là Apache.
+//
+// Nội dung của tab không mở bị gỡ khỏi trang, nên mọi thứ phải sống qua lần đổi tab
+// (ga đang chọn, phép kiểm nào đang mở, khối cô lập, bản xem trước xoá) nằm ở SiteView.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { siteSuspendPath, useIdentity } from "../../api/m13-dbs";
 import { useJobTracker } from "../../components/JobTracker";
 import { ApiError, del, errorMessage, get } from "../../api/client";
 import { queryKeys, useOverview } from "../../api/queries";
-import type { JobStarted, Preview, SiteInfo, Stage } from "../../api/types";
+import type { CheckResult, JobStarted, Preview, SiteInfo, Stage, Suspension } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
 import { BulkBar, SelectAll, SelectOne, useSelection } from "../../components/Bulk";
+import { Card } from "../../components/Card";
+import { Disclosure } from "../../components/Disclosure";
 import { DomainText } from "../../components/DomainText";
-import { MonoText } from "../../components/MonoText";
+import { EmptyState } from "../../components/EmptyState";
+import { Icon } from "../../components/Icon";
+import { Code, MonoText } from "../../components/MonoText";
 import { usePreviewedOp, type Op } from "../../components/PreviewedOp";
+import { RowActions } from "../../components/RowActions";
 import { ScreenHeader } from "../../components/ScreenHeader";
-import { StatusMark } from "../../components/StatusMark";
+import { StatusLine, StatusMark } from "../../components/StatusMark";
 import { SuspendTag } from "../../components/SuspendTag";
 import { TableList, type Column } from "../../components/TableList";
+import { Tabs, TabPanel } from "../../components/Tabs";
 import { Tag } from "../../components/Tag";
 import { useStatusName } from "../../components/useStatusName";
 import { tx, useLang, useStrings } from "../../i18n";
@@ -30,12 +43,14 @@ import { strings as khung } from "../../i18n/khung";
 import { strings as chung } from "../../i18n/m13-chung";
 import { strings } from "../../i18n/site";
 import { PlanReview } from "../duyet-plan";
+import { formatWhen } from "../thung-rac/model";
 import { Backups } from "./Backups";
 import { CheckItem } from "./CheckItem";
 import { ErrorNote } from "./ErrorNote";
-import { LiveLog } from "./LiveLog";
 import { formatDate, formatTime } from "./format";
 import { HtaccessBlock } from "./HtaccessBlock";
+import { groupIsolation, touchesSite, type IsolationGroup } from "./isolation";
+import { LiveLog } from "./LiveLog";
 import { PhpBlock } from "./PhpBlock";
 import { RouteExplain } from "./RouteExplain";
 import { Legend, RouteMap, stageGroupId } from "./RouteMap";
@@ -45,8 +60,6 @@ import { Traffic } from "./Traffic";
 
 const sitePath = (domain: string) => `/api/v1/sites/${encodeURIComponent(domain)}`;
 const siteKey = (domain: string) => ["site", domain] as const;
-
-const linkClass = "font-mono text-[13px] text-ink no-underline hover:text-ink hover:underline";
 
 /** /sites: danh sách site. */
 export function SiteList() {
@@ -86,10 +99,12 @@ export function SiteList() {
     },
     {
       header: t.colDomain,
-      className: "min-w-[160px]",
+      className: "min-w-[200px]",
+      // Tên miền dài xuống dòng ngay sau dấu chấm (DomainText), nên bảng không bị cắt chữ.
+      nowrap: false,
       cell: (r) => (
-        <span className="flex flex-wrap items-baseline gap-x-[10px] gap-y-[4px]">
-          <Link to={`/sites/${encodeURIComponent(r.site.domain)}`} className={linkClass}>
+        <span className="flex flex-wrap items-center gap-x-[10px] gap-y-[4px]">
+          <Link to={`/sites/${encodeURIComponent(r.site.domain)}`} className="font-medium no-underline hover:underline">
             <DomainText domain={r.site.domain} />
           </Link>
           {r.site.suspended && <SuspendTag how={r.site.suspended} />}
@@ -97,10 +112,9 @@ export function SiteList() {
         </span>
       ),
     },
-    ...(isAdmin ? [{ header: m.colOwner, className: "font-mono text-[13px]", cell: (r: Row) => r.site.owner } satisfies Column<Row>] : []),
+    ...(isAdmin ? [{ header: m.colOwner, cell: (r: Row) => r.site.owner } satisfies Column<Row>] : []),
     {
       header: t.colStatus,
-      className: "w-[170px]",
       cell: (r) => {
         const mark = worstMark(r.checks, Boolean(r.site.suspended));
         const name = statusName(mark.status, mark.suspended);
@@ -118,20 +132,31 @@ export function SiteList() {
         );
       },
     },
-    { header: t.colPhp, className: "w-[80px] font-mono text-[13px]", cell: (r) => r.site.php_version },
-    { header: t.colCreated, className: "w-[130px] whitespace-nowrap tabular-nums", cell: (r) => formatDate(r.site.created, lang) },
+    { header: t.colPhp, cell: (r) => <Code>{r.site.php_version}</Code> },
+    { header: t.colCreated, className: "tabular-nums", cell: (r) => formatDate(r.site.created, lang) },
     ...(isAdmin
       ? [
           {
             header: t.colAction,
-            className: "pr-0",
+            align: "right",
             cell: (r: Row) => {
               const d = r.site.domain;
               const on = !r.site.suspended;
+              const label = on ? t.suspendFor(d) : t.unsuspendFor(d);
               return (
-                <Button aria-label={on ? t.suspendFor(d) : t.unsuspendFor(d)} disabled={op.pending} onClick={() => void op.ask(suspendOp(d, on))}>
-                  {op.busy(`${on ? "suspend" : "unsuspend"}:${d}`) ? m.previewing : on ? t.suspend : t.unsuspend}
-                </Button>
+                <RowActions
+                  moreLabel={label}
+                  primary={[
+                    {
+                      label: on ? t.suspend : t.unsuspend,
+                      ariaLabel: label,
+                      disabled: op.pending,
+                      busy: op.busy(`${on ? "suspend" : "unsuspend"}:${d}`),
+                      busyLabel: m.previewing,
+                      onClick: () => void op.ask(suspendOp(d, on)),
+                    },
+                  ]}
+                />
               );
             },
           } satisfies Column<Row>,
@@ -141,39 +166,32 @@ export function SiteList() {
 
   return (
     <>
-      <ScreenHeader title={t.listTitle} summary={t.listSummary} />
-      <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
-        <h2 className="m-0 text-[16px] font-semibold">{overview.data ? t.count(rows.length) : t.listCaption}</h2>
-        <Link to="/sites/new" className={buttonClass("primary")}>
-          {t.create}
-        </Link>
-      </div>
-      {overview.isPending && <p className="m-0 text-muted">{k.loading}</p>}
+      <ScreenHeader
+        title={t.listTitle}
+        summary={t.listSummary}
+        actions={
+          <Link to="/sites/new" className={buttonClass("primary", "pl-[12px]")}>
+            <Icon name="plus" size={16} />
+            {t.create}
+          </Link>
+        }
+      />
+      {overview.isPending && (
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
+      )}
       {overview.isError && (
-        <div>
+        <Card>
           <p className="mt-0 mb-[12px]">{errorMessage(overview.error, lang)}</p>
           <Button onClick={() => void overview.refetch()}>{k.retry}</Button>
-        </div>
-      )}
-      {overview.data && (
-        <BulkBar
-          sel={sel}
-          unit={t.unitSite}
-          actions={[
-            {
-              key: "trash",
-              label: t.bulkTrash,
-              confirmTitle: t.bulkTrashTitle,
-              confirmBody: <p className="m-0">{t.bulkTrashBody}</p>,
-              confirmLabel: t.bulkTrash,
-              run: (d) => del<JobStarted>(sitePath(d)),
-            },
-          ]}
-        />
+        </Card>
       )}
       {overview.data && (
         <TableList
+          label={t.listCaption}
           caption={t.listCaption}
+          minWidth={820}
           rows={rows}
           rowKey={(r) => r.site.domain}
           empty={
@@ -183,6 +201,23 @@ export function SiteList() {
             </>
           }
           columns={columns}
+          above={
+            <BulkBar
+              sel={sel}
+              unit={t.unitSite}
+              actions={[
+                {
+                  key: "trash",
+                  label: t.bulkTrash,
+                  confirmTitle: t.bulkTrashTitle,
+                  confirmBody: <p className="m-0">{t.bulkTrashBody}</p>,
+                  confirmLabel: t.bulkTrash,
+                  run: (d) => del<JobStarted>(sitePath(d)),
+                },
+              ]}
+            />
+          }
+          footer={rows.length > 0 ? <span>{t.count(rows.length)}</span> : undefined}
         />
       )}
       {op.panel}
@@ -197,13 +232,15 @@ export function SiteDetail() {
   const { lang } = useLang();
   const { domain = "" } = useParams();
   const q = useQuery({ queryKey: siteKey(domain), queryFn: () => get<SiteInfo>(sitePath(domain)) });
-  const title = <span className="font-mono [overflow-wrap:anywhere]">{domain}</span>;
+  const crumbs = [{ label: t.listTitle, to: "/sites" }, { label: domain }];
 
   if (q.isPending) {
     return (
       <>
-        <ScreenHeader title={title} />
-        <p className="mt-[16px] mb-0 text-muted">{k.loading}</p>
+        <ScreenHeader crumbs={crumbs} title={domain} />
+        <Card>
+          <p className="m-0 text-muted">{k.loading}</p>
+        </Card>
       </>
     );
   }
@@ -211,8 +248,8 @@ export function SiteDetail() {
     const missing = q.error instanceof ApiError && q.error.code === "site_not_found";
     return (
       <>
-        <ScreenHeader title={title} />
-        <div className="pt-[16px]">
+        <ScreenHeader crumbs={crumbs} title={domain} />
+        <Card>
           <p className="mt-0 mb-[12px]">{missing ? t.siteMissing(domain) : errorMessage(q.error, lang)}</p>
           {missing ? (
             <Link to="/sites" className={buttonClass("secondary")}>
@@ -221,11 +258,24 @@ export function SiteDetail() {
           ) : (
             <Button onClick={() => void q.refetch()}>{k.retry}</Button>
           )}
-        </div>
+        </Card>
       </>
     );
   }
   return <SiteView key={domain} domain={domain} info={q.data} updatedAt={q.dataUpdatedAt} />;
+}
+
+type TabId = "tong-quan" | "phep-kiem" | "log" | "php" | "backup" | "cai-dat";
+
+/** Nhãn "tạm khoá" đặt thẳng trên nền trang (meta của ScreenHeader): cùng ruột với SuspendTag nhưng nền Tag là --surface. */
+function MetaSuspend({ how, label }: { how: Suspension; label?: string }) {
+  const m = useStrings(chung);
+  return (
+    <Tag tone="surface" title={m.suspendedByHint[how]}>
+      {label ?? m.suspendedState}
+      <span className="sr-only">: {m.suspendedBy[how]}</span>
+    </Tag>
+  );
 }
 
 function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo; updatedAt: number }) {
@@ -245,25 +295,61 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
   const phpBlocked = siteSuspended ? t.blockedSite : dbSuspended ? t.blockedDb : undefined;
   const trashBlocked = siteSuspended ? t.blockedTrashSite : dbSuspended ? t.blockedTrashDb : undefined;
 
+  const noStack = info.web === "" && checks.length === 0;
+  const hasLogs = info.web !== "" && info.site.status === "active";
+
+  // ---- tab: nằm trong ?tab=, giá trị lạ hay tab đang ẩn thì coi như Tổng quan ----
+  const [params, setParams] = useSearchParams();
+  const visible: TabId[] = hasLogs ? ["tong-quan", "phep-kiem", "log", "php", "backup", "cai-dat"] : ["tong-quan", "phep-kiem", "backup", "cai-dat"];
+  const raw = params.get("tab");
+  const tab: TabId = visible.find((v) => v === raw) ?? "tong-quan";
+  const setTab = (v: TabId) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (v === "tong-quan") next.delete("tab");
+        else next.set("tab", v);
+        return next;
+      },
+      { replace: true },
+    );
+
   // ---- ga và phép kiểm ----
+  // Phép cô lập gộp thành một khối (isolation.ts); các phép đã gộp không in lại ở danh sách thường của chặng.
+  const iso = groupIsolation(checksOfStage(checks, "wordpress"), domain);
+  const isoIds = new Set<string>();
+  for (const p of iso?.pairs ?? []) {
+    if (p.out) isoIds.add(p.out.id);
+    if (p.in) isoIds.add(p.in.id);
+  }
+  const plainOf = (stage: Stage) => checksOfStage(checks, stage).filter((c) => !isoIds.has(c.id));
+
   const [selected, setSelected] = useState<Stage | null>(null);
-  // Phép kiểm lỗi mở sẵn: người vào trang một site hỏng cần thấy bằng chứng ngay.
+  // Phép kiểm lỗi mở sẵn: người vào trang một site hỏng cần thấy bằng chứng ngay. Gồm cả phép cô lập lỗi.
   const [open, setOpen] = useState<Set<string>>(() => new Set(checks.filter((c) => c.status === "fail").map((c) => c.id)));
+  // Khối cô lập tự mở khi có phép lỗi (openIds khác rỗng).
+  const [isoOpen, setIsoOpen] = useState(() => iso !== null && iso.openIds.length > 0);
+  // Ga cần đưa focus tới: nhóm phép kiểm chỉ có trong trang sau khi sang tab Phép kiểm, nên focus nằm trong effect.
+  const [focusStage, setFocusStage] = useState<Stage | null>(null);
+  useEffect(() => {
+    if (focusStage === null || tab !== "phep-kiem") return;
+    (document.getElementById(stageGroupId(focusStage)) ?? document.getElementById("phep-kiem"))?.focus();
+    setFocusStage(null);
+  }, [focusStage, tab]);
 
   const select = (stage: Stage) => {
-    const ids = checksOfStage(checks, stage).map((c) => c.id);
-    const close = selected === stage && ids.length > 0 && ids.every((id) => open.has(id));
+    // Bấm ga là mở các phép kiểm của chặng. Bản 1 bấm lần hai thì đóng lại; giờ bấm ga là sang tab khác nên lần hai không còn nghĩa đó.
     setSelected(stage);
     setOpen((prev) => {
       const next = new Set(prev);
-      for (const id of ids) {
-        if (close) next.delete(id);
-        else next.add(id);
-      }
+      for (const c of plainOf(stage)) next.add(c.id);
       return next;
     });
-    // Đưa người dùng (và trình đọc màn hình) tới nhóm phép kiểm của ga vừa bấm.
-    (document.getElementById(stageGroupId(stage)) ?? document.getElementById("phep-kiem"))?.focus();
+    // Chặng WordPress: mở cả khối cô lập (chỉ phép lỗi trong đó tự mở), không mở hàng chục phép cô lập một lượt.
+    if (stage === "wordpress" && iso !== null) setIsoOpen(true);
+    // Bấm ga là sang tab Phép kiểm, rồi đưa người dùng (và trình đọc màn hình) tới nhóm của ga vừa bấm.
+    setTab("phep-kiem");
+    setFocusStage(stage);
   };
   const toggle = (id: string) =>
     setOpen((prev) => {
@@ -273,8 +359,6 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
     });
 
   const groups = stageOrder.filter((s) => (routeStages as readonly Stage[]).includes(s) || s === "e2e" || checksOfStage(checks, s).length > 0);
-  const noStack = info.web === "" && checks.length === 0;
-  const hasLogs = info.web !== "" && info.site.status === "active";
   // Dòng "Hỏng ở ..." lấy ga hỏng đầu tiên; nếu sáu ga đều ổn mà phép gọi HTTP thật hỏng thì nói về nó.
   const firstFail = [...routeStages, "e2e" as const].map((s) => ({ s, c: checksOfStage(checks, s).find((c) => c.status === "fail") })).find((x) => x.c);
 
@@ -328,164 +412,273 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
 
   return (
     <>
-      <ScreenHeader title={<span className="font-mono [overflow-wrap:anywhere]">{domain}</span>} summary={t.detailSummary} />
-      <div className="flex flex-wrap gap-[6px] pt-[14px]">
-        {info.web && <Tag>{info.web}</Tag>}
-        <Tag>{k.php(info.site.php_version)}</Tag>
-        {info.site.status === "trashed" && <Tag>{t.trashed}</Tag>}
-        {info.site.suspended && <SuspendTag how={info.site.suspended} />}
-        {info.site.db_suspended && <SuspendTag how={info.site.db_suspended} label={m.dbLocked} />}
-        {isAdmin && <Tag>{m.ownerLabel(info.site.owner)}</Tag>}
-      </div>
+      <ScreenHeader
+        crumbs={[{ label: t.listTitle, to: "/sites" }, { label: domain }]}
+        title={domain}
+        summary={t.detailSummary}
+        meta={
+          <>
+            {info.web && <Tag tone="surface">{info.web}</Tag>}
+            <Tag tone="surface">{k.php(info.site.php_version)}</Tag>
+            {isAdmin && <Tag tone="surface">{m.ownerLabel(info.site.owner)}</Tag>}
+            {info.site.suspended && <MetaSuspend how={info.site.suspended} />}
+            {info.site.db_suspended && <MetaSuspend how={info.site.db_suspended} label={m.dbLocked} />}
+            {info.site.status === "trashed" && <Tag tone="surface">{t.trashed}</Tag>}
+          </>
+        }
+      />
 
-      <section aria-labelledby="tuyen">
-        <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[10px] pt-[26px] pb-[14px]">
-          <h2 id="tuyen" className="m-0 text-[16px] font-semibold">
-            {t.routeHeading}
-          </h2>
-          <Legend />
-        </div>
-        <RouteMap domain={domain} checks={checks} selected={selected} onSelect={select} suspended={siteSuspended} />
-        {firstFail?.c && (
-          <p className="mt-[10px] mb-0 text-[13px] font-medium text-fail-text">{t.failedAt(t.stages[firstFail.s], tx(firstFail.c.summary, lang))}</p>
-        )}
-        {/* Site tạm khoá: một dòng xám (không đỏ) nói các chặng xám là do khoá, không phải do hỏng. */}
-        {siteSuspended && !firstFail?.c && <p className="mt-[10px] mb-0 text-[13px] text-muted">{t.suspendedLine}</p>}
-        <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px] pt-[12px]">
-          <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
-            {recheck.isPending ? t.rechecking : t.recheck}
-          </Button>
-          <span aria-live="polite" className="text-[13px] text-muted">
-            {t.updatedAt(formatTime(updatedAt, lang))}
-          </span>
-          <span className="text-[13px] text-muted">{t.routeHint}</span>
-        </div>
-        {recheck.isError && (
-          <div className="pt-[12px]">
-            <ErrorNote error={recheck.error} heading={t.recheckFailed} />
-          </div>
-        )}
-        {/* M14: lần đường đi từ cấu hình đang chạy. Chưa cài stack hoặc site trong thùng rác thì máy chủ từ chối, nên không hiện nút. */}
-        {hasLogs && <RouteExplain domain={domain} />}
-      </section>
-
-      {/* Log và số request đọc file log của site: chưa cài stack hoặc site trong thùng rác thì không có gì để đọc. */}
-      {hasLogs && <Traffic domain={domain} />}
-
-      <section aria-labelledby="phep-kiem">
-        <h2 id="phep-kiem" tabIndex={-1} className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
-          {t.checksHeading}
-        </h2>
-        {noStack ? (
-          <p className="m-0 border-t border-hair pt-[10px] text-muted">{t.noStack}</p>
-        ) : (
-          groups.map((stage) => {
-            const list = checksOfStage(checks, stage);
-            const mark = worstMark(list, siteSuspended);
-            return (
-              <div key={stage} className="border-t border-hair pt-[12px]">
-                <h3 id={stageGroupId(stage)} tabIndex={-1} className="m-0 flex items-center gap-[8px] font-mono text-[11px] font-normal tracking-[0.08em] text-muted uppercase">
-                  <span className="flex h-[20px] w-[20px] items-center justify-center">
-                    <StatusMark status={mark.status} />
-                  </span>
-                  {t.stages[stage]}
-                  <span className="sr-only">: {statusName(mark.status, mark.suspended)}</span>
-                </h3>
-                {list.length === 0 ? (
-                  <p className="mt-[6px] mb-[12px] pl-[28px] text-muted">{siteSuspended ? t.noChecksSuspended : t.noChecksInStage}</p>
-                ) : (
-                  <ul className="m-0 mt-[2px] list-none p-0">
-                    {list.map((c) => (
-                      <CheckItem key={c.id} check={c} open={open.has(c.id)} onToggle={() => toggle(c.id)} />
-                    ))}
-                  </ul>
-                )}
+      <Tabs label={t.tabsLabel} value={tab} onValueChange={setTab} tabs={visible.map((v) => ({ value: v, label: t.tabs[v] }))}>
+        <TabPanel value="tong-quan">
+          <Card title={t.routeHeading} titleId="tuyen" actions={<Legend />}>
+            <RouteMap domain={domain} checks={checks} selected={selected} onSelect={select} suspended={siteSuspended} />
+            {firstFail?.c && (
+              <p className="mt-[10px] mb-0 text-[13px] font-medium text-fail-text">{t.failedAt(t.stages[firstFail.s], tx(firstFail.c.summary, lang))}</p>
+            )}
+            {/* Site tạm khoá: một dòng xám (không đỏ) nói các chặng xám là do khoá, không phải do hỏng. */}
+            {siteSuspended && !firstFail?.c && <p className="mt-[10px] mb-0 text-[13px] text-muted">{t.suspendedLine}</p>}
+            <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px] pt-[12px]">
+              <Button onClick={() => recheck.mutate()} disabled={recheck.isPending}>
+                {recheck.isPending ? t.rechecking : t.recheck}
+              </Button>
+              <span aria-live="polite" className="text-[13px] text-muted">
+                {t.updatedAt(formatTime(updatedAt, lang))}
+              </span>
+              <span className="text-[13px] text-muted">{t.routeHint}</span>
+            </div>
+            {recheck.isError && (
+              <div className="pt-[12px]">
+                <ErrorNote error={recheck.error} heading={t.recheckFailed} />
               </div>
-            );
-          })
+            )}
+            {/* M14: lần đường đi từ cấu hình đang chạy. Chưa cài stack hoặc site trong thùng rác thì máy chủ từ chối, nên không hiện nút. */}
+            {hasLogs && <RouteExplain domain={domain} />}
+          </Card>
+
+          {/* Số request đọc file log của site: chưa cài stack hoặc site trong thùng rác thì không có gì để đọc. */}
+          {hasLogs && <Traffic domain={domain} />}
+
+          <SiteIncidents domain={domain} />
+        </TabPanel>
+
+        <TabPanel value="phep-kiem">
+          {/* id của thẻ là chỗ dự phòng để chuyển focus tới khi chặng của ga không có nhóm riêng. */}
+          <Card id="phep-kiem" title={t.checksHeading} titleId="phep-kiem-tieu-de">
+            {noStack ? (
+              <p className="m-0 text-muted">{t.noStack}</p>
+            ) : (
+              groups.map((stage) => {
+                const list = checksOfStage(checks, stage);
+                const plain = plainOf(stage);
+                const stageIso = stage === "wordpress" ? iso : null;
+                // Dấu của chặng tính trên mọi phép kiểm của chặng, kể cả các phép đã gộp.
+                const mark = worstMark(list, siteSuspended);
+                return (
+                  <div key={stage} className="border-t border-hair pt-[12px] first:border-t-0 first:pt-0">
+                    <h3 id={stageGroupId(stage)} tabIndex={-1} className="m-0 flex items-center gap-[8px] text-[14px] font-semibold">
+                      <span className="flex h-[20px] w-[20px] items-center justify-center">
+                        <StatusMark status={mark.status} />
+                      </span>
+                      {t.stages[stage]}
+                      <span className="sr-only">: {statusName(mark.status, mark.suspended)}</span>
+                    </h3>
+                    {list.length === 0 ? (
+                      <p className="mt-[6px] mb-[12px] pl-[28px] text-muted">{siteSuspended ? t.noChecksSuspended : t.noChecksInStage}</p>
+                    ) : (
+                      <>
+                        {plain.length > 0 && (
+                          <ul className="m-0 mt-[2px] list-none p-0">
+                            {plain.map((c) => (
+                              <CheckItem key={c.id} check={c} open={open.has(c.id)} onToggle={() => toggle(c.id)} />
+                            ))}
+                          </ul>
+                        )}
+                        {stageIso && <IsolationBlock group={stageIso} open={open} onToggle={toggle} isoOpen={isoOpen} onIsoOpenChange={setIsoOpen} />}
+                      </>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </Card>
+        </TabPanel>
+
+        {hasLogs && (
+          <TabPanel value="log">
+            <LiveLog domain={domain} />
+          </TabPanel>
         )}
-      </section>
 
-      {hasLogs && <LiveLog domain={domain} />}
+        {hasLogs && (
+          <TabPanel value="php">
+            <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} blocked={phpBlocked} />
+          </TabPanel>
+        )}
 
-      {hasLogs && <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} blocked={phpBlocked} />}
+        <TabPanel value="backup">
+          <Backups domain={domain} active={info.site.status === "active"} restoreBlocked={siteSuspended ? t.blockedSite : undefined} />
+        </TabPanel>
 
-      {/* M14: chế độ .htaccess chỉ có nghĩa trên Apache. Server cũ không gửi trường htaccess thì cũng chưa có API đổi chế độ: không hiện khối. */}
-      {info.web === "apache" && info.site.status === "active" && info.site.htaccess && (
-        <HtaccessBlock domain={domain} mode={info.site.htaccess} blocked={siteSuspended ? t.htBlockedSite : undefined} />
-      )}
-
-      <Backups domain={domain} active={info.site.status === "active"} restoreBlocked={siteSuspended ? t.blockedSite : undefined} />
-
-      {info.site.status === "active" && <SuspendBlock site={info.site} admin={isAdmin} />}
-
-      <section aria-labelledby="ten-duong-dan">
-        <div className="flex flex-wrap items-end justify-between gap-x-[24px] gap-y-[6px] pt-[26px] pb-[10px]">
-          <h2 id="ten-duong-dan" className="m-0 text-[16px] font-semibold">
-            {t.layoutHeading}
-          </h2>
-          <span className="text-[13px] text-muted">{t.layoutHint}</span>
-        </div>
-        <dl className="m-0">
-          {layoutRows.map(([label, value]) => (
-            <div key={label} className="flex flex-wrap gap-x-[16px] border-t border-hair py-[8px]">
-              <dt className="flex-[0_0_220px] text-muted">{label}</dt>
-              <dd className="m-0 min-w-0 flex-[1_1_240px]">{value ? <MonoText>{value}</MonoText> : <span className="text-muted">{t.vhostNoStack}</span>}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      {info.site.status === "trashed" ? (
-        // Site đã trong thùng rác: không còn gì để "đưa vào" nữa, việc tiếp theo ở màn Thùng rác.
-        <section aria-labelledby="xoa-site">
-          <h2 id="xoa-site" className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
-            {t.trashedHeading}
-          </h2>
-          <p className="m-0 text-muted">{t.trashedHint}</p>
-          <div className="pt-[12px]">
-            <Link to="/trash" className={buttonClass("primary")}>
-              {t.trashedLink}
-            </Link>
-          </div>
-        </section>
-      ) : (
-        <section aria-labelledby="xoa-site">
-          <h2 id="xoa-site" className="m-0 pt-[26px] pb-[6px] text-[16px] font-semibold">
-            {t.deleteHeading}
-          </h2>
-          <p className="m-0 text-muted">
-            {t.deleteHintLead}
-            <Link to="/trash">{t.trashLink}</Link>
-            {t.deleteHintTail}
-          </p>
-          <div className="pt-[12px]">
-            <Button onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending || trashBlocked !== undefined} aria-describedby={trashBlocked ? "xoa-bi-chan" : undefined}>
-              {dry.isPending ? t.deletePreviewing : t.delete}
-            </Button>
-          </div>
-          {trashBlocked && (
-            <p id="xoa-bi-chan" className="mt-[10px] mb-0 max-w-[720px] text-[13px] text-muted">
-              {trashBlocked}
-            </p>
+        <TabPanel value="cai-dat">
+          {/* M14: chế độ .htaccess chỉ có nghĩa trên Apache. Server cũ không gửi trường htaccess thì cũng chưa có API đổi chế độ: không hiện khối. */}
+          {info.web === "apache" && info.site.status === "active" && info.site.htaccess && (
+            <HtaccessBlock domain={domain} mode={info.site.htaccess} blocked={siteSuspended ? t.htBlockedSite : undefined} />
           )}
-          {dry.isError && (
-            <div className="pt-[12px]">
-              <ErrorNote error={dry.error} heading={t.deleteFailed} />
-            </div>
+
+          {info.site.status === "active" && <SuspendBlock site={info.site} admin={isAdmin} />}
+
+          <Card title={t.layoutHeading} titleId="ten-duong-dan" actions={<span className="text-[13px] text-muted">{t.layoutHint}</span>}>
+            <dl className="m-0">
+              {layoutRows.map(([label, value]) => (
+                <div key={label} className="flex flex-wrap gap-x-[16px] gap-y-[2px] border-t border-hair py-[8px] first:border-t-0 first:pt-0 last:pb-0">
+                  <dt className="flex-[0_0_220px] text-muted">{label}</dt>
+                  <dd className="m-0 min-w-0 flex-[1_1_240px]">{value ? <MonoText>{value}</MonoText> : <span className="text-muted">{t.vhostNoStack}</span>}</dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
+
+          {info.site.status === "trashed" ? (
+            // Site đã trong thùng rác: không còn gì để "đưa vào" nữa, việc tiếp theo ở màn Thùng rác.
+            <Card title={t.trashedHeading} titleId="xoa-site">
+              <p className="m-0 text-muted">{t.trashedHint}</p>
+              <div className="pt-[12px]">
+                <Link to="/trash" className={buttonClass("primary")}>
+                  {t.trashedLink}
+                </Link>
+              </div>
+            </Card>
+          ) : (
+            <>
+              <Card title={t.deleteHeading} titleId="xoa-site">
+                <p className="m-0 text-muted">
+                  {t.deleteHintLead}
+                  <Link to="/trash">{t.trashLink}</Link>
+                  {t.deleteHintTail}
+                </p>
+                <div className="pt-[12px]">
+                  <Button onClick={() => dry.mutate()} disabled={dry.isPending || run.isPending || trashBlocked !== undefined} aria-describedby={trashBlocked ? "xoa-bi-chan" : undefined}>
+                    {dry.isPending ? t.deletePreviewing : t.delete}
+                  </Button>
+                </div>
+                {trashBlocked && (
+                  <p id="xoa-bi-chan" className="mt-[10px] mb-0 max-w-[72ch] text-[13px] text-muted">
+                    {trashBlocked}
+                  </p>
+                )}
+                {dry.isError && (
+                  <div className="pt-[12px]">
+                    <ErrorNote error={dry.error} heading={t.deleteFailed} />
+                  </div>
+                )}
+              </Card>
+              {preview && (
+                <div ref={previewRef} tabIndex={-1} className="flex flex-col gap-[20px] outline-offset-0">
+                  {/* Câu hỏi lại của việc này: đưa vào thùng rác không mất dữ liệu, nói rõ để người dùng bấm chạy mà yên tâm. */}
+                  <p className="m-0 max-w-[72ch] font-medium">{t.deleteAsk(domain)}</p>
+                  <PlanReview
+                    preview={preview}
+                    onRun={() => run.mutate()}
+                    running={run.isPending}
+                    error={run.error}
+                    onCancel={() => {
+                      setPreview(null);
+                      run.reset();
+                    }}
+                  />
+                </div>
+              )}
+            </>
           )}
-          {preview && (
-            <div ref={previewRef} tabIndex={-1} className="outline-offset-0">
-              {/* Câu hỏi lại của việc này: đưa vào thùng rác không mất dữ liệu, nói rõ để người dùng bấm chạy mà yên tâm. */}
-              <p className="m-0 pt-[26px] font-medium">{t.deleteAsk(domain)}</p>
-              <PlanReview preview={preview} onRun={() => run.mutate()} running={run.isPending} error={run.error} onCancel={() => {
-                  setPreview(null);
-                  run.reset();
-                }} />
-            </div>
-          )}
-        </section>
-      )}
+        </TabPanel>
+      </Tabs>
     </>
+  );
+}
+
+/**
+ * Khối gộp phép kiểm cô lập của chặng WordPress: một dòng tóm tắt, mở ra mỗi site
+ * khác một nhóm với hai chiều. Trạng thái mở của khối và của từng phép nằm ở SiteView.
+ */
+function IsolationBlock({
+  group,
+  open,
+  onToggle,
+  isoOpen,
+  onIsoOpenChange,
+}: {
+  group: IsolationGroup;
+  open: Set<string>;
+  onToggle: (id: string) => void;
+  isoOpen: boolean;
+  onIsoOpenChange: (open: boolean) => void;
+}) {
+  const t = useStrings(strings);
+  const summary = group.bad === 0 ? t.isoSummaryOk(group.others, group.total) : t.isoSummaryBad(group.others, group.bad, group.total);
+  const direction = (label: string, check: CheckResult | undefined) =>
+    check && (
+      <div>
+        <p className="m-0 text-[12px] font-medium text-muted">{label}</p>
+        <ul className="m-0 list-none p-0">
+          <CheckItem check={check} open={open.has(check.id)} onToggle={() => onToggle(check.id)} />
+        </ul>
+      </div>
+    );
+  return (
+    <Disclosure open={isoOpen} onOpenChange={onIsoOpenChange} summary={<StatusLine status={group.status}>{summary}</StatusLine>}>
+      <div className="flex flex-col gap-[12px] pl-[28px]">
+        {group.pairs.map((p) => (
+          <div key={p.other} className="flex flex-col gap-[6px] border-t border-hair pt-[12px] first:border-t-0 first:pt-0">
+            <h4 className="m-0 text-[13px] font-medium [overflow-wrap:anywhere]">{p.other}</h4>
+            {direction(t.isoOut(p.other), p.out)}
+            {direction(t.isoIn(p.other), p.in)}
+          </div>
+        ))}
+      </div>
+    </Disclosure>
+  );
+}
+
+/**
+ * Thẻ "Sự cố của site": sự cố đang mở của site này, lọc từ tổng quan (cùng truy vấn
+ * với khung trang, không gọi thêm). Lấy sự cố có target bằng tên miền, hoặc có
+ * check_id là phép cô lập dính tới site (mỗi id cô lập chỉ được ghi một lần, dưới
+ * tên site gặp trước, nên lọc riêng theo target sẽ sót).
+ */
+function SiteIncidents({ domain }: { domain: string }) {
+  const t = useStrings(strings);
+  const k = useStrings(khung);
+  const statusName = useStatusName();
+  const { lang } = useLang();
+  const overview = useOverview();
+  const list = (overview.data?.incidents ?? []).filter((i) => i.target === domain || touchesSite(i.check_id, domain));
+  return (
+    <Card title={t.incidentsHeading} titleId="su-co-site" count={list.length > 0 ? list.length : undefined}>
+      {overview.isPending ? (
+        <p className="m-0 text-muted">{k.loading}</p>
+      ) : overview.isError ? (
+        <p className="m-0">{errorMessage(overview.error, lang)}</p>
+      ) : list.length === 0 ? (
+        <EmptyState>{t.incidentsNone}</EmptyState>
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {list.map((i) => {
+            const title = tx(i.title, lang);
+            return (
+              <li key={i.id} className="flex flex-wrap items-center gap-x-[12px] gap-y-[4px] border-t border-hair py-[4px] first:border-t-0 first:pt-0 last:pb-0">
+                <span className="flex h-[20px] w-[20px] flex-none items-center justify-center">
+                  <StatusMark status="fail" label={statusName("fail")} />
+                </span>
+                <span className="min-w-0 flex-[1_1_240px] font-medium [overflow-wrap:anywhere]">{title}</span>
+                <span className="text-[13px] text-muted">{t.incidentOpened(formatWhen(i.opened, lang))}</span>
+                <Link to={`/incidents/${i.id}`} aria-label={t.incidentLinkFor(title)} className={buttonClass("text", "", "sm")}>
+                  {t.incidentLink}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }

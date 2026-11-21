@@ -1,5 +1,7 @@
 // Đường đi request của MỘT site, vẽ ngang một tuyến (mục 1 và 7 của
-// docs/GIAO-DIEN.md). Ga to hơn bản đồ ở Bảng điều khiển và có tên bên dưới.
+// docs/GIAO-DIEN.md, bản 2). Ga to hơn bản đồ ở Bảng điều khiển và có tên bên dưới.
+// Bấm một ga thì trang chuyển sang tab Phép kiểm (index.tsx), nên nút ga không còn
+// aria-controls: nhóm phép kiểm của nó không có trong trang lúc đang ở tab Tổng quan.
 //
 // Nét tuyến: liền tới ga cuối còn đạt, đứt từ ga hỏng trở đi. Đoạn nối hai ga
 // là một nét; nó đứt khi một trong hai ga chưa kiểm được, hoặc khi ga bên trái
@@ -13,7 +15,7 @@ import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/site";
 import { checksOfStage, routeStages, worstMark } from "./route";
 
-/** Id của nhóm phép kiểm ứng với một ga, để ga trỏ tới (aria-controls) và chuyển focus tới. */
+/** Id của nhóm phép kiểm ứng với một ga (tab Phép kiểm), để chuyển focus tới khi bấm ga. */
 export function stageGroupId(stage: Stage): string {
   return `chang-${stage}`;
 }
@@ -72,7 +74,6 @@ export function RouteMap({ domain, checks, selected, onSelect, suspended = false
             <li key={s.stage} className="min-w-0">
               <button
                 type="button"
-                aria-controls={stageGroupId(s.stage)}
                 aria-current={on ? "true" : undefined}
                 aria-label={k.statusLabel(name, statusName(s.status, s.suspended))}
                 onClick={() => onSelect(s.stage)}
@@ -87,7 +88,7 @@ export function RouteMap({ domain, checks, selected, onSelect, suspended = false
                 </span>
                 <span
                   aria-hidden="true"
-                  className={`inline-block border-b-2 px-[2px] pb-[2px] font-mono text-[11px] tracking-[0.08em] uppercase ${on ? "border-ink text-ink" : "border-transparent text-muted group-hover:text-ink"}`}
+                  className={`inline-block border-b-2 px-[2px] pb-[2px] text-[12px] font-medium ${on ? "border-accent text-ink" : "border-transparent text-muted group-hover:text-ink"}`}
                 >
                   {name}
                 </span>
