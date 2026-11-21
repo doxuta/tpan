@@ -49,6 +49,10 @@ type TargetRequest struct {
 type QueuedResponse struct {
 	Queued bool      `json:"queued"`
 	Note   i18n.Text `json:"note"`
+	// JobID có khi job đã bắt đầu trước lúc trả lời (tải về: chờ vài giây),
+	// để giao diện theo dõi job như mọi việc khác. Rỗng: job chưa bắt đầu
+	// (khoá lượt đẩy đang bận), kết quả xem ở Lịch sử.
+	JobID string `json:"job_id,omitempty"`
 }
 
 // CloudInitRequest là thân của POST /api/v1/cloud-init/render (chỉ chế độ

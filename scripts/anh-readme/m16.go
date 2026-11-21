@@ -40,8 +40,10 @@ type m16Opts struct {
 	// passwordFile: file chứa output của `tpan setup` hoặc `tpan admin passwd`
 	// trên máy ảo; dùng khi chạy tay với -panel mà không muốn mật khẩu đi qua dòng lệnh.
 	passwordFile string
-	// Bộ m16-that (m16_that.go).
+	// Bộ m16-that (m16_that.go); step và site dùng chung với bộ m18-that.
 	step, userName, waitFile string
+	// Bộ m18-that, bước dich (m18_that.go): phần không bí mật của form đích.
+	s3Endpoint, s3Region, s3Bucket, s3Prefix string
 	// threshold: bộ m16-do kiểm các ngưỡng cứng của M16 (mục 7 của
 	// docs/thay-doi/M16-thiet-ke.md) và thoát mã khác 0 khi sai một cái.
 	threshold bool

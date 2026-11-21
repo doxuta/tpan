@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
-  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang \
+  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang anh-m18 e2e-m18-gd \
   m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28
 
 help: ## Xem danh sách lệnh
@@ -97,6 +97,15 @@ e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: 
 	@# Log ghi ra tmp-phien/ (ngoài git) rồi mới chép vào LOG: file log đã commit mà bị ghi đè lúc
 	@# bắt đầu chạy thì cây làm việc thành "dirty" và tên bản tpan được đóng gói có đuôi -dirty.
 	E2E_LOG=tmp-phien/e2e-m16.log bash scripts/e2e-m16.sh > tmp-phien/e2e-m16.log 2>&1; rc=$$?; cp tmp-phien/e2e-m16.log $(or $(LOG),docs/bang-chung/M16.log); exit $$rc
+
+anh-m18: web ## Chụp các màn của M18 (Backup có đích, cài lên máy mới, Công cụ) ở 1440 sáng, tối và 390 px vào docs/bang-chung/M18, kiểm như anh-m16
+	$(ANH) -bo m18 -out docs/bang-chung/M18
+
+e2e-m18-gd: ## e2e giao diện M18 trên máy ảo trong .tpan-vm (đặt đích, khôi phục từ kho bằng trình duyệt); log vào docs/bang-chung/M18-giao-dien.log
+	@# Như e2e-m16: log ghi ra tmp-phien/ rồi mới chép, để tên bản được đóng gói không có đuôi -dirty.
+	E2E_LOG=tmp-phien/e2e-m18-gd.log bash scripts/e2e-m18-gd.sh </dev/null >tmp-phien/e2e-m18-gd.log 2>&1; rc=$$?; \
+	  cp tmp-phien/e2e-m18-gd.log docs/bang-chung/M18-giao-dien.log; \
+	  echo "e2e-m18-gd: mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' tmp-phien/e2e-m18-gd.log), không đạt $$(grep -c '=> KHÔNG ĐẠT' tmp-phien/e2e-m18-gd.log)"; exit $$rc
 
 lay-dev: ## git fetch origin (trước khi ghép dev vào nhánh mốc)
 	git fetch origin

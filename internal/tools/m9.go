@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/core"
-	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -26,13 +25,14 @@ type backupRestoreIn struct {
 
 func (a backupRestoreIn) domainArg() string { return a.Domain }
 
-// Năm giá trị của backupRow.Location (mục 3.16 của docs/thay-doi/M18-thiet-ke.md).
+// Năm giá trị của backupRow.Location (mục 3.16 của docs/thay-doi/M18-thiet-ke.md),
+// dùng chung với API (core.BackupLocation).
 const (
-	locMachine     = "machine"      // chỉ trên máy
-	locRemote      = "remote"       // chỉ trên kho, ở đích đang đặt
-	locBoth        = "both"         // trên máy và trên kho, ở đích đang đặt
-	locOtherTarget = "other_target" // đã lên một đích khác đích đang đặt
-	locPushFailed  = "push_failed"  // lần đẩy gần nhất lỗi
+	locMachine     = core.LocationMachine
+	locRemote      = core.LocationRemote
+	locBoth        = core.LocationBoth
+	locOtherTarget = core.LocationOtherTarget
+	locPushFailed  = core.LocationPushFailed
 )
 
 // backupLocation cho biết bản b nằm ở đâu, tính từ ba trường của dòng và mã
@@ -41,19 +41,7 @@ const (
 // kho để chọn bản, và những thứ đó có thể chứa tên bucket hay đường dẫn của
 // người dùng.
 func backupLocation(b core.Backup, cur string, hasTarget bool) string {
-	switch b.Remote {
-	case site.RemoteFailed:
-		return locPushFailed
-	case site.RemoteStored:
-		if !hasTarget || b.RemoteTarget != cur {
-			return locOtherTarget
-		}
-		if b.Local {
-			return locBoth
-		}
-		return locRemote
-	}
-	return locMachine
+	return core.BackupLocation(b, cur, hasTarget)
 }
 
 // backupRow là một dòng list_backups. Không có đường dẫn file và sha256: agent

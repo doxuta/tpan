@@ -19,6 +19,7 @@ export function viewLabel(path: string, lang: Lang): string {
   const t = strings[lang];
   if (path === "/sites/new") return t.viewCreateSite;
   if (path === "/plans") return t.viewPlans;
+  if (path === "/tools/new-server") return t.viewNewServer;
 
   // Mục có tham số: mẫu nào khớp thì dùng, id lấy từ đường dẫn.
   const site = params("/sites/:domain", path);

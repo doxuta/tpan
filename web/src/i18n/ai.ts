@@ -84,6 +84,7 @@ const vi = {
   // ---- tên mục (nhãn của ngữ cảnh "Đang ở" và đường vừa đi) ----
   viewCreateSite: "Tạo site",
   viewPlans: "Plan chờ duyệt",
+  viewNewServer: "Cài lên máy ảo mới",
   viewSite: (domain: string) => `Trang site ${domain}`,
   viewIncident: (id: string) => `Sự cố #${id}`,
   viewJob: (id: string) => `Job ${id}`,
@@ -190,6 +191,7 @@ export const strings = defineStrings(vi, {
 
   viewCreateSite: "Create a site",
   viewPlans: "Pending plans",
+  viewNewServer: "Set up a new server",
   viewSite: (domain) => `Site page ${domain}`,
   viewIncident: (id) => `Incident #${id}`,
   viewJob: (id) => `Job ${id}`,

@@ -149,7 +149,7 @@ func TestAPIBackupsList(t *testing.T) {
 	// Khớp kiểu Backup của web/src/api/types.ts (trường rỗng có omitempty).
 	// M18 thêm local, remote (không omitempty: giao diện cần biết bản nằm ở
 	// đâu); kiểu TypeScript thêm hai trường này ở phần giao diện của M18.
-	if got := jsonKeys(t, raw.Items[0]); !slices.Equal(got, []string{"created", "domain", "id", "kind", "local", "path", "reason", "remote", "sha256", "size"}) {
+	if got := jsonKeys(t, raw.Items[0]); !slices.Equal(got, []string{"created", "domain", "id", "kind", "local", "location", "path", "reason", "remote", "sha256", "size"}) {
 		t.Errorf("khoá của Backup = %v", got)
 	}
 	if ov := apiDecode[BackupsOverview](t, apiCall(e.s.handleBackups, "GET", "/api/v1/backups", ""), 200); len(ov.Items) != 3 {

@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -493,6 +494,42 @@ func TestKhoiPhucBanChiConTrenKho(t *testing.T) {
 // TestDayVaTaiVeQuaAPI: đẩy chạy thật chỉ xếp hàng (202, không job trong
 // request), lời từ chối của core về thẳng người gọi; tải về chạy ở nền và
 // không giữ chỗ "đang có job" của API.
+// G1 của lượt soát giao diện: tải về hỏng TRƯỚC khi job bắt đầu (ở đây: lần
+// dựng kho thứ hai, bên trong Pull, lỗi) thì câu trả lời là lời từ chối có câu
+// lỗi, không phải 202 "đang tải về" cho một job không bao giờ có.
+func TestTaiVeHongTruocJobBaoNgay(t *testing.T) {
+	e := newM18Env(t)
+	ctx := context.Background()
+	blog := e.m9Site(t, "blog.example.com")
+	b := e.m9Backup(t, blog, core.BackupFull, "blog.example.com-20261119-020000.tar.gz", time.Hour)
+	e.setTargetAPI(t)
+	e.s.pusher.enqueueQuiet([]string{b.ID})
+	e.syncNow()
+	if err := e.f.Remove(b.Path); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.st.ForgetBackupLocal(ctx, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	e.s.newS3Store = func(s3.Config) (steps.ObjectStore, error) {
+		calls++
+		if calls > 1 {
+			return nil, errors.New("kho thử: không dựng được client")
+		}
+		return e.mem, nil
+	}
+	jobsBefore, _ := e.st.Jobs(ctx, 0)
+	rec := apiCall(e.s.handleBackupPull, "POST", "/api/v1/backups/x/pull", "", "id", b.ID)
+	e.s.api.wg.Wait()
+	if rec.Code == http.StatusAccepted {
+		t.Fatalf("tải về hỏng trước job mà vẫn trả 202: %s", rec.Body.String())
+	}
+	if jobs, _ := e.st.Jobs(ctx, 0); len(jobs) != len(jobsBefore) {
+		t.Errorf("không được có job nào: trước %d, sau %d", len(jobsBefore), len(jobs))
+	}
+}
+
 func TestDayVaTaiVeQuaAPI(t *testing.T) {
 	e := newM18Env(t)
 	ctx := context.Background()
@@ -536,7 +573,7 @@ func TestDayVaTaiVeQuaAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.s.api.claim() // đang có job khác của máy: tải về vẫn chạy (B10)
-	apiDecode[QueuedResponse](t, apiCall(e.s.handleBackupPull, "POST", "/api/v1/backups/x/pull", "", "id", b.ID), http.StatusAccepted)
+	pr := apiDecode[QueuedResponse](t, apiCall(e.s.handleBackupPull, "POST", "/api/v1/backups/x/pull", "", "id", b.ID), http.StatusAccepted)
 	e.s.api.wg.Wait()
 	e.s.api.release()
 	row, _, _ := e.st.Backup(ctx, b.ID)
@@ -546,6 +583,10 @@ func TestDayVaTaiVeQuaAPI(t *testing.T) {
 	a := hAudit(t, e.apiEnv, "backup.pull")
 	if len(a) == 0 || a[len(a)-1].Result != "ok" || a[len(a)-1].JobID == "" || a[len(a)-1].Target != b.ID {
 		t.Errorf("nhật ký backup.pull = %+v", a)
+	}
+	// Câu trả lời kèm mã job khi job đã bắt đầu, để giao diện theo dõi được.
+	if len(a) > 0 && pr.JobID != a[len(a)-1].JobID {
+		t.Errorf("câu trả lời tải về: job_id %q, job thật %q", pr.JobID, a[len(a)-1].JobID)
 	}
 	if p := hAudit(t, e.apiEnv, "backup.push"); len(p) == 0 || p[len(p)-1].Result != "queued" {
 		t.Errorf("nhật ký backup.push = %+v", p)

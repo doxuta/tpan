@@ -31,9 +31,51 @@ const vi = {
   colReason: "Lý do",
   colCreated: "Tạo lúc",
   colSize: "Cỡ",
+  colWhere: "Ở đâu",
   colSha: "sha256",
   colPath: "Đường dẫn",
   colAction: "Việc",
+  // Nơi bản nằm (máy chủ tính, core.BackupLocation). push_failed không có title vì nó là dòng trạng thái kèm câu lỗi;
+  // title của other_target nằm ở otherTitles, otherLocalTitles bên dưới vì nó đổi theo việc đã đặt đích chưa.
+  locations: { machine: "máy", remote: "kho", both: "máy và kho", other_target: "kho khác", push_failed: "đẩy lỗi" },
+  locTitles: {
+    machine: "Bản chỉ có trên máy này.",
+    remote: "Bản chỉ còn trên kho. Tải về máy thì mới khôi phục được.",
+    both: "Bản có cả trên máy này lẫn trên kho.",
+  },
+  // Title của dòng "kho khác" theo việc đã đặt đích chưa: set (đã đặt), unset (chưa
+  // đặt), unknown (user thường, không đọc được đích). otherTitles: file không còn
+  // trên máy; otherLocalTitles: file còn trên máy (nhãn hiện "máy").
+  otherTitles: {
+    set: "Bản nằm ở một kho khác với kho đang đặt. Đặt lại kho đó thì mới dùng được.",
+    unset: "Bản nằm ở một kho mà máy chưa đặt làm đích. Đặt lại kho đó thì mới dùng được.",
+    unknown: "Bản nằm ở một kho mà máy hiện không dùng. Đặt lại kho đó thì mới dùng được.",
+  },
+  otherLocalTitles: {
+    set: "Bản có trên máy này; bản trên kho nằm ở một kho khác với kho đang đặt.",
+    unset: "Bản có trên máy này; bản trên kho nằm ở một kho mà máy chưa đặt làm đích.",
+    unknown: "Bản có trên máy này; bản trên kho nằm ở một kho mà máy hiện không dùng.",
+  },
+  // Việc với kho
+  push: "Đẩy lên kho",
+  pushFor: (d: string, when: string) => `Đẩy lên kho bản của ${d} lúc ${when}`,
+  pushWarning: (d: string, when: string) => `Đẩy bản của ${d} lúc ${when} lên kho. Bản trên máy giữ nguyên.`,
+  pushErrorHeading: (d: string) => `Chưa dựng được bản xem trước đẩy lên kho ${d}`,
+  pull: "Tải về máy",
+  pullFor: (d: string, when: string) => `Tải về máy bản của ${d} lúc ${when}`,
+  pullWarning: (d: string, when: string) => `Tải bản của ${d} lúc ${when} từ kho về máy. Site chưa bị đổi gì.`,
+  pullErrorHeading: (d: string) => `Chưa dựng được bản xem trước tải về ${d}`,
+  queued: "Đã nhận việc. Xem kết quả ở Lịch sử.",
+  // Tải về chưa có job: một lượt đẩy đang giữ khoá kho (tối đa 30 phút, core.RemoteLockWait).
+  pullWaiting: "Đang chờ lượt đẩy lên kho khác xong, có thể tới 30 phút. Không thấy job tải về ở Lịch sử sau đó thì bấm lại.",
+  // Khôi phục một bản chỉ còn trên kho
+  pullFirstTitle: "Tải về máy trước khi khôi phục?",
+  pullFirstBody: "Bản này chỉ còn trên kho. Tải về máy trước (một job), rồi mới khôi phục được.",
+  askAdminToPull: "Bản này chỉ còn trên kho; nhờ admin tải về máy trước.",
+  // Khôi phục một bản chỉ còn ở một kho khác (sau khi gỡ hay đổi đích)
+  otherTargetSetAgain: "Bản này nằm ở một kho khác. Đặt lại đích đó ở thẻ Đích ngoài máy để tải về.",
+  otherTargetAskAdmin: "Bản này nằm ở một kho khác; nhờ admin đặt lại đích đó và tải về máy trước.",
+  pulled: "Đã tải về. Bấm Khôi phục để xem trước việc khôi phục.",
   kindFull: "Thư mục site và cơ sở dữ liệu",
   kindSql: "Chỉ cơ sở dữ liệu",
   reasons: {
@@ -101,9 +143,42 @@ export const strings = defineStrings(vi, {
   colReason: "Reason",
   colCreated: "Created",
   colSize: "Size",
+  colWhere: "Where",
   colSha: "sha256",
   colPath: "Path",
   colAction: "Action",
+  locations: { machine: "server", remote: "storage", both: "server and storage", other_target: "other storage", push_failed: "upload failed" },
+  locTitles: {
+    machine: "This backup is only on this server.",
+    remote: "This backup is only in storage. Download it to this server before you can restore it.",
+    both: "This backup is on this server and in storage.",
+  },
+  otherTitles: {
+    set: "This backup is in a different storage than the one set now. Set that storage again to use it.",
+    unset: "This backup is in a storage that is not set as the target on this server. Set that storage again to use it.",
+    unknown: "This backup is in a storage this server does not use now. Set that storage again to use it.",
+  },
+  otherLocalTitles: {
+    set: "This backup is on this server; the copy in storage is in a different storage than the one set now.",
+    unset: "This backup is on this server; the copy in storage is in a storage that is not set as the target on this server.",
+    unknown: "This backup is on this server; the copy in storage is in a storage this server does not use now.",
+  },
+  push: "Upload to storage",
+  pushFor: (d, when) => `Upload to storage the backup of ${d} from ${when}`,
+  pushWarning: (d, when) => `Uploads the backup of ${d} from ${when} to storage. The copy on this server stays.`,
+  pushErrorHeading: (d) => `Could not build the upload preview for ${d}`,
+  pull: "Download to this server",
+  pullFor: (d, when) => `Download to this server the backup of ${d} from ${when}`,
+  pullWarning: (d, when) => `Downloads the backup of ${d} from ${when} from storage to this server. The site is not changed.`,
+  pullErrorHeading: (d) => `Could not build the download preview for ${d}`,
+  queued: "Request received. See the result in History.",
+  pullWaiting: "Waiting for another upload to storage to finish, up to 30 minutes. If no download job shows in History after that, press again.",
+  pullFirstTitle: "Download to this server before restoring?",
+  pullFirstBody: "This backup is only in storage. Download it to this server first (one job), then you can restore it.",
+  askAdminToPull: "This backup is only in storage; ask an admin to download it to this server first.",
+  otherTargetSetAgain: "This backup is in a different storage. Set that target again in the Off-site target card to download it.",
+  otherTargetAskAdmin: "This backup is in a different storage; ask an admin to set that target again and download it to this server first.",
+  pulled: "Downloaded. Press Restore to preview the restore.",
   kindFull: "Site folder and database",
   kindSql: "Database only",
   reasons: {
