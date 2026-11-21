@@ -751,7 +751,20 @@ export type Backup = {
   php_version?: string;
   job_id?: string;
   created: string;
+  // M18 (sao lưu ra kho S3, m18-types.ts). local false: file không còn trên máy.
+  local: boolean;
+  remote: "" | "stored" | "failed";
+  remote_at?: string;
+  /** Khoá object trên kho; user thường không nhận trường này. */
+  remote_key?: string;
+  /** Lỗi lần đẩy gần nhất, một dòng; user thường không nhận trường này. */
+  remote_error?: string;
+  /** Nơi bản nằm, máy chủ tính (core.BackupLocation). Không có khi setting đích hỏng. */
+  location?: BackupLocation;
 };
+
+/** core.Location*: chỉ trên máy, chỉ trên kho (đích đang đặt), cả hai, ở một đích khác, đẩy lỗi. */
+export type BackupLocation = "machine" | "remote" | "both" | "other_target" | "push_failed";
 
 /** core.BackupSettings: at "HH:MM" hoặc "" (tắt lịch). */
 export type BackupSettings = { keep: number; at: string };
