@@ -270,6 +270,42 @@ func (k rtTamper) Get(ctx context.Context, key string, w io.Writer) (int64, stri
 	return k.Mem.Get(ctx, key, w)
 }
 
+// rtPruneDuringPush giả lần dọn trên máy chen vào giữa lúc đẩy: lúc kho được
+// đọc lại thì dòng đã bị ForgetBackupLocal xoá (dòng chưa stored nên bị xoá).
+type rtPruneDuringPush struct {
+	*s3.Mem
+	prune func()
+}
+
+func (k rtPruneDuringPush) Get(ctx context.Context, key string, w io.Writer) (int64, string, error) {
+	k.prune()
+	return k.Mem.Get(ctx, key, w)
+}
+
+// F2 của lượt soát cuối: dọn trên máy chen vào giữa lúc đẩy thì object vừa
+// đọc lại khớp là bản duy nhất còn lại. Dòng phải được ghi lại thành "chỉ còn
+// trên kho" và object phải còn, không được mất ở cả hai nơi.
+func TestDonTrenMayGiuaLucDayKhongMatBan(t *testing.T) {
+	e := newRtEnv(t)
+	b := e.addFull(t, "example.com", "20261121-090000", rtNow.Add(-time.Hour), ReasonSchedule)
+	e.obj = rtPruneDuringPush{e.mem, func() {
+		if _, err := e.st.ForgetBackupLocal(e.ctx, b.ID); err != nil {
+			t.Error(err)
+		}
+	}}
+	res := e.sync(t, SyncOptions{})
+	if len(res.Pushed) != 1 {
+		t.Fatalf("kết quả: %+v", res)
+	}
+	r := e.row(t, b.ID)
+	if r.Local || r.Remote != site.RemoteStored || r.RemoteKey == "" || r.SHA256 != b.SHA256 {
+		t.Fatalf("dòng phải là local=0, stored, giữ sha256: %+v", r)
+	}
+	if _, ok := e.mem.Objects()[r.RemoteKey]; !ok {
+		t.Fatalf("object vừa đọc lại khớp phải còn trên kho: %v", e.mem.Objects())
+	}
+}
+
 // B2: không đánh dấu stored khi đọc lại không khớp.
 func TestDayChiDanhDauSauKhiDocLai(t *testing.T) {
 	e := newRtEnv(t)
@@ -516,6 +552,13 @@ func TestDatDichNoiLai(t *testing.T) {
 	e.stored(t, b1, oldID, true)
 	e.stored(t, b2, oldID, false)
 	e.mem.SetObject(rtKey(b2), []byte("sai co"))
+	// F3: một bản đã đẩy lỗi đủ số lần ở cấu hình cũ.
+	b3 := e.addFull(t, "example.com", "20261121-093000", rtNow.Add(-30*time.Minute), ReasonSchedule)
+	for range RemoteMaxTries {
+		if err := e.st.MarkBackupPushFailed(e.ctx, b3.ID, oldID, "x", true); err != nil {
+			t.Fatal(err)
+		}
+	}
 	in := TargetInput{Endpoint: "https://S3.example.com/", Bucket: "tpan-thu", Prefix: "tpan/may", PathStyle: true, Keep: 2,
 		AccessKey: rtAccess, SecretKey: system.NewSecret(rtSecret)}
 	ts, err := e.r.PrepareSetTarget(e.ctx, in)
@@ -537,6 +580,9 @@ func TestDatDichNoiLai(t *testing.T) {
 	}
 	if ts.NewKey.Reveal() != "" {
 		t.Fatal("không GenerateKey thì không sinh khoá")
+	}
+	if got := e.row(t, b3.ID).RemoteTries; got != 0 {
+		t.Fatalf("đặt lại đích phải đặt lại số lần đẩy lỗi (F3): %d", got)
 	}
 }
 
@@ -590,15 +636,33 @@ func TestSinhKhoaChoLuotDay(t *testing.T) {
 
 // R1: giữ khoá đang lưu chỉ khi endpoint, vùng, bucket, CA không đổi; từ chối
 // trước khi dựng kho (không request nào ký bằng khoá cũ đi ra ngoài).
+// F5: http (chỉ cho loopback) kèm kiểu bucket.host bị từ chối trước khi dựng
+// kho: host thật <bucket>.<host> không phải host đã qua luật loopback.
+func TestDatDichHttpCanKieuDuongDan(t *testing.T) {
+	e := newRtEnv(t)
+	in := TargetInput{Endpoint: "http://127.0.0.1:7070", Bucket: "tpan-thu", PathStyle: false,
+		AccessKey: rtAccess, SecretKey: system.NewSecret(rtSecret)}
+	_, err := e.r.PrepareSetTarget(e.ctx, in)
+	var re *RefusedError
+	if !errors.As(err, &re) || re.Code != s3.CodeEndpointInvalid || e.builds != 0 {
+		t.Fatalf("http kèm bucket.host: %v, builds=%d", err, e.builds)
+	}
+}
+
 func TestDatDichGiuKhoaChiKhiCungCho(t *testing.T) {
 	e := newRtEnv(t)
-	in := TargetInput{Endpoint: "https://k.example.com", Region: "vn-thu-1", Bucket: "tpan-thu", KeepKeys: true}
+	in := TargetInput{Endpoint: "https://k.example.com", Region: "vn-thu-1", Bucket: "tpan-thu", PathStyle: true, KeepKeys: true}
 	_, err := e.r.PrepareSetTarget(e.ctx, in)
 	var re *RefusedError
 	if !errors.As(err, &re) || re.Code != s3.CodeKeysInvalid || e.builds != 0 {
 		t.Fatalf("đổi endpoint mà giữ khoá: %v, builds=%d", err, e.builds)
 	}
-	in.Endpoint = "https://s3.example.com"
+	// F5: chỉ đổi kiểu địa chỉ (sang bucket.host) cũng đổi host thật.
+	in.Endpoint, in.PathStyle = "https://s3.example.com", false
+	if _, err := e.r.PrepareSetTarget(e.ctx, in); !errors.As(err, &re) || re.Code != s3.CodeKeysInvalid || e.builds != 0 {
+		t.Fatalf("đổi kiểu địa chỉ mà giữ khoá: %v, builds=%d", err, e.builds)
+	}
+	in.PathStyle = true
 	if _, err := e.r.PrepareSetTarget(e.ctx, in); err != nil || e.builds != 1 {
 		t.Fatalf("cùng chỗ thì giữ được khoá: %v, builds=%d", err, e.builds)
 	}
@@ -736,6 +800,8 @@ func TestListRemoteObjectLa(t *testing.T) {
 	gone := e.addFull(t, "b.example.com", "20261121-090000", rtNow.Add(-time.Hour), ReasonSchedule)
 	e.stored(t, gone, rtCurID, false)
 	e.mem.SetObject("la/khong-ai-biet.bin", []byte("x"))
+	// F4: tên có ký tự điều khiển và ký tự đảo chiều chữ (U+202E).
+	e.mem.SetObject("la/a\x1b[2Jb"+string(rune(0x202e))+"c.bin", []byte("x"))
 	l, err := e.r.ListRemote(e.ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -746,6 +812,9 @@ func TestListRemoteObjectLa(t *testing.T) {
 	}
 	if id, ok := got["la/khong-ai-biet.bin"]; !ok || id != "" {
 		t.Fatalf("object lạ: %+v", l.Objects)
+	}
+	if _, ok := got["la/a?[2Jb?c.bin"]; !ok {
+		t.Fatalf("tên object phải bỏ ký tự điều khiển và đảo chiều: %+v", l.Objects)
 	}
 	if got[rtKey(b)] != b.ID {
 		t.Fatalf("object của bản đã đẩy: %+v", l.Objects)
