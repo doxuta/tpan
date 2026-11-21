@@ -374,8 +374,10 @@ type recSys struct {
 }
 
 func (s recSys) Run(ctx context.Context, cmd system.Cmd) (system.Result, error) {
-	// Cmd.String() không in Stdin, nên mật khẩu đưa qua stdin không lọt vào log.
-	s.r.emit(EventCommand, s.stepID, cmd.String())
+	// Ghi lệnh thật sự chạy (M17: lệnh của site trong lồng là systemd-run).
+	// Describe, như Cmd.String(), không in Stdin, nên mật khẩu đưa qua stdin
+	// không lọt vào log.
+	s.r.emit(EventCommand, s.stepID, system.Describe(s.System, cmd))
 	// Step đã đặt OnOutput riêng thì vẫn gọi nó, sau khi ghi sự kiện.
 	own := cmd.OnOutput
 	secrets := stdinLines(cmd.Stdin)
@@ -387,6 +389,11 @@ func (s recSys) Run(ctx context.Context, cmd system.Cmd) (system.Result, error) 
 	}
 	return s.System.Run(ctx, cmd)
 }
+
+// Describe chuyển tiếp tới System gốc (M17): kiểu nhúng interface chỉ mang các
+// hàm của system.System, nên thiếu dòng này thì Step dựng dòng "sửa tay" bằng
+// system.Describe trong lúc Execute nhận dạng `runuser` cho site trong lồng.
+func (s recSys) Describe(cmd system.Cmd) string { return system.Describe(s.System, cmd) }
 
 // stdinLines trả các dòng khác rỗng của stdin. Stdin là chỗ đưa mật khẩu vào
 // lệnh; vài chương trình in lại thứ đã đọc (WP-CLI với --prompt in lại cả câu
