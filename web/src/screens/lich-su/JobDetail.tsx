@@ -128,7 +128,8 @@ export function JobDetail() {
             <MonoText>{job.id}</MonoText>
           </Fact>
           <Fact label={t.fieldTarget}>
-            <MonoText>{job.target}</MonoText>
+            {/* Tên miền dùng chữ thường (GIAO-DIEN mục 4); tên DB, user hệ thống vẫn mono, bấm là chép. */}
+            {/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(job.target) ? <span className="[overflow-wrap:anywhere]">{job.target}</span> : <MonoText>{job.target}</MonoText>}
           </Fact>
           <Fact label={t.colWho}>
             <span className={job.actor ? "" : "text-muted"}>{job.actor || t.whoCli}</span>
