@@ -93,12 +93,21 @@ var coChuDuocPhep = []float64{12, 12.5, 13, 14, 16, 18, 24}
 // riêng). Nhờ vậy "đứng riêng như một class" là so sánh nguyên token, không
 // phải đoán ranh giới bằng regex: `border-line` không khớp `border-line-dash`,
 // `rounded` không khớp `rounded-card`, "uppercased" không khớp "uppercase".
-var reToken = regexp.MustCompile("(?:^|[\\s\"'`:])([^\\s\"'`:]+)")
+//
+// Dấu `:` nằm trong ngoặc vuông hay ngoặc tròn là một phần của giá trị tự do
+// (`[length:11px]`, `(length:--x)`), không phải ranh giới biến thể:
+// `md:text-[length:11px]` tách thành `md` và `text-[length:11px]` (soát cuối
+// M16, N8: trước đó nó bị tách đôi và lọt luật cỡ chữ).
+var reToken = regexp.MustCompile("(?:^|[\\s\"'`:])((?:[^\\s\"'`:\\[(]|\\[[^\\]\\s]*\\]|\\([^)\\s]*\\))+)")
 
 var (
-	reCoChuPx   = regexp.MustCompile(`^text-\[([0-9]+(?:\.[0-9]+)?)px\]$`)
+	// Cỡ px, có thể ghi kiểu `length:` và đuôi chiều cao dòng `/…` (Tailwind 4 nhận cả hai).
+	reCoChuPx = regexp.MustCompile(`^text-\[(?:length:)?([0-9]+(?:\.[0-9]+)?)px\](?:/.*)?$`)
+	// Cỡ chữ bằng rem/em hay bằng biến CSS: bảng cỡ chữ tính bằng px, không viết kiểu khác.
+	reCoChuKhac = regexp.MustCompile(`^text-(?:\[(?:length:)?[0-9.]+r?em\]|\(length:)`)
 	reCoChuTen  = regexp.MustCompile(`^text-(?:xs|sm|base|lg|xl|[234]xl)(?:/.*)?$`)
-	reBorderInk = regexp.MustCompile(`^border-ink(?:/.*)?$`)
+	// Viền màu chữ ở mọi dạng: cả bốn cạnh, từng cạnh, đường kẻ giữa các con, vòng.
+	reBorderInk = regexp.MustCompile(`^(?:border(?:-[xytrbles])?|divide|ring|outline)-ink(?:/.*)?$`)
 	reBgInk     = regexp.MustCompile(`^bg-ink(?:/.*)?$`)
 	reBorderLn  = regexp.MustCompile(`^border-line(?:/.*)?$`)
 )
@@ -137,6 +146,9 @@ func xetToken(rel, tok string) (int, string) {
 	}
 	if reCoChuTen.MatchString(tok) {
 		return 1, "không dùng cỡ chữ có tên (text-sm, text-xl...): viết text-[13px] hoặc cỡ khác trong {12; 12,5; 13; 14; 16; 18; 24}"
+	}
+	if reCoChuKhac.MatchString(tok) {
+		return 1, "cỡ chữ viết bằng px trong {12; 12,5; 13; 14; 16; 18; 24}: không dùng rem, em hay biến CSS"
 	}
 
 	// Luật 2: class bản 1 bị bỏ, hay hình khối không có trong bản 2.
@@ -600,7 +612,14 @@ func TestMauKieuDang(t *testing.T) {
 		{"text-sm/6 bị bắt", man, `"text-sm/6"`, []int{1}},
 		{"text-muted không phải cỡ", man, `"text-muted text-ink"`, nil},
 		{"text-xlarge không phải cỡ", man, `"text-xlarge"`, nil},
-		{"text-[length:12px] không phải cỡ px", man, `"text-[length:12px]"`, nil},
+		{"text-[length:12px] là cỡ 12 px, được phép", man, `"text-[length:12px]"`, nil},
+		{"text-[length:11px] bị bắt", man, `"text-[length:11px]"`, []int{1}},
+		{"text-[length:11px] với biến thể bị bắt", man, `"md:text-[length:11px]"`, []int{1}},
+		{"text-[11px]/5 bị bắt", man, `"text-[11px]/5"`, []int{1}},
+		{"text-[13px]/6 được phép", man, `"text-[13px]/6"`, nil},
+		{"text-[0.7rem] bị bắt", man, `"text-[0.7rem]"`, []int{1}},
+		{"text-(length:--x) bị bắt", man, `"text-(length:--x)"`, []int{1}},
+		{"giá trị tự do có dấu hai chấm không bị tách", man, `"[overflow-wrap:anywhere]"`, nil},
 		// Luật 2
 		{"shadow-pop được phép", man, `"shadow-pop"`, nil},
 		{"shadow-none được phép", man, `"hover:shadow-none"`, nil},
@@ -620,6 +639,10 @@ func TestMauKieuDang(t *testing.T) {
 		{"tracking-[0.06em] bị bắt", man, `"tracking-[0.06em]"`, []int{2}},
 		{"tracking-tight không bị bắt", man, `"tracking-tight"`, nil},
 		{"border-ink bị bắt", man, `"border border-ink"`, []int{2}},
+		{"border-t-ink bị bắt", man, `"border-t border-t-ink"`, []int{2}},
+		{"divide-ink bị bắt", man, `"divide-y divide-ink"`, []int{2}},
+		{"ring-ink bị bắt", man, `"ring-1 ring-ink"`, []int{2}},
+		{"border-ink-soft không phải viền màu chữ chính", man, `"border-ink-soft"`, nil},
 		{"border-card-border bị bắt", man, `"border-card-border"`, []int{2}},
 		{"border-hair được phép", man, `"border-hair"`, nil},
 		{"border-line-dash bị bắt ở mọi nơi", "src/components/A.tsx", `"border-line-dash"`, []int{2}},

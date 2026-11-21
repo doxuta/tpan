@@ -529,6 +529,40 @@ func photosM16(c *cdp, base, adminPW, out, only string) error {
 			fmt.Printf("  bàn phím menu ba chấm: Enter mở, tới «%s», mũi tên xuống tới «%s», Escape đóng, focus về nút, 0 lỗi console\n", first, second)
 		}
 	}
+	// Hộp hỏi lại mở từ menu ba chấm (màn Người dùng, mục đầu là "Tạm khoá"): Escape đóng hộp,
+	// focus phải về nút ba chấm, không rơi về <body> (soát cuối M16, V6; components/focusReturn.ts).
+	if err := open("/users", "vi"); err != nil {
+		return err
+	}
+	_ = c.consoleErrors()
+	if v, _ := c.eval(`!!` + kebab); v != true {
+		fail.add("bàn phím: màn Người dùng không có nút ba chấm nào")
+	} else {
+		if _, err := c.eval(kebab + `.focus()`); err != nil {
+			return err
+		}
+		_ = c.key("Enter")
+		menu := c.waitTrue(`!!document.querySelector('[role=menu]')`, 5*time.Second) == nil
+		item := c.str(`document.activeElement.textContent.trim()`)
+		_ = c.key("Enter")
+		dialog := c.waitTrue(`!!document.querySelector('[role=dialog]')`, 5*time.Second) == nil
+		_ = c.key("Escape")
+		closed := c.waitTrue(`!document.querySelector('[role=dialog]')`, 5*time.Second) == nil
+		time.Sleep(200 * time.Millisecond)
+		back, _ := c.eval(`document.activeElement === ` + kebab)
+		where := c.str(`document.activeElement === document.body ? 'body' : document.activeElement.tagName.toLowerCase()+' «'+(document.activeElement.getAttribute('aria-label')||document.activeElement.textContent||'').trim().slice(0,30)+'»'`)
+		var errs []string
+		for _, e := range c.consoleErrors() {
+			if !knownDialogCSP(e) {
+				errs = append(errs, e)
+			}
+		}
+		if !menu || !dialog || !closed || back != true || len(errs) > 0 {
+			fail.add("bàn phím: hộp hỏi lại mở từ menu ba chấm («%s»): menu=%v, hộp=%v, đóng=%v, focus về nút ba chấm=%v (đang ở %s), lỗi console=%d", item, menu, dialog, closed, back, where, len(errs))
+		} else {
+			fmt.Printf("  bàn phím hộp hỏi lại: mở «%s» từ menu ba chấm, Escape đóng, focus về nút ba chấm\n", item)
+		}
+	}
 	// Tab của trang một site: mũi tên phải đổi tab.
 	if err := open("/sites/"+long, "vi"); err != nil {
 		return err
