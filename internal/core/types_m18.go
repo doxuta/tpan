@@ -145,6 +145,8 @@ type Remote struct {
 	// Store là bảng backups và các hàm của M18. nil chỉ hợp lệ khi xem trước
 	// trên máy chưa có tpan.db.
 	Store RemoteStore
+	// Sites là bảng sites (State, Probe cần danh sách site active). *store.Store thoả.
+	Sites SiteStore
 	// Journal nhận job; nil chỉ hợp lệ khi xem trước.
 	Journal engine.Journal
 	// Snapshot chép tpan.db đang mở (store.SnapshotDB), cho gói panel.
