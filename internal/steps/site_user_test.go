@@ -652,16 +652,18 @@ func TestOwnedFile(t *testing.T) {
 
 func TestRemoveTree(t *testing.T) {
 	ctx := context.Background()
-	const dir = "/var/www/example.com"
+	// Thùng rác (chỗ RemoveTree thật sự chạy), không phải thư mục site: từ M28
+	// lệnh root không được nhận đường dẫn trong /var/www/<site>/.
+	const dir = "/var/lib/tpan/trash/example_com_1"
 	setup := func(t *testing.T) *machine {
 		m := userMachine(t)
 		m.SetFile(dir+"/public/index.php", []byte("<?php"), 0o640, system.Root)
 		m.SetDir(dir+"/tmp", 0o700, system.Root)
-		m.SetFile("/var/www/example.com.bak/giu", []byte("giữ"), 0o644, system.Root)
+		m.SetFile("/var/lib/tpan/trash/example_com_1.bak/giu", []byte("giữ"), 0o644, system.Root)
 		m.ResetRan()
 		return m
 	}
-	step := func() engine.Step { return &RemoveTree{Path: dir, Under: "/var/www"} }
+	step := func() engine.Step { return &RemoveTree{Path: dir, Under: "/var/lib/tpan/trash"} }
 
 	t.Run("xoá đúng cây, chạy lại không làm gì", func(t *testing.T) {
 		m := setup(t)
@@ -678,10 +680,10 @@ func TestRemoveTree(t *testing.T) {
 		if got, want := ranStrings(m.Ran()), []string{"rm -r --one-file-system -- " + dir}; !reflect.DeepEqual(got, want) {
 			t.Errorf("lệnh %v, muốn %v", got, want)
 		}
-		if _, err := m.ReadFile("/var/www/example.com.bak/giu"); err != nil {
+		if _, err := m.ReadFile("/var/lib/tpan/trash/example_com_1.bak/giu"); err != nil {
 			t.Errorf("xoá lan sang thư mục bên cạnh: %v", err)
 		}
-		if _, err := m.Stat("/var/www"); err != nil {
+		if _, err := m.Stat("/var/lib/tpan/trash"); err != nil {
 			t.Errorf("xoá cả Under: %v", err)
 		}
 

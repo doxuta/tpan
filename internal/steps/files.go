@@ -84,6 +84,11 @@ func (s *File) Check(_ context.Context, sys system.System) (bool, error) {
 	if !fi.Mode.IsRegular() || fi.Mode.Perm() != s.Perm || normOwner(fi.Owner) != normOwner(s.Owner) {
 		return false, nil
 	}
+	// Khác cỡ thì chắc chắn khác nội dung: không đọc. File trong thư mục site
+	// (.htaccess) do site ghi nên có thể lớn tuỳ ý (M28).
+	if fi.Size != int64(len(s.Content)) {
+		return false, nil
+	}
 	data, err := sys.ReadFile(s.Path)
 	if err != nil {
 		return false, fmt.Errorf("đọc %s: %w", s.Path, err)
