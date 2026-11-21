@@ -301,7 +301,9 @@ func (p *Planner) prepareHealthFix(ctx context.Context, req PlanRequest) (*Prepa
 	if !ok {
 		return nil, checkNotFound(req.CheckID)
 	}
-	f := &Fixes{Sys: p.Sites.Sys, Settings: p.Sites.Settings, Store: p.Sites.Store, Journal: p.Sites.Journal, Files: p.Files}
+	// Accounts: cách sửa của site trong lồng (cage.sync, file của lồng, ssl.issue)
+	// đọc trần của gói; thiếu thì mọi cách sửa đó bị từ chối (soát cuối M17, L1).
+	f := &Fixes{Sys: p.Sites.Sys, Settings: p.Sites.Settings, Store: p.Sites.Store, Journal: p.Sites.Journal, Files: p.Files, Accounts: p.Sites.Accounts}
 	// Stack có thể nil (Planner chỉ dùng cho site); rỗng thì core dùng mã đã ghim.
 	if p.Stack != nil {
 		f.WPCLISHA512 = p.Stack.WPCLISHA512
