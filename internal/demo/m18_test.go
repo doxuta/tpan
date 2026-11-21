@@ -91,8 +91,10 @@ func TestM18Seed(t *testing.T) {
 	}
 }
 
-// Demo không có kho thật nên không có khoá nào: không ba file bí mật trên máy
-// giả, và các file của tpan.db (kể cả -wal) không chứa chuỗi nào có dạng khoá.
+// Khoá của demo sinh ngẫu nhiên mỗi lần dựng máy và chỉ nằm trong máy giả
+// (root 0600), như máy thật; không lần nào trùng lần trước, nên không có khoá
+// cố định nào trong repo. Các file của tpan.db (kể cả -wal) không chứa chuỗi
+// nào có dạng khoá: khoá không bao giờ vào DB.
 func TestM18KhongCoKhoa(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -103,15 +105,32 @@ func TestM18KhongCoKhoa(t *testing.T) {
 	}
 	defer func() { _ = st.Close() }()
 
-	for _, p := range []string{steps.S3KeysFile, steps.S3CAFile, steps.BackupKeyFile} {
-		if _, err := sys.Stat(p); !errors.Is(err, fs.ErrNotExist) {
-			t.Errorf("máy demo có %s (%v)", p, err)
+	first := map[string]string{}
+	for _, p := range []string{steps.S3KeysFile, steps.BackupKeyFile} {
+		fi, err := sys.Stat(p)
+		if err != nil || fi.Mode.Perm() != 0o600 {
+			t.Errorf("máy demo phải có %s root 0600: %+v %v", p, fi, err)
+		}
+		b, _ := sys.ReadFile(p)
+		first[p] = string(b)
+	}
+	if _, err := sys.Stat(steps.S3CAFile); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("máy demo không cần %s (%v)", steps.S3CAFile, err)
+	}
+	sys2, st2, err := New(ctx, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st2.Close() }()
+	for p, v := range first {
+		if b, _ := sys2.ReadFile(p); string(b) == v {
+			t.Errorf("%s của hai lần dựng máy demo trùng nhau: khoá phải sinh mới mỗi lần", p)
 		}
 	}
 
-	// Khoá truy cập AWS (AKIA…/ASIA…), khoá age (AGE-SECRET-KEY-…, age1…), tên
-	// trường của s3.json và khối khoá riêng PEM.
-	keyLike := regexp.MustCompile(`(?i)\b(AKIA|ASIA)[0-9A-Z]{16}\b|AGE-SECRET-KEY-|\bage1[0-9a-z]{50,}|secret_key|access_key|BEGIN [A-Z ]*PRIVATE KEY`)
+	// Khoá truy cập AWS (AKIA…/ASIA…), khoá age (AGE-SECRET-KEY-…, age1…),
+	// khoá sao lưu của TPAN, tên trường của s3.json và khối khoá riêng PEM.
+	keyLike := regexp.MustCompile(`(?i)\b(AKIA|ASIA)[0-9A-Z]{16}\b|AGE-SECRET-KEY-|\bage1[0-9a-z]{50,}|tpan-key-1-|secret_key|access_key|BEGIN [A-Z ]*PRIVATE KEY`)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)

@@ -103,6 +103,7 @@ import (
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
 )
@@ -115,6 +116,10 @@ type Deps struct {
 	Store *store.Store
 	// Demo: đang chạy --demo. Giao diện hiện nhãn "demo"; đăng nhập vẫn bắt buộc.
 	Demo bool
+	// S3 khác nil (chỉ --demo: demo.S3) thì mọi Remote của server dùng kho
+	// này thay cho client thật, và khoá lượt đẩy nằm trong bộ nhớ: máy demo
+	// không gọi ra mạng, không cần /run/tpan trên máy dev.
+	S3 steps.ObjectStore
 	// Hostname là tên máy hiện trên thanh đầu trang.
 	Hostname string
 	// Now nil thì dùng time.Now (test đặt để có thời điểm cố định).

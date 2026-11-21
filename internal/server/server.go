@@ -191,6 +191,10 @@ func newServer(d Deps) *Server {
 	s := &Server{deps: d}
 	s.auth = newAuthState(s)
 	s.api = newAPIState(s)
+	if d.S3 != nil {
+		s.newS3Store = func(s3.Config) (steps.ObjectStore, error) { return d.S3, nil }
+		s.remoteLock = system.NewMemLock()
+	}
 	return s
 }
 
