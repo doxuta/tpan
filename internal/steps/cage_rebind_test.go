@@ -126,4 +126,23 @@ func TestDoiUserThiGanLaiPasswdCuaLong(t *testing.T) {
 		}
 		assertRebind(t, m.Ran(), "gpasswd -d nginx www-data")
 	})
+	// Gói apt tạo user, nhóm hệ thống bằng groupadd, useradd (e2e M17: chuyển
+	// sang Apache tạo nhóm ssl-cert và làm mọi lồng mất group riêng).
+	t.Run("AptInstall", func(t *testing.T) {
+		m := newMachine(t)
+		replyCmd(m.FakeSystem, rebindList, 0, rebindListOut)
+		if err := (&AptInstall{Packages: []string{"apache2"}}).Apply(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		assertRebind(t, m.Ran(), "apt-get install -y -o DPkg::Lock::Timeout=300 apache2")
+	})
+	t.Run("AptInstallNoStart", func(t *testing.T) {
+		m := newMachine(t)
+		m.SetDir("/usr/sbin", 0o755, system.Root)
+		replyCmd(m.FakeSystem, rebindList, 0, rebindListOut)
+		if err := (&AptInstallNoStart{Packages: []string{"apache2"}}).Apply(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		assertRebind(t, m.Ran(), "apt-get install -y -o DPkg::Lock::Timeout=300 apache2")
+	})
 }

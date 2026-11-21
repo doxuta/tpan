@@ -526,6 +526,7 @@ func (s *AptUpgrade) Apply(ctx context.Context, sys system.System) error {
 	if res, err := sys.Run(ctx, s.cmd()); err != nil {
 		return withStdout(fmt.Errorf("nâng gói %s: %w", strings.Join(s.Packages, " "), err), res)
 	}
+	cageRebindIdentity(ctx, sys) // gói có thể tạo user, nhóm hệ thống (apache2 tạo nhóm ssl-cert)
 	return nil
 }
 
@@ -574,6 +575,7 @@ func (s *AptRemove) Apply(ctx context.Context, sys system.System) error {
 	if res, err := sys.Run(ctx, s.cmd()); err != nil {
 		return withStdout(fmt.Errorf("gỡ gói %s: %w", strings.Join(s.Packages, " "), err), res)
 	}
+	cageRebindIdentity(ctx, sys) // gói có thể tạo user, nhóm hệ thống (apache2 tạo nhóm ssl-cert)
 	return nil
 }
 

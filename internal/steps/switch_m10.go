@@ -194,6 +194,7 @@ func (s *AptInstallNoStart) install(ctx context.Context, sys system.System) (err
 	if res, err := sys.Run(ctx, s.cmd()); err != nil {
 		return withStdout(fmt.Errorf("cài gói %s: %w", strings.Join(s.Packages, " "), err), res)
 	}
+	cageRebindIdentity(ctx, sys) // gói có thể tạo user, nhóm hệ thống (apache2 tạo nhóm ssl-cert)
 	return nil
 }
 
