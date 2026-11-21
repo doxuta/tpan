@@ -318,6 +318,7 @@ Kẻ tấn công: K1 và K2 (đầu file). Thứ cần giữ: file của site kh
 - FUSE: theo tài liệu, mount không có `allow_other` thì root bị từ chối truy cập, nên cửa không treo được (máy ảo: `fusermount3` có setuid, `/etc/fuse.conf` không bật `user_allow_other`; chưa thử mount thật). Máy bật `user_allow_other` thì một site có thể làm lời đọc của root chờ lâu.
 - Màn duyệt của giao diện web chưa hiện `hidden`, `old_link` (S10, mục 3.7): làm sau khi M16 vào `dev`.
 - Các phát hiện mục 6 của rà soát (P1, P2...) và nhóm F4, D5, H5, M1-DBCONN: đợt 2 (`agent-dev/M28-dot-2.md`).
+- Soát cuối (`docs/thay-doi/M28-soat-cuoi.md`) tìm ra họ thứ hai, có từ trước M28, để đợt 2: panel chưa đặt trần cỡ và thời gian cho output của các lệnh chạy trên dữ liệu do site điều khiển, nên một site bị chiếm có thể làm panel chậm, giữ khoá hay hết bộ nhớ (C1 đến C4, C9). Hướng sửa: trần output và hạn giờ ngay trong `Run`. Chi tiết giữ ngoài repo tới khi vá.
 
 ## 6. Nâng cấp và lùi
 
