@@ -79,6 +79,9 @@ type UsageStore interface {
 	UsageHours(ctx context.Context, domain string, from, to time.Time) ([]cage.Hour, error)
 	// PruneUsage xoá mẫu có at < samplesBefore và dòng giờ có hour < hoursBefore.
 	PruneUsage(ctx context.Context, samplesBefore, hoursBefore time.Time) error
+	// DeleteUsageOf xoá mọi mẫu và dòng giờ của một domain (xoá hẳn site: site
+	// mới cùng tên không thừa hưởng số cũ).
+	DeleteUsageOf(ctx context.Context, domain string) error
 }
 
 // ProbeStore là sổ phép thử tấn công (store.Store thoả).
