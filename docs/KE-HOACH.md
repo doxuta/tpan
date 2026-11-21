@@ -1315,7 +1315,7 @@ Màn hình:
 9. **Stack** (kèm nút chuyển LEMP ⇄ LAMP và các bản PHP đang cài), **Cập nhật** (mục 6.11), **Bảo mật**.
 10. **Cài đặt**: mỗi mục một thẻ: mật khẩu, các phiên đang đăng nhập, phiên bản và cập nhật TPAN (M15, mục 6.14; chỉ admin), giao diện (ngôn ngữ, sáng/tối/theo hệ điều hành, Gợi ý), AI và tình trạng bộ não, agent và MCP. **Người dùng** và **Gói** (M13, chỉ admin) nằm cùng nhóm "Tài khoản".
 11. **Thanh lệnh `⌘K`**: mở được từ mọi màn, dùng hoàn toàn bằng bàn phím; tìm được màn và từng site đang chạy.
-12. **Ngăn AI**: mở bằng nút "Hỏi AI" trên thanh đầu trang (đóng thì không còn gì nổi ở góc); khung nổi 400 × 640 px ở góc dưới bên phải, đi theo khi chuyển mục; trên cùng là ngữ cảnh sẽ gửi kèm (mục 8.4). Trang **Phiên AI** liệt kê các phiên; mỗi phiên có câu hỏi, ngữ cảnh và đường đã đi, dữ liệu đã gửi (bản đã che), từng lần gọi công cụ, câu trả lời, Plan đề xuất. Phiên của agent nối trực tiếp qua MCP cũng nằm ở đây.
+12. **Ngăn AI**: mở bằng nút "Hỏi AI" trên thanh đầu trang (đóng thì không còn gì nổi ở góc); từ 1320 px là khung nổi 400 × 640 px ở góc dưới bên phải, hẹp hơn thì là tấm bên phải rộng 440 px (dưới 640 px phủ toàn màn); đi theo khi chuyển mục; trên cùng là ngữ cảnh sẽ gửi kèm (mục 8.4). Trang **Phiên AI** liệt kê các phiên; mỗi phiên có câu hỏi, ngữ cảnh và đường đã đi, dữ liệu đã gửi (bản đã che), từng lần gọi công cụ, câu trả lời, Plan đề xuất. Phiên của agent nối trực tiếp qua MCP cũng nằm ở đây.
 
 Nguyên tắc:
 

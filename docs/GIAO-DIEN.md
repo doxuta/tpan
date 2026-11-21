@@ -173,7 +173,7 @@ Bo góc chỉ có bốn cỡ, là bốn lớp Tailwind khai trong `styles.css`: 
 | Hình đại diện (`Avatar`) | hình tròn nền `--accent-tint`, chữ cái đầu của tên viết hoa màu `--accent`; chỉ để nhìn, tên luôn nằm cạnh bằng chữ |
 | Hàng tuyến | cao 52 px; cột tên site co giãn 220 đến 320 px, tên **một dòng**, sans 14/500, dài thì cắt bằng dấu ba chấm và có `title`; sáu ga chia đều; cột mã HTTP rộng 76 px. Mã khác 200 có nền `--fail`, chữ `--on-fail`. Dưới hàng lỗi có một dòng chữ `--fail-text` nói hỏng ở đâu |
 | Ô tìm `⌘K` | một nút trông như ô nhập (nền `--soft`, viền `--line`): kính lúp, dòng gợi ý `--muted`, phím tắt trong khung nhỏ. Mở thanh lệnh |
-| Ngăn AI | khung chat nổi cỡ cố định 400 × 640 px (thấp hơn khi cửa sổ thấp) ở góc dưới bên phải, bo 10 px, có bóng. Mở bằng nút "Hỏi AI" trên thanh đầu trang; **đóng thì không còn gì nổi ở góc**. Giữ nguyên khi chuyển mục. Màn hẹp: phủ toàn màn |
+| Ngăn AI | từ 1320 px: khung chat nổi cỡ cố định 400 × 640 px (thấp hơn khi cửa sổ thấp) ở góc dưới bên phải, bo 10 px, có bóng, không che phần còn lại của trang; từ 640 đến 1319 px: tấm bên phải rộng 440 px trên lớp phủ `--scrim` (chỗ trống không đủ cho khung nổi cạnh nội dung); dưới 640 px: phủ toàn màn. Ngưỡng 1320 px là `useWide` ở `web/src/ai/platform.ts`. Mở bằng nút "Hỏi AI" trên thanh đầu trang; **đóng thì không còn gì nổi ở góc**. Giữ nguyên khi chuyển mục |
 
 Các trạng thái của thành phần bấm được:
 
