@@ -448,7 +448,10 @@ func (s *Server) handleViewAs(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, userNotFound(name))
 		return
 	}
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	if !s.auditDone(w, r, "session.view_as", name, s.deps.Store.SetViewAs(r.Context(), cur.TokenSHA256, name)) {
 		return
 	}
@@ -458,7 +461,10 @@ func (s *Server) handleViewAs(w http.ResponseWriter, r *http.Request) {
 // handleViewAsExit thoát "xem như" (chạy được trong phiên chỉ đọc, routes.go).
 // Phiên không ở chế độ xem như thì không làm gì.
 func (s *Server) handleViewAsExit(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	if cur.ViewAs != "" {
 		if !s.auditDone(w, r, "session.view_as_exit", cur.ViewAs, s.deps.Store.SetViewAs(r.Context(), cur.TokenSHA256, "")) {
 			return

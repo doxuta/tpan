@@ -86,6 +86,10 @@ func (s *Server) secure(h http.Handler) http.Handler {
 		hd.Set("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
 		hd.Set("X-Content-Type-Options", "nosniff")
 		hd.Set("Referrer-Policy", "no-referrer")
+		// M20: tên máy là tên một site thì 421 (host_m20.go).
+		if s.hostIsSite(w, r) {
+			return
+		}
 		// GET, HEAD, OPTIONS luôn qua; POST, DELETE từ origin khác thì bị chặn.
 		if err := s.auth.cop.Check(r); err != nil {
 			writeError(w, http.StatusForbidden, "csrf", i18n.T(
@@ -148,7 +152,8 @@ func (s *Server) authResolve(r *http.Request) (store.Session, account.Identity, 
 // thì xoá và coi như không có. Phiên còn sống thì cập nhật last_seen.
 func (s *Server) authCurrent(r *http.Request) (store.Session, bool, error) {
 	st := s.deps.Store
-	if st == nil {
+	// Có header Authorization thì chỉ xác thực bằng token (M20, mục 3.7).
+	if st == nil || hasAuthorization(r) {
 		return store.Session{}, false, nil
 	}
 	c, err := r.Cookie(authCookieName(r))
@@ -161,6 +166,10 @@ func (s *Server) authCurrent(r *http.Request) (store.Session, bool, error) {
 		return store.Session{}, false, nil
 	}
 	if err != nil {
+		return store.Session{}, false, err
+	}
+	// M20: phiên gắn tên máy (auth_m20.go).
+	if ok, err := s.sessionHost(r, &ss); err != nil || !ok {
 		return store.Session{}, false, err
 	}
 	now := s.now()
@@ -344,6 +353,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		authNoStore(w)
 		return
 	}
+	host, ok := loginHost(w, r)
+	if !ok {
+		return
+	}
 	var req LoginRequest
 	if !authDecode(w, r, &req) {
 		return
@@ -382,6 +395,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			"Account "+name+" is suspended. Contact the administrator."))
 		return
 	}
+	// M20 (điểm ghép 3.4.1): user đã bật hai bước thì sang bước hai, KHÔNG xoá
+	// bộ đếm sai của IP.
+	if s.loginChallenge(w, r, name, ip, host) {
+		return
+	}
 	if err := st.ClearLoginFailures(r.Context(), ip); err != nil {
 		authInternal(w, "xoá đếm đăng nhập sai", err)
 		return
@@ -399,6 +417,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		IP:          ip,
 		Created:     now,
 		UserName:    name,
+		Host:        host,
 	}
 	if err := st.CreateSession(r.Context(), ss); err != nil {
 		authInternal(w, "tạo phiên", err)
@@ -423,6 +442,11 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.audit(r.WithContext(engine.WithActor(r.Context(), ss.UserName)), "logout", ss.ID, "ok", "")
+	}
+	// M20: "Quay lại" ở màn bước hai cũng gọi đăng xuất: xoá cả phiếu chờ.
+	if err := s.dropChallenge(w, r); err != nil {
+		authInternal(w, "xoá phiếu bước hai", err)
+		return
 	}
 	authSetCookie(w, r, "", -1)
 	w.WriteHeader(http.StatusNoContent)
@@ -450,6 +474,10 @@ func (s *Server) writeSessionInfo(w http.ResponseWriter, r *http.Request) {
 		info.Expires = ss.LastSeen.Add(authIdle)
 		info.User = &id
 	}
+	if err := s.sessionInfoM20(r, &info, ss, id, ok); err != nil {
+		authInternal(w, "đọc trạng thái hai bước", err)
+		return
+	}
 	writeJSON(w, http.StatusOK, info)
 }
 
@@ -457,7 +485,10 @@ func (s *Server) writeSessionInfo(w http.ResponseWriter, r *http.Request) {
 // (sai thì đếm như đăng nhập sai, để phiên bị chiếm cũng không dò mật khẩu
 // được), rồi đổi và huỷ mọi phiên khác.
 func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	var req PasswordChange
 	if !authDecode(w, r, &req) {
 		return
@@ -466,6 +497,11 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "password_too_short", i18n.T(
 			"Mật khẩu mới phải có ít nhất "+strconv.Itoa(authMinPassword)+" ký tự.",
 			"The new password must be at least "+strconv.Itoa(authMinPassword)+" characters long."))
+		return
+	}
+	// M20: đã bật hai bước thì cần mã (thiếu thì từ chối trước argon2).
+	needCode, ok := s.mfaCodeNeeded(w, r, cur.UserName, req.Code)
+	if !ok {
 		return
 	}
 	ip := clientIP(r)
@@ -481,6 +517,11 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		s.authFailed(w, r, ip, "account.password")
 		return
 	}
+	if needCode {
+		if _, ok := s.checkSecondFactor(w, r, cur.UserName, req.Code, sfAccount("account.password")); !ok {
+			return
+		}
+	}
 	hash, err := store.HashPassword(req.New)
 	if err != nil {
 		authInternal(w, "băm mật khẩu mới", err)
@@ -491,13 +532,16 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "account.password", "", "ok", "")
-	w.WriteHeader(http.StatusNoContent)
+	s.writePasswordChanged(w, r, cur.UserName)
 }
 
 // handleSessions: GET /api/v1/account/sessions. Chỉ phiên của chính người
 // đăng nhập (M13). Phiên đã hết hạn mà chưa bị dọn thì không hiện.
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	list, err := s.deps.Store.SessionsOf(r.Context(), cur.UserName)
 	if err != nil {
 		authInternal(w, "đọc danh sách phiên", err)
@@ -519,7 +563,10 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 
 // handleSessionDelete: DELETE /api/v1/account/sessions/{id}.
 func (s *Server) handleSessionDelete(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	id := r.PathValue("id")
 	// Chỉ phiên của mình: phiên của người khác ra cùng 404 như id không có.
 	err := s.deps.Store.DeleteSessionOf(r.Context(), cur.UserName, id)

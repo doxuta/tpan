@@ -52,6 +52,18 @@ package server
 // panel_private (409), host_is_site (421). Mật khẩu sai ở thao tác đòi mật
 // khẩu: wrong_password (401) / login_locked (423) như đăng nhập. Thiếu mã khi
 // user đã bật hai bước: mfa_code_required (400).
+//
+// Bổ sung khi viết server (đè lên câu trên khi khác):
+//   - mfa_code_wrong và mfa_code_used là 401 CHỈ ở POST /login/2fa; ở mọi
+//     route /account/* (2fa/*, tokens, password) là 400.
+//   - Lần sai làm khoá user (lần thứ 10) trả luôn 423 mfa_locked (Retry-After).
+//   - mfa_not_enabled (409) có thể về từ disable, recovery, tạo token, đổi mật
+//     khẩu khi hai bước bị tắt giữa chừng.
+//   - mfa_busy (503): request bị huỷ khi đang chờ lượt kiểm mã của user.
+//   - host_missing (400): POST /login không có header Host.
+//   - host_is_site (421) ở MỌI đường dẫn khi tên máy là tên một site: JSON với
+//     /api/, trang HTML ngắn với đường dẫn khác.
+//   - token_scope, token_forbidden (403); token_* (401) như trên.
 
 import (
 	"time"

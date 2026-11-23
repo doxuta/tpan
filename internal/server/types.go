@@ -141,6 +141,9 @@ type Deps struct {
 	Brain interface{ Status() bridge.Status }
 	// BrainMode là "off" | "bridge" | "demo" (BrainStatus.Mode); rỗng coi là off.
 	BrainMode string
+	// MFAKeyFile (M20) là file khoá niêm phong bí mật hai bước; rỗng là
+	// mfa.KeyFile (/etc/tpan/secret.key). Đọc, ghi qua Sys.
+	MFAKeyFile string
 }
 
 // ErrorBody là dạng lỗi duy nhất của API (mục 9).

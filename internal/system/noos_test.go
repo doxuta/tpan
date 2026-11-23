@@ -45,6 +45,11 @@ var osAllowed = map[string]string{
 	// M18: render user-data chạy không cần root (WriteFileAtomic luôn chown về
 	// root) và chỉ đọc, ghi file theo đường dẫn chính người gõ lệnh đưa.
 	"cmd/tpan/cloudinit.go": "đọc sites.yaml, SHA256SUMS và ghi user-data theo đường dẫn người gõ lệnh chỉ ra (M18)",
+	// M20: GetCertificate stat chứng chỉ của chính panel ở mỗi bắt tay để nạp
+	// lại khi certbot gia hạn (system.FileInfo không có mtime). Hai đường dẫn
+	// là hằng: /etc/tpan/tls (0700 root) và /etc/letsencrypt/live/tpan-panel
+	// (root), không đường nào nằm trong vùng site.
+	"internal/server/tls_m20.go": "stat chứng chỉ của chính panel (/etc/tpan/tls, live/tpan-panel) để nạp lại khi gia hạn (M20)",
 }
 
 func set(names ...string) map[string]bool {

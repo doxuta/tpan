@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/apitoken"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -184,10 +185,58 @@ func splitPattern(p string) (method, path string) {
 	return http.MethodGet, p
 }
 
-// TestPhanQuyenMoiRoute duyệt mọi route đã đăng ký với ba vai.
+// token ghi thẳng một token (M20) của user với phạm vi scopes, sống từ
+// created tới expires; trả token thật.
+func (e *authzEnv) token(user, scopes string, created, expires time.Time) string {
+	e.t.Helper()
+	raw := apitoken.New()
+	id := authTokenHash(raw)[:16]
+	if err := e.st.CreateToken(context.Background(), store.TokenRow{
+		ID: id, User: user, Name: "t", Scopes: scopes, Hint: apitoken.Hint(raw), Created: created, Expires: expires,
+	}, apitoken.Hash(raw)); err != nil {
+		e.t.Fatal(err)
+	}
+	return raw
+}
+
+// doToken gửi request bằng token (header Authorization, không cookie).
+func (e *authzEnv) doToken(h http.Handler, method, path, raw string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(method, path, strings.NewReader("{}"))
+	r.RemoteAddr = "192.0.2.1:40000"
+	r.Header.Set("Authorization", "Bearer "+raw)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, r)
+	return rec
+}
+
+// scopesExcept là quyền ghi mọi nhóm trừ g ("" là mọi nhóm).
+func scopesExcept(g apitoken.Group) string {
+	var out []string
+	for _, x := range apitoken.Groups {
+		if x != g {
+			out = append(out, string(x)+":write")
+		}
+	}
+	return strings.Join(out, ",")
+}
+
+// TestPhanQuyenMoiRoute duyệt mọi route đã đăng ký với ba vai, và (M20) với
+// token: đủ phạm vi (của admin và của A), thiếu phạm vi, hết hạn, thu hồi.
 func TestPhanQuyenMoiRoute(t *testing.T) {
 	e := newAuthzEnv(t)
 	h, rs := e.fakeRoutes()
+	later := e.now.Add(time.Hour)
+	tokAdmin := e.token(account.AdminName, scopesExcept(""), e.now, later)
+	tokA := e.token(authzA, scopesExcept(""), e.now, later)
+	tokExpired := e.token(account.AdminName, scopesExcept(""), e.now.Add(-2*time.Hour), e.now.Add(-time.Hour))
+	tokRevoked := e.token(account.AdminName, scopesExcept(""), e.now, later)
+	if err := e.st.RevokeToken(context.Background(), authTokenHash(tokRevoked)[:16], "", e.now); err != nil {
+		t.Fatal(err)
+	}
+	tokLack := map[apitoken.Group]string{}
+	for _, g := range apitoken.Groups {
+		tokLack[g] = e.token(account.AdminName, scopesExcept(g), e.now, later)
+	}
 	if len(rs) < 90 {
 		t.Fatalf("bảng route chỉ có %d dòng; có bị bỏ sót không?", len(rs))
 	}
@@ -236,6 +285,26 @@ func TestPhanQuyenMoiRoute(t *testing.T) {
 					t.Errorf("B: 404 của đồ người khác khác 404 của đồ không có:\n%s\n%s", other.Body, gone.Body)
 				}
 			}
+			// M20: token. Hết hạn và thu hồi bị chặn trước mọi thứ khác.
+			tok := func(raw string, wantCode int, wantErr string) {
+				t.Helper()
+				rec := e.doToken(h, method, path, raw)
+				if rec.Code != wantCode || (wantErr != "" && errCode(t, rec) != wantErr) {
+					t.Errorf("token: mã %d %s, muốn %d %s", rec.Code, rec.Body, wantCode, wantErr)
+				}
+			}
+			tok(tokExpired, http.StatusUnauthorized, "token_expired")
+			tok(tokRevoked, http.StatusUnauthorized, "token_revoked")
+			if rt.tok == "" {
+				// Chỉ phiên (B5): token đủ mọi phạm vi vẫn 403.
+				tok(tokAdmin, http.StatusForbidden, "token_forbidden")
+				tok(tokA, http.StatusForbidden, "token_forbidden")
+				return
+			}
+			tok(tokAdmin, authzStatus, "")
+			// Token của A: phạm vi đủ, quyền là của A (B4).
+			tok(tokA, wantA, "")
+			tok(tokLack[rt.tok], http.StatusForbidden, "token_scope")
 		})
 	}
 }
