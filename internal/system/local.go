@@ -16,6 +16,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/doxuta/tpan/internal/sitefs"
 )
 
 // fixedPATH là PATH duy nhất lệnh của tpan thấy. Cố định để kết quả không phụ
@@ -35,18 +37,37 @@ type LocalSystem struct {
 	// LockPath là file dùng cho Lock. NewLocal đặt DefaultLockPath; test đổi
 	// sang một file trong t.TempDir() vì máy dev không có /run/tpan.
 	LockPath string
+	// SiteRoot là gốc của vùng site (M28, mục 3.3 của M28-thiet-ke.md): mọi
+	// thao tác file có đường dẫn mà sitefs.Split(SiteRoot, p) nhận đi qua cửa
+	// sitefs, và Run từ chối lệnh root nhận đường dẫn trong đó (mục 3.4).
+	// NewLocal đặt sitefs.Root; test đặt một thư mục tạm. Rỗng: không có vùng.
+	SiteRoot string
 }
 
-// NewLocal tạo LocalSystem với khoá ở DefaultLockPath.
+// NewLocal tạo LocalSystem với khoá ở DefaultLockPath và vùng site ở sitefs.Root.
 func NewLocal() *LocalSystem {
-	return &LocalSystem{LockPath: DefaultLockPath}
+	return &LocalSystem{LockPath: DefaultLockPath, SiteRoot: sitefs.Root}
 }
 
 // Run chạy cmd bằng argv, không qua shell. Xem System.Run.
 func (s *LocalSystem) Run(ctx context.Context, cmd Cmd) (Result, error) {
+	if err := checkRootZone(s.SiteRoot, cmd); err != nil {
+		return Result{ExitCode: -1}, err
+	}
 	c, err := command(ctx, cmd)
 	if err != nil {
 		return Result{ExitCode: -1}, err
+	}
+	// Mỗi lệnh một nhóm tiến trình riêng, và huỷ thì giết cả nhóm (S1):
+	// runuser fork ra lệnh thật rồi đứng chờ; Go chỉ giết runuser thì lệnh
+	// con ở lại, giữ ống stdout và nằm mãi trong cgroup của tpan.
+	c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	c.Cancel = func() error {
+		err := syscall.Kill(-c.Process.Pid, syscall.SIGKILL)
+		if errors.Is(err, syscall.ESRCH) {
+			return os.ErrProcessDone
+		}
+		return err
 	}
 	if len(cmd.Stdin) > 0 {
 		c.Stdin = bytes.NewReader(cmd.Stdin)
@@ -252,6 +273,9 @@ func (s *LocalSystem) WriteFileAtomic(path string, data []byte, perm fs.FileMode
 	if err != nil {
 		return fmt.Errorf("ghi %s: %w", path, err)
 	}
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return sitefs.WriteFileAtomic(a, r, data, perm, uid, gid)
+	}
 	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".tpan-*")
 	if err != nil {
 		return fmt.Errorf("ghi %s: %w", path, err)
@@ -285,7 +309,82 @@ func (s *LocalSystem) WriteFileAtomic(path string, data []byte, perm fs.FileMode
 	return nil
 }
 
+// OpenRead mở file bằng O_NOFOLLOW (thành phần cuối là symlink thì open lỗi
+// ELOOP) rồi fstat trên chính fd đã mở: không có khoảng hở giữa lúc kiểm và
+// lúc đọc để ai tráo file.
+func (s *LocalSystem) OpenRead(path string) (io.ReadCloser, int64, error) {
+	if _, _, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return nil, 0, &sitefs.Error{Op: "mở để đọc theo dòng", Path: path, Err: ErrZoneStream}
+	}
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		if errors.Is(err, syscall.ELOOP) {
+			return nil, 0, fmt.Errorf("mở %s để đọc: là symlink, không đi theo: %w", path, err)
+		}
+		return nil, 0, fmt.Errorf("mở %s để đọc: %w", path, err)
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		_ = f.Close()
+		return nil, 0, fmt.Errorf("stat %s: %w", path, err)
+	}
+	if !fi.Mode().IsRegular() {
+		_ = f.Close()
+		return nil, 0, fmt.Errorf("mở %s để đọc: không phải file thường (%v)", path, fi.Mode().Type())
+	}
+	return f, fi.Size(), nil
+}
+
+// CreateFile tạo file mới bằng O_CREAT|O_EXCL|O_NOFOLLOW (đã có, kể cả là
+// symlink, thì lỗi EEXIST), đặt quyền và chủ trên fd trước byte đầu tiên.
+func (s *LocalSystem) CreateFile(path string, perm fs.FileMode, owner Owner) (io.WriteCloser, error) {
+	if _, _, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return nil, &sitefs.Error{Op: "tạo file để ghi theo dòng", Path: path, Err: ErrZoneStream}
+	}
+	uid, gid, err := lookupOwner(owner)
+	if err != nil {
+		return nil, fmt.Errorf("tạo %s: %w", path, err)
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL|syscall.O_NOFOLLOW, 0o600)
+	if err != nil {
+		return nil, fmt.Errorf("tạo %s: %w", path, err)
+	}
+	// Chmod tường minh vì umask cắt quyền lúc tạo.
+	if err := f.Chmod(perm); err != nil {
+		_ = f.Close()
+		_ = os.Remove(path)
+		return nil, fmt.Errorf("chmod %s: %w", path, err)
+	}
+	if err := f.Chown(uid, gid); err != nil {
+		_ = f.Close()
+		_ = os.Remove(path)
+		return nil, fmt.Errorf("chown %s: %w", path, err)
+	}
+	return &syncFile{f: f}, nil
+}
+
+// syncFile fsync rồi mới đóng: tải về xong mà mất điện thì không ra file rỗng
+// mang tên thật (người gọi đổi tên sau Close).
+type syncFile struct{ f *os.File }
+
+func (w *syncFile) Write(p []byte) (int, error) { return w.f.Write(p) }
+
+func (w *syncFile) Close() error {
+	serr := w.f.Sync()
+	cerr := w.f.Close()
+	if serr != nil {
+		return fmt.Errorf("fsync %s: %w", w.f.Name(), serr)
+	}
+	if cerr != nil {
+		return fmt.Errorf("đóng %s: %w", w.f.Name(), cerr)
+	}
+	return nil
+}
+
 func (s *LocalSystem) ReadFile(path string) ([]byte, error) {
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return sitefs.ReadFile(a, r, sitefs.MaxFile)
+	}
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("đọc %s: %w", path, err)
@@ -300,6 +399,19 @@ func (s *LocalSystem) MkdirAll(path string, perm fs.FileMode, owner Owner) error
 	if err != nil {
 		return fmt.Errorf("tạo thư mục %s: %w", path, err)
 	}
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		// Neo và mọi thứ phía trên nó thuộc root: nếu thiếu thì tạo theo cách
+		// cũ, phần còn lại đi qua cổng.
+		if err := mkdirAll(a, perm, uid, gid); err != nil {
+			return err
+		}
+		return sitefs.MkdirAll(a, r, perm, uid, gid)
+	}
+	return mkdirAll(path, perm, uid, gid)
+}
+
+// mkdirAll là MkdirAll cho phần nằm ngoài vùng site.
+func mkdirAll(path string, perm fs.FileMode, uid, gid int) error {
 	var missing []string
 	for p := filepath.Clean(path); ; p = filepath.Dir(p) {
 		fi, err := os.Stat(p)
@@ -334,13 +446,29 @@ func (s *LocalSystem) MkdirAll(path string, perm fs.FileMode, owner Owner) error
 }
 
 func (s *LocalSystem) Remove(path string) error {
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return sitefs.Remove(a, r)
+	}
 	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("xoá %s: %w", path, err)
 	}
 	return nil
 }
 
+// Rename: hễ một phía nằm trong vùng thì cả hai phía đi qua cổng; phía nằm
+// ngoài đi dưới dạng đường dẫn tuyệt đối (AT_FDCWD).
 func (s *LocalSystem) Rename(oldPath, newPath string) error {
+	oa, or, oin := sitefs.Split(s.SiteRoot, oldPath)
+	na, nr, nin := sitefs.Split(s.SiteRoot, newPath)
+	if oin || nin {
+		if !oin {
+			oa, or = "", oldPath
+		}
+		if !nin {
+			na, nr = "", newPath
+		}
+		return sitefs.Rename(oa, or, na, nr)
+	}
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return fmt.Errorf("đổi tên %s: %w", oldPath, err)
 	}
@@ -348,6 +476,9 @@ func (s *LocalSystem) Rename(oldPath, newPath string) error {
 }
 
 func (s *LocalSystem) Symlink(target, link string) error {
+	if a, r, ok := sitefs.Split(s.SiteRoot, link); ok {
+		return sitefs.Symlink(target, a, r)
+	}
 	if err := os.Symlink(target, link); err != nil {
 		return fmt.Errorf("tạo symlink %s: %w", link, err)
 	}
@@ -355,6 +486,9 @@ func (s *LocalSystem) Symlink(target, link string) error {
 }
 
 func (s *LocalSystem) Readlink(path string) (string, error) {
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return sitefs.Readlink(a, r)
+	}
 	t, err := os.Readlink(path)
 	if err != nil {
 		return "", fmt.Errorf("đọc symlink %s: %w", path, err)
@@ -364,6 +498,13 @@ func (s *LocalSystem) Readlink(path string) (string, error) {
 
 // Stat dùng Lstat: không đi theo symlink.
 func (s *LocalSystem) Stat(path string) (FileInfo, error) {
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		in, err := sitefs.Lstat(a, r)
+		if err != nil {
+			return FileInfo{}, err
+		}
+		return FileInfo{Mode: in.Mode, Size: in.Size, Owner: ownerName(in.UID, in.GID)}, nil
+	}
 	fi, err := os.Lstat(path)
 	if err != nil {
 		return FileInfo{}, fmt.Errorf("stat %s: %w", path, err)
@@ -377,6 +518,9 @@ func (s *LocalSystem) Stat(path string) (FileInfo, error) {
 
 // ReadDir trả tên đã sắp xếp (os.ReadDir sắp theo tên).
 func (s *LocalSystem) ReadDir(path string) ([]string, error) {
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return sitefs.ReadDir(a, r, sitefs.MaxDirEntries)
+	}
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return nil, fmt.Errorf("đọc thư mục %s: %w", path, err)
@@ -393,6 +537,9 @@ func (s *LocalSystem) Chown(path string, owner Owner) error {
 	if err != nil {
 		return fmt.Errorf("chown %s: %w", path, err)
 	}
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return sitefs.Chown(a, r, uid, gid)
+	}
 	if err := os.Lchown(path, uid, gid); err != nil {
 		return fmt.Errorf("chown %s: %w", path, err)
 	}
@@ -400,6 +547,9 @@ func (s *LocalSystem) Chown(path string, owner Owner) error {
 }
 
 func (s *LocalSystem) Chmod(path string, perm fs.FileMode) error {
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		return sitefs.Chmod(a, r, perm)
+	}
 	if err := os.Chmod(path, perm); err != nil {
 		return fmt.Errorf("chmod %s: %w", path, err)
 	}
@@ -409,6 +559,10 @@ func (s *LocalSystem) Chmod(path string, perm fs.FileMode) error {
 // StatFS đọc statfs. Free là Bavail (phần user thường dùng được, như cột Avail
 // của df), không phải Bfree (gồm cả phần dành riêng cho root).
 func (s *LocalSystem) StatFS(path string) (DiskUsage, error) {
+	if a, r, ok := sitefs.Split(s.SiteRoot, path); ok {
+		total, free, err := sitefs.StatFS(a, r)
+		return DiskUsage{Total: total, Free: free}, err
+	}
 	var st syscall.Statfs_t
 	if err := syscall.Statfs(path, &st); err != nil {
 		return DiskUsage{}, fmt.Errorf("statfs %s: %w", path, &fs.PathError{Op: "statfs", Path: path, Err: err})

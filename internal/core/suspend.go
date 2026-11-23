@@ -282,6 +282,6 @@ func refuseDBSuspended(st site.Site) error {
 	}
 	d := st.Domain.String()
 	return refuse(CodeDBSuspended, i18n.T(
-		"DB của site "+d+" đang tạm khoá nên WordPress không vào được DB và kiểm chứng của thao tác này chắc chắn hỏng; mở khoá DB của site trước",
+		"DB của site "+d+" đang tạm khoá nên WordPress không vào được DB và kiểm chứng của việc này chắc chắn hỏng; mở khoá DB của site trước",
 		"the database of site "+d+" is suspended, so WordPress cannot reach it and this operation's verification is bound to fail; unsuspend the site's database first"))
 }

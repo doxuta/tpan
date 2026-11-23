@@ -615,7 +615,7 @@ func (u *Updates) PrepareMariaDB(ctx context.Context, line string) (*Planned, er
 	}
 	if cmpDBLine(line, current) <= 0 {
 		return nil, refuse("mariadb_not_newer", i18n.T(
-			fmt.Sprintf("MariaDB đang chạy dòng %s; chỉ nâng lên được dòng mới hơn (nhận được %s), không hạ xuống", current, line),
+			fmt.Sprintf("MariaDB đang chạy phiên bản %s; chỉ nâng được lên phiên bản mới hơn, không lùi về bản cũ (bạn chọn %s)", current, line),
 			fmt.Sprintf("MariaDB is running series %s; it can only move up to a newer series (got %s), never down", current, line)))
 	}
 	if err := u.requireBackups(ctx); err != nil {
@@ -653,7 +653,7 @@ func (u *Updates) PrepareMariaDB(ctx context.Context, line string) (*Planned, er
 				"The repository is not removed on undo: if the packages were already upgraded the machine needs it for series "+line+" patches; removing it leaves apt not knowing where the running packages come from.")},
 			&afterStep{Step: &steps.AptUpgrade{Packages: pkgs}, dep: repo},
 			&settingsStep{s: u.Settings, kv: [][2]string{{SettingDBSource, string(SourceMariaDB)}, {SettingDBLine, line}},
-				title: i18n.T("Ghi nguồn MariaDB mới vào settings (mariadb.org, dòng "+line+")", "Record the new MariaDB source in settings (mariadb.org, series "+line+")"),
+				title: i18n.T("Ghi nguồn MariaDB mới vào settings (mariadb.org, phiên bản "+line+")", "Record the new MariaDB source in settings (mariadb.org, series "+line+")"),
 				why: i18n.T("tpan đọc settings để biết máy đang dùng kho nào; ghi ngay sau khi nâng gói để dù bước sau lỗi, tpan vẫn nói đúng dòng đang chạy.",
 					"tpan reads settings to know which repository the machine uses; it is written right after the upgrade so that even if a later step fails, tpan still reports the running series correctly.")},
 			&steps.Service{Unit: "mariadb"},

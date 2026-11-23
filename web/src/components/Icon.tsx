@@ -102,6 +102,8 @@ const paths = {
   chart: <path d="M4 19.5h16M7 16v-5M12 16V6.5M17 16v-8" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  expand: <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />,
+  collapse: <path d="M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7" />,
   check: <path d="M5 12l5 5 9-10" />,
   copy: (
     <>

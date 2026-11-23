@@ -32,6 +32,7 @@ import (
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/sitefs"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -135,8 +136,13 @@ func backupPublic(sys system.System, src string) (string, error) {
 	if err != nil {
 		return p, fmt.Errorf("kiểm %s: %w", p, err)
 	}
-	if !fi.Mode.IsDir() {
-		return p, fmt.Errorf("%s không phải thư mục (%v); tpan không backup qua symlink", p, fi.Mode.Type())
+	// Lỗi của cửa (sitefs.Error) để API trả 409 site_path_unsafe kèm cách sửa,
+	// như mọi trạng thái do site tự tạo, không phải 500 (soát cuối M28, C14).
+	switch {
+	case fi.Mode&fs.ModeSymlink != 0:
+		return p, &sitefs.Error{Op: "backup", Path: p, Err: sitefs.ErrSymlink}
+	case !fi.Mode.IsDir():
+		return p, &sitefs.Error{Op: "backup", Path: p, Err: syscall.ENOTDIR}
 	}
 	return p, nil
 }

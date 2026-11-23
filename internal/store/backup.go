@@ -25,20 +25,34 @@ import (
 // Backup là site.Backup (một dòng của bảng backups).
 type Backup = site.Backup
 
-const backupColumns = "id, domain, kind, reason, path, size, sha256, wp_version, php_version, job_id, created_at"
+// backupInsertColumns là các cột AddBackup ghi. Bảy cột của M18 (local,
+// remote...) không có ở đây: dòng mới lấy DEFAULT của cột (trên máy, chưa lên
+// kho), nên không người gọi nào lỡ ghi local=0 vì quên đặt trường.
+const backupInsertColumns = "id, domain, kind, reason, path, size, sha256, wp_version, php_version, job_id, created_at"
+
+// backupColumns là các cột đọc ra (M18 thêm bảy cột cuối, migration 1800).
+const backupColumns = backupInsertColumns + ", local, remote, remote_key, remote_target, remote_at, remote_error, remote_tries"
 
 func backupScan(r rowScanner) (Backup, error) {
 	var (
-		b       Backup
-		created string
+		b                 Backup
+		created, remoteAt string
+		local             int
 	)
 	if err := r.Scan(&b.ID, &b.Domain, &b.Kind, &b.Reason, &b.Path, &b.Size, &b.SHA256,
-		&b.WPVersion, &b.PHPVersion, &b.JobID, &created); err != nil {
+		&b.WPVersion, &b.PHPVersion, &b.JobID, &created,
+		&local, &b.Remote, &b.RemoteKey, &b.RemoteTarget, &remoteAt, &b.RemoteError, &b.RemoteTries); err != nil {
 		return Backup{}, err
 	}
 	var err error
 	if b.Created, err = parseTime(created); err != nil {
 		return Backup{}, fmt.Errorf("backup %s: %w", b.ID, err)
+	}
+	b.Local = local != 0
+	if remoteAt != "" {
+		if b.RemoteAt, err = parseTime(remoteAt); err != nil {
+			return Backup{}, fmt.Errorf("backup %s, remote_at: %w", b.ID, err)
+		}
 	}
 	return b, nil
 }
@@ -69,7 +83,7 @@ func (s *Store) AddBackup(ctx context.Context, b Backup) (Backup, error) {
 	// site đã xoá, hay domain lạ) thì admin. Ghi vào dòng backup vì backup sống
 	// lâu hơn site.
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO backups ("+backupColumns+", owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT owner FROM sites WHERE domain = ?), 'admin'))",
+		"INSERT INTO backups ("+backupInsertColumns+", owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT owner FROM sites WHERE domain = ?), 'admin'))",
 		b.ID, b.Domain, b.Kind, b.Reason, b.Path, b.Size, b.SHA256,
 		b.WPVersion, b.PHPVersion, b.JobID, fmtTime(b.Created), b.Domain)
 	if err != nil {
@@ -135,6 +149,37 @@ func (s *Store) DeleteBackup(ctx context.Context, id string) error {
 		return fmt.Errorf("xoá backup %s: %w", id, err)
 	}
 	return nil
+}
+
+// ForgetBackupLocal ghi nhận file của dòng đã bị dọn khỏi máy (M18, mục 3.2
+// và 3.7 của docs/thay-doi/M18-thiet-ke.md): dòng đã lên kho (remote='stored')
+// thì giữ lại thành local=0 (bản chỉ còn trên kho); không thì xoá dòng như M9.
+// Một transaction cho cả hai câu: dọn trên kho chạy cùng lúc ở tiến trình khác
+// (ForgetBackupRemote) không bao giờ để lại dòng local=0 mà không ở trên kho.
+// deleted cho biết dòng đã bị xoá; dòng không có thì không lỗi.
+func (s *Store) ForgetBackupLocal(ctx context.Context, id string) (deleted bool, err error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("dọn backup %s khỏi máy: %w", id, err)
+	}
+	defer func() { _ = tx.Rollback() }() // không làm gì nếu đã Commit
+	res, err := tx.ExecContext(ctx, "DELETE FROM backups WHERE id = ? AND remote <> 'stored'", id)
+	if err != nil {
+		return false, fmt.Errorf("dọn backup %s khỏi máy: %w", id, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("dọn backup %s khỏi máy: %w", id, err)
+	}
+	if n == 0 {
+		if _, err := tx.ExecContext(ctx, "UPDATE backups SET local = 0 WHERE id = ? AND remote = 'stored'", id); err != nil {
+			return false, fmt.Errorf("dọn backup %s khỏi máy: %w", id, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("dọn backup %s khỏi máy: %w", id, err)
+	}
+	return n > 0, nil
 }
 
 // SnapshotDB chép DB đang mở ra path bằng VACUUM INTO: bản sao nhất quán dù

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/doxuta/tpan/internal/checks"
@@ -35,12 +36,14 @@ func statusWord(lang string, s checks.Status) string {
 // printResult in một kết quả kiểm; khi không đạt thì thêm nguyên nhân và lệnh
 // sửa tay, vì đó là thứ người vận hành cần ngay.
 func printResult(w io.Writer, lang string, r checks.Result, indent string) {
-	printf(w, "%s[%s] %s: %s\n", indent, statusWord(lang, r.Status), r.Title.In(lang), r.Summary.In(lang))
+	// Summary, Cause có thể chép một dòng output của lệnh chạy mã PHP của site
+	// (wp): lọc ký tự điều khiển (M28).
+	printf(w, "%s[%s] %s: %s\n", indent, statusWord(lang, r.Status), r.Title.In(lang), noCtl(r.Summary.In(lang)))
 	if r.Status == checks.Pass {
 		return
 	}
 	if !r.Cause.IsZero() {
-		printf(w, "%s    %s %s\n", indent, i18n.T("Nguyên nhân:", "Cause:").In(lang), r.Cause.In(lang))
+		printf(w, "%s    %s %s\n", indent, i18n.T("Nguyên nhân:", "Cause:").In(lang), noCtl(r.Cause.In(lang)))
 	}
 	if len(r.ManualFix) > 0 {
 		printf(w, "%s    %s\n", indent, i18n.T("Sửa tay (gõ trên máy này, thư mục nào cũng được):", "Manual fix (type on this machine, from any directory):").In(lang))
@@ -120,15 +123,35 @@ func printPreview(e *env, pv engine.Preview) {
 		}
 		if s.CheckError != "" {
 			// Thường vì máy chưa có thứ bước trước sẽ cài; không phải lỗi.
-			printf(w, "    %s %s\n", e.tr("(chưa kiểm được lúc xem trước:", "(could not check during preview:"), s.CheckError+")")
+			// Có thể chứa output của mã PHP của site: lọc ký tự điều khiển.
+			printf(w, "    %s %s\n", e.tr("(chưa kiểm được lúc xem trước:", "(could not check during preview:"), noCtl(s.CheckError)+")")
 		}
 	}
+}
+
+// noCtl đổi ký tự điều khiển (trừ tab) thành '?' trước khi in ra terminal:
+// nội dung file trong thư mục site, đích symlink và output của lệnh chạy mã PHP
+// của site do site viết, có thể chứa chuỗi escape điều khiển terminal của
+// người quản trị (M28).
+func noCtl(s string) string {
+	return strings.Map(func(r rune) rune {
+		if (r < 0x20 && r != '\t') || (r >= 0x7f && r < 0xa0) {
+			return '?'
+		}
+		return r
+	}, s)
 }
 
 func fileAction(e *env, f engine.FileChange) string {
 	switch {
 	case f.Delete:
 		return e.tr("xoá", "delete")
+	case f.Hidden != "":
+		return e.tr("(ẩn nội dung: "+f.Hidden+")", "(content hidden: "+f.Hidden+")")
+	case f.OldLink != "":
+		// Đích của symlink do user của site đặt (M28): in dạng có nháy, không
+		// để chuỗi escape nào tới terminal.
+		return e.tr("thay symlink (→ "+strconv.Quote(f.OldLink)+") bằng file thường:", "replace the symlink (→ "+strconv.Quote(f.OldLink)+") with a regular file:")
 	case !f.OldExists:
 		return e.tr("tạo", "create")
 	case bytes.Equal(f.Old, f.New):
@@ -174,6 +197,9 @@ func (p *progress) title(id string) string {
 func (p *progress) tr(vi, en string) string { return i18n.T(vi, en).In(p.lang) }
 
 func (p *progress) onEvent(ev engine.Event) {
+	// Lời lỗi và output của lệnh có thể mang chữ do mã PHP của site in ra (wp):
+	// lọc ký tự điều khiển một lần ở đây, trước mọi chỗ in (M28).
+	ev.Message = noCtl(ev.Message)
 	switch ev.Kind {
 	case engine.EventJobStart:
 		printf(p.w, "%s %s\n", p.tr("Bắt đầu job", "Starting job"), ev.JobID)
@@ -227,7 +253,7 @@ func printReport(e *env, rep engine.Report) {
 	w := e.stdout
 	printf(w, "\nJob %s: %s\n", rep.Job.ID, jobStatusText(e, rep.Job.Status))
 	if rep.Job.Error != "" {
-		printf(w, "%s %s\n", e.tr("Lỗi:", "Error:"), rep.Job.Error)
+		printf(w, "%s %s\n", e.tr("Lỗi:", "Error:"), noCtl(rep.Job.Error))
 	}
 	if len(rep.Checks) > 0 {
 		printf(w, "%s\n", e.tr("Kiểm chứng:", "Verification:"))

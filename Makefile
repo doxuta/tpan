@@ -10,7 +10,8 @@ LDFLAGS := -s -w \
 
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
-  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang thu-m20 don-tmp
+  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang anh-m18 e2e-m18-gd \
+  m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 thu-m20 don-tmp
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -111,6 +112,15 @@ thu-m20: build-linux ## Thử của đợt 0 M20 trên máy ảo sạch; log và
 don-tmp: ## Xoá file tạm trong tmp-phien/
 	find tmp-phien -mindepth 1 -delete
 
+anh-m18: web ## Chụp các màn của M18 (Backup có đích, cài lên máy mới, Công cụ) ở 1440 sáng, tối và 390 px vào docs/bang-chung/M18, kiểm như anh-m16
+	$(ANH) -bo m18 -out docs/bang-chung/M18
+
+e2e-m18-gd: ## e2e giao diện M18 trên máy ảo trong .tpan-vm (đặt đích, khôi phục từ kho bằng trình duyệt); log vào docs/bang-chung/M18-giao-dien.log
+	@# Như e2e-m16: log ghi ra tmp-phien/ rồi mới chép, để tên bản được đóng gói không có đuôi -dirty.
+	E2E_LOG=tmp-phien/e2e-m18-gd.log bash scripts/e2e-m18-gd.sh </dev/null >tmp-phien/e2e-m18-gd.log 2>&1; rc=$$?; \
+	  cp tmp-phien/e2e-m18-gd.log docs/bang-chung/M18-giao-dien.log; \
+	  echo "e2e-m18-gd: mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' tmp-phien/e2e-m18-gd.log), không đạt $$(grep -c '=> KHÔNG ĐẠT' tmp-phien/e2e-m18-gd.log)"; exit $$rc
+
 lay-dev: ## git fetch origin (trước khi ghép dev vào nhánh mốc)
 	git fetch origin
 
@@ -131,6 +141,74 @@ vm-deploy: build-linux ## Build rồi chép tpan vào máy ảo test
 
 vm-shell: ## Mở shell trong máy ảo test
 	scripts/vm.sh shell
+
+# T: tên script (không có .sh), A: tham số của script, S: hậu tố file kết quả.
+m28-nghien-cuu: ## (M28) Chạy một bản thử ở docs/bang-chung/M28-nghien-cuu trên máy ảo: make m28-nghien-cuu T=<tên>
+	bash docs/bang-chung/M28-nghien-cuu/chay.sh '$(T)' '$(A)' '$(S)'
+
+# (M28) Giữ bản build của cây lúc này dưới tên bin/tpan-$(TEN)-linux-<kiến trúc>,
+# để e2e chạy đúng bản đó (make e2e-m28 B=0 BIN=bin/tpan-$(TEN)-linux) trong lúc
+# cây tiếp tục đổi: bản chưa vá lúc đo trước khi vá (TEN=truoc-ban-va), bản cố
+# định lúc chạy bằng chứng cuối (TEN=m28-e2e). bin/ không vào git.
+m28-giu-ban: TEN ?= m28-e2e
+m28-giu-ban: build-linux ## (M28) Giữ bản build của cây dưới tên khác: make m28-giu-ban TEN=<tên>
+	cp bin/tpan-linux-arm64 bin/tpan-$(TEN)-linux-arm64
+	cp bin/tpan-linux-amd64 bin/tpan-$(TEN)-linux-amd64
+
+# e2e bước 31 của M28. P: các phần (mặc định chinh). L: file log. B: build hay
+# không (E2E_BUILD, mặc định 1). BIN: tiền tố file chạy (E2E_BIN_PREFIX).
+e2e-m28: P ?= chinh
+e2e-m28: L ?= docs/bang-chung/M28.log
+e2e-m28: B ?= 1
+e2e-m28: BIN ?= bin/tpan-linux
+e2e-m28: ## (M28) Chạy e2e bước 31: make e2e-m28 P="apache nginx" L=docs/bang-chung/M28.log
+	@E2E_BUILD=$(B) E2E_BIN_PREFIX=$(BIN) E2E_LOG=$(L) bash scripts/e2e-m28.sh $(P) >$(L) 2>&1; rc=$$?; echo "--- 5 dòng cuối $(L) ---"; tail -n 5 $(L); exit $$rc
+
+# Test cần root của sitefs và system: build go test -c cho Linux đúng kiến trúc
+# máy ảo, đẩy vào máy ảo, chạy bằng root. R: biểu thức -test.run (mặc định
+# Cua|VungSite|LenhRoot). Gói internal/sitefs có thể chưa tồn tại: không có file
+# test thì bỏ qua gói đó (go test -c không sinh file khi gói không có test).
+m28-test-vm: R ?= Cua|VungSite|LenhRoot
+m28-test-vm: ## (M28) Chạy test cần root của sitefs, system, server trong máy ảo
+	@arch="$$(scripts/vm.sh exec dpkg --print-architecture </dev/null | tr -d '[:space:]')"; \
+	ran=0; \
+	for pkg in sitefs system server; do \
+	  bin="bin/m28-$$pkg-test-linux-$$arch"; \
+	  rm -f "$$bin"; \
+	  mkdir -p bin; \
+	  if CGO_ENABLED=0 GOOS=linux GOARCH="$$arch" go test -c -o "$$bin" "./internal/$$pkg" 2>"bin/m28-test-$$pkg.err"; then \
+	    if [ -f "$$bin" ]; then \
+	      scripts/vm.sh push "$$bin" "/home/ubuntu/e2e-m28/m28-$$pkg-test" </dev/null; \
+	      echo "=== internal/$$pkg (-test.run '$(R)') ==="; \
+	      TPAN_VM_CAPTURE=1 scripts/vm.sh root bash -c "cd /tmp && /home/ubuntu/e2e-m28/m28-$$pkg-test -test.v -test.run '$(R)'" </dev/null; \
+	      ran=1; \
+	    else \
+	      echo "=== internal/$$pkg: không có file test, bỏ qua ==="; \
+	    fi; \
+	  else \
+	    echo "=== internal/$$pkg: go test -c lỗi ==="; cat "bin/m28-test-$$pkg.err"; \
+	  fi; \
+	done; \
+	[ "$$ran" = 1 ] || { echo "Chưa gói nào chạy được (internal/sitefs có thể chưa tồn tại)"; exit 1; }
+
+# Ba e2e hồi quy, mỗi cái từ máy sạch, không dừng khi một cái lỗi. KHÔNG chạy
+# trong lúc thử: mỗi cái mất hàng chục phút (phiên chính chạy).
+hoi-quy-m28: ## (M28) Chạy lại e2e M13, M14, M15 làm hồi quy
+	-E2E_LOG=docs/bang-chung/M28-hoi-quy-m13.log scripts/e2e-m13.sh chinh >docs/bang-chung/M28-hoi-quy-m13.log 2>&1
+	-E2E_LOG=docs/bang-chung/M28-hoi-quy-m14.log scripts/e2e-m14.sh chinh >docs/bang-chung/M28-hoi-quy-m14.log 2>&1
+	-E2E_LOG=docs/bang-chung/M28-hoi-quy-m15.log scripts/e2e-m15.sh >docs/bang-chung/M28-hoi-quy-m15.log 2>&1
+	@for f in m13 m14 m15; do \
+	  l="docs/bang-chung/M28-hoi-quy-$$f.log"; \
+	  echo "$$l: $$(grep -c '=> ĐẠT' "$$l" 2>/dev/null || echo 0) đạt, $$(grep -c '=> KHÔNG ĐẠT' "$$l" 2>/dev/null || echo 0) không đạt"; \
+	done
+
+e2e-m18: ## Chạy e2e bước 21 của M18 trên máy ảo, log vào docs/bang-chung: make e2e-m18 P="chinh" [L=M18]
+	E2E_LOG=docs/bang-chung/$(or $(L),M18).log bash scripts/e2e-m18.sh $(P) </dev/null >docs/bang-chung/$(or $(L),M18).log 2>&1; \
+	  rc=$$?; echo "e2e-m18 $(P): mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' docs/bang-chung/$(or $(L),M18).log), không đạt $$(grep -c '=> KHÔNG ĐẠT' docs/bang-chung/$(or $(L),M18).log)"; exit $$rc
+
+e2e-hoi-quy: ## Chạy lại e2e của một mốc cũ trên máy ảo, log vào docs/bang-chung: make e2e-hoi-quy M=9 P=all L=M18-hoi-quy-m9
+	E2E_LOG=docs/bang-chung/$(L).log bash scripts/e2e-m$(M).sh $(P) </dev/null >docs/bang-chung/$(L).log 2>&1; \
+	  rc=$$?; echo "e2e-m$(M) $(P): mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' docs/bang-chung/$(L).log), không đạt $$(grep -c '=> KHÔNG ĐẠT' docs/bang-chung/$(L).log)"; exit $$rc
 
 clean: ## Xoá kết quả build
 	rm -rf bin

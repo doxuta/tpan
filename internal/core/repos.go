@@ -147,7 +147,7 @@ var (
 func repoMariaDB(codename, line string) (*steps.AptRepo, error) {
 	if !dbLineRE.MatchString(line) {
 		return nil, refuse("mariadb_line_invalid", i18n.T(
-			fmt.Sprintf("dòng MariaDB %q không hợp lệ (dạng 11.8)", line),
+			fmt.Sprintf("phiên bản MariaDB %q không hợp lệ (dạng 11.8)", line),
 			fmt.Sprintf("MariaDB series %q is not valid (like 11.8)", line)))
 	}
 	src, err := repoSources(RepoMariaDB, "https://dlm.mariadb.com/repo/mariadb-server/"+line+"/repo/ubuntu", codename, "main")

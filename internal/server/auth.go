@@ -89,7 +89,7 @@ func (s *Server) secure(h http.Handler) http.Handler {
 		// GET, HEAD, OPTIONS luôn qua; POST, DELETE từ origin khác thì bị chặn.
 		if err := s.auth.cop.Check(r); err != nil {
 			writeError(w, http.StatusForbidden, "csrf", i18n.T(
-				"Yêu cầu đến từ một trang khác nên bị chặn (chống CSRF). Hãy thao tác từ chính giao diện tpan.",
+				"Yêu cầu đến từ một trang khác nên bị chặn (chống CSRF). Làm lại từ chính giao diện tpan.",
 				"The request came from another site and was blocked (CSRF protection). Use the tpan interface itself."))
 			return
 		}

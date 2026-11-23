@@ -20,7 +20,7 @@ const vi = {
   cfgWebSource: "Nguồn web server",
   cfgDbSource: "Nguồn MariaDB",
   cfgPhp: "Bản PHP mặc định",
-  dbLine: (line: string) => `dòng ${line}`,
+  dbLine: (line: string) => `phiên bản ${line}`,
   notInstalled: "Stack chưa cài trên máy này nên chưa có cấu hình và dịch vụ để hiện.",
   sourceFixed:
     "Nguồn của web server và MariaDB chỉ chọn được lúc cài stack, nên màn này không có nút đổi nguồn. " +
@@ -60,9 +60,9 @@ const vi = {
   removeLabel: (version: string) => `Gỡ PHP ${version}`,
   actionHint:
     "Chỉ gỡ được bản đã cài mà không site nào dùng và không phải bản mặc định. Gỡ có một bước nguy hiểm, nên bản xem trước sẽ hỏi lại bạn.",
-  notesMissing: "Chưa hỏi được ghi chú hạn hỗ trợ và bản WordPress khuyên dùng (máy có thể không ra được mạng). Danh sách bản PHP vẫn đủ.",
+  notesMissing: "Chưa lấy được ghi chú hạn hỗ trợ và bản WordPress khuyên dùng (máy có thể không ra được mạng). Danh sách bản PHP vẫn đủ.",
   suryOff:
-    "Kho PHP của Ondřej Surý chưa được thêm. Cài một bản mà Ubuntu không có sẽ thêm kho ngoài này vào máy; bản xem trước hiện rõ kho và khoá ký sẽ thêm.",
+    "Máy chưa thêm kho PHP của Ondřej Surý. Cài bản PHP mà Ubuntu không có thì TPAN sẽ thêm kho ngoài này; bản xem trước ghi rõ kho và khoá ký.",
   previewError: (version: string, install: boolean) => `Chưa dựng được bản xem trước để ${install ? "cài" : "gỡ"} PHP ${version}`,
 
   // ---- đổi web server (M10) ----
@@ -71,7 +71,7 @@ const vi = {
   switchNotInstalled: "Stack chưa cài trên máy này nên chưa có web server để đổi.",
   switchTo: (web: string) => `Đổi sang ${web}`,
   switchHint: (from: string, to: string) =>
-    `Cài ${to} nếu máy chưa có, ghi lại vhost của mọi site, rồi dừng ${from} và chạy ${to}. Mọi site ngừng trả lời một khoảnh khắc lúc đổi. ` +
+    `Cài ${to} nếu máy chưa có, ghi lại vhost của mọi site, rồi dừng ${from} và chạy ${to}. Mọi site ngừng trả lời trong chốc lát lúc đổi. ` +
     `Bước nào lỗi thì máy quay về ${from}.`,
   switchCommandHint: "Muốn tự gõ trên máy thì dùng lệnh này. Có --dry-run nên nó chỉ cho xem trước, chưa đổi gì.",
   switchCommand: (web: string) => `sudo tpan stack switch --to ${web} --dry-run`,

@@ -108,7 +108,7 @@ const vi = {
   // ---- job hàng loạt: bảng kết quả từng site ----
   unitsHeading: "Kết quả từng site",
   unitsSummary: (ok: number, failed: number, notRun: number) =>
-    `${ok} site xong` + (failed > 0 ? `, ${failed} site lỗi và đã được hoàn tác riêng` : "") + (notRun > 0 ? `, ${notRun} site chưa chạy tới` : "") + ".",
+    `${ok} site xong` + (failed > 0 ? `, ${failed} site lỗi, đã hoàn tác riêng` : "") + (notRun > 0 ? `, ${notRun} site chưa chạy tới` : "") + ".",
   unitsEmpty: "Job này chưa có kết quả site nào.",
   unitColSite: "Site",
   unitColResult: "Kết quả",

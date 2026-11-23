@@ -266,12 +266,16 @@ Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới t
 | Bằng chứng | Evidence | |
 | Bản xem trước | Preview | Lỗi dựng bản xem trước: "Chưa dựng được bản xem trước ..." / "Could not build the preview ...". |
 | Điều kiện chưa đạt | Conditions not met | |
-| Chặng (ga trên bản đồ) | Stage (station) | |
+| Ga | Station | Điểm trên bản đồ đường đi. Nói về phần mà request đi qua thì dùng "thành phần" (dòng dưới). |
 | Bộ não, Ngăn AI, Phiên AI | Brain, AI drawer, AI session | |
 | Cấu hình | Configuration | "Cài đặt" / "Settings" chỉ là tên màn Cài đặt và tab "Cài đặt site". |
 | Việc (tên cột) | Action | Cột nút bấm của bảng. Không dùng "Thao tác". |
 | Việc khác | More actions | Nhãn của nút ba chấm, luôn kèm tên đối tượng và các việc bên trong. |
 | Cỡ | Size | Dung lượng file hoặc cơ sở dữ liệu. |
+| Ở đâu (tên cột) | Where | Cột của bảng Backup (M18): bản nằm ở máy, ở kho hay cả hai. Chỉ hiện khi máy có dùng kho. Bản còn file trên máy mà bản trên kho nằm ở một kho khác (sau khi đổi hay gỡ đích) ghi "máy", vì khôi phục chạy được ngay; `title` nói thêm phần kho. CLI vẫn ghi "kho (đích khác)" cho ca này (lượt soát giao diện, G2). |
+| kho | storage | Nơi lưu backup ngoài máy (S3). Nhãn: máy, kho, máy và kho, kho khác, đẩy lỗi / server, storage, server and storage, other storage, upload failed. |
+| Đẩy lên kho | Upload to storage | Nút của một bản chỉ trên máy hoặc đẩy lỗi. Không dùng "tải lên" hay "đồng bộ". |
+| Tải về máy | Download to this server | Nút của một bản chỉ còn trên kho. Không dùng "kéo về" hay "khôi phục từ kho". |
 | Màn | screen | "màn Backup" / "the Backups screen". Tên màn viết đúng như tên trong menu. "Trang" chỉ dùng cho trang của một site, trang Công cụ hoặc trang lỗi. |
 | Công cụ | Tools | Trang liệt kê mọi việc tài khoản làm được (M16). |
 | Máy chủ | Server | Tên nhóm menu (bản 1: "Máy"). |
@@ -287,10 +291,30 @@ Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới t
 | Phiên bản và cập nhật | Version and updates | Thẻ ở màn Cài đặt và màn Cập nhật (M15): bản đang chạy, nguồn tải, lượt gần nhất. |
 | Kiểm bản mới | Check for a new version | Nút xem trước của việc cập nhật TPAN: chỉ hỏi nguồn tải, chưa tải và chưa thay gì. |
 | Quay về bản trước | Go back to the previous version | Nút và hộp hỏi lại của `tpan self-update --rollback`. Không dùng "hạ cấp" hay "rollback" trong chữ giao diện. |
+| Đích ngoài máy | Off-site target | Kho S3 bên ngoài mà TPAN đẩy bản sao lưu lên (M18). Thẻ ở màn Backup, chỉ admin. Nút "Đổi đích", "Gỡ đích" / "Change target", "Remove target". |
+| Tiền tố | Prefix | Thư mục trong bucket, chữ mono. |
+| Kiểu địa chỉ | Addressing style | "kiểu đường dẫn" / "path style" và "kiểu bucket.host" / "bucket.host style". |
+| Khoá truy cập, Khoá bí mật | Access key, Secret key | Hai khoá S3. Không hiện lại dưới dạng nào, trừ bốn ký tự cuối của khoá truy cập ("…ABCD"). |
+| Khoá sao lưu | Backup key | Khoá mã hoá gói panel; chỉ sinh bằng lệnh `tpan backup key new`. Giao diện chỉ hiện dấu vân tay. |
+| Gói panel | Panel bundle | Bản mã hoá của `tpan.db` đẩy lên kho để dựng lại máy. |
+| Thử kết nối | Test the connection | Nút ghi, đọc rồi xoá một object nhỏ trên kho. |
 | Bấm | Press | Nút và liên kết. Không dùng "click" trong chữ giao diện. |
+| Cài lên máy ảo mới | Set up a new server | Trang `/tools/new-server` (M18, chỉ admin): sinh user-data cloud-init cho máy chưa tồn tại. |
+| user-data | user-data | Giữ nguyên ở cả hai bản; đầu câu và nhãn viết "User-data". Là ô của nhà cung cấp khi tạo máy, ai trên máy cũng đọc được nên không chứa bí mật dạng rõ. |
 | Giờ giấc | `3 s`, `2 min 3 s`, `1 h 5 min`, `2 d` | Tiếng Anh viết số, cách một dấu cách, rồi đơn vị. |
+| Vai trò | Role | admin hoặc user. Không viết "vai" trơn trong nhãn; trong câu "vai admin" vẫn đọc được. |
+| Phiên bản (MariaDB, PHP) | Version | Không dùng "dòng" / "series" cho 10.11, 11.8. Cột của gói đã cài gọi là "Gói đang cài". |
+| Việc hẹn giờ | Scheduled job | Việc cron của site. Không dùng "định kỳ". |
+| Tạo | Create / generate | Mật khẩu, khoá, user-data, tên. Không dùng "sinh". |
+| Cấu hình | Configuration | Không dùng "thiết lập". Xem thêm dòng "Cấu hình" ở trên. |
+| Việc | action | Danh từ chung ("việc đang chạy", "việc này"). Không dùng "thao tác". |
+| Mức tối đa | Limit | Không dùng "trần". |
+| Nội dung đầy đủ | Full text | Không dùng "toàn văn". |
+| Thành phần | Component | Mỗi ga trên bản đồ đường đi (web server, PHP, WordPress, DB). Không dùng "chặng" trong câu; chỉ "ga" và "bản đồ" giữ lại. |
+| Tài khoản, người dùng | Account, user | Không dùng "danh tính". |
+| Quay về, đổi thành | Go back, change to | Nói "đổi thành user", "quay về bản trước"; không nói "hạ xuống", "hạ cấp", "lùi". |
 
-Giữ nguyên tiếng Anh ở cả hai bản: site, request, pool, socket, reload, log, vhost, job, domain, stack, backup, cron, DNS, TLS, SSL, PHP, MariaDB, MCP, agent, prompt.
+Giữ nguyên tiếng Anh ở cả hai bản: site, request, pool, socket, reload, log, vhost, job, domain, stack, backup, cron, DNS, TLS, SSL, PHP, MariaDB, MCP, agent, prompt, worker, symlink.
 
 ## 9. Không làm
 

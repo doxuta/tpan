@@ -25,7 +25,7 @@ const vi = {
   emptyLink: "Tạo site đầu tiên",
 
   // ---- trang một site /sites/:domain ----
-  detailSummary: "Đường đi request của site này và bằng chứng của từng chặng.",
+  detailSummary: "Đường đi request của site này, kèm bằng chứng ở từng thành phần.",
   trashed: "trong thùng rác",
   tabsLabel: "Các phần của site",
   tabs: {
@@ -56,7 +56,7 @@ const vi = {
 
   routeHeading: "Đường đi request",
   routeLabel: (domain: string) => `Đường đi request của ${domain}`,
-  routeHint: "Bấm một ga để xem bằng chứng của chặng đó.",
+  routeHint: "Bấm một ga để xem bằng chứng của nó.",
   failedAt: (stage: string, summary: string) => `Hỏng ở ${stage}: ${summary}`,
   stages: {
     dns: "DNS",
@@ -71,7 +71,7 @@ const vi = {
   },
 
   checksHeading: "Phép kiểm",
-  noChecksInStage: "Chưa có phép kiểm nào cho chặng này, nên chưa nói được nó đạt hay hỏng.",
+  noChecksInStage: "Chưa có phép kiểm nào cho phần này, nên chưa biết nó đạt hay hỏng.",
   noStack: "Stack chưa cài nên chưa có phép kiểm nào. Cài stack trước, rồi bấm Kiểm lại.",
   noEvidence: "Phép kiểm này không ghi lại lệnh nào.",
   cause: "Nguyên nhân",
@@ -128,7 +128,7 @@ const vi = {
   phpChange: "Đổi bản PHP",
   phpPreviewing: "Đang dựng bản xem trước…",
   phpHint:
-    "Đổi không gián đoạn: pool mới chạy song song với pool cũ, TPAN kiểm site trả 200 rồi mới gỡ pool cũ. Lỗi ở bước nào thì site ở lại bản cũ. Bấm là xem trước, chưa có gì đổi.",
+    "Site không ngừng chạy lúc đổi: pool mới chạy song song pool cũ, TPAN kiểm site trả 200 rồi mới gỡ pool cũ. Bước nào lỗi thì site ở lại bản cũ. Bấm là xem trước, chưa có gì đổi.",
   phpFailed: (version: string) => `Chưa dựng được bản xem trước đổi sang PHP ${version}`,
   phpChecksHeading: "Điều kiện chưa đạt",
   phpLoadFailed: "Chưa đọc được danh sách bản PHP.",
@@ -196,11 +196,11 @@ const vi = {
     "Tạm khoá chặn khách vào site: mọi đường dẫn trả trang 403 “Site đang tạm khoá”, pool PHP và cron của site tắt, dữ liệu giữ nguyên. Chứng chỉ SSL vẫn gia hạn được. Bấm là xem trước, chưa có gì đổi.",
   suspendedNow: "Site đang tạm khoá.",
   suspendedSelf: "Khoá riêng: một admin đã khoá site này.",
-  suspendedUser: "Khoá theo user: user chủ của site đang bị tạm khoá. Mở khoá user ở màn Người dùng thì site mở lại cùng các thứ khác của user; mở riêng site này ở đây cũng được.",
+  suspendedUser: "Khoá theo user: user chủ của site đang bị tạm khoá. Mở khoá user ở màn Người dùng thì site mở lại cùng mọi thứ khác của user. Muốn mở riêng site này thì mở ở đây.",
   suspendedSince: (when: string) => `Khoá từ ${when}.`,
   suspendedEffect: "Khách vào site thấy trang 403 “Site đang tạm khoá”. Pool PHP và cron của site tắt, dữ liệu giữ nguyên. Chứng chỉ SSL vẫn gia hạn được.",
-  noChecksSuspended: "Chặng này tắt vì site đang tạm khoá, nên không có phép kiểm nào.",
-  suspendedLine: "Tạm khoá: khách vào site thấy trang 403. Các chặng PHP, WordPress, DB không kiểm vì đang tắt.",
+  noChecksSuspended: "Phần này tắt vì site đang tạm khoá, nên không có phép kiểm nào.",
+  suspendedLine: "Tạm khoá: khách vào site thấy trang 403. PHP, WordPress, DB đang tắt nên không kiểm.",
   suspendWarning: (d: string) => `Tạm khoá ${d}: khách vào site thấy trang 403, pool PHP và cron của site tắt. Dữ liệu giữ nguyên, mở khoá lúc nào cũng được.`,
   unsuspendWarning: (d: string) => `Mở khoá ${d}: pool PHP và cron chạy lại. TPAN kiểm site trả 200 rồi mới báo xong.`,
   suspendErrorHeading: (d: string) => `Chưa dựng được bản xem trước tạm khoá ${d}`,
@@ -211,9 +211,9 @@ const vi = {
   dbUnsuspendWarning: (d: string) => `Mở khoá DB của ${d}: WordPress vào lại được DB. Site không bị khoá thì chạy lại như thường.`,
   dbUnsuspendErrorHeading: (d: string) => `Chưa dựng được bản xem trước mở khoá DB của ${d}`,
   // Việc không làm được khi site hay DB đang khoá: nút bị vô hiệu kèm lý do.
-  blockedSite: "Site đang tạm khoá. Mở khoá site trước: việc này ghi lại pool PHP của site nên sẽ mở khoá lén.",
+  blockedSite: "Site đang tạm khoá. Mở khoá site trước: việc này ghi lại pool PHP nên sẽ vô tình mở khoá site.",
   blockedDb: "User DB của site đang khoá. Mở khoá DB trước: WordPress không vào được DB nên kiểm chứng của việc này chắc chắn hỏng.",
-  blockedTrashSite: "Site đang tạm khoá nên chưa đưa vào thùng rác được: khôi phục từ thùng rác sẽ mở khoá lén. Mở khoá trước rồi mới xoá.",
+  blockedTrashSite: "Site đang tạm khoá nên chưa đưa vào thùng rác được: khôi phục từ thùng rác sẽ vô tình mở khoá. Mở khoá trước rồi mới xoá.",
   blockedTrashDb: "User DB của site đang khoá nên chưa đưa site vào thùng rác được. Mở khoá DB trước rồi mới xoá.",
 
   // ---- M14: đường đi thật của request (mục 6.13) ----
@@ -222,12 +222,12 @@ const vi = {
   traceRunning: "Đang lần đường đi…",
   traceClose: "Đóng",
   traceHint:
-    "Lần từ cấu hình đang chạy trên máy, không từ điều TPAN nghĩ nó đã ghi: vhost nào nhận tên miền, root, socket, pool, user, open_basedir, rồi gọi thật. Chỉ đọc, không đổi gì trên máy.",
+    "Lần theo cấu hình đang chạy trên máy, không theo thứ TPAN tưởng đã ghi: vhost nào nhận domain, root, socket, pool, user, open_basedir, rồi gọi thử một request thật. Chỉ đọc, không đổi gì trên máy.",
   traceLabel: "Đường đi lần từ cấu hình đang chạy",
-  traceListLabel: (domain: string) => `Các chặng request tới ${domain} đi qua, theo thứ tự`,
+  traceListLabel: (domain: string) => `Các thành phần request tới ${domain} đi qua, theo thứ tự`,
   traceAt: (time: string) => `Lần lúc ${time}`,
   traceFailed: "Chưa lần được đường đi của request",
-  traceEmpty: "Máy chủ không trả chặng nào. Bấm Chạy lại; vẫn vậy thì xem log của tpan.",
+  traceEmpty: "Máy chủ không trả về thành phần nào. Bấm Chạy lại; vẫn vậy thì xem log của tpan.",
   traceNoValue: "không tìm được",
 
   // ---- M14: chế độ .htaccess (chỉ khi web server là Apache) ----

@@ -1,0 +1,10 @@
+bash docs/bang-chung/M18-nghien-cuu/13-hai-may-ao-noi-nhau.sh
+== 2026-11-20T20:04:25Z: máy ảo chính tpan-m18 có IP 192.168.252.24
+LISTEN 0      5            0.0.0.0:8099      0.0.0.0:*          
+Status: inactive
+tạo máy phụ: mã 0
+http=200
+ma thoat curl: 0
+xin chao tu may chinh
+192.168.252.30 fd4b:5324:b51a:dc21:5054:ff:fe07:224c 
+đã dọn máy chính

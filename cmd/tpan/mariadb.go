@@ -14,7 +14,7 @@ func init() { register(mariadbCmd) }
 func mariadbCmd(e *env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "mariadb",
-		Short: "Nâng MariaDB lên dòng mới",
+		Short: "Nâng MariaDB lên phiên bản mới",
 	}
 	c.AddCommand(mariadbUpgradeCmd(e))
 	return c
@@ -50,7 +50,7 @@ func mariadbUpgradeCmd(e *env) *cobra.Command {
 			return healthAfterJob(ctx, e, st, f.asJSON, err)
 		},
 	}
-	c.Flags().StringVar(&line, "to", "", "dòng MariaDB đích, ví dụ 11.8 (xem các dòng nâng được: sudo tpan update --check)")
+	c.Flags().StringVar(&line, "to", "", "phiên bản MariaDB đích, ví dụ 11.8 (xem các phiên bản nâng được: sudo tpan update --check)")
 	_ = c.MarkFlagRequired("to")
 	bindChangeFlags(c, &f)
 	return c

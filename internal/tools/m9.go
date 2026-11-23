@@ -25,9 +25,29 @@ type backupRestoreIn struct {
 
 func (a backupRestoreIn) domainArg() string { return a.Domain }
 
+// Năm giá trị của backupRow.Location (mục 3.16 của docs/thay-doi/M18-thiet-ke.md),
+// dùng chung với API (core.BackupLocation).
+const (
+	locMachine     = core.LocationMachine
+	locRemote      = core.LocationRemote
+	locBoth        = core.LocationBoth
+	locOtherTarget = core.LocationOtherTarget
+	locPushFailed  = core.LocationPushFailed
+)
+
+// backupLocation cho biết bản b nằm ở đâu, tính từ ba trường của dòng và mã
+// đích đang đặt. hasTarget=false (chưa đặt đích): dòng stored nào cũng là của
+// một đích khác. Chỉ trả một nhãn: agent không cần khoá object, lỗi hay tên
+// kho để chọn bản, và những thứ đó có thể chứa tên bucket hay đường dẫn của
+// người dùng.
+func backupLocation(b core.Backup, cur string, hasTarget bool) string {
+	return core.BackupLocation(b, cur, hasTarget)
+}
+
 // backupRow là một dòng list_backups. Không có đường dẫn file và sha256: agent
 // không cần chúng để chọn bản, và công cụ không đưa đường dẫn trên máy khi
-// không cần (tail_log là ngoại lệ có lý do).
+// không cần (tail_log là ngoại lệ có lý do). Cũng không có remote_key,
+// remote_error hay thông tin về đích: chỉ có Location.
 type backupRow struct {
 	ID         string            `json:"id"`
 	Domain     string            `json:"domain"`
@@ -35,6 +55,7 @@ type backupRow struct {
 	Reason     core.BackupReason `json:"reason"`
 	Created    time.Time         `json:"created"`
 	Size       int64             `json:"size"`
+	Location   string            `json:"location"`
 	WPVersion  string            `json:"wp_version,omitempty"`
 	PHPVersion string            `json:"php_version,omitempty"`
 }
@@ -49,6 +70,10 @@ func listBackups(ctx context.Context, c *call, in listBackupsIn, _ validate.Doma
 		dom = d.String()
 	}
 	rows, err := (&core.Backups{Sites: c.s.sites(), Store: c.s.st.d.Store}).List(ctx, dom)
+	if err != nil {
+		return nil, err
+	}
+	cur, hasTarget, err := core.CurrentTargetID(ctx, c.s.st.d.Store)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +93,7 @@ func listBackups(ctx context.Context, c *call, in listBackupsIn, _ validate.Doma
 		learn = append(learn, d)
 		out = append(out, backupRow{
 			ID: r.ID, Domain: d.String(), Kind: r.Kind, Reason: r.Reason, Created: r.Created,
-			Size: r.Size, WPVersion: r.WPVersion, PHPVersion: r.PHPVersion,
+			Size: r.Size, Location: backupLocation(r, cur, hasTarget), WPVersion: r.WPVersion, PHPVersion: r.PHPVersion,
 		})
 	}
 	c.s.st.red.Learn(learn, "")

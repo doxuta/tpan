@@ -332,7 +332,7 @@ func CronSuspend(l site.Layout) (engine.Step, error) {
 	return &Rename{From: f, To: f + SuspendedSuffix,
 		Title: i18n.T("Tắt cron WordPress của "+l.Domain.String()+" (đổi tên thành .suspended)", "Turn off the WordPress cron of "+l.Domain.String()+" (rename to .suspended)"),
 		Why: i18n.T(
-			"Site đang tạm khoá thì việc định kỳ của nó (gửi thư, gọi ra ngoài) cũng phải dừng. Cron bỏ qua file có dấu chấm trong tên, nên đổi tên là tắt mà vẫn giữ file. Bước này hoàn tác được.",
+			"Site đang tạm khoá thì việc hẹn giờ của nó (gửi thư, gọi ra ngoài) cũng phải dừng. Cron bỏ qua file có dấu chấm trong tên, nên đổi tên là tắt mà vẫn giữ file. Bước này hoàn tác được.",
 			"A suspended site's scheduled work (sending mail, calling out) must stop too. Cron ignores files with a dot in their name, so renaming turns it off while keeping the file. This step can be undone.")}, nil
 }
 
@@ -349,6 +349,6 @@ func CronUnsuspend(l site.Layout) (engine.Step, error) {
 	return &Rename{From: f + SuspendedSuffix, To: f, Content: content,
 		Title: i18n.T("Bật lại cron WordPress của "+l.Domain.String(), "Turn the WordPress cron of "+l.Domain.String()+" back on"),
 		Why: i18n.T(
-			"Mở khoá site thì việc định kỳ của WordPress (bài hẹn giờ, thư) chạy lại. Thiếu bước này thì bài hẹn giờ không bao giờ được đăng. Bước này hoàn tác được.",
+			"Mở khoá site thì việc hẹn giờ của WordPress (bài hẹn giờ, thư) chạy lại. Thiếu bước này thì bài hẹn giờ không bao giờ được đăng. Bước này hoàn tác được.",
 			"Unsuspending the site restarts WordPress's scheduled work (scheduled posts, mail). Without this step scheduled posts never get published. This step can be undone.")}, nil
 }

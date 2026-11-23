@@ -18,10 +18,10 @@ const vi = {
   colAction: "Việc",
   unreadable: "không đọc được",
 
-  emptyText: "Chưa có cơ sở dữ liệu nào. DB của site có khi tạo site; DB rời tạo bằng nút Tạo DB.",
+  emptyText: "Chưa có cơ sở dữ liệu nào. DB của site tạo cùng lúc với site; DB rời tạo bằng nút Tạo DB.",
   emptyLink: "Tạo site đầu tiên",
 
-  hint: "Đổi mật khẩu: TPAN sinh mật khẩu mới, đổi trong MariaDB và ghi vào wp-config.php. Xuất .sql: ghi một file .sql vào thư mục backup của site, xem ở màn Backup. Nhập: đưa một bản đã xuất vào lại cơ sở dữ liệu. Bấm là xem trước từng bước, chưa có gì đổi.",
+  hint: "Đổi mật khẩu: TPAN tạo mật khẩu mới, đổi trong MariaDB và ghi vào wp-config.php. Xuất .sql: ghi một file .sql vào thư mục backup của site, xem ở màn Backup. Nhập: đưa một bản đã xuất vào lại cơ sở dữ liệu. Bấm là xem trước từng bước, chưa có gì đổi.",
 
   password: "Đổi mật khẩu",
   passwordFor: (d: string) => `Đổi mật khẩu cơ sở dữ liệu của ${d}`,
@@ -45,7 +45,7 @@ const vi = {
 
   // Lời đặt trên bản xem trước
   passwordWarning: (db: string, d: string) =>
-    `Mật khẩu mới của ${db} không hiện ra ở đâu. TPAN sinh nó, ghi vào wp-config.php của ${d} và không in ra màn hình hay log; cần xem thì mở file đó trên máy. Site có thể chậm hoặc báo lỗi vài giây lúc đổi. Bước nào hỏng thì TPAN đặt lại mật khẩu cũ.`,
+    `Mật khẩu mới của ${db} không hiện ra ở đâu. TPAN tạo nó, ghi vào wp-config.php của ${d} và không in ra màn hình hay log; cần xem thì mở file đó trên máy. Site có thể chậm hoặc báo lỗi vài giây lúc đổi. Bước nào hỏng thì TPAN đặt lại mật khẩu cũ.`,
   dumpWarning: (db: string) => `Xuất ${db} ra một file .sql trong thư mục backup của site. Site vẫn chạy bình thường. Đĩa gần đầy thì TPAN từ chối và nói rõ lý do.`,
   importWarning: (d: string, when: string) =>
     `Nhập ghi đè cơ sở dữ liệu của ${d} bằng bản xuất lúc ${when}. TPAN tự xuất bản hiện tại trước, nên bạn quay lại được bằng cách nhập lại bản đó.`,
@@ -104,7 +104,7 @@ const vi = {
   createFullNameLength: (n: number) => `${n}/64 ký tự`,
   createNameRequired: "Nhập tên DB, ví dụ shop.",
   createNoteHint: "Một dòng cho bạn nhớ DB này dùng làm gì. Tối đa 500 byte.",
-  createWarning: (full: string) => `Tạo DB ${full} cùng một user DB cùng tên. TPAN sinh mật khẩu và hiện đúng một lần ở trang job sau khi tạo xong: chép ngay, TPAN không giữ.`,
+  createWarning: (full: string) => `Tạo DB ${full} cùng một user DB cùng tên. TPAN tạo mật khẩu và hiện đúng một lần ở trang job sau khi tạo xong: chép ngay, TPAN không giữ.`,
   createErrorHeading: "Chưa dựng được bản xem trước tạo DB",
   collationsLoading: "Đang đọc danh sách bộ ký tự…",
   collationsFailed: "Chưa đọc được danh sách bộ ký tự.",
@@ -131,7 +131,7 @@ const vi = {
 
   // Lời đặt trên bản xem trước
   passwordDbWarning: (db: string) =>
-    `Đổi mật khẩu ${db}: mật khẩu mới hiện đúng một lần ở trang job sau khi chạy xong, chép ngay vì TPAN không giữ. Ứng dụng đang dùng mật khẩu cũ mất kết nối tới khi bạn đổi theo. Không hoàn tác được.`,
+    `Đổi mật khẩu ${db}: mật khẩu mới hiện đúng một lần ở trang job sau khi chạy xong, chép ngay vì TPAN không giữ. Ứng dụng còn dùng mật khẩu cũ sẽ mất kết nối cho tới khi bạn đổi theo. Không hoàn tác được.`,
   suspendDbWarning: (db: string) =>
     `Tạm khoá ${db}: user DB bị khoá và mọi kết nối đang mở bị ngắt. Ứng dụng dùng DB này báo lỗi kết nối tới khi mở khoá. Dữ liệu giữ nguyên.`,
   suspendSiteDbWarning: (d: string, db: string) =>

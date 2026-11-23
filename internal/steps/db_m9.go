@@ -160,7 +160,7 @@ func (s *DBPassword) readOld(sys system.System) (system.Secret, error) {
 	}
 	old := defs["DB_PASSWORD"][0]
 	if !dbTpanPasswordRe.MatchString(old) {
-		return system.Secret{}, fmt.Errorf("mật khẩu DB trong %s không phải loại tpan sinh (32 chữ cái và chữ số), có thể do người khác đặt và còn dùng ở chỗ khác; tpan không đổi, đổi bằng tay", p)
+		return system.Secret{}, fmt.Errorf("mật khẩu DB trong %s không phải loại tpan tạo (32 chữ cái và chữ số), có thể do người khác đặt và còn dùng ở chỗ khác; tpan không đổi, đổi bằng tay", p)
 	}
 	return system.NewSecret(old), nil
 }
@@ -319,7 +319,7 @@ func (s *WPConstant) Info() engine.StepInfo {
 	)
 	if s.Name == "DISABLE_WP_CRON" {
 		why = i18n.T(
-			"Tắt cron mặc định của WordPress, thứ chạy việc định kỳ (đăng bài hẹn giờ, kiểm cập nhật) mỗi khi có khách vào trang. tpan đã đặt cron thật chạy 5 phút một lần. Bỏ bước này thì lượt xem trang vẫn phải gánh thêm việc định kỳ, và việc chạy từ hai nơi.",
+			"Tắt cron mặc định của WordPress, thứ chạy việc hẹn giờ (đăng bài hẹn giờ, kiểm cập nhật) mỗi khi có khách vào trang. tpan đã đặt cron thật chạy 5 phút một lần. Bỏ bước này thì lượt xem trang vẫn phải gánh thêm việc hẹn giờ, và việc chạy từ hai nơi.",
 			"Turns off WordPress's built-in cron, which runs scheduled work (scheduled posts, update checks) whenever someone visits a page. tpan has set up a real cron every 5 minutes. Without this step page views still carry the scheduled work, and it runs from two places.",
 		)
 	}

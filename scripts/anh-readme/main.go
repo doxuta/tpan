@@ -70,14 +70,20 @@ func main() {
 	chrome := flag.String("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "đường dẫn Chrome")
 	debugPort := flag.Int("debug-port", 18142, "cổng DevTools của Chrome")
 	out := flag.String("out", "docs/anh", "thư mục ghi ảnh")
-	set := flag.String("bo", "readme", "bộ ảnh: readme (ảnh của README), m15 (khối Phiên bản và cập nhật ở demo), m15-that (bấm thật trên panel ở -panel) hoặc m16-do (đo từng màn, xem m16.go)")
+	set := flag.String("bo", "readme", "bộ ảnh: readme (ảnh của README), m15 (khối Phiên bản và cập nhật ở demo), m15-that (bấm thật trên panel ở -panel), m16-do (đo từng màn, xem m16.go), m16, m16-that, m18 (màn của M18 trên demo, xem m18_anh.go) hoặc m18-that (bấm thật trên panel ở -panel, xem m18_that.go)")
 	panel := flag.String("panel", "", "địa chỉ một panel đang chạy (máy ảo test), thay cho serve --demo; mật khẩu admin lấy từ biến môi trường TPAN_PANEL_PASSWORD")
 	var m16 m16Opts
 	flag.BoolVar(&m16.longNames, "ten-dai", false, "bộ m16-do trên demo: tạo ba site tên dài qua API nếu chưa có")
 	flag.StringVar(&m16.site, "site", "", "bộ m16-do: site dùng cho màn \"trang một site\" (mặc định: site tên dài nhất của máy)")
 	flag.StringVar(&m16.passwordFile, "mat-khau-tep", "", "với -panel: file chứa output của `tpan setup` hoặc `tpan admin passwd`; mật khẩu admin được đọc từ đó")
 	flag.BoolVar(&m16.threshold, "nguong", false, "bộ m16-do: kiểm các ngưỡng cứng của M16, sai một cái là thoát mã khác 0")
-	flag.StringVar(&m16.step, "buoc", "", "bộ m16-that: admin, tao-site, user hoặc nang-cap (xem m16_that.go)")
+	flag.StringVar(&m16.step, "buoc", "", "bộ m16-that: admin, tao-site, user hoặc nang-cap (xem m16_that.go); bộ m18-that: dich hoặc khoi-phuc (xem m18_that.go)")
+	// Bộ m18-that, bước dich: phần KHÔNG bí mật của form đích. Hai khoá đi qua
+	// biến môi trường TPAN_S3_ACCESS, TPAN_S3_SECRET, không qua dòng lệnh.
+	flag.StringVar(&m16.s3Endpoint, "s3-endpoint", "", "bộ m18-that, bước dich: endpoint gõ vào form đích (máy chủ tpan gọi tới, ví dụ http://127.0.0.1:7070)")
+	flag.StringVar(&m16.s3Region, "s3-region", "", "bộ m18-that, bước dich: vùng")
+	flag.StringVar(&m16.s3Bucket, "s3-bucket", "", "bộ m18-that, bước dich: bucket")
+	flag.StringVar(&m16.s3Prefix, "s3-prefix", "", "bộ m18-that, bước dich: tiền tố (rỗng: giữ giá trị form điền sẵn)")
 	flag.StringVar(&m16.userName, "ten", "", "bộ m16-that, bước user: tên user thường (mật khẩu ở biến môi trường TPAN_USER_PASSWORD)")
 	flag.StringVar(&m16.waitFile, "cho-tep", "", "bộ m16-that, bước nang-cap: file mà script e2e tạo ra khi đã nâng cấp xong")
 	flag.StringVar(&m16.only, "chi", "", "bộ m16: chỉ chụp các ảnh có tên này (cách nhau bằng dấu phẩy, ví dụ cong-cu,nguoi-dung), bỏ phần bàn phím và tiếng Anh")
@@ -93,16 +99,16 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lỗi: -bo m15-that cần -panel (panel của máy ảo test; demo không cập nhật được)")
 			os.Exit(2)
 		}
-	case "m16-do", "m16", "mau-v2":
+	case "m16-do", "m16", "mau-v2", "m18":
 		list = nil
-	case "m16-that":
+	case "m16-that", "m18-that":
 		list = nil
 		if *panel == "" {
-			fmt.Fprintln(os.Stderr, "lỗi: -bo m16-that cần -panel (panel của máy ảo test)")
+			fmt.Fprintf(os.Stderr, "lỗi: -bo %s cần -panel (panel của máy ảo test)\n", *set)
 			os.Exit(2)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that hoặc mau-v2")
+		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that, m18, m18-that hoặc mau-v2")
 		os.Exit(2)
 	}
 	if err := run(*listen, *chrome, *debugPort, *out, *set, list, *panel, m16); err != nil {
@@ -225,6 +231,9 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 		// Bộ này tự đăng nhập qua form của giao diện, như người dùng.
 		return liveM16(c, base, password, m16)
 	}
+	if set == "m18-that" {
+		return liveM18(c, base, password, m16)
+	}
 
 	// 4. đăng nhập bằng fetch cùng origin (cookie HttpOnly nằm trong Chrome).
 	if err := c.goTo(base+"/", "/dang-nhap"); err != nil {
@@ -243,6 +252,8 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 		return measureM16(c, base, m16)
 	case "m16":
 		return photosM16(c, base, password, out, m16.only)
+	case "m18":
+		return photosM18(c, base, out, m16.only)
 	}
 	jobID, err := siteJob(c)
 	if err != nil {

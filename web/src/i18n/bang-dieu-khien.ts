@@ -58,7 +58,7 @@ const vi = {
   // Bằng chứng của một ga
   panelTitle: (domain: string, stage: string) => `${domain} · ${stage}`,
   panelClose: "Đóng bằng chứng",
-  noChecks: "Chưa có phép kiểm nào cho chặng này, nên chưa nói được đạt hay hỏng.",
+  noChecks: "Chưa có phép kiểm nào cho thành phần này, nên chưa nói được đạt hay hỏng.",
   sharedTag: "dùng chung cả máy",
 
   // User thường (M13): hạn mức gói thay cho số liệu máy
@@ -121,7 +121,7 @@ const vi = {
   none: "Không có",
   sharedIncident: "Cả máy",
   // Một dòng phụ dưới tiêu đề thẻ sự cố; nơi bị lỗi đã nằm ở tiêu đề.
-  incidentMeta: (stage: string, title: string, since: string) => `chặng hỏng: ${stage} · ${title} · từ ${since}`,
+  incidentMeta: (stage: string, title: string, since: string) => `hỏng ở ${stage} ·${title} · từ ${since}`,
   openIncident: "Mở sự cố",
   openIncidentFor: (where: string) => `Mở sự cố ${where}`,
   allIncidents: "Xem mọi sự cố",

@@ -1,0 +1,69 @@
+# n1-t1  (2026-11-21 03:23:40 +0700, máy ảo tpan-m28, 4269cc1)
+site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; nạn nhân a.example.com
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+đăng nhập khach1: HTTP 204
+phiên: khach1 vai user
+tpan PID 17735, RSS 93300 KiB
+
+=== 0. .htaccess là file thường (hành vi đúng phải giữ) ===
+  bản xem trước: HTTP 200 0.438391s (curl thoát 0; 124 là quá hạn 30s), câu trả lời 41140 byte
+  file /var/www/e.example.com/public/.htaccess: old 696 byte sha=323969eac053238b, file trên đĩa 696 byte sha=323969eac053238b
+KQ thuong:.htaccess: DUNG (old đúng bằng file trên đĩa, vẽ được diff)
+
+=== 1. .htaccess -> symlink tới /var/www/a.example.com/public/wp-config.php ===
+  bản xem trước: HTTP 200 0.373145s (curl thoát 0; 124 là quá hạn 60s), câu trả lời 44853 byte
+  file /var/www/e.example.com/public/.htaccess: old 3480 byte sha=6b4539e96a17ba18 {'old_exists': True} TRÙNG file đích
+KQ symlink:/var/www/a.example.com/public/wp-config.php: LO (file đích 3480 byte sha=6b4539e96a17ba18 nằm trong bản xem trước)
+  tpan còn sống (PID 17735, RSS 163352 KiB)
+
+=== 2. .htaccess -> symlink tới /etc/shadow ===
+  bản xem trước: HTTP 200 0.356241s (curl thoát 0; 124 là quá hạn 60s), câu trả lời 41521 byte
+  file /var/www/e.example.com/public/.htaccess: old 980 byte sha=979bb4db2557b58a {'old_exists': True} TRÙNG file đích
+KQ symlink:/etc/shadow: LO (file đích 980 byte sha=979bb4db2557b58a nằm trong bản xem trước)
+  tpan còn sống (PID 17735, RSS 104120 KiB)
+
+=== 3. .htaccess -> symlink tới /var/lib/tpan/tpan.db ===
+  bản xem trước: HTTP 200 0.378042s (curl thoát 0; 124 là quá hạn 60s), câu trả lời 1219861 byte
+  file /var/www/e.example.com/public/.htaccess: old 884736 byte sha=7091b7f706fe1f3d {'old_exists': True} TRÙNG file đích
+KQ symlink:/var/lib/tpan/tpan.db: LO (file đích 884736 byte sha=7091b7f706fe1f3d nằm trong bản xem trước)
+  tpan còn sống (PID 17735, RSS 107380 KiB)
+
+=== 4. thư mục cha: public -> symlink tới thư mục chỉ root đọc được ===
+  bản xem trước: HTTP 200 0.113560s (curl thoát 0; 124 là quá hạn 60s), câu trả lời 41722 byte
+  file /var/www/e.example.com/public/.htaccess: old 811 byte sha=9d0db98e2b0c6073 {'old_exists': True} TRÙNG file đích
+KQ cha-la-symlink: LO (file đích 811 byte sha=9d0db98e2b0c6073 nằm trong bản xem trước)
+  tpan còn sống (PID 17735, RSS 105388 KiB)
+
+=== 5. hardlink tới /etc/shadow ===
+  ln bị kernel từ chối: ln: failed to create hard link '/var/www/e.example.com/public/.htaccess' => '/etc/shadow': Operation not permitted
+  tắt fs.protected_hardlinks (máy bị cấu hình lỏng) rồi thử lại
+  /var/www/e.example.com/public/.htaccess: regular file, chủ root:shadow, quyền 640, 2 tên
+  bản xem trước: HTTP 200 0.353766s (curl thoát 0; 124 là quá hạn 60s), câu trả lời 41521 byte
+  file /var/www/e.example.com/public/.htaccess: old 980 byte sha=979bb4db2557b58a {'old_exists': True} TRÙNG file đích
+KQ hardlink:/etc/shadow: LO (file đích 980 byte sha=979bb4db2557b58a nằm trong bản xem trước)
+  tpan còn sống (PID 17735, RSS 91508 KiB)
+
+=== 6. .htaccess là file thường 2 GiB (thưa), đúng chủ và quyền ===
+  /var/www/e.example.com/public/.htaccess: 2147483648 byte, chủ tp_e_example_com_25cfc7:www-data, quyền 640
+  bản xem trước: HTTP 000 2.194559s (curl thoát 56; 124 là quá hạn 90s), câu trả lời 0 byte
+KQ file-2GiB: câu trả lời không phải JSON (0 byte)
+  tpan: PID 17735 -> 0, activating, NRestarts=2
+
+=== 7. .htaccess là FIFO ===
+  bản xem trước: HTTP (không có) (curl thoát 124; 124 là quá hạn 20s), câu trả lời 0 byte
+KQ fifo: câu trả lời không phải JSON (0 byte)
+  tpan còn sống (PID 21378, RSS 70420 KiB)
+
+=== 8. .htaccess -> symlink tới /dev/zero ===
+  bản xem trước: HTTP 000 2.647016s (curl thoát 56; 124 là quá hạn 90s), câu trả lời 0 byte
+KQ dev-zero: câu trả lời không phải JSON (0 byte)
+  tpan: PID 21378 -> 0, activating, NRestarts=3
+Nov 21 03:24:11 tpan-m28 kernel: tpan invoked oom-killer: gfp_mask=0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_COMP|__GFP_ZERO), order=0, oom_score_adj=0
+Nov 21 03:24:11 tpan-m28 kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/system.slice/tpan.service,task=tpan,pid=21378,uid=0
+Nov 21 03:24:11 tpan-m28 kernel: Out of memory: Killed process 21378 (tpan) total-vm:8372032kB, anon-rss:3580840kB, file-rss:0kB, shmem-rss:0kB, UID:0 pgtables:7236kB oom_score_adj:0
+
+=== dọn ===
+-rw-r----- 1 tp_e_example_com_25cfc7 www-data 696 Nov 21 03:14 /var/www/e.example.com/public/.htaccess
+active
+# mã thoát: 0

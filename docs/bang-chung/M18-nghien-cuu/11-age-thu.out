@@ -1,0 +1,51 @@
+bash docs/bang-chung/M18-nghien-cuu/11-age-thu.sh
+== ngay thu: 2026-11-20T19:34:35Z, go version go1.27.4 darwin/arm64
+nen: 5976224 byte, 190 goi
+coage: 6332576 byte, 210 goi
+age thêm: 356352 byte
+   goi: filippo.io/age/internal/bech32
+   goi: filippo.io/age/internal/format
+   goi: golang.org/x/crypto/internal/alias
+   goi: golang.org/x/crypto/chacha20
+   goi: golang.org/x/crypto/internal/poly1305
+   goi: golang.org/x/crypto/chacha20poly1305
+   goi: filippo.io/age/internal/stream
+   goi: filippo.io/hpke/crypto
+   goi: filippo.io/hpke/crypto/ecdh
+   goi: filippo.io/hpke/internal/byteorder
+   goi: filippo.io/hpke
+   goi: golang.org/x/crypto/curve25519
+   goi: golang.org/x/crypto/hkdf
+   goi: golang.org/x/crypto/pbkdf2
+   goi: golang.org/x/crypto/scrypt
+   goi: filippo.io/age
+   goi: golang.org/x/crypto/blake2b
+   goi: golang.org/x/crypto/argon2
+   goi: vendor/golang.org/x/crypto/cryptobyte/asn1
+   goi: vendor/golang.org/x/crypto/cryptobyte
+   goi: vendor/golang.org/x/crypto/internal/alias
+   goi: vendor/golang.org/x/crypto/chacha20
+   goi: vendor/golang.org/x/crypto/internal/poly1305
+   goi: vendor/golang.org/x/crypto/chacha20poly1305
+require filippo.io/age v1.3.2
+lệnh age của apt: 1.1.1
+khoá công khai dài 62 ký tự, bắt đầu bằng age1; khoá bí mật dài 75 byte (không in)
+--- mã hoá 300 MiB bằng thư viện (agethu enc)
+(đỉnh RAM VmHWM 4420 kB)
+thời gian 0.39s
+314649784 age-thu.enc
+314572800 age-thu.plain
+--- giải mã bằng LỆNH age của apt (không phải mã của ta)
+thời gian 0.45s, đỉnh RAM 11160kB
+ĐẠT: lệnh age giải mã ra đúng sha256 472acd1782f631172d4f2b1766566c16c6eb390c6302f6c5981d843b51c89a82
+--- giải mã bằng thư viện (agethu dec)
+(đỉnh RAM VmHWM 9888 kB)
+ĐẠT: thư viện giải mã ra đúng sha256
+--- sửa một byte ở giữa bản mã: giải mã phải lỗi, không ra dữ liệu sai
+(đỉnh RAM VmHWM 8080 kB)
+LỖI: failed to decrypt and authenticate payload chunk, file may be corrupted or tampered with
+mã thoát của agethu dec: 1
+--- khoá sai: giải mã phải lỗi
+(đỉnh RAM VmHWM 4176 kB)
+LỖI: identity did not match any of the recipients: incorrect identity for recipient block
+mã thoát của agethu dec: 1

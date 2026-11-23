@@ -54,10 +54,27 @@ func (s *Server) handleBackups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// M13: lọc theo cột owner của dòng backup (backup sống lâu hơn site đã xoá hẳn).
-	items, err := s.deps.Store.BackupsOf(r.Context(), scopeOf(r), domain)
+	scope := scopeOf(r)
+	items, err := s.deps.Store.BackupsOf(r.Context(), scope, domain)
 	if err != nil {
 		apiFail(w, r, err)
 		return
+	}
+	// M18 (B5, S10): user thường không thấy chi tiết kho. remote_key lộ tiền
+	// tố và cách đặt tên trên kho, remote_error là câu lỗi của kho (có thể
+	// nêu endpoint, bucket); họ chỉ cần biết bản nằm ở đâu (local, remote).
+	if scope != "" {
+		for i := range items {
+			items[i].RemoteKey, items[i].RemoteError = "", ""
+		}
+	}
+	// M18: nơi mỗi bản nằm, cho cột "Ở đâu" của giao diện (cả user thường:
+	// nhãn không nêu đích). Setting đích hỏng thì bỏ trường này thay vì từ
+	// chối cả danh sách: backup trên máy vẫn phải xem được (B11).
+	if cur, has, err := core.CurrentTargetID(r.Context(), s.deps.Store); err == nil {
+		for i := range items {
+			items[i].Location = core.BackupLocation(items[i], cur, has)
+		}
 	}
 	writeJSON(w, http.StatusOK, BackupsOverview{Settings: set, Items: apiNonNil(items)})
 }

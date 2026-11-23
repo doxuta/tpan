@@ -25,6 +25,7 @@ import (
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/monitor"
+	"github.com/doxuta/tpan/internal/s3"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -112,7 +113,13 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			// M13: tên, mật khẩu, vai, giới hạn gói, charset, ghi chú sai.
 			"args_invalid", "password_too_short", "note_invalid", core.CodeCollationInvalid,
 			validate.CodeUserNameInvalid, validate.CodeUserNameReserved,
-			validate.CodePackageNameInvalid, validate.CodeDBNameInvalid:
+			validate.CodePackageNameInvalid, validate.CodeDBNameInvalid,
+			// M18: trường của đích S3 và đầu vào của cloud-init sai. Mã M18
+			// khác (s3_not_configured, s3_unreachable, backup_not_on_machine…)
+			// là "máy chưa đạt điều kiện": 409 như mặc định.
+			s3.CodeEndpointInvalid, s3.CodeRegionInvalid, s3.CodeBucketInvalid, s3.CodePrefixInvalid,
+			s3.CodeKeysInvalid, s3.CodeKeepInvalid, s3.CodeCAInvalid,
+			core.CodeCloudInitInvalid, core.CodeCloudInitTooLarge:
 			status = http.StatusBadRequest
 		case "site_not_found",
 			// M9: id backup không có (hoặc không thuộc site đó) là "không có".
@@ -123,6 +130,14 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			status = http.StatusNotFound
 		}
 		return status, ErrorBody{Error: ErrorDetail{Code: re.Code, Message: re.Message, Checks: re.Checks}}
+	}
+	// M28: lỗi của cửa sitefs (file trong thư mục site là symlink, FIFO, quá
+	// lớn, không thuộc site...) là trạng thái site tự tạo ra, không phải lỗi của
+	// tpan: 409 site_path_unsafe. "Không có" thì đi tiếp như cũ.
+	if body, ok := sitePathUnsafe(err); ok {
+		return http.StatusConflict, body
+	}
+	switch {
 	case errors.Is(err, store.ErrNotFound):
 		return http.StatusNotFound, ErrorBody{Error: ErrorDetail{Code: "not_found", Message: i18n.T("Không có.", "Not found.")}}
 	}

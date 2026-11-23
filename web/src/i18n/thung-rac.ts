@@ -12,14 +12,14 @@ const vi = {
   bulkRestoreBody: "Các site dưới đây chạy lại như trước khi xoá: file, cơ sở dữ liệu, cấu hình về chỗ cũ. Mỗi site chạy một job, lần lượt.",
   bulkPurge: (n: number) => `Xoá hẳn ${n} site`,
   bulkPurgeTitle: (n: number) => `Xoá hẳn ${n} site?`,
-  bulkPurgeBody: "Xoá vĩnh viễn file, cơ sở dữ liệu và bản sao của các site dưới đây khỏi máy. Không khôi phục được. Bản backup đã tạo trước đó vẫn được giữ.",
+  bulkPurgeBody: "Xoá hẳn file, cơ sở dữ liệu và bản sao của các site dưới đây khỏi máy. Không khôi phục được. Bản backup đã tạo trước đó vẫn được giữ.",
   title: "Thùng rác",
   summary: "Site và DB rời đã xoá nằm ở đây, khôi phục được cho tới hạn xoá hẳn.",
 
   // Số ngày giữ
   retentionHeading: "Số ngày giữ",
   retentionLabel: "Giữ site và DB đã xoá trong (ngày)",
-  retentionHint: "Từ 0 đến 365. Số mới chỉ áp cho site xoá sau lúc đổi; site đã nằm trong thùng rác giữ nguyên hạn cũ. Đặt 0 thì site xoá về sau hết hạn ngay và bị dọn ở lượt dọn kế tiếp (mỗi giờ một lần).",
+  retentionHint: "Từ 0 đến 365. Số mới chỉ áp cho site xoá sau khi đổi; site đã trong thùng rác giữ hạn cũ. Đặt 0 thì site xoá từ giờ hết hạn ngay và được dọn ở lượt kế tiếp (mỗi giờ một lần).",
   retentionInvalid: "Nhập số nguyên từ 0 đến 365.",
   retentionCurrent: (n: number) => (n === 1 ? "Đang giữ 1 ngày." : `Đang giữ ${n} ngày.`),
   save: "Lưu",

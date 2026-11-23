@@ -446,7 +446,7 @@ func (s *Server) handleFix(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, r, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, p)
+		s.writePreview(w, r, p)
 		return
 	}
 

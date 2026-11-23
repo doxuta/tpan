@@ -189,7 +189,7 @@ func (a *Accounts) isLastAdmin(ctx context.Context, u account.User) (bool, error
 
 func refuseLastAdmin(name string) *RefusedError {
 	return refuse(CodeLastAdmin, i18n.T(
-		name+" là admin cuối cùng đang hoạt động: khoá, xoá hay hạ vai thì không còn ai quản trị panel. Thêm hoặc mở khoá một admin khác trước",
+		name+" là admin cuối cùng đang hoạt động: khoá, xoá hay đổi thành user thì không còn ai quản trị panel. Thêm hoặc mở khoá một admin khác trước",
 		name+" is the last active admin: locking, deleting or demoting it leaves nobody to run the panel. Add or unlock another admin first"))
 }
 
@@ -207,7 +207,7 @@ func (a *Accounts) AddUser(ctx context.Context, in UserInput) (u account.User, g
 		role = account.RoleUser
 	}
 	if !role.Valid() {
-		return u, "", refuse("args_invalid", i18n.T("vai phải là admin hoặc user", "the role must be admin or user"))
+		return u, "", refuse("args_invalid", i18n.T("vai trò phải là admin hoặc user", "the role must be admin or user"))
 	}
 	if err := checkUserText(i18n.T("tên đầy đủ", "the full name"), in.FullName); err != nil {
 		return u, "", err
@@ -271,7 +271,7 @@ func (a *Accounts) EditUser(ctx context.Context, name string, ch UserChange, by 
 	roleChanged := false
 	if ch.Role != nil && *ch.Role != u.Role {
 		if !ch.Role.Valid() {
-			return account.User{}, refuse("args_invalid", i18n.T("vai phải là admin hoặc user", "the role must be admin or user"))
+			return account.User{}, refuse("args_invalid", i18n.T("vai trò phải là admin hoặc user", "the role must be admin or user"))
 		}
 		last, err := a.isLastAdmin(ctx, u)
 		if err != nil {
@@ -287,7 +287,7 @@ func (a *Accounts) EditUser(ctx context.Context, name string, ch UserChange, by 
 	}
 	if roleChanged {
 		if err := a.Store.DeleteSessionsOf(ctx, u.Name); err != nil {
-			return u, fmt.Errorf("đã đổi vai của %s nhưng chưa huỷ được phiên đang mở: %w", u.Name, err)
+			return u, fmt.Errorf("đã đổi vai trò của %s nhưng chưa huỷ được phiên đang mở: %w", u.Name, err)
 		}
 	}
 	return u, nil

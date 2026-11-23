@@ -166,6 +166,12 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		p.Items = apiNonNil(p.Items)
+		if p.Preview != nil {
+			if err := s.filterPreview(r, p.Preview, applyCreated(p.Items)...); err != nil {
+				apiFail(w, r, err)
+				return
+			}
+		}
 		writeJSON(w, http.StatusOK, p)
 		return
 	}

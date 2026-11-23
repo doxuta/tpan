@@ -133,7 +133,7 @@ func (a *apiState) takeSecret(id string) heldSecret {
 func (s *Server) jobBusy(w http.ResponseWriter, r *http.Request, action, target string) {
 	s.audit(r, action, target, "job_running", "")
 	writeError(w, http.StatusConflict, "job_running", i18n.T(
-		"Đang có một thao tác khác thay đổi máy. Chờ nó xong rồi thử lại (xem ở Lịch sử).",
+		"Đang có một việc khác đang đổi máy. Chờ nó xong rồi thử lại (xem ở Lịch sử).",
 		"Another operation is changing the server. Wait for it to finish, then try again (see History)."))
 }
 
@@ -262,7 +262,8 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, r, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, p)
+		// d đã qua siteCreateOwner: site mới (hay site của chính người gọi).
+		s.writePreview(w, r, p, d)
 		return
 	}
 
@@ -318,7 +319,7 @@ func (s *Server) handleSiteDelete(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, r, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, p)
+		s.writePreview(w, r, p)
 		return
 	}
 

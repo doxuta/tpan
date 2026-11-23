@@ -101,8 +101,39 @@ func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, instal
 
 	if !r.NoSelf {
 		add(store.TargetTPAN, r.selfChecks()...)
+		s3cs, err := r.s3Checks(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+		add(store.TargetTPAN, s3cs...)
 	}
 	return plan, installed, nil
+}
+
+// s3Checks là hai phép kiểm của kho S3 (M18, mục 3.13), CHỈ khi đã đặt đích:
+// máy không đặt đích thì kết quả health không đổi một dòng nào so với v0.2.0
+// (B11). Setting của đích hỏng (sửa tay) cũng thêm hai phép kiểm: State, Probe
+// trả lỗi, phép kiểm ra Unknown kèm câu lỗi, người quản trị thấy được thay vì
+// health im lặng bỏ qua.
+//
+// tpan.s3:fresh nhẹ (chỉ đọc tpan.db, settings), chạy mỗi vòng. tpan.s3:target
+// gọi mạng (Check rồi Head từng site) nên bọc checks.Heavy: chỉ vòng đầy đủ mỗi
+// giờ và `tpan health`. Nằm trong nhánh !NoSelf: máy --demo không bao giờ gọi
+// ra một kho thật.
+func (r *Runner) s3Checks(ctx context.Context) ([]checks.Check, error) {
+	_, ok, err := core.CurrentTargetID(ctx, r.Store)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, err
+		}
+	} else if !ok {
+		return nil, nil
+	}
+	rem := &core.Remote{Sys: r.Sys, Settings: r.Store, Store: r.Store, Sites: r.Store, Now: r.Now}
+	return []checks.Check{
+		checks.S3Fresh(rem.State, r.clock()),
+		checks.Heavy(checks.S3Target(rem.Probe)),
+	}, nil
 }
 
 // fileOwner trả domain của site sở hữu path, "" khi không thuộc site nào.
