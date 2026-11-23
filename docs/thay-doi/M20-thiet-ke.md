@@ -763,3 +763,20 @@ Phiên chính nhận cả 13 phát hiện. Từng cái được sửa như dư�
 | 2 | Demo M20 | `internal/demo/m20*.go`, `internal/demo/demo.go` | tho-phu | T |
 | 2 | Script e2e bước 23, chương trình `scripts/e2e-m20/`, bộ trình duyệt `-bo m20-that`, `-bo m20` (ảnh), target Makefile (chưa chạy máy ảo) | `scripts/e2e-m20.sh`, `scripts/e2e-m20/`, `scripts/anh-readme/m20*.go`, `scripts/anh-readme/main.go`, `Makefile` | tho-may-ao | N |
 | 3–5 | như mục 8 | | | |
+
+### 11.12 Soát lượt hai (thợ opus, 23/11/2026): không có điểm nặng; cách xử lý từng điểm
+
+Đè lên 11.1 đến 11.11 khi khác nhau.
+
+- **R1 (phiên của bản cũ `host=''`)**: lần đầu một phiên `host=''` được dùng thì ghi `host = requestHost(r)` cho nó (từ đó gắn tên máy như phiên mới). Nhánh 421 (dưới): request mang cookie phiên thì xoá phiên đó và gửi cookie hết hạn. Nâng cấp vẫn không đăng xuất ai (B6).
+- **R2 (miễn 421 cho site của admin)**: bỏ miễn. Mọi tên trùng domain của một site ở mọi trạng thái, của bất kỳ ai, đều 421 `host_is_site`. Vào bằng IP hoặc `panel.domain` luôn được, nên không ai bị khoá ngoài. Bỏ `SessionInfo.host_is_site` và cảnh báo vàng ở màn Đăng nhập. Trang 421 (HTML với đường dẫn giao diện, JSON với `/api/`) in sẵn cách vào: `https://<IP của máy>:8443` hoặc tên miền của panel.
+- **R12**: request có header `Authorization` (token) được miễn 421 (không dùng cookie nên không có gì để lộ).
+- **R3**: guard chỉ gắn `authCtxKey` (store.Session) khi request dùng phiên cookie; request bằng token gắn khoá context riêng (`tokenCtxKey`, giữ `store.TokenRow`). Handler chỉ phiên kiểm `cur, ok := authSessionOf(r); !ok || cur.TokenSHA256 == ""` → 401.
+- **R4**: file khoá chỉ được tạo khi bảng `user_totp` không có dòng nào; có dòng mà file mất hay hỏng thì `setup` và mọi lần mở bí mật trả 503 `mfa_secret_unavailable`.
+- **R5**: cột `user_totp.wrong_since_ok` (mỗi lần sai +1, không reset khi khoá, chỉ đọc-và-về-0 bằng `TakeWrongSinceOK` khi bước hai đúng). `POST /login/2fa` đúng mà số đó > 0 thì 200 `LoginResult{wrong_codes}`; giao diện báo một lần "có N lần nhập sai mã kể từ lần đăng nhập trước, nếu không phải bạn thì đổi mật khẩu". `MFAState` không cần thêm trường. Phép kiểm `tpan.2fa:attempts` tính theo audit `login.2fa_locked` (kết quả `locked`) trong 7 ngày (`store.CountAuditSince`), không theo `lock_count`.
+- **R6**: `checkSecondFactor` luôn chạy SAU khi mật khẩu đã đúng (thao tác đòi cả hai); argon2 chạy ngoài khoá theo user; khoá theo user là kênh 1 chỗ chờ được theo `ctx` (`select` với `ctx.Done()`), hết ctx thì 503 không chạy `Match`. Câu 423 `mfa_locked` nói: dùng mã dự phòng (vẫn được nhận) rồi đổi mật khẩu.
+- **R7**: đệm cho 421 là cả danh sách domain của bảng `sites` (mọi trạng thái), nạp lại khi cũ hơn 5 giây; không đệm theo Host lạ. `requestHost` chuẩn hoá: bỏ cổng, bỏ một dấu chấm cuối, chữ thường; test `X.`, `X:443`, chữ hoa, `[::1]:8443`.
+- **R8**: demo: `tpan serve --demo` gọi `SetUserPassword` cho user mẫu sau `demo.New` (thu hồi token): token mẫu phải tạo SAU bước đó (hàm demo M20 riêng gọi từ root.go sau vòng đặt mật khẩu, hoặc tạo token mẫu cho admin chỉ khi đặt mật khẩu admin bằng `SetAdminPasswordHash` không thu hồi).
+- **R9**: bỏ `starterSession`. Nhánh phiên giữ như cũ (phiên không "xem như" lấy được). Chỉ thêm `starterToken`: request bằng token chỉ lấy khi id trùng; request bằng phiên không lấy được mật khẩu của job do token khởi.
+- **R10**: `requestHost` rỗng (HTTP/1.0 không Host) thì `POST /login` trả 400 `host_missing`; không bao giờ ghi phiên `host=''` mới.
+- **R11**: mục 3.8 "`after` ghi/xoá setting" và mục 5 "không có đường đua đáng kể" đã thay bằng 11.2 ý 4 (bước `panelSetting`, kiểm dưới khoá). `PrepareClear`: `panelSetting` về rỗng TRƯỚC rồi `CertbotDelete`.

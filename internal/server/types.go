@@ -182,9 +182,6 @@ type SessionInfo struct {
 	// MFAEnrollRequired (M20): chính sách bắt user thật của phiên bật hai bước
 	// mà họ chưa bật; mọi route trừ trang bật trả 403 mfa_enroll_required.
 	MFAEnrollRequired bool `json:"mfa_enroll_required,omitempty"`
-	// HostIsSite (M20): panel đang được mở bằng tên của một site của admin
-	// (site của user thường thì đã bị 421); màn Đăng nhập cảnh báo.
-	HostIsSite bool `json:"host_is_site,omitempty"`
 }
 
 type PasswordChange struct {

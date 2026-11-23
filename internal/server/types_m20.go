@@ -65,6 +65,10 @@ type LoginResult struct {
 	MFARequired bool `json:"mfa_required,omitempty"`
 	// RecoveryLeft: số mã dự phòng còn lại, chỉ có khi vừa đăng nhập bằng một mã dự phòng.
 	RecoveryLeft *int `json:"recovery_left,omitempty"`
+	// WrongCodes: số lần có người nhập sai mã hai bước cho tài khoản này kể từ
+	// lần đăng nhập đúng trước (R5 của soát lượt hai): khác 0 nghĩa là mật khẩu
+	// có thể đã lộ. Có thì POST /login/2fa trả 200 thay vì 204.
+	WrongCodes int `json:"wrong_codes,omitempty"`
 }
 
 // LoginCode là thân của POST /login/2fa: 6 chữ số TOTP, hoặc một mã dự phòng

@@ -5,7 +5,7 @@
 // Đăng nhập (public):
 //   POST /api/v1/login        {name, password} → 204 (không có hai bước)
 //                                              → 200 LoginResult {mfa_required: true} + cookie phiếu
-//   POST /api/v1/login/2fa    {code}           → 204, hoặc 200 LoginResult {recovery_left} khi dùng mã dự phòng
+//   POST /api/v1/login/2fa    {code}           → 204, hoặc 200 LoginResult {recovery_left, wrong_codes}
 //   GET  /api/v1/session                       → SessionInfo (thêm mfa_pending, mfa_enroll_required, xem types.ts)
 //
 // Hai bước của chính mình:
@@ -35,7 +35,7 @@
 // token_name_invalid, token_scope_invalid, token_days_invalid, policy_invalid,
 // token_not_found, panel_domain_is_site, domain_is_panel, panel_staging, panel_private,
 // mfa_code_required (thiếu mã khi user đã bật hai bước: tạo token, đổi mật khẩu),
-// host_is_site (421: panel không phục vụ ở tên của site thuộc user thường); mật khẩu
+// host_is_site (421: panel không phục vụ ở tên của bất kỳ site nào, kể cả site của admin; vào bằng IP hoặc tên miền panel); mật khẩu
 // sai ở các thao tác đòi mật khẩu: wrong_password (401) hoặc login_locked (423).
 
 import type { CheckResult } from "./types";
@@ -59,6 +59,8 @@ export type LoginResult = {
   mfa_required?: boolean;
   /** Chỉ có khi vừa đăng nhập bằng một mã dự phòng. */
   recovery_left?: number;
+  /** Số lần có người nhập sai mã hai bước kể từ lần đăng nhập đúng trước; khác 0 thì mật khẩu có thể đã lộ. */
+  wrong_codes?: number;
 };
 
 export type Policy = "off" | "admin" | "all";
