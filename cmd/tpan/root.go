@@ -142,6 +142,13 @@ func serveCmd(e *env) *cobra.Command {
 					}
 					printf(e.stdout, "%s %s / %s\n", e.tr("User demo (vai user):", "Demo user (user role):"), u, upw)
 				}
+				// M20: hai bước và token mẫu. Phải SAU vòng đặt mật khẩu ở trên:
+				// SetUserPassword thu hồi token của user (mục 11.12 R8).
+				khachASecret, err := demo.SeedM20(ctx, st, sys)
+				if err != nil {
+					return fmt.Errorf("dựng dữ liệu hai bước, token demo: %w", err)
+				}
+				printf(e.stdout, "%s %s\n", e.tr("Bí mật hai bước demo của khach_a:", "Demo two-step secret of khach_a:"), khachASecret)
 				wpHash, wpcliHash := demo.Hashes()
 				deps = server.Deps{Sys: sys, Store: st, Demo: true, Hostname: "demo", WPHash: wpHash, WPCLISHA512: wpcliHash, S3: demo.S3()}
 				// Bộ não giả (kịch bản soạn sẵn) để thử ngăn AI trên máy không

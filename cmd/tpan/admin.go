@@ -5,8 +5,11 @@ package main
 // máy thì đặt lại được, ai không có thì không.
 
 import (
+	"strconv"
+
 	"github.com/spf13/cobra"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/store"
@@ -62,6 +65,11 @@ func adminPasswdCmd(e *env) *cobra.Command {
 				return err
 			}
 			defer closeStore(st)
+			// Đặt lại mật khẩu thu hồi mọi token của admin (mục 11.5): đếm trước.
+			revoked, err := st.ActiveTokens(ctx, account.AdminName, setupNow())
+			if err != nil {
+				return err
+			}
 			pw := store.GeneratePassword()
 			hash, err := store.HashPassword(pw)
 			if err != nil {
@@ -85,6 +93,9 @@ func adminPasswdCmd(e *env) *cobra.Command {
 				"New admin password (shown ONCE, save it now):"), pw, e.tr(
 				"Mọi phiên đăng nhập đã bị huỷ và mọi IP bị khoá đã được gỡ.",
 				"Every session has been ended and every locked IP unlocked."))
+			if revoked > 0 {
+				printf(e.stdout, "%s\n", e.tr("Đã thu hồi "+strconv.Itoa(revoked)+" token API của admin.", strconv.Itoa(revoked)+" API token(s) of admin revoked."))
+			}
 			return nil
 		},
 	}
