@@ -31,13 +31,13 @@ Nói trong một phút (để tập nói, không cần thuộc lòng):
 Mình là thợ viết, không được dùng máy ảo trong phiên viết file này. Không lệnh nào dưới đây do mình vừa chạy. Output lấy từ hai nguồn:
 
 - `docs/bang-chung/M17-nghien-cuu/*.ket-qua.txt`: các bản thử trên máy ảo `tpan-m17` (Ubuntu 24.04.5, kernel 6.8.0-147, systemd 255.4, PHP 8.3.6) chạy **trước khi viết mã** để biết cơ chế nào chạy được. Tên bản thử (t1, t3, t5...) là tên file. Mỗi bản thử chạy bằng một script: trên Mac, trong thư mục repo, gõ `make nc-m17 T=<tên file không đuôi>`, ví dụ `make nc-m17 T=t5-chi-phi`. Lệnh này nối `lib.sh` với script rồi chạy bằng root trong máy ảo, và lưu output vào file `.ket-qua.txt` cạnh nó (ghi đè file cũ).
-- Phần của `tpan` chạy thật (lệnh `tpan cage ...`, `tpan usage`, `tpan isolation probe`) sẽ có output ở `docs/bang-chung/M17.log` khi e2e xong. Lúc mình viết chưa có. Mục 2.1 liệt kê lệnh và ghi "chưa chạy"; mục 2.7 để trống chờ số đo.
+- Phần của `tpan` chạy thật (lệnh `tpan cage ...`, `tpan usage`, `tpan isolation probe`): output ở `docs/bang-chung/M17.log`, do e2e bước 20 chạy ngày 23/11/2026 trên mã đã gộp `dev`. Phiên chính dán vào mục 2.1 và điền số đo ở mục 2.7.
 
 Một lưu ý đọc số: tên slug trong output (`a_example_com_7653e4`) là tên user bỏ chữ `tp_`; đuôi 6 ký tự hex là phần ngẫu nhiên tpan thêm lúc tạo site.
 
-### 2.1 Lệnh bạn sẽ gõ (chưa chạy trong phiên viết file)
+### 2.1 Lệnh bạn sẽ gõ
 
-Chạy trên Mac, trong thư mục repo. Máy ảo phải có stack và một site (xem `scripts/vm.sh` ở mốc 1 và 2). Output: **chưa chạy**; phiên chính dán từ `M17.log`.
+Chạy trên Mac, trong thư mục repo. Máy ảo phải có stack và một site (xem `scripts/vm.sh` ở mốc 1 và 2). Output thật của từng lệnh nằm trong `docs/bang-chung/M17.log` (tìm dòng bắt đầu bằng `$ scripts/vm.sh root tpan cage` hay `tpan usage`); hai đoạn tiêu biểu ở cuối mục này.
 
 ```bash
 # bật lồng cho gói tên "long": RAM 200 MiB, CPU 50% của một nhân, 40 tiến trình, 3 worker
@@ -53,6 +53,25 @@ scripts/vm.sh root tpan cage disable a.example.com --yes
 ```
 
 `package edit` sửa gói đã có, nên gói `long` phải có trước (tạo bằng `tpan package add long ...`; hai lệnh nhận chung bộ cờ, xem biến `cageFlagNames` trong `cmd/tpan/package.go`).
+
+Output thật, lấy từ `M17.log` (phần nginx, 23/11/2026). `tpan cage status` sau khi A, B vào lồng, O để ngoài:
+
+```
+SITE                             CHỦ            GÓI          TRẠNG THÁI         RAM / TIẾN TRÌNH
+a.example.com                    khach          long         trong lồng         38/200 MiB, 2/40
+b.example.com                    khach          long         trong lồng         38/200 MiB, 2/40
+o.example.com                    admin          default      ngoài lồng         -
+```
+
+`tpan usage` sau các phép quá tải (A đã bị giết một lần vì chạm trần RAM và một lần chạm trần số tiến trình; B không chạm gì):
+
+```
+SITE                             CHỦ            RAM MiB                TIẾN TRÌNH     CHẠM TRẦN
+a.example.com                    khach          40/200 (đỉnh 200)      2/40           OOM 1, tiến trình 1
+b.example.com                    khach          40/200 (đỉnh 92)       2/40           OOM 0, tiến trình 0
+```
+
+Hỏi số liệu của site ngoài lồng (`tpan usage o.example.com`) thì bị từ chối với mã `usage_not_caged` và lời chỉ cách đưa vào lồng: site ngoài lồng dùng chung một dịch vụ PHP nên không có cgroup riêng để đọc.
 
 ### 2.2 Nhìn từ bên trong lồng: bản thử t1
 
@@ -224,7 +243,29 @@ vượt RAM: mã 1
 
 ### 2.7 Số đo của e2e
 
-(phiên chính điền sau khi e2e xanh: docs/bang-chung/M17.log)
+E2E bước 20 (`scripts/e2e-m17.sh chinh`, log `docs/bang-chung/M17.log`) chạy ngày 23/11/2026 trên mã đã gộp `dev` (có M16, M18, M28), từ máy sạch, lần lượt stack nginx rồi stack Apache: **672 khẳng định đạt, 0 không đạt**. Các lượt khác cùng ngày, cùng mã:
+
+| Lượt | Log | Kết quả |
+|---|---|---|
+| Nâng từ v0.2.0 (`e2e-m17.sh nang-cap`) | `M17-nang-cap.log` | 93 đạt, 0 không đạt |
+| Hồi quy M13 | `M17-hoi-quy-m13.log` | 293 đạt, 0 không đạt |
+| Hồi quy M14 | `M17-hoi-quy-m14.log` | 270 đạt, 0 không đạt |
+| Hồi quy M9 (`all`) | `M17-hoi-quy-m9.log` | 128 đạt, 0 không đạt |
+
+Số đo đáng nhớ (nginx / Apache khi hai bên khác nhau):
+
+| Phép thử | Kết quả |
+|---|---|
+| A nhìn từ trong lồng | `ls /var/www` chỉ có A; `/tmp` rỗng; không thấy tiến trình của user khác; `passwd` riêng 4 dòng; `CapEff` rỗng, `NoNewPrivs` bằng 1; `sudo`, `crontab -l` không chạy được |
+| RAM: A cấp phát 400 MB, trần 200 MB | request đó ra 502 (nginx) / 503 (Apache); request kế tiếp của A 200 trong 2 giây; `oom_kill` tăng đúng 1; dịch vụ PHP của A không khởi động lại; B 0 request hỏng trên 60 |
+| Số tiến trình: A sinh 200, trần 40 | `pids.peak` bằng 40; B 0 request hỏng trên 40 |
+| CPU, máy bận, trần 50% | A nhận 45% đến 52% của một nhân ở cả hai lần đo, có bị bóp (`nr_throttled` tăng). Máy rảnh: 46,7% / 48,1% (dưới trần, xem mục 2.4) |
+| Đĩa, trần ghi 4 MB/giây | A ghi 32 MB mất từ 5 giây trở lên; cùng lệnh ở site ngoài lồng dưới 2 giây; B 0 request hỏng |
+| Vào lồng (site R đang nhận request) | 2 request hỏng trên 71 / 114, gián đoạn 63 ms / 87 ms |
+| Ra lồng | 0 request hỏng trên 69 / 82 |
+| Hạ trần RAM xuống dưới mức đang dùng rồi nâng lại | A tự trả 200, phục hồi sau 41 ms / 60 ms |
+| Thử tấn công `tpan isolation probe` | 14 đường (L1 đến L9 của M14, C1 đến C5 của lồng); ngoài lồng: các đường L bị chặn, C1 đến C5 là `needs_cage` (chỉ lồng chặn được); trong lồng: mọi đường bị chặn; hai site thử bị xoá sạch, kể cả khi `kill -9` tpan giữa lượt rồi chạy `--cleanup` |
+| Khởi động lại máy ảo | A, B trả 200; site tạm khoá vẫn 403 và socket vẫn tắt |
 
 ## 3. Đi qua mã theo thứ tự chạy
 
@@ -803,6 +844,18 @@ Lấy từ bản thiết kế mục 5 và sổ quyết định; không phải m�
 - **Không phủ:** việc site đẩy sang dịch vụ chung (truy vấn nặng trong MariaDB, TLS và file tĩnh trong web server), dung lượng đĩa (đầy đĩa), băng thông mạng.
 - **Mail.** `sendmail` không chạy được trong lồng; vốn đã không gửi được ở ngoài lồng trên stack của TPAN (t2).
 - **Trần CPU trên máy ảo rảnh** nhận ít hơn mức đặt (mục 2.3); không bao giờ nhiều hơn.
+
+### 5.11 Gộp với M28: luật lệnh root từ chối chính lồng
+
+M28 (vá theo rà soát v0.2.0) thêm một luật ở tầng thấp nhất, `checkRootZone` trong `internal/system/rootcmd.go`: lệnh nào chạy bằng root mà có đường dẫn nằm trong `/var/www` thì phải khớp một danh sách được phép, không thì bị từ chối trước khi chạy. Lý do: thư mục site thuộc user của site, user đó có thể đặt symlink trỏ ra `/etc/shadow`; root đi theo symlink là lộ.
+
+Gộp `dev` vào nhánh M17 làm hỏng ba chỗ, vì M17 viết trước luật này:
+
+1. **Lớp bọc của lồng.** `cage.Wrap` chạy lệnh của site bằng `systemd-run ... -p User=<user của site> -- <lệnh>`. `systemd-run` chạy bằng root, và lệnh sau `--` (ví dụ `wp plugin list --path=/var/www/...`) có đường dẫn trong vùng site, nên luật từ chối. Nhưng lệnh đó thật ra chạy bằng user của site trong hàng rào, đúng thứ M28 muốn. Sửa: hàm `cageRunAsSite` nhận **đúng** dạng `cage.Wrap` dựng: chỉ các cờ đã biết; đúng một `--unit=tpan-cage-<slug>-run-<16 hex>`, một `User=` và một `Group=`, cả hai phải là `tp_<slug>` lấy từ chính tên unit (thiếu tên unit thì hàng rào, vốn áp theo tiền tố tên unit, không áp; `Group=` của site khác thì đọc được file của site đó); bắt buộc `NoNewPrivileges=yes`; thư mục làm việc phải là đường dẫn tuyệt đối đã gọn, và nếu nằm trong vùng site thì chỉ được là gốc của site; không có `Dir` hay biến môi trường chạm vùng site. Lệch một chi tiết (ví dụ `User=root`, thêm `ExecStartPre=`, `User=` lặp hai lần) thì vẫn bị từ chối. Test: `internal/system/rootcmd_m17_test.go` liệt kê từng biến thể bị từ chối.
+2. **Thử tấn công tạo symlink rồi đổi chủ bằng root.** `tpan isolation probe` dựng site thử có symlink. Cách cũ: root tạo symlink rồi `chown`, đúng kiểu M28 cấm. Cách mới: chạy `ln -s -T` bằng chính user của site thử, khỏi cần đổi chủ (`-T`: nếu chỗ đặt link lỡ là thư mục thì báo lỗi, không tạo link bên trong nó).
+3. **Dọn site thử bằng `rm -r` của root trong `/var/www`.** Cách mới theo đúng đường của thùng rác (M10): chuyển thư mục ra `/var/lib/tpan/trash/...` rồi mới xoá ở đó, ngoài vùng site.
+
+Chỗ đáng nhớ: không nới luật chung của M28 cho tiện. Mỗi chỗ hỏng sửa theo cách M28 muốn (chạy bằng user của site, hoặc đi đường ngoài vùng site), và chỗ duy nhất luật phải nhận thêm là một dạng lệnh hẹp tới mức test liệt kê được các biến thể bị từ chối. Bản đầu của `cageRunAsSite` còn lỏng ba chỗ (không ràng User với tên unit, không bắt buộc có unit, nhận thư mục tương đối); thợ soát tìm ra, đã siết (bảng G1 đến G4 ở `docs/thay-doi/M17.md`). Sau khi sửa, e2e bước 20 chạy lại trên mã cuối (mục 2.7).
 
 ## 6. Tự kiểm
 
