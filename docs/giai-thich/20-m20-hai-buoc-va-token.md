@@ -520,6 +520,12 @@ Sáu điểm VỪA đáng nhớ:
 
 Chỗ khác nhận ra khi viết mã (M20.md): `RecordTOTPFailure` không thể là một câu `UPDATE` vì thời điểm hết khoá phụ thuộc `lock_count` mới, nên nó là một transaction đọc-tính-ghi (cần `_txlock=immediate`); `authFailed` luôn ghi `wrong_password` nên server gọi nó với thao tác `<action>.ip` và tự ghi thêm dòng `login.2fa`/`wrong_code`.
 
+**Soát cuối trên mã đã viết (23/11/2026).** Một thợ opus chưa đọc mã mốc này soát mã thật và viết test khai thác (chạy trên Mac): 1 NẶNG, 1 VỪA, 3 NHẸ, đều đã sửa và có test (mục "Soát cuối (đọc mã)" của `docs/thay-doi/M20.md`).
+
+- **F1 (nặng): cửa sau bằng một phiên bị chiếm.** Mọi thao tác của M20 đã đòi mật khẩu, nhưng route cũ của M13 `POST /api/v1/users` thì không: kẻ chỉ có cookie phiên admin tạo được một user admin mới (biết mật khẩu, không có hai bước), rồi từ user đó in token 365 ngày. `tpan admin passwd` đuổi được phiên bị chiếm nhưng không đuổi được cửa sau. Bài học: bảo vệ một cửa (token) mà quên cửa bên cạnh (tạo tài khoản) là chưa bảo vệ. Sửa: tạo user, nâng một người lên admin, đặt lại mật khẩu người khác, nới chính sách đăng nhập đều đòi mật khẩu (và mã hai bước nếu đã bật) của admin đang làm.
+- **F2 (vừa):** token `backups:write` đổi được đích sao lưu ngoài máy (M18) sang kho của kẻ khác, tức rút được dữ liệu mọi site. Sửa: đổi đích và cloud-init chỉ dùng được bằng phiên.
+- **F3, F4, F5 (nhẹ):** token `health:read` chạy được lượt health đầy đủ qua `?refresh=1`; trần 5 lần mỗi phiếu và mỗi IP còn "kiểm trước, ghi sau" (trần 10 lần theo user vẫn đúng); trang 421 in tên miền panel cho người lạ.
+
 **Phát hiện bằng cách nào:** đọc thiết kế rồi đọc mã khung và đi theo từng kịch bản tấn công trên giấy, chưa chạy gì. Không bước nào trong số đó được xác nhận bằng cuộc tấn công thật trên máy ảo; bằng chứng hiện có là test đơn vị cho từng bản sửa (xanh trên Mac) và e2e chưa chạy.
 
 ## 6. Chưa có trong tay
