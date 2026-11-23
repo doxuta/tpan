@@ -1,0 +1,296 @@
+
+
+######## [2026-11-21 16:38:44] e2e M28 bước 31 — máy ảo tpan-m28 — phần: nang-cap — log docs/bang-chung/M28-nang-cap.log
+E2E_BUILD=1  E2E_BIN_PREFIX=bin/tpan-linux
+
+
+######## [2026-11-21 16:38:44] PHẦN D: nâng từ v0.2.0 lên bản của cây (Apache)
+
+[2026-11-21 16:38:44] đưa máy ảo tpan-m28 về sạch
+[2026-11-21 16:38:58] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-21 16:38:58] chép gói v0.2.0 vào máy ảo
+[2026-11-21 16:38:59] chép scripts/e2e-m28/ vào máy ảo (/home/ubuntu/e2e-m28)
+
+[2026-11-21 16:39:02] $ cài v0.2.0 bằng install.sh của gói (--web apache)
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /home/ubuntu/v0.2.0/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
+Đã đặt /usr/local/bin/tpan
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job ff06cd4e2f822c90
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job ff06cd4e2f822c90: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    97:C2:33:2B:94:31:86:85:D3:0F:A4:AA:DE:CA:2C:81:69:16:CE:44:58:EC:DE:35:0A:46:CA:89:CB:4D:A4:9A
+Mở: https://<IP của máy>:8443
+
+==> Cài stack: tpan stack install --web apache
+Bắt đầu job 063dbd0340ea7938
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl apache2 ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Bật kiểm quyền file và khoá API của OPcache cho php<bản>-fpm ...
+  xong
+- Ẩn tiến trình của user khác với PHP của php<bản>-fpm ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Module Apache: bật mpm_event proxy_fcgi setenvif rewrite headers http2; tắt mpm_prefork ...
+  xong
+- Gỡ /etc/apache2/sites-enabled/000-default.conf ...
+  xong
+- Ghi /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Bật /etc/apache2/sites-enabled/000-tpan-default.conf → /etc/apache2/sites-available/000-tpan-default.conf ...
+  xong
+- Chạy và bật apache2 khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
+
+Job 063dbd0340ea7938: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.5%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+
+Xong. Bước tiếp:
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-21 16:39:44] (mã thoát 0)
+
+[2026-11-21 16:39:44] >>> dựng site trên v0.2.0  (bash dung-may.sh apache)
+
+--- [16:39:44] tpan version
+tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
+
+--- [16:39:44] tpan setup
+  -- GHI NHẬN: tpan đã setup (bỏ qua); /root/m28-admin.pw không có, phần này không cần admin
+  => ĐẠT: tpan.service active
+
+--- [16:39:44] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+  apt rảnh sau khoảng 0 giây
+
+--- [16:39:44] tpan stack install --web apache --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.5%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web apache thoát 0
+
+--- [16:39:45] tpan site add a.example.com (admin)
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  => ĐẠT: site add a.example.com thoát 0
+
+--- [16:40:07] tpan site add b.example.com (admin)
+  [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+  => ĐẠT: site add b.example.com thoát 0
+
+--- [16:40:13] user khach1 (vai user) và site e.example.com của khach1
+  => ĐẠT: user add khach1 thoát 0, có mật khẩu (không in)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site e.example.com
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com
+  => ĐẠT: site add e.example.com --owner khach1 thoát 0
+
+--- [16:40:18] hiện trạng
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-21 16:40 admin          -
+b.example.com                            active   8.3   không 2026-11-21 16:40 admin          -
+e.example.com                            active   8.3   không 2026-11-21 16:40 khach1         -
+  /var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public/.htaccess  regular file tp_a_example_com_7653e4:www-data 640 696 byte
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  /var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public/.htaccess  regular file tp_b_example_com_cd59d5:www-data 640 696 byte
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  /var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public/.htaccess  regular file tp_e_example_com_25cfc7:www-data 640 696 byte
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+  site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; stack apache
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+  => ĐẠT: khach1 đăng nhập API: HTTP 204
+  khach1 GET /session: HTTP 200, 0.001986s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 155 byte
+  phiên: khach1 vai user
+  => ĐẠT: phiên của khach1 có vai user
+[2026-11-21 16:40:19] <<< dựng site trên v0.2.0 xong trong 35 giây
+
+[2026-11-21 16:40:19] >>> D pha trước (lưu bản xem trước, health; ba mục tiêu T1 LỘ)  (bash nang-truoc.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [16:40:19] D0. v0.2.0: lưu mục .htaccess (file thường) của bản xem trước khach1
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.383620s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41138 byte
+    phân tích: đã lưu mục /var/www/e.example.com/public/.htaccess: old sha=323969eac053238b, new sha=323969eac053238b, old_exists=True
+  => ĐẠT: v0.2.0: bản xem trước .htaccess thường HTTP 200, lưu được mục
+
+--- [16:40:19] D0. v0.2.0: tpan health (lưu dòng [lỗi] làm mốc)
+  số dòng [lỗi] của v0.2.0: 0
+
+--- [16:40:25] D0. v0.2.0: ba mục tiêu T1 phải LỘ (bộ thử bắt được lỗ trên bản cũ)
+  đăng nhập khach1: HTTP 204
+
+--- [16:40:25] .htaccess của e.example.com -> symlink tới /var/www/a.example.com/public/wp-config.php
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.371711s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 44851 byte
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=06d1cebfe3b92ab6): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 44851 byte, 4 file trong bản xem trước
+  => ĐẠT: v0.2.0, symlink -> /var/www/a.example.com/public/wp-config.php: bản xem trước CHỨA file đích (bộ thử bắt được lỗ T1 trên bản cũ)
+  tpan: PID 3750 -> 3750 (active), NRestarts 0 -> 0
+
+--- [16:40:26] .htaccess của e.example.com -> symlink tới /etc/shadow
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.375052s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41519 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 41519 byte, 4 file trong bản xem trước
+  => ĐẠT: v0.2.0, symlink -> /etc/shadow: bản xem trước CHỨA file đích (bộ thử bắt được lỗ T1 trên bản cũ)
+  tpan: PID 3750 -> 3750 (active), NRestarts 0 -> 0
+
+--- [16:40:26] .htaccess của e.example.com -> symlink tới /var/lib/tpan/tpan.db
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.366929s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 1225323 byte
+    phân tích: /var/lib/tpan/tpan.db (888832 byte sha=6baf04715ef1dc9f): CHỨA: trường old của /var/www/e.example.com/public/.htaccess trùng sha256 file đích; câu trả lời 1225323 byte, 4 file trong bản xem trước
+  => ĐẠT: v0.2.0, symlink -> /var/lib/tpan/tpan.db: bản xem trước CHỨA file đích (bộ thử bắt được lỗ T1 trên bản cũ)
+  tpan: PID 3750 -> 3750 (active), NRestarts 0 -> 0
+[2026-11-21 16:40:27] <<< D pha trước (lưu bản xem trước, health; ba mục tiêu T1 LỘ) xong trong 8 giây
+
+[2026-11-21 16:40:27] thay file chạy bằng bản của cây rồi restart tpan
+tpan v0.2.0-62-g9a4bbdc-dirty (commit 9a4bbdc, build 2026-11-21T09:40:27Z)
+
+[2026-11-21 16:40:29] >>> D pha sau (xem trước giống, health không lỗi mới, 3 site 200, T1 bị chặn)  (bash nang-sau.sh )
+  đăng nhập khach1: HTTP 204
+
+--- [16:40:29] D1. phiên bản tpan đang chạy (bản của cây)
+tpan v0.2.0-62-g9a4bbdc-dirty (commit 9a4bbdc, build 2026-11-21T09:40:27Z)
+
+--- [16:40:29] D2. mục .htaccess trong bản xem trước giống hệt lúc trước khi nâng
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.379812s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 41162 byte
+    phân tích: trước old sha=323969eac053238b new sha=323969eac053238b; sau old sha=323969eac053238b new sha=323969eac053238b; trường khác: không
+  => ĐẠT: bản xem trước .htaccess thường HTTP 200, mục giống hệt v0.2.0 (path, old, new, old_exists)
+
+--- [16:40:29] D3. tpan health không có [lỗi] mới so với trước khi nâng
+  số dòng [lỗi]: trước 0, sau 0
+  => ĐẠT: không có dòng [lỗi] mới sau khi nâng
+
+--- [16:40:35] D4. ba site trả 200
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+
+--- [16:40:35] D5. ba mục tiêu T1 giờ bị chặn
+  đăng nhập khach1: HTTP 204
+
+--- [16:40:35] .htaccess của e.example.com -> symlink tới /var/www/a.example.com/public/wp-config.php
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.371825s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40283 byte
+    phân tích: /var/www/a.example.com/public/wp-config.php (3480 byte sha=06d1cebfe3b92ab6): không chứa; câu trả lời 40283 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (43 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /var/www/a.example.com/public/wp-config.php: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 19228 -> 19228 (active), NRestarts 0 -> 0
+
+--- [16:40:36] .htaccess của e.example.com -> symlink tới /etc/shadow
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.365464s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40251 byte
+    phân tích: /etc/shadow (980 byte sha=f54b0cec9863a177): không chứa; câu trả lời 40251 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /etc/shadow: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (11 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /etc/shadow: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 19228 -> 19228 (active), NRestarts 0 -> 0
+
+--- [16:40:36] .htaccess của e.example.com -> symlink tới /var/lib/tpan/tpan.db
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.392154s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 40261 byte
+    phân tích: /var/lib/tpan/tpan.db (1019904 byte sha=1fb255f8ae5200af): không chứa; câu trả lời 40261 byte, 4 file trong bản xem trước
+  => ĐẠT: symlink -> /var/lib/tpan/tpan.db: câu trả lời không chứa file đích
+    phân tích: mục /var/www/e.example.com/public/.htaccess: old_link có (21 ký tự), old 0 byte, old_exists=True
+  => ĐẠT: symlink -> /var/lib/tpan/tpan.db: HTTP 200, mục .htaccess có old_link, không có old
+  tpan: PID 19228 -> 19228 (active), NRestarts 0 -> 0
+
+--- [16:40:37] D6. chạy lại site add e.example.com sau khi nâng: các bước dir: bỏ qua, public vẫn 2750 (S3)
+  site add thoát 0
+  => ĐẠT: site add e.example.com chạy lại thoát 0
+   dir:/var/www/e.example.com skipped
+   dir:/var/www/e.example.com/public skipped
+   dir:/var/www/e.example.com/tmp skipped
+   dir:/var/log/tpan/sites/e.example.com skipped
+  => ĐẠT: mọi bước có ID bắt đầu bằng dir: có outcome skipped
+  => ĐẠT: public của e.example.com vẫn 2750 (2750)
+[2026-11-21 16:40:39] <<< D pha sau (xem trước giống, health không lỗi mới, 3 site 200, T1 bị chặn) xong trong 10 giây
+
+==== Phần D: 29 khẳng định đạt, 0 không đạt
+
+
+######## [2026-11-21 16:40:39] TỔNG KẾT: 29 khẳng định đạt, 0 khẳng định không đạt
