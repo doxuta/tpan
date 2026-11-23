@@ -130,6 +130,11 @@ func (s *Store) SetAdminPasswordHash(ctx context.Context, hash string) error {
 // ResetAdminPassword đặt hash mới, xoá mọi phiên và gỡ mọi khoá đăng nhập
 // trong MỘT transaction (`tpan admin passwd`): không bao giờ có lúc mật khẩu
 // đã đổi mà phiên của người cũ vẫn còn sống.
+//
+// M20 (mục 11.5, 11.8): cùng transaction đó xoá phiếu chờ bước hai của admin
+// (phiếu chứng minh mật khẩu cũ), thu hồi mọi token còn sống của admin (người
+// cầm mật khẩu cũ có thể đã tạo token), và gỡ khoá bước hai của admin (chủ máy
+// gõ lệnh này khi bị khoá ngoài; không gỡ thì vẫn kẹt sau khi đổi mật khẩu).
 func (s *Store) ResetAdminPassword(ctx context.Context, hash string, now time.Time) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -145,11 +150,16 @@ func (s *Store) ResetAdminPassword(ctx context.Context, hash string, now time.Ti
 		// khẩu của user khác không đổi nên phiên của họ không có lý do bị huỷ.
 		{"DELETE FROM sessions WHERE user_name = ?", []any{adminName}},
 		{"DELETE FROM login_failures", nil},
+		{"DELETE FROM login_challenges WHERE user_name = ?", []any{adminName}},
+		{"UPDATE user_totp SET failures = 0, locked_until = NULL, lock_count = 0 WHERE user_name = ?", []any{adminName}},
 	}
 	for _, st := range stmts {
 		if _, err := tx.ExecContext(ctx, st.q, st.args...); err != nil {
 			return fmt.Errorf("đặt lại mật khẩu: %w", err)
 		}
+	}
+	if _, err := revokeTokens(ctx, tx, adminName, now); err != nil {
+		return fmt.Errorf("đặt lại mật khẩu: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("đặt lại mật khẩu: %w", err)
@@ -171,6 +181,9 @@ type Session struct {
 	UserName string
 	// ViewAs là user mà admin đang "xem như" (phiên chỉ đọc); rỗng là bình thường.
 	ViewAs string
+	// Host là tên máy đã tạo phiên (M20, mục 11.2): request mang cookie mà Host
+	// khác là cookie bị chép đi nơi khác. Rỗng là phiên của bản cũ.
+	Host string
 }
 
 func scanSession(r rowScanner) (Session, error) {
@@ -178,7 +191,7 @@ func scanSession(r rowScanner) (Session, error) {
 		ss              Session
 		created, lastAt string
 	)
-	if err := r.Scan(&ss.TokenSHA256, &ss.ID, &ss.IP, &created, &lastAt, &ss.UserName, &ss.ViewAs); err != nil {
+	if err := r.Scan(&ss.TokenSHA256, &ss.ID, &ss.IP, &created, &lastAt, &ss.UserName, &ss.ViewAs, &ss.Host); err != nil {
 		return Session{}, err
 	}
 	var err error
@@ -191,7 +204,7 @@ func scanSession(r rowScanner) (Session, error) {
 	return ss, nil
 }
 
-const sessionColumns = "token_sha256, id, ip, created_at, last_seen_at, user_name, view_as"
+const sessionColumns = "token_sha256, id, ip, created_at, last_seen_at, user_name, view_as, host"
 
 // CreateSession ghi một phiên mới (Created = LastSeen = thời điểm của ss.Created).
 // UserName rỗng thì là "admin".
@@ -202,8 +215,8 @@ func (s *Store) CreateSession(ctx context.Context, ss Session) error {
 		user = adminName
 	}
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO sessions ("+sessionColumns+") VALUES (?, ?, ?, ?, ?, ?, ?)",
-		ss.TokenSHA256, ss.ID, ss.IP, fmtTime(ss.Created), fmtTime(ss.Created), user, ss.ViewAs)
+		"INSERT INTO sessions ("+sessionColumns+") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		ss.TokenSHA256, ss.ID, ss.IP, fmtTime(ss.Created), fmtTime(ss.Created), user, ss.ViewAs, ss.Host)
 	if err != nil {
 		return fmt.Errorf("tạo phiên %s: %w", ss.ID, err)
 	}
@@ -370,6 +383,11 @@ func (s *Store) changePassword(ctx context.Context, name, hash, keep string, now
 	if _, err := tx.ExecContext(ctx,
 		"DELETE FROM sessions WHERE (user_name = ? OR view_as = ?) AND token_sha256 <> ?", name, name, keep); err != nil {
 		return fmt.Errorf("đổi mật khẩu của %s: huỷ phiên khác: %w", name, err)
+	}
+	// Phiếu chờ bước hai chứng minh mật khẩu cũ (mục 11.8). Tự đổi mật khẩu
+	// KHÔNG thu hồi token (mục 11.5): server nhắc số token còn sống.
+	if err := deleteChallenges(ctx, tx, name); err != nil {
+		return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)

@@ -126,6 +126,10 @@ func needRow(res sql.Result, what, ctxMsg string) error {
 // SetUserPassword đổi hash và huỷ mọi phiên của user (phiên admin đang "xem
 // như" họ thì thoát xem như, endSessionsOf) trong MỘT transaction: không bao giờ có lúc mật khẩu đã đổi
 // mà phiên cũ còn sống. Không có user thì ErrNotFound và không đổi gì.
+//
+// Đây là admin đặt lại mật khẩu (`POST /users/{name}/password`, `tpan user
+// passwd`), nên cùng transaction thu hồi mọi token còn sống của user (mục
+// 11.5 của M20): người cầm mật khẩu cũ có thể đã tạo token.
 func (s *Store) SetUserPassword(ctx context.Context, name, passwordHash string) error {
 	return s.inTx(ctx, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx, "UPDATE users SET password_hash = ? WHERE name = ?", passwordHash, name)
@@ -138,6 +142,9 @@ func (s *Store) SetUserPassword(ctx context.Context, name, passwordHash string) 
 		if err := endSessionsOf(ctx, tx, name); err != nil {
 			return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)
 		}
+		if _, err := revokeTokens(ctx, tx, name, s.now()); err != nil {
+			return fmt.Errorf("đổi mật khẩu của %s: %w", name, err)
+		}
 		return nil
 	})
 }
@@ -147,6 +154,10 @@ func (s *Store) SetUserPassword(ctx context.Context, name, passwordHash string) 
 // nó thì khoá, đổi mật khẩu hay xoá một user làm admin đang xem họ bị đăng
 // xuất (thấy trên máy ảo ở e2e M13). authResolve cũng làm đúng như vậy khi user
 // được xem không còn.
+//
+// Phiếu chờ bước hai (M20) cũng bị xoá ở đây: phiếu là "nửa phiên" (mật khẩu
+// đã đúng), nên mọi chỗ huỷ phiên (đổi mật khẩu, khoá, xoá user) đều phải huỷ
+// cả nó, không thì người cầm phiếu vẫn qua được bước hai sau khi bị khoá.
 func endSessionsOf(ctx context.Context, q querier, name string) error {
 	if _, err := q.ExecContext(ctx, "DELETE FROM sessions WHERE user_name = ?", name); err != nil {
 		return fmt.Errorf("huỷ phiên: %w", err)
@@ -154,7 +165,7 @@ func endSessionsOf(ctx context.Context, q querier, name string) error {
 	if _, err := q.ExecContext(ctx, "UPDATE sessions SET view_as = '' WHERE view_as = ?", name); err != nil {
 		return fmt.Errorf("thoát xem như: %w", err)
 	}
-	return nil
+	return deleteChallenges(ctx, q, name)
 }
 
 // DeleteSessionsOf huỷ mọi phiên của user; phiên admin đang "xem như" họ thoát

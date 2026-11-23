@@ -13,6 +13,8 @@
 -- last_step: bước thời gian của mã TOTP được nhận gần nhất (chống dùng lại).
 -- failures, locked_until: đếm mã sai liên tiếp ở bước hai của user này (khoá theo user, mục 3.4).
 -- lock_count: số lần bị khoá liên tiếp kể từ lần đúng gần nhất (khoá leo thang, cảnh báo health).
+-- wrong_since_ok: số mã sai kể từ lần đăng nhập đúng gần nhất; không reset khi khoá, chỉ
+--   reset khi server đọc nó sau bước hai đúng (TakeWrongSinceOK) để báo "có N lần nhập sai".
 CREATE TABLE user_totp (
     user_name    TEXT PRIMARY KEY REFERENCES users (name) ON DELETE CASCADE,
     secret_enc   BLOB NOT NULL,
@@ -21,7 +23,8 @@ CREATE TABLE user_totp (
     last_step    INTEGER NOT NULL DEFAULT 0,
     failures     INTEGER NOT NULL DEFAULT 0,
     locked_until TEXT,
-    lock_count   INTEGER NOT NULL DEFAULT 0
+    lock_count   INTEGER NOT NULL DEFAULT 0,
+    wrong_since_ok INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
 -- Mã dự phòng: chỉ sha256 của mã đã chuẩn hoá (80 bit ngẫu nhiên, dò ngược không được).
