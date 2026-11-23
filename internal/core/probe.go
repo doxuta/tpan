@@ -907,7 +907,9 @@ func (s *probeRemoveSiteDir) Info() engine.StepInfo {
 	mv, rm := s.steps()
 	info := rm.Info()
 	info.ID = "remove-tree:" + s.l.Dir
-	info.Title = i18n.T("Xoá hẳn thư mục của site thử "+s.l.Domain.String(), "Delete the probe site directory of "+s.l.Domain.String())
+	// MoveTree đổi tên bằng Go, không có dòng lệnh: tiêu đề nói bước chuyển.
+	info.Title = i18n.T("Xoá hẳn thư mục của site thử "+s.l.Domain.String()+" (chuyển ra "+mv.To+" rồi xoá ở đó)",
+		"Delete the probe site directory of "+s.l.Domain.String()+" (moved to "+mv.To+", then deleted there)")
 	info.Commands = append(mv.Info().Commands, info.Commands...)
 	return info
 }
@@ -928,6 +930,8 @@ func (s *probeRemoveSiteDir) Apply(ctx context.Context, sys system.System) error
 		if err := mv.Apply(ctx, sys); err != nil {
 			return err
 		}
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("kiểm %s: %w", mv.From, err)
 	}
 	return rm.Apply(ctx, sys)
 }
@@ -1222,7 +1226,9 @@ func (f *probeFiles) link(ctx context.Context, target, dir, name string, owner s
 	// Tạo bằng chính user của A (ln -s, argv): symlink thuộc về A đúng như khi A
 	// tự tạo, để SymLinksIfOwnerMatch, disable_symlinks so đúng. Không tạo bằng
 	// root rồi đổi chủ: tpan không đổi chủ một symlink trong thư mục site (M28).
-	cmd := system.Cmd{Name: "ln", Args: []string{"-s", "--", target, p}, AsUser: owner.User}
+	// -T: p còn sót là thư mục thì ln báo lỗi thay vì tạo link bên trong nó
+	// (phép thử sẽ đo nhầm chỗ mà không biết).
+	cmd := system.Cmd{Name: "ln", Args: []string{"-s", "-T", "--", target, p}, AsUser: owner.User}
 	if res, err := f.sys.Run(ctx, cmd); err != nil {
 		return fmt.Errorf("tạo symlink thử %s: %w (%s)", p, err, strings.TrimSpace(res.Stderr))
 	}
