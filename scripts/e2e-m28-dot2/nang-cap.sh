@@ -135,8 +135,8 @@ sys.exit(0 if bad else 1)' "$W/health.json" "$id"
 
   # Ca D2 của soát cuối: K1 đổi quyền neo của site mình thành 2751 (phép Isolated
   # của site khác với nó sẽ Fail). Harden vẫn phải xong và giữ bản vá cho cả máy.
-  step "N6b. K1 (user của $DOM) đổi neo của site mình thành 2751 trước harden"
-  runuser -u "$SU" -- chmod 2751 "/var/www/$DOM"
+  step "N6b. K1 (user của $DOM) cho người khác đi qua neo của site mình (chmod o+x) trước harden"
+  runuser -u "$SU" -- chmod o+x "/var/www/$DOM"
   stat -c '  %n %a' "/var/www/$DOM"
 
   step "N7. tpan security harden --yes"
@@ -144,8 +144,8 @@ sys.exit(0 if bad else 1)' "$W/health.json" "$id"
   rc=$?
   tail -15 "$W/harden.txt" | cut -c1-300 | sed 's/^/  | /'
   rm -f "$W/harden.txt"
-  ok "security harden --yes thoát 0 dù neo của $DOM bị K1 đổi thành 2751 (soát cuối D2)" test "$rc" -eq 0
-  runuser -u "$SU" -- chmod 2750 "/var/www/$DOM"
+  ok "security harden --yes thoát 0 dù neo của $DOM bị K1 mở o+x (soát cuối D2)" test "$rc" -eq 0
+  chmod 2750 "/var/www/$DOM" # root trả lại, giữ bit setgid
   sleep 3
 
   step "N8. sau harden: tpan health so với trước khi nâng"
