@@ -45,7 +45,7 @@ var (
 	dbsReLock    = regexp.MustCompile(`^ALTER USER '(\w+)'@'localhost' ACCOUNT (LOCK|UNLOCK);$`)
 	dbsRePw      = regexp.MustCompile(`^ALTER USER '(\w+)'@'localhost' IDENTIFIED BY '(\w+)';$`)
 	dbsReKill    = regexp.MustCompile(`^KILL CONNECTION (\d+);$`)
-	dbsReCrUser  = regexp.MustCompile(`^CREATE USER '(\w+)'@'localhost' IDENTIFIED BY '(\w+)';$`)
+	dbsReCrUser  = regexp.MustCompile(`^CREATE USER '(\w+)'@'localhost' IDENTIFIED BY '(\w+)' WITH MAX_USER_CONNECTIONS 20;$`)
 	dbsReGrant   = regexp.MustCompile("^GRANT ALL PRIVILEGES ON `[\\w\\\\]+`\\.\\* TO '(\\w+)'@'localhost';$")
 	dbsReDrUser  = regexp.MustCompile(`^DROP USER IF EXISTS '(\w+)'@'localhost';$`)
 	dbsReDrDB    = regexp.MustCompile("^DROP DATABASE IF EXISTS `(\\w+)`;$")

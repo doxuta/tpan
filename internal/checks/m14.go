@@ -364,7 +364,9 @@ type vhostGuardGap struct{ what, hole i18n.Text }
 // Chỉ xét dòng không phải chú thích, và so sau khi gom khoảng trắng (thụt lề
 // của template không ảnh hưởng). Các dòng cần có lấy từ chính các hằng mà
 // template dùng (templates.NginxSymlinkGuard, templates.ApacheFCGIGuards,
-// htaccess.List), nên template và phép kiểm không lệch nhau được.
+// htaccess.List), nên template và phép kiểm không lệch nhau được. Với nginx,
+// dòng cũ templates.NginxSymlinkGuard cũng đạt (M28 đợt 2, S5 đến S7); dấu của
+// bản vá F4 do DocrootGuard kiểm.
 func VhostHardened(web string, l site.Layout, mode site.HtaccessMode) Check {
 	b := siteBase("web.hardened", StageWeb, l,
 		i18n.T("Vhost của site có đủ các dòng chặn cô lập", "The site vhost carries all the isolation guard lines"))
@@ -452,8 +454,12 @@ func VhostHardened(web string, l site.Layout, mode site.HtaccessMode) Check {
 		var gaps []vhostGuardGap
 		var passed i18n.Text
 		if web == "nginx" {
-			if !has(templates.NginxSymlinkGuard) {
-				gaps = append(gaps, vhostGuardGap{missing(templates.NginxSymlinkGuard), holeSymlink})
+			// Nhận cả dòng cũ (from=$document_root, trước M28 đợt 2) lẫn dòng
+			// mới: phép này nằm trong kiểm chứng của mọi Plan chạm vào site, và
+			// một vhost cũ không được làm hoàn tác Plan không ghi lại vhost
+			// (khôi phục backup...). Dòng mới do DocrootGuard đòi riêng.
+			if !has(templates.NginxSymlinkGuard) && !has(templates.NginxSymlinkGuardV2) {
+				gaps = append(gaps, vhostGuardGap{missing(templates.NginxSymlinkGuardV2), holeSymlink})
 			}
 			passed = i18n.T("Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích", "The nginx vhost follows a symlink only when its owner also owns the target file")
 		} else {

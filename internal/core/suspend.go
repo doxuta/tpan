@@ -112,7 +112,7 @@ func (s *Sites) PrepareUnsuspend(ctx context.Context, d validate.Domain) (*Plann
 		Target: dom,
 		Title:  i18n.T("Mở khoá site "+dom, "Unsuspend site "+dom),
 		Steps:  ss,
-		Verify: siteStateChecks(open, cfg, others, true),
+		Verify: siteStateChecks(open, cfg, others, nil, true),
 	}
 	return newPlanned(s.Sys, s.Journal, plan, func(ctx context.Context, _ engine.Report) error {
 		return s.markSuspended(ctx, d, account.NotSuspended, time.Time{})

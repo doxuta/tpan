@@ -13,8 +13,9 @@ package demo
 //     ngay, trừ khi /usr/sbin/policy-rc.d trả 101. Nhờ vậy hỏng bước chặn
 //     tự khởi động thì Plan lộ ra ngay thay vì êm;
 //   - Apache: a2enmod, a2dismod, a2query có trạng thái module. Mặc định như
-//     Ubuntu 24.04 (mpm_event, setenvif). apachectl configtest báo lỗi khi vhost
-//     dùng SSLEngine mà ssl chưa bật;
+//     Ubuntu 24.04 (mpm_event, setenvif, status). apachectl configtest báo lỗi
+//     khi vhost dùng SSLEngine mà ssl chưa bật; apachectl -M in module đang
+//     bật (m28.go);
 //   - curl vào máy: trả lời theo web server đang chạy (nginx: như machine.go;
 //     Apache: site mặc định trả 403; không ai chạy: không kết nối được);
 //   - ss: tiến trình giữ cổng 80 và 443 là web server đang chạy.
@@ -62,7 +63,8 @@ func (m *machine) m10Setup() {
 	x := &m10{
 		machine: m,
 		enabled: map[string]bool{"nginx": true},
-		mods:    map[string]bool{"mpm_event": true, "setenvif": true},
+		// status: Ubuntu bật sẵn; Plan cài stack phải tắt nó (H5, M28 đợt 2).
+		mods: map[string]bool{"mpm_event": true, "setenvif": true, "status": true},
 	}
 	m.mu.Lock()
 	m.missing["apache2"] = true // gói của LAMP chưa cài; nginx đã cài sẵn
@@ -82,6 +84,7 @@ func (m *machine) m10Setup() {
 	m.Handle([]string{"a2dismod"}, func(c system.Cmd) system.Result { return x.setMods(c, false) })
 	m.Handle([]string{"a2query"}, x.a2query)
 	m.Handle([]string{"apachectl", "configtest"}, x.configtest)
+	m.Handle([]string{"apachectl", "-M"}, x.apachectlM)
 
 	m.Handle([]string{"curl"}, x.curl)
 	m.Handle([]string{"ss"}, x.ss)

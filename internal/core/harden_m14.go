@@ -303,6 +303,63 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		ss = append(ss, reload)
 	}
 
+	// Nhóm 6 (M28 đợt 2, H5): Apache tắt mod_status. Chỉ tắt, không áp lại phần
+	// bật của danh sách stack (admin có thể đã cố ý đổi). Bước tự reload, nên
+	// đặt SAU bước reload chung: đặt trước thì lần reload của nó nạp luôn các
+	// vhost vừa ghi mà hardenReload chưa biết.
+	if cfg.Web == Apache {
+		ss = append(ss, &steps.ApacheModOff{Module: "status"})
+	}
+
+	// Nhóm 7 (M28 đợt 2, M1-DBCONN): trần kết nối cho user DB của mọi site
+	// active (kể cả site hay DB đang tạm khoá: user khoá vẫn đổi trần được) và
+	// mọi DB rời active. User không có (máy lệch) thì không có bước, chỉ nêu
+	// tên trong bản xem trước (S2, S16).
+	h.Skipped = []HardenSkipped{}
+	var dbUsers []string
+	for _, st := range active {
+		dbUsers = append(dbUsers, st.Layout().DB)
+	}
+	if dbs := s.dbStore(); dbs != nil {
+		all, err := dbs.StandaloneDBs(ctx, "")
+		if err != nil {
+			return nil, wrap(fmt.Errorf("đọc danh sách DB rời: %w", err))
+		}
+		for _, d := range all {
+			if d.Status == account.DBActive {
+				dbUsers = append(dbUsers, d.Name)
+			}
+		}
+	}
+	var limited []string
+	for _, u := range dbUsers {
+		// User không có, hay đọc lỗi (MariaDB tắt, output lạ): không có bước,
+		// nêu trong bản xem trước. Giữ bước thì nó lỗi ở lần kiểm trước khi
+		// chạy và engine hoàn tác cả bản vá vhost của mọi site (S2).
+		exists, _, err := steps.DBUserLimitState(ctx, s.Sys, u)
+		if err != nil {
+			h.Skipped = append(h.Skipped, HardenSkipped{Target: u, Kind: HardenSkipDBUser, Message: i18n.T(
+				"không đọc được trần kết nối của user DB "+u+" ("+err.Error()+"): bỏ qua bước đặt trần. Kiểm MariaDB rồi chạy lại tpan security harden.",
+				"could not read the connection limit of database user "+u+" ("+err.Error()+"): the limit step is skipped. Check MariaDB, then run tpan security harden again.")})
+			continue
+		}
+		if !exists {
+			h.Skipped = append(h.Skipped, HardenSkipped{Target: u, Kind: HardenSkipDBUser, Message: i18n.T(
+				"user DB "+u+" không có trong MariaDB: bỏ qua bước đặt trần kết nối. Xem tpan health của site hay DB rời dùng user này.",
+				"database user "+u+" does not exist in MariaDB: the connection limit step is skipped. See tpan health for the site or database that uses it.")})
+			continue
+		}
+		ss = append(ss, &steps.DBUserLimit{User: u, Max: site.DBMaxUserConnections})
+		limited = append(limited, u)
+	}
+
+	// S2: phép HTTP và cô lập của một site chỉ vào kiểm chứng khi site đó trả
+	// lời đúng TRƯỚC Plan (đo ngay đây, như sitesAnswer của chuyển web server).
+	// Site đang hỏng sẵn (plugin lỗi, public bị đổi thành symlink...) vẫn được
+	// vá đủ mọi bước, chỉ không được làm hoàn tác bản vá của cả máy.
+	healthy, broken := hardenHealthy(ctx, s.Sys, active)
+	h.Skipped = append(h.Skipped, broken...)
+
 	// Kiểm chứng: bộ của stack cộng các phép cấp máy của M14 (Stack.Checks đã
 	// gồm cả hai), rồi từng site. Không chạy cả bộ siteChecks: một site hỏng ở
 	// chặng không liên quan (DB, mã nguồn) không được kéo hoàn tác bản vá của
@@ -314,9 +371,14 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 	for i, st := range active {
 		l := st.Layout()
 		verify = append(verify, checks.LogPerms(l))
-		// Vhost tạm khoá không trỏ vào public nên không có dòng chặn nào.
+		// Vhost tạm khoá không trỏ vào public nên không có dòng chặn nào. M28
+		// đợt 2: dấu của bản vá F4 (web.docroot_guard) chỉ đòi ở đây và ở
+		// health; harden ghi lại vhost của mọi site nên site hỏng HTTP cũng đạt.
 		if st.Suspended == account.NotSuspended {
-			verify = append(verify, checks.VhostHardened(string(cfg.Web), l, st.Htaccess))
+			verify = append(verify, checks.VhostHardened(string(cfg.Web), l, st.Htaccess), checks.DocrootGuard(string(cfg.Web), l))
+		}
+		if !healthy[st.Domain] {
+			continue
 		}
 		// siteHTTP: 403 đúng trang tạm khoá cho site tạm khoá, nil khi DB của
 		// site đang khoá. retryCheck vì reload trả về trước khi cấu hình mới có
@@ -325,8 +387,15 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 			verify = append(verify, retryCheck{c: c})
 		}
 		for _, o := range active[i+1:] {
-			verify = append(verify, checks.Isolated(l, o.Layout()), checks.Isolated(o.Layout(), l))
+			if healthy[o.Domain] {
+				verify = append(verify, checks.Isolated(l, o.Layout()), checks.Isolated(o.Layout(), l))
+			}
 		}
+	}
+	// db.user_limit chỉ cảnh báo, không làm job lỗi: có mặt để báo cáo của job
+	// ghi trần của từng user (bằng chứng cho E5).
+	for _, u := range limited {
+		verify = append(verify, checks.DBUserLimit(u))
 	}
 
 	plan := engine.Plan{
@@ -352,6 +421,47 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		return nil
 	})
 	return h, nil
+}
+
+// dbStore là bảng DB rời cho PrepareHarden: s.DBs, hoặc s.Sites khi nó cũng là
+// DBStore (server và CLI truyền cùng *store.Store cho cả hai). nil: bỏ qua DB rời.
+func (s *Security) dbStore() DBStore {
+	if s.DBs != nil {
+		return s.DBs
+	}
+	if d, ok := s.Sites.(DBStore); ok {
+		return d
+	}
+	return nil
+}
+
+// hardenHealthy đo phép HTTP của từng site active trước Plan (S2). healthy
+// gồm site đạt và site không có phép HTTP để đo (DB đang tạm khoá: siteHTTP
+// nil); broken là các site Fail, thành mục của Harden.Skipped.
+func hardenHealthy(ctx context.Context, sys system.System, active []site.Site) (map[validate.Domain]bool, []HardenSkipped) {
+	healthy := map[validate.Domain]bool{}
+	var cs []checks.Check
+	var doms []validate.Domain
+	for _, st := range active {
+		c := siteHTTP(st)
+		if c == nil {
+			healthy[st.Domain] = true
+			continue
+		}
+		cs, doms = append(cs, c), append(doms, st.Domain)
+	}
+	var broken []HardenSkipped
+	for i, r := range checks.RunAll(ctx, sys, cs) {
+		if r.Status != checks.Fail {
+			healthy[doms[i]] = true
+			continue
+		}
+		dom := doms[i].String()
+		broken = append(broken, HardenSkipped{Target: dom, Kind: HardenSkipSiteHTTP, Result: &r, Message: i18n.T(
+			"site "+dom+" đang không trả lời đúng ("+r.Summary.Vi+"): vẫn được vá, nhưng kiểm chứng sau job không xét site này. Sửa hoặc tạm khoá site này rồi chạy lại tpan security harden.",
+			"site "+dom+" does not answer correctly right now ("+r.Summary.En+"): it is still hardened, but the check after the job leaves it out. Fix or suspend this site, then run tpan security harden again.")})
+	}
+	return healthy, broken
 }
 
 // hardenReload là bước kiểm cú pháp rồi reload web server MỘT lần cho mọi bước

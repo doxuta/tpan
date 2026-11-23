@@ -8,6 +8,7 @@ package core
 
 import (
 	"errors"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -55,6 +56,8 @@ type m14Env struct {
 	down map[string]bool
 	// onWebReload được gọi mỗi lần web server reload.
 	onWebReload func()
+	// mods: module Apache đang bật (M28 đợt 2, H5).
+	mods map[string]bool
 }
 
 var (
@@ -121,13 +124,41 @@ func newM14Env(t *testing.T, web WebServer, doms ...string) *m14Env {
 	}
 	m.Handle([]string{"php-fpm8.3", "-i"}, func(system.Cmd) system.Result { return out(fakePHPInfo(m.FakeSystem, "8.3")) })
 	m.Handle([]string{"ss"}, func(system.Cmd) system.Result { return out("LISTEN 0 80 127.0.0.1:3306 0.0.0.0:*\n") })
-	// Chỉ câu của checks.MariaDBSecure: các test ở đây không khoá user DB.
+	// Câu của checks.MariaDBSecure; còn lại (trần kết nối của M28 đợt 2) do
+	// MariaDB giả của siteSim trả lời. Các test ở đây không khoá user DB.
 	m.Handle([]string{"mariadb", "-N", "-B"}, func(c system.Cmd) system.Result {
 		if strings.Contains(string(c.Stdin), "'root_socket'") {
 			return out("root_socket\t1\nanonymous\t0\ntest_db\t0\n")
 		}
-		return system.Result{ExitCode: 1, Stderr: "m14Env: câu SQL lạ\n"}
+		return m.sql(string(c.Stdin))
 	})
+	// Apache (H5): gói apache2 của Ubuntu bật sẵn status. `apachectl -M` in
+	// các module đang bật, a2dismod/a2enmod đổi tập đó.
+	e.mods = map[string]bool{"status": true, "rewrite": true}
+	m.Handle([]string{"apachectl", "-M"}, func(system.Cmd) system.Result {
+		e.lk.Lock()
+		defer e.lk.Unlock()
+		s := "Loaded Modules:\n core_module (static)\n"
+		for _, mod := range slices.Sorted(maps.Keys(e.mods)) {
+			s += " " + mod + "_module (shared)\n"
+		}
+		return out(s)
+	})
+	for _, on := range []bool{true, false} {
+		name := map[bool]string{true: "a2enmod", false: "a2dismod"}[on]
+		m.Handle([]string{name, "-q"}, func(c system.Cmd) system.Result {
+			e.lk.Lock()
+			defer e.lk.Unlock()
+			for _, mod := range c.Args[1:] {
+				if on {
+					e.mods[mod] = true
+				} else {
+					delete(e.mods, mod)
+				}
+			}
+			return system.Result{}
+		})
+	}
 
 	// curl: tên lạ gọi vào 127.0.0.1 (http.default, web.default.rejects) bị
 	// vhost mặc định từ chối; site tạm khoá trả 403 (suspendCurl); còn lại là
@@ -270,7 +301,7 @@ func (e *m14Env) makeOld(t *testing.T, dom string) {
 	t.Helper()
 	l := e.layout(t, dom)
 	conf := e.conf(t, dom)
-	old := strings.ReplaceAll(e.read(t, conf), templates.NginxSymlinkGuard, "")
+	old := strings.ReplaceAll(e.read(t, conf), templates.NginxSymlinkGuardV2, "")
 	if e.web == Apache {
 		b, err := templates.ApacheSite(l, "8.3", acmeRoot, site.HtaccessFull)
 		if err != nil {
@@ -280,6 +311,8 @@ func (e *m14Env) makeOld(t *testing.T, dom string) {
 		for _, g := range templates.ApacheFCGIGuards {
 			old = strings.ReplaceAll(old, g, "")
 		}
+		// Bản trước M28 đợt 2 không có khối <Directory "<neo>"> (F4).
+		old = strings.ReplaceAll(old, `<Directory "`+l.Dir+`">`, `<Directory "`+l.Dir+`/khong-co">`)
 	}
 	if old == e.read(t, conf) {
 		t.Fatal("vhost mới không có dòng chặn để gỡ: template đã đổi?")
@@ -287,6 +320,8 @@ func (e *m14Env) makeOld(t *testing.T, dom string) {
 	e.m.SetFile(conf, []byte(old), 0o644, system.Root)
 	e.oldLogs(t, dom)
 	e.setMode(t, dom, site.HtaccessFull)
+	// User DB do bản trước M28 đợt 2 tạo: không có trần kết nối.
+	e.setDBLimit(t, dom, 0)
 }
 
 // siteResults chạy bộ phép kiểm health của site, theo ID.
@@ -349,7 +384,36 @@ func (e *m14Env) hardenStepIDs(t *testing.T, doms ...string) []string {
 		conf, link := vhostPaths(e.web, e.layout(t, dom))
 		want = append(want, "file:"+conf, "symlink:"+link)
 	}
-	return append(want, "service.reload:"+webUnit(e.web))
+	want = append(want, "service.reload:"+webUnit(e.web))
+	// M28 đợt 2: Apache tắt status, rồi trần kết nối cho user DB của từng site.
+	if e.web == Apache {
+		want = append(want, "apache.mod-off:status")
+	}
+	for _, dom := range doms {
+		want = append(want, "mariadb.user-limit:"+e.layout(t, dom).DB)
+	}
+	return want
+}
+
+// setDBLimit đặt trần kết nối của user DB của site dom trong MariaDB giả.
+func (e *m14Env) setDBLimit(t *testing.T, dom string, n int) {
+	t.Helper()
+	e.m.mu.Lock()
+	defer e.m.mu.Unlock()
+	e.m.dbLimit[e.layout(t, dom).DB] = n
+}
+
+func (e *m14Env) dbLimit(t *testing.T, dom string) int {
+	t.Helper()
+	e.m.mu.Lock()
+	defer e.m.mu.Unlock()
+	return e.m.dbLimit[e.layout(t, dom).DB]
+}
+
+func (e *m14Env) modOn(mod string) bool {
+	e.lk.Lock()
+	defer e.lk.Unlock()
+	return e.mods[mod]
 }
 
 // execHarden chạy Plan và đòi job thành công.
@@ -405,7 +469,11 @@ func TestHardenOldMachine(t *testing.T) {
 			wantStatus(t, "trước", e.stackResults(t), checks.Fail, "php.opcache:8.3")
 			wantStatus(t, "trước", e.stackResults(t), checks.Warn, "php.protectproc:8.3")
 			for _, dom := range doms {
-				wantStatus(t, "trước", e.siteResults(t, dom), checks.Fail, "log.perm:"+dom, "web.hardened:"+dom)
+				wantStatus(t, "trước", e.siteResults(t, dom), checks.Fail, "log.perm:"+dom, "web.hardened:"+dom, "web.docroot_guard:"+dom)
+				wantStatus(t, "trước", e.siteResults(t, dom), checks.Warn, "db.user_limit:"+e.layout(t, dom).DB)
+			}
+			if web == Apache {
+				wantStatus(t, "trước", e.stackResults(t), checks.Fail, "web.mod_status:apache2")
 			}
 
 			before := e.m.Snapshot()
@@ -437,9 +505,18 @@ func TestHardenOldMachine(t *testing.T) {
 
 			e.m.ResetRan()
 			execHarden(t, h)
-			// Reload gom một lần; PHP-FPM restart một lần (drop-in ProtectProc).
-			if n := e.ranCount(e.webReload()); n != 1 {
-				t.Errorf("%s chạy %d lần, muốn 1", e.webReload(), n)
+			// Reload gom một lần cho mọi vhost (Apache thêm một lần của bước tắt
+			// status, M28 đợt 2); PHP-FPM restart một lần (drop-in ProtectProc).
+			// Không bao giờ restart web server.
+			wantReloads := 1
+			if web == Apache {
+				wantReloads = 2
+			}
+			if n := e.ranCount(e.webReload()); n != wantReloads {
+				t.Errorf("%s chạy %d lần, muốn %d", e.webReload(), n, wantReloads)
+			}
+			if n := e.ranCount("systemctl restart " + webUnit(web)); n != 0 {
+				t.Errorf("harden restart %s %d lần", webUnit(web), n)
 			}
 			if n := e.ranCount("systemctl restart php8.3-fpm"); n != 1 {
 				t.Errorf("restart php8.3-fpm chạy %d lần, muốn 1", n)
@@ -447,6 +524,21 @@ func TestHardenOldMachine(t *testing.T) {
 
 			stack := e.stackResults(t)
 			wantStatus(t, "sau", stack, checks.Pass, append(machine, "php.protectproc:8.3")...)
+			// M28 đợt 2: mod_status tắt (H5), user DB có trần 20 (M1-DBCONN).
+			if web == Apache {
+				if e.modOn("status") || !e.modOn("rewrite") {
+					t.Errorf("sau harden: status %v, rewrite %v; muốn chỉ tắt status", e.modOn("status"), e.modOn("rewrite"))
+				}
+				wantStatus(t, "sau", stack, checks.Pass, "web.mod_status:apache2")
+			} else if _, ok := stack["web.mod_status:apache2"]; ok {
+				t.Error("stack nginx có phép web.mod_status")
+			}
+			for _, dom := range doms {
+				if n := e.dbLimit(t, dom); n != site.DBMaxUserConnections {
+					t.Errorf("%s: trần kết nối của user DB = %d, muốn %d", dom, n, site.DBMaxUserConnections)
+				}
+				wantStatus(t, "sau", e.siteResults(t, dom), checks.Pass, "db.user_limit:"+e.layout(t, dom).DB, "web.docroot_guard:"+dom)
+			}
 			mf := e.managedSHA(t)
 			for _, dom := range doms {
 				ids := perSite(dom)
@@ -677,7 +769,7 @@ func TestHardenRollback(t *testing.T) {
 			var loaded []bool
 			e.onWebReload = func() {
 				b, _ := e.m.ReadFile(blogConf)
-				loaded = append(loaded, strings.Contains(string(b), templates.NginxSymlinkGuard))
+				loaded = append(loaded, strings.Contains(string(b), templates.NginxSymlinkGuardV2))
 			}
 			before := e.m.Snapshot()
 			h, err := e.security().PrepareHarden(ctx)
@@ -719,6 +811,10 @@ func TestHardenRollback(t *testing.T) {
 			for _, dom := range []string{m14Blog, m14Shop} {
 				if got := e.site(t, dom).Htaccess; got != site.HtaccessFull {
 					t.Errorf("%s: job hỏng mà bảng sites ghi %q", dom, got)
+				}
+				// M28 đợt 2: trần kết nối của user DB về như cũ (0).
+				if n := e.dbLimit(t, dom); n != 0 {
+					t.Errorf("%s: job hỏng mà trần kết nối còn %d", dom, n)
 				}
 			}
 		})

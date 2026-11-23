@@ -52,8 +52,15 @@ func (s *Stack) Checks(ctx context.Context) (cs []checks.Check, installed bool, 
 // trùng giữa các vhost, và vhost mặc định từ chối tên lạ (thêm cổng 443 khi có
 // site bật SSL). Sites nil (lệnh chỉ cần phép kiểm của stack) thì bỏ hai phép
 // định tuyến.
+//
+// M28 đợt 2 (H5, S15): web.mod_status khi stack là Apache. Ở đây (health và
+// kiểm chứng của harden), KHÔNG ở stackChecks: admin cố ý bật lại mod_status
+// để giám sát thì `tpan update` vẫn chạy được.
 func (s *Stack) isolationChecks(ctx context.Context, cfg StackConfig) ([]checks.Check, error) {
 	var cs []checks.Check
+	if cfg.Web == Apache {
+		cs = append(cs, checks.ApacheModStatus())
+	}
 	if s.Sys != nil {
 		vers, err := phpInstalled(s.Sys)
 		if err != nil {
@@ -106,7 +113,11 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if err != nil {
 		return nil, err
 	}
-	return append(siteEdgeChecks(st.Layout(), st.SSL), siteStateChecks(st, cfg, others, false)...), nil
+	vers, err := healthPHPVers(s.Sys)
+	if err != nil {
+		return nil, err
+	}
+	return append(siteEdgeChecks(st.Layout(), st.SSL), siteStateChecks(st, cfg, others, vers, false)...), nil
 }
 
 // siteStateChecks là bộ phép kiểm của site theo trạng thái tạm khoá (M13, mục
@@ -126,7 +137,34 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 // verify=true (kiểm chứng sau thao tác): bỏ các kết quả "tạm khoá", vì chúng
 // không kiểm gì. Các chặng DNS, TLS khi chưa có SSL (siteEdgeChecks) chỉ health
 // thêm, như trước.
-func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify bool) []checks.Check {
+//
+// M28 đợt 2: ba phép chỉ health xét (verify=false), thêm ở cuối: php.pool (S8:
+// file pool của site ở mọi bản PHP đang cài, phpVers), web.docroot_guard (S5:
+// Plan không ghi vhost thì không làm hỏng nó vì vhost cũ), cả hai chỉ cho site
+// không tạm khoá (site tạm khoá không có pool và vhost của nó không trỏ vào
+// public); db.user_limit cho mọi site (user khoá vẫn có trần).
+func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, phpVers []string, verify bool) []checks.Check {
+	cs := siteStateChecksBase(st, cfg, others, verify)
+	if verify {
+		return cs
+	}
+	l := st.Layout()
+	if st.Suspended == account.NotSuspended {
+		cs = append(cs, checks.PHPPool(l, phpVers), checks.DocrootGuard(string(cfg.Web), l))
+	}
+	return append(cs, checks.DBUserLimit(l.DB))
+}
+
+// healthPHPVers là các bản PHP đang cài cho php.pool; nil khi không có System
+// (lệnh chỉ dựng phép kiểm, như isolationChecks).
+func healthPHPVers(sys system.System) ([]string, error) {
+	if sys == nil {
+		return nil, nil
+	}
+	return phpInstalled(sys)
+}
+
+func siteStateChecksBase(st site.Site, cfg StackConfig, others []site.Layout, verify bool) []checks.Check {
 	web, php, l := string(cfg.Web), sitePHP(st, cfg), st.Layout()
 	var cs []checks.Check
 	hold := func(stage checks.Stage, db bool) {
@@ -139,7 +177,7 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Layout, verify
 		if st.SSL {
 			cs = append(cs, checks.TLSCert(l))
 		}
-		cs = append(cs, checks.VhostEnabled(web, l), checks.LogPerms(l))
+		cs = append(cs, checks.VhostEnabled(web, l), checks.LogPerms(l), checks.SiteDocroot(l))
 		hold(checks.StagePHP, false)
 		hold(checks.StageWordPress, false)
 		hold(checks.StageDB, false)
@@ -214,6 +252,10 @@ const (
 	// điều kiện đầu (email, DNS). Site chưa từng xin SSL chỉ có Warn nên không
 	// có nút này: xin chứng chỉ lần đầu là một quyết định, không phải sửa lỗi.
 	FixSSLIssue = "ssl.issue"
+	// "php.pool:<domain>" Fail (M28 đợt 2, S8): file pool của site bị sửa tay
+	// (listen TCP, user khác, quyền socket khác): ghi lại pool của bản PHP site
+	// đang dùng từ template, có kiểm cú pháp và reload như lúc tạo.
+	FixPHPPool = "php.pool.rewrite"
 )
 
 // AutoFixName trả tên cách sửa tự động cho r, rỗng khi không có (Pass,
@@ -260,10 +302,13 @@ func AutoFixName(r checks.Result) string {
 		return FixPHPHarden
 	case "log.perm":
 		return FixLogPerms
-	case "web.hardened":
-		// Vhost thiếu dòng chặn của M14: ghi lại vhost của riêng site đó từ
-		// template hiện tại, theo chế độ .htaccess đang lưu (Fixes.vhostRewrite).
+	case "web.hardened", "web.docroot_guard":
+		// Vhost thiếu dòng chặn của M14 hay dấu của bản vá F4 (M28 đợt 2): ghi
+		// lại vhost của riêng site đó từ template hiện tại, theo chế độ
+		// .htaccess đang lưu (Fixes.vhostRewrite).
 		return FixWebRewrite
+	case "php.pool":
+		return FixPHPPool
 	}
 	return ""
 }

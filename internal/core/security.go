@@ -53,6 +53,10 @@ type Security struct {
 	// WPCLISHA512 rỗng thì kiểm chứng của PrepareHarden so WP-CLI với mã đã
 	// ghim (như Stack). Test và chế độ demo đặt sha512 của file giả.
 	WPCLISHA512 string
+	// DBs (M28 đợt 2) là bảng DB rời: PrepareHarden đặt trần kết nối cho user
+	// của mọi DB rời active. nil thì dùng Sites nếu nó cũng là DBStore
+	// (*store.Store là cả hai); không có thì bỏ qua DB rời.
+	DBs DBStore
 }
 
 // SecurityStatus là nội dung trang bảo mật: checks.SecurityChecks(PanelPort).

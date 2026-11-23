@@ -10,6 +10,8 @@ package templates
 //
 //	disable_symlinks if_not_owner from=$document_root;
 //
+//    (M28 đợt 2: dòng này đổi thành NginxSymlinkGuardV2, không có from=, và
+//    vhost Apache có thêm khối <Directory "<neo>">; xem m14.go và lỗ F4.)
 //    kèm chú thích nói lý do (nginx chạy dưới www-data đọc được mọi site qua
 //    nhóm; không có dòng này thì symlink trong site A trỏ sang file 640 của
 //    site B được trả về, kể cả mã nguồn PHP dưới tên .txt: lỗ L5). Khối server

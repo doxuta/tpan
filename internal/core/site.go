@@ -323,10 +323,15 @@ func siteChecks(web WebServer, php string, l site.Layout, others []site.Layout, 
 // lại của siteChecks. Hệ quả cho máy nâng từ bản trước M14: site cũ chưa qua
 // `tpan security harden` thì các phép này lỗi, nên thao tác trên site đó bị
 // hoàn tác cho tới khi chạy harden. Lời nhắn của từng phép kiểm chỉ sang lệnh đó.
+//
+// M28 đợt 2 (S14): site.docroot (public là thư mục thật của site, không phải
+// symlink) nằm ở đây: health và kiểm chứng của Plan trên chính site đó. Không
+// nằm trong Isolated hay kiểm chứng của harden (S2, S8).
 func siteHardeningChecks(web WebServer, l site.Layout, mode site.HtaccessMode) []checks.Check {
 	cs := []checks.Check{
 		checks.LogPerms(l),
 		checks.VhostHardened(string(web), l, mode),
+		checks.SiteDocroot(l),
 	}
 	if web == Apache {
 		cs = append(cs, checks.HtaccessDirectives(l, mode))
@@ -839,6 +844,10 @@ func (s *Sites) health(ctx context.Context, d validate.Domain) (Health, site.Sit
 	}
 	// Cùng bộ phép kiểm với health định kỳ (siteStateChecks): site hay DB
 	// đang tạm khoá thì các chặng bị bỏ hiện xám, không đỏ (M13).
-	h.Results = checks.RunAll(ctx, s.Sys, siteStateChecks(st, cfg, others, false))
+	vers, err := healthPHPVers(s.Sys)
+	if err != nil {
+		return Health{}, st, err
+	}
+	h.Results = checks.RunAll(ctx, s.Sys, siteStateChecks(st, cfg, others, vers, false))
 	return h, st, nil
 }
