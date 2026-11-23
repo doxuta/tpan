@@ -302,8 +302,19 @@ Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới t
 | Cài lên máy ảo mới | Set up a new server | Trang `/tools/new-server` (M18, chỉ admin): sinh user-data cloud-init cho máy chưa tồn tại. |
 | user-data | user-data | Giữ nguyên ở cả hai bản; đầu câu và nhãn viết "User-data". Là ô của nhà cung cấp khi tạo máy, ai trên máy cũng đọc được nên không chứa bí mật dạng rõ. |
 | Giờ giấc | `3 s`, `2 min 3 s`, `1 h 5 min`, `2 d` | Tiếng Anh viết số, cách một dấu cách, rồi đơn vị. |
+| Vai trò | Role | admin hoặc user. Không viết "vai" trơn trong nhãn; trong câu "vai admin" vẫn đọc được. |
+| Phiên bản (MariaDB, PHP) | Version | Không dùng "dòng" / "series" cho 10.11, 11.8. Cột của gói đã cài gọi là "Gói đang cài". |
+| Việc hẹn giờ | Scheduled job | Việc cron của site. Không dùng "định kỳ". |
+| Tạo | Create / generate | Mật khẩu, khoá, user-data, tên. Không dùng "sinh". |
+| Cấu hình | Configuration | Không dùng "thiết lập". Xem thêm dòng "Cấu hình" ở trên. |
+| Việc | action | Danh từ chung ("việc đang chạy", "việc này"). Không dùng "thao tác". |
+| Mức tối đa | Limit | Không dùng "trần". |
+| Nội dung đầy đủ | Full text | Không dùng "toàn văn". |
+| Thành phần | Component | Mỗi ga trên bản đồ đường đi (web server, PHP, WordPress, DB). Không dùng "chặng" trong câu; chỉ "ga" và "bản đồ" giữ lại. |
+| Tài khoản, người dùng | Account, user | Không dùng "danh tính". |
+| Quay về, đổi thành | Go back, change to | Nói "đổi thành user", "quay về bản trước"; không nói "hạ xuống", "hạ cấp", "lùi". |
 
-Giữ nguyên tiếng Anh ở cả hai bản: site, request, pool, socket, reload, log, vhost, job, domain, stack, backup, cron, DNS, TLS, SSL, PHP, MariaDB, MCP, agent, prompt.
+Giữ nguyên tiếng Anh ở cả hai bản: site, request, pool, socket, reload, log, vhost, job, domain, stack, backup, cron, DNS, TLS, SSL, PHP, MariaDB, MCP, agent, prompt, worker, symlink.
 
 ## 9. Không làm
 
