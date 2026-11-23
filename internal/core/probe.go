@@ -760,7 +760,7 @@ func probeCleanupSteps(cfg StackConfig, sfx string, ls ...site.Layout) ([]engine
 			&steps.CageFiles{Layout: l, PHP: cfg.PHPVersion, Remove: true},
 			web[2], // pool chung
 			&steps.SiteDBAbsent{Layout: l},
-			&steps.RemoveTree{Path: l.Dir, Under: probeWWWRoot},
+			&probeRemoveSiteDir{l: l},
 			&steps.RemoveTree{Path: l.LogDir, Under: siteLogRoot},
 			&steps.SiteUserAbsent{Layout: l},
 			&probeResetFailed{l: l},
@@ -887,6 +887,52 @@ func (g *probeGated) Apply(ctx context.Context, sys system.System) error {
 	}
 	return g.Step.Apply(ctx, sys)
 }
+
+// probeRemoveSiteDir xoá thư mục của một site thử. Từ M28, root không chạy
+// `rm -r` trên đường dẫn trong /var/www (thư mục con do site kiểm soát, có thể
+// bị tráo thành symlink): như xoá hẳn một site thật, thư mục được chuyển ra
+// chỗ của thùng rác (site.TrashDir, ngoài vùng site) bằng steps.MoveTree rồi
+// mới xoá ở đó bằng steps.RemoveTree. Tên miền của site thử là tên dành riêng
+// nên không trùng thùng rác của site thật. Không còn gì ở cả hai chỗ thì đã
+// xong (Plan dọn chạy lại được).
+type probeRemoveSiteDir struct{ l site.Layout }
+
+func (s *probeRemoveSiteDir) steps() (*steps.MoveTree, *steps.RemoveTree) {
+	trash := site.TrashDir(s.l)
+	return &steps.MoveTree{From: s.l.Dir, To: trash},
+		&steps.RemoveTree{Path: trash, Under: site.TrashRoot}
+}
+
+func (s *probeRemoveSiteDir) Info() engine.StepInfo {
+	mv, rm := s.steps()
+	info := rm.Info()
+	info.ID = "remove-tree:" + s.l.Dir
+	info.Title = i18n.T("Xoá hẳn thư mục của site thử "+s.l.Domain.String(), "Delete the probe site directory of "+s.l.Domain.String())
+	info.Commands = append(mv.Info().Commands, info.Commands...)
+	return info
+}
+
+func (s *probeRemoveSiteDir) Check(ctx context.Context, sys system.System) (bool, error) {
+	mv, rm := s.steps()
+	if _, err := sys.Stat(mv.From); err == nil {
+		return false, nil
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return false, fmt.Errorf("kiểm %s: %w", mv.From, err)
+	}
+	return rm.Check(ctx, sys)
+}
+
+func (s *probeRemoveSiteDir) Apply(ctx context.Context, sys system.System) error {
+	mv, rm := s.steps()
+	if _, err := sys.Stat(mv.From); err == nil {
+		if err := mv.Apply(ctx, sys); err != nil {
+			return err
+		}
+	}
+	return rm.Apply(ctx, sys)
+}
+
+func (s *probeRemoveSiteDir) Undo(context.Context, system.System) error { return nil }
 
 // probeResetFailed bỏ trạng thái failed của mọi unit tpan-cage-<slug>-*
 // (dịch vụ PHP của lồng, lệnh tạm), để `systemctl --failed` không còn tên
@@ -1167,21 +1213,20 @@ func (f *probeFiles) put(dir, name string, data []byte, owner system.Owner) (str
 	return p, nil
 }
 
-func (f *probeFiles) link(target, dir, name string, owner system.Owner) error {
+func (f *probeFiles) link(ctx context.Context, target, dir, name string, owner system.Owner) error {
 	if !probeFileRE.MatchString(name) {
 		return fmt.Errorf("tên symlink thử %q không hợp lệ", name)
 	}
 	p := dir + "/" + name
 	_ = probeRemove(f.sys, p)
-	if err := f.sys.Symlink(target, p); err != nil {
-		return fmt.Errorf("tạo symlink thử %s: %w", p, err)
+	// Tạo bằng chính user của A (ln -s, argv): symlink thuộc về A đúng như khi A
+	// tự tạo, để SymLinksIfOwnerMatch, disable_symlinks so đúng. Không tạo bằng
+	// root rồi đổi chủ: tpan không đổi chủ một symlink trong thư mục site (M28).
+	cmd := system.Cmd{Name: "ln", Args: []string{"-s", "--", target, p}, AsUser: owner.User}
+	if res, err := f.sys.Run(ctx, cmd); err != nil {
+		return fmt.Errorf("tạo symlink thử %s: %w (%s)", p, err, strings.TrimSpace(res.Stderr))
 	}
 	f.paths = append(f.paths, p)
-	// Chủ của symlink là user của A (Chown không đi theo symlink): đúng như
-	// khi chính A tạo nó, để SymLinksIfOwnerMatch, disable_symlinks so đúng.
-	if err := f.sys.Chown(p, owner); err != nil {
-		return fmt.Errorf("đổi chủ symlink thử %s: %w", p, err)
-	}
 	return nil
 }
 
@@ -1435,7 +1480,7 @@ func (r *probeRunner) run(ctx context.Context) error {
 		}
 	}
 	if j.cfg.Web == Nginx && r.want("L5") {
-		if err := r.files.link(r.pubB+"/"+probeFilePrefix+"rieng.txt", r.pubA, probeFilePrefix+"lay.txt", r.ownA); err != nil {
+		if err := r.files.link(ctx, r.pubB+"/"+probeFilePrefix+"rieng.txt", r.pubA, probeFilePrefix+"lay.txt", r.ownA); err != nil {
 			return err
 		}
 		h, err := r.get(ctx, a, probeFilePrefix+"lay.txt")
@@ -1688,7 +1733,7 @@ func (r *probeRunner) apache(ctx context.Context) error {
 			i18n.T(".htaccess của A không chuyển được request sang socket PHP của B", "A's .htaccess cannot hand a request to B's PHP socket"), true))
 	}
 	if r.want("L9") {
-		if err := r.files.link(r.pubB+"/"+probeFilePrefix+"rieng.txt", r.pubA, probeFilePrefix+"lay.txt", r.ownA); err != nil {
+		if err := r.files.link(ctx, r.pubB+"/"+probeFilePrefix+"rieng.txt", r.pubA, probeFilePrefix+"lay.txt", r.ownA); err != nil {
 			return err
 		}
 		leaked := false

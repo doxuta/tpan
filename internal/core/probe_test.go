@@ -70,6 +70,11 @@ func newProbeEnv(t *testing.T, web WebServer) *probeEnv {
 	}}
 	m := se.m
 	exit := func(code int, out string) system.Result { return system.Result{ExitCode: code, Stdout: out} }
+	// Như máy thật: /var/lib/tpan (chỗ của tpan.db) và gốc thùng rác có sẵn;
+	// Plan dọn chuyển thư mục site thử qua đó trước khi xoá (probeRemoveSiteDir).
+	for _, d := range []string{"/var/lib", "/var/lib/tpan", site.TrashRoot} {
+		m.SetDir(d, 0o755, system.Root)
+	}
 
 	// Unit của lồng chưa từng có: is-enabled, is-active thoát khác 0.
 	m.Handle([]string{"systemctl", "is-active"}, func(system.Cmd) system.Result { return exit(3, "inactive\n") })
