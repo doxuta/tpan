@@ -84,10 +84,12 @@ func (s *Server) hostIsSite(w http.ResponseWriter, r *http.Request) bool {
 	if err := s.dropChallenge(w, r); err != nil {
 		slog.Error("xoá phiếu lộ dưới tên site", "err", err)
 	}
-	ways := s.panelWays(r)
+	// Câu chung, không in tên site hay panel.domain (soát cuối F5): người lạ
+	// không đọc được tên panel từ trang này.
+	ways := panelWays(r)
 	msg := i18n.T(
-		h+" là tên của một site trên máy này; panel tpan không mở ở tên của site (mã PHP của site đọc được cookie đăng nhập). Vào bằng: "+strings.Join(ways, " hoặc "),
-		h+" is the name of a site on this server; the tpan panel does not open under a site's name (the site's PHP could read the login cookie). Use: "+strings.Join(ways, " or "))
+		"Panel tpan không mở ở tên này (mã PHP của một site đọc được cookie đăng nhập). Vào bằng IP của máy hoặc tên miền riêng của panel: "+strings.Join(ways, " hoặc "),
+		"The tpan panel does not open under this name (a site's PHP could read the login cookie). Use the server's IP or the panel's own domain name: "+strings.Join(ways, " or "))
 	if strings.HasPrefix(r.URL.Path, "/api/") {
 		writeError(w, http.StatusMisdirectedRequest, "host_is_site", msg)
 		return true
@@ -108,9 +110,10 @@ func (s *Server) hostIsSite(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-// panelWays là các địa chỉ vào panel đúng cách: IP và cổng mà kết nối này
-// đã tới (http.LocalAddrContextKey), và tên miền của panel nếu có.
-func (s *Server) panelWays(r *http.Request) []string {
+// panelWays là địa chỉ vào panel đúng cách: IP và cổng mà kết nối này đã tới
+// (http.LocalAddrContextKey). Không kèm panel.domain (F5): trang 421 trả lời
+// cả người chưa đăng nhập.
+func panelWays(r *http.Request) []string {
 	scheme := "https://"
 	if r.TLS == nil {
 		scheme = "http://"
@@ -125,9 +128,6 @@ func (s *Server) panelWays(r *http.Request) []string {
 	}
 	if len(out) == 0 {
 		out = append(out, scheme+"<IP>:"+port)
-	}
-	if d := s.panelDomain(); d != "" {
-		out = append(out, scheme+net.JoinHostPort(d, port))
 	}
 	return out
 }

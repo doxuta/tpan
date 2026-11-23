@@ -309,6 +309,11 @@ func (s *Server) handleUserCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// Tài khoản mới (mọi vai) sống qua `tpan admin passwd` của admin: đòi xác
+	// nhận lại (F1), sau phần kiểm rẻ để mã hai bước không bị đốt vì tên sai.
+	if !s.reauth(w, r, body.CurrentPassword, body.Code, action) {
+		return
+	}
 	a := s.apiAccounts()
 	u, generated, err := a.AddUser(r.Context(), core.UserInput{
 		Name: name, FullName: body.FullName, Email: email, Role: body.Role,
@@ -348,6 +353,18 @@ func (s *Server) handleUserEdit(w http.ResponseWriter, r *http.Request) {
 		}
 		ch.Email = &e
 	}
+	// Nâng một tài khoản lên admin: đòi xác nhận lại (F1). Đã là admin thì gửi
+	// lại role admin (giao diện gửi đủ form) không phải nâng quyền.
+	if body.Role != nil && *body.Role == account.RoleAdmin {
+		u, found, err := s.deps.Store.User(r.Context(), name)
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		if found && u.Role != account.RoleAdmin && !s.reauth(w, r, body.CurrentPassword, body.Code, action) {
+			return
+		}
+	}
 	a := s.apiAccounts()
 	_, err := a.EditUser(r.Context(), name, ch, who(r))
 	if !s.auditDone(w, r, action, name, err) {
@@ -381,6 +398,10 @@ func (s *Server) handleUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	var body PasswordSet
 	if !apiReadOptionalJSON(w, r, &body) {
+		return
+	}
+	// Biết mật khẩu của một tài khoản là có tài khoản đó: đòi xác nhận lại (F1).
+	if !s.reauth(w, r, body.CurrentPassword, body.Code, "user.passwd") {
 		return
 	}
 	generated, err := s.apiAccounts().SetPassword(r.Context(), name, body.Password)

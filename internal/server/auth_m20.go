@@ -411,7 +411,8 @@ func (s *Server) match(secret []byte, code string, now time.Time) (uint64, bool)
 // trả cách đã dùng ("totp", "recovery") cùng ok=true; ok=false nghĩa là đã
 // trả lời. Luôn gọi SAU khi mật khẩu đã đúng (R6), để argon2 chạy ngoài khoá.
 //
-// Trong khoá theo user: đọc trạng thái khoá (đọc SAU khi giữ khoá, không thì
+// Trong khoá theo user: phiếu còn lượt và IP chưa khoá (đọc lại, F4) → đọc
+// trạng thái khoá (đọc SAU khi giữ khoá, không thì
 // các request đang chờ đều thấy "chưa khoá") → đang khoá mà mã dạng 6 số thì
 // 423 mfa_locked, không chạy Match; mã dự phòng (80 bit, không dò được) vẫn
 // được kiểm → Match + UseTOTPStep hoặc UseRecoveryCode → sai thì ghi lần sai
@@ -427,6 +428,24 @@ func (s *Server) checkSecondFactor(w http.ResponseWriter, r *http.Request, user,
 	}
 	defer release()
 	now := s.now()
+	// Trần 5 lần mỗi phiếu và khoá IP được ghi bởi request đi trước trong
+	// khoá: đọc lại ở đây, SAU khi giữ khoá (soát cuối F4). Kiểm ở đầu handler
+	// thì N request song song cùng thấy "còn lượt" rồi lần lượt vào Match.
+	if p.challenge != "" {
+		ch, err := st.ChallengeByToken(ctx, p.challenge)
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			authInternal(w, "đọc phiếu bước hai", err)
+			return "", false
+		}
+		if err != nil || !now.Before(ch.Expires) || ch.Attempts >= mfaChallengeTries {
+			_, _ = st.ConsumeChallenge(ctx, p.challenge)
+			challengeInvalid(w, r)
+			return "", false
+		}
+	}
+	if s.authLocked(w, r, clientIP(r)) {
+		return "", false
+	}
 	row, found, err := st.TOTP(ctx, user)
 	if err != nil {
 		authInternal(w, "đọc hai bước", err)

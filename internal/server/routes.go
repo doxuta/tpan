@@ -236,14 +236,19 @@ func (s *Server) routes(dist fs.FS) []route {
 		// admin (B5): đích quyết định bản sao lưu của MỌI site đi đâu, job đẩy,
 		// tải mang endpoint và câu lỗi của kho, user-data mang cấu hình của cả
 		// máy mới.
-		{pattern: "GET /api/v1/backups/target", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupTarget},
-		{pattern: "POST /api/v1/backups/target", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupTargetSet},
-		{pattern: "DELETE /api/v1/backups/target", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupTargetRemove},
-		{pattern: "POST /api/v1/backups/target/test", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupTargetTest},
+		//
+		// Soát cuối M20 (F2): đích sao lưu và cloud-init là chỉ phiên (nhóm
+		// token rỗng). Token backups:write đổi được đích là chuyển bản sao lưu
+		// (không mã hoá) của mọi site sang kho của người khác; user-data mang
+		// cấu hình máy. Đẩy, tải, xem kho vẫn theo nhóm backups.
+		{pattern: "GET /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTarget},
+		{pattern: "POST /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTargetSet},
+		{pattern: "DELETE /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTargetRemove},
+		{pattern: "POST /api/v1/backups/target/test", rule: adminOnly, h: s.handleBackupTargetTest},
 		{pattern: "POST /api/v1/backups/{id}/push", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupPush},
 		{pattern: "POST /api/v1/backups/{id}/pull", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupPull},
 		{pattern: "GET /api/v1/backups/remote", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupRemote},
-		{pattern: "POST /api/v1/cloud-init/render", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleCloudInitRender},
+		{pattern: "POST /api/v1/cloud-init/render", rule: adminOnly, h: s.handleCloudInitRender},
 
 		// M20: hai bước, token API, chính sách, tên miền của panel (types_m20.go,
 		// auth_m20.go, api_m20.go, token_m20.go). Mọi route quản lý hai bước,

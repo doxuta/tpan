@@ -39,11 +39,23 @@ func TestHostLaSite421(t *testing.T) {
 	} {
 		e.must(e.st.SaveSite(ctx, s))
 	}
+	// Soát cuối F5: trang 421 trả lời người lạ, không được in tên panel.
+	const panelName = "quan-tri.example.org"
+	e.must(e.st.SetSetting(ctx, core.SettingPanelDomain, panelName))
+	noLeak := func(what string, rec *httptest.ResponseRecorder) {
+		t.Helper()
+		for _, s := range []string{"shop", "boss", panelName} {
+			if strings.Contains(strings.ToLower(rec.Body.String()), s) {
+				t.Errorf("%s: trang 421 lộ %q: %s", what, s, rec.Body)
+			}
+		}
+	}
 	c := e.session(m20User)
 	rec := e.req(http.MethodGet, "/api/v1/sites", "", m20IP, []*http.Cookie{c}, "Host", "SHOP.example.com.:8443")
 	if rec.Code != http.StatusMisdirectedRequest || errCode(t, rec) != "host_is_site" {
 		t.Fatalf("tên site của user: %d %s", rec.Code, rec.Body)
 	}
+	noLeak("JSON", rec)
 	if gone := cookieNamed(rec, authCookieTLS); gone == nil || gone.MaxAge >= 0 {
 		t.Fatalf("421 phải xoá cookie phiên: %+v", gone)
 	}
@@ -55,6 +67,7 @@ func TestHostLaSite421(t *testing.T) {
 	if rec.Code != http.StatusMisdirectedRequest || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/html") {
 		t.Fatalf("tên site của admin: %d %s", rec.Code, rec.Header())
 	}
+	noLeak("HTML", rec)
 	// Vào bằng IP, bằng tên panel: bình thường.
 	if rec := e.req(http.MethodGet, "/api/v1/health", "", m20IP, nil, "Host", "192.0.2.10:8443"); rec.Code != http.StatusOK {
 		t.Fatalf("vào bằng IP: %d", rec.Code)

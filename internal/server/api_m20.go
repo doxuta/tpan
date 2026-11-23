@@ -118,6 +118,41 @@ func (s *Server) mfaCodeNeeded(w http.ResponseWriter, r *http.Request, user, cod
 	return on, true
 }
 
+// reauth đòi admin THẬT của phiên (store.Session.UserName, không phải người
+// đang "xem như") xác nhận lại trước thao tác tạo quyền sống lâu hơn phiên:
+// tạo user, nâng vai admin, đặt mật khẩu người khác, nới chính sách đăng nhập
+// (soát cuối M20, F1). Phiên bị chiếm (chỉ có cookie) dừng ở đây, không tạo
+// được cửa sau sống qua `tpan admin passwd`.
+//
+// Thứ tự: thiếu mật khẩu → 400 reauth_required; đã bật hai bước mà thiếu mã →
+// 400 mfa_code_required (cả hai trước argon2); mật khẩu sai → 401
+// wrong_password (đếm như đăng nhập sai); mã sai → 400 mfa_code_wrong (giao
+// diện đưa mọi 401 khác wrong_password về màn đăng nhập). true là đã xác nhận.
+func (s *Server) reauth(w http.ResponseWriter, r *http.Request, pw, code, action string) bool {
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return false
+	}
+	if pw == "" {
+		writeError(w, http.StatusBadRequest, "reauth_required", i18n.T(
+			"Việc này cần nhập lại mật khẩu của bạn (và mã hai bước nếu đã bật) để xác nhận.",
+			"This needs your password again (and your two-step code if it is on) to confirm."))
+		return false
+	}
+	needCode, ok := s.mfaCodeNeeded(w, r, cur.UserName, code)
+	if !ok {
+		return false
+	}
+	if !s.accountPassword(w, r, cur.UserName, pw, action) {
+		return false
+	}
+	if needCode {
+		_, ok := s.checkSecondFactor(w, r, cur.UserName, code, sfAccount(action))
+		return ok
+	}
+	return true
+}
+
 // writePasswordChanged trả lời đổi mật khẩu thành công: còn token đang sống
 // thì 200 {active_tokens} để giao diện nhắc thu hồi nếu nghi bị lộ; không thì 204.
 func (s *Server) writePasswordChanged(w http.ResponseWriter, r *http.Request, user string) {
@@ -457,6 +492,16 @@ func (s *Server) handleAuthSettingsSet(w http.ResponseWriter, r *http.Request) {
 			"The token lifetime limit must be between 1 and "+strconv.Itoa(apitoken.MaxDaysLimit)+" days."))
 		return
 	}
+	// Nới lỏng (hạ chính sách, tăng trần ngày) mở đường cho cửa sau: đòi xác
+	// nhận lại (F1). Siết chặt thì không: phiên bị chiếm siết chỉ hại chính nó.
+	loosen, err := s.authLoosens(ctx, in)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	if loosen && !s.reauth(w, r, in.CurrentPassword, in.Code, "settings.auth") {
+		return
+	}
 	if in.Require2FA != nil {
 		if !s.auditDone(w, r, settingRequire2FA, *in.Require2FA, st.SetSetting(ctx, settingRequire2FA, *in.Require2FA)) {
 			return
@@ -469,6 +514,20 @@ func (s *Server) handleAuthSettingsSet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.handleAuthSettings(w, r)
+}
+
+// policyRank xếp chính sách từ lỏng tới chặt: off < admin < all.
+var policyRank = map[string]int{PolicyOff: 0, PolicyAdmin: 1, PolicyAll: 2}
+
+// authLoosens: in hạ chính sách hai bước hoặc tăng trần ngày của token so với
+// giá trị đang áp (in đã qua kiểm giá trị).
+func (s *Server) authLoosens(ctx context.Context, in AuthSettingsInput) (bool, error) {
+	cur, err := s.authSettings(ctx)
+	if err != nil {
+		return false, err
+	}
+	return (in.Require2FA != nil && policyRank[*in.Require2FA] < policyRank[cur.Require2FA]) ||
+		(in.TokenMaxDays != nil && *in.TokenMaxDays > cur.TokenMaxDays), nil
 }
 
 // ---------------------------------------------------------------- tên miền của panel

@@ -415,8 +415,7 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"POST /api/v1/dbs/{name}/password", "POST /api/v1/dbs/{name}/suspend", "POST /api/v1/dbs/{name}/unsuspend",
 		"POST /api/v1/dbs/{name}/restore", "DELETE /api/v1/dbs/{name}", "DELETE /api/v1/trash/dbs/{name}")
 	add("backups", "GET /api/v1/backups", "POST /api/v1/sites/{domain}/backups", "POST /api/v1/backups/{id}/restore",
-		"POST /api/v1/backups/settings", "GET /api/v1/backups/target", "POST /api/v1/backups/target", "DELETE /api/v1/backups/target",
-		"POST /api/v1/backups/target/test", "POST /api/v1/backups/{id}/push", "POST /api/v1/backups/{id}/pull", "GET /api/v1/backups/remote")
+		"POST /api/v1/backups/settings", "POST /api/v1/backups/{id}/push", "POST /api/v1/backups/{id}/pull", "GET /api/v1/backups/remote")
 	add("cron", "GET /api/v1/cron")
 	add("jobs", "GET /api/v1/jobs", "GET /api/v1/jobs/{id}", "GET /api/v1/jobs/{id}/events")
 	add("health", "GET /api/v1/overview", "GET /api/v1/checks", "GET /api/v1/incidents", "GET /api/v1/incidents/{id}",
@@ -426,7 +425,7 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"POST /api/v1/security/ufw", "POST /api/v1/security/fail2ban", "POST /api/v1/security/harden", "GET /api/v1/security/isolation",
 		"POST /api/v1/php/install", "POST /api/v1/php/remove", "GET /api/v1/updates", "POST /api/v1/updates", "POST /api/v1/updates/auto",
 		"POST /api/v1/mariadb/upgrade", "POST /api/v1/trash/settings", "GET /api/v1/self", "POST /api/v1/self/update",
-		"POST /api/v1/self/rollback", "GET /api/v1/panel", "POST /api/v1/panel/domain", "POST /api/v1/cloud-init/render")
+		"POST /api/v1/self/rollback", "GET /api/v1/panel", "POST /api/v1/panel/domain")
 	// Chỉ phiên (nhóm rỗng): quản lý tài khoản, mật khẩu, hai bước, token,
 	// user, gói, Plan, AI, chính sách (B5).
 	add("", "POST /api/v1/account/password", "GET /api/v1/account/sessions", "DELETE /api/v1/account/sessions/{id}",
@@ -439,7 +438,10 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"GET /api/v1/packages", "POST /api/v1/packages", "POST /api/v1/packages/{name}", "DELETE /api/v1/packages/{name}",
 		"GET /api/v1/account/2fa", "POST /api/v1/account/2fa/setup", "POST /api/v1/account/2fa/enable", "POST /api/v1/account/2fa/disable",
 		"POST /api/v1/account/2fa/recovery", "GET /api/v1/account/tokens", "POST /api/v1/account/tokens", "DELETE /api/v1/account/tokens/{id}",
-		"GET /api/v1/settings/auth", "POST /api/v1/settings/auth", "GET /api/v1/tokens", "DELETE /api/v1/tokens/{id}")
+		"GET /api/v1/settings/auth", "POST /api/v1/settings/auth", "GET /api/v1/tokens", "DELETE /api/v1/tokens/{id}",
+		// Soát cuối F2: đổi đích sao lưu, cloud-init.
+		"GET /api/v1/backups/target", "POST /api/v1/backups/target", "DELETE /api/v1/backups/target",
+		"POST /api/v1/backups/target/test", "POST /api/v1/cloud-init/render")
 	seen := map[string]bool{}
 	for _, ri := range RouteTable() {
 		seen[ri.Pattern] = true
