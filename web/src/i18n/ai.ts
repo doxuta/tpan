@@ -51,9 +51,9 @@ const vi = {
   trail: (names: string[]) => `Bạn vừa đi qua: ${names.join(" → ")}`,
   previewLoading: "Đang dựng nội dung sẽ gửi…",
   previewFailed: "Chưa dựng được nội dung sẽ gửi.",
-  viewFull: "Xem toàn văn sẽ gửi",
-  hideFull: "Ẩn toàn văn",
-  fullLabel: "Toàn văn sẽ gửi (đã che)",
+  viewFull: "Xem đủ nội dung sẽ gửi",
+  hideFull: "Ẩn nội dung đầy đủ",
+  fullLabel: "Nội dung đầy đủ sẽ gửi (đã che)",
 
   // ---- cuộc trò chuyện ----
   you: "Bạn",

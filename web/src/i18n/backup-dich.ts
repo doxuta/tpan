@@ -35,7 +35,7 @@ const vi = {
 
   noBackupKey: "Chưa có khoá sao lưu nên gói panel không được tạo.",
   noBackupKeyMore:
-    "Gói panel giữ danh sách site, user, gói và cài đặt của TPAN, mã hoá bằng khoá sao lưu. Bản sao lưu của site vẫn được đẩy lên kho. Khoá chỉ sinh bằng lệnh trên máy chủ, và được in ra một lần:",
+    "Gói panel giữ danh sách site, user, gói và cài đặt của TPAN, mã hoá bằng khoá sao lưu. Bản sao lưu của site vẫn được đẩy lên kho. Khoá chỉ tạo bằng lệnh trên máy chủ, và được in ra một lần:",
   panelError: (err: string) => `Lần tạo gói panel gần nhất hỏng: ${err}`,
   targetError: "Lần đẩy gần nhất lên kho hỏng.",
   retryAt: (when: string) => `Lượt đẩy thử lại lúc ${when}.`,

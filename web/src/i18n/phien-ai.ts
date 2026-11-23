@@ -18,7 +18,7 @@ const vi = {
   entryMcp: "Agent nối trực tiếp",
   entryMcpClient: (client: string) => `Agent nối trực tiếp · ${client}`,
   noQuestion: "Không có câu hỏi, agent tự gọi công cụ",
-  untrustedTag: "Chữ lạ",
+  untrustedTag: "Nội dung lạ",
   untrustedHint: "Phiên này đã đọc nội dung do người lạ gửi tới (log). Plan nó đề xuất có cảnh báo ở màn duyệt.",
   listEmpty: "Chưa có phiên AI nào. Hỏi AI từ ngăn AI, hoặc nối một agent qua MCP.",
   listFailed: "Chưa đọc được danh sách phiên AI.",
@@ -43,9 +43,9 @@ const vi = {
   chipsLabel: "Ngữ cảnh đã gửi",
   noChips: "Lượt này không gửi khối ngữ cảnh nào.",
   playbookLabel: "Bản hướng dẫn gửi kèm",
-  viewPrompt: "Xem toàn văn prompt",
-  hidePrompt: "Ẩn toàn văn prompt",
-  promptLabel: "Toàn văn prompt (đã che)",
+  viewPrompt: "Xem đủ nội dung prompt",
+  hidePrompt: "Ẩn nội dung prompt",
+  promptLabel: "Nội dung đầy đủ của prompt (đã che)",
   answerLabel: "AI",
   answerNote: "Đã đổi bí danh về tên thật; chỉ hiện ở panel, không gửi đi đâu.",
   working: "AI đang trả lời…",
@@ -74,7 +74,7 @@ const vi = {
   noPlans: "Phiên này chưa đề xuất Plan nào.",
   planStatus: { pending: "chờ duyệt", applied: "đã chạy", rejected: "đã từ chối" },
   planOpen: (id: string) => `Mở Plan #${id}`,
-  planUntrusted: "đọc chữ lạ trước khi đề xuất",
+  planUntrusted: "đã đọc nội dung lạ trước khi đề xuất",
 };
 
 export const strings = defineStrings(vi, {

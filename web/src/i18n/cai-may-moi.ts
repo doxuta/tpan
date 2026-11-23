@@ -6,7 +6,7 @@ import { defineStrings } from "./index";
 
 const vi = {
   title: "Cài lên máy ảo mới",
-  summary: "Sinh user-data cloud-init: máy mới tự cài TPAN ở lần khởi động đầu. Việc này không đổi gì trên máy này.",
+  summary: "Tạo user-data cloud-init: máy mới tự cài TPAN ở lần khởi động đầu. Việc này không đổi gì trên máy này.",
 
   formHeading: "Máy mới",
   webLabel: "Web server",
@@ -36,10 +36,10 @@ const vi = {
   emailHint: "Email quản trị WordPress của các site đã chọn. Bắt buộc khi chọn ít nhất một site.",
   emailRequired: "Chưa có email quản trị. Đã chọn site thì cần email này.",
 
-  submit: "Sinh user-data",
-  submitting: "Đang sinh…",
-  errorHeading: "Chưa sinh được user-data",
-  tooLargeHint: "Bỏ bớt site rồi sinh lại. Site còn lại tạo sau trên máy mới, ở màn Tạo site.",
+  submit: "Tạo user-data",
+  submitting: "Đang tạo…",
+  errorHeading: "Chưa tạo được user-data",
+  tooLargeHint: "Bỏ bớt site rồi tạo lại. Site còn lại tạo sau trên máy mới, ở màn Tạo site.",
 
   resultHeading: "Kết quả",
   secretLabel: "Mật khẩu quản trị",
@@ -50,10 +50,10 @@ const vi = {
   secretCopy: "Chép",
   secretCopyOf: (label: string) => `Chép ${label.toLowerCase()}`,
   secretDismiss: "Đã lưu, ẩn đi",
-  secretHidden: "Mật khẩu đã ẩn. Sinh lại user-data thì có mật khẩu mới.",
+  secretHidden: "Mật khẩu đã ẩn. Tạo lại user-data thì có mật khẩu mới.",
 
   userDataLabel: "User-data",
-  userDataSize: (n: string, max: string) => `${n} byte / trần ${max}`,
+  userDataSize: (n: string, max: string) => `${n} byte / tối đa ${max}`,
   userDataCopy: "Chép user-data",
 
   howHeading: "Cách dùng",

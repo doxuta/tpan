@@ -12,7 +12,7 @@ const vi = {
   bulkRestoreBody: "Các site dưới đây chạy lại như trước khi xoá: file, cơ sở dữ liệu, cấu hình về chỗ cũ. Mỗi site chạy một job, lần lượt.",
   bulkPurge: (n: number) => `Xoá hẳn ${n} site`,
   bulkPurgeTitle: (n: number) => `Xoá hẳn ${n} site?`,
-  bulkPurgeBody: "Xoá vĩnh viễn file, cơ sở dữ liệu và bản sao của các site dưới đây khỏi máy. Không khôi phục được. Bản backup đã tạo trước đó vẫn được giữ.",
+  bulkPurgeBody: "Xoá hẳn file, cơ sở dữ liệu và bản sao của các site dưới đây khỏi máy. Không khôi phục được. Bản backup đã tạo trước đó vẫn được giữ.",
   title: "Thùng rác",
   summary: "Site và DB rời đã xoá nằm ở đây, khôi phục được cho tới hạn xoá hẳn.",
 

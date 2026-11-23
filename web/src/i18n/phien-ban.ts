@@ -29,16 +29,16 @@ const vi = {
   pvUrl: "Nguồn tải",
   pvAsset: "File sẽ tải",
   pvSha: "SHA256 sẽ kiểm",
-  pvBack: "Lên rồi có lùi được không",
+  pvBack: "Cập nhật xong có quay lại được không",
   backNote:
-    "Được. Bản đang chạy được giữ lại ở /usr/local/bin/tpan.old, và sau khi lên khối này có nút quay về. " +
-    "Riêng khi bản mới đổi cấu trúc cơ sở dữ liệu của TPAN thì không quay về bằng nút được; lúc đó đường lùi là bản sao tpan.db bạn giữ từ trước khi lên.",
+    "Được. Bản đang chạy được giữ lại ở /usr/local/bin/tpan.old, và sau khi cập nhật, khối này có nút quay về. " +
+    "Riêng khi bản mới đổi cấu trúc cơ sở dữ liệu của TPAN thì không quay về bằng nút được; lúc đó đường lùi là bản sao tpan.db bạn giữ từ trước khi cập nhật.",
   updateButton: (v: string) => (v ? `Cập nhật lên ${v}` : "Cập nhật lên bản mới"),
   updateError: "Chưa bắt đầu cập nhật được",
 
   // Hộp hỏi lại trước khi cập nhật
   confirmTitle: (v: string) => (v ? `Cập nhật TPAN lên ${v}?` : "Cập nhật TPAN lên bản mới?"),
-  confirmRestart: "Panel sẽ khởi động lại và mất kết nối chừng vài giây. Trang này tự nối lại.",
+  confirmRestart: "Panel sẽ khởi động lại và mất kết nối khoảng vài giây. Trang này tự nối lại.",
   confirmSession: "Phiên đăng nhập giữ nguyên, bạn không phải đăng nhập lại.",
   confirmSites: "Các site không bị đụng tới: web server, PHP và cơ sở dữ liệu vẫn chạy như cũ.",
 
@@ -50,7 +50,7 @@ const vi = {
 
   // Kết quả, và dòng "lượt gần nhất"
   lastLabel: "Lượt gần nhất",
-  doneUpdate: (v: string) => `Đã lên ${v}`,
+  doneUpdate: (v: string) => `Đã cập nhật lên ${v}`,
   doneRollback: (v: string) => `Đã quay về ${v}`,
   same: "Đang là bản mới nhất, không thay gì",
   failedUpdate: "Cập nhật không thành, file chạy cũ còn nguyên",
@@ -59,8 +59,8 @@ const vi = {
   stuckRollback: "Lượt quay về chưa có kết quả",
   stuckBody: "Lượt chạy bị ngắt giữa chừng, hoặc đã quá 3 phút mà panel chưa báo lại. Gõ ba lệnh dưới đây trên máy: xem log của lượt chạy, xem dịch vụ tpan, rồi quay về bản trước nếu panel không lên.",
   manual: "Sửa tay",
-  runUpdate: (from: string, to: string) => (to ? `Lên từ ${from} tới ${to}` : `Từ bản ${from}`),
-  runRollback: (from: string, to: string) => (to ? `Quay từ ${from} về ${to}` : `Từ bản ${from}`),
+  runUpdate: (from: string, to: string) => (to ? `Từ ${from} lên ${to}` : `Từ bản ${from}`),
+  runRollback: (from: string, to: string) => (to ? `Từ ${from} quay về ${to}` : `Từ bản ${from}`),
   runBy: (when: string, actor: string) => (actor ? `${when}, ${actor} bấm` : when),
   errorLabel: "Lỗi của job",
   jobLink: "Xem job này trong Lịch sử",
@@ -76,10 +76,10 @@ const vi = {
   rollbackError: "Chưa quay về được",
   rollbackTitle: (current: string, old: string) => `Quay từ ${current} về ${old}?`,
   rollbackWarnDb: "Nếu bản đang chạy đã đổi cấu trúc cơ sở dữ liệu của TPAN thì máy chủ sẽ từ chối, và không có gì thay đổi.",
-  rollbackWarnRestart: "Panel cũng sẽ khởi động lại và mất kết nối chừng vài giây. Phiên đăng nhập giữ nguyên, các site không bị đụng tới.",
+  rollbackWarnRestart: "Panel cũng sẽ khởi động lại và mất kết nối khoảng vài giây. Phiên đăng nhập giữ nguyên, các site không bị đụng tới.",
   rollbackConfirm: (old: string) => `Quay về ${old}`,
 
-  cli: "Thích dòng lệnh thì cùng việc này, gõ trên máy:",
+  cli: "Muốn dùng dòng lệnh thì gõ trên máy:",
 
   // Dòng phiên bản cuối trang
   footerNew: "có bản mới",
