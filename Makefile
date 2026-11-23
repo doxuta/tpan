@@ -11,7 +11,7 @@ LDFLAGS := -s -w \
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
   do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang anh-m18 e2e-m18-gd \
-  m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 thu-m20 don-tmp
+  m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 thu-m20 don-tmp e2e-m20 anh-m20
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -107,6 +107,15 @@ thu-m20: build-linux ## Thử của đợt 0 M20 trên máy ảo sạch; log và
 	scripts/vm.sh deploy
 	multipass transfer $(M20_THU)/thu-vm.sh "$$(cat .tpan-vm):/tmp/thu-vm.sh" </dev/null
 	scripts/vm.sh root bash /tmp/thu-vm.sh > tmp-phien/thu-vm.log 2>&1 </dev/null; rc=$$?; cp tmp-phien/thu-vm.log $(M20_THU)/thu-vm.log; exit $$rc
+
+e2e-m20: ## e2e bước 23 trên máy ảo trong .tpan-vm (hai bước, token, chứng chỉ panel, nâng từ v0.2.0); log vào LOG (mặc định docs/bang-chung/M20.log)
+	@# Như e2e-m16: log ghi ra tmp-phien/ rồi mới chép, để tên bản được đóng gói không có đuôi -dirty.
+	E2E_LOG=tmp-phien/e2e-m20.log bash scripts/e2e-m20.sh </dev/null >tmp-phien/e2e-m20.log 2>&1; rc=$$?; \
+	  cp tmp-phien/e2e-m20.log $(or $(LOG),docs/bang-chung/M20.log); \
+	  echo "e2e-m20: mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' tmp-phien/e2e-m20.log), không đạt $$(grep -c '=> KHÔNG ĐẠT' tmp-phien/e2e-m20.log)"; exit $$rc
+
+anh-m20: web ## Chụp các màn của M20 (đăng nhập chặng hai, bật hai bước, Tài khoản, Cài đặt, Công cụ) sáng, tối, 390 px vào docs/bang-chung/M20
+	$(ANH) -bo m20 -out docs/bang-chung/M20
 
 # Dọn file tạm của phiên (tmp-phien/ nằm ngoài git). Không đụng gì khác.
 don-tmp: ## Xoá file tạm trong tmp-phien/
