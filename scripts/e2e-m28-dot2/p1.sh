@@ -89,6 +89,14 @@ echo "  sau đó, ĐÚNG mật khẩu admin, cùng user, nguồn mới: HTTP $c"
 ok "P1a: đang khoá thì mật khẩu admin đúng cũng 423" test "$c" = 423
 
 step "P1b. 20 lần sai bắn song song, user m28p1b, cùng nguồn 127.0.0.32"
+# sqlq <câu> [tham số...]: đọc tpan.db (chỉ đọc), in một giá trị.
+sqlq() {
+  python3 -I -W ignore -c '
+import sqlite3, sys
+c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
+print(c.execute(sys.argv[1], sys.argv[2:]).fetchone()[0])' "$@"
+}
+a0="$(sqlq "SELECT COALESCE(MAX(id), 0) FROM audit")"
 for n in $(seq 1 20); do
   { sai m28p1b 127.0.0.32 admin "par$n"; echo; } >"$W/p1-par.$n" &
 done
@@ -100,6 +108,11 @@ rm -f "$W"/p1-par.*
 ok "P1b: số câu 401 không quá 5 ($c401), còn lại chỉ 423 hay 429" test "$c401" -le 5 -a "$ck" = 0
 c="$(dung m28p1b 127.0.0.32 admin)"
 ok "P1b: sau loạt song song, mật khẩu admin đúng vẫn 423 (HTTP $c)" test "$c" = 423
+nfail="$(sqlq "SELECT COUNT(*) FROM audit WHERE id > ? AND action = 'login.fail'" "$a0")"
+echo "  dòng login.fail mới trong audit: $nfail"
+ok "P1b: không quá 5 lần so mật khẩu sai thật (login.fail trong audit: $nfail)" test "$nfail" -le 5
+nk="$(sqlq "SELECT COUNT(*) FROM login_failures WHERE ip = ?" "uid:$(id -u m28p1b)")"
+ok "P1b: khoá nằm ở khoá nguồn uid:$(id -u m28p1b) trong login_failures (dòng: $nk)" test "$nk" -ge 1
 
 step "P1c. ca hợp lệ (user m28p1c): admin sai 4 lần rồi đúng; sau đó sai 4 lần nữa chưa bị khoá; tpan admin unlock gỡ được khoá"
 log=""

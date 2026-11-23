@@ -102,3 +102,6 @@ sleep 2
 ok "không còn kết nối của $DBU" test "$(mariadb -N -B -e "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE USER = '$DBU'")" = 0
 ok "$OTHER trả 200 sau phép thử" web200 "$OTHER"
 ok "$DOM trả 200 sau phép thử" web200 "$DOM"
+
+# DBCONN.5 (N3b của soát thiết kế S4, soát cuối D4): đo một lỗ chưa vá nên
+# script đo giữ ngoài repo tới khi vá (repo công khai).

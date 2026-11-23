@@ -115,13 +115,37 @@ sau)
   comm -13 "$W/health.truoc" "$W/health.giua" | cut -c1-300 | sed 's/^/  | /'
   note "nhắc tới vhost: $(comm -13 "$W/health.truoc" "$W/health.giua" | grep -cE "$RE_HEALTH_VHOST") dòng; mod_status: $(comm -13 "$W/health.truoc" "$W/health.giua" | grep -cE "$RE_HEALTH_STATUS") dòng; trần kết nối DB: $(comm -13 "$W/health.truoc" "$W/health.giua" | grep -cE "$RE_HEALTH_DBLIM") dòng (bản thiết kế mục 6 kỳ vọng mỗi thứ có một dòng)"
   rm -f "$W/health.full"
+  # Khẳng định theo ID phép kiểm (soát cuối D7): mỗi thứ của mục 6 có một phép
+  # chưa đạt trên máy vừa nâng (web.mod_status chỉ có trên Apache).
+  tpan health --json </dev/null >"$W/health.json" 2>/dev/null
+  for id in web.docroot_guard web.mod_status db.user_limit; do
+    ok "N6: health có phép $id chưa đạt trên máy vừa nâng" python3 -I -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+def walk(x):
+    if isinstance(x, dict):
+        yield x
+        for v in x.values(): yield from walk(v)
+    elif isinstance(x, list):
+        for v in x: yield from walk(v)
+bad = [o for o in walk(d) if str(o.get("id", "")).startswith(sys.argv[2]) and str(o.get("status", "")).lower() not in ("pass", "ok", "đạt")]
+sys.exit(0 if bad else 1)' "$W/health.json" "$id"
+  done
+  rm -f "$W/health.json"
+
+  # Ca D2 của soát cuối: K1 đổi quyền neo của site mình thành 2751 (phép Isolated
+  # của site khác với nó sẽ Fail). Harden vẫn phải xong và giữ bản vá cho cả máy.
+  step "N6b. K1 (user của $DOM) đổi neo của site mình thành 2751 trước harden"
+  runuser -u "$SU" -- chmod 2751 "/var/www/$DOM"
+  stat -c '  %n %a' "/var/www/$DOM"
 
   step "N7. tpan security harden --yes"
   tpan security harden --yes </dev/null >"$W/harden.txt" 2>&1
   rc=$?
   tail -15 "$W/harden.txt" | cut -c1-300 | sed 's/^/  | /'
   rm -f "$W/harden.txt"
-  ok "security harden --yes thoát 0" test "$rc" -eq 0
+  ok "security harden --yes thoát 0 dù neo của $DOM bị K1 đổi thành 2751 (soát cuối D2)" test "$rc" -eq 0
+  runuser -u "$SU" -- chmod 2750 "/var/www/$DOM"
   sleep 3
 
   step "N8. sau harden: tpan health so với trước khi nâng"
