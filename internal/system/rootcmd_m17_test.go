@@ -63,15 +63,22 @@ func TestRootZoneTuChoiSystemdRunLech(t *testing.T) {
 		return out
 	}
 	cases := map[string]Cmd{
-		"User=root":             {Name: "systemd-run", Args: replace("User=tp_a_example_com_7653e4", "User=root")},
-		"thiếu NoNewPrivileges": {Name: "systemd-run", Args: replace("NoNewPrivileges=yes", "NoNewPrivileges=no")},
-		"thuộc tính lạ":         {Name: "systemd-run", Args: replace("TimeoutStartSec=31", "ExecStartPre=/var/www/a.example.com/x")},
-		"tên unit lạ":           {Name: "systemd-run", Args: replace("--unit=tpan-cage-a_example_com_7653e4-run-0123456789abcdef", "--unit=ssh")},
-		"cờ lạ":                 {Name: "systemd-run", Args: replace("--pipe", "--scope")},
-		"thư mục làm việc sâu":  {Name: "systemd-run", Args: cageRunArgs("--working-directory=/var/www/a.example.com/public")},
-		"Dir trong vùng":        {Name: "systemd-run", Args: base, Dir: "/var/www/a.example.com"},
-		"Env chạm vùng":         {Name: "systemd-run", Args: base, Env: []string{"X=/var/www/a.example.com/x"}},
-		"không có User":         {Name: "systemd-run", Args: drop("User=tp_a_example_com_7653e4")},
+		"User=root":                  {Name: "systemd-run", Args: replace("User=tp_a_example_com_7653e4", "User=root")},
+		"thiếu NoNewPrivileges":      {Name: "systemd-run", Args: replace("NoNewPrivileges=yes", "NoNewPrivileges=no")},
+		"thuộc tính lạ":              {Name: "systemd-run", Args: replace("TimeoutStartSec=31", "ExecStartPre=/var/www/a.example.com/x")},
+		"tên unit lạ":                {Name: "systemd-run", Args: replace("--unit=tpan-cage-a_example_com_7653e4-run-0123456789abcdef", "--unit=ssh")},
+		"cờ lạ":                      {Name: "systemd-run", Args: replace("--pipe", "--scope")},
+		"thư mục làm việc sâu":       {Name: "systemd-run", Args: cageRunArgs("--working-directory=/var/www/a.example.com/public")},
+		"Dir trong vùng":             {Name: "systemd-run", Args: base, Dir: "/var/www/a.example.com"},
+		"Env chạm vùng":              {Name: "systemd-run", Args: base, Env: []string{"X=/var/www/a.example.com/x"}},
+		"không có User":              {Name: "systemd-run", Args: drop("User=tp_a_example_com_7653e4")},
+		"không có Group":             {Name: "systemd-run", Args: drop("Group=tp_a_example_com_7653e4")},
+		"không có --unit":            {Name: "systemd-run", Args: drop("--unit=tpan-cage-a_example_com_7653e4-run-0123456789abcdef")},
+		"Group của site khác":        {Name: "systemd-run", Args: replace("Group=tp_a_example_com_7653e4", "Group=tp_b_example_com_1a2b3c")},
+		"User khác slug unit":        {Name: "systemd-run", Args: replace("User=tp_a_example_com_7653e4", "User=tp_b_example_com_1a2b3c")},
+		"User lặp hai lần":           {Name: "systemd-run", Args: append(append([]string(nil), base[:6]...), append([]string{"-p", "User=tp_a_example_com_7653e4"}, base[6:]...)...)},
+		"thư mục làm việc tương đối": {Name: "systemd-run", Args: cageRunArgs("--working-directory=var/www/a.example.com/x")},
+		"thư mục làm việc có ..":     {Name: "systemd-run", Args: cageRunArgs("--working-directory=/var/www/a.example.com/../b.example.com")},
 	}
 	for name, c := range cases {
 		if err := checkRootZone("/var/www", c); !errors.Is(err, ErrRootZoneCommand) {

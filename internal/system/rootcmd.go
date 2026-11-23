@@ -261,14 +261,17 @@ func checkRootZone(root string, cmd Cmd) error {
 }
 
 // cageUnitRe là tên unit tạm của lệnh chạy thay cho site trong lồng
-// (site.CageRunPrefixOfSlug + 16 hex, internal/cage).
-var cageUnitRe = regexp.MustCompile(`^tpan-cage-[a-z0-9_]{1,40}-run-[0-9a-f]{16}$`)
+// (site.CageRunPrefixOfSlug + 16 hex, internal/cage). Nhóm 1 là slug.
+var cageUnitRe = regexp.MustCompile(`^tpan-cage-([a-z0-9_]{1,40})-run-[0-9a-f]{16}$`)
 
 // cageRunAsSite cho biết cmd đúng dạng systemd-run mà internal/cage dựng cho
 // một lệnh của site trong lồng: mọi cờ trước "--" thuộc đúng tập dưới đây,
-// có User= là user site và NoNewPrivileges=yes, không Dir, không Env nào chạm
-// vùng site, --working-directory (nếu có) là một neo. Phần sau "--" chạy bằng
-// user của site nên không xét.
+// đúng một --unit, một User=, một Group=, và cả ba cùng một site (User và
+// Group là tp_<slug của unit>: thiếu --unit thì hàng rào theo tên unit không
+// áp, Group của site khác thì đọc được file của site đó), NoNewPrivileges=yes,
+// không Dir, không Env nào chạm vùng site, --working-directory (nếu có) là
+// đường dẫn tuyệt đối đã gọn và, nếu trong vùng site, là một neo. Phần sau
+// "--" chạy bằng user của site nên không xét.
 func cageRunAsSite(root, prefix string, cmd Cmd) bool {
 	if cmd.Dir != "" {
 		return false
@@ -278,7 +281,8 @@ func cageRunAsSite(root, prefix string, cmd Cmd) bool {
 			return false
 		}
 	}
-	var user string
+	var slug, user, group string
+	units, users, groups := 0, 0, 0
 	noNewPrivs, sep := false, false
 	args := cmd.Args
 	for i := 0; i < len(args); i++ {
@@ -290,11 +294,14 @@ func cageRunAsSite(root, prefix string, cmd Cmd) bool {
 		switch {
 		case a == "--quiet", a == "--wait", a == "--pipe", a == "--expand-environment=no", a == "--service-type=oneshot":
 		case strings.HasPrefix(a, "--unit="):
-			if !cageUnitRe.MatchString(strings.TrimPrefix(a, "--unit=")) {
+			m := cageUnitRe.FindStringSubmatch(strings.TrimPrefix(a, "--unit="))
+			if m == nil {
 				return false
 			}
+			slug, units = m[1], units+1
 		case strings.HasPrefix(a, "--working-directory="):
-			if d := strings.TrimPrefix(a, "--working-directory="); strings.HasPrefix(d+"/", prefix) && !sitefs.IsAnchor(root, d) {
+			d := strings.TrimPrefix(a, "--working-directory=")
+			if !path.IsAbs(d) || path.Clean(d) != d || (strings.HasPrefix(d+"/", prefix) && !sitefs.IsAnchor(root, d)) {
 				return false
 			}
 		case a == "-p" && i+1 < len(args):
@@ -302,14 +309,9 @@ func cageRunAsSite(root, prefix string, cmd Cmd) bool {
 			v := args[i]
 			switch k, val, _ := strings.Cut(v, "="); k {
 			case "User":
-				if !siteUserRe.MatchString(val) {
-					return false
-				}
-				user = val
+				user, users = val, users+1
 			case "Group":
-				if !siteUserRe.MatchString(val) {
-					return false
-				}
+				group, groups = val, groups+1
 			case "NoNewPrivileges":
 				if val != "yes" {
 					return false
@@ -328,5 +330,7 @@ func cageRunAsSite(root, prefix string, cmd Cmd) bool {
 			return false
 		}
 	}
-	return sep && user != "" && noNewPrivs
+	owner := "tp_" + slug
+	return sep && noNewPrivs && units == 1 && users == 1 && groups == 1 &&
+		siteUserRe.MatchString(owner) && user == owner && group == owner
 }
