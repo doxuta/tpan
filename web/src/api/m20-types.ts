@@ -129,7 +129,8 @@ export type AuthSettings = {
   token_groups: TokenGroup[];
 };
 
-export type AuthSettingsInput = { require_2fa?: Policy; token_max_days?: number };
+/** current_password (+ code khi đã bật hai bước) bắt buộc khi nới lỏng: hạ chính sách hoặc tăng token_max_days. */
+export type AuthSettingsInput = { require_2fa?: Policy; token_max_days?: number; current_password?: string; code?: string };
 
 export type PanelState = {
   /** Rỗng khi chưa đặt tên miền (panel chỉ có chứng chỉ tự ký). */

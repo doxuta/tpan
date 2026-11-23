@@ -193,6 +193,10 @@ type AuthSettings struct {
 type AuthSettingsInput struct {
 	Require2FA   *string `json:"require_2fa,omitempty"`
 	TokenMaxDays *int    `json:"token_max_days,omitempty"`
+	// CurrentPassword, Code (soát cuối F1): bắt buộc khi nới lỏng (hạ chính
+	// sách hai bước, tăng token_max_days).
+	CurrentPassword string `json:"current_password,omitempty"`
+	Code            string `json:"code,omitempty"`
 }
 
 // PanelState là câu trả lời của GET /api/v1/panel.

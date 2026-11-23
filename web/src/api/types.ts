@@ -852,10 +852,14 @@ export type UserCreate = {
   package: string;
   /** Không có thì tpan sinh và trả về một lần trong UserCreated.password. */
   password?: string;
-};
+} & Reauth;
 export type UserCreated = { user: UserRow; password?: string };
-export type UserEdit = { full_name?: string; email?: string; role?: Role; package?: string };
-export type PasswordSet = { password?: string };
+/** Xác nhận lại của admin đang làm (M20, soát cuối F1): mật khẩu của chính mình, và mã hai bước khi đã bật. */
+export type Reauth = { current_password?: string; code?: string };
+/** current_password (+ code) bắt buộc khi role đổi thành admin. */
+export type UserEdit = { full_name?: string; email?: string; role?: Role; package?: string } & Reauth;
+/** current_password (+ code) bắt buộc. */
+export type PasswordSet = { password?: string } & Reauth;
 export type PasswordSetResult = { password?: string };
 export type SuspendRequest = { reason?: string };
 
