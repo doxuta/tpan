@@ -107,7 +107,7 @@ func (s *Stack) PrepareInstallWith(ctx context.Context, web WebServer, opts Inst
 // withSources ghép nguồn người dùng chọn vào cấu hình đã ghi. Lần đầu thì lấy
 // lựa chọn (trống là Ubuntu). Chạy lại thì lựa chọn trống là giữ như đã ghi,
 // còn khác đã ghi là từ chối: đổi nguồn của một stack đang chạy (gỡ nginx của
-// Ubuntu, cài nginx.org; nâng dòng MariaDB) là Plan khác, không phải chạy lại.
+// Ubuntu, cài nginx.org; nâng phiên bản MariaDB) là Plan khác, không phải chạy lại.
 func withSources(cfg StackConfig, opts InstallOptions, first bool) (StackConfig, error) {
 	if first {
 		if opts.WebSource != "" {
@@ -122,7 +122,7 @@ func withSources(cfg StackConfig, opts InstallOptions, first bool) (StackConfig,
 	for _, c := range []struct{ what, got, want string }{
 		{"nguồn web server", string(cfg.WebSource), string(opts.WebSource)},
 		{"nguồn MariaDB", string(cfg.DBSource), string(opts.DBSource)},
-		{"dòng MariaDB", cfg.DBLine, opts.DBLine},
+		{"phiên bản MariaDB", cfg.DBLine, opts.DBLine},
 	} {
 		if c.want != "" && c.want != c.got {
 			return StackConfig{}, refuse("source_change_unsupported", i18n.T(
@@ -136,7 +136,7 @@ func withSources(cfg StackConfig, opts InstallOptions, first bool) (StackConfig,
 var sourceWhatEn = map[string]string{
 	"nguồn web server": "web server source",
 	"nguồn MariaDB":    "MariaDB source",
-	"dòng MariaDB":     "MariaDB series",
+	"phiên bản MariaDB":     "MariaDB series",
 }
 
 // checkSources là phần "nguồn" của Packages: chỉ nhận đúng các nguồn tpan biết
@@ -162,13 +162,13 @@ func checkSources(cfg StackConfig) error {
 	case "", SourceUbuntu:
 		if cfg.DBLine != "" {
 			return refuse("mariadb_line_invalid", i18n.T(
-				"chỉ chọn được dòng MariaDB khi nguồn là mariadb.org (--db-source mariadb.org)",
+				"chỉ chọn được phiên bản MariaDB khi nguồn là mariadb.org (--db-source mariadb.org)",
 				"a MariaDB series can only be chosen with the mariadb.org source (--db-source mariadb.org)"))
 		}
 	case SourceMariaDB:
 		if !dbLineRE.MatchString(cfg.DBLine) {
 			return refuse("mariadb_line_invalid", i18n.T(
-				fmt.Sprintf("nguồn mariadb.org cần dòng MariaDB dạng 11.8 (--db-line), nhận được %q", cfg.DBLine),
+				fmt.Sprintf("nguồn mariadb.org cần phiên bản MariaDB dạng 11.8 (--db-line), nhận được %q", cfg.DBLine),
 				fmt.Sprintf("the mariadb.org source needs a MariaDB series like 11.8 (--db-line), got %q", cfg.DBLine)))
 		}
 	default:

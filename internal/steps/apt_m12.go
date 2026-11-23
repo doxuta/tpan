@@ -911,7 +911,7 @@ func (s *MariaDBDump) Info() engine.StepInfo {
 		ID:    "mariadb.dump:" + s.Path,
 		Title: i18n.T("Xuất toàn bộ MariaDB ra "+s.Path, "Dump all MariaDB databases to "+s.Path),
 		Why: i18n.T(
-			"Nâng dòng MariaDB là một chiều: dữ liệu đã nâng thì bản cũ không đọc lại được. File xuất này là đường lùi duy nhất: cài lại dòng cũ rồi nhập lại nó. File chỉ root đọc được vì có cả mật khẩu băm của user DB.",
+			"Nâng phiên bản MariaDB là một chiều: dữ liệu đã nâng thì bản cũ không đọc lại được. File xuất này là đường lùi duy nhất: cài lại phiên bản cũ rồi nhập lại nó. File chỉ root đọc được vì có cả mật khẩu băm của user DB.",
 			"Upgrading the MariaDB series is one-way: the old version cannot read upgraded data. This dump is the only way back: reinstall the old series and import it. Only root can read the file because it contains the database users' password hashes.",
 		),
 		Commands: []string{s.cmd().String(), s.tail().String()},

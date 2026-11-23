@@ -62,7 +62,7 @@ func (st *settingsStep) Info() engine.StepInfo {
 		id += ":" + kv[0] + "=" + kv[1]
 	}
 	return engine.StepInfo{ID: id, Title: st.title, Why: st.why, NoUndo: i18n.T(
-		"Bước này chỉ chạy sau khi gói đã nâng, mà gói đã nâng thì máy đang chạy dòng mới; trả settings về dòng cũ là để tpan nói sai về máy.",
+		"Bước này chỉ chạy sau khi gói đã nâng, mà gói đã nâng thì máy đang chạy phiên bản mới; trả settings về phiên bản cũ là để tpan nói sai về máy.",
 		"This step only runs after the packages are upgraded, and then the machine runs the new series; putting the old series back in settings would make tpan describe the machine wrongly.")}
 }
 
