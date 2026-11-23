@@ -79,7 +79,7 @@ func setupCmd(e *env) *cobra.Command {
 			}); !ok {
 				if err == nil && f.dryRun && !f.asJSON {
 					printf(e.stdout, "\n%s\n", e.tr(
-						"Sau đó: mở DB, sinh mật khẩu quản trị nếu chưa có (in ra một lần).",
+						"Sau đó: mở DB, tạo mật khẩu quản trị nếu chưa có (in ra một lần).",
 						"Then: open the DB and generate an admin password if there is none (printed once)."))
 				}
 				return err

@@ -35,7 +35,7 @@ func adminPasswdCmd(e *env) *cobra.Command {
 				return fail(e, asJSON, err)
 			}
 			what := e.tr(
-				"Sẽ: sinh mật khẩu quản trị mới (in ra một lần), huỷ MỌI phiên đang đăng nhập, gỡ mọi IP đang bị khoá, ghi nhật ký.",
+				"Sẽ: tạo mật khẩu quản trị mới (in ra một lần), huỷ MỌI phiên đang đăng nhập, gỡ mọi IP đang bị khoá, ghi nhật ký.",
 				"Will: generate a new admin password (printed once), end EVERY logged-in session, unlock every locked IP, write the audit log.")
 			if dryRun {
 				if asJSON {

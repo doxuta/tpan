@@ -160,7 +160,7 @@ func dbAddCmd(e *env) *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "add <tên> [--owner U] [--charset C] [--collation X] [--note N]",
-		Short: "Tạo DB rời <owner>_<tên> cùng user DB trùng tên; mật khẩu sinh ngẫu nhiên, in ra một lần",
+		Short: "Tạo DB rời <owner>_<tên> cùng user DB trùng tên; mật khẩu tạo ngẫu nhiên, in ra một lần",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			own, err := parseUserArg(owner)

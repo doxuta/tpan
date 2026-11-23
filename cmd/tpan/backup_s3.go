@@ -45,7 +45,7 @@ import (
 func backupS3Cmds(e *env) []*cobra.Command {
 	target := &cobra.Command{Use: "target", Short: "Đích sao lưu S3: đặt, xem, thử, gỡ"}
 	target.AddCommand(backupTargetSetCmd(e), backupTargetShowCmd(e), backupTargetTestCmd(e), backupTargetRmCmd(e))
-	key := &cobra.Command{Use: "key", Short: "Khoá sao lưu (mã hoá gói panel trước khi lên kho): sinh mới, xem"}
+	key := &cobra.Command{Use: "key", Short: "Khoá sao lưu (mã hoá gói panel trước khi lên kho): tạo mới, xem"}
 	key.AddCommand(backupKeyNewCmd(e), backupKeyShowCmd(e))
 	return []*cobra.Command{target, key, backupPushCmd(e), backupPullCmd(e)}
 }
@@ -237,7 +237,7 @@ func readBackupKeyFile(sys system.System) (system.Secret, bool, error) {
 	}
 	k := system.NewSecret(strings.TrimSpace(string(b)))
 	if agebox.CheckKey(k) != nil {
-		return system.Secret{}, false, fmt.Errorf("%s sai dạng (dài %d ký tự, cần tpan-key-1- và 52 ký tự base32); sinh khoá mới bằng: sudo tpan backup key new",
+		return system.Secret{}, false, fmt.Errorf("%s sai dạng (dài %d ký tự, cần tpan-key-1- và 52 ký tự base32); tạo khoá mới bằng: sudo tpan backup key new",
 			p, len(k.Reveal()))
 	}
 	return k, true, nil
@@ -381,7 +381,7 @@ func printKeyFingerprint(e *env) {
 	case err != nil:
 		printf(e.stdout, "%s %v\n", e.tr("Khoá sao lưu:", "Backup key:"), err)
 	case !ok:
-		printf(e.stdout, "%s\n", e.tr("Chưa có khoá sao lưu, nên chưa có gói panel; sinh bằng: sudo tpan backup key new",
+		printf(e.stdout, "%s\n", e.tr("Chưa có khoá sao lưu, nên chưa có gói panel; tạo bằng: sudo tpan backup key new",
 			"There is no backup key, so no panel bundle yet; generate one with: sudo tpan backup key new"))
 	default:
 		printf(e.stdout, "%s %s\n", e.tr("Dấu vân tay khoá sao lưu:", "Backup key fingerprint:"), agebox.Fingerprint(k))
@@ -454,7 +454,7 @@ func printTargetView(e *env, v core.TargetView) {
 	if v.HasBackupKey {
 		row(e.tr("Khoá sao lưu:", "Backup key:"), e.tr("có, dấu vân tay ", "yes, fingerprint ")+v.KeyFingerprint)
 	} else {
-		row(e.tr("Khoá sao lưu:", "Backup key:"), e.tr("chưa có (sinh bằng: sudo tpan backup key new)", "none (generate with: sudo tpan backup key new)"))
+		row(e.tr("Khoá sao lưu:", "Backup key:"), e.tr("chưa có (tạo bằng: sudo tpan backup key new)", "none (generate with: sudo tpan backup key new)"))
 	}
 	if !v.Configured {
 		if v.HasBackupKey {
