@@ -95,7 +95,10 @@ type m20Shot struct {
 	dialog bool
 	// simple: màn không trạng thái; đi thêm bàn phím và tiếng Anh.
 	simple bool
-	expect func() error
+	// want401: màn cố ý gửi một mã sai, nên đúng một dòng "401" của chính
+	// request đó trong console là điều mong đợi, không phải lỗi.
+	want401 string
+	expect  func() error
 }
 
 func photosM20(c *cdp, base, adminPW, out, only string) error {
@@ -156,7 +159,9 @@ func photosM20(c *cdp, base, adminPW, out, only string) error {
 		{name: "tai-khoan-tao-token", path: "/account", dialog: true, prep: openTokenDialog, expect: func() error {
 			return has(`document.querySelectorAll('[role=dialog] input[type=checkbox]').length>=2 && document.getElementById('tk-ngay')`, "hộp tạo token thiếu ô chọn phạm vi hay ô số ngày")
 		}},
-		{name: "tai-khoan-token-moi", path: "/account", inPlace: true, prep: func() error {
+		// Hộp tạo token (Radix Dialog) vừa mở rồi đóng ở bước chuẩn bị: dòng CSP
+		// đã biết của nó còn trong console.
+		{name: "tai-khoan-token-moi", path: "/account", inPlace: true, dialog: true, prep: func() error {
 			if err := openTokenDialog(); err != nil {
 				return err
 			}
@@ -232,7 +237,7 @@ func photosM20(c *cdp, base, adminPW, out, only string) error {
 			expect: func() error {
 				return has(`document.getElementById('ma-hai-buoc')`, "không có ô mã của chặng hai")
 			}},
-		{name: "dang-nhap-ma-sai", path: "/dang-nhap", inPlace: true, prep: func() error {
+		{name: "dang-nhap-ma-sai", path: "/dang-nhap", inPlace: true, want401: "/api/v1/login/2fa", prep: func() error {
 			s, err := demoSecret("khach_a")
 			if err != nil {
 				return err
@@ -305,6 +310,16 @@ func photosM20(c *cdp, base, adminPW, out, only string) error {
 
 	count := 0
 	take := func(s m20Shot, file string) error {
+		if s.want401 != "" {
+			// Lấy hết dòng console ra trước (consoleErrors xả bộ đệm), bỏ đúng
+			// dòng 401 mong đợi, các dòng khác vẫn là lỗi.
+			for _, e := range c.consoleErrors() {
+				if strings.Contains(e, "status of 401") && strings.Contains(e, s.want401) {
+					continue
+				}
+				fail.add("%s: lỗi console: %s", file, e)
+			}
+		}
 		checkPage(c, &fail, file, s.dialog)
 		checkClipped(c, &fail, file)
 		if s.expect != nil {
