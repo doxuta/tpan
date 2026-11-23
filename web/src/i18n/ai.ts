@@ -62,7 +62,7 @@ const vi = {
   toolPlan: "Lập Plan",
   toolFailed: "lỗi",
   toolSent: "dữ liệu đã gửi",
-  toolInput: "Đầu vào của công cụ",
+  toolInput: "Input của công cụ",
   working: "AI đang trả lời…",
   workingDone: "AI đã trả lời xong.",
   planTag: "AI đề xuất",

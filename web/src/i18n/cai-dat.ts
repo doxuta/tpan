@@ -59,7 +59,7 @@ const vi = {
   brainDemoReady: "Bộ não giả, không cần nối",
   brainHostLabel: "Máy đang nối",
   brainVersionLabel: "Claude Code",
-  brainVersionWarn: (v: string, tested: string) => `Bản ${v} khác bản đã chạy bài kiểm của TPAN (${tested}). Định dạng đầu ra có thể đã đổi; nếu AI trả lời lạ hoặc thiếu chữ, xem phiên ở màn Phiên AI.`,
+  brainVersionWarn: (v: string, tested: string) => `Bản ${v} khác bản TPAN đã thử (${tested}). Định dạng output có thể đã đổi; nếu AI trả lời lạ hoặc thiếu chữ, xem phiên ở màn Phiên AI.`,
   brainModelLabel: "Model",
   brainAuthLabel: "Đăng nhập",
   brainAuthWarn: (method: string) => `Claude Code đang đăng nhập bằng “${method}”, không phải gói claude.ai. Mỗi câu hỏi có thể bị tính tiền theo API.`,

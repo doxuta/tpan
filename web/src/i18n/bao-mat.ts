@@ -34,7 +34,7 @@ const vi = {
 
   // ---- bản xem trước ----
   portsLabel: "Cổng sẽ mở trước khi bật tường lửa",
-  portsLead: "Tường lửa chặn mọi cổng chưa được mở. Các cổng này được mở trước, rồi mới bật:",
+  portsLead: "Tường lửa chặn mọi cổng chưa mở. TPAN mở các cổng này trước, rồi mới bật:",
   portsWarn: "Đối chiếu với cổng SSH bạn đang dùng để vào máy. Thiếu cổng đó trong danh sách thì đừng chạy: bật xong là mất đường vào máy.",
 
   // ---- M14: khối "Cô lập giữa các site" (mục 6.13 của KE-HOACH.md) ----
@@ -46,7 +46,7 @@ const vi = {
   matrixHeading: "Ma trận site × site",
   matrixLead:
     "Hàng là site thử lấn sang, cột là site bị thử. Mỗi ô là một phép kiểm chạy dưới user của site ở hàng: đọc wp-config.php, vào thư mục, ghi vào thư mục web, đọc access.log và ghi vào socket của site ở cột. Bấm một ô để xem lệnh và output.",
-  matrixKeys: "Đang ở trong bảng thì phím mũi tên đưa bạn sang ô bên cạnh.",
+  matrixKeys: "Trong bảng, phím mũi tên chuyển sang ô bên cạnh.",
   matrixCaption: "Ma trận cô lập: hàng là site thử lấn sang, cột là site bị thử",
   matrixFrom: "Từ site",
   matrixTo: "Sang site",
@@ -81,7 +81,7 @@ const vi = {
   hardenButton: "Áp bản vá cô lập",
   hardenNeeded: "Có phép kiểm chưa đạt mà bản vá này sửa được.",
   hardenHint:
-    "Ghi file ini OPcache và drop-in ProtectProc cho mọi bản PHP, đặt lại quyền log, quét .htaccess rồi ghi lại vhost của mọi site, reload một lần. Mọi thứ đã đúng thì các bước được bỏ qua. Bấm là xem trước, chưa có gì đổi.",
+    "Ghi file ini OPcache và drop-in ProtectProc cho mọi bản PHP, đặt lại quyền log, quét .htaccess rồi ghi lại vhost của mọi site, reload một lần. Mọi thứ đã đúng thì bỏ qua các bước đó. Bấm là xem trước, chưa có gì đổi.",
   hardenPreviewError: "Chưa dựng được bản xem trước của bản vá cô lập",
   hardenModesLabel: "Chế độ .htaccess sau bản vá",
   hardenSwitched: (n: number) => (n === 0 ? "Không site nào đổi chế độ .htaccess." : `${n} site chuyển sang an-toan`),

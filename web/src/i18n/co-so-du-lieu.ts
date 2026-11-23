@@ -18,7 +18,7 @@ const vi = {
   colAction: "Việc",
   unreadable: "không đọc được",
 
-  emptyText: "Chưa có cơ sở dữ liệu nào. DB của site có khi tạo site; DB rời tạo bằng nút Tạo DB.",
+  emptyText: "Chưa có cơ sở dữ liệu nào. DB của site tạo cùng lúc với site; DB rời tạo bằng nút Tạo DB.",
   emptyLink: "Tạo site đầu tiên",
 
   hint: "Đổi mật khẩu: TPAN tạo mật khẩu mới, đổi trong MariaDB và ghi vào wp-config.php. Xuất .sql: ghi một file .sql vào thư mục backup của site, xem ở màn Backup. Nhập: đưa một bản đã xuất vào lại cơ sở dữ liệu. Bấm là xem trước từng bước, chưa có gì đổi.",
@@ -131,7 +131,7 @@ const vi = {
 
   // Lời đặt trên bản xem trước
   passwordDbWarning: (db: string) =>
-    `Đổi mật khẩu ${db}: mật khẩu mới hiện đúng một lần ở trang job sau khi chạy xong, chép ngay vì TPAN không giữ. Ứng dụng đang dùng mật khẩu cũ mất kết nối tới khi bạn đổi theo. Không hoàn tác được.`,
+    `Đổi mật khẩu ${db}: mật khẩu mới hiện đúng một lần ở trang job sau khi chạy xong, chép ngay vì TPAN không giữ. Ứng dụng còn dùng mật khẩu cũ sẽ mất kết nối cho tới khi bạn đổi theo. Không hoàn tác được.`,
   suspendDbWarning: (db: string) =>
     `Tạm khoá ${db}: user DB bị khoá và mọi kết nối đang mở bị ngắt. Ứng dụng dùng DB này báo lỗi kết nối tới khi mở khoá. Dữ liệu giữ nguyên.`,
   suspendSiteDbWarning: (d: string, db: string) =>

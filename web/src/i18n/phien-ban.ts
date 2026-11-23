@@ -31,14 +31,14 @@ const vi = {
   pvSha: "SHA256 sẽ kiểm",
   pvBack: "Cập nhật xong có quay lại được không",
   backNote:
-    "Được. Bản đang chạy được giữ lại ở /usr/local/bin/tpan.old, và sau khi cập nhật, khối này có nút quay về. " +
-    "Riêng khi bản mới đổi cấu trúc cơ sở dữ liệu của TPAN thì không quay về bằng nút được; lúc đó đường lùi là bản sao tpan.db bạn giữ từ trước khi cập nhật.",
+    "Được. TPAN giữ bản đang chạy ở /usr/local/bin/tpan.old, và sau khi cập nhật khối này có nút quay về. " +
+    "Riêng khi bản mới đổi cấu trúc cơ sở dữ liệu của TPAN thì nút không quay về được; lúc đó chỉ còn cách chép lại bản sao tpan.db bạn giữ từ trước khi cập nhật.",
   updateButton: (v: string) => (v ? `Cập nhật lên ${v}` : "Cập nhật lên bản mới"),
   updateError: "Chưa bắt đầu cập nhật được",
 
   // Hộp hỏi lại trước khi cập nhật
   confirmTitle: (v: string) => (v ? `Cập nhật TPAN lên ${v}?` : "Cập nhật TPAN lên bản mới?"),
-  confirmRestart: "Panel sẽ khởi động lại và mất kết nối khoảng vài giây. Trang này tự nối lại.",
+  confirmRestart: "Panel sẽ khởi động lại và mất kết nối vài giây. Trang này tự nối lại.",
   confirmSession: "Phiên đăng nhập giữ nguyên, bạn không phải đăng nhập lại.",
   confirmSites: "Các site không bị đụng tới: web server, PHP và cơ sở dữ liệu vẫn chạy như cũ.",
 
@@ -76,7 +76,7 @@ const vi = {
   rollbackError: "Chưa quay về được",
   rollbackTitle: (current: string, old: string) => `Quay từ ${current} về ${old}?`,
   rollbackWarnDb: "Nếu bản đang chạy đã đổi cấu trúc cơ sở dữ liệu của TPAN thì máy chủ sẽ từ chối, và không có gì thay đổi.",
-  rollbackWarnRestart: "Panel cũng sẽ khởi động lại và mất kết nối khoảng vài giây. Phiên đăng nhập giữ nguyên, các site không bị đụng tới.",
+  rollbackWarnRestart: "Panel cũng sẽ khởi động lại và mất kết nối vài giây. Phiên đăng nhập giữ nguyên, các site không bị đụng tới.",
   rollbackConfirm: (old: string) => `Quay về ${old}`,
 
   cli: "Muốn dùng dòng lệnh thì gõ trên máy:",
