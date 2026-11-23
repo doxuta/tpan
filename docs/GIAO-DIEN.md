@@ -266,7 +266,7 @@ Mọi màn dùng đúng một từ cho một khái niệm. Thêm chuỗi mới t
 | Bằng chứng | Evidence | |
 | Bản xem trước | Preview | Lỗi dựng bản xem trước: "Chưa dựng được bản xem trước ..." / "Could not build the preview ...". |
 | Điều kiện chưa đạt | Conditions not met | |
-| Chặng (ga trên bản đồ) | Stage (station) | |
+| Ga | Station | Điểm trên bản đồ đường đi. Nói về phần mà request đi qua thì dùng "thành phần" (dòng dưới). |
 | Bộ não, Ngăn AI, Phiên AI | Brain, AI drawer, AI session | |
 | Cấu hình | Configuration | "Cài đặt" / "Settings" chỉ là tên màn Cài đặt và tab "Cài đặt site". |
 | Việc (tên cột) | Action | Cột nút bấm của bảng. Không dùng "Thao tác". |
