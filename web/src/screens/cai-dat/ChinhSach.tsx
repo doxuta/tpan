@@ -15,8 +15,11 @@ import { SegmentButton } from "../../components/SegmentButton";
 import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/cai-dat";
 import { strings as khung } from "../../i18n/khung";
-import { ErrorNote } from "../site/ErrorNote";
+import { ReauthError, ReauthFields, useReauth } from "../nguoi-dung/Reauth";
 import { Note } from "./Note";
+
+// Mức chặt của chính sách: hạ xuống là nới lỏng.
+const rank: Record<Policy, number> = { off: 0, admin: 1, all: 2 };
 
 export function ChinhSach() {
   const t = useStrings(strings);
@@ -27,24 +30,38 @@ export function ChinhSach() {
   const [pick, setPick] = useState<Policy | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [local, setLocal] = useState<string | null>(null);
+  const re = useReauth(save.error);
 
   const current = q.data?.require_2fa;
   const value = pick ?? current ?? "off";
   const dirty = current !== undefined && value !== current;
+  // Nới lỏng (hạ mức) thì máy chủ đòi mật khẩu của admin đang thao tác; đòi mà ta chưa đoán ra thì hiện ô sau lần gửi đầu.
+  const asked = save.error instanceof ApiError && (save.error.code === "reauth_required" || save.error.code === "mfa_code_required");
+  const needReauth = dirty && ((current !== undefined && rank[value] < rank[current]) || asked);
 
   const send = () => {
     setConfirming(false);
     save.mutate(
-      { require_2fa: value },
+      { require_2fa: value, ...(needReauth && re.body()) },
       {
         onSuccess: () => {
           setPick(null);
           setJustSaved(true);
+          re.setPassword("");
+          re.setCode("");
         },
+        onError: re.afterError,
       },
     );
   };
-  const submit = () => (value === "off" ? send() : setConfirming(true));
+  const submit = () => {
+    const missing = needReauth ? re.problem() : null;
+    setLocal(missing);
+    if (missing) return;
+    if (value === "off") send();
+    else setConfirming(true);
+  };
 
   const selfFirst = save.error instanceof ApiError && save.error.code === "mfa_enroll_self_first";
 
@@ -72,6 +89,7 @@ export function ChinhSach() {
               onChange={(v) => {
                 setPick(v);
                 setJustSaved(false);
+                setLocal(null);
                 save.reset();
               }}
               options={[
@@ -81,6 +99,8 @@ export function ChinhSach() {
               ]}
             />
           </div>
+          {needReauth && <ReauthFields r={re} idPrefix="pol" why={t.polReauthWhy} error={save.error} />}
+          {local && <Note kind="fail">{local}</Note>}
           {selfFirst ? (
             <div role="alert" className="flex flex-col gap-[8px]">
               <Note kind="fail">{t.polSelfFirst}</Note>
@@ -89,7 +109,7 @@ export function ChinhSach() {
               </Link>
             </div>
           ) : (
-            save.isError && <ErrorNote error={save.error} />
+            save.isError && <ReauthError error={save.error} />
           )}
           <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
             <Button variant="primary" onClick={submit} disabled={!dirty || save.isPending}>

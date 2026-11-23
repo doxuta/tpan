@@ -101,6 +101,9 @@ const vi = {
   polConfirmLabel: "Bắt buộc hai bước",
   polSelfFirst: "Bạn chưa bật hai bước cho chính mình nên chưa đặt được chính sách này (đặt xong là bạn tự bị nhốt ngoài). Bật hai bước ở trang Tài khoản trước, rồi quay lại.",
   polGoAccount: "Mở trang Tài khoản",
+
+  polReauthWhy: "Hạ mức bắt buộc làm cửa vào dễ hơn, nên để một phiên bị chiếm không tự tắt được hai bước, tpan hỏi lại mật khẩu của chính bạn.",
+  tkReauthWhy: "Tăng số ngày làm token sống lâu hơn, nên để một phiên bị chiếm không tự kéo dài token, tpan hỏi lại mật khẩu của chính bạn.",
   polLoadFailed: "Chưa đọc được cài đặt đăng nhập.",
 
   tkHeading: "Token API",
@@ -234,6 +237,9 @@ export const strings = defineStrings(vi, {
   polConfirmLabel: "Require two-step login",
   polSelfFirst: "You have not turned on two-step login for yourself, so this policy cannot be set yet (you would lock yourself out). Turn it on in the Account page first, then come back.",
   polGoAccount: "Open the Account page",
+
+  polReauthWhy: "Lowering the requirement makes the door easier to open, so to stop a hijacked session from switching two-step login off, tpan asks for your own password again.",
+  tkReauthWhy: "More days make tokens live longer, so to stop a hijacked session from stretching them, tpan asks for your own password again.",
   polLoadFailed: "Could not read the login settings.",
 
   tkHeading: "API tokens",

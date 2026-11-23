@@ -3,7 +3,6 @@
 // (GET /api/v1/tokens), có cột Chủ và thu hồi (DELETE /api/v1/tokens/{id}).
 
 import { useState, type FormEvent } from "react";
-import { errorMessage } from "../../api/client";
 import { useAllTokens, useAuthSettings, useSaveAuthSettings } from "../../api/m20";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -13,7 +12,8 @@ import { strings } from "../../i18n/cai-dat";
 import { strings as khung } from "../../i18n/khung";
 import { strings as tk } from "../../i18n/tai-khoan";
 import { TokenTable } from "../tai-khoan/TokenTable";
-import { ErrorNote } from "../site/ErrorNote";
+import { ApiError, errorMessage } from "../../api/client";
+import { ReauthError, ReauthFields, useReauth } from "../nguoi-dung/Reauth";
 import { Note } from "./Note";
 
 export function TokenAdmin() {
@@ -27,10 +27,15 @@ export function TokenAdmin() {
   const [days, setDays] = useState<string | null>(null);
   const [bad, setBad] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [local, setLocal] = useState<string | null>(null);
+  const re = useReauth(save.error);
 
   const current = settings.data?.token_max_days;
   const shown = days ?? (current === undefined ? "" : String(current));
   const dirty = current !== undefined && shown !== String(current);
+  // Tăng số ngày là nới lỏng: máy chủ đòi mật khẩu của admin đang thao tác (và mã hai bước nếu đã bật).
+  const asked = save.error instanceof ApiError && (save.error.code === "reauth_required" || save.error.code === "mfa_code_required");
+  const needReauth = dirty && ((current !== undefined && Number(shown) > current) || asked);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -40,13 +45,19 @@ export function TokenAdmin() {
       return;
     }
     setBad(false);
+    const missing = needReauth ? re.problem() : null;
+    setLocal(missing);
+    if (missing) return;
     save.mutate(
-      { token_max_days: n },
+      { token_max_days: n, ...(needReauth && re.body()) },
       {
         onSuccess: () => {
           setDays(null);
           setJustSaved(true);
+          re.setPassword("");
+          re.setCode("");
         },
+        onError: re.afterError,
       },
     );
   };
@@ -80,12 +91,15 @@ export function TokenAdmin() {
                 setDays(e.target.value);
                 setBad(false);
                 setJustSaved(false);
+                setLocal(null);
                 save.reset();
               }}
               invalid={bad}
             />
             {bad && <Note kind="fail">{t.tkBad}</Note>}
-            {save.isError && <ErrorNote error={save.error} />}
+            {needReauth && <ReauthFields r={re} idPrefix="tk" why={t.tkReauthWhy} error={save.error} />}
+            {local && <Note kind="fail">{local}</Note>}
+            {save.isError && <ReauthError error={save.error} />}
             <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
               <Button type="submit" variant="primary" disabled={!dirty || save.isPending}>
                 {save.isPending ? t.tkSaving : t.tkSave}
