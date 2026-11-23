@@ -175,6 +175,17 @@ func checkRootZone(root string, cmd Cmd) error {
 		return nil
 	}
 	refuse := fmt.Errorf("%w: %s", ErrRootZoneCommand, cmd.String())
+	// M17: lệnh của site trong lồng (internal/cage) là `systemd-run ... -p
+	// User=tp_<slug> ... -- <lệnh>`. Root chỉ khởi động unit; lệnh sau "--"
+	// chạy bằng user của site trong hàng rào của lồng, tức là bị kernel giới hạn
+	// đúng như một lệnh có AsUser là user site (miễn ở đầu hàm này). Chỉ nhận
+	// đúng dạng cage.Wrap dựng; khác một cờ là xét như mọi lệnh root.
+	if cmd.Name == "systemd-run" {
+		if cageRunAsSite(root, prefix, cmd) {
+			return nil
+		}
+		return refuse
+	}
 	form, ok := rootZoneCommands[cmd.Name]
 	if !ok || !form(cmd.Args, prefix) {
 		return refuse
@@ -247,4 +258,75 @@ func checkRootZone(root string, cmd Cmd) error {
 		}
 	}
 	return nil
+}
+
+// cageUnitRe là tên unit tạm của lệnh chạy thay cho site trong lồng
+// (site.CageRunPrefixOfSlug + 16 hex, internal/cage).
+var cageUnitRe = regexp.MustCompile(`^tpan-cage-[a-z0-9_]{1,40}-run-[0-9a-f]{16}$`)
+
+// cageRunAsSite cho biết cmd đúng dạng systemd-run mà internal/cage dựng cho
+// một lệnh của site trong lồng: mọi cờ trước "--" thuộc đúng tập dưới đây,
+// có User= là user site và NoNewPrivileges=yes, không Dir, không Env nào chạm
+// vùng site, --working-directory (nếu có) là một neo. Phần sau "--" chạy bằng
+// user của site nên không xét.
+func cageRunAsSite(root, prefix string, cmd Cmd) bool {
+	if cmd.Dir != "" {
+		return false
+	}
+	for _, kv := range cmd.Env {
+		if strings.Contains(kv, prefix) {
+			return false
+		}
+	}
+	var user string
+	noNewPrivs, sep := false, false
+	args := cmd.Args
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if a == "--" {
+			sep = i+1 < len(args)
+			break
+		}
+		switch {
+		case a == "--quiet", a == "--wait", a == "--pipe", a == "--expand-environment=no", a == "--service-type=oneshot":
+		case strings.HasPrefix(a, "--unit="):
+			if !cageUnitRe.MatchString(strings.TrimPrefix(a, "--unit=")) {
+				return false
+			}
+		case strings.HasPrefix(a, "--working-directory="):
+			if d := strings.TrimPrefix(a, "--working-directory="); strings.HasPrefix(d+"/", prefix) && !sitefs.IsAnchor(root, d) {
+				return false
+			}
+		case a == "-p" && i+1 < len(args):
+			i++
+			v := args[i]
+			switch k, val, _ := strings.Cut(v, "="); k {
+			case "User":
+				if !siteUserRe.MatchString(val) {
+					return false
+				}
+				user = val
+			case "Group":
+				if !siteUserRe.MatchString(val) {
+					return false
+				}
+			case "NoNewPrivileges":
+				if val != "yes" {
+					return false
+				}
+				noNewPrivs = true
+			case "TimeoutStartSec":
+				if val == "" || strings.Trim(val, "0123456789") != "" {
+					return false
+				}
+			default:
+				return false
+			}
+		case a == "-E" && i+1 < len(args) && args[i+1] == "LC_ALL=C":
+			i++
+		default:
+			return false
+		}
+	}
+	return sep && user != "" && noNewPrivs
 }
