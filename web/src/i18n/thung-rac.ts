@@ -19,7 +19,7 @@ const vi = {
   // Số ngày giữ
   retentionHeading: "Số ngày giữ",
   retentionLabel: "Giữ site và DB đã xoá trong (ngày)",
-  retentionHint: "Từ 0 đến 365. Số mới chỉ áp cho site xoá sau lúc đổi; site đã nằm trong thùng rác giữ nguyên hạn cũ. Đặt 0 thì site xoá về sau hết hạn ngay và bị dọn ở lượt dọn kế tiếp (mỗi giờ một lần).",
+  retentionHint: "Từ 0 đến 365. Số mới chỉ áp cho site xoá sau khi đổi; site đã trong thùng rác giữ hạn cũ. Đặt 0 thì site xoá từ giờ hết hạn ngay và được dọn ở lượt kế tiếp (mỗi giờ một lần).",
   retentionInvalid: "Nhập số nguyên từ 0 đến 365.",
   retentionCurrent: (n: number) => (n === 1 ? "Đang giữ 1 ngày." : `Đang giữ ${n} ngày.`),
   save: "Lưu",

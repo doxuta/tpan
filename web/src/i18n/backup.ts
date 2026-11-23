@@ -110,7 +110,7 @@ const vi = {
   keepHint: "Từ 1 đến 30. Bản mới đẩy bản cũ nhất ra. Bản tự backup trước khi xoá hẳn site không bao giờ bị dọn.",
   keepInvalid: "Nhập số nguyên từ 1 đến 30.",
   atLabel: "Giờ backup hằng ngày",
-  atHint: "Theo giờ của máy chủ. Để trống là tắt backup theo lịch. Lịch được ghi thành một file cron trên máy, nên bạn sẽ xem trước trước khi lưu.",
+  atHint: "Theo giờ của máy chủ. Để trống là tắt backup theo lịch. Lịch ghi vào một file cron trên máy, nên có bước xem trước khi lưu.",
   atClear: "Bỏ giờ (tắt lịch)",
   current: (keep: number, at: string) => (at ? `Đang giữ ${keep} bản, backup lúc ${at} mỗi ngày.` : `Đang giữ ${keep} bản, lịch backup đang tắt.`),
   settingsPreview: "Xem trước thay đổi",

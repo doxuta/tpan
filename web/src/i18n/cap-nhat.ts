@@ -27,7 +27,7 @@ const vi = {
     security > 0 ? `${n} gói của stack có bản mới, ${security} trong đó là bản vá bảo mật.` : `${n} gói của stack có bản mới, chưa có bản vá bảo mật nào trong đó.`,
   packagesButton: (n: number) => `Cập nhật ${n} gói`,
   packagesHint: "Xem trước, chạy, kiểm config, khởi động lại dịch vụ cần thiết rồi kiểm lại mọi site. Site nào đang đạt mà sau đó không đạt thì mở sự cố ngay.",
-  listsUpdated: (when: string) => `Danh sách gói được làm mới lần cuối lúc ${when}.`,
+  listsUpdated: (when: string) => `Danh sách gói làm mới lần cuối lúc ${when}.`,
   others: (n: number, security: number) =>
     n === 0
       ? "Hệ điều hành không còn gói nào khác đang chờ."
@@ -36,7 +36,7 @@ const vi = {
   // (b) Bản vá bảo mật tự động
   autoHeading: "Bản vá bảo mật tự động",
   autoLabel: "Bản vá bảo mật tự động",
-  autoOrigins: "Kho ngoài đang được tự vá",
+  autoOrigins: "Kho ngoài tự vá",
   autoOriginsNone: "Chưa có kho ngoài nào trong danh sách tự vá.",
   autoButton: "Bật bản vá tự động",
   autoHint: "Cài và bật unattended-upgrades để bản vá bảo mật tự cài hằng ngày, và thêm các kho ngoài đã chọn vào danh sách tự vá. " + "Bấm là xem trước, chưa có gì đổi.",
@@ -46,10 +46,10 @@ const vi = {
   mariaSource: "Nguồn",
   mariaLine: "Phiên bản",
   mariaVersion: "Gói đang cài",
-  mariaNotInstalled: "MariaDB chưa được cài trên máy này.",
+  mariaNotInstalled: "MariaDB chưa cài trên máy này.",
   mariaWarn:
     "Nâng MariaDB là một chiều. Dữ liệu đã nâng thì bản cũ không đọc lại được, và TPAN không hoàn tác tự động. " +
-    "Đường lùi là cài lại phiên bản cũ rồi nhập lại từ file xuất mà TPAN tạo trước khi nâng.",
+    "Muốn lùi thì cài lại phiên bản cũ rồi nhập lại file xuất TPAN tạo trước khi nâng.",
   mariaUpgrades: "Phiên bản nâng lên được",
   mariaUpgradesLabel: "Các phiên bản MariaDB nâng lên được",
   mariaEol: (date: string) => `hết hỗ trợ ${date}`,

@@ -615,7 +615,7 @@ func (u *Updates) PrepareMariaDB(ctx context.Context, line string) (*Planned, er
 	}
 	if cmpDBLine(line, current) <= 0 {
 		return nil, refuse("mariadb_not_newer", i18n.T(
-			fmt.Sprintf("MariaDB đang chạy phiên bản %s; chỉ nâng lên được phiên bản mới hơn (nhận được %s), không hạ xuống", current, line),
+			fmt.Sprintf("MariaDB đang chạy phiên bản %s; chỉ nâng được lên phiên bản mới hơn, không lùi về bản cũ (bạn chọn %s)", current, line),
 			fmt.Sprintf("MariaDB is running series %s; it can only move up to a newer series (got %s), never down", current, line)))
 	}
 	if err := u.requireBackups(ctx); err != nil {

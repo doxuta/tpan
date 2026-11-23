@@ -189,7 +189,7 @@ func (a *Accounts) isLastAdmin(ctx context.Context, u account.User) (bool, error
 
 func refuseLastAdmin(name string) *RefusedError {
 	return refuse(CodeLastAdmin, i18n.T(
-		name+" là admin cuối cùng đang hoạt động: khoá, xoá hay hạ xuống user thì không còn ai quản trị panel. Thêm hoặc mở khoá một admin khác trước",
+		name+" là admin cuối cùng đang hoạt động: khoá, xoá hay đổi thành user thì không còn ai quản trị panel. Thêm hoặc mở khoá một admin khác trước",
 		name+" is the last active admin: locking, deleting or demoting it leaves nobody to run the panel. Add or unlock another admin first"))
 }
 

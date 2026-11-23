@@ -16,7 +16,7 @@ const vi = {
 
   // ---- danh sách /plans ----
   listTitle: "Plan chờ duyệt",
-  listSummary: "Thay đổi do AI hoặc agent đề xuất, và những Plan đã được duyệt hay từ chối. Máy chỉ đổi khi bạn duyệt.",
+  listSummary: "Thay đổi do AI hoặc agent đề xuất, và các Plan đã duyệt hay đã từ chối. Máy chỉ đổi khi bạn duyệt.",
   filterLabel: "Lọc theo trạng thái",
   filterAll: "Tất cả",
   colPlan: "Plan",
@@ -35,9 +35,9 @@ const vi = {
   detailLoadFailed: "Chưa tải được Plan này.",
   backToList: "Về danh sách Plan",
   proposedAt: (time: string) => `Đề xuất lúc ${time}`,
-  untrustedWarning: "Plan này được đề xuất sau khi AI đọc nội dung do người lạ gửi tới (log). Đọc kỹ từng bước trước khi duyệt.",
+  untrustedWarning: "AI đề xuất Plan này sau khi đọc nội dung người lạ gửi tới (log). Đọc kỹ từng bước trước khi duyệt.",
   untrustedLabel: "Cảnh báo",
-  planChanged: "Máy đã khác lúc đề xuất. Bản xem trước vừa được dựng lại, xem lại rồi duyệt lần nữa.",
+  planChanged: "Máy đã khác lúc đề xuất. Bản xem trước vừa dựng lại, xem lại rồi duyệt lần nữa.",
   appliedLine: "Plan này đã chạy.",
   openJob: "Xem job và bằng chứng",
   // Đứng sau tên người từ chối (chữ mono) ở trang chi tiết.

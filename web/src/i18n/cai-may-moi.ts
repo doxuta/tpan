@@ -18,7 +18,7 @@ const vi = {
   privateOff: "Không chọn thì panel mở ở cổng 8443 cho mọi địa chỉ.",
 
   baseLabel: "Nguồn tải file chạy",
-  baseHint: (v: string) => `Để trống là bản phát hành của chính bản TPAN đang chạy (${v}). Máy mới tải tpan-linux-amd64 hoặc tpan-linux-arm64 từ đây.`,
+  baseHint: (v: string) => `Để trống thì dùng bản phát hành cùng bản TPAN đang chạy (${v}). Máy mới tải tpan-linux-amd64 hoặc tpan-linux-arm64 từ đây.`,
   versionUnknown: "không rõ bản",
 
   sumAmdLabel: "sha256 của tpan-linux-amd64",
@@ -44,7 +44,7 @@ const vi = {
   resultHeading: "Kết quả",
   secretLabel: "Mật khẩu quản trị",
   secretTitle: "Panel của máy mới",
-  secretBody: "Chỉ hiện một lần. Chép ra chỗ an toàn ngay; user-data chỉ chứa bản băm của nó.",
+  secretBody: "Chỉ hiện một lần. Chép ra chỗ an toàn ngay; user-data chỉ chứa hash của nó.",
   secretUser: "Tên đăng nhập",
   secretPassword: "Mật khẩu",
   secretCopy: "Chép",

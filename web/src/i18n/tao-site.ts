@@ -35,7 +35,7 @@ const vi = {
   listRequired: "Dán ít nhất một domain, mỗi dòng một cái.",
   listEmailHint: "Mọi site trong danh sách dùng chung email này cho tài khoản quản trị WordPress. Mật khẩu của từng site hiện một lần sau khi tạo xong.",
   sslLabel: "SSL cho cả lô",
-  sslHint: "Bật thì sau khi tạo xong, TPAN xin chứng chỉ cho từng site, lần lượt. DNS của site phải đã trỏ về máy này.",
+  sslHint: "Bật thì sau khi tạo xong, TPAN xin chứng chỉ cho từng site, lần lượt. DNS của site phải trỏ về máy này trước.",
   itemsHeading: "Việc sẽ làm với từng domain",
   itemsTable: "Việc sẽ làm với từng domain",
   colDomain: "Domain",
