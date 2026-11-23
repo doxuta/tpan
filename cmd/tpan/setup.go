@@ -155,7 +155,7 @@ func setupAdminPassword(ctx context.Context, st *store.Store) (pw string, create
 		return "", false, err
 	}
 	pw = store.GeneratePassword()
-	hash, err := store.HashPassword(pw)
+	hash, err := store.HashPasswordWait(pw)
 	if err != nil {
 		return "", false, err
 	}

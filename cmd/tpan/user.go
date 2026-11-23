@@ -64,7 +64,7 @@ func openM13(ctx context.Context, e *env, dryRun bool) (*m13Env, func(), error) 
 	if st, ok := s.Store.(*store.Store); ok {
 		m.st, m.dbs.Store = st, st
 		m.acc = &core.Accounts{Sys: s.Sys, Store: st, Sites: s, DBs: m.dbs, Journal: s.Journal,
-			Hash: store.HashPassword, Generate: store.GeneratePassword}
+			Hash: store.HashPasswordWait, Generate: store.GeneratePassword}
 	}
 	return m, done, nil
 }

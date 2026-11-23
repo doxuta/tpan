@@ -93,7 +93,7 @@ func cloudInitRenderCmd(e *env) *cobra.Command {
 					return err
 				}
 			}
-			ci := &core.CloudInit{Sys: e.sys, Version: buildinfo.Version, Hash: store.HashPassword}
+			ci := &core.CloudInit{Sys: e.sys, Version: buildinfo.Version, Hash: store.HashPasswordWait}
 			res, err := ci.Render(ctx, in)
 			if err != nil {
 				return fail(e, asJSON, err)

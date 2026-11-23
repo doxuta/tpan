@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -41,6 +42,12 @@ type RunOptions struct {
 func Run(ctx context.Context, o RunOptions) error {
 	s := newServer(o.Deps)
 	if o.Deps.Store != nil {
+		// Hash giả cho tên lạ (auth.go) tính trước khi nghe cổng: lúc đó chưa
+		// ai giữ chỗ argon2, nên lần đăng nhập bằng tên lạ không bao giờ phải
+		// chờ hay lỗi khác tên thật (S11 của M28 đợt 2).
+		if _, err := authDummyHash(); err != nil {
+			return fmt.Errorf("dựng hash giả cho đăng nhập: %w", err)
+		}
 		// Health định kỳ (mục 6.7) sống cùng tiến trình serve. Dựng trước khi
 		// nghe để mọi request thấy s.sched (Kick sau mỗi job).
 		// ctx riêng: Run có thể trả về khi ctx ngoài còn sống (nghe cổng lỗi),

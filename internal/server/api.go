@@ -140,6 +140,10 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		return http.StatusNotFound, ErrorBody{Error: ErrorDetail{Code: "not_found", Message: i18n.T("Không có.", "Not found.")}}
+	case errors.Is(err, store.ErrPasswordBusy):
+		// M28 đợt 2, P2: argon2 hết chỗ ở mọi route băm mật khẩu (tạo user,
+		// đặt lại mật khẩu, cloud-init). apiFail thêm Retry-After.
+		return http.StatusTooManyRequests, authBusyBody()
 	}
 	// Lỗi khác: lỗi của tpan hoặc của máy. Thông báo của core đã có ngữ cảnh và
 	// không chứa mật khẩu (Secret luôn in "••••"); người đọc là quản trị viên,
@@ -155,6 +159,9 @@ func apiFail(w http.ResponseWriter, r *http.Request, err error) {
 	status, body := apiErrorStatus(err)
 	if status == http.StatusInternalServerError {
 		slog.Error("API lỗi", "method", r.Method, "path", r.URL.Path, "err", err)
+	}
+	if status == http.StatusTooManyRequests {
+		w.Header().Set("Retry-After", authBusyAfter)
 	}
 	writeJSON(w, status, body)
 }
