@@ -42,7 +42,10 @@ export function Layout() {
   const location = useLocation();
   const session = useSession();
   const loggedIn = session.data?.logged_in === true;
-  const overview = useOverview(loggedIn);
+  // M20: chính sách bắt bật hai bước mà user chưa bật: máy chủ trả 403 mfa_enroll_required cho mọi việc
+  // trừ trang bật, nên đừng gọi tổng quan và đưa người dùng tới /bat-hai-buoc.
+  const mustEnroll = loggedIn && session.data?.mfa_enroll_required === true;
+  const overview = useOverview(loggedIn && !mustEnroll);
   const who = useWho();
 
   if (session.isPending) return <p className="px-[32px] py-[24px] text-muted">{t.loading}</p>;
@@ -61,6 +64,7 @@ export function Layout() {
     );
   }
   if (!loggedIn) return <Navigate to={loginHref(location.pathname + location.search)} replace />;
+  if (mustEnroll) return <Navigate to="/bat-hai-buoc" replace />;
 
   return (
     // AiProvider bọc cả user thường: vài màn dùng chung (sự cố, site, job) gọi useAi

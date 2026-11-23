@@ -2,7 +2,8 @@
 // M16-thiet-ke.md): mỗi mục một thẻ. Mật khẩu quản trị, các phiên đang đăng
 // nhập, khối "Phiên bản và cập nhật" (M15, mục 6.14; chỉ admin, dùng chung với
 // màn Cập nhật), giao diện (ngôn ngữ, sáng hoặc tối, Gợi ý), mục "AI và bộ não"
-// (M8) và mục Agent và MCP (M7).
+// (M8) và mục Agent và MCP (M7). M20 thêm cho admin ba thẻ: chính sách hai bước,
+// token API, tên miền của panel.
 //
 // Mục Giao diện dùng đúng state của menu tài khoản (useLang, useTheme, useTips),
 // nên đổi ở đây hay ở menu là cùng một thay đổi.
@@ -22,6 +23,9 @@ import { MatKhau } from "./MatKhau";
 import { Phien } from "./Phien";
 import { Agent } from "./Agent";
 import { BoNao } from "./BoNao";
+import { ChinhSach } from "./ChinhSach";
+import { TenMien } from "./TenMien";
+import { TokenAdmin } from "./TokenAdmin";
 
 const groupLabel = "mb-[6px] text-[14px] font-medium";
 
@@ -38,6 +42,14 @@ export default function CaiDat() {
       <ScreenHeader crumbs={[{ label: k.groups.taiKhoan }, { label: t.title }]} title={t.title} summary={isAdmin ? t.summary : t.summaryUser} />
       <MatKhau />
       <Phien />
+      {/* M20: hai bước (chính sách), token API (mức tối đa, mọi token) và tên miền của panel: route chỉ admin. */}
+      {isAdmin && (
+        <>
+          <ChinhSach />
+          <TokenAdmin />
+          <TenMien />
+        </>
+      )}
       {/* Route /api/v1/self chỉ admin: user thường không thấy khối này. */}
       {isAdmin && <Self />}
 

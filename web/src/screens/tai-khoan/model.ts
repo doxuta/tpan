@@ -97,3 +97,50 @@ export function totpComplete(code: string): boolean {
 export function curlExample(origin: string, token: string): string {
   return `curl -H "Authorization: Bearer ${token}" ${origin}/api/v1/sites`;
 }
+
+/** Nhắc tạo lại khi còn ít mã dự phòng (recoveryLow trở xuống, kể cả 0). */
+export function recoveryLowNow(left: number): boolean {
+  return left <= recoveryLow;
+}
+
+/**
+ * Ô nhận "mã 6 số hoặc mã dự phòng" (hộp hỏi lại, ô mã khi tạo token và đổi
+ * mật khẩu): toàn chữ số và khoảng trắng là mã 6 số (bỏ khoảng trắng), còn lại là mã dự phòng.
+ */
+export function cleanCode(code: string): string {
+  return /^[\d\s]+$/.test(code) ? cleanTotp(code) : cleanRecovery(code);
+}
+
+/** Ô mã đã đủ để gửi: đúng 6 số hoặc đúng 16 ký tự của mã dự phòng. */
+export function codeReady(code: string): boolean {
+  return totpComplete(code) || recoveryComplete(code);
+}
+
+/** Số ngày hạn mặc định của token mới: 30, không quá mức tối đa của máy. */
+export function defaultDays(maxDays: number): number {
+  return Math.min(30, Math.max(1, maxDays));
+}
+
+export type TokenProblem = "name" | "scopes" | "days" | "password" | "code";
+
+/** Ô nào của biểu mẫu tạo token còn thiếu hay sai (theo thứ tự trên màn); null là gửi được. */
+export function tokenProblem(f: { name: string; scopes: string[]; days: string; maxDays: number; password: string; needCode: boolean; code: string }): TokenProblem | null {
+  const name = f.name.trim();
+  if (name === "" || [...name].length > 64) return "name";
+  if (f.scopes.length === 0) return "scopes";
+  const days = Number(f.days);
+  if (f.days.trim() === "" || !Number.isInteger(days) || days < 1 || days > f.maxDays) return "days";
+  if (f.password === "") return "password";
+  if (f.needCode && !codeReady(f.code)) return "code";
+  return null;
+}
+
+/** Thời gian ngắn theo ngôn ngữ ("23/11, 14:05"). */
+export function fmtTime(iso: string, lang: "vi" | "en"): string {
+  return new Date(iso).toLocaleString(lang === "vi" ? "vi-VN" : "en-GB", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+/** Ngày đủ năm ("23/02/2027"): hạn của token. */
+export function fmtDate(iso: string, lang: "vi" | "en"): string {
+  return new Date(iso).toLocaleDateString(lang === "vi" ? "vi-VN" : "en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
