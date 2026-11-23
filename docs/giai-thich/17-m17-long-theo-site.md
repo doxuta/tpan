@@ -68,7 +68,7 @@ o.example.com                    admin          default      ngoài lồng      
 ```
 SITE                             CHỦ            RAM MiB                TIẾN TRÌNH     CHẠM TRẦN
 a.example.com                    khach          40/200 (đỉnh 200)      2/40           OOM 1, tiến trình 1
-b.example.com                    khach          40/200 (đỉnh 92)       2/40           OOM 0, tiến trình 0
+b.example.com                    khach          40/200 (đỉnh 82)       2/40           OOM 0, tiến trình 0
 ```
 
 Hỏi số liệu của site ngoài lồng (`tpan usage o.example.com`) thì bị từ chối với mã `usage_not_caged` và lời chỉ cách đưa vào lồng: site ngoài lồng dùng chung một dịch vụ PHP nên không có cgroup riêng để đọc.
@@ -243,7 +243,7 @@ vượt RAM: mã 1
 
 ### 2.7 Số đo của e2e
 
-E2E bước 20 (`scripts/e2e-m17.sh chinh`, log `docs/bang-chung/M17.log`) chạy ngày 23/11/2026 trên mã đã gộp `dev` (có M16, M18, M28), từ máy sạch, lần lượt stack nginx rồi stack Apache: **672 khẳng định đạt, 0 không đạt**. Các lượt khác cùng ngày, cùng mã:
+E2E bước 20 (`scripts/e2e-m17.sh chinh`, log `docs/bang-chung/M17.log`) chạy ngày 23/11/2026 trên mã đã gộp `dev` (có M16, M18, M28), từ máy sạch, lần lượt stack nginx rồi stack Apache: **672 khẳng định đạt, 0 không đạt**. Lượt này và lượt nâng cấp chạy trên mã cuối (sau khi siết luật ở mục 5.11); ba lượt hồi quy chạy cùng ngày trên mã đã gộp ngay trước lần siết đó (`a8d0a97`; phần siết chỉ chạm lệnh của lồng, ba kịch bản hồi quy không dùng lồng):
 
 | Lượt | Log | Kết quả |
 |---|---|---|
@@ -259,11 +259,11 @@ Số đo đáng nhớ (nginx / Apache khi hai bên khác nhau):
 | A nhìn từ trong lồng | `ls /var/www` chỉ có A; `/tmp` rỗng; không thấy tiến trình của user khác; `passwd` riêng 4 dòng; `CapEff` rỗng, `NoNewPrivs` bằng 1; `sudo`, `crontab -l` không chạy được |
 | RAM: A cấp phát 400 MB, trần 200 MB | request đó ra 502 (nginx) / 503 (Apache); request kế tiếp của A 200 trong 2 giây; `oom_kill` tăng đúng 1; dịch vụ PHP của A không khởi động lại; B 0 request hỏng trên 60 |
 | Số tiến trình: A sinh 200, trần 40 | `pids.peak` bằng 40; B 0 request hỏng trên 40 |
-| CPU, máy bận, trần 50% | A nhận 45% đến 52% của một nhân ở cả hai lần đo, có bị bóp (`nr_throttled` tăng). Máy rảnh: 46,7% / 48,1% (dưới trần, xem mục 2.4) |
+| CPU, máy bận, trần 50% | A nhận 45% đến 52% của một nhân ở cả hai lần đo, có bị bóp (`nr_throttled` tăng). Máy rảnh: 46,0% / 35,2% (dưới trần, xem mục 2.4) |
 | Đĩa, trần ghi 4 MB/giây | A ghi 32 MB mất từ 5 giây trở lên; cùng lệnh ở site ngoài lồng dưới 2 giây; B 0 request hỏng |
-| Vào lồng (site R đang nhận request) | 2 request hỏng trên 71 / 114, gián đoạn 63 ms / 87 ms |
-| Ra lồng | 0 request hỏng trên 69 / 82 |
-| Hạ trần RAM xuống dưới mức đang dùng rồi nâng lại | A tự trả 200, phục hồi sau 41 ms / 60 ms |
+| Vào lồng (site R đang nhận request) | 2 request hỏng trên 68 / 1 trên 59, gián đoạn 66 ms / 4 ms |
+| Ra lồng | 0 request hỏng trên 68 / 45 |
+| Hạ trần RAM xuống dưới mức đang dùng rồi nâng lại | A tự trả 200, phục hồi sau 2 ms / 20 ms |
 | Thử tấn công `tpan isolation probe` | 14 đường (L1 đến L9 của M14, C1 đến C5 của lồng); ngoài lồng: các đường L bị chặn, C1 đến C5 là `needs_cage` (chỉ lồng chặn được); trong lồng: mọi đường bị chặn; hai site thử bị xoá sạch, kể cả khi `kill -9` tpan giữa lượt rồi chạy `--cleanup` |
 | Khởi động lại máy ảo | A, B trả 200; site tạm khoá vẫn 403 và socket vẫn tắt |
 

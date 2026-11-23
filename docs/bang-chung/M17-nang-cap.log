@@ -1,12 +1,12 @@
-tpan của cây: v0.2.2-77-g0fe28fa-dirty; bản cũ: v0.2.0; máy ảo: tpan-m17; các phần: nang-cap
+tpan của cây: v0.2.2-81-ga195574-dirty; bản cũ: v0.2.0; máy ảo: tpan-m17; các phần: nang-cap
 
 
-######## [2026-11-23 15:38:09] PHẦN nang-cap: v0.2.0 lên v0.2.2-77-g0fe28fa-dirty (nginx), rồi bật lồng và tắt lồng
+######## [2026-11-23 16:41:31] PHẦN nang-cap: v0.2.0 lên v0.2.2-81-ga195574-dirty (nginx), rồi bật lồng và tắt lồng
 
 
-######## [2026-11-23 15:38:09] U0: gói phát hành v0.2.0 (bản đã phát hành, không build lại), máy sạch
+######## [2026-11-23 16:41:31] U0: gói phát hành v0.2.0 (bản đã phát hành, không build lại), máy sạch
 
-[2026-11-23 15:38:09] $ bash -c cd "$1" && ls -l && cat SHA256SUMS && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.0
+[2026-11-23 16:41:31] $ bash -c cd "$1" && ls -l && cat SHA256SUMS && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.0
 total 90144
 -rw-r--r--@ 1 <user>  staff     20194 21 Nov 03:12 install.sh
 -rw-r--r--@ 1 <user>  staff       243 21 Nov 03:12 SHA256SUMS
@@ -18,37 +18,37 @@ e78a9d9de614d04456176b535cb98fc7b1d1c116482e21c6464ecd4929578d9d  install.sh
 tpan-linux-amd64: OK
 tpan-linux-arm64: OK
 install.sh: OK
-[2026-11-23 15:38:09] (mã thoát 0)
+[2026-11-23 16:41:31] (mã thoát 0)
   => ĐẠT: gói v0.2.0 có đủ file, SHA256SUMS khớp
 Máy ảo: tpan-m17
 
-[2026-11-23 15:38:09] $ make vm-reset
+[2026-11-23 16:41:31] $ make vm-reset
 scripts/vm.sh reset
-[2K[0A[0EStopping tpan-m17  /-\|/-\|/- [2K[0A[0E[2K[0A[0ERestoring snapshot  /-\|/-\| [2K[0A[0ESnapshot restored: tpan-m17.clean
-[2K[0A[0EStarting tpan-m17  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
-[2026-11-23 15:38:23] (mã thoát 0)
+[2K[0A[0EStopping tpan-m17  /-\|/-\|/- [2K[0A[0E[2K[0A[0ERestoring snapshot  /-\|/-\ [2K[0A[0ESnapshot restored: tpan-m17.clean
+[2K[0A[0EStarting tpan-m17  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E
+[2026-11-23 16:41:45] (mã thoát 0)
   => ĐẠT: máy ảo về snapshot clean
 
-[2026-11-23 15:38:23] $ scripts/vm.sh exec cloud-init status --wait
+[2026-11-23 16:41:45] $ scripts/vm.sh exec cloud-init status --wait
 status: done
-[2026-11-23 15:38:24] (mã thoát 0)
+[2026-11-23 16:41:46] (mã thoát 0)
   => ĐẠT: cloud-init xong
 IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
 
-[2026-11-23 15:38:25] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+[2026-11-23 16:41:47] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
 ls: cannot access '/etc/tpan': No such file or directory
 ls: cannot access '/var/lib/tpan': No such file or directory
-[2026-11-23 15:38:26] (mã thoát 2)
+[2026-11-23 16:41:47] (mã thoát 2)
   => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
 
-[2026-11-23 15:38:26] $ multipass transfer -r dist/release/v0.2.0 tpan-m17:/home/ubuntu/
-[2026-11-23 15:38:26] (mã thoát 0)
+[2026-11-23 16:41:47] $ multipass transfer -r dist/release/v0.2.0 tpan-m17:/home/ubuntu/
+[2026-11-23 16:41:47] (mã thoát 0)
   => ĐẠT: chép gói v0.2.0 sang máy ảo
 
 
-######## [2026-11-23 15:38:26] U1: cài v0.2.0 bằng install.sh của chính nó, stack nginx, hai site
+######## [2026-11-23 16:41:47] U1: cài v0.2.0 bằng install.sh của chính nó, stack nginx, hai site
 
-[2026-11-23 15:38:26] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.2.0 && sudo bash ./install.sh --web nginx
+[2026-11-23 16:41:47] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.2.0 && sudo bash ./install.sh --web nginx
 
 ==> Kiểm máy
 Ubuntu 24.04
@@ -64,7 +64,7 @@ tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
 Đã đặt /usr/local/bin/tpan
 
 ==> Khởi tạo panel: tpan setup
-Bắt đầu job 7f8214806937d178
+Bắt đầu job 1961f0074e8dc894
 - Tạo thư mục /etc/tpan ...
   xong
 - Tạo thư mục /etc/tpan/tls ...
@@ -80,16 +80,16 @@ Bắt đầu job 7f8214806937d178
 - Chạy và bật tpan.service khi khởi động ...
   xong
 
-Job 7f8214806937d178: thành công
+Job 1961f0074e8dc894: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
     <bí mật, đã che>
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    12:A0:32:24:26:BE:02:C9:8C:C5:1F:40:60:23:97:90:32:42:7E:AA:B9:13:2C:7A:DD:DC:7F:99:83:D6:99:BC
+    E2:D8:F0:C7:A0:3C:A9:A7:3D:F3:16:20:C7:7A:66:91:74:DF:CE:30:D9:E0:31:45:52:92:F4:B1:05:43:2F:A2
 Mở: https://<IP của máy>:8443
 
 ==> Cài stack: tpan stack install --web nginx
-Bắt đầu job 45a8169cd64df928
+Bắt đầu job 9f47f1e5699f26a2
 - Làm mới danh sách gói (apt-get update) ...
   xong
 - Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
@@ -140,7 +140,7 @@ Bắt đầu job 45a8169cd64df928
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
 
-Job 45a8169cd64df928: thành công
+Job 9f47f1e5699f26a2: thành công
 Kiểm chứng:
   [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
   [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
@@ -151,7 +151,7 @@ Kiểm chứng:
   [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
   [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
   [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
-  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
@@ -159,18 +159,18 @@ Kiểm chứng:
 Xong. Bước tiếp:
   sudo tpan site add example.com --email admin@example.com
   sudo tpan health
-[2026-11-23 15:39:06] (mã thoát 0)
+[2026-11-23 16:42:26] (mã thoát 0)
 Mật khẩu quản trị panel trong output: 1 lần
   => ĐẠT: install.sh v0.2.0 thoát 0
   => ĐẠT: install.sh in bản v0.2.0
 
-[2026-11-23 15:39:06] $ scripts/vm.sh exec tpan version
+[2026-11-23 16:42:26] $ scripts/vm.sh exec tpan version
 tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
-[2026-11-23 15:39:06] (mã thoát 0)
+[2026-11-23 16:42:26] (mã thoát 0)
   => ĐẠT: tpan version là v0.2.0
 
-[2026-11-23 15:39:06] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
-Bắt đầu job 680383c7a567cfe9
+[2026-11-23 16:42:26] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job 026d7f25a1edf539
 - Tạo user Linux tp_a_example_com_7653e4 cho site ...
   xong
 - Tạo thư mục /var/www/a.example.com ...
@@ -216,7 +216,7 @@ Bắt đầu job 680383c7a567cfe9
   [đạt] Log của site không đọc được bởi site khác
   [đạt] Vhost của site có đủ các dòng chặn cô lập
 
-Job 680383c7a567cfe9: thành công
+Job 026d7f25a1edf539: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -232,11 +232,11 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-23 15:39:20] (mã thoát 0)
+[2026-11-23 16:42:38] (mã thoát 0)
   => ĐẠT: site add a.example.com: thoát 0, job thành công
 
-[2026-11-23 15:39:20] $ scripts/vm.sh root tpan site add b.example.com --email admin@example.com --yes
-Bắt đầu job bbbc68076e49075a
+[2026-11-23 16:42:38] $ scripts/vm.sh root tpan site add b.example.com --email admin@example.com --yes
+Bắt đầu job 673b74752a2b4e10
 - Tạo user Linux tp_b_example_com_cd59d5 cho site ...
   xong
 - Tạo thư mục /var/www/b.example.com ...
@@ -284,7 +284,7 @@ Bắt đầu job bbbc68076e49075a
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
 
-Job bbbc68076e49075a: thành công
+Job 673b74752a2b4e10: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -302,10 +302,10 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-23 15:39:26] (mã thoát 0)
+[2026-11-23 16:42:43] (mã thoát 0)
   => ĐẠT: site add b.example.com: thoát 0, job thành công
 
-[2026-11-23 15:39:26] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:42:43] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -319,13 +319,13 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://a.example.com/wp-login.php?redirect_to=http%3A%2F%2Fa.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:39:26] (mã thoát 0)
+[2026-11-23 16:42:44] (mã thoát 0)
   => ĐẠT: v0.2.0, site A: trang chủ a.example.com trả 200
   => ĐẠT: v0.2.0, site A: permalink /hello-world/ trả 200
   => ĐẠT: v0.2.0, site A: trang không có trả 404 do WordPress trả
   => ĐẠT: v0.2.0, site A: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:39:26] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:42:44] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -339,13 +339,13 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://b.example.com/wp-login.php?redirect_to=http%3A%2F%2Fb.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:39:27] (mã thoát 0)
+[2026-11-23 16:42:44] (mã thoát 0)
   => ĐẠT: v0.2.0, site B: trang chủ b.example.com trả 200
   => ĐẠT: v0.2.0, site B: permalink /hello-world/ trả 200
   => ĐẠT: v0.2.0, site B: trang không có trả 404 do WordPress trả
   => ĐẠT: v0.2.0, site B: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:39:27] $ scripts/vm.sh root tpan health  --json
+[2026-11-23 16:42:44] $ scripts/vm.sh root tpan health  --json
 nhóm: (máy, stack), a.example.com, b.example.com, tpan
 số phép kiểm theo trạng thái: pass=53 warn=5
 --- warn dns.a:a.example.com (chặng dns): a.example.com chưa có bản ghi A
@@ -353,50 +353,50 @@ số phép kiểm theo trạng thái: pass=53 warn=5
 --- warn dns.a:b.example.com (chặng dns): b.example.com chưa có bản ghi A
 --- warn tls.cert:b.example.com (chặng tls): Chưa có chứng chỉ cho b.example.com
 --- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
-[2026-11-23 15:39:31] (mã thoát 0)
+[2026-11-23 16:42:48] (mã thoát 0)
   => ĐẠT: (ghi lại) health trước khi nâng có phép kiểm
 
-[2026-11-23 15:39:31] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
+[2026-11-23 16:42:48] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
 pool d442e4edf48ca821d330d0e38d5fb93955bdd9e230c6e73fa626216ff717af5f
 vhost-nginx 76400a7ba018b082c9041ee6ef259cae3630ace5a9d039880b7261293f669f62
 vhost-apache KHONG_CO
 cron 46f92e43868e7fcb6cf38151c87de6e30e1c454346278b9376bd935114e52b47
-wp-config b36fb244271d4df9c24805127f44303824f6c3807393b1438671c627ffda5ca3
+wp-config ef607e24d9f1a6469cb5ff211fa88f668277596466d14c073671958ef0c350a3
 htaccess KHONG_CO
-[2026-11-23 15:39:31] (mã thoát 0)
+[2026-11-23 16:42:48] (mã thoát 0)
 
-[2026-11-23 15:39:31] $ scripts/vm.sh root bash -s -- site b.example.com < scripts/e2e-m17/bam.sh
+[2026-11-23 16:42:48] $ scripts/vm.sh root bash -s -- site b.example.com < scripts/e2e-m17/bam.sh
 pool 41c73aa2572efeaa73fc8a1ab3397af3ae2fb765f40a7230f1aae0d7e89de2cd
 vhost-nginx e36e6f9f1b1620fa357d639f7a41a1529f79a4a89ffd3eb78b3b6c05d4b1a2b8
 vhost-apache KHONG_CO
 cron 7f3d39815a7571b6bebdd44fd7d3d61567b4188f1887ac579688412cb0bd2e18
-wp-config 20e94a60132470211f2169d80e653084e2898f190147f1c1570d4328f42743a4
+wp-config c7d423d19a0655c8d55eeb06627e32a222faa2a0c5b267adb9250ce1423b328b
 htaccess KHONG_CO
-[2026-11-23 15:39:31] (mã thoát 0)
+[2026-11-23 16:42:49] (mã thoát 0)
 
-[2026-11-23 15:39:31] $ scripts/vm.sh root bash -s -- cay truoc /etc/nginx /etc/php /etc/cron.d /etc/systemd/system < scripts/e2e-m17/bam.sh
+[2026-11-23 16:42:49] $ scripts/vm.sh root bash -s -- cay truoc /etc/nginx /etc/php /etc/cron.d /etc/systemd/system < scripts/e2e-m17/bam.sh
 BAM_truoc_SO_FILE=65
 BAM_truoc_TONG=94d76bb6c01512e65b122b326ac0e1ee7276484a425d344d78cf31b784257627
-[2026-11-23 15:39:31] (mã thoát 0)
+[2026-11-23 16:42:49] (mã thoát 0)
   => ĐẠT: sha256 mọi file dưới /etc/nginx /etc/php /etc/cron.d /etc/systemd/system đã ghi
 
 
-######## [2026-11-23 15:39:31] U2: nâng lên v0.2.2-77-g0fe28fa-dirty bằng tpan self-update --url của bản v0.2.0
+######## [2026-11-23 16:42:49] U2: nâng lên v0.2.2-81-ga195574-dirty bằng tpan self-update --url của bản v0.2.0
 
-[2026-11-23 15:39:31] $ git log --oneline -1
-0fe28fa Merge remote-tracking branch 'origin/dev' into moc/M17
-[2026-11-23 15:39:31] (mã thoát 0)
+[2026-11-23 16:42:49] $ git log --oneline -1
+a195574 M17: sổ soát phần sửa sau gộp dev, mục 5.11 và số đo e2e trong giải thích, mục 6.15, hàng M17 và dòng trạng thái của KE-HOACH (lõi xong, giao diện chờ M16)
+[2026-11-23 16:42:49] (mã thoát 0)
 
-[2026-11-23 15:39:31] $ git status --short
+[2026-11-23 16:42:49] $ git status --short
  M docs/bang-chung/M17-nang-cap.log
  M docs/bang-chung/M17.log
-[2026-11-23 15:39:31] (mã thoát 0)
+[2026-11-23 16:42:49] (mã thoát 0)
 
-[2026-11-23 15:39:31] $ make release VERSION=v0.2.2-77-g0fe28fa-dirty DATE=2026-11-23T08:38:09Z
+[2026-11-23 16:42:49] $ make release VERSION=v0.2.2-81-ga195574-dirty DATE=2026-11-23T09:41:31Z
 cd web && pnpm install --frozen-lockfile && pnpm build
 ✓ Lockfile passes supply-chain policies (verified 2d ago)
 Lockfile is up to date, resolution step is skipped
-Done in 16ms using pnpm v12.15.0
+Done in 26ms using pnpm v12.15.0
 $ tsc --noEmit && vite build
 vite v8.3.8 building client environment for production...
 transforming...
@@ -473,63 +473,63 @@ dist/assets/site-Bwpvejtf.js                                     38.71 kB │ gz
 dist/assets/ScreenHeader-D6A2Smnk.js                            147.99 kB │ gzip:  49.09 kB
 dist/assets/index-B2XSlfSg.js                                   389.26 kB │ gzip: 124.86 kB
 
-✓ built in 217ms
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-77-g0fe28fa-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=0fe28fa -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-23T08:38:09Z' -o bin/tpan-linux-amd64 ./cmd/tpan
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-77-g0fe28fa-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=0fe28fa -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-23T08:38:09Z' -o bin/tpan-linux-arm64 ./cmd/tpan
-rm -rf dist/release/v0.2.2-77-g0fe28fa-dirty
-mkdir -p dist/release/v0.2.2-77-g0fe28fa-dirty
-cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.2-77-g0fe28fa-dirty/
-chmod 0755 dist/release/v0.2.2-77-g0fe28fa-dirty/tpan-linux-amd64 dist/release/v0.2.2-77-g0fe28fa-dirty/tpan-linux-arm64 dist/release/v0.2.2-77-g0fe28fa-dirty/install.sh
-cd dist/release/v0.2.2-77-g0fe28fa-dirty && if command -v sha256sum >/dev/null 2>&1; then \
+✓ built in 209ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-81-ga195574-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=a195574 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-23T09:41:31Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-81-ga195574-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=a195574 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-23T09:41:31Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/v0.2.2-81-ga195574-dirty
+mkdir -p dist/release/v0.2.2-81-ga195574-dirty
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.2-81-ga195574-dirty/
+chmod 0755 dist/release/v0.2.2-81-ga195574-dirty/tpan-linux-amd64 dist/release/v0.2.2-81-ga195574-dirty/tpan-linux-arm64 dist/release/v0.2.2-81-ga195574-dirty/install.sh
+cd dist/release/v0.2.2-81-ga195574-dirty && if command -v sha256sum >/dev/null 2>&1; then \
 	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	else \
 	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	fi > SHA256SUMS
-printf '%s\n' 'v0.2.2-77-g0fe28fa-dirty' > dist/release/v0.2.2-77-g0fe28fa-dirty/VERSION
-Gói phát hành: dist/release/v0.2.2-77-g0fe28fa-dirty/
-total 99392
--rwxr-xr-x@ 1 <user>  staff     20194 23 Nov 15:39 install.sh
--rw-r--r--@ 1 <user>  staff       243 23 Nov 15:39 SHA256SUMS
--rwxr-xr-x@ 1 <user>  staff  26603680 23 Nov 15:39 tpan-linux-amd64
--rwxr-xr-x@ 1 <user>  staff  24248480 23 Nov 15:39 tpan-linux-arm64
--rw-r--r--@ 1 <user>  staff        25 23 Nov 15:39 VERSION
-[2026-11-23 15:39:35] (mã thoát 0)
-  => ĐẠT: make release VERSION=v0.2.2-77-g0fe28fa-dirty
+printf '%s\n' 'v0.2.2-81-ga195574-dirty' > dist/release/v0.2.2-81-ga195574-dirty/VERSION
+Gói phát hành: dist/release/v0.2.2-81-ga195574-dirty/
+total 99400
+-rwxr-xr-x@ 1 <user>  staff     20194 23 Nov 16:42 install.sh
+-rw-r--r--@ 1 <user>  staff       243 23 Nov 16:42 SHA256SUMS
+-rwxr-xr-x@ 1 <user>  staff  26607776 23 Nov 16:42 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  24248480 23 Nov 16:42 tpan-linux-arm64
+-rw-r--r--@ 1 <user>  staff        25 23 Nov 16:42 VERSION
+[2026-11-23 16:42:52] (mã thoát 0)
+  => ĐẠT: make release VERSION=v0.2.2-81-ga195574-dirty
 
-[2026-11-23 15:39:35] $ bash -c cd "$1" && cat SHA256SUMS && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.2-77-g0fe28fa-dirty
-2c1d129544b19cd24a76458d957fc7d70678c56185acc1e5e0e60ab9f3d959ba  tpan-linux-amd64
-ef88d8175190b4aaec7be9727392e82aae22ed255e2b9ffdb05f677dd868f5c8  tpan-linux-arm64
+[2026-11-23 16:42:52] $ bash -c cd "$1" && cat SHA256SUMS && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.2-81-ga195574-dirty
+a7facf1663fde88604cb80e55d8f9996040d7ffaa609eacccd42d9d44123a56f  tpan-linux-amd64
+40281d941f302b7da4e56a9601f28d1d2e08dd904fb57e96d1c5eebd50e62601  tpan-linux-arm64
 e78a9d9de614d04456176b535cb98fc7b1d1c116482e21c6464ecd4929578d9d  install.sh
 tpan-linux-amd64: OK
 tpan-linux-arm64: OK
 install.sh: OK
-[2026-11-23 15:39:36] (mã thoát 0)
-  => ĐẠT: SHA256SUMS của gói v0.2.2-77-g0fe28fa-dirty khớp
+[2026-11-23 16:42:53] (mã thoát 0)
+  => ĐẠT: SHA256SUMS của gói v0.2.2-81-ga195574-dirty khớp
 
-[2026-11-23 15:39:36] $ scripts/vm.sh exec mkdir -p /home/ubuntu/rel
-[2026-11-23 15:39:36] (mã thoát 0)
+[2026-11-23 16:42:53] $ scripts/vm.sh exec mkdir -p /home/ubuntu/rel
+[2026-11-23 16:42:53] (mã thoát 0)
 
-[2026-11-23 15:39:36] $ multipass transfer -r dist/release/v0.2.2-77-g0fe28fa-dirty tpan-m17:/home/ubuntu/rel/
-[2026-11-23 15:39:36] (mã thoát 0)
-  => ĐẠT: chép gói v0.2.2-77-g0fe28fa-dirty sang máy ảo
+[2026-11-23 16:42:53] $ multipass transfer -r dist/release/v0.2.2-81-ga195574-dirty tpan-m17:/home/ubuntu/rel/
+[2026-11-23 16:42:53] (mã thoát 0)
+  => ĐẠT: chép gói v0.2.2-81-ga195574-dirty sang máy ảo
 
-[2026-11-23 15:39:36] $ scripts/vm.sh root systemd-run --unit=tpan-e2e-rel python3 -m http.server 18713 --bind 127.0.0.1 --directory /home/ubuntu/rel
-Running as unit: tpan-e2e-rel.service; invocation ID: 4465cf85f28247289293e874442804c9
-[2026-11-23 15:39:36] (mã thoát 0)
+[2026-11-23 16:42:53] $ scripts/vm.sh root systemd-run --unit=tpan-e2e-rel python3 -m http.server 18713 --bind 127.0.0.1 --directory /home/ubuntu/rel
+Running as unit: tpan-e2e-rel.service; invocation ID: 81ba91cd3f02489ab148c8469db622db
+[2026-11-23 16:42:53] (mã thoát 0)
 
-[2026-11-23 15:39:38] $ scripts/vm.sh exec curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:18713/v0.2.2-77-g0fe28fa-dirty/SHA256SUMS
+[2026-11-23 16:42:55] $ scripts/vm.sh exec curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:18713/v0.2.2-81-ga195574-dirty/SHA256SUMS
 200
-[2026-11-23 15:39:38] (mã thoát 0)
-  => ĐẠT: (đồ nghề) máy chủ HTTP loopback trả v0.2.2-77-g0fe28fa-dirty/SHA256SUMS
+[2026-11-23 16:42:55] (mã thoát 0)
+  => ĐẠT: (đồ nghề) máy chủ HTTP loopback trả v0.2.2-81-ga195574-dirty/SHA256SUMS
 
-[2026-11-23 15:39:38] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18713/v0.2.2-77-g0fe28fa-dirty --dry-run
+[2026-11-23 16:42:55] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18713/v0.2.2-81-ga195574-dirty --dry-run
 Kế hoạch: Cập nhật tpan (đang chạy bản v0.2.0)
 3 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 2 bước có thể gián đoạn dịch vụ.
 
  1. [sẽ chạy] Tải bản tpan mới vào /usr/local/bin/tpan.new  (self.download:/usr/local/bin/tpan.new)
     Vì sao: Bản mới được tải vào file riêng và kiểm sha256 theo SHA256SUMS của bản phát hành trước khi đụng tới file đang chạy. File hỏng hay bị sửa giữa đường thì bị xoá, không bao giờ được chạy bằng quyền root.
-    $ curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:18713/v0.2.2-77-g0fe28fa-dirty/SHA256SUMS
-    $ curl -fsSL --max-time 300 --proto-redir =https -o /usr/local/bin/tpan.new http://127.0.0.1:18713/v0.2.2-77-g0fe28fa-dirty/tpan-linux-arm64
+    $ curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:18713/v0.2.2-81-ga195574-dirty/SHA256SUMS
+    $ curl -fsSL --max-time 300 --proto-redir =https -o /usr/local/bin/tpan.new http://127.0.0.1:18713/v0.2.2-81-ga195574-dirty/tpan-linux-arm64
     $ /usr/local/bin/tpan.new version
  2. [sẽ chạy] Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old  (self.install:/usr/local/bin/tpan)
     NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
@@ -539,11 +539,11 @@ Kế hoạch: Cập nhật tpan (đang chạy bản v0.2.0)
     Vì sao: Dịch vụ đang chạy vẫn dùng bản cũ trong bộ nhớ cho tới khi được khởi động lại; không làm bước này thì bản vá chưa có tác dụng. Cấu hình được kiểm trước, sai thì không khởi động lại.
     $ systemctl restart tpan
     Ghi chú hoàn tác: Khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về.
-[2026-11-23 15:39:39] (mã thoát 0)
+[2026-11-23 16:42:56] (mã thoát 0)
   => ĐẠT: self-update --dry-run (bản v0.2.0) thoát 0
 
-[2026-11-23 15:39:39] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18713/v0.2.2-77-g0fe28fa-dirty --yes
-Bắt đầu job 413cda3367459139
+[2026-11-23 16:42:56] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18713/v0.2.2-81-ga195574-dirty --yes
+Bắt đầu job d687b069fad34c1c
 - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
   xong
 - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
@@ -552,72 +552,72 @@ Bắt đầu job 413cda3367459139
   xong
   [đạt] File chạy /usr/local/bin/tpan chạy được
 
-Job 413cda3367459139: thành công
+Job d687b069fad34c1c: thành công
 Kiểm chứng:
-  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.2-77-g0fe28fa-dirty (commit 0fe28fa, build 2026-11-23T08:38:09Z)
-tpan đã đổi: v0.2.0 -> v0.2.2-77-g0fe28fa-dirty
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.2-81-ga195574-dirty (commit a195574, build 2026-11-23T09:41:31Z)
+tpan đã đổi: v0.2.0 -> v0.2.2-81-ga195574-dirty
 Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
-[2026-11-23 15:39:39] (mã thoát 0)
+[2026-11-23 16:42:56] (mã thoát 0)
   => ĐẠT: self-update (bản v0.2.0) thoát 0, job thành công
-  => ĐẠT: in v0.2.0 -> v0.2.2-77-g0fe28fa-dirty
+  => ĐẠT: in v0.2.0 -> v0.2.2-81-ga195574-dirty
 
-[2026-11-23 15:39:39] $ scripts/vm.sh root systemctl stop tpan-e2e-rel
-[2026-11-23 15:39:39] (mã thoát 0)
+[2026-11-23 16:42:56] $ scripts/vm.sh root systemctl stop tpan-e2e-rel
+[2026-11-23 16:42:56] (mã thoát 0)
 
-[2026-11-23 15:39:39] $ scripts/vm.sh exec tpan version
-tpan v0.2.2-77-g0fe28fa-dirty (commit 0fe28fa, build 2026-11-23T08:38:09Z)
-[2026-11-23 15:39:39] (mã thoát 0)
-  => ĐẠT: tpan version là v0.2.2-77-g0fe28fa-dirty
+[2026-11-23 16:42:56] $ scripts/vm.sh exec tpan version
+tpan v0.2.2-81-ga195574-dirty (commit a195574, build 2026-11-23T09:41:31Z)
+[2026-11-23 16:42:56] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.2-81-ga195574-dirty
 
-[2026-11-23 15:39:39] $ scripts/vm.sh root python3 -c import sqlite3; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); print("migration:", [r[0] for r in c.execute("SELECT version FROM schema_migrations ORDER BY version")]); print("site trong lồng:", c.execute("SELECT COUNT(*) FROM sites WHERE caged = 1").fetchone()[0]); print("gói bật lồng:", c.execute("SELECT COUNT(*) FROM packages WHERE cage = 1").fetchone()[0]); print("site:", c.execute("SELECT COUNT(*) FROM sites").fetchone()[0])
+[2026-11-23 16:42:56] $ scripts/vm.sh root python3 -c import sqlite3; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); print("migration:", [r[0] for r in c.execute("SELECT version FROM schema_migrations ORDER BY version")]); print("site trong lồng:", c.execute("SELECT COUNT(*) FROM sites WHERE caged = 1").fetchone()[0]); print("gói bật lồng:", c.execute("SELECT COUNT(*) FROM packages WHERE cage = 1").fetchone()[0]); print("site:", c.execute("SELECT COUNT(*) FROM sites").fetchone()[0])
 migration: [1, 2, 3, 400, 600, 700, 701, 800, 900, 1300, 1400, 1700, 1800]
 site trong lồng: 0
 gói bật lồng: 0
 site: 2
-[2026-11-23 15:39:39] (mã thoát 0)
+[2026-11-23 16:42:56] (mã thoát 0)
   => ĐẠT: migration 1700 đã chạy; mọi cột mới ở giá trị mặc định (0 site trong lồng, 0 gói bật lồng), 2 site còn nguyên
 
 
-######## [2026-11-23 15:39:39] U3: sau khi nâng: bất biến 1 (không file nào đổi), health như trước, không unit của lồng
+######## [2026-11-23 16:42:56] U3: sau khi nâng: bất biến 1 (không file nào đổi), health như trước, không unit của lồng
 
-[2026-11-23 15:39:39] $ scripts/vm.sh root bash -s -- cay sau /etc/nginx /etc/php /etc/cron.d /etc/systemd/system < scripts/e2e-m17/bam.sh
+[2026-11-23 16:42:56] $ scripts/vm.sh root bash -s -- cay sau /etc/nginx /etc/php /etc/cron.d /etc/systemd/system < scripts/e2e-m17/bam.sh
 BAM_sau_SO_FILE=65
 BAM_sau_TONG=94d76bb6c01512e65b122b326ac0e1ee7276484a425d344d78cf31b784257627
-[2026-11-23 15:39:39] (mã thoát 0)
+[2026-11-23 16:42:56] (mã thoát 0)
 
-[2026-11-23 15:39:39] $ scripts/vm.sh root bash -s -- so truoc sau < scripts/e2e-m17/bam.sh
+[2026-11-23 16:42:56] $ scripts/vm.sh root bash -s -- so truoc sau < scripts/e2e-m17/bam.sh
 DIFF_DONG=0
-[2026-11-23 15:39:40] (mã thoát 0)
+[2026-11-23 16:42:56] (mã thoát 0)
   => ĐẠT: nâng cấp: sha256 mọi file cấu hình dưới /etc/nginx /etc/php /etc/cron.d /etc/systemd/system trước và sau bằng nhau
 
-[2026-11-23 15:39:40] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
+[2026-11-23 16:42:56] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
 pool d442e4edf48ca821d330d0e38d5fb93955bdd9e230c6e73fa626216ff717af5f
 vhost-nginx 76400a7ba018b082c9041ee6ef259cae3630ace5a9d039880b7261293f669f62
 vhost-apache KHONG_CO
 cron 46f92e43868e7fcb6cf38151c87de6e30e1c454346278b9376bd935114e52b47
-wp-config b36fb244271d4df9c24805127f44303824f6c3807393b1438671c627ffda5ca3
+wp-config ef607e24d9f1a6469cb5ff211fa88f668277596466d14c073671958ef0c350a3
 htaccess KHONG_CO
-[2026-11-23 15:39:40] (mã thoát 0)
+[2026-11-23 16:42:57] (mã thoát 0)
   => ĐẠT: sha256 pool, vhost, cron, wp-config, .htaccess của a.example.com không đổi
 
-[2026-11-23 15:39:40] $ scripts/vm.sh root bash -s -- site b.example.com < scripts/e2e-m17/bam.sh
+[2026-11-23 16:42:57] $ scripts/vm.sh root bash -s -- site b.example.com < scripts/e2e-m17/bam.sh
 pool 41c73aa2572efeaa73fc8a1ab3397af3ae2fb765f40a7230f1aae0d7e89de2cd
 vhost-nginx e36e6f9f1b1620fa357d639f7a41a1529f79a4a89ffd3eb78b3b6c05d4b1a2b8
 vhost-apache KHONG_CO
 cron 7f3d39815a7571b6bebdd44fd7d3d61567b4188f1887ac579688412cb0bd2e18
-wp-config 20e94a60132470211f2169d80e653084e2898f190147f1c1570d4328f42743a4
+wp-config c7d423d19a0655c8d55eeb06627e32a222faa2a0c5b267adb9250ce1423b328b
 htaccess KHONG_CO
-[2026-11-23 15:39:40] (mã thoát 0)
+[2026-11-23 16:42:57] (mã thoát 0)
   => ĐẠT: sha256 năm file của b.example.com không đổi
 
-[2026-11-23 15:39:40] $ scripts/vm.sh root bash -c systemctl list-units --all --no-legend "tpan-cage-*" "tpan-*.slice" | wc -l; ls /etc/systemd/system | grep -c "^tpan-cage-"; ls /etc/tpan/cage 2>&1 | head -1
+[2026-11-23 16:42:57] $ scripts/vm.sh root bash -c systemctl list-units --all --no-legend "tpan-cage-*" "tpan-*.slice" | wc -l; ls /etc/systemd/system | grep -c "^tpan-cage-"; ls /etc/tpan/cage 2>&1 | head -1
 0
 0
 ls: cannot access '/etc/tpan/cage': No such file or directory
-[2026-11-23 15:39:40] (mã thoát 0)
+[2026-11-23 16:42:57] (mã thoát 0)
   => ĐẠT: không unit hay file tpan-cage-*, không thư mục /etc/tpan/cage
 
-[2026-11-23 15:39:40] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:42:57] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -631,13 +631,13 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://a.example.com/wp-login.php?redirect_to=http%3A%2F%2Fa.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:39:40] (mã thoát 0)
+[2026-11-23 16:42:57] (mã thoát 0)
   => ĐẠT: sau nâng, site A: trang chủ a.example.com trả 200
   => ĐẠT: sau nâng, site A: permalink /hello-world/ trả 200
   => ĐẠT: sau nâng, site A: trang không có trả 404 do WordPress trả
   => ĐẠT: sau nâng, site A: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:39:40] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:42:57] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -651,13 +651,13 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://b.example.com/wp-login.php?redirect_to=http%3A%2F%2Fb.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:39:40] (mã thoát 0)
+[2026-11-23 16:42:57] (mã thoát 0)
   => ĐẠT: sau nâng, site B: trang chủ b.example.com trả 200
   => ĐẠT: sau nâng, site B: permalink /hello-world/ trả 200
   => ĐẠT: sau nâng, site B: trang không có trả 404 do WordPress trả
   => ĐẠT: sau nâng, site B: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:39:40] $ scripts/vm.sh root tpan health  --json
+[2026-11-23 16:42:57] $ scripts/vm.sh root tpan health  --json
 nhóm: (máy, stack), a.example.com, b.example.com, tpan
 số phép kiểm theo trạng thái: pass=54 warn=5
 --- warn dns.a:a.example.com (chặng dns): a.example.com chưa có bản ghi A
@@ -665,43 +665,43 @@ số phép kiểm theo trạng thái: pass=54 warn=5
 --- warn dns.a:b.example.com (chặng dns): b.example.com chưa có bản ghi A
 --- warn tls.cert:b.example.com (chặng tls): Chưa có chứng chỉ cho b.example.com
 --- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
-[2026-11-23 15:39:45] (mã thoát 0)
+[2026-11-23 16:43:01] (mã thoát 0)
 
-[2026-11-23 15:39:45] $ bash -c comm -23 "$1" "$2" _ <tmp>/health-truoc.txt <tmp>/health-sau.txt
-[2026-11-23 15:39:45] (mã thoát 0)
+[2026-11-23 16:43:01] $ bash -c comm -23 "$1" "$2" _ <tmp>/health-truoc.txt <tmp>/health-sau.txt
+[2026-11-23 16:43:01] (mã thoát 0)
   => ĐẠT: health như trước: mọi phép kiểm có từ trước giữ nguyên trạng thái
 
-[2026-11-23 15:39:45] $ bash -c comm -13 "$1" "$2" _ <tmp>/health-truoc.txt <tmp>/health-sau.txt
+[2026-11-23 16:43:01] $ bash -c comm -13 "$1" "$2" _ <tmp>/health-truoc.txt <tmp>/health-sau.txt
 probe.leftover:tpan pass
-[2026-11-23 15:39:45] (mã thoát 0)
+[2026-11-23 16:43:01] (mã thoát 0)
   -- GHI NHẬN: phép kiểm mới sau khi nâng (nếu có): probe.leftover:tpan pass;
   => ĐẠT: không phép kiểm mới nào là fail, không phép kiểm cage.* nào (không gói nào bật lồng)
   => ĐẠT: health không có lỗi
 
 
-######## [2026-11-23 15:39:45] U4: bật lồng cho gói: hai site 200 trong lồng
+######## [2026-11-23 16:43:01] U4: bật lồng cho gói: hai site 200 trong lồng
 
-[2026-11-23 15:39:45] $ scripts/vm.sh root tpan package add long --max-sites 6 --max-dbs 6 --cage on --cpu 100 --ram-mb 256 --tasks 60 --php-workers 5 --yes
+[2026-11-23 16:43:01] $ scripts/vm.sh root tpan package add long --max-sites 6 --max-dbs 6 --cage on --cpu 100 --ram-mb 256 --tasks 60 --php-workers 5 --yes
 Đã thêm gói long: site 6, DB 6, disk ∞ MiB, backup ∞, lồng bật: CPU 100%, RAM 256 MiB, tiến trình 60, đĩa đọc ∞/ghi ∞ MB/s, worker 5.
-[2026-11-23 15:39:45] (mã thoát 0)
+[2026-11-23 16:43:02] (mã thoát 0)
   => ĐẠT: package add long (lồng bật)
 
-[2026-11-23 15:39:45] $ scripts/vm.sh root tpan user edit admin --package long --yes
+[2026-11-23 16:43:02] $ scripts/vm.sh root tpan user edit admin --package long --yes
 Đã sửa user admin.
-[2026-11-23 15:39:45] (mã thoát 0)
+[2026-11-23 16:43:02] (mã thoát 0)
   => ĐẠT: user edit admin --package long thoát 0 (chưa site nào trong lồng: không job)
 
-[2026-11-23 15:39:45] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
+[2026-11-23 16:43:02] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
 pool d442e4edf48ca821d330d0e38d5fb93955bdd9e230c6e73fa626216ff717af5f
 vhost-nginx 76400a7ba018b082c9041ee6ef259cae3630ace5a9d039880b7261293f669f62
 vhost-apache KHONG_CO
 cron 46f92e43868e7fcb6cf38151c87de6e30e1c454346278b9376bd935114e52b47
-wp-config b36fb244271d4df9c24805127f44303824f6c3807393b1438671c627ffda5ca3
+wp-config ef607e24d9f1a6469cb5ff211fa88f668277596466d14c073671958ef0c350a3
 htaccess KHONG_CO
-[2026-11-23 15:39:45] (mã thoát 0)
+[2026-11-23 16:43:02] (mã thoát 0)
   => ĐẠT: đổi gói không ghi lại file nào của site
 
-[2026-11-23 15:39:45] $ scripts/vm.sh root tpan cage status --json
+[2026-11-23 16:43:02] $ scripts/vm.sh root tpan cage status --json
 [
   {
     "domain": "a.example.com",
@@ -740,13 +740,13 @@ htaccess KHONG_CO
     }
   }
 ]
-[2026-11-23 15:39:45] (mã thoát 0)
+[2026-11-23 16:43:02] (mã thoát 0)
   => ĐẠT: cage status --json: hai site muốn lồng mà chưa vào (can-vao)
 
-[2026-11-23 15:39:45] $ scripts/vm.sh root tpan cage enable --all --yes
+[2026-11-23 16:43:02] $ scripts/vm.sh root tpan cage enable --all --yes
 
 == a.example.com
-Bắt đầu job 26af92f157895a90
+Bắt đầu job 548d9b8ad9db7216
 - Ghi file của lồng của a.example.com ...
   xong
 - Bật socket PHP của lồng của a.example.com ...
@@ -772,7 +772,7 @@ Bắt đầu job 26af92f157895a90
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
 
-Job 26af92f157895a90: thành công
+Job 548d9b8ad9db7216: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của lồng có, unit socket đang chạy và dịch vụ PHP không hỏng: Socket của lồng có (www-data:www-data, 0660), unit socket active, dịch vụ PHP inactive
@@ -788,7 +788,7 @@ Kiểm chứng:
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của a.example.com (5 phép thử)
 
 == b.example.com
-Bắt đầu job 80f9a45e825d2aed
+Bắt đầu job f0dd74defd3b6a0c
 - Ghi file của lồng của b.example.com ...
   xong
 - Bật socket PHP của lồng của b.example.com ...
@@ -814,7 +814,7 @@ Bắt đầu job 80f9a45e825d2aed
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
 
-Job 80f9a45e825d2aed: thành công
+Job f0dd74defd3b6a0c: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của lồng có, unit socket đang chạy và dịch vụ PHP không hỏng: Socket của lồng có (www-data:www-data, 0660), unit socket active, dịch vụ PHP inactive
@@ -828,10 +828,10 @@ Kiểm chứng:
   [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_b_example_com_cd59d5 0750, access.log và error.log là root:tp_b_example_com_cd59d5 0640
   [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không chạm được vào file, log và socket của b.example.com (5 phép thử)
-[2026-11-23 15:39:52] (mã thoát 0)
+[2026-11-23 16:43:09] (mã thoát 0)
   => ĐẠT: cage enable --all thoát 0
 
-[2026-11-23 15:39:52] $ scripts/vm.sh root tpan cage status a.example.com --json
+[2026-11-23 16:43:09] $ scripts/vm.sh root tpan cage status a.example.com --json
 [
   {
     "domain": "a.example.com",
@@ -852,14 +852,14 @@ Kiểm chứng:
     },
     "usage": {
       "running": true,
-      "at": "2026-11-23T15:39:53.00005855+07:00",
-      "mem_current": 40153088,
-      "mem_peak": 44519424,
+      "at": "2026-11-23T16:43:09.144851858+07:00",
+      "mem_current": 40169472,
+      "mem_peak": 44523520,
       "oom_kills": 0,
       "mem_max_hits": 0,
-      "cpu_usec": 1048868,
-      "throttled_usec": 6426,
-      "nr_throttled": 1,
+      "cpu_usec": 980802,
+      "throttled_usec": 39422,
+      "nr_throttled": 2,
       "tasks": 2,
       "tasks_peak": 3,
       "tasks_hits": 0,
@@ -875,10 +875,10 @@ Kiểm chứng:
     }
   }
 ]
-[2026-11-23 15:39:53] (mã thoát 0)
+[2026-11-23 16:43:09] (mã thoát 0)
   => ĐẠT: a.example.com trong lồng
 
-[2026-11-23 15:39:53] $ scripts/vm.sh root tpan cage status b.example.com --json
+[2026-11-23 16:43:09] $ scripts/vm.sh root tpan cage status b.example.com --json
 [
   {
     "domain": "b.example.com",
@@ -899,12 +899,12 @@ Kiểm chứng:
     },
     "usage": {
       "running": true,
-      "at": "2026-11-23T15:39:53.224997391+07:00",
-      "mem_current": 40169472,
-      "mem_peak": 44535808,
+      "at": "2026-11-23T16:43:09.37016818+07:00",
+      "mem_current": 40144896,
+      "mem_peak": 44498944,
       "oom_kills": 0,
       "mem_max_hits": 0,
-      "cpu_usec": 886444,
+      "cpu_usec": 864586,
       "throttled_usec": 0,
       "nr_throttled": 0,
       "tasks": 2,
@@ -922,10 +922,10 @@ Kiểm chứng:
     }
   }
 ]
-[2026-11-23 15:39:53] (mã thoát 0)
+[2026-11-23 16:43:09] (mã thoát 0)
   => ĐẠT: b.example.com trong lồng
 
-[2026-11-23 15:39:53] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:43:09] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -939,13 +939,13 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://a.example.com/wp-login.php?redirect_to=http%3A%2F%2Fa.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:39:53] (mã thoát 0)
+[2026-11-23 16:43:09] (mã thoát 0)
   => ĐẠT: trong lồng, A: trang chủ a.example.com trả 200
   => ĐẠT: trong lồng, A: permalink /hello-world/ trả 200
   => ĐẠT: trong lồng, A: trang không có trả 404 do WordPress trả
   => ĐẠT: trong lồng, A: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:39:53] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:43:09] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -959,27 +959,27 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://b.example.com/wp-login.php?redirect_to=http%3A%2F%2Fb.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:39:53] (mã thoát 0)
+[2026-11-23 16:43:09] (mã thoát 0)
   => ĐẠT: trong lồng, B: trang chủ b.example.com trả 200
   => ĐẠT: trong lồng, B: permalink /hello-world/ trả 200
   => ĐẠT: trong lồng, B: trang không có trả 404 do WordPress trả
   => ĐẠT: trong lồng, B: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:39:53] $ scripts/vm.sh root bash -s -- kiem-ban a.example.com < scripts/e2e-m17/tien-trinh.sh
+[2026-11-23 16:43:10] $ scripts/vm.sh root bash -s -- kiem-ban a.example.com < scripts/e2e-m17/tien-trinh.sh
 POOL_CHUNG_FILE=0
 POOL_CHUNG_USER=0
 MASTER=1
 UNIT_LONG=3
 FILE_LONG=5
-[2026-11-23 15:39:54] (mã thoát 0)
+[2026-11-23 16:43:10] (mã thoát 0)
   => ĐẠT: A trong lồng: không file pool chung, đúng một master
 
-[2026-11-23 15:39:54] $ scripts/vm.sh root bash -s -- ngoai-slice a.example.com < scripts/e2e-m17/tien-trinh.sh
+[2026-11-23 16:43:10] $ scripts/vm.sh root bash -s -- ngoai-slice a.example.com < scripts/e2e-m17/tien-trinh.sh
 NGOAI_SLICE=0
-[2026-11-23 15:39:54] (mã thoát 0)
+[2026-11-23 16:43:10] (mã thoát 0)
   => ĐẠT: A: không tiến trình nào của user A ngoài slice
 
-[2026-11-23 15:39:54] $ scripts/vm.sh root tpan health  --json
+[2026-11-23 16:43:10] $ scripts/vm.sh root tpan health  --json
 nhóm: (máy, stack), a.example.com, b.example.com, tpan
 số phép kiểm theo trạng thái: pass=68 warn=5
 --- warn dns.a:a.example.com (chặng dns): a.example.com chưa có bản ghi A
@@ -987,16 +987,16 @@ số phép kiểm theo trạng thái: pass=68 warn=5
 --- warn dns.a:b.example.com (chặng dns): b.example.com chưa có bản ghi A
 --- warn tls.cert:b.example.com (chặng tls): Chưa có chứng chỉ cho b.example.com
 --- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
-[2026-11-23 15:39:59] (mã thoát 0)
+[2026-11-23 16:43:14] (mã thoát 0)
   => ĐẠT: health: lồng của A và B đạt, không có lỗi
 
 
-######## [2026-11-23 15:39:59] U5: tắt lồng: sha256 về đúng như trước
+######## [2026-11-23 16:43:15] U5: tắt lồng: sha256 về đúng như trước
 
-[2026-11-23 15:39:59] $ scripts/vm.sh root tpan cage disable --all --yes
+[2026-11-23 16:43:15] $ scripts/vm.sh root tpan cage disable --all --yes
 
 == a.example.com
-Bắt đầu job c91de24c472d4bae
+Bắt đầu job 6e31292981c6f9bc
 - Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
   xong
 - Ghi vhost nginx cho a.example.com ...
@@ -1017,7 +1017,7 @@ Bắt đầu job c91de24c472d4bae
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
 
-Job c91de24c472d4bae: thành công
+Job 6e31292981c6f9bc: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1030,7 +1030,7 @@ Kiểm chứng:
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không chạm được vào file, log và socket của b.example.com (5 phép thử)
 
 == b.example.com
-Bắt đầu job e714b7fe35832e5a
+Bắt đầu job 9776916acecec0f2
 - Ghi pool PHP-FPM tpan-b_example_com_cd59d5 cho b.example.com ...
   xong
 - Ghi vhost nginx cho b.example.com ...
@@ -1051,7 +1051,7 @@ Bắt đầu job e714b7fe35832e5a
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
 
-Job e714b7fe35832e5a: thành công
+Job 9776916acecec0f2: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1062,10 +1062,10 @@ Kiểm chứng:
   [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_b_example_com_cd59d5 0750, access.log và error.log là root:tp_b_example_com_cd59d5 0640
   [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của a.example.com (5 phép thử)
-[2026-11-23 15:40:05] (mã thoát 0)
+[2026-11-23 16:43:20] (mã thoát 0)
   => ĐẠT: cage disable --all thoát 0
 
-[2026-11-23 15:40:05] $ scripts/vm.sh root tpan cage status a.example.com --json
+[2026-11-23 16:43:20] $ scripts/vm.sh root tpan cage status a.example.com --json
 [
   {
     "domain": "a.example.com",
@@ -1086,40 +1086,40 @@ Kiểm chứng:
     }
   }
 ]
-[2026-11-23 15:40:05] (mã thoát 0)
+[2026-11-23 16:43:20] (mã thoát 0)
   => ĐẠT: a.example.com ra khỏi lồng
 
-[2026-11-23 15:40:05] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
+[2026-11-23 16:43:20] $ scripts/vm.sh root bash -s -- site a.example.com < scripts/e2e-m17/bam.sh
 pool d442e4edf48ca821d330d0e38d5fb93955bdd9e230c6e73fa626216ff717af5f
 vhost-nginx 76400a7ba018b082c9041ee6ef259cae3630ace5a9d039880b7261293f669f62
 vhost-apache KHONG_CO
 cron 46f92e43868e7fcb6cf38151c87de6e30e1c454346278b9376bd935114e52b47
-wp-config b36fb244271d4df9c24805127f44303824f6c3807393b1438671c627ffda5ca3
+wp-config ef607e24d9f1a6469cb5ff211fa88f668277596466d14c073671958ef0c350a3
 htaccess KHONG_CO
-[2026-11-23 15:40:05] (mã thoát 0)
+[2026-11-23 16:43:20] (mã thoát 0)
   => ĐẠT: bất biến 2: sha256 năm file của a.example.com về đúng như trước khi nâng
 
-[2026-11-23 15:40:05] $ scripts/vm.sh root bash -s -- site b.example.com < scripts/e2e-m17/bam.sh
+[2026-11-23 16:43:20] $ scripts/vm.sh root bash -s -- site b.example.com < scripts/e2e-m17/bam.sh
 pool 41c73aa2572efeaa73fc8a1ab3397af3ae2fb765f40a7230f1aae0d7e89de2cd
 vhost-nginx e36e6f9f1b1620fa357d639f7a41a1529f79a4a89ffd3eb78b3b6c05d4b1a2b8
 vhost-apache KHONG_CO
 cron 7f3d39815a7571b6bebdd44fd7d3d61567b4188f1887ac579688412cb0bd2e18
-wp-config 20e94a60132470211f2169d80e653084e2898f190147f1c1570d4328f42743a4
+wp-config c7d423d19a0655c8d55eeb06627e32a222faa2a0c5b267adb9250ce1423b328b
 htaccess KHONG_CO
-[2026-11-23 15:40:05] (mã thoát 0)
+[2026-11-23 16:43:21] (mã thoát 0)
   => ĐẠT: sha256 năm file của b.example.com về đúng như trước khi nâng
 
-[2026-11-23 15:40:05] $ scripts/vm.sh root bash -s -- cay sau2 /etc/nginx /etc/php /etc/cron.d /etc/systemd/system < scripts/e2e-m17/bam.sh
+[2026-11-23 16:43:21] $ scripts/vm.sh root bash -s -- cay sau2 /etc/nginx /etc/php /etc/cron.d /etc/systemd/system < scripts/e2e-m17/bam.sh
 BAM_sau2_SO_FILE=65
 BAM_sau2_TONG=94d76bb6c01512e65b122b326ac0e1ee7276484a425d344d78cf31b784257627
-[2026-11-23 15:40:06] (mã thoát 0)
+[2026-11-23 16:43:21] (mã thoát 0)
 
-[2026-11-23 15:40:06] $ scripts/vm.sh root bash -s -- so truoc sau2 < scripts/e2e-m17/bam.sh
+[2026-11-23 16:43:21] $ scripts/vm.sh root bash -s -- so truoc sau2 < scripts/e2e-m17/bam.sh
 DIFF_DONG=0
-[2026-11-23 15:40:06] (mã thoát 0)
+[2026-11-23 16:43:21] (mã thoát 0)
   => ĐẠT: sha256 mọi file dưới /etc/nginx /etc/php /etc/cron.d /etc/systemd/system về đúng như trước khi nâng
 
-[2026-11-23 15:40:06] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:43:21] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -1133,13 +1133,13 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://a.example.com/wp-login.php?redirect_to=http%3A%2F%2Fa.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:40:06] (mã thoát 0)
+[2026-11-23 16:43:21] (mã thoát 0)
   => ĐẠT: ra lồng, A: trang chủ a.example.com trả 200
   => ĐẠT: ra lồng, A: permalink /hello-world/ trả 200
   => ĐẠT: ra lồng, A: trang không có trả 404 do WordPress trả
   => ĐẠT: ra lồng, A: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:40:06] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:43:21] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -1153,13 +1153,13 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://b.example.com/wp-login.php?redirect_to=http%3A%2F%2Fb.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:40:06] (mã thoát 0)
+[2026-11-23 16:43:22] (mã thoát 0)
   => ĐẠT: ra lồng, B: trang chủ b.example.com trả 200
   => ĐẠT: ra lồng, B: permalink /hello-world/ trả 200
   => ĐẠT: ra lồng, B: trang không có trả 404 do WordPress trả
   => ĐẠT: ra lồng, B: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:40:06] $ scripts/vm.sh root tpan health  --json
+[2026-11-23 16:43:22] $ scripts/vm.sh root tpan health  --json
 nhóm: (máy, stack), a.example.com, b.example.com, tpan
 số phép kiểm theo trạng thái: pass=54 warn=7
 --- warn dns.a:a.example.com (chặng dns): a.example.com chưa có bản ghi A
@@ -1169,16 +1169,16 @@ số phép kiểm theo trạng thái: pass=54 warn=7
 --- warn tls.cert:b.example.com (chặng tls): Chưa có chứng chỉ cho b.example.com
 --- warn cage.state:b.example.com (chặng php): Lồng chưa khớp gói: gói của chủ site muốn lồng nhưng site chưa ở trong lồng
 --- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
-[2026-11-23 15:40:11] (mã thoát 0)
+[2026-11-23 16:43:26] (mã thoát 0)
   => ĐẠT: health không có lỗi
 
 
-######## [2026-11-23 15:40:11] U6: self-update --rollback bị từ chối khi còn site trong lồng
+######## [2026-11-23 16:43:26] U6: self-update --rollback bị từ chối khi còn site trong lồng
 
-[2026-11-23 15:40:11] $ scripts/vm.sh root tpan cage enable --all --yes
+[2026-11-23 16:43:26] $ scripts/vm.sh root tpan cage enable --all --yes
 
 == a.example.com
-Bắt đầu job de96ab3a48788bc6
+Bắt đầu job f60e0cf110eccc2a
 - Ghi file của lồng của a.example.com ...
   xong
 - Bật socket PHP của lồng của a.example.com ...
@@ -1204,7 +1204,7 @@ Bắt đầu job de96ab3a48788bc6
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
 
-Job de96ab3a48788bc6: thành công
+Job f60e0cf110eccc2a: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của lồng có, unit socket đang chạy và dịch vụ PHP không hỏng: Socket của lồng có (www-data:www-data, 0660), unit socket active, dịch vụ PHP inactive
@@ -1220,7 +1220,7 @@ Kiểm chứng:
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của a.example.com (5 phép thử)
 
 == b.example.com
-Bắt đầu job 1540c66b21b743e7
+Bắt đầu job 684e6dd22572ed52
 - Ghi file của lồng của b.example.com ...
   xong
 - Bật socket PHP của lồng của b.example.com ...
@@ -1246,7 +1246,7 @@ Bắt đầu job 1540c66b21b743e7
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
 
-Job 1540c66b21b743e7: thành công
+Job 684e6dd22572ed52: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của lồng có, unit socket đang chạy và dịch vụ PHP không hỏng: Socket của lồng có (www-data:www-data, 0660), unit socket active, dịch vụ PHP inactive
@@ -1260,10 +1260,10 @@ Kiểm chứng:
   [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_b_example_com_cd59d5 0750, access.log và error.log là root:tp_b_example_com_cd59d5 0640
   [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không chạm được vào file, log và socket của b.example.com (5 phép thử)
-[2026-11-23 15:40:18] (mã thoát 0)
+[2026-11-23 16:43:32] (mã thoát 0)
   => ĐẠT: cage enable --all (lần hai) thoát 0
 
-[2026-11-23 15:40:18] $ scripts/vm.sh root tpan self-update --rollback --yes --json
+[2026-11-23 16:43:32] $ scripts/vm.sh root tpan self-update --rollback --yes --json
 {
   "error": {
     "code": "cage_active",
@@ -1273,20 +1273,20 @@ Kiểm chứng:
     }
   }
 }
-[2026-11-23 15:40:18] (mã thoát 1)
+[2026-11-23 16:43:33] (mã thoát 1)
   => ĐẠT: self-update --rollback --json: từ chối cage_active
 
-[2026-11-23 15:40:18] $ scripts/vm.sh root tpan self-update --rollback --yes
+[2026-11-23 16:43:33] $ scripts/vm.sh root tpan self-update --rollback --yes
 Từ chối: không lùi tpan về bản trước được: bản trước không biết lồng theo site và phép thử tấn công. Còn: site đang ở trong lồng: a.example.com, b.example.com (đưa ra bằng: sudo tpan cage disable --all --yes); file của lồng trong /etc/systemd/system: tpan-cage-a_example_com_7653e4-.service.d, tpan-cage-a_example_com_7653e4-php.service, tpan-cage-a_example_com_7653e4-php.socket, tpan-cage-b_example_com_cd59d5-.service.d, tpan-cage-b_example_com_cd59d5-php.service, tpan-cage-b_example_com_cd59d5-php.socket (gỡ bằng: sudo tpan cage disable --all --yes). Làm các lệnh đó rồi chạy lại.
-[2026-11-23 15:40:18] (mã thoát 1)
+[2026-11-23 16:43:33] (mã thoát 1)
   => ĐẠT: self-update --rollback (dạng chữ): thoát khác 0, lời từ chối nêu lệnh tpan cage disable --all
 
-[2026-11-23 15:40:18] $ scripts/vm.sh exec tpan version
-tpan v0.2.2-77-g0fe28fa-dirty (commit 0fe28fa, build 2026-11-23T08:38:09Z)
-[2026-11-23 15:40:18] (mã thoát 0)
-  => ĐẠT: tpan vẫn là bản v0.2.2-77-g0fe28fa-dirty (không lùi)
+[2026-11-23 16:43:33] $ scripts/vm.sh exec tpan version
+tpan v0.2.2-81-ga195574-dirty (commit a195574, build 2026-11-23T09:41:31Z)
+[2026-11-23 16:43:33] (mã thoát 0)
+  => ĐẠT: tpan vẫn là bản v0.2.2-81-ga195574-dirty (không lùi)
 
-[2026-11-23 15:40:18] $ scripts/vm.sh exec bash -c 
+[2026-11-23 16:43:33] $ scripts/vm.sh exec bash -c 
 d=$1
 c(){ curl -s -m 20 --resolve "$d:80:127.0.0.1" "$@"; }
 echo "trang-chu=$(c -o /dev/null -w "%{http_code}" "http://$d/")"
@@ -1300,16 +1300,16 @@ permalink=200
 khong-co=404 dau-wordpress=120
 wp-admin=302 -> http://a.example.com/wp-login.php?redirect_to=http%3A%2F%2Fa.example.com%2Fwp-admin%2F&reauth=1
 tinh=200
-[2026-11-23 15:40:19] (mã thoát 0)
+[2026-11-23 16:43:33] (mã thoát 0)
   => ĐẠT: sau rollback bị từ chối, A: trang chủ a.example.com trả 200
   => ĐẠT: sau rollback bị từ chối, A: permalink /hello-world/ trả 200
   => ĐẠT: sau rollback bị từ chối, A: trang không có trả 404 do WordPress trả
   => ĐẠT: sau rollback bị từ chối, A: /wp-admin/ chuyển hướng tới wp-login.php
 
-[2026-11-23 15:40:19] $ scripts/vm.sh root tpan cage disable --all --yes
+[2026-11-23 16:43:33] $ scripts/vm.sh root tpan cage disable --all --yes
 
 == a.example.com
-Bắt đầu job 595eb2527f837f2e
+Bắt đầu job c7c04bb3bc687b21
 - Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
   xong
 - Ghi vhost nginx cho a.example.com ...
@@ -1330,7 +1330,7 @@ Bắt đầu job 595eb2527f837f2e
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
 
-Job 595eb2527f837f2e: thành công
+Job c7c04bb3bc687b21: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1343,7 +1343,7 @@ Kiểm chứng:
   [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không chạm được vào file, log và socket của b.example.com (5 phép thử)
 
 == b.example.com
-Bắt đầu job 07532f214d31e7f4
+Bắt đầu job 3343034e08066631
 - Ghi pool PHP-FPM tpan-b_example_com_cd59d5 cho b.example.com ...
   xong
 - Ghi vhost nginx cho b.example.com ...
@@ -1364,7 +1364,7 @@ Bắt đầu job 07532f214d31e7f4
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
 
-Job 07532f214d31e7f4: thành công
+Job 3343034e08066631: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1375,10 +1375,10 @@ Kiểm chứng:
   [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_b_example_com_cd59d5 0750, access.log và error.log là root:tp_b_example_com_cd59d5 0640
   [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
   [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của a.example.com (5 phép thử)
-[2026-11-23 15:40:25] (mã thoát 0)
+[2026-11-23 16:43:39] (mã thoát 0)
   => ĐẠT: cage disable --all (dọn lại) thoát 0
 
-[2026-11-23 15:40:25] $ scripts/vm.sh root tpan self-update --rollback --dry-run --json
+[2026-11-23 16:43:39] $ scripts/vm.sh root tpan self-update --rollback --dry-run --json
 {
   "error": {
     "code": "self_rollback_db",
@@ -1388,13 +1388,13 @@ Kiểm chứng:
     }
   }
 }
-[2026-11-23 15:40:25] (mã thoát 1)
+[2026-11-23 16:43:39] (mã thoát 1)
   => ĐẠT: hết site trong lồng: self-update --rollback --dry-run không còn bị cage_active chặn (thoát 0, hoặc từ chối self_rollback_db vì v0.2.0 không mở được DB bản 1700)
 
 ==== Phần nang-cap: 86 đạt, 0 không đạt
 
 
-######## [2026-11-23 15:40:25] bí mật, IP, tên user Mac, cookie có lọt vào chính file log không
+######## [2026-11-23 16:43:39] bí mật, IP, tên user Mac, cookie có lọt vào chính file log không
 Số bí mật đã gặp: 5; số dòng của log chứa một trong số đó: 0
   => ĐẠT: log không chứa mật khẩu hay cookie nào
   => ĐẠT: mọi trường password trong log đều đã che
@@ -1405,4 +1405,4 @@ Số bí mật đã gặp: 5; số dòng của log chứa một trong số đó:
   => ĐẠT: log không chứa thư mục nhà hay tên user Mac
 
 
-######## [2026-11-23 15:40:25] TỔNG KẾT: 93 khẳng định đạt, 0 khẳng định không đạt
+######## [2026-11-23 16:43:39] TỔNG KẾT: 93 khẳng định đạt, 0 khẳng định không đạt
