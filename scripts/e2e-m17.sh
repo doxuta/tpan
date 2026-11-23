@@ -120,6 +120,10 @@ mask_str() {
     [ -n "$p" ] && s="${s//"$p"/<bí mật, đã che>}"
   done <"$SECRETS"
   s="$(sed -E -e 's/inet6 [0-9a-f:]{3,}/inet6 <v6>/g' -e 's/^(set-cookie: *[^=]*=)[^;]*/\1<cookie, đã che>/I' <<<"$s")"
+  # Mọi IPv4 còn lại trừ 127.x thành <ip>: lỗi của apt mang IP của CDN kho ngoài
+  # (luật 2 của AGENTS.md: không IP thật trong log). perl vì sed của macOS
+  # không có lookbehind; số có dấu chấm dính liền hai đầu (phiên bản dài) bỏ qua.
+  s="$(perl -pe 's/(?<![\d.])(?!127\.)(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/<ip>/g' <<<"$s")"
   printf '%s' "$s"
 }
 mask() { OUT="$(mask_str <<<"$OUT")"; }
@@ -1294,7 +1298,9 @@ part_nang_cap() {
   ok "chép gói $OLD_VER sang máy ảo" rc_is 0
 
   section "U1: cài $OLD_VER bằng install.sh của chính nó, stack $web, hai site"
-  install_run "$VM" exec bash -c "cd /home/ubuntu/$old_base && sudo ./install.sh --web $web"
+  # `bash ./install.sh`: file trong gói phát hành mang quyền 0644 (multipass
+  # transfer giữ nguyên quyền), nên `./install.sh` báo "command not found".
+  install_run "$VM" exec bash -c "cd /home/ubuntu/$old_base && sudo bash ./install.sh --web $web"
   ok "install.sh $OLD_VER thoát 0" rc_is 0
   ok "install.sh in bản $OLD_VER" has "^tpan $OLD_VER "
   save_pw admin "$PW"
@@ -1414,8 +1420,12 @@ part_nang_cap() {
   web_assert "$A" "sau rollback bị từ chối, A"
   vroot tpan cage disable --all --yes
   ok "cage disable --all (dọn lại) thoát 0" rc_is 0
-  vroot tpan self-update --rollback --dry-run
-  ok "hết site trong lồng: self-update --rollback --dry-run thoát 0 (không còn bị cage_active chặn)" rc_is 0
+  # Hết lồng thì cage_active không chặn nữa. Từ M15, lùi bản còn kiểm bản cũ mở
+  # được tpan.db hiện tại: v0.2.0 không mở được DB đã ở bản 1700 nên từ chối
+  # self_rollback_db (đúng mục 6 của thiết kế M17: muốn chạy bản cũ phải chép
+  # lại bản sao tpan.db). Khẳng định chỉ đòi lời từ chối không còn là cage_active.
+  vjson tpan self-update --rollback --dry-run --json
+  ok "hết site trong lồng: self-update --rollback --dry-run không còn bị cage_active chặn (thoát 0, hoặc từ chối self_rollback_db vì v0.2.0 không mở được DB bản 1700)" bash -c '[ "$1" = 0 ] || [ "$(jq -r ".error.code // empty" <<<"$2")" = self_rollback_db ]' _ "$RC" "$OUT"
   part_end nang-cap
 }
 
