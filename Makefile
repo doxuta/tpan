@@ -150,6 +150,14 @@ e2e-m28: BIN ?= bin/tpan-linux
 e2e-m28: ## (M28) Chạy e2e bước 31: make e2e-m28 P="apache nginx" L=docs/bang-chung/M28.log
 	@E2E_BUILD=$(B) E2E_BIN_PREFIX=$(BIN) E2E_LOG=$(L) bash scripts/e2e-m28.sh $(P) >$(L) 2>&1; rc=$$?; echo "--- 5 dòng cuối $(L) ---"; tail -n 5 $(L); exit $$rc
 
+# e2e đợt 2 (nhóm A) của M28. Cùng biến với e2e-m28.
+e2e-m28-dot2: P ?= all
+e2e-m28-dot2: L ?= docs/bang-chung/M28-dot2.log
+e2e-m28-dot2: B ?= 1
+e2e-m28-dot2: BIN ?= bin/tpan-linux
+e2e-m28-dot2: ## (M28) Chạy e2e đợt 2: make e2e-m28-dot2 P="nginx apache nang-cap" L=docs/bang-chung/M28-dot2.log
+	@E2E_BUILD=$(B) E2E_BIN_PREFIX=$(BIN) E2E_LOG=$(L) bash scripts/e2e-m28-dot2.sh $(P) >$(L) 2>&1; rc=$$?; echo "--- 5 dòng cuối $(L) ---"; tail -n 5 $(L); exit $$rc
+
 # Test cần root của sitefs và system: build go test -c cho Linux đúng kiến trúc
 # máy ảo, đẩy vào máy ảo, chạy bằng root. R: biểu thức -test.run (mặc định
 # Cua|VungSite|LenhRoot). Gói internal/sitefs có thể chưa tồn tại: không có file
