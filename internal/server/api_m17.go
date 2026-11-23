@@ -196,6 +196,12 @@ func (s *Server) handleProbeRun(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, r, err)
 			return
 		}
+		// Route chỉ admin (filterPreview không bỏ gì), nhưng mọi bản xem trước
+		// đều đi qua bộ lọc của M28: đổi luật route sau này không lộ file.
+		if err := s.filterPreview(r, &pv); err != nil {
+			apiFail(w, r, err)
+			return
+		}
 		writeJSON(w, http.StatusOK, ProbePreview{Preview: pv, Run: job.Run})
 		return
 	}
