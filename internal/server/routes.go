@@ -273,7 +273,7 @@ func (s *Server) guard(rt route) http.Handler {
 		}
 		if id.ReadOnly() && r.Method != http.MethodGet && r.Method != http.MethodHead && !rt.allowReadOnly {
 			writeError(w, http.StatusForbidden, "read_only_view", i18n.T(
-				"Đang xem như "+id.Name+": phiên này chỉ đọc. Thoát chế độ xem như rồi mới thao tác được.",
+				"Đang xem như "+id.Name+": phiên này chỉ đọc. Thoát chế độ xem như rồi mới đổi được.",
 				"Viewing as "+id.Name+": this session is read-only. Leave view-as mode to make changes."))
 			return
 		}

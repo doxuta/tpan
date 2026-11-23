@@ -179,7 +179,7 @@ func cloudInitErr(err error) error {
 		// Bảng giới hạn ở mục 2.5 (tra ngày 20/11/2026). Mặc định 16 KB là trần
 		// nhỏ nhất (AWS EC2) để file chạy được ở mọi nơi đã tra.
 		return refuse(CodeCloudInitTooLarge, i18n.T(
-			fmt.Sprintf("user-data %d byte, lớn hơn trần %d byte. Giới hạn của nhà cung cấp: AWS EC2 16 KB, OpenStack 64 KB, Azure 64 KB, GCP 256 KB. Bớt site, hoặc nếu nhà cung cấp của bạn nhận file lớn hơn thì nâng trần bằng --max-bytes N (API: max_bytes)", big.Size, big.Max),
+			fmt.Sprintf("user-data %d byte, lớn hơn mức tối đa %d byte. Giới hạn của nhà cung cấp: AWS EC2 16 KB, OpenStack 64 KB, Azure 64 KB, GCP 256 KB. Bớt site, hoặc nếu nhà cung cấp của bạn nhận file lớn hơn thì nâng mức tối đa bằng --max-bytes N (API: max_bytes)", big.Size, big.Max),
 			fmt.Sprintf("user-data is %d bytes, above the %d-byte limit. Provider limits: AWS EC2 16 KB, OpenStack 64 KB, Azure 64 KB, GCP 256 KB. Use fewer sites, or if your provider accepts more, raise the limit with --max-bytes N (API: max_bytes)", big.Size, big.Max)))
 	}
 	return err

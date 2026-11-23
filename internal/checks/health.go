@@ -474,7 +474,7 @@ func TPANJobs(stuck func(ctx context.Context) ([]StuckJob, error)) Check {
 		ev.ExitCode, ev.Output = 1, clip(strings.Join(lines, "\n"))
 		return b.bad(Fail,
 			i18n.T(fmt.Sprintf("%d job chạy quá lâu: %s", len(jobs), list), fmt.Sprintf("%d job(s) running for too long: %s", len(jobs), listEn)),
-			i18n.T("Job đã bắt đầu nhưng không thấy kết thúc: tiến trình tpan có thể bị tắt giữa chừng, hoặc một lệnh bên trong bị treo. Job treo giữ khoá nên thao tác mới có thể bị từ chối.",
+			i18n.T("Job đã bắt đầu nhưng không thấy kết thúc: tiến trình tpan có thể bị tắt giữa chừng, hoặc một lệnh bên trong bị treo. Job treo giữ khoá nên việc mới có thể bị từ chối.",
 				"A job started but never finished: the tpan process may have been killed midway, or a command inside it hangs. A stuck job holds the lock, so new operations may be refused."),
 			[]string{
 				line("journalctl", "-u", "tpan", "-n", "100", "--no-pager"),

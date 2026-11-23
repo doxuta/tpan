@@ -134,9 +134,9 @@ func withSources(cfg StackConfig, opts InstallOptions, first bool) (StackConfig,
 }
 
 var sourceWhatEn = map[string]string{
-	"nguồn web server": "web server source",
-	"nguồn MariaDB":    "MariaDB source",
-	"phiên bản MariaDB":     "MariaDB series",
+	"nguồn web server":  "web server source",
+	"nguồn MariaDB":     "MariaDB source",
+	"phiên bản MariaDB": "MariaDB series",
 }
 
 // checkSources là phần "nguồn" của Packages: chỉ nhận đúng các nguồn tpan biết

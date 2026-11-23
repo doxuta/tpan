@@ -897,7 +897,7 @@ func (s *MariaDBDump) Info() engine.StepInfo {
 			ID:    "mariadb.dump:" + s.Path,
 			Title: i18n.T("Xuất DB "+s.DB+" ra "+s.Path, "Dump database "+s.DB+" to "+s.Path),
 			Why: i18n.T(
-				"Bản xuất này là đường lùi của DB: nhập lại nó là DB về đúng lúc xuất. Bỏ bước này thì thao tác tiếp theo (nhập, khôi phục) ghi đè DB mà không còn bản cũ để trả về. File chỉ root đọc được vì có toàn bộ dữ liệu của site.",
+				"Bản xuất này là đường lùi của DB: nhập lại nó là DB về đúng lúc xuất. Bỏ bước này thì việc tiếp theo (nhập, khôi phục) ghi đè DB mà không còn bản cũ để trả về. File chỉ root đọc được vì có toàn bộ dữ liệu của site.",
 				"This dump is the way back for the database: importing it returns the database to this moment. Without it the next operation (import, restore) overwrites the database with no old copy to go back to. Only root can read the file because it holds all of the site's data.",
 			),
 			Commands: []string{dbShow(measureDBSQL(s.DB)), s.cmd().String(), s.tail().String()},

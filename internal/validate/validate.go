@@ -222,7 +222,7 @@ func ParseEmail(s string) (Email, error) {
 	for _, r := range s {
 		if r <= ' ' || r == 0x7f || strings.ContainsRune(`<>()[]{},;:"\|&$`+"`'", r) {
 			return Email{}, emailErr(
-				"email chỉ nhận địa chỉ trần, không có tên hiển thị, khoảng trắng hay ký tự đặc biệt",
+				"email chỉ nhận địa chỉ thuần, không có tên hiển thị, khoảng trắng hay ký tự đặc biệt",
 				"the email must be a bare address, with no display name, spaces or special characters")
 		}
 	}

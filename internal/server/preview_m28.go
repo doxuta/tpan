@@ -165,7 +165,7 @@ func sitePathUnsafe(err error) (ErrorBody, bool) {
 	return ErrorBody{Error: ErrorDetail{
 		Code: "site_path_unsafe",
 		Message: i18n.T(
-			"tpan không thao tác trên "+se.Path+" trong thư mục site: "+vi+". Xem bằng `"+hint+"`, đưa về thư mục, file thường của site rồi thử lại.",
+			"tpan không đụng tới "+se.Path+" trong thư mục site: "+vi+". Xem bằng `"+hint+"`, đưa về thư mục, file thường của site rồi thử lại.",
 			"tpan refused to touch "+se.Path+" inside the site directory: "+en+". Look at it with `"+hint+"`, turn it back into a plain directory or regular file owned by the site, then retry."),
 	}}, true
 }

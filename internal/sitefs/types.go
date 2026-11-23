@@ -99,7 +99,7 @@ var (
 	ErrPath       = errors.New("đường dẫn trong thư mục site không hợp lệ (rỗng, có \".\", \"..\", byte 0, hoặc quá sâu)")
 	ErrSymlink    = errors.New("là symlink: tpan không đi theo symlink trong thư mục site")
 	ErrNotRegular = errors.New("không phải file thường: tpan không mở thư mục, thiết bị, FIFO hay socket ở chỗ cần file thường")
-	ErrTooLarge   = errors.New("lớn hơn trần tpan đọc trong thư mục site")
+	ErrTooLarge   = errors.New("lớn hơn mức tối đa tpan đọc trong thư mục site")
 	ErrOwner      = errors.New("không thuộc user của site: tpan chỉ đọc file do chính site làm chủ")
 	ErrLinked     = errors.New("có hơn một tên (hardlink): tpan không đổi chủ hay quyền qua hardlink")
 	ErrTooMany    = errors.New("thư mục có quá nhiều mục")

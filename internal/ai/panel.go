@@ -223,7 +223,7 @@ func (p *Panel) start(ctx context.Context, in AskInput) (*turnRun, Job, error) {
 	}
 	if n >= MaxQuestionsPerDay {
 		return nil, Job{}, refuse("ai_daily_limit",
-			fmt.Sprintf("Đã hỏi %d câu trong 24 giờ qua (trần là %d). Đợi rồi hỏi lại.", n, MaxQuestionsPerDay),
+			fmt.Sprintf("Đã hỏi %d câu trong 24 giờ qua (tối đa %d). Đợi rồi hỏi lại.", n, MaxQuestionsPerDay),
 			fmt.Sprintf("%d questions were asked in the last 24 hours (the limit is %d). Wait and ask again.", n, MaxQuestionsPerDay))
 	}
 

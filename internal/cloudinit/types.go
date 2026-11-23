@@ -90,7 +90,7 @@ func (e *InvalidError) Error() string { return "cloudinit_invalid: " + e.Msg.Vi 
 type TooLargeError struct{ Size, Max int }
 
 func (e *TooLargeError) Error() string {
-	return "cloudinit_too_large: user-data " + strconv.Itoa(e.Size) + " byte, trần " + strconv.Itoa(e.Max) + " byte"
+	return "cloudinit_too_large: user-data " + strconv.Itoa(e.Size) + " byte, tối đa " + strconv.Itoa(e.Max) + " byte"
 }
 
 // State là nội dung StatePath: tiến độ của lần khởi động đầu (mục 3.9). File

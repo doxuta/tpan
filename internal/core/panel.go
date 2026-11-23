@@ -55,11 +55,11 @@ func (r *Remote) preparePanel(_ context.Context, store steps.ObjectStore, c Targ
 		return nil, nil, refuse(CodeBackupKeyMissing, i18n.T("không đọc được khoá sao lưu: "+err.Error(), "cannot read the backup key: "+err.Error()))
 	case !ok:
 		return nil, nil, refuse(CodeBackupKeyMissing, i18n.T(
-			"chưa có khoá sao lưu nên chưa tạo được gói panel; sinh khoá bằng: sudo tpan backup key new",
+			"chưa có khoá sao lưu nên chưa tạo được gói panel; tạo khoá bằng: sudo tpan backup key new",
 			"there is no backup key yet, so no panel bundle can be made; generate one with: sudo tpan backup key new"))
 	case agebox.CheckKey(k) != nil:
 		return nil, nil, refuse(CodeBackupKeyMissing, i18n.T(
-			"khoá sao lưu sai dạng ("+steps.BackupKeyFile+"); xem bằng: sudo tpan backup key show, hoặc sinh khoá mới: sudo tpan backup key new",
+			"khoá sao lưu sai dạng ("+steps.BackupKeyFile+"); xem bằng: sudo tpan backup key show, hoặc tạo khoá mới: sudo tpan backup key new",
 			"the backup key is malformed ("+steps.BackupKeyFile+"); check it with: sudo tpan backup key show, or generate a new one: sudo tpan backup key new"))
 	}
 	if r.Snapshot == nil || r.Store == nil {
