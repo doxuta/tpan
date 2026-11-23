@@ -131,6 +131,18 @@ func siteHealth(ctx context.Context, c *call, _ domainIn, d validate.Domain) (an
 	}
 	for i := range h.Results {
 		r := &h.Results[i]
+		// D9 của soát cuối đợt 2: đích symlink của public (site.docroot) là chuỗi
+		// do chủ site tự đặt, tới 200 ký tự: một câu lệnh cho AI cũng được.
+		if strings.HasPrefix(r.ID, "site.docroot:") {
+			for j := range r.Evidence {
+				ev := &r.Evidence[j]
+				if strings.HasPrefix(ev.Command, "readlink ") && ev.Output != "" {
+					ev.Output = ai.Untrusted("symlink-target", ev.Output)
+					c.untrusted = true
+				}
+			}
+			continue
+		}
 		if !strings.HasPrefix(r.ID, "http.site:") {
 			continue
 		}

@@ -256,6 +256,17 @@ const (
 	// (listen TCP, user khác, quyền socket khác): ghi lại pool của bản PHP site
 	// đang dùng từ template, có kiểm cú pháp và reload như lúc tạo.
 	FixPHPPool = "php.pool.rewrite"
+	// "web.mod_status:apache2" Fail (D2 của soát cuối đợt 2): tắt mod_status
+	// bằng đúng bước của harden (steps.ApacheModOff), Verify chỉ
+	// ApacheModStatus. Không phải chạy lại cả harden (một site xấu không làm
+	// được job này lỗi). Chỉ khi stack là Apache.
+	FixApacheModOff = "apache.mod-off"
+	// "db.user_limit:<user>" Warn (D2): user DB của một site active hay một
+	// DB rời active không có trần: đặt trần site.DBMaxUserConnections bằng
+	// steps.DBUserLimit (cắt luôn kết nối đang mở), Verify chỉ DBUserLimit.
+	// Trần đã có mà lớn hơn max_connections: không sửa tự động (tpan không
+	// đè trần admin đã chọn).
+	FixDBUserLimit = "db.user-limit"
 )
 
 // AutoFixName trả tên cách sửa tự động cho r, rỗng khi không có (Pass,
@@ -273,6 +284,10 @@ func AutoFixName(r checks.Result) string {
 		// M14: ProtectProc thiếu chỉ là cảnh báo nhưng có sửa tự động (mục 6.13).
 		if kind == "php.protectproc" {
 			return FixPHPHarden
+		}
+		// M28 đợt 2: thiếu trần kết nối chỉ là cảnh báo nhưng có sửa tự động.
+		if kind == "db.user_limit" {
+			return FixDBUserLimit
 		}
 		return ""
 	default: // Pass, Unknown: không có gì để sửa, hoặc chưa biết sửa gì.
@@ -309,6 +324,8 @@ func AutoFixName(r checks.Result) string {
 		return FixWebRewrite
 	case "php.pool":
 		return FixPHPPool
+	case "web.mod_status":
+		return FixApacheModOff
 	}
 	return ""
 }

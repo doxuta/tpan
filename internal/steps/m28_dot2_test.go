@@ -31,6 +31,8 @@ type modFake struct {
 	mu   sync.Mutex
 	on   map[string]bool
 	fail map[string]bool // "a2dismod", "a2enmod", "configtest", "reload", "-M"
+	// elsewhere: module nạp bằng LoadModule ngoài mods-enabled (a2dismod không gỡ được).
+	elsewhere []string
 }
 
 func newModFake(on ...string) *modFake {
@@ -53,6 +55,11 @@ func newModFake(on ...string) *modFake {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		out := "Loaded Modules:\n core_module (static)\n proxy_status_module (shared)\n"
+		for _, m := range f.elsewhere {
+			if !f.on[m] {
+				out += " " + m + "_module (shared)\n"
+			}
+		}
 		for _, m := range slices.Sorted(maps.Keys(f.on)) {
 			out += " " + m + "_module (shared)\n"
 		}
@@ -215,6 +222,24 @@ func TestApacheModOffErrors(t *testing.T) {
 	}
 }
 
+// D11: status nạp bằng LoadModule ngoài mods-enabled: a2dismod không làm gì.
+// Apply hỏi lại apachectl -M, trả ErrModuleLoadedElsewhere kèm chỉ dẫn, trả
+// link mods-enabled về như cũ, và không reload.
+func TestApacheModOffNapNgoaiModsEnabled(t *testing.T) {
+	f := newModFake("status")
+	f.elsewhere = []string{"status"}
+	err := (&ApacheModOff{Module: "status"}).Apply(context.Background(), f)
+	if !errors.Is(err, ErrModuleLoadedElsewhere) || !strings.Contains(err.Error(), "DUMP_INCLUDES") {
+		t.Fatalf("lỗi = %v, muốn ErrModuleLoadedElsewhere kèm chỉ dẫn", err)
+	}
+	if !f.isOn("status") {
+		t.Error("link mods-enabled không được trả về")
+	}
+	if slices.Contains(f.ran(), "systemctl reload apache2") {
+		t.Errorf("không được reload khi module vẫn nạp: %q", f.ran())
+	}
+}
+
 func TestApacheModOffBadNames(t *testing.T) {
 	ctx := context.Background()
 	for _, name := range m28BadNames {
@@ -254,6 +279,7 @@ func TestApacheModulesOff(t *testing.T) {
 var (
 	limFakeState = regexp.MustCompile(`^SELECT COUNT\(\*\), COALESCE\(MAX\(max_user_connections\), 0\) FROM mysql\.user WHERE User='([a-z0-9_]+)' AND Host='localhost';$`)
 	limFakeAlter = regexp.MustCompile(`^ALTER USER '([a-z0-9_]+)'@'localhost' WITH MAX_USER_CONNECTIONS ([0-9]+);$`)
+	limFakeKill  = regexp.MustCompile(`^KILL USER '([a-z0-9_]+)'@'localhost';$`)
 )
 
 // limFake: MariaDB giả chỉ biết trần kết nối của từng user.
@@ -262,6 +288,9 @@ type limFake struct {
 	mu    sync.Mutex
 	users map[string]int
 	fail  bool
+	// killed: các user đã nhận KILL USER; killFail làm câu KILL lỗi.
+	killed   []string
+	killFail bool
 }
 
 func newLimFake(users map[string]int) *limFake {
@@ -276,6 +305,13 @@ func newLimFake(users map[string]int) *limFake {
 		if m := limFakeState.FindStringSubmatch(st); m != nil {
 			n, ok := f.users[m[1]]
 			return system.Result{Stdout: fmt.Sprintf("%d\t%d\n", b2i(ok), n)}
+		}
+		if m := limFakeKill.FindStringSubmatch(st); m != nil {
+			f.killed = append(f.killed, m[1])
+			if f.killFail {
+				return system.Result{ExitCode: 1, Stderr: "ERROR 1095 (HY000): You are not owner of thread\n"}
+			}
+			return system.Result{}
 		}
 		if m := limFakeAlter.FindStringSubmatch(st); m != nil {
 			if _, ok := f.users[m[1]]; !ok {
@@ -405,10 +441,46 @@ func TestDBUserLimitBadParams(t *testing.T) {
 	}
 }
 
+// D3: sau ALTER USER, cắt kết nối đang mở của user (kết nối mở trước khi có
+// trần không bị đếm). KILL lỗi không làm hỏng bước: trần vẫn đặt. Trần đã có
+// (Apply không ALTER) thì không KILL.
+func TestDBUserLimitKillKetNoiCu(t *testing.T) {
+	ctx := context.Background()
+	for _, killFail := range []bool{false, true} {
+		f := newLimFake(map[string]int{limUser: 0})
+		f.killFail = killFail
+		s := &DBUserLimit{User: limUser, Max: 20}
+		if err := s.Apply(ctx, f); err != nil {
+			t.Fatalf("killFail %v: Apply lỗi %v", killFail, err)
+		}
+		if f.limit(limUser) != 20 || !slices.Equal(f.killed, []string{limUser}) {
+			t.Errorf("killFail %v: trần %d, KILL %q", killFail, f.limit(limUser), f.killed)
+		}
+		if ok, err := s.Check(ctx, f); err != nil || !ok {
+			t.Errorf("killFail %v: Check sau Apply = %v %v", killFail, ok, err)
+		}
+		var order []string
+		for _, c := range f.Ran() {
+			order = append(order, strings.Fields(string(c.Stdin))[0])
+		}
+		// Câu SELECT cuối là của Check sau Apply.
+		if !slices.Equal(order, []string{"SELECT", "ALTER", "KILL", "SELECT"}) {
+			t.Errorf("thứ tự câu SQL %q, muốn SELECT, ALTER, KILL (rồi SELECT của Check)", order)
+		}
+	}
+	g := newLimFake(map[string]int{limUser: 50})
+	if err := (&DBUserLimit{User: limUser, Max: 20}).Apply(ctx, g); err != nil || len(g.killed) != 0 {
+		t.Errorf("trần đã có: %v, KILL %q", err, g.killed)
+	}
+	if all := strings.Join((&DBUserLimit{User: limUser, Max: 20}).Info().Commands, "\n"); !strings.Contains(all, "KILL USER '"+limUser+"'@'localhost';") {
+		t.Errorf("Commands thiếu KILL USER:\n%s", all)
+	}
+}
+
 // Câu SQL của bản xem trước không có mật khẩu, chỉ tên user và số.
 func TestDBUserLimitInfo(t *testing.T) {
 	info := (&DBUserLimit{User: limUser, Max: 20}).Info()
-	if info.ID != "mariadb.user-limit:"+limUser || info.Danger || info.Title.Vi == "" || info.Why.En == "" {
+	if info.ID != "mariadb.user-limit:"+limUser || !info.Danger || info.Title.Vi == "" || info.Why.En == "" {
 		t.Errorf("Info = %+v", info)
 	}
 	all := strings.Join(info.Commands, "\n")

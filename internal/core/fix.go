@@ -24,6 +24,7 @@ import (
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
+	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -85,6 +86,20 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 		return f.webRewrite(ctx, cfg, r.ID, kind)
 	case FixPHPPool:
 		return f.poolRewrite(ctx, cfg, r.ID, obj)
+	case FixApacheModOff:
+		// ID chỉ có một dạng; stack không phải Apache thì kết quả cũ đó không
+		// còn đúng (a2dismod không có gì để làm).
+		if cfg.Web != Apache || obj != "apache2" {
+			return engine.Plan{}, noAutoFix(r.ID)
+		}
+		return engine.Plan{
+			Target: obj,
+			Title:  i18n.T("Tắt mod_status của Apache", "Turn off Apache mod_status"),
+			Steps:  []engine.Step{&steps.ApacheModOff{Module: "status"}},
+			Verify: []checks.Check{checks.ApacheModStatus()},
+		}, nil
+	case FixDBUserLimit:
+		return f.dbUserLimit(ctx, r.ID, obj)
 	case FixPHPHarden:
 		// obj là bản PHP, lấy từ ID của phép kiểm: kiểm dạng trước khi nó đi
 		// vào đường dẫn và tên dịch vụ.
@@ -494,6 +509,62 @@ func (f *Fixes) poolRewrite(ctx context.Context, cfg StackConfig, id, obj string
 		Steps:  []engine.Step{pool},
 		Verify: []checks.Check{checks.PHPPool(l, vers), checks.PoolSocket(l, php)},
 	}, nil
+}
+
+// dbUserLimit sửa db.user_limit (D2 của soát cuối đợt 2): đặt trần kết nối cho
+// user DB. user đến từ ID nên chỉ nhận user DB của một site active hay một DB
+// rời active (f.Store cũng là DBStore, như *store.Store): khớp dạng tên thôi
+// thì `db.user_limit:root` sẽ đặt trần cho chính root của MariaDB. Trần đã
+// khác 0 (lớn hơn max_connections) hay user không có thì bước không đổi gì,
+// nên không có cách sửa tự động. Verify là DBUserLimit, cảnh báo cũng tính là
+// không đạt (không thì job "thành công" mà máy vẫn y như cũ).
+func (f *Fixes) dbUserLimit(ctx context.Context, id, user string) (engine.Plan, error) {
+	known := false
+	sites, err := f.activeSites(ctx)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	for _, st := range sites {
+		known = known || st.Layout().DB == user
+	}
+	if dbs, ok := f.Store.(DBStore); ok && !known {
+		all, err := dbs.StandaloneDBs(ctx, "")
+		if err != nil {
+			return engine.Plan{}, fmt.Errorf("đọc danh sách DB rời: %w", err)
+		}
+		for _, d := range all {
+			known = known || (d.Status == account.DBActive && d.Name == user)
+		}
+	}
+	if !known {
+		return engine.Plan{}, noAutoFix(id)
+	}
+	exists, limit, err := steps.DBUserLimitState(ctx, f.Sys, user)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	if !exists || limit != 0 {
+		return engine.Plan{}, noAutoFix(id)
+	}
+	n := fmt.Sprint(site.DBMaxUserConnections)
+	return engine.Plan{
+		Target: user,
+		Title:  i18n.T("Đặt trần "+n+" kết nối cùng lúc cho user DB "+user, "Limit the database user "+user+" to "+n+" simultaneous connections"),
+		Steps:  []engine.Step{&steps.DBUserLimit{User: user, Max: site.DBMaxUserConnections}},
+		Verify: []checks.Check{strictCheck{checks.DBUserLimit(user)}},
+	}, nil
+}
+
+// strictCheck coi Warn là Fail: cho Verify của cách sửa mà phép kiểm gốc chỉ
+// cảnh báo (db.user_limit).
+type strictCheck struct{ c checks.Check }
+
+func (s strictCheck) Run(ctx context.Context, sys system.System) checks.Result {
+	r := s.c.Run(ctx, sys)
+	if r.Status == checks.Warn {
+		r.Status = checks.Fail
+	}
+	return r
 }
 
 // siteVhost dựng bước ghi vhost đúng loại của site: có SSL (M5) thì bản có

@@ -307,8 +307,10 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 	// bật của danh sách stack (admin có thể đã cố ý đổi). Bước tự reload, nên
 	// đặt SAU bước reload chung: đặt trước thì lần reload của nó nạp luôn các
 	// vhost vừa ghi mà hardenReload chưa biết.
+	var modOff *hardenModOff
 	if cfg.Web == Apache {
-		ss = append(ss, &steps.ApacheModOff{Module: "status"})
+		modOff = &hardenModOff{ApacheModOff: &steps.ApacheModOff{Module: "status"}}
+		ss = append(ss, modOff)
 	}
 
 	// Nhóm 7 (M28 đợt 2, M1-DBCONN): trần kết nối cho user DB của mọi site
@@ -353,20 +355,30 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		limited = append(limited, u)
 	}
 
-	// S2: phép HTTP và cô lập của một site chỉ vào kiểm chứng khi site đó trả
-	// lời đúng TRƯỚC Plan (đo ngay đây, như sitesAnswer của chuyển web server).
-	// Site đang hỏng sẵn (plugin lỗi, public bị đổi thành symlink...) vẫn được
-	// vá đủ mọi bước, chỉ không được làm hoàn tác bản vá của cả máy.
+	// S2: site trả lời sai TRƯỚC Plan (đo ngay đây, như sitesAnswer của chuyển
+	// web server) được nêu trong bản xem trước, và phép HTTP, cô lập của nó
+	// không chạy sau job (chỉ tốn thời gian chờ retryCheck). Site đó vẫn được
+	// vá đủ mọi bước.
 	healthy, broken := hardenHealthy(ctx, s.Sys, active)
 	h.Skipped = append(h.Skipped, broken...)
 
-	// Kiểm chứng: bộ của stack cộng các phép cấp máy của M14 (Stack.Checks đã
-	// gồm cả hai), rồi từng site. Không chạy cả bộ siteChecks: một site hỏng ở
-	// chặng không liên quan (DB, mã nguồn) không được kéo hoàn tác bản vá của
-	// cả máy; health đầy đủ chạy sau job và mở sự cố cho nó.
+	// Kiểm chứng (D2 của soát cuối đợt 2): chỉ những phép do chính các bước
+	// của Plan quyết định mới làm job lỗi và hoàn tác: bộ của stack và các phép
+	// cấp máy của M14 (Stack.Checks), quyền log, dòng chặn và dấu F4 của vhost,
+	// mod_status, trần kết nối. Phép HTTP và cô lập của từng site đo thứ mà mã
+	// của khách điều khiển được (site trả 500 đúng lúc kiểm, chủ site chmod
+	// 2751 thư mục neo của mình): trước đây một khách xấu làm chúng Fail là cả
+	// bản vá của máy bị hoàn tác, mãi mãi. Giờ chúng chạy sau các bước như một
+	// báo cáo (checks.Soft: Fail thành Warn), nằm trong kết quả của job và nêu
+	// đúng site có vấn đề; health chạy sau job mở sự cố cho site đó như thường.
 	verify, _, err := (&Stack{Sys: s.Sys, Settings: s.Settings, Sites: s.Sites, WPCLISHA512: s.WPCLISHA512}).Checks(ctx)
 	if err != nil {
 		return nil, wrap(err)
+	}
+	if modOff != nil {
+		for i, c := range verify {
+			verify[i] = modStatusSoft{c: c, off: modOff}
+		}
 	}
 	for i, st := range active {
 		l := st.Layout()
@@ -384,11 +396,11 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		// site đang khoá. retryCheck vì reload trả về trước khi cấu hình mới có
 		// hiệu lực.
 		if c := siteHTTP(st); c != nil {
-			verify = append(verify, retryCheck{c: c})
+			verify = append(verify, checks.Soft(retryCheck{c: c}))
 		}
 		for _, o := range active[i+1:] {
 			if healthy[o.Domain] {
-				verify = append(verify, checks.Isolated(l, o.Layout()), checks.Isolated(o.Layout(), l))
+				verify = append(verify, checks.Soft(checks.Isolated(l, o.Layout())), checks.Soft(checks.Isolated(o.Layout(), l)))
 			}
 		}
 	}
@@ -458,8 +470,8 @@ func hardenHealthy(ctx context.Context, sys system.System, active []site.Site) (
 		}
 		dom := doms[i].String()
 		broken = append(broken, HardenSkipped{Target: dom, Kind: HardenSkipSiteHTTP, Result: &r, Message: i18n.T(
-			"site "+dom+" đang không trả lời đúng ("+r.Summary.Vi+"): vẫn được vá, nhưng kiểm chứng sau job không xét site này. Sửa hoặc tạm khoá site này rồi chạy lại tpan security harden.",
-			"site "+dom+" does not answer correctly right now ("+r.Summary.En+"): it is still hardened, but the check after the job leaves it out. Fix or suspend this site, then run tpan security harden again.")})
+			"site "+dom+" đang không trả lời đúng ("+r.Summary.Vi+"): vẫn được vá, nhưng báo cáo sau job không gọi thử site này. Sửa hoặc tạm khoá site này; health sẽ báo khi nó trả lời đúng lại.",
+			"site "+dom+" does not answer correctly right now ("+r.Summary.En+"): it is still hardened, but the report after the job does not call it. Fix or suspend this site; health will show when it answers correctly again.")})
 	}
 	return healthy, broken
 }
@@ -551,6 +563,58 @@ func (w *hardenWrite) Apply(ctx context.Context, sys system.System) error {
 	}
 	w.reload.written++
 	return nil
+}
+
+// hardenModOff bọc bước tắt mod_status trong harden (D11 của soát cuối đợt 2).
+// status được nạp bằng một dòng LoadModule ngoài mods-enabled (cấu hình admin
+// tự thêm) thì a2dismod không tắt được; bước gốc trả ErrModuleLoadedElsewhere
+// sau khi đã tự trả mods-enabled về như cũ. Ở đây lỗi đó không làm hoàn tác
+// cả bản vá (vhost, quyền log, trần DB của mọi site): bước coi như xong, và
+// web.mod_status trong kết quả của job thành cảnh báo kèm cách sửa tay.
+// `tpan health --fix` cho web.mod_status dùng bước gốc nên vẫn báo lỗi rõ.
+type hardenModOff struct {
+	*steps.ApacheModOff
+	gaveUp bool // Apply gặp ErrModuleLoadedElsewhere
+}
+
+var _ engine.Step = (*hardenModOff)(nil)
+
+func (m *hardenModOff) Check(ctx context.Context, sys system.System) (bool, error) {
+	if m.gaveUp {
+		return true, nil
+	}
+	return m.ApacheModOff.Check(ctx, sys)
+}
+
+func (m *hardenModOff) Apply(ctx context.Context, sys system.System) error {
+	err := m.ApacheModOff.Apply(ctx, sys)
+	if errors.Is(err, steps.ErrModuleLoadedElsewhere) {
+		m.gaveUp = true
+		return nil
+	}
+	return err
+}
+
+func (m *hardenModOff) Undo(ctx context.Context, sys system.System) error {
+	if m.gaveUp {
+		return nil // bước gốc đã trả mods-enabled về, không có gì để hoàn tác
+	}
+	return m.ApacheModOff.Undo(ctx, sys)
+}
+
+// modStatusSoft hạ web.mod_status Fail xuống Warn khi hardenModOff đã bỏ cuộc
+// (module nạp ngoài mods-enabled); mọi phép khác đi nguyên.
+type modStatusSoft struct {
+	c   checks.Check
+	off *hardenModOff
+}
+
+func (s modStatusSoft) Run(ctx context.Context, sys system.System) checks.Result {
+	r := s.c.Run(ctx, sys)
+	if s.off.gaveUp && r.Status == checks.Fail && strings.HasPrefix(r.ID, "web.mod_status:") {
+		r.Status = checks.Warn
+	}
+	return r
 }
 
 func (w *hardenWrite) Undo(ctx context.Context, sys system.System) error {

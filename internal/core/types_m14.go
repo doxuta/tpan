@@ -84,7 +84,7 @@ type Harden struct {
 // Kind của HardenSkipped.
 const (
 	// Site đang trả lời sai TRƯỚC Plan: vẫn được vá, nhưng phép HTTP và cô lập
-	// của nó không nằm trong kiểm chứng (không làm hoàn tác bản vá cả máy).
+	// của nó không nằm trong báo cáo sau job.
 	HardenSkipSiteHTTP = "site_http"
 	// User DB của site hay DB rời không có trong MariaDB: không có bước đặt trần.
 	HardenSkipDBUser = "db_user"
@@ -118,17 +118,20 @@ type HardenSkipped struct {
 //     tạm khoá ghi bản tạm khoá như cũ). Reload gom lại một lần ở cuối như job
 //     hàng loạt (steps.WithoutReload rồi một bước kiểm cú pháp và reload).
 //  6. M28 đợt 2 (H5): stack Apache thêm steps.ApacheModOff{status} (tự
-//     reload, đặt sau bước reload chung).
+//     reload, đặt sau bước reload chung), bọc bằng hardenModOff: module nạp
+//     ngoài mods-enabled (D11) thì bước không làm hoàn tác cả Plan.
 //  7. M28 đợt 2 (M1-DBCONN): steps.DBUserLimit cho user DB của mọi site
 //     active và mọi DB rời active (Security.DBs, hoặc Sites khi nó cũng là
 //     DBStore). User không có thì không có bước, nêu trong Skipped.
 //
 // Verify: Stack.Checks (stackChecks cộng OPcacheHardened, PHPProtectProc cho
 // mọi bản PHP, ServerNameUnique, DefaultRejects, và web.mod_status khi
-// Apache); với mỗi site: LogPerms, VhostHardened và DocrootGuard (site không
-// tạm khoá); HTTPSite (hoặc HTTPSuspended) và cô lập hai chiều chỉ cho những
-// site trả lời đúng TRƯỚC Plan (S2: site hỏng sẵn nêu trong Skipped, không
-// làm hoàn tác bản vá cả máy); DBUserLimit cho mỗi user có bước. Job thành công thì lưu
+// Apache; thành cảnh báo khi module nạp ngoài mods-enabled); với mỗi site:
+// LogPerms, VhostHardened và DocrootGuard (site không tạm khoá); DBUserLimit
+// (chỉ cảnh báo) cho mỗi user có bước. Báo cáo, không làm job lỗi (D2 của soát
+// cuối đợt 2, checks.Soft): HTTPSite (hoặc HTTPSuspended) và cô lập hai chiều
+// cho những site trả lời đúng TRƯỚC Plan (site hỏng sẵn nêu trong Skipped);
+// thứ khách điều khiển được thì không được làm hoàn tác bản vá cả máy. Job thành công thì lưu
 // Htaccess mới của các site trong Switched. Chạy lại khi mọi thứ đã đúng thì
 // mọi bước được bỏ qua.
 //

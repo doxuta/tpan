@@ -498,6 +498,11 @@ func (d *DBs) PrepareRestore(ctx context.Context, name string) (*Planned, error)
 	}
 	st := []engine.Step{&steps.DBRestore{Name: db.Name, Charset: db.Charset, Collation: db.Collation}}
 	st = append(st, dbUnlockSteps(db.Name)...)
+	// D10 của soát cuối đợt 2: DB rời vào thùng rác trước khi máy có bản vá
+	// M1-DBCONN thì user của nó (giữ lại trong thùng rác) không có trần, và
+	// harden không đi qua DB trong thùng rác. Đặt trần lúc khôi phục, như
+	// khôi phục site (S16). Trần đã có thì bước được bỏ qua.
+	st = append(st, &steps.DBUserLimit{User: db.Name, Max: site.DBMaxUserConnections})
 	st = append(st, &steps.DBTrashDumpAbsent{Name: db.Name, Restored: true})
 	return newPlanned(d.Sys, d.Journal, engine.Plan{
 		Kind:   "dbs.restore",

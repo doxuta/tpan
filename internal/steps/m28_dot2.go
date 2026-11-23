@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -40,6 +41,12 @@ var apacheReload = system.Cmd{Name: "systemctl", Args: []string{"reload", "apach
 // thấy cả module nạp bằng một dòng LoadModule đặt ngoài mods-enabled.
 var apacheLoaded = system.Cmd{Name: "apachectl", Args: []string{"-M"}}
 
+// ErrModuleLoadedElsewhere: ApacheModOff đã chạy a2dismod mà module vẫn nạp,
+// vì một dòng LoadModule nằm ngoài mods-enabled (cấu hình admin tự thêm). Bước
+// đã trả mods-enabled về như cũ. Core nhận ra lỗi này để harden không hoàn tác
+// cả bản vá chỉ vì nó (D11 của soát cuối đợt 2).
+var ErrModuleLoadedElsewhere = errors.New("module Apache được nạp ngoài mods-enabled")
+
 // ================================================================ ApacheModOff
 
 // ApacheModOff tắt một module Apache rồi RELOAD (không restart: không cắt kết
@@ -48,7 +55,8 @@ var apacheLoaded = system.Cmd{Name: "apachectl", Args: []string{"-M"}}
 // danh sách stack, vì admin có thể đã cố ý đổi các module đó.
 //
 // Check: `apachectl -M` không có `<Module>_module`. Apply: `a2dismod -q`,
-// `apachectl configtest`, `systemctl reload apache2`; hỏng ở đâu thì bật lại
+// `apachectl configtest`, hỏi lại `apachectl -M` (còn nạp thì lỗi
+// ErrModuleLoadedElsewhere), `systemctl reload apache2`; hỏng ở đâu thì bật lại
 // module (và reload lại nếu đã reload) trước khi trả lỗi. Undo: bật lại nếu
 // chính Apply đã tắt, kiểm cú pháp, reload.
 type ApacheModOff struct {
@@ -126,6 +134,19 @@ func (s *ApacheModOff) Apply(ctx context.Context, sys system.System) error {
 	// bật lại module trên đĩa.
 	if res, err := sys.Run(ctx, apacheConfigtest); err != nil {
 		return errors.Join(withStdout(fmt.Errorf("kiểm cấu hình Apache sau khi tắt module %s: %w", s.Module, err), res), s.enable(ctx, sys, false))
+	}
+	// D11: a2dismod chỉ gỡ link trong mods-enabled. Module còn được nạp bằng
+	// một dòng LoadModule ở chỗ khác thì a2dismod không làm gì mà vẫn thoát 0.
+	// Hỏi lại trước khi reload (apachectl -M đọc cấu hình trên đĩa), để không
+	// báo xong một việc chưa xong.
+	still, err := s.loaded(ctx, sys)
+	if err == nil && still {
+		err = fmt.Errorf("%w: module %s vẫn được nạp sau a2dismod; tìm dòng LoadModule %s_module bằng `apachectl -t -D DUMP_INCLUDES` rồi xoá hay ghi chú dòng đó",
+			ErrModuleLoadedElsewhere, s.Module, s.Module)
+	}
+	if err != nil {
+		// Chưa reload: chỉ cần trả link về như cũ.
+		return errors.Join(err, s.enable(ctx, sys, false))
 	}
 	if err := runReload(ctx, sys, &apacheReload, "tắt module "+s.Module); err != nil {
 		return errors.Join(err, s.enable(ctx, sys, true))
@@ -241,9 +262,11 @@ func (s *DBUserLimit) Info() engine.StepInfo {
 			"Đặt trần "+n+" kết nối cùng lúc cho user DB "+s.User,
 			"Limit the database user "+s.User+" to "+n+" simultaneous connections"),
 		Why: i18n.T(
-			"Không có trần thì mã PHP của một site (plugin lỗi, hay site bị chiếm) mở hết số kết nối MariaDB cho phép, và mọi site khác trên máy báo lỗi kết nối DB. "+n+" là gấp đôi số kết nối một site WordPress cần lúc đông nhất. Trần admin đã đặt khác 0 thì giữ nguyên.",
-			"Without a limit, one site's PHP code (a broken plugin, or a compromised site) can take every connection MariaDB allows, and every other site on the machine fails to reach its database. "+n+" is twice what a WordPress site needs at its busiest. A non-zero limit an admin already set is left alone."),
-		Commands: []string{dbShow(dbLimitStateSQL(s.User)), dbShow(dbLimitSQL(s.User, s.Max))},
+			"Không có trần thì mã PHP của một site (plugin lỗi, hay site bị chiếm) mở hết số kết nối MariaDB cho phép, và mọi site khác trên máy báo lỗi kết nối DB. "+n+" là gấp đôi số kết nối một site WordPress cần lúc đông nhất. Trần admin đã đặt khác 0 thì giữ nguyên. Đặt xong thì cắt các kết nối đang mở của user này (KILL USER), vì MariaDB không tính chúng vào trần: vài request đang chạy của site lỗi một lần, request sau mở kết nối mới. Hoàn tác trả lại trần cũ nhưng không mở lại được kết nối đã cắt (truy vấn đang chạy lúc đó đã bị huỷ, giao dịch dở bị MariaDB quay lui).",
+			"Without a limit, one site's PHP code (a broken plugin, or a compromised site) can take every connection MariaDB allows, and every other site on the machine fails to reach its database. "+n+" is twice what a WordPress site needs at its busiest. A non-zero limit an admin already set is left alone. After setting it, the user's open connections are cut (KILL USER), because MariaDB does not count them against the limit: a few in-flight requests of the site fail once, the next ones open new connections. Undo restores the old limit but cannot reopen the cut connections (queries running then were aborted, open transactions rolled back by MariaDB)."),
+		Commands: []string{dbShow(dbLimitStateSQL(s.User)), dbShow(dbLimitSQL(s.User, s.Max)), dbShow(dbKillSQL(s.User))},
+		// KILL USER cắt request đang chạy của site: gián đoạn dịch vụ.
+		Danger: true,
 	}
 }
 
@@ -271,7 +294,23 @@ func (s *DBUserLimit) Apply(ctx context.Context, sys system.System) error {
 		return err
 	}
 	s.changed = true
+	// D3 của soát cuối đợt 2: MariaDB chỉ đếm kết nối mở SAU khi tài khoản có
+	// trần, và ALTER USER không cắt kết nối đang mở. Mã của site bị chiếm mở
+	// sẵn 140 kết nối trước harden thì sau harden vẫn mở thêm 20, vượt
+	// max_connections. Cắt hết kết nối đang mở của user này: WordPress mở kết
+	// nối mới mỗi request, nên chỉ vài request đang chạy lỗi một lần. Lỗi ở
+	// đây không làm hỏng bước: trần đã đặt, chỉ chưa cắt được kết nối cũ.
+	if err := dbRun(ctx, sys, dbKillSQL(s.User), "", "cắt kết nối đang mở của user DB "+s.User); err != nil {
+		slog.Warn("đã đặt trần kết nối nhưng chưa cắt được kết nối đang mở", "user", s.User, "err", err)
+	}
 	return nil
+}
+
+// dbKillSQL cắt mọi kết nối đang mở của 'name'@'localhost' (KILL ... USER
+// của MariaDB: không lỗi khi user không có kết nối nào).
+// https://mariadb.com/kb/en/kill/
+func dbKillSQL(name string) string {
+	return "KILL USER '" + name + "'@'localhost';\n"
 }
 
 func (s *DBUserLimit) Undo(ctx context.Context, sys system.System) error {

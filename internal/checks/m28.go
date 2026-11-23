@@ -472,9 +472,9 @@ func ApacheModStatus() Check {
 			if f := strings.Fields(ln); len(f) > 0 && f[0] == "status_module" {
 				return b.bad(Fail,
 					i18n.T("mod_status của Apache đang bật", "Apache mod_status is on"),
-					i18n.T("Ubuntu bật mod_status sẵn, với /server-status chỉ mở cho máy cục bộ (Require local). PHP của mọi site chạy trên chính máy này nên gọi được 127.0.0.1/server-status và thấy request của mọi site, kể cả URL kèm tham số (token đặt lại mật khẩu, khoá API). tpan không dùng trang này. `"+m14Harden+"` tắt nó (a2dismod -q status rồi reload Apache).",
-						"Ubuntu enables mod_status by default, with /server-status open to the local machine only (Require local). Every site's PHP runs on this machine, so it can call 127.0.0.1/server-status and see every site's requests, URLs with their parameters included (password reset tokens, API keys). tpan does not use this page. `"+m14Harden+"` turns it off (a2dismod -q status, then an Apache reload)."),
-					[]string{m14Harden, recheck}, ev)
+					i18n.T("Ubuntu bật mod_status sẵn, với /server-status chỉ mở cho máy cục bộ (Require local). PHP của mọi site chạy trên chính máy này nên gọi được 127.0.0.1/server-status và thấy request của mọi site, kể cả URL kèm tham số (token đặt lại mật khẩu, khoá API). tpan không dùng trang này. `"+m14Harden+"` hay `tpan health --fix` tắt nó (a2dismod -q status rồi reload Apache). Đã chạy mà vẫn bật thì module được nạp bằng một dòng LoadModule ngoài mods-enabled: tìm bằng `apachectl -t -D DUMP_INCLUDES`, xoá hay ghi chú dòng `LoadModule status_module` đó rồi reload Apache.",
+						"Ubuntu enables mod_status by default, with /server-status open to the local machine only (Require local). Every site's PHP runs on this machine, so it can call 127.0.0.1/server-status and see every site's requests, URLs with their parameters included (password reset tokens, API keys). tpan does not use this page. `"+m14Harden+"` or `tpan health --fix` turns it off (a2dismod -q status, then an Apache reload). If it is still on after that, the module is loaded by a LoadModule line outside mods-enabled: find it with `apachectl -t -D DUMP_INCLUDES`, delete or comment out that `LoadModule status_module` line, then reload Apache."),
+					[]string{m14Harden, line("apachectl", "-t", "-D", "DUMP_INCLUDES"), recheck}, ev)
 			}
 		}
 		return b.pass(i18n.T("mod_status của Apache đang tắt", "Apache mod_status is off"), ev)
