@@ -62,21 +62,26 @@ export function AiDrawer() {
   const ai = useAi();
   const t = useStrings(strings);
   const wide = useWide();
+  const [expanded, setExpanded] = useExpanded();
   if (!ai.open) return null;
 
   if (wide) {
     // Khung chat nổi: cỡ cố định ở góc dưới bên phải, không chiếm cột của trang và
-    // không phình theo nội dung; chữ dài thì cuộn bên trong khung.
+    // không phình theo nội dung; chữ dài thì cuộn bên trong khung. Bấm "Mở rộng"
+    // thì khung cao hết màn và rộng tới 960 px để đọc câu trả lời dài, bảng, lệnh.
+    const size = expanded
+      ? "top-[16px] h-[calc(100dvh-32px)] w-[min(960px,calc(100vw-32px))]"
+      : "h-[min(640px,calc(100dvh-32px))] w-[400px] max-w-[calc(100vw-32px)]";
     return (
       <div
         id="ngan-ai"
         role="dialog"
         aria-label={t.drawerLabel}
-        className="fixed right-[16px] bottom-[16px] z-40 flex h-[min(640px,calc(100dvh-32px))] w-[400px] max-w-[calc(100vw-32px)]"
+        className={`fixed right-[16px] bottom-[16px] z-40 flex ${size}`}
         onKeyDown={(e) => e.key === "Escape" && ai.setOpen(false)}
       >
         <ReturnFocus />
-        <Panel overlay={false} className="h-full w-full rounded-card border border-hair shadow-pop" />
+        <Panel overlay={false} expanded={expanded} onToggleExpand={() => setExpanded(!expanded)} className="h-full w-full rounded-card border border-hair shadow-pop" />
       </div>
     );
   }
@@ -109,7 +114,32 @@ function ReturnFocus() {
   return null;
 }
 
-function Panel({ overlay, className }: { overlay: boolean; className: string }) {
+/**
+ * Ngăn AI đang mở rộng hay không, nhớ theo trình duyệt (localStorage) để lần mở
+ * sau giữ đúng cỡ người dùng chọn. Bộ nhớ trình duyệt có thể bị chặn, nên đọc ghi
+ * đều bọc try/catch; hỏng thì coi như thu nhỏ.
+ */
+const EXPAND_KEY = "tpan.ai.expanded";
+function useExpanded(): [boolean, (v: boolean) => void] {
+  const [v, setV] = useState(() => {
+    try {
+      return window.localStorage.getItem(EXPAND_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const set = (next: boolean) => {
+    setV(next);
+    try {
+      window.localStorage.setItem(EXPAND_KEY, next ? "1" : "0");
+    } catch {
+      // bỏ qua: chỉ mất phần nhớ cỡ, nút vẫn chạy
+    }
+  };
+  return [v, set];
+}
+
+function Panel({ overlay, className, expanded, onToggleExpand }: { overlay: boolean; className: string; expanded?: boolean; onToggleExpand?: () => void }) {
   const t = useStrings(strings);
   const ai = useAi();
   const { lang } = useLang();
@@ -141,6 +171,9 @@ function Panel({ overlay, className }: { overlay: boolean; className: string }) 
           <Button size="sm" title={t.newSessionHint} disabled={ai.running} onClick={ai.reset}>
             {t.newSession}
           </Button>
+        )}
+        {onToggleExpand && (
+          <IconButton icon={expanded ? "collapse" : "expand"} label={expanded ? t.collapse : t.expand} aria-pressed={expanded} onClick={onToggleExpand} />
         )}
         <IconButton icon="close" label={t.close} onClick={() => ai.setOpen(false)} />
         {/* Tình trạng bộ não: một dòng riêng dưới tiêu đề, cắt "…" khi tên máy dài; tooltip có câu đầy đủ. */}

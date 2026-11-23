@@ -200,7 +200,7 @@ var catalog = sync.OnceValue(func() []Tool {
 		newTool("get_plan", KindRead, false,
 			"Show one plan and its preview: every step, the commands it will run and the files it will write (as text).",
 			nil, getPlan),
-		newTool("list_backups", KindRead, false, "List the backups tpan made, newest first: id, site domain, kind (full = files and database, sql = database export only), reason (manual, schedule, before-restore, before-purge, before-import), time and size in bytes. Pass a domain for one site; without it the list also has backups of sites already deleted for good.", nil, listBackups),
+		newTool("list_backups", KindRead, false, "List the backups tpan made, newest first: id, site domain, kind (full = files and database, sql = database export only), reason (manual, schedule, before-restore, before-purge, before-import), time, size in bytes and location (machine = only on this server, remote = only in the offsite store, both = on this server and in the offsite store, other_target = in an offsite store that is no longer the configured one, push_failed = the last upload failed). Pass a domain for one site; without it the list also has backups of sites already deleted for good.", nil, listBackups),
 		newTool("current_view", KindRead, false,
 			"Show what the user has open in the tpan web panel right now and up to 10 screens they visited just before (newest first). Use it when the user talks about \"what is open on the panel\" or \"this site\" without naming it.",
 			nil, currentView),

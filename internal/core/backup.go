@@ -178,7 +178,9 @@ func (b *Backups) PrepareCreate(ctx context.Context, d validate.Domain, reason B
 }
 
 // fullCount đếm bản backup đầy đủ của domain theo đúng cách prune đếm: bỏ
-// bản trước khi xoá hẳn (không chiếm chỗ trong Keep).
+// bản trước khi xoá hẳn (không chiếm chỗ trong Keep) và bản chỉ còn trên kho
+// (M18): hạn mức gói là chỗ trên đĩa của máy, bản cũ đã dọn khỏi máy mà còn
+// trên kho không được chặn oan lần backup bấm tay.
 func (b *Backups) fullCount(ctx context.Context, domain string) (int, error) {
 	if b.Store == nil {
 		return 0, nil
@@ -189,7 +191,7 @@ func (b *Backups) fullCount(ctx context.Context, domain string) (int, error) {
 	}
 	n := 0
 	for _, r := range rows {
-		if r.Domain == domain && r.Kind == BackupFull && r.Reason != ReasonBeforePurge {
+		if r.Domain == domain && r.Local && r.Kind == BackupFull && r.Reason != ReasonBeforePurge {
 			n++
 		}
 	}
@@ -229,6 +231,14 @@ func (b *Backups) maxBackups(ctx context.Context, domain string) (int, error) {
 // (bản vừa ghi, bản vừa dùng để khôi phục). File xoá trước, dòng sau: lỗi giữa
 // chừng thì còn dòng trỏ tới file đã mất (lần sau dọn tiếp), không bao giờ
 // còn file mồ côi không ai biết.
+//
+// M18 (mục 3.7 của docs/thay-doi/M18-thiet-ke.md): đây là dọn TRÊN MÁY, nên
+// chỉ đếm dòng Local. Bản bị dọn: xoá file rồi ForgetBackupLocal, để bản đã
+// lên kho giữ dòng (thành local=0, vẫn khôi phục được sau khi tải về) còn bản
+// chưa lên kho mất dòng như M9. Dòng local=0 đã stored là bản chỉ còn trên kho:
+// không bao giờ bị dọn ở đây (dọn trên kho là việc của lượt đẩy). Dòng local=0
+// mà không stored không trỏ tới đâu cả (store không tạo ra trạng thái này):
+// xoá dòng, không đụng file.
 func (b *Backups) prune(ctx context.Context, domain string, protect ...string) error {
 	if b.Store == nil {
 		return nil
@@ -256,6 +266,15 @@ func (b *Backups) prune(ctx context.Context, domain string, protect ...string) e
 		if r.Domain != domain || r.Reason == ReasonBeforePurge {
 			continue
 		}
+		if !r.Local {
+			// Không file trên máy: không chiếm chỗ trong Keep.
+			if r.Remote != site.RemoteStored {
+				if err := b.Store.DeleteBackup(ctx, r.ID); err != nil {
+					errs = append(errs, fmt.Errorf("dọn dòng backup %s của %s (không còn trên máy lẫn trên kho): %w", r.ID, domain, err))
+				}
+			}
+			continue
+		}
 		seen[r.Kind]++
 		if seen[r.Kind] <= keep[r.Kind] || slices.Contains(protect, r.ID) {
 			continue
@@ -264,8 +283,8 @@ func (b *Backups) prune(ctx context.Context, domain string, protect ...string) e
 			errs = append(errs, fmt.Errorf("dọn backup %s của %s: %w", r.ID, domain, err))
 			continue
 		}
-		if err := b.Store.DeleteBackup(ctx, r.ID); err != nil {
-			errs = append(errs, fmt.Errorf("dọn backup %s của %s: %w", r.ID, domain, err))
+		if _, err := b.Store.ForgetBackupLocal(ctx, r.ID); err != nil {
+			errs = append(errs, fmt.Errorf("dọn backup %s của %s (file đã xoá khỏi máy): %w", r.ID, domain, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -363,7 +382,17 @@ func (b *Backups) SnapshotTPANDB(ctx context.Context) (string, error) {
 	return p, nil
 }
 
-// restoreSource tìm bản backup đầy đủ sẽ khôi phục. id rỗng: bản mới nhất.
+// RestoreSource trả bản backup mà PrepareRestore(d, id) sẽ dùng, kể cả khi bản
+// đó chỉ còn trên kho: CLI cần id của nó để tải về trước rồi khôi phục.
+func (b *Backups) RestoreSource(ctx context.Context, d validate.Domain, id string) (Backup, error) {
+	return b.restoreSource(ctx, d, id)
+}
+
+// restoreSource tìm bản backup đầy đủ sẽ khôi phục. id rỗng: bản full mới nhất
+// có lý do manual hoặc schedule; không có thì bản full mới nhất bất kỳ (S21 của
+// M18: bản before-restore là trạng thái người quản trị vừa bỏ đi, chọn nó làm
+// mặc định là đưa site về đúng chỗ hỏng). Không lọc theo Local: bản nào cũng
+// có thể là bản cần tải về, PrepareRestore mới là chỗ từ chối.
 func (b *Backups) restoreSource(ctx context.Context, d validate.Domain, id string) (Backup, error) {
 	notFound := func(vi, en string) error {
 		return refuse("backup_not_found", i18n.T(vi+"; xem các bản có bằng: sudo tpan backup list "+d.String(),
@@ -380,10 +409,20 @@ func (b *Backups) restoreSource(ctx context.Context, d validate.Domain, id strin
 		if err != nil {
 			return Backup{}, fmt.Errorf("đọc backup của %s: %w", d, err)
 		}
-		for _, r := range rows {
-			if r.Kind == BackupFull {
+		var fallback *Backup
+		for i, r := range rows {
+			if r.Kind != BackupFull {
+				continue
+			}
+			if r.Reason == ReasonManual || r.Reason == ReasonSchedule {
 				return r, nil
 			}
+			if fallback == nil {
+				fallback = &rows[i]
+			}
+		}
+		if fallback != nil {
+			return *fallback, nil
 		}
 		return Backup{}, notFound("site "+d.String()+" chưa có bản backup đầy đủ nào (tạo bằng: sudo tpan backup create "+d.String()+")",
 			"site "+d.String()+" has no full backup (make one with: sudo tpan backup create "+d.String()+")")
@@ -399,11 +438,75 @@ func (b *Backups) restoreSource(ctx context.Context, d validate.Domain, id strin
 	return r, nil
 }
 
+// NeedsPull cho biết r là "bản cần tải về" (mục 3.6 của
+// docs/thay-doi/M18-thiet-ke.md): đã lên đích đang đặt, và file của nó không
+// còn trên máy (local=0, hoặc file ở Path không có hay không phải file thường;
+// Stat không đi theo symlink). Settings chỉ được đọc khi file thật sự không có
+// trên máy: dòng chưa stored, hay dòng có file thường ở Path, trả false mà
+// không đọc settings, để máy không đặt đích hay setting s3.* hỏng không bao
+// giờ chặn khôi phục một bản đang nằm trên máy (luồng M9).
+func (b *Backups) NeedsPull(ctx context.Context, r Backup) (bool, error) {
+	if r.Remote != site.RemoteStored {
+		return false, nil
+	}
+	if r.Local {
+		fi, err := b.Sites.Sys.Stat(r.Path)
+		switch {
+		case errors.Is(err, fs.ErrNotExist):
+		case err != nil:
+			return false, fmt.Errorf("kiểm %s: %w", r.Path, err)
+		case fi.Mode.IsRegular():
+			return false, nil
+		}
+	}
+	cur, ok, err := CurrentTargetID(ctx, b.Sites.Settings)
+	if err != nil {
+		return false, fmt.Errorf("đọc đích sao lưu: %w", err)
+	}
+	return ok && r.RemoteTarget == cur, nil
+}
+
+// checkOnMachine từ chối khôi phục bản không có trên máy (M18), trước mọi kiểm
+// đọc file và mọi bước ghi (B4: tải về là job riêng, xong trước khi job khôi
+// phục bắt đầu). Câu chỉ nêu id, domain, mã đích (một mã băm): lời từ chối đi
+// qua API tới cả user thường, nên không có endpoint, bucket, tiền tố hay khoá
+// object (B5).
+func (b *Backups) checkOnMachine(ctx context.Context, d validate.Domain, r Backup) error {
+	pull, err := b.NeedsPull(ctx, r)
+	if err != nil {
+		return err
+	}
+	dn := d.String()
+	switch {
+	case pull:
+		return refuse(CodeBackupNotOnMachine, i18n.T(
+			"bản backup "+r.ID+" của site "+dn+" đang ở kho, chưa có trên máy; tải về trước: sudo tpan backup pull "+r.ID+", rồi khôi phục",
+			"backup "+r.ID+" of site "+dn+" is in the remote store, not on this machine; download it first: sudo tpan backup pull "+r.ID+", then restore"))
+	case !r.Local && r.Remote == site.RemoteStored:
+		return refuse(CodeBackupNotOnMachine, i18n.T(
+			"bản backup "+r.ID+" của site "+dn+" không còn trên máy và nằm ở một đích khác (mã đích "+r.RemoteTarget+"), không phải đích đang đặt; đặt lại đích đó (sudo tpan backup target set …) để tải về, hoặc chọn bản khác: sudo tpan backup list "+dn,
+			"backup "+r.ID+" of site "+dn+" is no longer on this machine and is in a different target (target id "+r.RemoteTarget+"), not the one set now; set that target again (sudo tpan backup target set …) to download it, or pick another one: sudo tpan backup list "+dn))
+	case !r.Local:
+		// Dòng không còn trên máy lẫn trên kho (store không tạo ra trạng thái
+		// này; prune dọn nó ở lần sau).
+		return refuse(CodeBackupNotOnMachine, i18n.T(
+			"bản backup "+r.ID+" của site "+dn+" không còn trên máy và không có trên kho nào; chọn bản khác: sudo tpan backup list "+dn,
+			"backup "+r.ID+" of site "+dn+" is no longer on this machine and is not in any remote store; pick another one: sudo tpan backup list "+dn))
+	}
+	return nil
+}
+
 // checkIntact đòi file của dòng backup còn đó và sha256 khớp, trước khi dựng
 // Plan: người bấm khôi phục biết ngay bản đó hỏng, thay vì sau khi job đã tự
 // backup xong rồi mới lỗi ở bước giải nén (bước đó cũng kiểm lại lúc chạy).
 func (b *Backups) checkIntact(ctx context.Context, l site.Layout, r Backup) error {
 	corrupt := func(vi, en string) error {
+		// R16 của M18: bản đã lên kho thì còn một bản tốt ở đó; chỉ đường tải
+		// lại thay vì bảo người dùng bỏ bản này.
+		if r.Remote == site.RemoteStored {
+			return refuse("backup_corrupt", i18n.T("bản backup "+r.ID+" ("+r.Path+") trên máy không dùng được: "+vi+". Bản trên kho còn; tải lại: sudo tpan backup pull "+r.ID,
+				"backup "+r.ID+" ("+r.Path+") on this machine cannot be used: "+en+". The copy in storage is still there; fetch it again: sudo tpan backup pull "+r.ID))
+		}
 		return refuse("backup_corrupt", i18n.T("bản backup "+r.ID+" ("+r.Path+") không dùng được: "+vi+". Chọn bản khác: sudo tpan backup list "+l.Domain.String(),
 			"backup "+r.ID+" ("+r.Path+") cannot be used: "+en+". Pick another one: sudo tpan backup list "+l.Domain.String()))
 	}
@@ -455,6 +558,9 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 	l := st.Layout()
 	src, err := b.restoreSource(ctx, d, id)
 	if err != nil {
+		return nil, err
+	}
+	if err := b.checkOnMachine(ctx, d, src); err != nil {
 		return nil, err
 	}
 	if err := b.checkIntact(ctx, l, src); err != nil {

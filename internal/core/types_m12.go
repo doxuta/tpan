@@ -22,6 +22,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -234,6 +235,14 @@ type Planned struct {
 	// ở đây chứ không trong Prepare để --dry-run và câu hỏi xác nhận không
 	// đổi gì. before lỗi thì không chạy job.
 	before func(ctx context.Context) error
+	// remoteLock (M18) khác nil thì Execute giữ khoá này (chờ tối đa
+	// remoteWait) từ trước engine tới sau after: đặt, gỡ đích và sinh khoá
+	// sao lưu không được chạy xen giữa một lượt đẩy (R4 của bản soát hẹp).
+	// Thứ tự luôn là khoá lượt đẩy rồi khoá job; lượt đẩy không bao giờ lấy
+	// khoá job, nên không có khoá chéo. Không đặt cho job đẩy, tải, gói: các
+	// job đó chạy dưới khoá mà Sync hay Pull đã giữ.
+	remoteLock system.Locker
+	remoteWait time.Duration
 }
 
 // newPlanned dựng Planned. journal nil chỉ dùng được cho Preview.
@@ -254,6 +263,20 @@ func (p *Planned) Execute(ctx context.Context, onEvent func(engine.Event)) (engi
 	}
 	if p.owner != "" {
 		ctx = engine.WithOwner(ctx, p.owner)
+	}
+	if p.remoteLock != nil {
+		unlock, ok, err := p.remoteLock.Acquire(ctx, p.remoteWait)
+		if err != nil {
+			return engine.Report{}, fmt.Errorf("%s: lấy khoá lượt đẩy: %w", p.Plan.Kind, err)
+		}
+		if !ok {
+			// Cùng mã với khoá job bận (409 ở API): người gọi chỉ cần biết
+			// "đang có việc khác, thử lại sau".
+			return engine.Report{}, refuse("job_running", i18n.T(
+				"một lượt đẩy lên kho đang chạy (đã chờ "+p.remoteWait.String()+"); chờ nó xong rồi thử lại",
+				"a storage upload run is in progress (waited "+p.remoteWait.String()+"); wait for it to finish, then try again"))
+		}
+		defer unlock()
 	}
 	if p.before != nil {
 		if err := p.before(ctx); err != nil {

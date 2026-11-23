@@ -486,10 +486,11 @@ func htaccessFixture(l site.Layout, paths []string, files map[string]string) *sy
 		out += p + "\x00"
 	}
 	reply(f, []string{"find"}, 0, out, "")
-	f.Handle([]string{"head"}, func(c system.Cmd) system.Result {
-		body := files[c.Args[len(c.Args)-1]]
+	f.Handle([]string{"dd"}, func(c system.Cmd) system.Result {
+		file := strings.TrimPrefix(c.Args[0], "if=")
+		body := files[file]
 		if body == "\x00DENY" {
-			return system.Result{ExitCode: 1, Stderr: "head: cannot open '" + c.Args[len(c.Args)-1] + "' for reading: Permission denied\n"}
+			return system.Result{ExitCode: 1, Stderr: "dd: failed to open '" + file + "': Permission denied\n"}
 		}
 		return system.Result{Stdout: body}
 	})
@@ -531,13 +532,15 @@ func TestScanHtaccess(t *testing.T) {
 		if ran[0].String() != wantFind {
 			t.Errorf("find = %q, muốn %q", ran[0].String(), wantFind)
 		}
-		// Ba file được đọc, theo thứ tự đã sắp; đường dẫn lạ đi nguyên vào argv.
+		// Ba file được đọc, theo thứ tự đã sắp; đường dẫn lạ đi nguyên vào một
+		// phần tử argv. Đọc không chặn (M28): FIFO không làm lệnh chờ.
 		var heads []string
 		for _, c := range ran[1:] {
-			if c.Name != "head" || c.AsUser != l.User || len(c.Args) != 4 || strings.Join(c.Args[:3], " ") != "-c 262144 --" {
+			if c.Name != "dd" || c.AsUser != l.User || len(c.Args) != 5 || !strings.HasPrefix(c.Args[0], "if=") ||
+				strings.Join(c.Args[1:], " ") != "iflag=nonblock bs=262144 count=1 status=none" {
 				t.Errorf("lệnh đọc sai: %+v", c)
 			}
-			heads = append(heads, c.Args[3])
+			heads = append(heads, strings.TrimPrefix(c.Args[0], "if="))
 		}
 		if strings.Join(heads, "|") != strings.Join([]string{top, odd, admin}, "|") {
 			t.Errorf("file đã đọc = %q", heads)
@@ -1197,7 +1200,7 @@ func TestM14ChecksOnlyRead(t *testing.T) {
 	})
 	for _, c := range f.Ran() {
 		switch c.Name {
-		case "php-fpm8.3", "systemctl", "find", "head", "nginx", "apache2ctl", "curl":
+		case "php-fpm8.3", "systemctl", "find", "dd", "nginx", "apache2ctl", "curl":
 		default:
 			t.Errorf("lệnh không mong đợi: %s", c)
 		}

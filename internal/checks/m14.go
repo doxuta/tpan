@@ -521,8 +521,8 @@ const (
 	htaccessMaxFiles = 200
 	htaccessMaxBytes = 256 << 10
 	// htaccessReadTimeout là thời gian tối đa đọc một file. User của site đặt
-	// được một symlink .htaccess trỏ vào FIFO: `head` sẽ chờ mãi và treo cả
-	// vòng health của mọi site nếu không có hạn.
+	// được một symlink .htaccess trỏ vào FIFO; lệnh đọc mở không chặn (dd
+	// iflag=nonblock, M28) nên thường xong ngay, hạn này là lớp phòng xa.
 	htaccessReadTimeout = 10 * time.Second
 	// htaccessUnreadable là Finding.Directive của file không đọc được dưới user
 	// của site (giá trị do hợp đồng m14_types.go định).
@@ -535,8 +535,8 @@ const (
 // mọi thứ.
 //
 // Bỏ wp-content/uploads vì vhost đặt AllowOverride None cho thư mục đó. Đường
-// dẫn find trả về chỉ đi vào argv của head (sau "--"), không bao giờ vào một
-// chuỗi lệnh; đường dẫn không nằm dưới l.Public thì bỏ.
+// dẫn find trả về chỉ đi vào một phần tử argv của dd ("if=<đường dẫn>"), không
+// bao giờ vào một chuỗi lệnh; đường dẫn không nằm dưới l.Public thì bỏ.
 //
 // ev gồm bằng chứng của lệnh find và một dòng tóm tắt. err khác nil khi không
 // tìm hay không đọc được (không phải khi có Finding).
@@ -579,13 +579,17 @@ func ScanHtaccess(ctx context.Context, sys system.System, l site.Layout) (found 
 		files = files[:htaccessMaxFiles]
 	}
 
-	head := func(f string) system.Cmd {
-		return system.Cmd{Name: "head", Args: []string{"-c", strconv.Itoa(htaccessMaxBytes), "--", f}, AsUser: l.User}
+	// dd thay cho head (M28, S1 của docs/thay-doi/M28-thiet-ke.md): iflag=nonblock
+	// để một FIFO (hay symlink tới FIFO) mà user của site đặt ở tên .htaccess
+	// không làm lệnh chờ tới hết hạn rồi để lại tiến trình. Vẫn đi theo symlink,
+	// như Apache khi đọc .htaccess. Đường dẫn đi nguyên vào một phần tử argv.
+	read := func(f string) system.Cmd {
+		return system.Cmd{Name: "dd", Args: []string{"if=" + f, "iflag=nonblock", "bs=" + strconv.Itoa(htaccessMaxBytes), "count=1", "status=none"}, AsUser: l.User}
 	}
 	unreadable := 0
 	for _, f := range files {
 		hctx, cancel := context.WithTimeout(ctx, htaccessReadTimeout)
-		r, _, err := execCmd(hctx, sys, head(f))
+		r, _, err := execCmd(hctx, sys, read(f))
 		timedOut := hctx.Err() != nil && ctx.Err() == nil
 		cancel()
 		switch {
@@ -599,7 +603,7 @@ func ScanHtaccess(ctx context.Context, sys system.System, l site.Layout) (found 
 		}
 	}
 
-	sum := Evidence{Command: system.Describe(sys, head("FILE")) + "  (x " + strconv.Itoa(len(files)) + ")"}
+	sum := Evidence{Command: system.Describe(sys, read("FILE")) + "  (x " + strconv.Itoa(len(files)) + ")"}
 	sum.Output = fmt.Sprintf("%d .htaccess files scanned, %d unreadable, %d skipped under wp-content/uploads, %d directives outside the allowed list",
 		len(files), unreadable, skipped, len(found)-unreadable)
 	if total > len(files) {

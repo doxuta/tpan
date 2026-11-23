@@ -44,17 +44,17 @@ const vi = {
   // (c) MariaDB
   mariaHeading: "MariaDB",
   mariaSource: "Nguồn",
-  mariaLine: "Dòng",
-  mariaVersion: "Bản đang chạy",
+  mariaLine: "Phiên bản",
+  mariaVersion: "Gói đang cài",
   mariaNotInstalled: "MariaDB chưa được cài trên máy này.",
   mariaWarn:
     "Nâng MariaDB là một chiều. Dữ liệu đã nâng thì bản cũ không đọc lại được, và TPAN không hoàn tác tự động. " +
-    "Đường lùi là cài lại dòng cũ rồi nhập lại từ file xuất mà TPAN tạo trước khi nâng.",
-  mariaUpgrades: "Dòng nâng lên được",
-  mariaUpgradesLabel: "Các dòng MariaDB nâng lên được",
+    "Đường lùi là cài lại phiên bản cũ rồi nhập lại từ file xuất mà TPAN tạo trước khi nâng.",
+  mariaUpgrades: "Phiên bản nâng lên được",
+  mariaUpgradesLabel: "Các phiên bản MariaDB nâng lên được",
   mariaEol: (date: string) => `hết hỗ trợ ${date}`,
   mariaUpgradeButton: (line: string) => `Nâng lên ${line}`,
-  mariaNone: "Không có dòng nào để nâng. Có thể MariaDB đã ở dòng LTS mới nhất, hoặc TPAN không hỏi được kho của MariaDB vì máy không ra được mạng.",
+  mariaNone: "Không có phiên bản nào để nâng. Có thể MariaDB đã ở phiên bản LTS mới nhất, hoặc TPAN không hỏi được kho của MariaDB vì máy không ra được mạng.",
 
   // (d) Chính TPAN: khối "Phiên bản và cập nhật" dùng chung với màn Cài đặt, chuỗi ở phien-ban.ts.
 };

@@ -186,7 +186,7 @@ func siteCronSteps(l site.Layout) ([]engine.Step, error) {
 			Path: site.CronFile(l), Content: content, Perm: 0o644, Owner: system.Root,
 			Title: i18n.T("Đặt lịch cron WordPress của "+d+" (5 phút một lần)", "Schedule the WordPress cron of "+d+" (every 5 minutes)"),
 			Why: i18n.T(
-				"Việc định kỳ của WordPress (đăng bài hẹn giờ, gửi thư, kiểm cập nhật) cần ai đó gọi tới. Bỏ bước này thì sau khi tắt cron theo lượt xem, bài hẹn giờ không bao giờ được đăng. File thuộc root, quyền 0644: cron bỏ qua file trong /etc/cron.d mà người khác ghi được.",
+				"Việc hẹn giờ của WordPress (đăng bài hẹn giờ, gửi thư, kiểm cập nhật) cần ai đó gọi tới. Bỏ bước này thì sau khi tắt cron theo lượt xem, bài hẹn giờ không bao giờ được đăng. File thuộc root, quyền 0644: cron bỏ qua file trong /etc/cron.d mà người khác ghi được.",
 				"WordPress's scheduled work (scheduled posts, emails, update checks) needs something to trigger it. Without this step, once the page-view cron is off, scheduled posts never get published. The file belongs to root with mode 0644: cron ignores files in /etc/cron.d that others can write."),
 		},
 	}, nil
@@ -199,7 +199,7 @@ func siteCronAbsent(l site.Layout) engine.Step {
 		Path:  site.CronFile(l),
 		Title: i18n.T("Gỡ lịch cron WordPress của "+d, "Remove the WordPress cron schedule of "+d),
 		Why: i18n.T(
-			"Site không còn chạy thì không còn việc định kỳ để gọi. Bỏ bước này thì cron vẫn gọi tpan mỗi 5 phút cho một site không còn, và log đầy dòng bỏ qua.",
+			"Site không còn chạy thì không còn việc hẹn giờ để gọi. Bỏ bước này thì cron vẫn gọi tpan mỗi 5 phút cho một site không còn, và log đầy dòng bỏ qua.",
 			"A site that no longer runs has no scheduled work to trigger. Without this step cron keeps calling tpan every 5 minutes for a site that is gone, filling the log with skipped runs."),
 	}
 }

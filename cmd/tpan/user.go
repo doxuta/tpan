@@ -227,7 +227,7 @@ func (u *userFields) flags(c *cobra.Command) {
 	fl := c.Flags()
 	fl.StringVar(&u.fullName, "full-name", "", "tên đầy đủ")
 	fl.StringVar(&u.email, "email", "", "email (để trống là không có)")
-	fl.StringVar(&u.role, "role", "user", "vai: admin hoặc user")
+	fl.StringVar(&u.role, "role", "user", "vai trò: admin hoặc user")
 	fl.StringVar(&u.pkg, "package", account.DefaultPackage, "gói hạn mức (xem bằng: sudo tpan package list)")
 }
 
@@ -246,7 +246,7 @@ func userAddCmd(e *env) *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "add <tên>",
-		Short: "Thêm user của panel; mật khẩu do tpan sinh và chỉ in ra một lần",
+		Short: "Thêm user của panel; mật khẩu do tpan tạo và chỉ in ra một lần",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name, err := parseUserArg(args[0])
@@ -264,7 +264,7 @@ func userAddCmd(e *env) *cobra.Command {
 			return runAcctOp(cmd, e, f, acctOp{
 				action: "user.add", target: name.String(),
 				what: i18n.T(
-					"Sẽ: thêm user "+name.String()+" (vai "+uf.role+", gói "+uf.pkg+"); mật khẩu sinh ngẫu nhiên, in ra một lần.",
+					"Sẽ: thêm user "+name.String()+" (vai trò "+uf.role+", gói "+uf.pkg+"); mật khẩu tạo ngẫu nhiên, in ra một lần.",
 					"Will: add user "+name.String()+" (role "+uf.role+", package "+uf.pkg+"); a random password is generated and printed once."),
 				do: func(ctx context.Context, a *core.Accounts, _ *core.DBs) error {
 					_, pw, err = a.AddUser(ctx, in)

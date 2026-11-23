@@ -65,6 +65,8 @@ export const toolGroups: ToolGroup[] = [
       { path: "/sites", icon: "php", key: "php" },
       { path: "/stack", icon: "layers", key: "stack" },
       { path: "/updates", icon: "arrow-up-circle", key: "updates" },
+      // M18: chưa có biểu tượng riêng cho "máy mới"; dấu cộng như ô Tạo site.
+      { path: "/tools/new-server", icon: "plus", key: "newServer" },
     ],
   },
   {

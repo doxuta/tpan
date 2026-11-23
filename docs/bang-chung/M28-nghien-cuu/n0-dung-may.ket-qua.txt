@@ -1,0 +1,56 @@
+# n0-dung-may apache  (2026-11-21 03:13:18 +0700, máy ảo tpan-m28, 4269cc1)
+=== tpan version ===
+tpan v0.2.0-19-g4269cc1-dirty (commit 4269cc1, build 2026-11-20T20:11:38Z)
+=== tpan setup ===
+tpan setup: mã thoát 0
+Bắt đầu job cafadfe5ebe60b56
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job cafadfe5ebe60b56: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    27:0F:BE:E5:1C:FA:93:4A:7B:94:29:00:D1:20:59:E5:46:E0:0C:5B:59:DC:87:E9:AC:06:2A:CF:5B:E5:62:D1
+Mở: https://<IP của máy>:8443
+active
+=== tpan stack install --web apache ===
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+=== tpan site add a.example.com ===
+mã thoát 0
+=== tpan site add b.example.com ===
+mã thoát 0
+=== user khach1 và site e.example.com ===
+user add: mã thoát 0
+site add e.example.com --owner khach1: mã thoát 0
+=== hiện trạng ===
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-21 03:14 admin          -
+b.example.com                            active   8.3   không 2026-11-21 03:14 admin          -
+e.example.com                            active   8.3   không 2026-11-21 03:14 khach1         -
+/var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+/var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+-rw-r----- 1 tp_a_example_com_7653e4 www-data 696 Nov 21 03:14 /var/www/a.example.com/public/.htaccess
+/var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+/var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+-rw-r----- 1 tp_b_example_com_cd59d5 www-data 696 Nov 21 03:14 /var/www/b.example.com/public/.htaccess
+/var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+/var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+-rw-r----- 1 tp_e_example_com_25cfc7 www-data 696 Nov 21 03:14 /var/www/e.example.com/public/.htaccess
+kích thước file mật khẩu: admin 27 byte, khach1 27 byte
+# mã thoát: 0

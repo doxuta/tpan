@@ -6,12 +6,12 @@ import { defineStrings } from "./index";
 
 const vi = {
   title: "Cron",
-  summary: "Việc định kỳ của WordPress và lịch backup, chạy bằng cron thật của máy.",
+  summary: "Việc hẹn giờ của WordPress và lịch backup, chạy bằng cron thật của máy.",
   readOnly: "Màn này chỉ để xem. Cron chỉ chạy các việc TPAN định nghĩa sẵn; chưa cho gõ lệnh tuỳ ý vì đó là một đường chạy lệnh tự do, để làm sau.",
 
   // Cron của từng site
-  sitesHeading: "Việc định kỳ của từng site",
-  sitesHint: "WordPress tự chạy việc định kỳ mỗi khi có khách vào trang: site vắng khách thì bài hẹn giờ bị trễ, site đông khách thì mỗi lượt xem gánh thêm việc. TPAN tắt cách đó và để cron thật của máy gọi đúng nhịp.",
+  sitesHeading: "Việc hẹn giờ của từng site",
+  sitesHint: "WordPress tự chạy việc hẹn giờ mỗi khi có khách vào trang: site vắng khách thì bài hẹn giờ bị trễ, site đông khách thì mỗi lượt xem gánh thêm việc. TPAN tắt cách đó và để cron thật của máy gọi đúng nhịp.",
   sitesFailed: "Chưa đọc được lịch cron của các site.",
   tableName: "Cron của từng site",
   colSite: "Site",
@@ -19,7 +19,7 @@ const vi = {
   colEvery: "Bao lâu một lần",
   colLast: "Lần chạy gần nhất",
   colFile: "File cron và lệnh",
-  jobWp: "Chạy việc định kỳ của WordPress",
+  jobWp: "Chạy việc hẹn giờ của WordPress",
   noSites: "Chưa có site nào nên chưa có cron. ",
   noSitesLink: "Tạo site đầu tiên",
 
@@ -54,7 +54,7 @@ const vi = {
 
   // Site chưa có cron
   missingHeading: "Site chưa có cron",
-  missingHint: "Site tạo từ bản TPAN cũ chưa có file cron, nên WordPress vẫn tự chạy việc định kỳ theo lượt khách. Chạy lại lệnh dưới đây cho từng site: nó ghi file cron và bật DISABLE_WP_CRON trong wp-config.php. Site vẫn chạy bình thường.",
+  missingHint: "Site tạo từ bản TPAN cũ chưa có file cron, nên WordPress vẫn tự chạy việc hẹn giờ theo lượt khách. Chạy lại lệnh dưới đây cho từng site: nó ghi file cron và bật DISABLE_WP_CRON trong wp-config.php. Site vẫn chạy bình thường.",
 
   // Lịch backup
   backupHeading: "Lịch backup",

@@ -20,7 +20,7 @@ const vi = {
   cfgWebSource: "Nguồn web server",
   cfgDbSource: "Nguồn MariaDB",
   cfgPhp: "Bản PHP mặc định",
-  dbLine: (line: string) => `dòng ${line}`,
+  dbLine: (line: string) => `phiên bản ${line}`,
   notInstalled: "Stack chưa cài trên máy này nên chưa có cấu hình và dịch vụ để hiện.",
   sourceFixed:
     "Nguồn của web server và MariaDB chỉ chọn được lúc cài stack, nên màn này không có nút đổi nguồn. " +
@@ -71,7 +71,7 @@ const vi = {
   switchNotInstalled: "Stack chưa cài trên máy này nên chưa có web server để đổi.",
   switchTo: (web: string) => `Đổi sang ${web}`,
   switchHint: (from: string, to: string) =>
-    `Cài ${to} nếu máy chưa có, ghi lại vhost của mọi site, rồi dừng ${from} và chạy ${to}. Mọi site ngừng trả lời một khoảnh khắc lúc đổi. ` +
+    `Cài ${to} nếu máy chưa có, ghi lại vhost của mọi site, rồi dừng ${from} và chạy ${to}. Mọi site ngừng trả lời trong chốc lát lúc đổi. ` +
     `Bước nào lỗi thì máy quay về ${from}.`,
   switchCommandHint: "Muốn tự gõ trên máy thì dùng lệnh này. Có --dry-run nên nó chỉ cho xem trước, chưa đổi gì.",
   switchCommand: (web: string) => `sudo tpan stack switch --to ${web} --dry-run`,

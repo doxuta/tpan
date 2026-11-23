@@ -15,7 +15,7 @@ const vi = {
 
   colSelect: "Chọn",
   colUser: "Người dùng",
-  colRole: "Vai",
+  colRole: "Vai trò",
   colPackage: "Gói",
   colSites: "Site",
   // Số DB rời tính cả DB rời trong thùng rác, đúng con số gói dùng để chặn (M16, mục 3.8).
@@ -31,7 +31,7 @@ const vi = {
   footerCount: (n: number) => `${n} người dùng`,
   footerUnlimited: "∞ là không giới hạn theo gói.",
   footerPlans: "Xem các gói",
-  footerTrashRule: "Site và DB rời tính như gói tính: cả thứ trong thùng rác.",
+  footerTrashRule: "Gói tính cả site và DB rời đang nằm trong thùng rác.",
 
   statusActive: "Đang hoạt động",
   statusSuspended: "Tạm khoá",
@@ -68,14 +68,14 @@ const vi = {
   fNameHint: "Chữ thường, số và gạch dưới; từ 3 đến 32 ký tự, bắt đầu bằng chữ. Không đổi được sau khi tạo.",
   fFull: "Tên đầy đủ",
   fEmail: "Email",
-  fRole: "Vai",
+  fRole: "Vai trò",
   roleOptionUser: "Người dùng: chỉ thấy việc của mình",
   roleOptionAdmin: "Quản trị: thấy và làm mọi thứ",
   fPackage: "Gói",
   fPassword: "Mật khẩu",
-  fPasswordHint: "Để trống thì tpan sinh mật khẩu và hiện đúng một lần. Tự đặt thì từ 12 ký tự.",
+  fPasswordHint: "Để trống thì tpan tạo mật khẩu và hiện đúng một lần. Tự đặt thì từ 12 ký tự.",
   minPassword: 12,
-  passwordTooShort: (min: number) => `Mật khẩu ngắn hơn ${min} ký tự. Thêm ký tự hoặc để trống cho tpan sinh.`,
+  passwordTooShort: (min: number) => `Mật khẩu ngắn hơn ${min} ký tự. Thêm ký tự hoặc để trống cho tpan tạo.`,
   nameMissing: "Chưa có tên đăng nhập. Gõ tên rồi bấm lại.",
 
   // Mật khẩu hiện một lần

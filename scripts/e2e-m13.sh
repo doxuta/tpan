@@ -18,9 +18,11 @@
 #      admin; tpan admin passwd chạy, mật khẩu mới đăng nhập được; (từ M14)
 #      health chỉ còn ba loại lỗi cô lập của M14 và `tpan security harden`
 #      đưa về không còn lỗi
-#   U4 `tpan self-update --rollback`: ghi nguyên output, rồi bản cũ từ chối
-#      tpan.db của bản mới (đúng thiết kế, quyết định 3 của docs/KE-HOACH.md mục
-#      6.12; bản migration cao nhất đọc từ internal/store/migrations)
+#   U4 `tpan self-update --rollback`: ghi nguyên output; từ M15 lõi thử file
+#      cũ với tpan.db trước khi đổi file và từ chối self_rollback_db (KE-HOACH
+#      mục 6.14 ý 7), kèm câu của file cũ "DB ở bản <migration cao nhất>, tpan
+#      này chỉ biết tới bản 900"; file chạy và dịch vụ giữ nguyên. Trước M15
+#      phần này kiểm chỗ hở cũ (rollback thoát 0, dịch vụ khởi động lại liên tục).
 #   U5 đưa máy về bản mới bằng install.sh của gói mới (file chạy có sẵn)
 #
 # CHÍNH (chinh), từ máy sạch:
@@ -374,9 +376,17 @@ c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True)
 for r in c.execute(sys.argv[1], sys.argv[2:]):
     print(*[str(x) for x in r], sep="\t")
 '
-sql() { vroot python3 -c "$SQL_PY" "$@"; }
+# -W ignore::DeprecationWarning: Python 3.12 cảnh báo ra stderr khi tham số
+# ?1..?5 đi kèm một danh sách, và OUT gộp stdout với stderr theo thứ tự không cố
+# định, nên hai lần chạy cùng một câu có thể ra hai chuỗi khác nhau (hồi quy M28
+# ngày 21/11: P2 đỏ dù hai lần đếm đều ra "8 181").
+sql() { vroot python3 -W ignore::DeprecationWarning -c "$SQL_PY" "$@"; }
 # Job do một user chạy (actor) và job trên vài target, kèm số sự kiện command của chúng.
-JOBS_SQL="SELECT COUNT(*), (SELECT COUNT(*) FROM job_events e WHERE e.kind = 'command' AND e.job_id IN (SELECT id FROM jobs WHERE actor = ?1 OR target IN (?2, ?3, ?4, ?5))) FROM jobs WHERE actor = ?1 OR target IN (?2, ?3, ?4, ?5)"
+# Năm đối số theo thứ tự: actor, bốn target. Chỉ dùng chỗ trống `?` thường:
+# `?1`..`?5` với một dãy đối số làm Python 3.12 in DeprecationWarning ra
+# stderr, lẫn vào output đem so (thứ tự dòng stdout/stderr không cố định, hồi
+# quy M13 trong M18 hỏng vì thế dù số liệu y hệt).
+JOBS_SQL="WITH p AS (SELECT ? AS a, ? AS t1, ? AS t2, ? AS t3, ? AS t4), j AS (SELECT jobs.id FROM jobs, p WHERE jobs.actor = p.a OR jobs.target IN (p.t1, p.t2, p.t3, p.t4)) SELECT (SELECT COUNT(*) FROM j), (SELECT COUNT(*) FROM job_events e WHERE e.kind = 'command' AND e.job_id IN (SELECT id FROM j))"
 
 # Trạng thái khoá của user MariaDB (mục 16: đọc mysql.global_priv, KHÔNG
 # SHOW CREATE USER vì câu đó in cả hash mật khẩu).
@@ -698,24 +708,29 @@ part_u3() {
 
 part_u4() {
   part_begin "U4: tpan self-update --rollback (ghi nguyên output cho hướng dẫn)"
+  vexec systemctl show -p MainPID -p NRestarts tpan
+  local svc0
+  svc0="$OUT"
   vroot tpan self-update --rollback --dry-run
+  # Từ M15 (KE-HOACH mục 6.14 ý 7), PrepareRollback chạy `tpan.old site list`
+  # trước khi đổi file; file cũ không mở được tpan.db thì từ chối
+  # self_rollback_db, kèm chính câu file cũ in ra. Trước M15 lệnh này thoát 0,
+  # bản cũ được cài rồi tpan.service khởi động lại liên tục (chỗ hở mục 6.12):
+  # phần này từng kiểm đúng chỗ hở đó, giờ kiểm là nó đã đóng.
+  ok "rollback --dry-run thoát 1, từ chối: bản trước không mở được tpan.db (câu của file cũ: DB ở bản $NEW_MIG)" bash -c '[ "$2" = 1 ] && grep -qF "Từ chối: bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db" <<<"$1" && grep -qF "DB ở bản $3, tpan này chỉ biết tới bản 900" <<<"$1"' _ "$OUT" "$RC" "$NEW_MIG"
   vroot tpan self-update --rollback --yes
   printf '(Output thật của lệnh rollback ở trên.)\n'
-  ok "rollback thoát 0 (kiểm chứng của job chỉ là tpan version)" rc_is 0
+  ok "rollback --yes thoát 1, từ chối như trên, chưa đổi gì" bash -c '[ "$2" = 1 ] && grep -qF "nên chưa đổi gì" <<<"$1" && grep -qF "DB ở bản $3, tpan này chỉ biết tới bản 900" <<<"$1"' _ "$OUT" "$RC" "$NEW_MIG"
   vexec bash -c 'tpan version; ls -la /usr/local/bin'
-  ok "file chạy giờ là $OLD_VER" has "^tpan $OLD_VER "
-  sleep 5
-  vexec systemctl show -p ActiveState -p SubState -p NRestarts -p Result tpan
-  vroot journalctl -u tpan --no-pager -o cat -n 15
-  # Câu thật của v0.1.1 (store.migrate khi bản DB lớn hơn bản lớn nhất nó
-  # biết), khác câu docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13") trích ở quyết định 3.
-  # Từ M14 bản cao nhất trong tpan.db là 1400 (migration thêm cột sites.htaccess);
-  # trước đó là 1300 của M13. Lời từ chối của bản cũ in bản cao nhất nó gặp.
-  ok "journal của tpan: bản cũ từ chối tpan.db của bản mới (migration $NEW_MIG), dịch vụ khởi động lại liên tục" bash -c 'grep -qF "DB ở bản $2, tpan này chỉ biết tới bản 900" <<<"$1" && grep -qF "status=1/FAILURE" <<<"$1"' _ "$OUT" "$NEW_MIG"
-  vroot tpan site list
-  ok "tpan site list ($OLD_VER) từ chối: DB ở bản $NEW_MIG, tpan này chỉ biết tới bản 900" bash -c '[ "$2" != 0 ] && grep -qF "DB ở bản $3, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn" <<<"$1"' _ "$OUT" "$RC" "$NEW_MIG"
+  ok "file chạy vẫn là $VER, tpan.old vẫn còn" bash -c 'grep -q "^tpan $2 " <<<"$1" && grep -q " tpan.old$" <<<"$1"' _ "$OUT" "$VER"
+  vexec systemctl show -p MainPID -p NRestarts tpan
+  ok "tpan.service không khởi động lại: MainPID và NRestarts như trước rollback" bash -c '[ -n "$1" ] && [ "$1" = "$2" ]' _ "$svc0" "$OUT"
+  vexec systemctl is-active tpan
+  ok "tpan.service active" has '^active$'
   run curl -sS -m 5 --cacert "$TMPD/cert.pem" -o /dev/null -w '%{http_code}\n' "$BASE/api/v1/health"
-  ok "panel không trả lời (dịch vụ không mở được tpan.db)" rc_not 0
+  ok "panel vẫn trả lời 200" bash -c '[ "$2" = 0 ] && grep -qx 200 <<<"$1"' _ "$OUT" "$RC"
+  vroot tpan site list
+  ok "tpan site list của bản $VER chạy được, còn $UPD" bash -c '[ "$2" = 0 ] && grep -qF "$3" <<<"$1"' _ "$OUT" "$RC" "$UPD"
   part_end U4
 }
 

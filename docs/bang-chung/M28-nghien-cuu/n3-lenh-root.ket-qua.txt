@@ -1,0 +1,40 @@
+# n3-lenh-root  (2026-11-21 03:16:50 +0700, máy ảo tpan-m28, 4269cc1)
+=== phiên bản ===
+tar (GNU tar) 1.35
+rm (GNU coreutils) 9.4
+find (GNU findutils) 4.9.0
+
+=== tar --create (cách BackupArchive gọi): symlink được lưu là symlink hay là nội dung? ===
+drwxr-s--- tp_thu/www-data    public/
+lrwxrwxrwx tp_thu/www-data    public/link-toi-bi-mat -> /srv/m28-thu/nan-nhan/bi-mat.txt
+drwxr-sr-x tp_thu/www-data    public/wp-content/
+drwxr-sr-x tp_thu/www-data    public/wp-content/uploads/
+-rw-r--r-- tp_thu/www-data    public/wp-content/uploads/a.txt
+lrwxrwxrwx tp_thu/www-data    public/link-toi-thu-muc -> /srv/m28-thu/nan-nhan
+-rw-r--r-- tp_thu/www-data    public/index.php
+KQ tar: CHAN file backup không chứa nội dung bí mật (chỉ lưu cái link)
+  strace: openat trong cây site có O_NOFOLLOW: 5; không có O_NOFOLLOW mà là tên trong cây: 0
+    19901 openat(4, "public", O_RDONLY|O_NOCTTY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = 5
+    19901 openat(5, "wp-content", O_RDONLY|O_NOCTTY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = 6
+    19901 openat(6, "uploads", O_RDONLY|O_NOCTTY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = 7
+    19901 openat(7, "a.txt", O_RDONLY|O_NOCTTY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC) = 8
+
+=== rm -r --one-file-system (RemoveTree): đi bằng fd hay bằng đường dẫn? ===
+  strace: openat có O_NOFOLLOW: 3, unlinkat theo fd thư mục: 6
+    unlinkat(4, "link-toi-bi-mat", 0)       = 0
+    openat(4, "wp-content", O_RDONLY|O_NOCTTY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC|O_DIRECTORY) = 3
+    openat(5, "uploads", O_RDONLY|O_NOCTTY|O_NONBLOCK|O_NOFOLLOW|O_CLOEXEC|O_DIRECTORY) = 3
+    unlinkat(6, "a.txt", 0)                 = 0
+    unlinkat(5, "uploads", AT_REMOVEDIR)    = 0
+  file bí mật còn sau rm: có
+
+=== du -sb --one-file-system: có cộng cỡ của đích symlink không? ===
+71	/srv/m28-thu/www/a/public
+99	/srv/m28-thu/www/a/public
+  (hai số gần bằng nhau: du không đi theo symlink)
+
+=== find -type d -exec chmod 2750 {} + chạy bằng root (cách WPFiles gọi), user của site tráo thư mục ===
+  nạn nhân trước: /srv/m28-thu/nan-nhan-chmod root:root 755 /srv/m28-thu/nan-nhan-chmod/con root:root 755 
+  nạn nhân sau: /srv/m28-thu/nan-nhan-chmod root:root 2750 /srv/m28-thu/nan-nhan-chmod/con root:root 755 
+KQ find-chmod: LO sau 5 vòng: root đã chmod thư mục nạn nhân thành 2750
+# mã thoát: 0

@@ -227,7 +227,7 @@ func printUpdateStatus(e *env, s core.UpdateStatus) {
 	} else {
 		printf(w, "%s (%s %s, %s %s)\n", m.Version, e.tr("dòng", "series"), m.Line, e.tr("nguồn", "source"), m.Source)
 		for _, l := range m.Upgrades {
-			printf(w, "  %s %s (%s %s): sudo tpan mariadb upgrade --to %s\n", e.tr("Nâng lên được dòng LTS", "Can upgrade to LTS series"), l.Line, e.tr("hỗ trợ tới", "supported until"), l.EOL, l.Line)
+			printf(w, "  %s %s (%s %s): sudo tpan mariadb upgrade --to %s\n", e.tr("Nâng lên được phiên bản LTS", "Can upgrade to LTS series"), l.Line, e.tr("hỗ trợ tới", "supported until"), l.EOL, l.Line)
 		}
 	}
 

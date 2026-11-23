@@ -440,10 +440,10 @@ func TestDBPasswordRefuseOld(t *testing.T) {
 		{"hai dòng DB_PASSWORD", func(m *m9dbSim) {
 			put(m, m9dbSiteConfig(m.l.DB, "// "+define("Abc0123456789abcdefABCDEFghijklm"), define(m9dbOldPass)))
 		}, "2 dòng define DB_PASSWORD"},
-		{"mật khẩu không do tpan sinh (ngắn)", func(m *m9dbSim) { put(m, m9dbSiteConfig(m.l.DB, define("hunter2"))) }, "không phải loại tpan sinh"},
+		{"mật khẩu không do tpan sinh (ngắn)", func(m *m9dbSim) { put(m, m9dbSiteConfig(m.l.DB, define("hunter2"))) }, "không phải loại tpan tạo"},
 		{"mật khẩu không do tpan sinh (ký tự lạ)", func(m *m9dbSim) {
 			put(m, m9dbSiteConfig(m.l.DB, define("OldPw0123456789abcdefABCDEFghij;")))
-		}, "không phải loại tpan sinh"},
+		}, "không phải loại tpan tạo"},
 		{"mật khẩu lấy từ biến môi trường", func(m *m9dbSim) {
 			put(m, m9dbSiteConfig(m.l.DB, "define( 'DB_PASSWORD', getenv('DB_PASSWORD') );"))
 		}, "0 dòng define DB_PASSWORD"},

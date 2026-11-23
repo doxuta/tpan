@@ -65,7 +65,7 @@ func (m *machine) m14Setup() {
 	}
 	m.Handle([]string{"nginx", "-T"}, m.nginxDump)
 	m.Handle([]string{"apache2ctl", "-S"}, m.apacheVhosts)
-	m.Handle([]string{"head", "-c"}, m.headFile)
+	m.Handle([]string{"dd"}, m.ddFile)
 }
 
 // findHtaccess là `find <public> -name .htaccess ( -type f -o -type l )
@@ -89,15 +89,24 @@ func (m *machine) findHtaccess(c system.Cmd) system.Result {
 	return exit(0, b.String(), "")
 }
 
-// headFile là `head -c <n> -- <file>`: n byte đầu của file trên máy giả
-// (ScanHtaccess đọc từng .htaccess bằng lệnh này, dưới user của site).
-func (m *machine) headFile(c system.Cmd) system.Result {
-	file := c.Args[len(c.Args)-1]
+// ddFile là `dd if=<file> iflag=nonblock bs=<n> count=1 status=none`: n byte
+// đầu của file trên máy giả (ScanHtaccess đọc từng .htaccess bằng lệnh này,
+// dưới user của site; M28 đổi từ head sang dd để FIFO không làm lệnh chờ).
+func (m *machine) ddFile(c system.Cmd) system.Result {
+	var file string
+	n := -1
+	for _, a := range c.Args {
+		if v, ok := strings.CutPrefix(a, "if="); ok {
+			file = v
+		} else if v, ok := strings.CutPrefix(a, "bs="); ok {
+			n, _ = strconv.Atoi(v)
+		}
+	}
 	data, err := m.ReadFile(file)
 	if err != nil {
-		return exit(1, "", "head: cannot open '"+file+"' for reading: No such file or directory\n")
+		return exit(1, "", "dd: failed to open '"+file+"': No such file or directory\n")
 	}
-	if n, err := strconv.Atoi(argAfter(c.Args, "-c")); err == nil && n >= 0 && n < len(data) {
+	if n >= 0 && n < len(data) {
 		data = data[:n]
 	}
 	return exit(0, string(data), "")

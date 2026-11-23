@@ -9,11 +9,13 @@ import (
 	"io/fs"
 	"regexp"
 	"strings"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/sitefs"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -286,19 +288,21 @@ func (s *WPFiles) validate() error {
 
 func (s *WPFiles) versionFile() string { return s.Layout.Public + "/wp-includes/version.php" }
 
-func (s *WPFiles) cmds() (extract, dirs, files, clear system.Cmd) {
+// wpDirMode là quyền mọi thư mục bên dưới public sau khi giải nén (mục 5).
+const wpDirMode = fs.ModeSetgid | 0o750
+
+// wpMaxDirs là trần số thư mục chmodDirs đi qua. WordPress có khoảng 200;
+// trần chỉ để một cây lạ không giữ job mãi.
+const wpMaxDirs = 200_000
+
+func (s *WPFiles) cmds() (extract, files, clear system.Cmd) {
 	l := s.Layout
 	extract = system.Cmd{
 		Name:   "tar",
 		Args:   []string{"-xzf", s.Archive, "-C", l.Public, "--strip-components=1"},
 		AsUser: l.User,
 	}
-	// Thư mục: chạy bằng root. Linux xoá bit setgid khi người chmod không thuộc
-	// nhóm của thư mục (www-data), mà user của site cố ý không thuộc nhóm đó.
-	dirs = system.Cmd{
-		Name: "find",
-		Args: []string{l.Public, "-mindepth", "1", "-type", "d", "-exec", "chmod", "2750", "{}", "+"},
-	}
+	// Thư mục: đặt quyền bằng chmodDirs (root, qua cửa sitefs), không bằng lệnh.
 	// File: chạy dưới user của site, chủ của chúng. Không cần root, và một
 	// symlink chen vào giữa lúc find và chmod cũng chỉ đổi được file của user đó.
 	files = system.Cmd{
@@ -316,7 +320,7 @@ func (s *WPFiles) cmds() (extract, dirs, files, clear system.Cmd) {
 }
 
 func (s *WPFiles) Info() engine.StepInfo {
-	extract, dirs, files, _ := s.cmds()
+	extract, files, _ := s.cmds()
 	return engine.StepInfo{
 		ID:    "wp.files:" + s.Layout.Domain.String(),
 		Title: i18n.T("Giải nén WordPress vào "+s.Layout.Public, "Extract WordPress into "+s.Layout.Public),
@@ -324,7 +328,11 @@ func (s *WPFiles) Info() engine.StepInfo {
 			"Đây là mã nguồn của site. Thiếu nó thì web server không có gì để chạy. Quyền thư mục 2750 và file 0640 cho web server đọc file tĩnh qua nhóm www-data, còn site khác thì không đọc được.",
 			"This is the site's code. Without it the web server has nothing to run. Directories 2750 and files 0640 let the web server read static files through the www-data group, while other sites cannot read them.",
 		),
-		Commands: cmdStrings(&extract, &dirs, &files),
+		Commands: []string{
+			extract.String(),
+			"(tpan) chmod 2750 mọi thư mục bên dưới " + s.Layout.Public + ", không đi theo symlink",
+			files.String(),
+		},
 	}
 }
 
@@ -358,26 +366,103 @@ func (s *WPFiles) Apply(ctx context.Context, sys system.System) error {
 		return fmt.Errorf("giải nén WordPress: %s đã có %d mục mà không phải bản WordPress đầy đủ; tpan không ghi đè (xem bằng: ls -la %s)", l.Public, len(names), l.Public)
 	}
 
-	extract, dirs, files, clear := s.cmds()
-	for _, c := range []struct {
-		cmd  system.Cmd
-		what string
-	}{
-		{extract, "giải nén WordPress vào " + l.Public},
-		{dirs, "đặt quyền 2750 cho thư mục trong " + l.Public},
-		{files, "đặt quyền 0640 cho file trong " + l.Public},
-	} {
-		if res, err := sys.Run(ctx, c.cmd); err != nil {
-			err = withStdout(fmt.Errorf("%s: %w", c.what, err), res)
-			// Engine không Undo bước có Apply lỗi: tự dọn phần đã giải nén.
-			if _, rerr := sys.Run(ctx, clear); rerr != nil {
-				return errors.Join(err, fmt.Errorf("dọn %s sau lỗi: %w", l.Public, rerr))
-			}
-			return err
+	extract, files, clear := s.cmds()
+	// Engine không Undo bước có Apply lỗi: hỏng ở đâu thì tự dọn phần đã giải nén.
+	fail := func(err error) error {
+		if _, rerr := sys.Run(ctx, clear); rerr != nil {
+			return errors.Join(err, fmt.Errorf("dọn %s sau lỗi: %w", l.Public, rerr))
 		}
+		return err
+	}
+	if res, err := sys.Run(ctx, extract); err != nil {
+		return fail(withStdout(fmt.Errorf("giải nén WordPress vào %s: %w", l.Public, err), res))
+	}
+	if err := chmodDirs(ctx, sys, l.Public, wpDirMode); err != nil {
+		return fail(fmt.Errorf("đặt quyền 2750 cho thư mục trong %s: %w", l.Public, err))
+	}
+	if res, err := sys.Run(ctx, files); err != nil {
+		return fail(withStdout(fmt.Errorf("đặt quyền 0640 cho file trong %s: %w", l.Public, err), res))
 	}
 	s.applied = true
 	return nil
+}
+
+// chmodDirs đặt quyền perm cho mọi thư mục bên dưới root (không gồm root), thay
+// cho `find <root> -mindepth 1 -type d -exec chmod 2750 {} +` chạy bằng root.
+//
+// Vì sao không dùng find nữa (M28): find liệt kê theo đường dẫn rồi chmod theo
+// đường dẫn, mà root là thư mục của site. User của site tráo một thư mục con
+// thành symlink đúng giữa hai việc đó là root đổi quyền một thư mục ngoài site
+// (đo trên máy ảo: thua đua sau 5 vòng, docs/bang-chung/M28-nghien-cuu/n3).
+// Ở đây mọi lời gọi đi qua sys, mà với đường dẫn trong thư mục site thì
+// System đi qua cửa sitefs: không theo symlink, chmod trên fd đã mở.
+//
+// Phải chạy bằng root (không dưới user của site): Linux xoá bit setgid khi
+// người chmod không thuộc nhóm của thư mục (www-data), mà user của site cố ý
+// không thuộc nhóm đó.
+//
+// Giống lệnh cũ: không đổi quyền chính root (bước Dir đã lo), bỏ qua symlink
+// và file, không dừng ở ranh phân vùng. Mục biến mất hay thành symlink giữa
+// lúc liệt kê và lúc chmod thì bỏ qua: chỉ hại chính site. Lỗi khác làm hỏng
+// bước.
+func chmodDirs(ctx context.Context, sys system.System, root string, perm fs.FileMode) error {
+	n := 0
+	var walk func(dir string, depth int) error
+	walk = func(dir string, depth int) error {
+		if depth > sitefs.MaxDepth {
+			return fmt.Errorf("%s sâu quá %d tầng", dir, sitefs.MaxDepth)
+		}
+		names, err := sys.ReadDir(dir)
+		// Thư mục con bị tráo (thành symlink, file, hay bị xoá) giữa lúc chmod
+		// nó và lúc liệt kê bên trong: bỏ qua như ở Stat và Chmod. Thư mục gốc
+		// (public) thì lỗi thật.
+		if depth > 1 && chmodVanished(err) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("liệt kê %s: %w", dir, err)
+		}
+		for _, name := range names {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			p := dir + "/" + name
+			fi, err := sys.Stat(p)
+			if chmodVanished(err) {
+				continue
+			}
+			if err != nil {
+				return fmt.Errorf("kiểm %s: %w", p, err)
+			}
+			if !fi.Mode.IsDir() {
+				continue // file, symlink, thứ khác: không đụng
+			}
+			if n++; n > wpMaxDirs {
+				return fmt.Errorf("%s có hơn %d thư mục", root, wpMaxDirs)
+			}
+			if err := sys.Chmod(p, perm); chmodVanished(err) {
+				continue
+			} else if err != nil {
+				return fmt.Errorf("đặt quyền %s: %w", p, err)
+			}
+			if err := walk(p, depth+1); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return walk(root, 1)
+}
+
+// chmodVanished: mục biến mất hay bị tráo thành symlink giữa lúc liệt kê và
+// lúc dùng (chỉ user của site làm được việc đó, trong chính thư mục của họ).
+// ENOTDIR và ELOOP: tên là symlink đúng lúc cửa mở nó rồi bị tráo lại thành
+// thư mục trước khi cửa nhìn lại, nên cửa trả nguyên lỗi của kernel thay cho
+// ErrSymlink (e2e M28 A7 trên nginx, vòng 4: Chmod trả "too many levels of
+// symbolic links" và job tạo site hỏng).
+func chmodVanished(err error) bool {
+	return errors.Is(err, fs.ErrNotExist) || errors.Is(err, sitefs.ErrSymlink) ||
+		errors.Is(err, syscall.ENOTDIR) || errors.Is(err, syscall.ELOOP)
 }
 
 // Undo xoá mọi thứ bên trong l.Public, giữ chính l.Public (Dir của nó tự Undo).
@@ -386,7 +471,7 @@ func (s *WPFiles) Undo(ctx context.Context, sys system.System) error {
 	if !s.applied {
 		return fmt.Errorf("giải nén WordPress vào %s: %w", s.Layout.Public, errNotApplied)
 	}
-	_, _, _, clear := s.cmds()
+	_, _, clear := s.cmds()
 	if res, err := sys.Run(ctx, clear); err != nil {
 		return withStdout(fmt.Errorf("xoá mã nguồn trong %s: %w", s.Layout.Public, err), res)
 	}

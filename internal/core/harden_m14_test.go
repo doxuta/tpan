@@ -210,10 +210,10 @@ func newM14Env(t *testing.T, web WebServer, doms ...string) *m14Env {
 		slices.Sort(found)
 		return out(strings.Join(found, "\x00") + "\x00")
 	})
-	m.Handle([]string{"head", "-c"}, func(c system.Cmd) system.Result {
-		data, err := m.ReadFile(c.Args[len(c.Args)-1])
+	m.Handle([]string{"dd"}, func(c system.Cmd) system.Result {
+		data, err := m.ReadFile(strings.TrimPrefix(c.Args[0], "if="))
 		if err != nil {
-			return system.Result{ExitCode: 1, Stderr: "head: cannot open\n"}
+			return system.Result{ExitCode: 1, Stderr: "dd: failed to open\n"}
 		}
 		return out(string(data))
 	})
@@ -518,7 +518,7 @@ func TestHardenKeepsBlockedSite(t *testing.T) {
 			}
 			// Quét dưới user của site, không bằng root (user của site đặt được symlink).
 			for _, c := range e.m.Ran() {
-				if (c.Name == "find" || c.Name == "head") && !strings.HasPrefix(c.AsUser, "tp_") {
+				if (c.Name == "find" || c.Name == "dd") && !strings.HasPrefix(c.AsUser, "tp_") {
 					t.Errorf("%s chạy dưới %q, muốn user của site", c.String(), c.AsUser)
 				}
 			}
@@ -814,8 +814,8 @@ func TestHtaccessRefusals(t *testing.T) {
 
 	// File không đọc được dưới user của site cũng chặn, và tên file có ký tự
 	// điều khiển không được đi nguyên vào lời từ chối.
-	e.m.Handle([]string{"head", "-c"}, func(system.Cmd) system.Result {
-		return system.Result{ExitCode: 1, Stderr: "head: Permission denied\n"}
+	e.m.Handle([]string{"dd"}, func(system.Cmd) system.Result {
+		return system.Result{ExitCode: 1, Stderr: "dd: failed to open: Permission denied\n"}
 	})
 	evil := shop.Public + "/a\x1b[31m/.htaccess"
 	e.m.SetFile(evil, []byte("x\n"), 0o600, system.Root)

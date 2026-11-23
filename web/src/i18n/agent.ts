@@ -69,7 +69,7 @@ const vi = {
   // ---- Cài đặt: Agent và MCP ----
   agentHeading: "Agent và MCP",
   agentIntro: "Cho Claude Code, Codex hay agent khác dùng TPAN qua MCP, nối bằng SSH. Agent chỉ đọc và đề xuất Plan.",
-  agentLoadFailed: "Chưa tải được thiết lập agent.",
+  agentLoadFailed: "Chưa tải được cấu hình agent.",
   approvalLabel: "Chế độ duyệt",
   approvalPanel: "Plan của agent chờ bạn duyệt ở đây",
   approvalClient: "Agent tự chạy Plan nó đề xuất sau khi bạn đồng ý trong agent",
@@ -79,7 +79,7 @@ const vi = {
   claudeCmdLabel: "Thêm vào Claude Code",
   codexCmdLabel: "Thêm vào Codex",
   cmdHint: (host: string) => `Chạy trên máy cá nhân. Thay <user> bằng tài khoản SSH của bạn trên ${host}.`,
-  changeLabel: "Đổi thiết lập",
+  changeLabel: "Đổi cấu hình",
   changeHint: "Hai mục trên chỉ đổi được bằng lệnh này trên máy chủ, vì chế độ client cho agent tự chạy Plan:",
   changeCmd: "sudo tpan mcp config --approval panel|client --redact all|secrets",
 };

@@ -1,0 +1,764 @@
+e2e giao diện M18. tpan của cây: v0.2.0-126-g40aa7b1; máy ảo: tpan-m18; các phần: a b c d
+
+
+######## [2026-11-21 14:39:57] PHẦN A: máy sạch, tpan của cây, setup, stack nginx, một site, kho thử versitygw
+
+[2026-11-21 14:39:57] $ git log --oneline -1
+40aa7b1 ảnh M18: markRow chọn hàng theo vị trí trong danh sách (cột sha256 đã ẩn khi có cột Ở đâu), kiểm bảng không lọc và đúng tên site
+[2026-11-21 14:39:57] (mã thoát 0)
+
+[2026-11-21 14:39:57] $ git status --short
+?? docs/bang-chung/M18-anh.log
+?? docs/bang-chung/M18-giao-dien.log
+?? docs/bang-chung/M18/
+?? docs/thay-doi/M18-soat-giao-dien.md
+[2026-11-21 14:39:57] (mã thoát 0)
+
+[2026-11-21 14:39:57] $ go build -o <tmp>/anh ./scripts/anh-readme
+[2026-11-21 14:39:58] (mã thoát 0)
+  => ĐẠT: build chương trình trình duyệt (scripts/anh-readme)
+Máy ảo: tpan-m18
+
+[2026-11-21 14:39:58] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m18  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m18.clean
+[2K[0A[0EStarting tpan-m18  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E
+[2026-11-21 14:40:12] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-21 14:40:12] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-21 14:40:12] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-21 14:40:13] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+ls: cannot access '/etc/tpan': No such file or directory
+ls: cannot access '/var/lib/tpan': No such file or directory
+[2026-11-21 14:40:14] (mã thoát 2)
+  => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
+
+[2026-11-21 14:40:14] $ make vm-deploy DATE=2026-11-21T07:39:57Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 11h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 12ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 407 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.87 kB │ gzip:   0.54 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-Xdawj0v8.css                                   38.71 kB │ gzip:   8.94 kB
+dist/assets/useStatusName-DcInMdY8.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
+dist/assets/OriginTag-B8u1W7sG.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/DomainText-D2xPjLez.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-tBlnf_9i.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
+dist/assets/m14-CpGdhVos.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-DoDY5d14.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/SegmentButton-DIxZitNp.js                             0.70 kB │ gzip:   0.46 kB
+dist/assets/RowActions-BATidq-4.js                                0.70 kB │ gzip:   0.42 kB
+dist/assets/m13-chung-CCYsOkAz.js                                 0.80 kB │ gzip:   0.45 kB
+dist/assets/Rows-DR1XMVxX.js                                      0.84 kB │ gzip:   0.36 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/UsageMeter-DsuHVxME.js                                0.86 kB │ gzip:   0.47 kB
+dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/Dialog-DxBTuFPG.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/model-KUUe6Pvw.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/PreviewedOp-yldQCTJy.js                               1.86 kB │ gzip:   0.98 kB
+dist/assets/model-sW5idu4U.js                                     2.01 kB │ gzip:   0.95 kB
+dist/assets/TableList-DNlqPN0l.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/RouteMap-vXiHMrsR.js                                  2.32 kB │ gzip:   1.02 kB
+dist/assets/Bulk-DDfTzXpK.js                                      3.03 kB │ gzip:   1.39 kB
+dist/assets/plan-cho-duyet-B16OOGGa.js                            5.82 kB │ gzip:   2.03 kB
+dist/assets/StorageFlow-BOpB8i46.js                               6.37 kB │ gzip:   2.56 kB
+dist/assets/dang-nhap-BdJcvLGS.js                                 6.71 kB │ gzip:   2.90 kB
+dist/assets/goi-BZW1dBpW.js                                       8.46 kB │ gzip:   3.67 kB
+dist/assets/Self-KUcK1uWF.js                                      8.49 kB │ gzip:   2.71 kB
+dist/assets/cong-cu-DvgZz7QU.js                                  10.49 kB │ gzip:   4.05 kB
+dist/assets/backup-CJi8YrP1.js                                   10.96 kB │ gzip:   3.50 kB
+dist/assets/queries-DLckpczn.js                                  10.97 kB │ gzip:   3.33 kB
+dist/assets/ssl-DAW7mPiH.js                                      11.45 kB │ gzip:   4.52 kB
+dist/assets/cap-nhat-Cc-nf8H2.js                                 11.86 kB │ gzip:   4.29 kB
+dist/assets/duyet-plan-9vRGPl4v.js                               11.99 kB │ gzip:   4.35 kB
+dist/assets/CheckRow-syPyTS5j.js                                 12.38 kB │ gzip:   4.53 kB
+dist/assets/cron-p5vtKfQ1.js                                     13.02 kB │ gzip:   4.88 kB
+dist/assets/thung-rac-Cm0sf2DG.js                                13.41 kB │ gzip:   4.75 kB
+dist/assets/tao-site-DFN0mRlw.js                                 13.44 kB │ gzip:   4.94 kB
+dist/assets/co-so-du-lieu-CZ69LRF3.js                            14.58 kB │ gzip:   4.80 kB
+dist/assets/bao-mat-1HWLHh2Z.js                                  14.86 kB │ gzip:   4.71 kB
+dist/assets/co-so-du-lieu-ByRuTRAd.js                            15.68 kB │ gzip:   4.96 kB
+dist/assets/cai-may-moi-Zj0IwfhE.js                              15.69 kB │ gzip:   5.73 kB
+dist/assets/phien-ai-DgQOV8JL.js                                 16.16 kB │ gzip:   5.31 kB
+dist/assets/stack-DvbsC9Tz.js                                    17.32 kB │ gzip:   5.51 kB
+dist/assets/cai-dat-BrB-wZ0-.js                                  21.51 kB │ gzip:   7.22 kB
+dist/assets/su-co-QvECtD_S.js                                    21.56 kB │ gzip:   7.17 kB
+dist/assets/backup-DzSvCU_n.js                                   24.63 kB │ gzip:   7.87 kB
+dist/assets/nguoi-dung-DN2DuEPz.js                               26.25 kB │ gzip:   8.88 kB
+dist/assets/trang-chu-Bqzircly.js                                26.39 kB │ gzip:   8.48 kB
+dist/assets/ErrorNote-DnOnikUl.js                                28.07 kB │ gzip:   9.29 kB
+dist/assets/lich-su-BwZFYMps.js                                  28.63 kB │ gzip:   9.25 kB
+dist/assets/site-DU_7b_I1.js                                     38.71 kB │ gzip:  11.43 kB
+dist/assets/ScreenHeader-CK4U1Uze.js                            147.84 kB │ gzip:  49.01 kB
+dist/assets/index-C43_XkHS.js                                   388.68 kB │ gzip: 124.63 kB
+
+✓ built in 200ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.0-126-g40aa7b1 -X github.com/doxuta/tpan/internal/buildinfo.Commit=40aa7b1 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-21T07:39:57Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.0-126-g40aa7b1 -X github.com/doxuta/tpan/internal/buildinfo.Commit=40aa7b1 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-21T07:39:57Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan v0.2.0-126-g40aa7b1 (commit 40aa7b1, build 2026-11-21T07:39:57Z)
+[2026-11-21 14:40:18] (mã thoát 0)
+  => ĐẠT: make vm-deploy: build và chép tpan v0.2.0-126-g40aa7b1 vào máy ảo
+
+[2026-11-21 14:40:18] $ scripts/vm.sh exec tpan version
+tpan v0.2.0-126-g40aa7b1 (commit 40aa7b1, build 2026-11-21T07:39:57Z)
+[2026-11-21 14:40:18] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.0-126-g40aa7b1
+
+[2026-11-21 14:40:19] $ scripts/vm.sh root bash -c install -d -m 0700 "$1" && for f in /tmp/e2e-m18-*; do install -m 0700 "$f" "$1/${f#/tmp/e2e-m18-}"; rm -f "$f"; done; ls "$1" _ /root/e2e-m18
+api-get-het.sh
+api.sh
+doi-byte.py
+garage.sh
+giai-user-data.py
+jobs.py
+mo-goi-panel.sh
+quet.sh
+site.sh
+versitygw.sh
+[2026-11-21 14:40:19] (mã thoát 0)
+  => ĐẠT: (đồ nghề) 10 script của scripts/e2e-m18 đã chép vào /root/e2e-m18
+
+[2026-11-21 14:40:19] $ scripts/vm.sh root tpan setup --yes --json
+Bắt đầu job 0f37bc351026617d
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+{
+  "report": {
+    "job": {
+      "id": "0f37bc351026617d",
+      "kind": "panel.setup",
+      "target": "0.0.0.0:8443",
+      "title": {
+        "vi": "Khởi tạo panel tpan",
+        "en": "Set up the tpan panel"
+      },
+      "status": "succeeded",
+      "started": "2026-11-21T14:40:18.931856048+07:00",
+      "finished": "2026-11-21T14:40:19.244376214+07:00"
+    },
+    "steps": [
+      {
+        "id": "dir:/etc/tpan",
+        "outcome": "applied"
+      },
+      {
+        "id": "dir:/etc/tpan/tls",
+        "outcome": "applied"
+      },
+      {
+        "id": "file:/etc/tpan/tls/cert.pem",
+        "outcome": "applied"
+      },
+      {
+        "id": "file:/etc/tpan/tls/key.pem",
+        "outcome": "applied"
+      },
+      {
+        "id": "dir:/var/lib/tpan",
+        "outcome": "applied"
+      },
+      {
+        "id": "file:/etc/systemd/system/tpan.service",
+        "outcome": "applied"
+      },
+      {
+        "id": "service:tpan.service",
+        "outcome": "applied"
+      }
+    ],
+    "checks": null
+  },
+  "listen": "0.0.0.0:8443",
+  "cert_sha256": "34:20:7E:BC:4A:68:35:1C:7A:2A:22:E6:2E:E3:96:C6:9A:3D:53:ED:A0:A4:12:88:0E:6B:23:26:50:B4:D8:AA",
+  "admin_password_created": true,
+  "admin_password": "<bí mật, đã che>"
+}
+[2026-11-21 14:40:19] (mã thoát 0)
+  => ĐẠT: tpan setup: thoát 0, job thành công
+  => ĐẠT: mật khẩu quản trị panel in một lần (đã che)
+
+[2026-11-21 14:40:19] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job 34fdaae39c814298
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Bật kiểm quyền file và khoá API của OPcache cho php<bản>-fpm ...
+  xong
+- Ẩn tiến trình của user khác với PHP của php<bản>-fpm ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
+
+Job 34fdaae39c814298: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+[2026-11-21 14:41:11] (mã thoát 0)
+  => ĐẠT: stack install --web nginx: job thành công
+
+[2026-11-21 14:41:11] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job 433972c94bf3e5d4
+- Tạo user Linux tp_a_example_com_7653e4 cho site ...
+  xong
+- Tạo thư mục /var/www/a.example.com ...
+  xong
+- Tạo thư mục /var/www/a.example.com/public ...
+  xong
+- Tạo thư mục /var/www/a.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/a.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/access.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/error.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_a_example_com_7653e4 và user DB riêng của site a.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/a.example.com/public ...
+  xong
+- Tạo /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của a.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho a.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf ...
+  xong
+- Cài WordPress cho a.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+
+Job 433972c94bf3e5d4: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+  [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640
+  [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://a.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <bí mật, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-21 14:41:25] (mã thoát 0)
+  => ĐẠT: site add a.example.com: thoát 0, job thành công
+
+[2026-11-21 14:41:25] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=404 <!DOCTYPE html><html lang="en-US"><head>	<meta charset="UTF-8" />	<meta name="viewport" content=
+[2026-11-21 14:41:25] (mã thoát 0)
+  => ĐẠT: site a.example.com trả 200
+  => ĐẠT: panel trả lời ở https://<vm>:8443 (gọi từ Mac)
+
+
+######## [2026-11-21 14:41:25] A: (đồ nghề) versitygw trong máy ảo, khoá sinh tại chỗ
+
+[2026-11-21 14:41:25] $ scripts/vm.sh root bash /root/e2e-m18/versitygw.sh
+dòng của versitygw_1.11.0_linux_arm64.deb trong checksums.txt của bản phát hành:
+791c8c123a238701a62d1f86538d49e78cf2c9426a355bcb25f931ad0a557813  versitygw_1.11.0_linux_arm64.deb
+versitygw_1.11.0_linux_arm64.deb: OK
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+gói: versitygw 1:1.11.0-1
+versitygw@tpan: active
+LISTEN 0      4096       127.0.0.1:7070      0.0.0.0:*          
+khoá truy cập dài 19 ký tự, khoá bí mật dài 40 ký tự (không in giá trị)
+[2026-11-21 14:41:47] (mã thoát 0)
+  => ĐẠT: versitygw: .deb khớp sha256 của checksums.txt, dịch vụ versitygw@tpan chạy
+
+[2026-11-21 14:41:47] (đọc hai khoá trong /root/s3thu.env vào danh sách che; không in giá trị; mã thoát 0)
+  => ĐẠT: (đồ nghề) đọc được hai khoá của versitygw vào danh sách che (access key từ 12 ký tự)
+
+[2026-11-21 14:41:47] $ scripts/vm.sh root tpan backup target show --json
+{
+  "configured": false,
+  "path_style": false,
+  "has_ca": false,
+  "has_backup_key": false,
+  "panel_due": false,
+  "remote_only": 0,
+  "other_target": 0,
+  "failed": 0
+}
+[2026-11-21 14:41:48] (mã thoát 0)
+  => ĐẠT: trước phần B: chưa có đích (configured: false)
+
+==== Phần A: 16 đạt, 0 không đạt
+
+
+######## [2026-11-21 14:41:48] PHẦN B: đặt đích qua giao diện (thẻ Đích ngoài máy), thử kết nối
+
+[2026-11-21 14:41:48] $ anh-readme -bo m18-that -buoc dich -s3-endpoint http://127.0.0.1:7070 -s3-region vn-thu-1 -s3-bucket tpan-thu   (Chrome không giao diện trên Mac, panel <panel>)
+
+[2026-11-21 14:41:57] (tpan backup key show --reveal --json: khoá sao lưu vào danh sách che, không in; có khoá: không; mã thoát 0)
+  => ĐẠT: màn Backup có thẻ «Đích ngoài máy»
+  => ĐẠT: trước khi đặt: GET /api/v1/backups/target báo configured=false
+  => ĐẠT: ô khoá bí mật là ô mật khẩu
+  => ĐẠT: ô «Dùng kiểu bucket.host» tắt (kiểu đường dẫn)
+  => ĐẠT: gõ form đích: endpoint http://127.0.0.1:7070, vùng vn-thu-1, bucket tpan-thu, hai khoá (không in)
+  => ĐẠT: bấm «Xem trước»: bản xem trước hiện ra, nút chạy ghi «Chạy 2 bước»
+  => ĐẠT: bản xem trước không hiện access key hay secret key
+  => ĐẠT: job backup.target.set 68977debf76bab19 kết thúc: succeeded
+  => ĐẠT: thẻ theo dõi job báo «Xong»
+  => ĐẠT: sau khi đặt: API báo configured=true, access_key_tail đúng bốn ký tự cuối của khoá đã gõ
+  => ĐẠT: thẻ đích hiện «…» cộng bốn ký tự cuối của access key
+  => ĐẠT: màn Backup không hiện access key hay secret key đầy đủ
+  => ĐẠT: không ô nhập nào còn giữ khoá sau khi gửi
+  => ĐẠT: lượt đặt đích: 0 lỗi console
+  => ĐẠT: bấm «Thử kết nối»: job backup.target.test 216b91c4c7a38c71 kết thúc: succeeded
+  => ĐẠT: thẻ theo dõi job của lần thử báo «Xong»
+  => ĐẠT: lượt thử kết nối: 0 lỗi console
+[2026-11-21 14:41:57] (mã thoát 0)
+
+
+######## [2026-11-21 14:41:57] B: kiểm trong máy ảo
+
+[2026-11-21 14:41:57] $ scripts/vm.sh root tpan backup target show --json
+{
+  "configured": true,
+  "endpoint": "http://127.0.0.1:7070",
+  "region": "vn-thu-1",
+  "bucket": "tpan-thu",
+  "prefix": "tpan/tpan-m18",
+  "path_style": true,
+  "keep": 7,
+  "target_id": "a0bb4f488a36be14",
+  "has_ca": false,
+  "access_key_tail": "A476",
+  "has_backup_key": false,
+  "panel_due": true,
+  "remote_only": 0,
+  "other_target": 0,
+  "failed": 0
+}
+[2026-11-21 14:41:58] (mã thoát 0)
+  => ĐẠT: target show --json: configured: true, endpoint, vùng, bucket đúng như đã gõ
+  => ĐẠT: target show --json: access_key_tail là bốn ký tự cuối của access key
+  => ĐẠT: target show --json: không có bí mật nào
+
+[2026-11-21 14:41:58] $ scripts/vm.sh root stat -c %U:%G %a %n /etc/tpan/s3.json
+root:root 600 /etc/tpan/s3.json
+[2026-11-21 14:41:58] (mã thoát 0)
+  => ĐẠT: /etc/tpan/s3.json là root:root 600
+
+[2026-11-21 14:41:58] $ scripts/vm.sh root bash -c if [ -e /etc/tpan/backup.key ]; then echo "co backup.key"; else echo "khong backup.key"; fi
+khong backup.key
+[2026-11-21 14:41:58] (mã thoát 0)
+  => ĐẠT: đặt đích qua giao diện không sinh khoá sao lưu (S5): không có /etc/tpan/backup.key, has_backup_key=false
+
+[2026-11-21 14:41:58] $ scripts/vm.sh root python3 /root/e2e-m18/jobs.py last backup.target.set
+job 68977debf76bab19 succeeded backup.target.set http://127.0.0.1:7070 tpan-thu tpan/tpan-m18 loi=
+ev 1 job.start - 
+ev 2 step.start dir:/etc/tpan 
+ev 3 step.skip dir:/etc/tpan 
+ev 4 step.start s3.probe:127.0.0.1:7070/tpan-thu/tpan/tpan-m18 
+ev 5 output s3.probe:127.0.0.1:7070/tpan-thu/tpan/tpan-m18 đã thử kho 127.0.0.1:7070/tpan-thu/tpan/tpan-m18: ghi, đọc lại khớp từng byte, xoá đều đạt
+ev 6 step.done s3.probe:127.0.0.1:7070/tpan-thu/tpan/tpan-m18 
+ev 7 step.start secret.file:/etc/tpan/s3.json 
+ev 8 step.done secret.file:/etc/tpan/s3.json 
+ev 9 step.start secret.absent:/etc/tpan/s3-ca.pem 
+ev 10 step.skip secret.absent:/etc/tpan/s3-ca.pem 
+ev 11 job.done - succeeded
+[2026-11-21 14:41:58] (mã thoát 0)
+  => ĐẠT: tpan.db: job backup.target.set mới nhất thành công
+
+[2026-11-21 14:41:58] $ scripts/vm.sh root python3 /root/e2e-m18/jobs.py last backup.target.test
+job 216b91c4c7a38c71 succeeded backup.target.test s3 loi=
+ev 1 job.start - 
+ev 2 step.start s3.probe:127.0.0.1:7070/tpan-thu/tpan/tpan-m18 
+ev 3 output s3.probe:127.0.0.1:7070/tpan-thu/tpan/tpan-m18 đã thử kho 127.0.0.1:7070/tpan-thu/tpan/tpan-m18: ghi, đọc lại khớp từng byte, xoá đều đạt
+ev 4 step.done s3.probe:127.0.0.1:7070/tpan-thu/tpan/tpan-m18 
+ev 5 job.done - succeeded
+[2026-11-21 14:41:58] (mã thoát 0)
+  => ĐẠT: tpan.db: job backup.target.test (nút Thử kết nối) thành công
+
+==== Phần B: 24 đạt, 0 không đạt
+
+
+######## [2026-11-21 14:41:58] PHẦN C: tạo một bản chỉ còn trên kho bằng CLI (site a.example.com)
+
+[2026-11-21 14:41:58] $ scripts/vm.sh root bash /root/e2e-m18/site.sh moc a.example.com moc-cu
+moc a.example.com: moc-cu
+[2026-11-21 14:41:59] (mã thoát 0)
+
+[2026-11-21 14:41:59] $ scripts/vm.sh root tpan backup create a.example.com --yes --json
+Bắt đầu job bc388e726b4dea71
+- Backup site a.example.com vào /var/lib/tpan/backups/a.example.com ...
+  xong
+Bắt đầu job 752b41366dcbe901
+- s3.push:2b6e84a2b92daeb7 ...
+  xong
+  [đạt] Kho có sites/a.example.com/a.example.com-20261121-074159.tar.gz đúng cỡ
+đã lên kho: 2b6e84a2b92daeb7
+{
+  "job": {
+    "id": "bc388e726b4dea71",
+    "kind": "backup.create",
+    "target": "a.example.com",
+    "title": {
+      "vi": "Backup site a.example.com",
+      "en": "Back up site a.example.com"
+    },
+    "status": "succeeded",
+    "started": "2026-11-21T14:41:59.623168203+07:00",
+    "finished": "2026-11-21T14:42:03.606714994+07:00"
+  },
+  "steps": [
+    {
+      "id": "backup.create:a.example.com",
+      "outcome": "applied"
+    }
+  ],
+  "checks": null
+}
+[2026-11-21 14:42:03] (mã thoát 0)
+  => ĐẠT: backup create a.example.com: thoát 0, job thành công
+
+[2026-11-21 14:42:03] $ scripts/vm.sh root tpan backup list a.example.com --json
+[
+  {
+    "id": "2b6e84a2b92daeb7",
+    "domain": "a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/a.example.com/a.example.com-20261121-074159.tar.gz",
+    "size": 35620687,
+    "sha256": "667bbca2abdd4146e7a406a0cca1814cd60845cfcda4905356506799aab252c4",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "bc388e726b4dea71",
+    "created": "2026-11-21T07:42:03.608228285Z",
+    "local": true,
+    "remote": "stored",
+    "remote_key": "sites/a.example.com/a.example.com-20261121-074159.tar.gz",
+    "remote_at": "2026-11-21T07:42:03.807171426Z"
+  }
+]
+[2026-11-21 14:42:04] (mã thoát 0)
+  => ĐẠT: bản 2b6e84a2b92daeb7 đã tự lên kho: local=true, remote=stored
+
+[2026-11-21 14:42:04] $ scripts/vm.sh root bash /root/e2e-m18/site.sh moc a.example.com moc-moi
+moc a.example.com: moc-moi
+[2026-11-21 14:42:04] (mã thoát 0)
+
+[2026-11-21 14:42:04] $ scripts/vm.sh root tpan backup settings --keep 1 --yes
+Bắt đầu job 1e6d98a897a21de2
+- Gỡ lịch backup hằng ngày /etc/cron.d/tpan-backup ...
+  đã đúng, bỏ qua
+
+Job 1e6d98a897a21de2: thành công
+[2026-11-21 14:42:04] (mã thoát 0)
+  => ĐẠT: backup settings --keep 1: job thành công
+
+[2026-11-21 14:42:04] $ scripts/vm.sh root tpan backup create a.example.com --yes --json
+Bắt đầu job 1084e7b585d71aa6
+- Backup site a.example.com vào /var/lib/tpan/backups/a.example.com ...
+  xong
+Bắt đầu job 0d50aaaeba572b47
+- s3.push:e8c2a0ad32e92db2 ...
+  xong
+  [đạt] Kho có sites/a.example.com/a.example.com-20261121-074204.tar.gz đúng cỡ
+đã lên kho: e8c2a0ad32e92db2
+{
+  "job": {
+    "id": "1084e7b585d71aa6",
+    "kind": "backup.create",
+    "target": "a.example.com",
+    "title": {
+      "vi": "Backup site a.example.com",
+      "en": "Back up site a.example.com"
+    },
+    "status": "succeeded",
+    "started": "2026-11-21T14:42:04.534795829+07:00",
+    "finished": "2026-11-21T14:42:06.84040667+07:00"
+  },
+  "steps": [
+    {
+      "id": "backup.create:a.example.com",
+      "outcome": "applied"
+    }
+  ],
+  "checks": null
+}
+[2026-11-21 14:42:07] (mã thoát 0)
+  => ĐẠT: backup create a.example.com lần hai: thoát 0, job thành công
+
+[2026-11-21 14:42:07] $ scripts/vm.sh root tpan backup list --json
+[
+  {
+    "id": "e8c2a0ad32e92db2",
+    "domain": "a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/a.example.com/a.example.com-20261121-074204.tar.gz",
+    "size": 35620688,
+    "sha256": "2041ee511053792b4c25bc8e39ecdf3aec26227a88ffa672149c408eaf3b9a54",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "1084e7b585d71aa6",
+    "created": "2026-11-21T07:42:06.842358385Z",
+    "local": true,
+    "remote": "stored",
+    "remote_key": "sites/a.example.com/a.example.com-20261121-074204.tar.gz",
+    "remote_at": "2026-11-21T07:42:07.043870829Z"
+  },
+  {
+    "id": "2b6e84a2b92daeb7",
+    "domain": "a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/a.example.com/a.example.com-20261121-074159.tar.gz",
+    "size": 35620687,
+    "sha256": "667bbca2abdd4146e7a406a0cca1814cd60845cfcda4905356506799aab252c4",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "bc388e726b4dea71",
+    "created": "2026-11-21T07:42:03.608228285Z",
+    "local": false,
+    "remote": "stored",
+    "remote_key": "sites/a.example.com/a.example.com-20261121-074159.tar.gz",
+    "remote_at": "2026-11-21T07:42:03.807171426Z"
+  }
+]
+[2026-11-21 14:42:07] (mã thoát 0)
+  => ĐẠT: backup list --json: bản cũ 2b6e84a2b92daeb7 có local: false, remote: "stored"
+
+[2026-11-21 14:42:07] $ scripts/vm.sh root tpan backup settings --keep 3 --yes
+Bắt đầu job 8f75a2acf4f64fc4
+- Gỡ lịch backup hằng ngày /etc/cron.d/tpan-backup ...
+  đã đúng, bỏ qua
+
+Job 8f75a2acf4f64fc4: thành công
+[2026-11-21 14:42:07] (mã thoát 0)
+  => ĐẠT: backup settings --keep 3: job thành công (bản tải về không bị dọn lại khi khôi phục)
+
+[2026-11-21 14:42:07] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=200 moc-moi
+[2026-11-21 14:42:07] (mã thoát 0)
+  => ĐẠT: site a.example.com trả 200, file đánh dấu là moc-moi
+
+==== Phần C: 7 đạt, 0 không đạt
+
+
+######## [2026-11-21 14:42:07] PHẦN D: khôi phục bản chỉ còn trên kho qua giao diện (tải về máy, rồi khôi phục)
+Mốc job trước khi bấm: 11
+
+[2026-11-21 14:42:07] $ anh-readme -bo m18-that -buoc khoi-phuc -site a.example.com   (Chrome không giao diện trên Mac, panel <panel>)
+  => ĐẠT: bảng backup có cột «Ở đâu»
+  => ĐẠT: bấm «Khôi phục» trên hàng bản 2b6e84a2b92daeb7 (chỉ còn trên kho): hộp thoại hiện ra
+  => ĐẠT: bấm «Tải về máy» trong hộp thoại: bản xem trước tải về hiện ra, nút chạy ghi «Chạy 1 bước»
+  => ĐẠT: job backup.pull c6b1ca76a68198d9 kết thúc: succeeded
+  => ĐẠT: thẻ theo dõi job của lần tải về báo «Xong»
+  => ĐẠT: sau khi tải về: bản 2b6e84a2b92daeb7 có local=true
+  => ĐẠT: màn báo «Đã tải về. Bấm Khôi phục để xem trước việc khôi phục.»
+  => ĐẠT: bấm «Khôi phục» lần hai: bản xem trước khôi phục hiện ra, nút chạy ghi «Chạy 6 bước»
+  => ĐẠT: job backup.restore 10da7a5d5b9ed724 kết thúc: succeeded
+  => ĐẠT: thẻ theo dõi job báo «Xong»
+  => ĐẠT: cả lượt tải về rồi khôi phục: 0 lỗi console (không tính dòng CSP đã biết của hộp thoại)
+[2026-11-21 14:42:22] (mã thoát 0)
+
+
+######## [2026-11-21 14:42:22] D: kiểm trong máy ảo
+
+[2026-11-21 14:42:22] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=200 moc-cu
+[2026-11-21 14:42:22] (mã thoát 0)
+  => ĐẠT: site a.example.com trả 200
+  => ĐẠT: file đánh dấu về đúng nội dung cũ (moc-cu)
+
+[2026-11-21 14:42:22] $ scripts/vm.sh root python3 /root/e2e-m18/jobs.py since 11
+job c6b1ca76a68198d9 succeeded backup.pull a.example.com loi=
+job 10da7a5d5b9ed724 succeeded backup.restore a.example.com loi=
+[2026-11-21 14:42:22] (mã thoát 0)
+  => ĐẠT: Lịch sử: job backup.pull rồi backup.restore, cả hai thành công
+
+[2026-11-21 14:42:22] $ scripts/vm.sh root tpan backup list a.example.com --json
+[
+  {
+    "id": "005e1a596d56c3c9",
+    "domain": "a.example.com",
+    "kind": "full",
+    "reason": "before-restore",
+    "path": "/var/lib/tpan/backups/a.example.com/a.example.com-20261121-074213.tar.gz",
+    "size": 35620674,
+    "sha256": "bac9287e90e501fba633c6bf45b5c1bf6110aeee313b05486a48b62a2bdd6d67",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "10da7a5d5b9ed724",
+    "created": "2026-11-21T07:42:22.093314758Z",
+    "local": true,
+    "remote": ""
+  },
+  {
+    "id": "e8c2a0ad32e92db2",
+    "domain": "a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/a.example.com/a.example.com-20261121-074204.tar.gz",
+    "size": 35620688,
+    "sha256": "2041ee511053792b4c25bc8e39ecdf3aec26227a88ffa672149c408eaf3b9a54",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "1084e7b585d71aa6",
+    "created": "2026-11-21T07:42:06.842358385Z",
+    "local": true,
+    "remote": "stored",
+    "remote_key": "sites/a.example.com/a.example.com-20261121-074204.tar.gz",
+    "remote_at": "2026-11-21T07:42:07.043870829Z"
+  },
+  {
+    "id": "2b6e84a2b92daeb7",
+    "domain": "a.example.com",
+    "kind": "full",
+    "reason": "manual",
+    "path": "/var/lib/tpan/backups/a.example.com/a.example.com-20261121-074159.tar.gz",
+    "size": 35620687,
+    "sha256": "667bbca2abdd4146e7a406a0cca1814cd60845cfcda4905356506799aab252c4",
+    "wp_version": "7.1.5",
+    "php_version": "8.3",
+    "job_id": "bc388e726b4dea71",
+    "created": "2026-11-21T07:42:03.608228285Z",
+    "local": true,
+    "remote": "stored",
+    "remote_key": "sites/a.example.com/a.example.com-20261121-074159.tar.gz",
+    "remote_at": "2026-11-21T07:42:03.807171426Z"
+  }
+]
+[2026-11-21 14:42:23] (mã thoát 0)
+  => ĐẠT: bản 2b6e84a2b92daeb7 về máy: local=true, vẫn stored
+
+==== Phần D: 15 đạt, 0 không đạt
+
+
+######## [2026-11-21 14:42:23] PHẦN E: bí mật, IP, thư mục nhà có lọt vào chính file log không
+Số bí mật đã gặp: 5; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa khoá S3, khoá sao lưu hay mật khẩu nào
+  => ĐẠT: log không chứa chuỗi nào dạng khoá sao lưu
+  => ĐẠT: log không chứa IP máy ảo (IPv4)
+  => ĐẠT: log không chứa mạng Multipass
+  => ĐẠT: log không chứa IPv6 của máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+
+
+######## [2026-11-21 14:42:23] TỔNG KẾT: 69 khẳng định đạt, 0 khẳng định không đạt

@@ -67,6 +67,8 @@ const table = [
     load: () => import("./screens/cong-cu").then((m) => m.default),
     menu: { label: "tools", group: "chinh", icon: "grid" },
   },
+  // M18: sinh user-data cloud-init cho máy mới. Không có mục menu; vào từ ô ở trang Công cụ.
+  { path: "/tools/new-server", load: () => import("./screens/cai-may-moi").then((m) => m.default), admin: true },
   {
     path: "/sites",
     load: () => import("./screens/site").then((m) => m.SiteList),

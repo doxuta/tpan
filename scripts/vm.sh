@@ -7,10 +7,18 @@
 #   scripts/vm.sh shell     mở shell trong máy ảo
 #   scripts/vm.sh exec ...  chạy một lệnh trong máy ảo
 #   scripts/vm.sh root ...  chạy một lệnh trong máy ảo bằng quyền root
+#   scripts/vm.sh push <file> <đích>    chép một file từ Mac vào máy ảo
+#   scripts/vm.sh pull <nguồn> <file>   chép một file từ máy ảo về Mac
 #   scripts/vm.sh ip        in IP của máy ảo
 #   scripts/vm.sh ssh-key <file .pub>   thêm khoá công khai vào ~ubuntu/.ssh/authorized_keys
 #                           của máy ảo (không thêm trùng), để SSH thẳng từ Mac vào máy ảo
 #   scripts/vm.sh down      tắt máy ảo
+#   scripts/vm.sh start     bật lại máy ảo đã tắt
+#   scripts/vm.sh cloud-init <file user-data> <tên>   tạo máy ảo phụ <tên> từ user-data của
+#                           cloud-init (M18). <tên> phải là <máy ảo chính>-ci
+#   scripts/vm.sh on <tên> <lệnh con...>   chạy lệnh con (exec, root, push, pull, ip, down, start, deploy) trên
+#                           máy ảo phụ <tên> thay cho máy ảo chính
+#   scripts/vm.sh delete <tên>   xoá hẳn máy ảo phụ <tên> (không xoá được máy ảo chính)
 #
 # Đổi tên hoặc cấu hình máy ảo bằng biến môi trường TPAN_VM, TPAN_VM_IMAGE,
 # TPAN_VM_CPUS, TPAN_VM_MEM, TPAN_VM_DISK.
@@ -31,6 +39,23 @@ if [ -z "${TPAN_VM:-}" ] && [ -f "$(dirname "$0")/../.tpan-vm" ]; then
   TPAN_VM="$(tr -d '[:space:]' < "$(dirname "$0")/../.tpan-vm")"
 fi
 VM="${TPAN_VM:-tpan-test}"
+
+# Máy ảo phụ (M18): một máy tạo từ user-data của cloud-init để thử "tạo máy mới
+# là có panel và có site". Chỉ nhận đúng một tên, <máy ảo chính>-ci, để lệnh
+# tạo và lệnh xoá không bao giờ chạm vào máy ảo của mốc khác.
+MAIN_VM="$VM"
+ci_name_ok() { [ -n "${1:-}" ] && [ "$1" = "$MAIN_VM-ci" ]; }
+if [ "${1:-}" = "on" ]; then
+  ci_name_ok "${2:-}" || { echo "scripts/vm.sh on: chỉ nhận máy ảo phụ $MAIN_VM-ci" >&2; exit 2; }
+  VM="$2"
+  shift 2
+  # up và reset dựa vào snapshot "clean" của máy ảo chính; máy phụ chỉ được
+  # tạo bằng cloud-init và xoá bằng delete.
+  case "${1:-}" in
+    exec | root | push | pull | ip | down | start | deploy | shell) ;;
+    *) echo "scripts/vm.sh on $VM: chỉ nhận exec, root, push, pull, ip, down, start, deploy, shell" >&2; exit 2 ;;
+  esac
+fi
 IMAGE="${TPAN_VM_IMAGE:-24.04}"
 CPUS="${TPAN_VM_CPUS:-2}"
 MEM="${TPAN_VM_MEM:-4G}"
@@ -104,6 +129,40 @@ case "$cmd" in
   shell) multipass shell "$VM" ;;
   exec) vm_exec "$@" ;;
   root) vm_exec sudo "$@" ;;
+  push)
+    # Chép bằng multipass transfer, không qua stdin của `exec`: thử ở M18 cho
+    # thấy `exec bash -c 'cat > file' < file-5-MB` cắt file còn 2,5 MB mà không
+    # báo lỗi nào. Thư mục cha trong máy ảo tự tạo (M28: script thử đẩy
+    # vào thư mục chưa có).
+    [ $# -eq 2 ] && [ -f "$1" ] || { echo "Cách dùng: scripts/vm.sh push <file trên Mac> <đường dẫn trong máy ảo>" >&2; exit 2; }
+    multipass exec "$VM" -- mkdir -p "$(dirname "$2")" </dev/null
+    multipass transfer "$1" "$VM:$2" </dev/null
+    ;;
+  pull)
+    [ $# -eq 2 ] || { echo "Cách dùng: scripts/vm.sh pull <đường dẫn trong máy ảo> <file trên Mac>" >&2; exit 2; }
+    multipass transfer "$VM:$1" "$2" </dev/null
+    ;;
+  cloud-init)
+    # Tạo máy ảo phụ từ một file user-data. multipass launch chờ cloud-init chạy
+    # xong (hoặc hết --timeout) rồi mới trả về; hết giờ thì máy vẫn còn đó để xem log.
+    f="${1:-}"
+    name="${2:-}"
+    [ -f "$f" ] && ci_name_ok "$name" || { echo "Cách dùng: scripts/vm.sh cloud-init <file user-data> $MAIN_VM-ci" >&2; exit 2; }
+    if multipass info "$name" >/dev/null 2>&1; then
+      echo "Máy ảo $name đã có. Xoá trước: scripts/vm.sh delete $name" >&2
+      exit 1
+    fi
+    multipass launch "$IMAGE" --name "$name" --cpus "${TPAN_CI_CPUS:-2}" --memory "${TPAN_CI_MEM:-2G}" \
+      --disk "${TPAN_CI_DISK:-10G}" --timeout "${TPAN_CI_TIMEOUT:-1200}" --cloud-init "$f"
+    ;;
+  delete)
+    # Xoá hẳn máy ảo phụ. Máy ảo chính không xoá được bằng lệnh này.
+    name="${1:-}"
+    ci_name_ok "$name" || { echo "Cách dùng: scripts/vm.sh delete $MAIN_VM-ci (chỉ xoá được máy ảo phụ)" >&2; exit 2; }
+    if multipass info "$name" >/dev/null 2>&1; then
+      multipass delete --purge "$name"
+    fi
+    ;;
   ip) multipass info "$VM" --format json | jq -r --arg vm "$VM" '.info[$vm].ipv4[0]' ;;
   ssh-key)
     # Bắt buộc đưa đường dẫn: script không tự đọc ~/.ssh của máy cá nhân.
@@ -126,5 +185,6 @@ case "$cmd" in
       if grep -qxF -- "$k" "$f"; then echo "Khoá đã có trong $f, không thêm."; else printf "%s\n" "$k" >>"$f"; echo "Đã thêm khoá vào $f."; fi' <"$key"
     ;;
   down) multipass stop "$VM" ;;
+  start) multipass start "$VM" ;;
   *) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

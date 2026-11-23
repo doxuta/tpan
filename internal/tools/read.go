@@ -39,6 +39,7 @@ import (
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/monitor"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/sitefs"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
@@ -254,6 +255,12 @@ func managedFile(ctx context.Context, c *call, in pathIn, _ validate.Domain) (an
 	sum := sha256.Sum256(data)
 	out.Exists, out.SHA256, out.Content = true, hex.EncodeToString(sum[:]), string(data)
 	out.EditedByHand = out.SHA256 != f.SHA256
+	// File trong thư mục site (.htaccess) do site viết lại được: là dữ liệu,
+	// không phải lời của tpan (M28). ReadFile đã đi qua cửa sitefs (không theo
+	// symlink, chỉ file thường của site, có trần cỡ).
+	if sitefs.InZone(f.Path) {
+		out.Content = ai.Untrusted("file:"+f.Path, out.Content)
+	}
 	return out, nil
 }
 
@@ -453,14 +460,35 @@ type fileText struct {
 	Delete    bool   `json:"delete,omitempty"`
 	Old       string `json:"old,omitempty"`
 	OldExists bool   `json:"old_exists"`
+	// OldLink, Hidden: như engine.FileChange (M28). Không có hai trường này
+	// thì một symlink trông như "file rỗng" với AI.
+	OldLink string `json:"old_link,omitempty"`
+	Hidden  string `json:"hidden,omitempty"`
 }
 
+// textPreview là bản xem trước dạng chữ cho AI. Nội dung do site viết (file
+// trong thư mục site, đích symlink do site đặt, output của lệnh wp chạy mã PHP
+// của site trong CheckError) được bọc ai.Untrusted như log (M28, S6 của
+// docs/thay-doi/M28-thiet-ke.md): đó là chỗ một site cài câu lệnh cho AI.
 func textPreview(pv engine.Preview) previewText {
 	out := previewText{Kind: pv.Kind, Target: pv.Target, Title: pv.Title, Steps: make([]stepText, len(pv.Steps))}
 	for i, s := range pv.Steps {
 		st := stepText{Info: stepInfoText{StepInfo: s.Info}, Done: s.Done, CheckError: s.CheckError}
+		if st.CheckError != "" {
+			st.CheckError = ai.Untrusted("check-error", st.CheckError)
+		}
 		for _, f := range s.Info.Files {
-			st.Info.Files = append(st.Info.Files, fileText{Path: f.Path, New: string(f.New), Delete: f.Delete, Old: string(f.Old), OldExists: f.OldExists})
+			ft := fileText{Path: f.Path, New: string(f.New), Delete: f.Delete, Old: string(f.Old),
+				OldExists: f.OldExists, OldLink: f.OldLink, Hidden: f.Hidden}
+			if sitefs.InZone(f.Path) {
+				if ft.Old != "" {
+					ft.Old = ai.Untrusted("file:"+f.Path, ft.Old)
+				}
+				if ft.OldLink != "" {
+					ft.OldLink = ai.Untrusted("symlink:"+f.Path, ft.OldLink)
+				}
+			}
+			st.Info.Files = append(st.Info.Files, ft)
 		}
 		out.Steps[i] = st
 	}

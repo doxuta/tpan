@@ -143,7 +143,7 @@ func serveCmd(e *env) *cobra.Command {
 					printf(e.stdout, "%s %s / %s\n", e.tr("User demo (vai user):", "Demo user (user role):"), u, upw)
 				}
 				wpHash, wpcliHash := demo.Hashes()
-				deps = server.Deps{Sys: sys, Store: st, Demo: true, Hostname: "demo", WPHash: wpHash, WPCLISHA512: wpcliHash}
+				deps = server.Deps{Sys: sys, Store: st, Demo: true, Hostname: "demo", WPHash: wpHash, WPCLISHA512: wpcliHash, S3: demo.S3()}
 				// Bộ não giả (kịch bản soạn sẵn) để thử ngăn AI trên máy không
 				// có Claude Code. Delay để chữ hiện dần như thật. Brain (tình
 				// trạng bridge) để nil: không có Hub nào.
@@ -169,7 +169,7 @@ func serveCmd(e *env) *cobra.Command {
 	}
 	f := c.Flags()
 	f.StringVar(&listen, "listen", "127.0.0.1:8080", "địa chỉ và cổng để nghe")
-	f.StringVar(&certFile, "tls-cert", "", "file chứng chỉ PEM (tpan setup sinh ở /etc/tpan/tls/cert.pem)")
+	f.StringVar(&certFile, "tls-cert", "", "file chứng chỉ PEM (tpan setup tạo ở /etc/tpan/tls/cert.pem)")
 	f.StringVar(&keyFile, "tls-key", "", "file khoá riêng PEM của chứng chỉ")
 	f.BoolVar(&demoMode, "demo", false, "chạy trên máy giả có sẵn dữ liệu mẫu, không đụng máy thật")
 	return c

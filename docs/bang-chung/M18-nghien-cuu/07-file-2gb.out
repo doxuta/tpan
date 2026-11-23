@@ -1,0 +1,132 @@
+
+--- 0. tạo file 2 GiB ngẫu nhiên (không nén được) và tính sha256 bằng sha256sum
+-rw-r--r-- 1 root root 2147483648 Nov 21 02:22 /root/thu-2g.bin
+sha256sum: a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a (1.130142837 giây)
+Mem:            3901         353        1001           1        2727        3547
+
+--- 1. http://127.0.0.1:7070, phần 8 MiB: tải lên 2 GiB
+đã tải lên thu/2g-8.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+(thời gian 12.4s, đỉnh RAM VmHWM 23992 kB)
+
+--- 2. http://127.0.0.1:7070: tải về, so sha256
+(thời gian 5.5s, đỉnh RAM VmHWM 6228 kB)
+đã tải về thu/2g-8.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+ĐẠT: sha256 tải về khớp
+ĐẠT: cmp hai file giống hệt
+size=2147483648 etag="7adb517e0fd1937e289b60add7052132-256" tpan-sha256=
+(thời gian 0.0s, đỉnh RAM VmHWM 6060 kB)
+(thời gian 0.0s, đỉnh RAM VmHWM 6028 kB)
+
+--- 1. http://127.0.0.1:7070, phần 16 MiB: tải lên 2 GiB
+đã tải lên thu/2g-16.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+(thời gian 12.3s, đỉnh RAM VmHWM 30536 kB)
+
+--- 2. http://127.0.0.1:7070: tải về, so sha256
+(thời gian 3.8s, đỉnh RAM VmHWM 6536 kB)
+đã tải về thu/2g-16.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+ĐẠT: sha256 tải về khớp
+ĐẠT: cmp hai file giống hệt
+size=2147483648 etag="ad69bbd9d7fed7fecaef640025987432-128" tpan-sha256=
+(thời gian 0.0s, đỉnh RAM VmHWM 6244 kB)
+(thời gian 0.0s, đỉnh RAM VmHWM 6252 kB)
+
+--- 1. http://127.0.0.1:3900, phần 8 MiB: tải lên 2 GiB
+đã tải lên thu/2g-8.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+(thời gian 12.6s, đỉnh RAM VmHWM 23708 kB)
+
+--- 2. http://127.0.0.1:3900: tải về, so sha256
+đã tải về thu/2g-8.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+(thời gian 3.6s, đỉnh RAM VmHWM 6292 kB)
+ĐẠT: sha256 tải về khớp
+ĐẠT: cmp hai file giống hệt
+size=2147483648 etag="7adb517e0fd1937e289b60add7052132-256" tpan-sha256=
+(thời gian 0.0s, đỉnh RAM VmHWM 6296 kB)
+(thời gian 0.0s, đỉnh RAM VmHWM 6232 kB)
+
+--- 1. http://127.0.0.1:3900, phần 16 MiB: tải lên 2 GiB
+đã tải lên thu/2g-16.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+(thời gian 12.9s, đỉnh RAM VmHWM 28852 kB)
+
+--- 2. http://127.0.0.1:3900: tải về, so sha256
+đã tải về thu/2g-16.bin (2147483648 byte), sha256 a176d5c8976f5cc1629af140a6316941ba3d7a1e8aa00dc4a63ee7cddf8c075a
+(thời gian 3.7s, đỉnh RAM VmHWM 6384 kB)
+ĐẠT: sha256 tải về khớp
+ĐẠT: cmp hai file giống hệt
+size=2147483648 etag="ad69bbd9d7fed7fecaef640025987432-128" tpan-sha256=
+(thời gian 0.0s, đỉnh RAM VmHWM 6060 kB)
+(thời gian 0.0s, đỉnh RAM VmHWM 6276 kB)
+
+--- 3. đứt giữa chừng (versitygw): dừng máy chủ sau 1 giây tải lên
+24K	/var/lib/s3thu
+phần 32 lần 1 lỗi: Put "http://127.0.0.1:7070/tpan-thu/thu/2g-dut.bin?partNumber=32&uploadId=f90ae6e9-f15d-4848-8174-d5019029b299": dial tcp 127.0.0.1:7070: connect: connection refused
+phần 32 lần 2 lỗi: Put "http://127.0.0.1:7070/tpan-thu/thu/2g-dut.bin?partNumber=32&uploadId=f90ae6e9-f15d-4848-8174-d5019029b299": dial tcp 127.0.0.1:7070: connect: connection refused
+phần 32 lần 3 lỗi: Put "http://127.0.0.1:7070/tpan-thu/thu/2g-dut.bin?partNumber=32&uploadId=f90ae6e9-f15d-4848-8174-d5019029b299": dial tcp 127.0.0.1:7070: connect: connection refused
+phần 32 lần 4 lỗi: Put "http://127.0.0.1:7070/tpan-thu/thu/2g-dut.bin?partNumber=32&uploadId=f90ae6e9-f15d-4848-8174-d5019029b299": dial tcp 127.0.0.1:7070: connect: connection refused
+(thời gian 6.2s, đỉnh RAM VmHWM 16884 kB)
+LỖI: tải phần 32: Put "http://127.0.0.1:7070/tpan-thu/thu/2g-dut.bin?partNumber=32&uploadId=f90ae6e9-f15d-4848-8174-d5019029b299": dial tcp 127.0.0.1:7070: connect: connection refused; huỷ phần tải dở cũng lỗi: Delete "http://127.0.0.1:7070/tpan-thu/thu/2g-dut.bin?uploadId=f90ae6e9-f15d-4848-8174-d5019029b299": dial tcp 127.0.0.1:7070: connect: connection refused
+mã thoát của s3thu: 1
+sau khi máy chủ chạy lại:
+(thời gian 0.0s, đỉnh RAM VmHWM 6304 kB)
+1 lần tải nhiều phần còn dở
+  2026-11-20T19:24:17Z  f90ae6e9-f15d-4848-8174-d5019029b299  thu/2g-dut.bin
+(thời gian 0.0s, đỉnh RAM VmHWM 6456 kB)
+249M	/var/lib/s3thu
+/var/lib/s3thu
+/var/lib/s3thu/.vgwlocks
+/var/lib/s3thu/.vgwlocks/02a9ab0b87fa1179cf922cbf1e52351b70e13df2d83e579608af9b42d6798fe8
+/var/lib/s3thu/.vgwlocks/02a9ab0b87fa1179cf922cbf1e52351b70e13df2d83e579608af9b42d6798fe8/ce
+/var/lib/s3thu/.vgwlocks/02a9ab0b87fa1179cf922cbf1e52351b70e13df2d83e579608af9b42d6798fe8/7b
+/var/lib/s3thu/.vgwlocks/02a9ab0b87fa1179cf922cbf1e52351b70e13df2d83e579608af9b42d6798fe8/78
+/var/lib/s3thu/.vgwlocks/02a9ab0b87fa1179cf922cbf1e52351b70e13df2d83e579608af9b42d6798fe8/c1
+/var/lib/s3thu/tpan-thu
+/var/lib/s3thu/tpan-thu/.sgwtmp
+/var/lib/s3thu/tpan-thu/.sgwtmp/multipart
+
+--- 3b. dọn phần tải dở bằng AbortMultipartUpload
+1 lần tải nhiều phần còn dở
+  2026-11-20T19:24:17Z  f90ae6e9-f15d-4848-8174-d5019029b299  thu/2g-dut.bin
+  đã huỷ
+(thời gian 0.0s, đỉnh RAM VmHWM 6540 kB)
+0 lần tải nhiều phần còn dở
+(thời gian 0.0s, đỉnh RAM VmHWM 6112 kB)
+24K	/var/lib/s3thu
+
+--- 4. kho trả 503 từ phần thứ 5 (proxy gây lỗi ở 127.0.0.1:7071)
+proxy: phần 5 -> 503
+phần 5 lần 1 lỗi: S3 trả 503 SlowDown: loi co chu y cua ban thu (phan 5)
+proxy: phần 5 -> 503
+phần 5 lần 2 lỗi: S3 trả 503 SlowDown: loi co chu y cua ban thu (phan 5)
+proxy: phần 5 -> 503
+phần 5 lần 3 lỗi: S3 trả 503 SlowDown: loi co chu y cua ban thu (phan 5)
+proxy: phần 5 -> 503
+phần 5 lần 4 lỗi: S3 trả 503 SlowDown: loi co chu y cua ban thu (phan 5)
+(thời gian 5.7s, đỉnh RAM VmHWM 15248 kB)
+LỖI: tải phần 5: S3 trả 503 SlowDown: loi co chu y cua ban thu (phan 5) (đã huỷ phần tải dở 6836ea94-639b-46d8-86a5-6d14a0bc7434)
+mã thoát của s3thu: 1
+sau khi client đã tự huỷ:
+0 lần tải nhiều phần còn dở
+(thời gian 0.0s, đỉnh RAM VmHWM 6176 kB)
+(thời gian 0.0s, đỉnh RAM VmHWM 6184 kB)
+24K	/var/lib/s3thu
+
+--- 5. sửa hỏng một byte của object trên đĩa của kho (versitygw lưu object thành file thường)
+đã tải lên thu/hong.bin (3145728 byte), sha256 280dcfe9088cf5094e8a7fe25ab7e25fce6957c812ac0e326ceebca03036fd6b
+(thời gian 0.0s, đỉnh RAM VmHWM 9764 kB)
+size=3145728 etag="91ded6ab7b7c9bf0a9c857fa64148466" tpan-sha256=
+(thời gian 0.0s, đỉnh RAM VmHWM 6216 kB)
+-rw-r--r-- 1 root root 3145728 Nov 21 02:24 /var/lib/s3thu/tpan-thu/thu/hong.bin
+# file: var/lib/s3thu/tpan-thu/thu/hong.bin
+user.checksums="{\"Algorithm\":\"CRC64NVME\",\"Type\":\"FULL_OBJECT\",\"CRC32\":null,\"CRC32C\":null,\"SHA1\":null,\"SHA
+user.content-type="binary/octet-stream"
+user.etag="\"91ded6ab7b7c9bf0a9c857fa64148466\""
+
+đã ghi đè 1 byte ở vị trí 100000
+size=3145728 etag="91ded6ab7b7c9bf0a9c857fa64148466" tpan-sha256=
+(thời gian 0.0s, đỉnh RAM VmHWM 6204 kB)
+đã tải về thu/hong.bin (3145728 byte), sha256 33a4c1dc3416f585eedbf98136a237e1c5799c213b4e7cc7e6819bfc2370cf91
+(thời gian 0.0s, đỉnh RAM VmHWM 6392 kB)
+ĐẠT: sha256 đọc lại KHÁC bản gốc 280dcfe9088cf5094e8a7fe25ab7e25fce6957c812ac0e326ceebca03036fd6b, trong khi ETag của kho không đổi: phải tự tính sha256, không tin ETag
+(thời gian 0.0s, đỉnh RAM VmHWM 6268 kB)
+
+--- 6. dọn
+/dev/sda1        19G  4.2G   15G  23% /

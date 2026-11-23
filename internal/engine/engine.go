@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/checks"
+	"github.com/doxuta/tpan/internal/sitefs"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -60,17 +61,10 @@ func (e *Engine) Preview(ctx context.Context, p Plan) (Preview, error) {
 		// ghi vào đó sẽ làm bẩn Step cho lần Execute sau.
 		info.Files = append([]FileChange(nil), info.Files...)
 		for i := range info.Files {
-			f := &info.Files[i]
-			old, err := e.sys.ReadFile(f.Path)
-			switch {
-			case err == nil:
-				f.Old, f.OldExists = old, true
-			case errors.Is(err, fs.ErrNotExist):
-				f.Old, f.OldExists = nil, false
-			default:
-				// Không đọc được (thiếu quyền...) thì không vẽ được diff đúng; báo
-				// lỗi thay vì giả vờ file chưa có.
-				return Preview{}, fmt.Errorf("xem trước bước %s: đọc %s: %w", info.ID, f.Path, err)
+			if err := e.fillOld(&info.Files[i]); err != nil {
+				// Không đọc được (thiếu quyền, file lạ trong thư mục site...) thì
+				// không vẽ được diff đúng; báo lỗi thay vì giả vờ file chưa có.
+				return Preview{}, fmt.Errorf("xem trước bước %s: %w", info.ID, err)
 			}
 		}
 		sp := StepPreview{Info: info}
@@ -82,6 +76,49 @@ func (e *Engine) Preview(ctx context.Context, p Plan) (Preview, error) {
 		pv.Steps = append(pv.Steps, sp)
 	}
 	return pv, nil
+}
+
+// fillOld điền nội dung hiện có của f.Path để vẽ diff.
+//
+// Đường dẫn trong thư mục của một site (sitefs.InZone) do user của site kiểm
+// soát: họ biến được file đó thành symlink tới bất kỳ đâu, kể cả wp-config.php
+// của site khác hay /etc/shadow (lỗ T1 của rà soát v0.2.0, M28). Vì vậy ở đó
+// engine hỏi trước bằng Stat (không theo symlink, đi qua cửa sitefs của
+// System) và chỉ đọc khi là file thường; symlink thì chỉ ghi đích vào OldLink,
+// không đọc đích: lúc chạy thật bước File thay symlink bằng file thường, nên
+// bản xem trước nói đúng điều sẽ xảy ra. Thứ khác (thư mục, FIFO, socket) là
+// lỗi. ReadFile của System kiểm lại trên fd đã mở, nên file bị tráo giữa Stat
+// và ReadFile cũng chỉ ra lỗi, không ra nội dung.
+func (e *Engine) fillOld(f *FileChange) error {
+	if sitefs.InZone(f.Path) {
+		fi, err := e.sys.Stat(f.Path)
+		switch {
+		case errors.Is(err, fs.ErrNotExist):
+			f.Old, f.OldExists = nil, false
+			return nil
+		case err != nil:
+			return fmt.Errorf("kiểm %s: %w", f.Path, err)
+		case fi.Mode&fs.ModeSymlink != 0:
+			target, err := e.sys.Readlink(f.Path)
+			if err != nil {
+				return fmt.Errorf("đọc symlink %s: %w", f.Path, err)
+			}
+			f.Old, f.OldLink, f.OldExists = nil, target, true
+			return nil
+		case !fi.Mode.IsRegular():
+			return &sitefs.Error{Op: "xem trước", Path: f.Path, Err: sitefs.ErrNotRegular}
+		}
+	}
+	old, err := e.sys.ReadFile(f.Path)
+	switch {
+	case err == nil:
+		f.Old, f.OldExists = old, true
+	case errors.Is(err, fs.ErrNotExist):
+		f.Old, f.OldExists = nil, false
+	default:
+		return fmt.Errorf("đọc %s: %w", f.Path, err)
+	}
+	return nil
 }
 
 // Execute chạy Plan như mô tả ở types.go.
