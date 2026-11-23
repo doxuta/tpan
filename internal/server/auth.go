@@ -65,6 +65,8 @@ type authState struct {
 	gates authGates
 	// names: phần lần sai của từng tên trong mỗi khoá nguồn (auth_m28.go).
 	names *authNames
+	// rate: giới hạn số lần so mật khẩu mỗi phút (auth_m28.go, D6).
+	rate authRate
 	// verify và hash là store.VerifyPassword, store.HashPassword; test thay để
 	// đếm số lần so mật khẩu hay giả lúc argon2 bận.
 	verify func(hash, pw string) (bool, error)
@@ -299,12 +301,15 @@ func (s *Server) authFailed(w http.ResponseWriter, r *http.Request, src, name, a
 		return
 	}
 	s.auth.names.failed(src, name, f, now)
+	// Target là khoá nguồn (D12): với kết nối từ chính máy nó là uid:<n>, nên
+	// admin đọc nhật ký tra ra được site nào đang dò mật khẩu (cột ip chỉ có
+	// 127.0.x.y). Không bao giờ ghi tên đã gõ.
 	if f.Locked {
-		s.audit(r, action, "", "locked", "")
+		s.audit(r, action, src, "locked", "")
 		authWriteLocked(w, src, f.Until.Sub(now))
 		return
 	}
-	s.audit(r, action, "", "wrong_password", "")
+	s.audit(r, action, src, "wrong_password", "")
 	writeError(w, http.StatusUnauthorized, "wrong_password", i18n.T(
 		"Sai mật khẩu.", "Wrong password."))
 }
@@ -390,6 +395,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip, src := clientIP(r), sourceKey(r)
+	if src == authLookupBusy {
+		authWriteBusy(w) // chưa biết khoá nguồn: không so, không đếm gì
+		return
+	}
 	leave, ok := s.auth.gates.enter(r.Context(), src)
 	if !ok {
 		authWriteBusy(w)
@@ -406,10 +415,15 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if len(name) > authMaxName {
 		name = "\x00" // không có user nào tên này: đi đường hash giả
 	}
+	if until, ok := s.auth.rate.allow(src, name, s.now()); !ok {
+		authWriteRate(w, until.Sub(s.now()))
+		return
+	}
 	ok, done := s.authCheckPassword(w, r, name, req.Password)
 	if done {
 		return
 	}
+	s.auth.rate.compared(src, s.now())
 	if !ok {
 		// Không ghi tên đã gõ vào nhật ký: người ta hay gõ nhầm mật khẩu vào ô tên.
 		s.authFailed(w, r, src, name, "login.fail")
@@ -430,6 +444,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := s.now()
+	s.auth.rate.succeeded(name, now)
 	// Chỉ trừ phần lần sai của chính tên này; lần sai của tên khác từ cùng
 	// nguồn vẫn còn (trước đây xoá cả dòng: khách xen một lần đăng nhập đúng của
 	// mình sau mỗi 4 lần đoán mật khẩu admin là không bao giờ bị khoá).
@@ -520,6 +535,10 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	src := sourceKey(r)
+	if src == authLookupBusy {
+		authWriteBusy(w)
+		return
+	}
 	leave, ok := s.auth.gates.enter(r.Context(), src)
 	if !ok {
 		authWriteBusy(w)
@@ -529,11 +548,16 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 	if s.authLocked(w, r, src) {
 		return
 	}
+	if until, ok := s.auth.rate.allow(src, "", s.now()); !ok {
+		authWriteRate(w, until.Sub(s.now()))
+		return
+	}
 	// Mật khẩu của chính người đăng nhập (phiên "xem như" đã bị guard chặn POST).
 	ok, done := s.authCheckPassword(w, r, cur.UserName, req.Current)
 	if done {
 		return
 	}
+	s.auth.rate.compared(src, s.now())
 	if !ok {
 		s.authFailed(w, r, src, cur.UserName, "account.password")
 		return

@@ -86,6 +86,9 @@ func Run(ctx context.Context, o RunOptions) error {
 		Addr:              o.Listen,
 		Handler:           s.handler(web.DistFS()),
 		ReadHeaderTimeout: 10 * time.Second,
+		// Chỗ nhớ khoá nguồn của từng kết nối: UID của kết nối loopback tra
+		// nhiều nhất một lần cho mỗi kết nối (auth_m28.go, D1).
+		ConnContext: authConnContext,
 	}
 
 	go func() {

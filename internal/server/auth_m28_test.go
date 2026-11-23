@@ -36,12 +36,15 @@ type hookEnv struct {
 	calls atomic.Int32 // số lần so mật khẩu (kể cả tên lạ, so với hash giả)
 	// block khác nil thì mỗi lần so chờ nó đóng (test hàng chờ đầy).
 	block chan struct{}
+	// dbPath để đọc bảng audit bằng kết nối riêng (store không có hàm đọc).
+	dbPath string
 }
 
 func newHookEnv(t *testing.T) *hookEnv {
 	t.Helper()
 	ctx := context.Background()
-	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "tpan.db"))
+	dbPath := filepath.Join(t.TempDir(), "tpan.db")
+	st, err := store.Open(ctx, dbPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +55,7 @@ func newHookEnv(t *testing.T) *hookEnv {
 	if err := st.CreateUser(ctx, account.User{Name: "khach1", Role: account.RoleUser}, "$khach1"); err != nil {
 		t.Fatal(err)
 	}
-	he := &hookEnv{authEnv: &authEnv{t: t, st: st, now: authT0, tls: true}, sys: system.NewFake()}
+	he := &hookEnv{authEnv: &authEnv{t: t, st: st, now: authT0, tls: true}, sys: system.NewFake(), dbPath: dbPath}
 	he.s = newServer(Deps{Store: st, Sys: he.sys, Hostname: "may-thu", Now: func() time.Time { return he.now }})
 	pwOf := map[string]string{"$admin": authTestPassword, "$khach1": khach1Password}
 	he.s.auth.verify = func(hash, pw string) (bool, error) {
@@ -404,9 +407,11 @@ func TestSourceKey(t *testing.T) {
 		"   2: 0100007F:20FB 0501007F:C822 01 00000000:00000000 00:00000000 00000000     0        0 4243 1 0000000000000000 20 4 30 10 -1",
 		// 127.0.0.9:40002 -> panel, TIME_WAIT: uid 0, inode 0
 		"   3: 0900007F:9C42 0100007F:20FB 06 00000000:00000000 03:00001000 00000000     0        0 0 3 0000000000000000",
-		// 127.0.0.8:40003 -> panel: hai dòng khác UID
+		// 127.0.0.8:40003 -> panel: hai dòng khác UID (kernel không sinh ra; dừng ở dòng đầu)
 		"   4: 0800007F:9C43 0100007F:20FB 01 00000000:00000000 00:00000000 00000000  1001        0 5000 1 0000000000000000 20 4 30 10 -1",
 		"   5: 0800007F:9C43 0100007F:20FB 01 00000000:00000000 00:00000000 00000000  1002        0 5001 1 0000000000000000 20 4 30 10 -1",
+		// 203.0.113.9:40004 -> 203.0.113.9:8443 (IP công khai của chính máy), uid 1004; chữ hex thường
+		"   6: 097100cb:9c44 097100cb:20fb 01 00000000:00000000 00:00000000 00000000  1004        0 5002 1 0000000000000000 20 4 30 10 -1",
 	}, "\n")
 	tcp6 := strings.Join([]string{procHeader,
 		// [::1]:40001 -> [::1]:8443, uid 1002
@@ -432,11 +437,14 @@ func TestSourceKey(t *testing.T) {
 		{remote: "[fe80::1%eth0]:1", want: "fe80::/64"},
 		{remote: "127.0.1.5:51234", local: v4, want: "uid:1001"},
 		{remote: "127.0.1.5:51234", local: v4, noSys: true, want: authLoopback},
-		{remote: "127.0.1.5:51234", want: authLoopback},               // không biết cổng panel
-		{remote: "127.0.1.5:51234", local: other, want: authLoopback}, // remote phải là cổng panel
-		{remote: "127.0.0.9:40002", local: v4, want: authLoopback},    // TIME_WAIT, inode 0
-		{remote: "127.0.0.8:40003", local: v4, want: authLoopback},    // hai UID
-		{remote: "127.0.0.7:1", local: v4, want: authLoopback},        // không thấy dòng
+		{remote: "127.0.1.5:51234", want: authLoopback},                                                                  // không biết cổng panel
+		{remote: "127.0.1.5:51234", local: other, want: authLoopback},                                                    // remote phải là cổng panel
+		{remote: "127.0.0.9:40002", local: v4, want: authLoopback},                                                       // TIME_WAIT, inode 0
+		{remote: "127.0.0.8:40003", local: v4, want: "uid:1001"},                                                         // hai UID: dòng hợp lệ đầu tiên
+		{remote: "203.0.113.9:40004", local: &net.TCPAddr{IP: net.ParseIP("203.0.113.9"), Port: 8443}, want: "uid:1004"}, // nối tới IP của chính máy (D8)
+		{remote: "203.0.113.9:40005", local: &net.TCPAddr{IP: net.ParseIP("203.0.113.9"), Port: 8443}, want: authLoopback},
+		{remote: "203.0.113.8:40004", local: &net.TCPAddr{IP: net.ParseIP("203.0.113.9"), Port: 8443}, want: "203.0.113.8"},
+		{remote: "127.0.0.7:1", local: v4, want: authLoopback}, // không thấy dòng
 		{remote: "[::1]:40001", local: v6, want: "uid:1002"},
 		{remote: "127.0.1.7:50000", local: v4, want: "uid:1003"}, // client AF_INET6 ánh xạ
 		{remote: "[::ffff:127.0.1.7]:50000", local: v4, want: "uid:1003"},
