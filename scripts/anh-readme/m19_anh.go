@@ -57,11 +57,12 @@ func ensureM19Demo(c *cdp, site string) error {
 			continue
 		}
 		st, err := m19Job(c, "/api/v1/sites/"+site+"/names", fmt.Sprintf(`{"name":%q,"mode":%q}`, n.name, n.mode))
-		if err != nil {
-			return fmt.Errorf("thêm tên %s: %w", n.name, err)
-		}
-		if st != "succeeded" {
-			return fmt.Errorf("thêm tên %s cho %s: %s (máy demo chưa nhận được thao tác tên phụ?)", n.name, site, st)
+		// ponytail: máy demo không phục vụ HTTP thật, nên bước kiểm chứng
+		// NameProbe hỏng và job hoàn tác; ảnh khi đó chỉ có tên chính. Ảnh có đủ
+		// dữ liệu lấy từ bộ m19-that trên máy ảo (e2e-m19-gd).
+		if err != nil || st != "succeeded" {
+			fmt.Printf("cảnh báo: thêm tên %s cho %s: %v %s (demo không kiểm chứng được HTTP)\n", n.name, site, err, st)
+			continue
 		}
 		fmt.Printf("tên %s của %s: %s\n", n.name, site, st)
 	}
@@ -75,11 +76,9 @@ func ensureM19Demo(c *cdp, site string) error {
 			continue
 		}
 		st, err := m19Job(c, "/api/v1/sites/"+site+"/redirects", fmt.Sprintf(`{"source":%q,"target":%q,"code":%s,"keep_query":%s}`, r.src, r.dst, r.code, r.keep))
-		if err != nil {
-			return fmt.Errorf("thêm luật %s: %w", r.src, err)
-		}
-		if st != "succeeded" {
-			return fmt.Errorf("thêm luật %s cho %s: %s", r.src, site, st)
+		if err != nil || st != "succeeded" {
+			fmt.Printf("cảnh báo: thêm luật %s cho %s: %v %s (demo không kiểm chứng được HTTP)\n", r.src, site, err, st)
+			continue
 		}
 		fmt.Printf("luật %s của %s: %s\n", r.src, site, st)
 	}
@@ -114,7 +113,7 @@ func photosM19(c *cdp, base, out, only, siteFlag string) error {
 		return err
 	}
 	var fail m16Fail
-	site := defaultStr(siteFlag, "example.com")
+	site := defaultStr(siteFlag, "blog.example.com")
 	if err := ensureM19Demo(c, site); err != nil {
 		return err
 	}

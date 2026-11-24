@@ -151,11 +151,13 @@ deploy_bin() {
     else
       printf '[%s] E2E_BUILD=0: không build, dùng bin/ sẵn có\n' "$(ts)"
     fi
-    TPAN_VM_CAPTURE= "$VM" deploy </dev/null >/dev/null 2>&1
+    # timeout: lệnh "tpan version" cuối của vm.sh deploy có lúc treo khi
+    # multipass chạy nền không có terminal; file đã chép xong trước đó.
+    TPAN_VM_CAPTURE= timeout 300 "$VM" deploy </dev/null >/dev/null 2>&1
   else
     install_bin "$BIN_PREFIX-$ARCH"
   fi
-  "$VM" exec tpan version </dev/null 2>&1 | head -1
+  timeout 60 "$VM" exec tpan version </dev/null 2>&1 | head -1
 }
 
 # install_bin <file>: chép một file chạy vào /usr/local/bin/tpan trong máy ảo.
