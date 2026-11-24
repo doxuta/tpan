@@ -1187,7 +1187,7 @@ Thêm ngày 25/11/2026. Bản thiết kế và soát thiết kế: `docs/thay-do
 - Kẻ chiếm site còn vài khoá nguồn phụ ngoài `uid:<n>`, nên được vài lần đoán hơn 5 mỗi 15 phút.
 - Phần còn lại của D2: ngoài harden, một site bị chiếm vẫn làm được các Plan khác chạm tới nó bị hoàn tác (có từ M14; không mở lỗ đọc file, chỉ chặn thao tác của admin tới khi sửa site đó).
 - Hồi quy cho site hợp lệ (D13 của soát cuối): site có `public` là symlink cùng chủ (kiểu thư mục `current` của công cụ triển khai) vẫn chạy nhưng mọi Plan trên site đó bị hoàn tác vì `site.docroot`; đổi `public` thành thư mục thật.
-- Nhóm B của đợt 2: P4, P7, F1 vá ở mục 6.28; P06, T3 và các phát hiện vừa còn lại chưa làm.
+- Nhóm B của đợt 2: P4, P7, F1 vá ở mục 6.28; T3 (sửa tự động quyền `wp-config.php` đổi chủ theo đường dẫn khi `public` bị tráo) đã đóng ở đợt 1 bằng cửa `sitefs` (bảng 3.9 của `docs/thay-doi/M28-thiet-ke.md`, test `TestVungSiteCaHaiBan/chown`); P06 và các phát hiện vừa còn lại chưa làm.
 
 ### 6.28 Vá theo rà soát v0.2.0, đợt 2 nhóm B: tên con của domain người khác, chủ của job, UID dùng lại (M28)
 
@@ -1203,7 +1203,7 @@ Thêm ngày 25/11/2026. Hai phát hiện của nhóm B mà bản rà soát mới
 
 **Kết quả F1.** Trên bản chưa có F1 (`v0.2.2-104-gc7e607a`, `docs/bang-chung/M28-dot2c-truoc-ban-va.log`): phần nginx 80 đạt, 6 không đạt, đúng các khẳng định của F1 (x2 nhận lại UID 993 của x1, file setuid ở `/var/tmp` thành của user x2, crontab còn, xoá hẳn hỏng khi user còn tiến trình). Trên bản vá (`v0.2.2-106-gde80bbb`, `docs/bang-chung/M28-dot2c.log`, mỗi phần từ máy ảo sạch): **205 khẳng định đạt, 0 không đạt** (nginx 86, Apache 39, nâng từ v0.2.0 80): x1 uid 65540, x2 uid 65541 (GID bằng UID), không còn file, crontab, user, nhóm của x1; xoá hẳn x3 xong khi user còn 2 tiến trình, sau đó không còn tiến trình nào. Cùng lần chạy này giữ xanh mọi khẳng định của F4, H5, DBCONN, P1, P2, P4, P7.
 
-**Còn lại:** `validate.ParseDomain` nhận cả tên như `php8.3-fpm` (nhãn cuối không phải TLD thật); không mở lỗ nào đã biết (P7 đã kê đích danh loại `fix.*` có `target` là domain) nhưng nên siết sau. Phần `NoNewPrivileges` cho PHP-FPM của F1 (chặn chương trình setuid từ pool; đổi cấu hình site đang chạy), P06, T3 và các phát hiện vừa còn lại của rà soát chưa làm.
+**Còn lại:** `validate.ParseDomain` nhận cả tên như `php8.3-fpm` (nhãn cuối không phải TLD thật); không mở lỗ nào đã biết (P7 đã kê đích danh loại `fix.*` có `target` là domain) nhưng nên siết sau. Phần `NoNewPrivileges` cho PHP-FPM của F1 (chặn chương trình setuid từ pool; đổi cấu hình site đang chạy), P06 và các phát hiện vừa còn lại của rà soát chưa làm; T3 (sửa tự động quyền `wp-config.php` đổi chủ theo đường dẫn khi `public` bị tráo) đã đóng ở đợt 1 bằng cửa `sitefs` (bảng 3.9 của `docs/thay-doi/M28-thiet-ke.md`, test `TestVungSiteCaHaiBan/chown`).
 
 ## 7. Thao tác hàng loạt
 

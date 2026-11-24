@@ -485,7 +485,7 @@ Máy đã cài v0.2.0, v0.2.1 hay v0.2.2 rồi `tpan self-update` lên bản nà
 Chép từ mục 6.28 của `docs/KE-HOACH.md`:
 
 - `validate.ParseDomain` nhận cả tên như `php8.3-fpm` (nhãn cuối không phải TLD thật); không mở lỗ nào đã biết (P7 đã kê đích danh loại `fix.*` có `target` là domain) nhưng nên siết sau.
-- F1, P06, T3 và các phát hiện vừa còn lại của rà soát chưa làm.
+- F1 đã vá sau (xem `28d-m28-dot-2-f1.md`); T3 đã đóng ở đợt 1; P06 và các phát hiện vừa còn lại của rà soát chưa làm.
 
 Nếu bị hỏi "đợt 2 đã vá hết chưa": chưa. Hai gạch trên, và các mục "còn hở" trong `28b-m28-dot-2-nhom-a.md`.
 
@@ -510,3 +510,5 @@ Nếu bị hỏi "đợt 2 đã vá hết chưa": chưa. Hai gạch trên, và c
 9. Chạy lệnh Python ở mục 2.2 trên máy ảo (root). Chưa chạy trong phiên viết. Job `user.suspend` phải có `owner` là `admin` (log bản vá dòng 264: `chủ ghi trong tpan.db: admin`), còn job tạo DB rời `khach1_p7z` của `khach1` có `owner` là `khach1` (log bản vá dòng 277: `ĐẠT: chủ của job tạo DB khach1_p7z là khach1`).
 
 10. Bản cũ gọi tới chính địa chỉ nguồn, nên `selfConn` thấy "từ chính máy" và khoá theo UID của root (`uid:0`): mọi request chung một khoá, nên đa số nhận 429 từ hàng chờ hay 423 từ khoá, và chưa tới chỗ so mật khẩu (nhóm A: 3 câu 401, 2 câu 423, 55 câu 429, N = 60). Bản mới đổi: nguồn là `10.98.0.<n>` riêng từng request, đích luôn là `127.0.0.1`; và N tính theo thời gian một lần argon2 để vượt hẳn 2 chỗ nhân 3 giây. Khẳng định chứng minh: "hơn 5 câu 401" (53 ở log bản vá), vì một khoá nguồn chỉ có 5 lần sai.
+
+F1 của nhóm B (UID dùng lại sau khi xoá hẳn): xem `28d-m28-dot-2-f1.md`.
