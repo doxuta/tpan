@@ -188,6 +188,18 @@ e2e-m28-dot2: BIN ?= bin/tpan-linux
 e2e-m28-dot2: ## (M28) Chạy e2e đợt 2: make e2e-m28-dot2 P="nginx apache nang-cap" L=docs/bang-chung/M28-dot2.log
 	@E2E_BUILD=$(B) E2E_BIN_PREFIX=$(BIN) E2E_LOG=$(L) bash scripts/e2e-m28-dot2.sh $(P) >$(L) 2>&1; rc=$$?; echo "--- 5 dòng cuối $(L) ---"; tail -n 5 $(L); exit $$rc
 
+# e2e bước 22 của M19 (tên phụ, chuyển hướng, chứng chỉ nhiều tên): phần dòng lệnh và API.
+# Cùng biến với e2e-m28-dot2. Phần nâng cấp cần bản ngay trước M19: BIN_CU là tiền tố file
+# chạy của bản đó (mặc định bin/tpan-truoc-m19-linux; thiếu thì script tự build từ commit f6a68b9).
+.PHONY: e2e-m19
+e2e-m19: P ?= all
+e2e-m19: L ?= docs/bang-chung/M19.log
+e2e-m19: B ?= 1
+e2e-m19: BIN ?= bin/tpan-linux
+e2e-m19: BIN_CU ?= bin/tpan-truoc-m19-linux
+e2e-m19: ## (M19) Chạy e2e bước 22: make e2e-m19 P="nginx apache nang-cap" L=docs/bang-chung/M19.log
+	@E2E_BUILD=$(B) E2E_BIN_PREFIX=$(BIN) E2E_OLD_BIN_PREFIX=$(BIN_CU) E2E_LOG=$(L) bash scripts/e2e-m19.sh $(P) >$(L) 2>&1; rc=$$?; echo "--- 5 dòng cuối $(L) ---"; tail -n 5 $(L); exit $$rc
+
 # Test cần root của sitefs và system: build go test -c cho Linux đúng kiến trúc
 # máy ảo, đẩy vào máy ảo, chạy bằng root. R: biểu thức -test.run (mặc định
 # Cua|VungSite|LenhRoot). Gói internal/sitefs có thể chưa tồn tại: không có file
