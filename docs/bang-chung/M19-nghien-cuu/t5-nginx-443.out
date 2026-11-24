@@ -1,0 +1,83 @@
+== SAN thử:  DNS:example.com, DNS:www.example.com, DNS:xn--vitnam-jk8b.example.net
+== vhost (bỏ chú thích): server_name và đích
+8:    listen 80;
+9:    listen [::]:80;
+10:    server_name example.com;
+26:        return 301 https://example.com$request_uri;
+31:    # "ssl" ở dòng listen là cách bật TLS của Nginx 1.24 (Ubuntu 24.04). Không
+34:    listen 443 ssl;
+35:    listen [::]:443 ssl;
+36:    server_name example.com xn--vitnam-jk8b.example.net;
+38:    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+102:    listen 80;
+103:    listen [::]:80;
+104:    server_name www.example.com uncovered.example.net;
+114:        return 301 https://example.com$request_uri;
+121:    listen 80;
+122:    listen [::]:80;
+123:    server_name xn--vitnam-jk8b.example.net;
+133:        return 301 https://xn--vitnam-jk8b.example.net$request_uri;
+138:    listen 443 ssl;
+139:    listen [::]:443 ssl;
+140:    server_name www.example.com;
+142:    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+149:        return 301 https://example.com$request_uri;
+== nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+mã 0
+== 443
+T01 https tên chính /readme.html             curl=0 200 loc= subject=CN = example.com body=[<!DOCTYPE html><html>t5-readme]
+T02 https tên phụ serve có phủ           curl=0 200 loc= subject=CN = example.com body=[<!DOCTYPE html><html>t5-readme]
+T03 https tên phụ redirect có phủ /x?y=1 curl=0 301 loc=https://example.com/x?y=1 subject=CN = example.com body=[<html>..<head><title>301 Moved]
+T04 https tên phụ chưa phủ (vhost mặc định) curl=35 000 loc= (không có chứng chỉ: bắt tay bị từ chối) body=[]
+== 80
+T05 http tên phụ serve có phủ /a?b=1     curl=0 301 loc=https://xn--vitnam-jk8b.example.net/a?b=1  body=[<html>..<head><title>301 Moved]
+T06 http tên phụ chưa phủ /a             curl=0 301 loc=https://example.com/a  body=[<html>..<head><title>301 Moved]
+T07 http tên phụ redirect /a                curl=0 301 loc=https://example.com/a  body=[<html>..<head><title>301 Moved]
+T08 http thử thách: serve có phủ         curl=0 200 loc=  body=[t5-acme-ok.]
+T09 http thử thách: chưa phủ             curl=0 200 loc=  body=[t5-acme-ok.]
+T10 http thử thách: redirect                curl=0 200 loc=  body=[t5-acme-ok.]
+T11 http tên chính /a (khối có sẵn)     curl=0 301 loc=https://example.com/a  body=[<html>..<head><title>301 Moved]
+== nginx -t từng biến thể (cùng bộ tên)
+thuong-nginx         mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0
+thuong-nginx-ssl     mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0
+long-nginx           mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0
+long-nginx-ssl       mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0
+tamkhoa-nginx        mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0
+tamkhoa-nginx-ssl    mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0
+xong
+
+######## Phần ba: t5-nginx-443.sh <thư mục> apache (sau khi dừng nginx, cài apache2)
+== apachectl -t từng biến thể (cùng bộ tên)
+thuong-apache        mã 0 | Syntax OK 
+thuong-apache-ssl    mã 0 | Syntax OK 
+long-apache          mã 0 | Syntax OK 
+long-apache-ssl      mã 0 | Syntax OK 
+tamkhoa-apache       mã 0 | Syntax OK 
+tamkhoa-apache-ssl   mã 0 | Syntax OK 
+== apache2ctl -S với thuong-apache-ssl
+         port 80 namevhost tpan-default.invalid (/etc/apache2/sites-enabled/000-tpan-default.conf:7)
+         port 80 namevhost example.com (/etc/apache2/sites-enabled/tpan-example.com.conf:6)
+         port 80 namevhost www.example.com (/etc/apache2/sites-enabled/tpan-example.com.conf:147)
+                 alias uncovered.example.net
+         port 80 namevhost xn--vitnam-jk8b.example.net (/etc/apache2/sites-enabled/tpan-example.com.conf:173)
+         port 443 namevhost tpan-default.invalid (/etc/apache2/sites-enabled/000-tpan-default-ssl.conf:7)
+         port 443 namevhost example.com (/etc/apache2/sites-enabled/tpan-example.com.conf:45)
+                 alias xn--vitnam-jk8b.example.net
+         port 443 namevhost www.example.com (/etc/apache2/sites-enabled/tpan-example.com.conf:198)
+== curl T01-T11 qua Apache (vhost thuong-apache-ssl, không PHP: đo /readme.html)
+== 443
+T01 https tên chính /readme.html             curl=0 200 loc= subject=CN = example.com body=[<!DOCTYPE html><html>t5-readme]
+T02 https tên phụ serve có phủ           curl=0 200 loc= subject=CN = example.com body=[<!DOCTYPE html><html>t5-readme]
+T03 https tên phụ redirect có phủ /x?y=1 curl=0 301 loc=https://example.com/x?y=1 subject=CN = example.com body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T04 https tên phụ chưa phủ (vhost mặc định) curl=0 403 loc= subject=CN = tpan-m19 body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+== 80
+T05 http tên phụ serve có phủ /a?b=1     curl=0 301 loc=https://xn--vitnam-jk8b.example.net/a?b=1  body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T06 http tên phụ chưa phủ /a             curl=0 301 loc=https://example.com/a  body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T07 http tên phụ redirect /a                curl=0 301 loc=https://example.com/a  body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T08 http thử thách: serve có phủ         curl=0 200 loc=  body=[t5-acme-ok.]
+T09 http thử thách: chưa phủ             curl=0 200 loc=  body=[t5-acme-ok.]
+T10 http thử thách: redirect                curl=0 200 loc=  body=[t5-acme-ok.]
+T11 http tên chính /a (khối có sẵn)     curl=0 301 loc=https://example.com/a  body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+xong

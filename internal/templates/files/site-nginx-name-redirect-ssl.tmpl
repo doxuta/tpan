@@ -1,0 +1,16 @@
+{{/* Khối chuyển tên phụ cổng 443 (M19, mục 3.4): chỉ tên có trong chứng chỉ. */}}
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{.Names}};
+
+    ssl_certificate {{.Cert}};
+    ssl_certificate_key {{.Key}};
+
+    access_log {{.LogDir}}/access.log;
+    error_log {{.LogDir}}/error.log;
+
+    location / {
+        return 301 {{.To}}$request_uri;
+    }
+}

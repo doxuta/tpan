@@ -1,0 +1,35 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Vhost Nginx của site example.com khi đang TẠM KHOÁ: mọi đường dẫn trả 403 kèm
+# trang tạm khoá chung của tpan; riêng thử thách Let's Encrypt vẫn đi qua để
+# chứng chỉ gia hạn được. Không trỏ tới mã nguồn hay pool PHP của site.
+server {
+    # Không có default_server: request không khớp tên nào rơi vào tpan-default.
+    listen 80;
+    listen [::]:80;
+    server_name example.com;
+
+    # Log riêng của site vẫn giữ: thấy được ai còn gọi tới site lúc bị khoá.
+    access_log /var/log/tpan/sites/example.com/access.log;
+    error_log /var/log/tpan/sites/example.com/error.log;
+
+    # Thử thách Let's Encrypt đọc từ webroot chung, như vhost thường.
+    # ^~: khớp tiền tố này thì Nginx không xét location nào khác bên dưới.
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/tpan/acme;
+    }
+
+    # error_page không có "=" thì giữ nguyên mã 403 của request gốc, chỉ thay
+    # thân bằng trang tạm khoá.
+    error_page 403 /tpan-suspended.html;
+
+    # internal: chỉ error_page tới được; gọi thẳng từ ngoài thì 404.
+    location = /tpan-suspended.html {
+        internal;
+        root /var/lib/tpan/suspended;
+    }
+
+    location / {
+        return 403;
+    }
+}

@@ -33,7 +33,7 @@ server {
     # Không có default_server: request lạ vào 443 rơi vào tpan-default-ssl.
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name {{.Domain}};
+    server_name {{.Domain}}{{range .ContentAliases}} {{.}}{{end}};
 
     ssl_certificate {{.Cert}};
     ssl_certificate_key {{.Key}};
@@ -95,3 +95,4 @@ server {
         fastcgi_pass unix:{{.Socket}};
     }
 }
+{{range .NameBlocks80}}{{template "site-nginx-name-redirect.tmpl" .}}{{end}}{{range .NameBlocks443}}{{template "site-nginx-name-redirect-ssl.tmpl" .}}{{end -}}

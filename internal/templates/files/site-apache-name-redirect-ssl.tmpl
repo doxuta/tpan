@@ -1,0 +1,24 @@
+{{/* Vhost chuyển tên phụ cổng 443 (M19, mục 3.4): chỉ tên có trong chứng chỉ. Thử thách đi cổng 80 nên không loại trừ ở đây. */}}
+# Tên phụ chuyển về {{.To}} (M19, tpan site alias).
+<VirtualHost *:443>
+    ServerName {{.First}}
+{{- if .Rest}}
+    ServerAlias {{.Rest}}
+{{- end}}
+    DocumentRoot "{{.Public}}"
+
+    SSLEngine on
+    SSLCertificateFile "{{.Cert}}"
+    SSLCertificateKeyFile "{{.Key}}"
+
+    ErrorLog "{{.LogDir}}/error.log"
+    CustomLog "{{.LogDir}}/access.log" combined
+
+    <Directory "{{.Dir}}">
+        Options SymLinksIfOwnerMatch
+        AllowOverride None
+    </Directory>
+
+    RewriteEngine On
+    RewriteRule ^/(.*)$ {{.To}}/$1 [R=301,L]
+</VirtualHost>

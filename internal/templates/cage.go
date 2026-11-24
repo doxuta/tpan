@@ -223,8 +223,15 @@ func CageFPMConf(l site.Layout, workers int) ([]byte, error) {
 // <bất kỳ>, acmeRoot, ssl, mode) trừ socket là l.CageSocket() thay cho
 // l.SocketFor(php). Không đổi template nào của vhost ngoài lồng: golden của
 // chúng giữ nguyên từng byte (bất biến 1).
+//
+// Từ M19 đây là SiteVhostCagedNames với site.Names{}.
 func SiteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode) ([]byte, error) {
-	out, err := siteVhostCaged(l, web, acmeRoot, ssl, mode)
+	return SiteVhostCagedNames(l, web, acmeRoot, ssl, mode, site.Names{})
+}
+
+// SiteVhostCagedNames như SiteVhostCaged cộng tên phụ (M19, như SiteVhostNames).
+func SiteVhostCagedNames(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode, n site.Names) ([]byte, error) {
+	out, err := siteVhostCaged(l, web, acmeRoot, ssl, mode, n)
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost trong lồng: %w", err)
 	}
@@ -234,7 +241,7 @@ func SiteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.Hta
 // siteVhostCaged dựng dữ liệu bằng đúng cửa kiểm của vhost ngoài lồng
 // (siteVhostData, sslSiteData), chỉ thay trường Socket, rồi render đúng tên
 // template mà SiteVhost chọn. Bốn nhánh dưới phải khớp bốn nhánh của SiteVhost.
-func siteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode) ([]byte, error) {
+func siteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode, n site.Names) ([]byte, error) {
 	if web != "nginx" && web != "apache" {
 		return nil, fmt.Errorf("%w: web %q phải là \"nginx\" hoặc \"apache\"", ErrParam, web)
 	}
@@ -242,6 +249,9 @@ func siteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.Hta
 		d, err := sslSiteData(l, cageAnyPHP, acmeRoot)
 		if err == nil {
 			d.siteData, err = cageVhostData(l, d.siteData, web, mode)
+		}
+		if err == nil {
+			d.siteData, err = withNames(d.siteData, l, d.Cert, d.Key, true, n)
 		}
 		if err != nil {
 			return nil, err
@@ -251,6 +261,9 @@ func siteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.Hta
 	d, err := siteVhostData(l, cageAnyPHP, acmeRoot)
 	if err == nil {
 		d, err = cageVhostData(l, d, web, mode)
+	}
+	if err == nil {
+		d, err = withNames(d, l, "", "", false, n)
 	}
 	if err != nil {
 		return nil, err

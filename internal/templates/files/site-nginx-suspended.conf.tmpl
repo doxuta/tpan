@@ -7,7 +7,7 @@ server {
     # Không có default_server: request không khớp tên nào rơi vào tpan-default.
     listen 80;
     listen [::]:80;
-    server_name {{.Domain}};
+    server_name {{.Domain}}{{range .Aliases80}} {{.}}{{end}};
 
     # Log riêng của site vẫn giữ: thấy được ai còn gọi tới site lúc bị khoá.
     access_log {{.LogDir}}/access.log;

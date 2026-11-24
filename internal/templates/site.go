@@ -45,6 +45,11 @@ type siteData struct {
 	Htaccess        string
 	OverrideOptions string
 	OverrideList    string
+	// Tên phụ (M19, m19.go withNames điền): rỗng hết thì vhost giống từng byte
+	// bản trước M19.
+	ContentAliases []string
+	NameBlocks80   []nameBlock
+	NameBlocks443  []nameBlock
 }
 
 // SitePool sinh file pool PHP-FPM của site: /etc/php/<ver>/fpm/pool.d/tpan-<slug>.conf.

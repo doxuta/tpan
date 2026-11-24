@@ -7,6 +7,9 @@
 # pool PHP của site.
 <VirtualHost *:80>
     ServerName {{.Domain}}
+{{- if .Aliases80}}
+    ServerAlias{{range .Aliases80}} {{.}}{{end}}
+{{- end}}
     # DocumentRoot là thư mục trang tạm khoá, không phải public của site:
     # vhost thường cho .htaccess trong public ghi đè luật, nó có thể mở lại site.
     DocumentRoot "{{.Dir}}"
@@ -41,6 +44,9 @@
 
 <VirtualHost *:443>
     ServerName {{.Domain}}
+{{- if .Aliases443}}
+    ServerAlias{{range .Aliases443}} {{.}}{{end}}
+{{- end}}
     DocumentRoot "{{.Dir}}"
 
     SSLEngine on

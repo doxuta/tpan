@@ -5,6 +5,9 @@
 # chứng chỉ gia hạn được. Không trỏ tới mã nguồn hay pool PHP của site.
 <VirtualHost *:80>
     ServerName {{.Domain}}
+{{- if .Aliases80}}
+    ServerAlias{{range .Aliases80}} {{.}}{{end}}
+{{- end}}
     # DocumentRoot là thư mục trang tạm khoá, không phải public của site:
     # vhost thường cho .htaccess trong public ghi đè luật, nó có thể mở lại site.
     DocumentRoot "{{.Dir}}"

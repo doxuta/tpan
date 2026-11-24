@@ -5,7 +5,7 @@ server {
     # Không có default_server: request không khớp tên nào rơi vào tpan-default.
     listen 80;
     listen [::]:80;
-    server_name {{.Domain}};
+    server_name {{.Domain}}{{range .ContentAliases}} {{.}}{{end}};
 
     root {{.Public}};
     # Nginx chạy dưới www-data và đọc được file của mọi site qua quyền nhóm.
@@ -63,3 +63,4 @@ server {
         fastcgi_pass unix:{{.Socket}};
     }
 }
+{{range .NameBlocks80}}{{template "site-nginx-name-redirect.tmpl" .}}{{end}}{{range .NameBlocks443}}{{template "site-nginx-name-redirect-ssl.tmpl" .}}{{end -}}

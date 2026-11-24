@@ -103,18 +103,10 @@ func ApacheSiteSSL(l site.Layout, php, acmeRoot string, mode site.HtaccessMode) 
 // php là bản PHP site đang dùng (site.Site.PHPVersion): vhost trỏ vào socket của bản đó.
 // mode là chế độ .htaccess (site.Site.Htaccess), chỉ vhost Apache dùng; với
 // nginx nó bị bỏ qua vì nginx không đọc .htaccess.
+//
+// Từ M19 đây là SiteVhostNames (m19.go) với site.Names{}: site không tên phụ.
 func SiteVhost(l site.Layout, web, php, acmeRoot string, ssl bool, mode site.HtaccessMode) ([]byte, error) {
-	switch {
-	case web == "nginx" && ssl:
-		return NginxSiteSSL(l, php, acmeRoot)
-	case web == "nginx":
-		return NginxSite(l, php, acmeRoot)
-	case web == "apache" && ssl:
-		return ApacheSiteSSL(l, php, acmeRoot, mode)
-	case web == "apache":
-		return ApacheSite(l, php, acmeRoot, mode)
-	}
-	return nil, fmt.Errorf("chọn vhost: %w: web %q phải là \"nginx\" hoặc \"apache\"", ErrParam, web)
+	return SiteVhostNames(l, web, php, acmeRoot, ssl, mode, site.Names{})
 }
 
 // NginxDefaultSSL sinh /etc/nginx/sites-available/tpan-default-ssl.conf: server

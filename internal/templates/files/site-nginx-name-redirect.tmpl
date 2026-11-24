@@ -1,0 +1,19 @@
+{{/* Khối chuyển tên phụ cổng 80 (M19, mục 3.4). Dòng trống đầu tách nó khỏi server trước. */}}
+# Tên phụ chuyển về {{.To}} (M19, tpan site alias). Thử thách Let's
+# Encrypt vẫn phục vụ thẳng, để xin được chứng chỉ có cả các tên này.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{.Names}};
+
+    access_log {{.LogDir}}/access.log;
+    error_log {{.LogDir}}/error.log;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root {{.AcmeRoot}};
+    }
+
+    location / {
+        return 301 {{.To}}$request_uri;
+    }
+}

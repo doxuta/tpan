@@ -1,0 +1,65 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Vhost Nginx của site example.com. Bản này chỉ nghe cổng 80; cổng 443 thêm ở mốc SSL.
+server {
+    # Không có default_server: request không khớp tên nào rơi vào tpan-default.
+    listen 80;
+    listen [::]:80;
+    server_name example.com;
+
+    root /var/www/example.com/public;
+    # Nginx chạy dưới www-data và đọc được file của mọi site qua quyền nhóm.
+    # Thiếu dòng dưới, site A chỉ cần đặt một symlink trỏ sang file của site B
+    # là Nginx trả file đó về, kể cả mã nguồn PHP nếu symlink mang đuôi .txt.
+    # if_not_owner: chỉ đi theo symlink khi symlink và file đích cùng một chủ,
+    # nên symlink của site trỏ vào file của chính nó vẫn chạy.
+    # Không giới hạn phần được xét: nginx xét mọi thành phần của đường dẫn, kể
+    # cả chính thư mục public, nên site không đổi được public thành symlink
+    # sang thư mục của site khác.
+    disable_symlinks if_not_owner;
+    index index.php;
+
+    # Log riêng từng site, trong thư mục mà /etc/logrotate.d/tpan-sites xoay vòng.
+    access_log /var/log/tpan/sites/example.com/access.log;
+    error_log /var/log/tpan/sites/example.com/error.log;
+
+    # Giới hạn upload 64 MB (pool PHP đặt cùng mức).
+    client_max_body_size 64m;
+
+    # Thử thách Let's Encrypt đọc từ webroot chung, không từ mã nguồn site.
+    # ^~: khớp tiền tố này thì Nginx không xét các location regex bên dưới.
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/tpan/acme;
+    }
+
+    # Các location regex được xét theo thứ tự trong file, cái khớp đầu tiên
+    # thắng, nên hai luật chặn phải đứng trước location của PHP.
+
+    # Chặn file và thư mục ẩn (.git, .env, .htaccess...), trừ .well-known.
+    location ~ /\.(?!well-known/) {
+        deny all;
+    }
+
+    # Không chạy PHP trong thư mục upload: file .php ai đó tải lên được (qua lỗi
+    # của plugin) cũng không thành mã chạy được.
+    location ~* ^/wp-content/uploads/.*\.php$ {
+        deny all;
+    }
+
+    # Permalink của WordPress: không có file hay thư mục đúng tên thì chuyển cho index.php.
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        # Chỉ chuyển cho PHP file .php có thật. Không có dòng này thì
+        # /uploads/anh.jpg/x.php có thể khiến PHP chạy anh.jpg như mã.
+        try_files $uri =404;
+        # fastcgi.conf của Ubuntu chính là fastcgi_params cộng dòng SCRIPT_FILENAME
+        # này. Gói nginx của nginx.org không có fastcgi.conf, nên ghi rõ cả hai để
+        # vhost chạy được với cả hai gói.
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/tpan-example_com_a379a6-8.3.sock;
+    }
+}

@@ -1,0 +1,40 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# Vhost Apache của site example.com khi đang TẠM KHOÁ: mọi đường dẫn trả 403 kèm
+# trang tạm khoá chung của tpan; riêng thử thách Let's Encrypt vẫn đi qua để
+# chứng chỉ gia hạn được. Không trỏ tới mã nguồn hay pool PHP của site.
+<VirtualHost *:80>
+    ServerName example.com
+    # DocumentRoot là thư mục trang tạm khoá, không phải public của site:
+    # vhost thường cho .htaccess trong public ghi đè luật, nó có thể mở lại site.
+    DocumentRoot "/var/lib/tpan/suspended"
+
+    # Log riêng của site vẫn giữ: thấy được ai còn gọi tới site lúc bị khoá.
+    ErrorLog "/var/log/tpan/sites/example.com/error.log"
+    CustomLog "/var/log/tpan/sites/example.com/access.log" combined
+
+    # Thử thách Let's Encrypt đọc từ webroot chung, như vhost thường.
+    Alias /.well-known/acme-challenge/ "/var/lib/tpan/acme/.well-known/acme-challenge/"
+    <Directory "/var/lib/tpan/acme/.well-known/acme-challenge">
+        Options None
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    <Directory "/var/lib/tpan/suspended">
+        Options None
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    # ErrorDocument với đường dẫn cục bộ giữ nguyên mã 403, chỉ thay thân.
+    ErrorDocument 403 /tpan-suspended.html
+
+    # Chặn mọi thứ trừ thử thách. REDIRECT_STATUS chỉ có ở lượt chuyển nội bộ
+    # của ErrorDocument: lượt đó được đi tiếp để đọc trang tạm khoá; gọi thẳng
+    # trang đó từ ngoài thì vẫn 403.
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteRule ^ - [F]
+</VirtualHost>

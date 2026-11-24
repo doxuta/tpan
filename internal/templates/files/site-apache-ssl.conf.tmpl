@@ -44,6 +44,9 @@
 
 <VirtualHost *:443>
     ServerName {{.Domain}}
+{{- if .ContentAliases}}
+    ServerAlias{{range .ContentAliases}} {{.}}{{end}}
+{{- end}}
     DocumentRoot "{{.Public}}"
     DirectoryIndex index.php
 
@@ -127,3 +130,4 @@
         SetHandler "proxy:unix:{{.Socket}}|fcgi://localhost"
     </FilesMatch>
 </VirtualHost>
+{{range .NameBlocks80}}{{template "site-apache-name-redirect.tmpl" .}}{{end}}{{range .NameBlocks443}}{{template "site-apache-name-redirect-ssl.tmpl" .}}{{end -}}

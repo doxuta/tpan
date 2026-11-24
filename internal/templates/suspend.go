@@ -47,14 +47,29 @@ type suspendedData struct {
 	Cert     string
 	Key      string
 	Marker   string
+	// Tên phụ (M19): Aliases80 mọi tên phụ, Aliases443 chỉ tên có trong chứng chỉ.
+	Aliases80  []string
+	Aliases443 []string
 }
 
 // SuspendedVhost sinh vhost tạm khoá của site: web "nginx" hoặc "apache", ssl
 // theo site.Site.SSL (thêm server/VirtualHost cổng 443 với chứng chỉ của site).
 // Đây là bản thứ ba bên cạnh bản thường và bản có SSL (SiteVhost); core chọn
 // giữa chúng ở đúng một chỗ (core.siteVhost).
+//
+// Từ M19 đây là SuspendedVhostNames (m19.go) với site.Names{}.
 func SuspendedVhost(l site.Layout, web, acmeRoot string, ssl bool) ([]byte, error) {
+	return SuspendedVhostNames(l, web, acmeRoot, ssl, site.Names{})
+}
+
+// SuspendedVhostNames như SuspendedVhost cộng tên phụ active của site: cổng 80
+// liệt kê mọi tên phụ, cổng 443 chỉ tên có trong chứng chỉ (n.Covered). Không
+// vẽ khối chuyển hay luật nào: mọi tên trả trang tạm khoá 403.
+func SuspendedVhostNames(l site.Layout, web, acmeRoot string, ssl bool, n site.Names) ([]byte, error) {
 	d, err := suspendedDataOf(l, acmeRoot, ssl)
+	if err == nil {
+		d.Aliases80, d.Aliases443, err = suspendedAliases(l, n, ssl)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("sinh vhost tạm khoá %s: %w", web, err)
 	}
