@@ -61,7 +61,8 @@ func TestJobsOfLocTheoChuVaNguoiChay(t *testing.T) {
 	mk := func(id, target, actor string) {
 		n++
 		j := sampleJob(id, t0.Add(time.Duration(n)*time.Second))
-		j.Target, j.Actor = target, actor
+		// P7: chủ chỉ suy từ Target với loại job của site (site.*).
+		j.Kind, j.Target, j.Actor = "site.add", target, actor
 		if err := s.CreateJob(ctx, j); err != nil {
 			t.Fatal(err)
 		}
@@ -321,7 +322,7 @@ func TestDBOwnerVaStandaloneDB(t *testing.T) {
 	}
 	// Job trên DB rời có chủ là chủ của DB.
 	j := sampleJob("jd", t0)
-	j.Target, j.Actor = "binh_x", "admin"
+	j.Kind, j.Target, j.Actor = "dbs.suspend", "binh_x", "admin" // P7: chỉ dbs.* tra bảng databases
 	_ = s.CreateJob(ctx, j)
 	if o, _, _ := s.JobOwner(ctx, "jd"); o != "binh" {
 		t.Errorf("owner của job trên DB rời = %q, muốn binh", o)

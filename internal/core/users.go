@@ -217,6 +217,19 @@ func (a *Accounts) AddUser(ctx context.Context, in UserInput) (u account.User, g
 	} else if ok {
 		return u, "", refuse(CodeUserExists, i18n.T("đã có user "+name, "user "+name+" already exists"))
 	}
+	// P7 của rà soát v0.2.0: tên user không được trùng tên đầy đủ của một DB
+	// rời ("<chủ>_<tên>", kể cả DB trong thùng rác: khôi phục sẽ dựng lại chỗ
+	// trùng). Trùng thì job trên user và job trên DB mang cùng Target, và màn
+	// hình, nhật ký dễ lẫn hai thứ của hai người khác nhau.
+	if a.DBs != nil && a.DBs.Store != nil {
+		if _, ok, err := a.DBs.Store.StandaloneDB(ctx, name); err != nil {
+			return u, "", fmt.Errorf("đọc DB rời %s: %w", name, err)
+		} else if ok {
+			return u, "", refuse(CodeUserExists, i18n.T(
+				"đã có DB rời tên "+name+"; tên user không được trùng tên DB rời, chọn tên khác",
+				"a standalone database named "+name+" already exists; a user name cannot match a standalone database name, choose another"))
+		}
+	}
 	// Mục 6.12: tên trùng một user Linux có sẵn (ubuntu, syslog...) dễ bị
 	// hiểu nhầm là tài khoản trên máy, và DB rời "<tên>_..." trông như của nó.
 	linux, err := linuxUserExists(ctx, a.Sys, name)
@@ -424,7 +437,7 @@ func (a *Accounts) PrepareSuspendUser(ctx context.Context, name, reason string, 
 		Kind: "user.suspend", Target: u.Name, Steps: ss, Verify: verify,
 		Title: i18n.T("Khoá user "+u.Name+" cùng mọi site và DB rời của họ", "Lock user "+u.Name+" and all their sites and standalone databases"),
 	}
-	return newPlanned(a.Sys, a.Journal, plan, func(ctx context.Context, _ engine.Report) error {
+	return adminOwned(newPlanned(a.Sys, a.Journal, plan, func(ctx context.Context, _ engine.Report) error {
 		at := a.now().UTC()
 		var errs []error
 		for _, st := range locked {
@@ -447,7 +460,17 @@ func (a *Accounts) PrepareSuspendUser(ctx context.Context, name, reason string, 
 			errs = append(errs, fmt.Errorf("huỷ phiên của %s: %w", u.Name, err))
 		}
 		return errors.Join(errs...)
-	}), nil
+	})), nil
+}
+
+// adminOwned đặt chủ của job là admin (P7 của rà soát v0.2.0). Dùng cho Plan
+// có Target là tên user hay tên gói: việc của admin, không thuộc khách nào,
+// và tên đó có thể trùng tên một thứ khách tự đặt (DB rời "<khách>_<tên>").
+// Store cũng không suy chủ từ Target cho các loại này (jobOwnerLookup); đặt
+// rõ ở đây để không phụ thuộc vào danh sách đó.
+func adminOwned(p *Planned) *Planned {
+	p.owner = account.AdminName
+	return p
 }
 
 // PrepareUnsuspendUser mở khoá user và mở lại đúng những site, DB rời có
@@ -507,7 +530,7 @@ func (a *Accounts) PrepareUnsuspendUser(ctx context.Context, name string) (*Plan
 		Kind: "user.unsuspend", Target: u.Name, Steps: ss, Verify: verify,
 		Title: i18n.T("Mở khoá user "+u.Name+" và những gì bị khoá cùng họ", "Unlock user "+u.Name+" and what was locked with them"),
 	}
-	return newPlanned(a.Sys, a.Journal, plan, func(ctx context.Context, _ engine.Report) error {
+	return adminOwned(newPlanned(a.Sys, a.Journal, plan, func(ctx context.Context, _ engine.Report) error {
 		var errs []error
 		for _, st := range opened {
 			errs = append(errs, a.markSite(ctx, st.Domain, account.NotSuspended, time.Time{}))
@@ -524,7 +547,7 @@ func (a *Accounts) PrepareUnsuspendUser(ctx context.Context, name string) (*Plan
 			errs = append(errs, fmt.Errorf("ghi user %s là đã mở khoá: %w", u.Name, err))
 		}
 		return errors.Join(errs...)
-	}), nil
+	})), nil
 }
 
 // PrepareTrashAll đưa mọi site active và DB rời active của user vào thùng rác
@@ -589,13 +612,13 @@ func (a *Accounts) PrepareTrashAll(ctx context.Context, name string) (*Planned, 
 			"user "+u.Name+" không có site hay DB rời nào đang chạy",
 			"user "+u.Name+" has no running site or standalone database"))
 	}
-	return newPlanned(a.Sys, a.Journal, plan, func(ctx context.Context, rep engine.Report) error {
+	return adminOwned(newPlanned(a.Sys, a.Journal, plan, func(ctx context.Context, rep engine.Report) error {
 		var errs []error
 		for _, f := range afters {
 			errs = append(errs, f(ctx, rep))
 		}
 		return errors.Join(errs...)
-	}), nil
+	})), nil
 }
 
 // refuseSuspendedTrash là lời từ chối đưa một site đang khoá (site hoặc DB

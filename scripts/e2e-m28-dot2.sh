@@ -7,7 +7,7 @@
 #   make e2e-m28-dot2 P=all B=0 BIN=bin/tpan-truoc-ban-va-linux L=docs/bang-chung/M28-dot2-truoc-ban-va.log
 #
 # Các phần (tham số dòng lệnh):
-#   nginx     máy sạch, stack nginx: f4.sh, dbconn.sh, p1.sh, p2.sh
+#   nginx     máy sạch, stack nginx: f4.sh, dbconn.sh, p1.sh, p2.sh, p4.sh, p7.sh (nhóm B)
 #   apache    máy sạch, stack Apache: f4.sh, h5.sh, dbconn.sh
 #   nang-cap  cài v0.2.0 bằng install.sh của gói, hai site WordPress của admin,
 #             nâng lên bản của cây, health, security harden --yes, rồi 200, đăng
@@ -194,6 +194,8 @@ part_stack() { # part_stack <apache|nginx>
     vm_run "M1-DBCONN trần kết nối DB" dbconn.sh
     vm_run "P1 khoá đăng nhập" p1.sh
     vm_run "P2 trần argon2id cùng lúc" p2.sh
+    vm_run "P4 tên con của domain người khác (nhóm B)" p4.sh
+    vm_run "P7 chủ của job suy từ tên (nhóm B)" p7.sh
   fi
   part_end "$(tr a-z A-Z <<<"$web")"
 }

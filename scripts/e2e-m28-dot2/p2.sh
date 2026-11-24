@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # e2e M28 đợt 2, P2: trần số lần argon2id chạy cùng lúc. N request đăng nhập
-# song song (mặc định 20), mỗi cái từ một địa chỉ loopback riêng (127.0.0.101 trở
-# lên) với mật khẩu sai; lấy mẫu VmRSS của tiến trình `tpan serve` mỗi 0,1 giây.
+# song song, mỗi cái từ một địa chỉ nguồn riêng với mật khẩu sai; lấy mẫu VmRSS của tiến trình `tpan serve` mỗi 0,1 giây.
 # Chạy bằng root trong máy ảo, sau dung-may.sh. Khẳng định của bản vá.
 #
 # Nguồn: địa chỉ 10.98.0.<n> gắn tạm vào lo (không phải loopback), mỗi request
-# một địa chỉ, gọi thẳng tới chính địa chỉ đó: bản vá đếm kết nối loopback theo
-# UID (mọi request của root chung một khoá, bị khoá sau 5 lần), nên muốn chạm
-# tới semaphore argon2 thì mỗi request phải có khoá nguồn riêng.
+# một địa chỉ, gọi tới 127.0.0.1: bản vá đếm kết nối loopback, và kết nối từ
+# chính máy tới đúng địa chỉ đó (selfConn), theo UID (mọi request của root chung
+# một khoá), nên muốn chạm tới semaphore argon2 thì mỗi request phải có khoá
+# nguồn riêng: nguồn 10.98.0.<n>, đích 127.0.0.1 là khoá IPv4 10.98.0.<n>.
 #
 # Tham số: N (mặc định: tính theo thời gian một lần argon2 đo trước, để tổng
-# việc vượt hẳn 2 chỗ x 3 giây chờ; trong khoảng 20 đến 60).
+# việc vượt hẳn 2 chỗ x 3 giây chờ; trong khoảng 20 đến 150).
 . "$(dirname "$0")/chung2.sh"
 N="${1:-}"
 can_may
@@ -24,11 +24,12 @@ T="$W/p2"
 mkdir -p "$T"
 
 ip addr add 10.98.0.200/32 dev lo 2>/dev/null
-t1="$(curl -sk -m 60 -o /dev/null -w "%{time_total}" --interface 10.98.0.200 -H "$CT" -d "{\"name\":\"admin\",\"password\":\"do-$RND\"}" https://10.98.0.200:8443$LOGIN_PATH)"
+t1="$(curl -sk -m 60 -o /dev/null -w "%{time_total}" --interface 10.98.0.200 -H "$CT" -d "{\"name\":\"admin\",\"password\":\"do-$RND\"}" https://127.0.0.1:8443$LOGIN_PATH)"
 ip addr del 10.98.0.200/32 dev lo 2>/dev/null
 xoa_khoa_ip 10.98.0.200 >/dev/null
 if [ -z "$N" ]; then
-  N="$(awk -v t="$t1" "BEGIN { n = int(8 / (t > 0.01 ? t : 0.01)) + 1; if (n < 20) n = 20; if (n > 60) n = 60; print n }")"
+  # Tổng việc N x t1 chia 2 chỗ phải vượt hẳn 3 giây chờ: N = 12 / t1.
+  N="$(awk -v t="$t1" "BEGIN { n = int(12 / (t > 0.01 ? t : 0.01)) + 1; if (n < 20) n = 20; if (n > 150) n = 150; print n }")"
 fi
 [[ $N =~ ^[0-9]+$ ]] && [ "$N" -ge 1 ] && [ "$N" -le 150 ] || bail "N phải là số từ 1 đến 150"
 echo "  một lần đăng nhập sai mất ${t1}s; N = $N"
@@ -69,7 +70,7 @@ i=0
 for ip in "${IPS[@]}"; do
   i=$((i + 1))
   curl -sk -m 60 -o /dev/null -w '%{http_code} %{time_total}\n' --interface "$ip" -H "$CT" \
-    -d "{\"name\":\"admin\",\"password\":\"dos-$i-$RND\"}" "https://$ip:8443$LOGIN_PATH" >"$T/c.$i" 2>/dev/null &
+    -d "{\"name\":\"admin\",\"password\":\"dos-$i-$RND\"}" "https://127.0.0.1:8443$LOGIN_PATH" >"$T/c.$i" 2>/dev/null &
 done
 # chỉ chờ các curl, không chờ vòng lấy mẫu
 for j in $(jobs -p); do [ "$j" = "$SAMPLER" ] || wait "$j"; done
@@ -80,10 +81,14 @@ peak="$(cat "$T/peak")"
 cat "$T"/c.* | awk '{print $1}' | sort | uniq -c | sed 's/^/  mã /'
 echo "  thời gian: nhanh nhất $(awk '{print $2}' "$T"/c.* | sort -n | head -1)s, chậm nhất $(awk '{print $2}' "$T"/c.* | sort -n | tail -1)s"
 n429="$(awk '$1 == 429' "$T"/c.* | wc -l | tr -d ' ')"
+n401="$(awk '$1 == 401' "$T"/c.* | wc -l | tr -d ' ')"
 tang=$(((peak - base) / 1024))
 echo "  RSS đỉnh $((peak / 1024)) MiB, tăng $tang MiB so với trước; 429: $n429; dòng OOM mới trong dmesg: $(($(dmesg 2>/dev/null | grep -ci 'out of memory') - oom0))"
 
 step "P2.2. khẳng định"
 ok "RSS đỉnh trừ RSS trước không quá $RSS_TRAN_MIB MiB (tăng $tang MiB)" test "$tang" -le "$RSS_TRAN_MIB"
 ok "có ít nhất một câu 429 ($n429 trên $N)" test "$n429" -ge 1
+# Hơn 5 câu 401 thì các request không chung một khoá nguồn (một khoá chỉ có 5
+# lần sai): phép thử chạm tới semaphore argon2 chứ không dừng ở hàng chờ.
+ok "hơn 5 câu 401 ($n401): mỗi request một khoá nguồn, 429 đến từ trần argon2" test "$n401" -gt 5
 ok "tpan: PID và NRestarts không đổi" song "$p0" "$n0" || doi_tpan

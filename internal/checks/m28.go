@@ -57,7 +57,10 @@ func untrustedLine(s string, max int) string {
 // BÊN TRONG public trỏ vào thứ của chính site thì vẫn hợp lệ, phép này không
 // xét. Không có cách sửa tự động: tpan không biết chủ site định làm gì.
 func SiteDocroot(l site.Layout) Check {
-	b := siteBase("site.docroot", StageWordPress, l,
+	// Chặng Web: đây là chuyện web server phục vụ thư mục nào. Phép này có cả ở
+	// site tạm khoá, mà chặng WordPress của site tạm khoá chỉ hiện "tạm khoá"
+	// xám (M13; e2e M13 khẳng định đúng điều đó).
+	b := siteBase("site.docroot", StageWeb, l,
 		i18n.T("Thư mục public của site là thư mục thật của chính site", "The site's public directory is a real directory owned by the site"))
 	if g := siteGuard(b, l, true, l.Public); g != nil {
 		return g

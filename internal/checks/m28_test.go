@@ -27,7 +27,7 @@ func TestSiteDocroot(t *testing.T) {
 		f := system.NewFake()
 		f.SetSite(l.Dir, l.User)
 		r := SiteDocroot(l).Run(bg(), f)
-		assertShape(t, r, id, StageWordPress, Pass)
+		assertShape(t, r, id, StageWeb, Pass)
 		assertNoCmd(t, f)
 	})
 
@@ -37,7 +37,7 @@ func TestSiteDocroot(t *testing.T) {
 		target := "/var/www/b.example.com/rieng\n\x1b[31m" + strings.Repeat("x", 300)
 		f.SetSymlink(target, l.Public)
 		r := SiteDocroot(l).Run(bg(), f)
-		assertShape(t, r, id, StageWordPress, Fail)
+		assertShape(t, r, id, StageWeb, Fail)
 		assertNoCmd(t, f)
 		if lastFix(r) != recheck {
 			t.Errorf("ManualFix = %q", r.ManualFix)
@@ -76,7 +76,7 @@ func TestSiteDocroot(t *testing.T) {
 				f := system.NewFake()
 				set(f)
 				r := SiteDocroot(l).Run(bg(), f)
-				assertShape(t, r, id, StageWordPress, Fail)
+				assertShape(t, r, id, StageWeb, Fail)
 				if lastFix(r) != recheck {
 					t.Errorf("ManualFix = %q", r.ManualFix)
 				}
@@ -88,8 +88,8 @@ func TestSiteDocroot(t *testing.T) {
 		bad := l
 		bad.Public = "public; rm -rf /"
 		f := system.NewFake()
-		assertShape(t, SiteDocroot(bad).Run(bg(), f), id, StageWordPress, Unknown)
-		assertShape(t, SiteDocroot(site.Layout{}).Run(bg(), f), "site.docroot:", StageWordPress, Unknown)
+		assertShape(t, SiteDocroot(bad).Run(bg(), f), id, StageWeb, Unknown)
+		assertShape(t, SiteDocroot(site.Layout{}).Run(bg(), f), "site.docroot:", StageWeb, Unknown)
 		assertNoCmd(t, f)
 	})
 }

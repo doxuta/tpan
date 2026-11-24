@@ -67,13 +67,16 @@ OUT=""
 RC=0
 CODE=""
 EMAIL=admin@example.com
+# Từ M28 đợt 2 (P4): site mới của user thường không được chung tên miền gốc
+# (eTLD+1) với site của người khác, nên mỗi chủ một tên miền gốc: admin
+# example.com, khach_a example.net, khach_b example.org.
 S1=s1.example.com # của admin, có SSL (pebble)
-A1=a1.example.com # của khach_a, tạo bằng CLI --owner
-A2=a2.example.com # của khach_a, tạo qua API bằng phiên của A
-A3=a3.example.com # site thứ 3 của A: phải bị từ chối quota_sites
-B1=b1.example.com # của khach_b, tạo bằng CLI --owner
-B2=b2.example.com # của khach_b, tạo qua API rồi đưa vào thùng rác
-N1=n1.example.com # A thử tạo cho B: 403
+A1=a1.example.net # của khach_a, tạo bằng CLI --owner
+A2=a2.example.net # của khach_a, tạo qua API bằng phiên của A
+A3=a3.example.net # site thứ 3 của A: phải bị từ chối quota_sites
+B1=b1.example.org # của khach_b, tạo bằng CLI --owner
+B2=b2.example.org # của khach_b, tạo qua API rồi đưa vào thùng rác
+N1=n1.example.org # A thử tạo cho B: 403
 UPD=up.example.com # site của phần nâng cấp
 UA=khach_a
 UB=khach_b

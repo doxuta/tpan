@@ -170,8 +170,15 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 			owner = account.AdminName
 		}
 		as.Input.Owner = owner
+		st, found := stored[d]
+		// M28 P4: site mới của người gọi theo phạm vi không được chung eTLD+1
+		// với site của người khác (RegistrableTaken). Site đã có thì không xét.
+		taken, claimErr := false, error(nil)
+		if scope != "" && !found && !d.IsZero() {
+			taken, claimErr = RegistrableTaken(all, d, scope)
+		}
 		var err error
-		switch st, found := stored[d]; {
+		switch {
 		case d.IsZero():
 			item, err = refusedItem(item, refuse(validate.CodeDomainInvalid, i18n.T("thiếu domain", "the domain is missing")))
 		case listed[d]:
@@ -186,10 +193,15 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 			item, err = refusedItem(item, refuse(CodeUserNotFound, i18n.T(
 				"dòng của "+d.String()+" ghi owner khác tài khoản của bạn; bỏ owner hoặc ghi đúng tên của bạn",
 				"the line for "+d.String()+" names an owner other than your account; drop owner or use your own name")))
-		case found && !mine(st):
+		case found && !mine(st), taken:
+			// Cùng một lời cho "đúng tên của người khác" và "chung tên miền
+			// gốc với site của người khác".
 			item, err = refusedItem(item, refuse("site_not_found", i18n.T(
 				"không tạo được site "+d.String()+" từ tài khoản này: domain đã được dùng",
 				"site "+d.String()+" cannot be created from this account: the domain is already in use")))
+		case claimErr != nil:
+			// Tên không ra eTLD+1 (chính là public suffix): chỉ admin tạo được.
+			item, err = refusedItem(item, claimErr)
 		case found && st.Status == site.Active:
 			// Mục 7: site đã có thì bỏ qua, không chạy lại Plan (sửa lệch là
 			// việc của `tpan site add` hay health --fix).
