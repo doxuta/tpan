@@ -88,8 +88,8 @@ func (s *Server) hostIsSite(w http.ResponseWriter, r *http.Request) bool {
 	// không đọc được tên panel từ trang này.
 	ways := panelWays(r)
 	msg := i18n.T(
-		"Panel tpan không mở ở tên này (mã PHP của một site đọc được cookie đăng nhập). Vào bằng IP của máy hoặc tên miền riêng của panel: "+strings.Join(ways, " hoặc "),
-		"The tpan panel does not open under this name (a site's PHP could read the login cookie). Use the server's IP or the panel's own domain name: "+strings.Join(ways, " or "))
+		"Panel TPAN không mở ở tên này, vì mã PHP của một site đọc được cookie đăng nhập gửi tới tên đó. Vào bằng IP của máy hoặc bằng tên miền riêng của panel: "+strings.Join(ways, " hoặc "),
+		"The TPAN panel does not open under this name, because a site's PHP could read the login cookie sent to it. Use the server's IP or the panel's own domain name: "+strings.Join(ways, " or "))
 	if strings.HasPrefix(r.URL.Path, "/api/") {
 		writeError(w, http.StatusMisdirectedRequest, "host_is_site", msg)
 		return true

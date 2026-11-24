@@ -278,8 +278,8 @@ func (s *Server) handleMFASetup(w http.ResponseWriter, r *http.Request) {
 
 func mfaNotPending(w http.ResponseWriter) {
 	writeError(w, http.StatusConflict, "mfa_not_pending", i18n.T(
-		"Chưa có mã QR nào chờ xác nhận (hoặc vừa được tạo lại ở nơi khác). Bấm Bật lại để lấy mã mới.",
-		"There is no QR code waiting to be confirmed (or it was just created again elsewhere). Start again to get a new one."))
+		"Chưa có mã QR nào chờ xác nhận (hoặc vừa được tạo lại ở nơi khác). Bấm Huỷ, rồi Bật hai bước để lấy mã mới.",
+		"There is no QR code waiting to be confirmed (or it was just created again elsewhere). Press Cancel, then Turn on two-step login, to get a new one."))
 }
 
 // handleMFAEnable: POST /api/v1/account/2fa/enable {password, code}. Mật khẩu
@@ -505,7 +505,7 @@ func (s *Server) handleAuthSettingsSet(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.TokenMaxDays != nil && (*in.TokenMaxDays < 1 || *in.TokenMaxDays > apitoken.MaxDaysLimit) {
 		writeError(w, http.StatusBadRequest, "token_days_invalid", i18n.T(
-			"Trần thời hạn token phải từ 1 đến "+strconv.Itoa(apitoken.MaxDaysLimit)+" ngày.",
+			"Số ngày tối đa của token phải từ 1 đến "+strconv.Itoa(apitoken.MaxDaysLimit)+" ngày.",
 			"The token lifetime limit must be between 1 and "+strconv.Itoa(apitoken.MaxDaysLimit)+" days."))
 		return
 	}
