@@ -100,7 +100,9 @@ export function usePlanFlow() {
     onSuccess: (job) => {
       refreshAccounts(qc);
       // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
-      track(job.job_id);
+      // Có route trả 200 kèm dữ liệu thay vì job khi không còn gì phải chạy trên máy
+      // (sửa gói M17: dữ liệu đổi giữa bản xem trước và lúc chạy): khi đó chỉ tải lại.
+      if (job?.job_id) track(job.job_id);
       setOpen(null);
       setAsked(null);
     },

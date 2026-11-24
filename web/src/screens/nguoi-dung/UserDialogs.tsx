@@ -7,14 +7,15 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { ApiError, del, post } from "../../api/client";
-import { packagesKey, refreshAccounts, userPath, usersPath } from "../../api/m13-users";
-import type { PasswordSetResult, Role, UserCreated, UserRow } from "../../api/types";
+import { ApiError, del, errorMessage, post } from "../../api/client";
+import { packagesKey, previewOf, refreshAccounts, userPath, usersPath } from "../../api/m13-users";
+import type { JobStarted, PasswordSetResult, Role, UserCreated, UserRow } from "../../api/types";
+import { useJobTracker } from "../../components/JobTracker";
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
 import { SelectField, TextField } from "../../components/Field";
 import { Notice } from "../../components/Notice";
-import { useStrings } from "../../i18n";
+import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/nguoi-dung";
 import { ErrorNote } from "../site/ErrorNote";
 import type { Secret } from "./PasswordBox";
@@ -51,6 +52,7 @@ type FormProps = {
 
 export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
   const t = useStrings(strings);
+  const { lang } = useLang();
   const qc = useQueryClient();
   const edit = row !== undefined;
   const [name, setName] = useState(row?.user.name ?? "");
@@ -68,21 +70,31 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
 
   const options = packages.includes(pkg) ? packages : [pkg, ...packages];
 
+  // Chỉ gửi trường đã đổi (UserEdit: trường vắng là giữ nguyên); gửi cả vai không đổi thì vô ích và dễ chạm luật admin cuối.
+  const editBody = () =>
+    row && {
+      ...(full !== row.user.full_name && { full_name: full }),
+      ...(email !== row.user.email && { email }),
+      ...(role !== row.user.role && { role }),
+      ...(pkg !== row.user.package && { package: pkg }),
+    };
+  // M17: đổi gói của user có site trong lồng mà mức tối đa khác thì server chạy
+  // ngay job cage.sync (202). Hộp hỏi bản xem trước (?dry_run=1) trước, báo số
+  // bước, và chỉ chạy khi bấm lần hai; thẻ theo dõi bám job đó.
+  const { track } = useJobTracker();
+  const [planned, setPlanned] = useState<number | null>(null);
+  const [checking, setChecking] = useState(false);
+
   const save = useMutation({
-    mutationFn: (): Promise<UserCreated | UserRow> =>
+    mutationFn: (): Promise<UserCreated | UserRow | JobStarted> =>
       edit
-        ? // Chỉ gửi trường đã đổi (UserEdit: trường vắng là giữ nguyên); gửi cả vai không đổi thì vô ích và dễ chạm luật admin cuối.
-          post<UserRow>(userPath(row.user.name), {
-            ...(full !== row.user.full_name && { full_name: full }),
-            ...(email !== row.user.email && { email }),
-            ...(role !== row.user.role && { role }),
-            ...(pkg !== row.user.package && { package: pkg }),
-            ...(needReauth && re.body()),
-          })
+        ? // Mật khẩu hỏi lại chỉ đi kèm lần lưu thật; bản xem trước (?dry_run=1) không cần nó.
+          post<UserRow | JobStarted>(userPath(row.user.name), { ...editBody(), ...(needReauth && re.body()) })
         : post<UserCreated>(usersPath, { name: name.trim(), full_name: full, email, role, package: pkg, password: password || undefined, ...re.body() }),
     onSuccess: (res) => {
       refreshAccounts(qc);
       void qc.invalidateQueries({ queryKey: packagesKey });
+      if ("job_id" in res) track(res.job_id);
       if (edit) onDone("edited", row.user.name, null);
       else {
         const made = res as UserCreated;
@@ -97,18 +109,30 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
   });
 
   const submit = () => {
-    if (save.isPending) return;
+    if (save.isPending || checking) return;
     save.reset();
     if (!edit && name.trim() === "") return setLocal(t.nameMissing);
     if (!edit && tooShort(password, t.minPassword)) return setLocal(t.passwordTooShort(t.minPassword));
     const missing = needReauth ? re.problem() : null;
     if (missing) return setLocal(missing);
     setLocal(null);
+    if (edit && pkg !== row.user.package && planned === null) {
+      setChecking(true);
+      previewOf({ method: "POST", path: userPath(row.user.name), body: editBody() })
+        .then((p) => {
+          const n = p.steps.filter((s) => !s.done).length;
+          if (n > 0) setPlanned(n);
+          else save.mutate();
+        })
+        .catch((e: unknown) => setLocal(errorMessage(e, lang)))
+        .finally(() => setChecking(false));
+      return;
+    }
     save.mutate();
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title={edit ? t.editTitle(row.user.name) : t.addTitle} confirmLabel={save.isPending ? t.saving : edit ? t.editConfirm : t.addConfirm} onConfirm={submit} busy={save.isPending}>
+    <Dialog open onOpenChange={(o) => !o && onClose()} title={edit ? t.editTitle(row.user.name) : t.addTitle} confirmLabel={save.isPending || checking ? t.saving : planned !== null ? t.cageSyncConfirm : edit ? t.editConfirm : t.addConfirm} onConfirm={submit} busy={save.isPending || checking}>
       <Form onSubmit={submit}>
         {!edit && <TextField id="u-ten" label={t.fName} hint={t.fNameHint} autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus required value={name} onChange={(e) => setName(e.target.value)} />}
         <TextField id="u-day-du" label={t.fFull} autoComplete="off" autoFocus={edit} value={full} onChange={(e) => setFull(e.target.value)} />
@@ -117,7 +141,15 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
           <option value="user">{t.roleOptionUser}</option>
           <option value="admin">{t.roleOptionAdmin}</option>
         </SelectField>
-        <SelectField id="u-goi" label={t.fPackage} value={pkg} onChange={(e) => setPkg(e.target.value)}>
+        <SelectField
+          id="u-goi"
+          label={t.fPackage}
+          value={pkg}
+          onChange={(e) => {
+            setPkg(e.target.value);
+            setPlanned(null);
+          }}
+        >
           {options.map((p) => (
             <option key={p} value={p}>
               {p}
@@ -126,6 +158,7 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
         </SelectField>
         {!edit && <TextField id="u-mat-khau" type="password" label={t.fPassword} hint={t.fPasswordHint} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
         {needReauth && <ReauthFields r={re} idPrefix="u" why={edit ? t.reauthWhyAdmin : t.reauthWhyCreate} error={save.error} />}
+        {planned !== null && <Notice kind="warn">{t.cageSyncNote(pkg, planned)}</Notice>}
         {local && (
           <Notice kind="fail" role="alert">
             {local}

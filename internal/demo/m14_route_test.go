@@ -118,7 +118,17 @@ func TestIsolationDataOnDemo(t *testing.T) {
 		have[r.ID] = r.Status
 	}
 	active := []string{siteBlog, siteLab, siteShop, siteWiki, siteLongShop, siteLongEdu, siteLongNews}
+	// M17: không có phép cô lập ĐI TỪ một site trong lồng (core.siteChecks:
+	// lệnh `test` chạy dưới user của site đó ở ngoài lồng là cửa thoát lồng);
+	// thay vào đó cage.fence của site đó chứng minh nó không thấy site khác.
+	caged := []string{siteLongShop, siteLongNews}
 	for _, from := range active {
+		if slices.Contains(caged, from) {
+			if have["cage.fence:"+from] != checks.Pass {
+				t.Errorf("cage.fence:%s = %q; muốn pass", from, have["cage.fence:"+from])
+			}
+			continue
+		}
 		for _, to := range active {
 			if from != to && have["isolation:"+from+":"+to] != checks.Pass {
 				t.Errorf("isolation:%s:%s = %q; muốn pass", from, to, have["isolation:"+from+":"+to])

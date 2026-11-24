@@ -106,6 +106,9 @@ func demoExpectedWarn(x checks.Result) bool {
 	if x.Status == checks.Unknown && x.Suspended {
 		return true
 	}
+	// M17 (m17.go): gói của khach_a, khach_b bật lồng mà ba site của họ chưa
+	// vào, nên cage.state cảnh báo "chờ vào lồng", đúng như máy thật.
 	return x.Status == checks.Warn && slices.Contains([]string{"tls.cert:" + siteShop, "tls.cert:" + siteWiki, "tls.cert:" + siteLab,
-		"tls.cert:" + siteLongShop, "tls.cert:" + siteLongEdu, "tls.cert:" + siteLongNews}, x.ID)
+		"tls.cert:" + siteLongShop, "tls.cert:" + siteLongEdu, "tls.cert:" + siteLongNews,
+		"cage.state:" + siteShop, "cage.state:" + siteWiki, "cage.state:" + siteLab}, x.ID)
 }
