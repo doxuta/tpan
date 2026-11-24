@@ -1,0 +1,2812 @@
+
+
+######## [2026-11-25 04:48:31] bước 0: máy sạch, triển khai tpan (file chạy nhúng giao diện), cài stack nginx
+
+[2026-11-25 04:48:31] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m19  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m19.clean
+[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ [2K[0A[0E
+[2026-11-25 04:48:43] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-25 04:48:43] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-25 04:48:44] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm>; IP của Mac trong mạng Multipass: <mac> (cả hai được che trong log)
+
+[2026-11-25 04:48:44] $ make vm-deploy DATE=2026-11-24T21:48:31Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 4d ago)
+Lockfile is up to date, resolution step is skipped
+Done in 73ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 424 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.95 kB │ gzip:   0.55 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-D6gBR3g-.css                                   39.28 kB │ gzip:   9.03 kB
+dist/assets/useStatusName-CcJShEoo.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
+dist/assets/model-Co_p74TJ.js                                     0.27 kB │ gzip:   0.18 kB
+dist/assets/OriginTag-BWb7RHXG.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/DomainText-BuneIvy2.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-BrofeWpR.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
+dist/assets/useCopy-C0G2qb33.js                                   0.51 kB │ gzip:   0.32 kB
+dist/assets/m14-C_3ZzrAI.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-CkpEe-2O.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/SegmentButton-BSbwWrRp.js                             0.70 kB │ gzip:   0.45 kB
+dist/assets/RowActions-r9Aq7AjB.js                                0.70 kB │ gzip:   0.42 kB
+dist/assets/m13-chung-BxXE7Tyz.js                                 0.80 kB │ gzip:   0.44 kB
+dist/assets/Rows-3jSbarwr.js                                      0.84 kB │ gzip:   0.35 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/m19-C4JkMBGt.js                                       0.85 kB │ gzip:   0.47 kB
+dist/assets/UsageMeter-Bf12ux2F.js                                0.86 kB │ gzip:   0.46 kB
+dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
+dist/assets/m17-DyYX3leo.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/model-C2VyZL6F.js                                     1.02 kB │ gzip:   0.54 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/Dialog-DJVBoJFK.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/model-BGHmcsHS.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/model-XbSQ3r3G.js                                     1.78 kB │ gzip:   0.86 kB
+dist/assets/PreviewedOp-EiGMYmAF.js                               1.86 kB │ gzip:   0.98 kB
+dist/assets/TableList-pk_U4jMQ.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/RouteMap-BRxbtCoO.js                                  2.35 kB │ gzip:   1.03 kB
+dist/assets/ten-mien-D0z2ROBk.js                                  2.94 kB │ gzip:   1.30 kB
+dist/assets/Bulk-PK726N4t.js                                      3.03 kB │ gzip:   1.39 kB
+dist/assets/plan-cho-duyet-0TxmomqN.js                            5.82 kB │ gzip:   2.03 kB
+dist/assets/StorageFlow-CIvrEU0R.js                               6.41 kB │ gzip:   2.57 kB
+dist/assets/dang-nhap-BkuPrJxz.js                                 6.70 kB │ gzip:   2.90 kB
+dist/assets/Self-DVD1wuIA.js                                      8.48 kB │ gzip:   2.70 kB
+dist/assets/goi-DIx2OSnU.js                                       9.12 kB │ gzip:   3.74 kB
+dist/assets/model-BxIQ-vcC.js                                    10.04 kB │ gzip:   3.95 kB
+dist/assets/tai-nguyen--lak-hg-.js                               10.82 kB │ gzip:   4.00 kB
+dist/assets/backup-1d4w9-SC.js                                   10.94 kB │ gzip:   3.49 kB
+dist/assets/queries-Bq3jdEsn.js                                  10.97 kB │ gzip:   3.33 kB
+dist/assets/cong-cu-CWPSHKll.js                                  11.31 kB │ gzip:   4.35 kB
+dist/assets/ssl-CKXWZ6Ry.js                                      11.45 kB │ gzip:   4.52 kB
+dist/assets/cap-nhat-OYolTPZl.js                                 11.86 kB │ gzip:   4.28 kB
+dist/assets/duyet-plan-DXNxzXr3.js                               11.99 kB │ gzip:   4.35 kB
+dist/assets/cron-DvSK197a.js                                     13.01 kB │ gzip:   4.87 kB
+dist/assets/thung-rac-Dk7j8s_R.js                                13.39 kB │ gzip:   4.74 kB
+dist/assets/tao-site-Bb9lXnRA.js                                 13.44 kB │ gzip:   4.95 kB
+dist/assets/co-so-du-lieu-D9jFcUE2.js                            14.58 kB │ gzip:   4.80 kB
+dist/assets/co-so-du-lieu-CMw1QIma.js                            15.70 kB │ gzip:   4.97 kB
+dist/assets/cai-may-moi-DIMz9fPu.js                              15.73 kB │ gzip:   5.74 kB
+dist/assets/phien-ai-CuWJAlKw.js                                 16.20 kB │ gzip:   5.33 kB
+dist/assets/stack-CpdZ3waX.js                                    17.31 kB │ gzip:   5.50 kB
+dist/assets/CheckRow-BLNmbtpt.js                                 18.07 kB │ gzip:   6.20 kB
+dist/assets/cai-dat-BPRLdcdX.js                                  21.49 kB │ gzip:   7.22 kB
+dist/assets/su-co-DRp6byUz.js                                    21.55 kB │ gzip:   7.18 kB
+dist/assets/backup-DGHXfdTk.js                                   24.62 kB │ gzip:   7.84 kB
+dist/assets/bao-mat-BSLJ28-2.js                                  25.24 kB │ gzip:   7.07 kB
+dist/assets/trang-chu-19kbIg2z.js                                26.43 kB │ gzip:   8.46 kB
+dist/assets/nguoi-dung-D1TUZRcW.js                               27.34 kB │ gzip:   9.30 kB
+dist/assets/lich-su-DgbaJ12s.js                                  28.65 kB │ gzip:   9.24 kB
+dist/assets/ErrorNote-BGkxdCst.js                                31.30 kB │ gzip:  10.19 kB
+dist/assets/site-C3armhOk.js                                     57.73 kB │ gzip:  16.33 kB
+dist/assets/ScreenHeader-CvptjUBe.js                            146.36 kB │ gzip:  48.68 kB
+dist/assets/index-DZgL64De.js                                   391.19 kB │ gzip: 125.53 kB
+
+✓ built in 195ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-53-gd432aea-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=d432aea -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:48:31Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-53-gd432aea-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=d432aea -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:48:31Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan v0.2.3-53-gd432aea-dirty (commit d432aea, build 2026-11-24T21:48:31Z)
+[2026-11-25 04:48:49] (mã thoát 0)
+  => ĐẠT: build (có build giao diện) và chép tpan vào máy ảo
+
+[2026-11-25 04:48:49] $ shasum -a 256 bin/tpan-linux-arm64 bin/tpan-linux-amd64
+0c33c213ac4cb51370137c595aee322b76eea8d4aac5a9c52fc9436441a3ec24  bin/tpan-linux-arm64
+0fa1ad72a10e6342ed7802c98fa4fb43ee6cbe81cef01679d94b45ece595223a  bin/tpan-linux-amd64
+[2026-11-25 04:48:49] (mã thoát 0)
+
+[2026-11-25 04:48:49] $ git log --oneline -1
+d432aea tài liệu M19: trả lời soát cuối, số e2e trong giải thích, mục 6.17, bước e2e 22 và hàng M19 của KE-HOACH (phần hồi quy điền sau)
+[2026-11-25 04:48:49] (mã thoát 0)
+
+[2026-11-25 04:48:49] $ git status --short
+ M docs/bang-chung/M19-hoi-quy-m14.log
+ M scripts/e2e-m14.sh
+ M scripts/e2e-m16.sh
+ M scripts/e2e-m19.sh
+?? docs/bang-chung/M19-hoi-quy-m13.log
+?? docs/bang-chung/M19-hoi-quy-m3.log
+?? docs/bang-chung/M19-hoi-quy-m5.log
+?? scripts/e2e-m19/nang-cap-v020.sh
+[2026-11-25 04:48:49] (mã thoát 0)
+
+[2026-11-25 04:48:49] $ ls -la web/dist web/dist/assets
+web/dist:
+total 48
+drwxr-xr-x@ 10 <user>  staff   320 Nov 25 04:48 .
+drwxr-xr-x@ 14 <user>  staff   448 Nov 25 04:48 ..
+-rw-r--r--@  1 <user>  staff     0 Nov 25 04:48 .gitkeep
+drwxr-xr-x@ 78 <user>  staff  2496 Nov 25 04:48 assets
+-rw-r--r--@  1 <user>  staff   955 Nov 25 04:48 index.html
+-rw-r--r--@  1 <user>  staff   812 Nov 25 04:48 theme.js
+-rw-r--r--@  1 <user>  staff   501 Nov 25 04:48 tpan-canh-bao.svg
+-rw-r--r--@  1 <user>  staff   429 Nov 25 04:48 tpan-dat.svg
+-rw-r--r--@  1 <user>  staff   440 Nov 25 04:48 tpan-loi.svg
+-rw-r--r--@  1 <user>  staff   429 Nov 25 04:48 tpan.svg
+
+web/dist/assets:
+total 2888
+drwxr-xr-x@ 78 <user>  staff    2496 Nov 25 04:48 .
+drwxr-xr-x@ 10 <user>  staff     320 Nov 25 04:48 ..
+-rw-r--r--@  1 <user>  staff    3031 Nov 25 04:48 Bulk-PK726N4t.js
+-rw-r--r--@  1 <user>  staff   18076 Nov 25 04:48 CheckRow-BLNmbtpt.js
+-rw-r--r--@  1 <user>  staff    1183 Nov 25 04:48 Dialog-DJVBoJFK.js
+-rw-r--r--@  1 <user>  staff     308 Nov 25 04:48 DomainText-BuneIvy2.js
+-rw-r--r--@  1 <user>  staff   31304 Nov 25 04:48 ErrorNote-BGkxdCst.js
+-rw-r--r--@  1 <user>  staff     279 Nov 25 04:48 OriginTag-BWb7RHXG.js
+-rw-r--r--@  1 <user>  staff    1861 Nov 25 04:48 PreviewedOp-EiGMYmAF.js
+-rw-r--r--@  1 <user>  staff    2353 Nov 25 04:48 RouteMap-BRxbtCoO.js
+-rw-r--r--@  1 <user>  staff     702 Nov 25 04:48 RowActions-r9Aq7AjB.js
+-rw-r--r--@  1 <user>  staff     847 Nov 25 04:48 Rows-3jSbarwr.js
+-rw-r--r--@  1 <user>  staff  146362 Nov 25 04:48 ScreenHeader-CvptjUBe.js
+-rw-r--r--@  1 <user>  staff     701 Nov 25 04:48 SegmentButton-BSbwWrRp.js
+-rw-r--r--@  1 <user>  staff    8489 Nov 25 04:48 Self-DVD1wuIA.js
+-rw-r--r--@  1 <user>  staff    6414 Nov 25 04:48 StorageFlow-CIvrEU0R.js
+-rw-r--r--@  1 <user>  staff     370 Nov 25 04:48 SuspendTag-BrofeWpR.js
+-rw-r--r--@  1 <user>  staff    2219 Nov 25 04:48 TableList-pk_U4jMQ.js
+-rw-r--r--@  1 <user>  staff     865 Nov 25 04:48 UsageMeter-Bf12ux2F.js
+-rw-r--r--@  1 <user>  staff   10946 Nov 25 04:48 backup-1d4w9-SC.js
+-rw-r--r--@  1 <user>  staff   24623 Nov 25 04:48 backup-DGHXfdTk.js
+-rw-r--r--@  1 <user>  staff   25242 Nov 25 04:48 bao-mat-BSLJ28-2.js
+-rw-r--r--@  1 <user>  staff   21490 Nov 25 04:48 cai-dat-BPRLdcdX.js
+-rw-r--r--@  1 <user>  staff   15730 Nov 25 04:48 cai-may-moi-DIMz9fPu.js
+-rw-r--r--@  1 <user>  staff   11868 Nov 25 04:48 cap-nhat-OYolTPZl.js
+-rw-r--r--@  1 <user>  staff   15702 Nov 25 04:48 co-so-du-lieu-CMw1QIma.js
+-rw-r--r--@  1 <user>  staff   14589 Nov 25 04:48 co-so-du-lieu-D9jFcUE2.js
+-rw-r--r--@  1 <user>  staff   11310 Nov 25 04:48 cong-cu-CWPSHKll.js
+-rw-r--r--@  1 <user>  staff   13019 Nov 25 04:48 cron-DvSK197a.js
+-rw-r--r--@  1 <user>  staff    6709 Nov 25 04:48 dang-nhap-BkuPrJxz.js
+-rw-r--r--@  1 <user>  staff   11997 Nov 25 04:48 duyet-plan-DXNxzXr3.js
+-rw-r--r--@  1 <user>  staff     856 Nov 25 04:48 format-BjDb3RKe.js
+-rw-r--r--@  1 <user>  staff    9125 Nov 25 04:48 goi-DIx2OSnU.js
+-rw-r--r--@  1 <user>  staff   14708 Nov 25 04:48 ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2
+-rw-r--r--@  1 <user>  staff   14888 Nov 25 04:48 ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2
+-rw-r--r--@  1 <user>  staff   15620 Nov 25 04:48 ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2
+-rw-r--r--@  1 <user>  staff    5868 Nov 25 04:48 ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2
+-rw-r--r--@  1 <user>  staff    6040 Nov 25 04:48 ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2
+-rw-r--r--@  1 <user>  staff    6932 Nov 25 04:48 ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2
+-rw-r--r--@  1 <user>  staff   22588 Nov 25 04:48 ibm-plex-sans-latin-400-normal-CDDApCn2.woff2
+-rw-r--r--@  1 <user>  staff   24184 Nov 25 04:48 ibm-plex-sans-latin-500-normal-6ng42L7E.woff2
+-rw-r--r--@  1 <user>  staff   24252 Nov 25 04:48 ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2
+-rw-r--r--@  1 <user>  staff    8204 Nov 25 04:48 ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2
+-rw-r--r--@  1 <user>  staff    8416 Nov 25 04:48 ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2
+-rw-r--r--@  1 <user>  staff    8460 Nov 25 04:48 ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2
+-rw-r--r--@  1 <user>  staff   39286 Nov 25 04:48 index-D6gBR3g-.css
+-rw-r--r--@  1 <user>  staff  391197 Nov 25 04:48 index-DZgL64De.js
+-rw-r--r--@  1 <user>  staff   28657 Nov 25 04:48 lich-su-DgbaJ12s.js
+-rw-r--r--@  1 <user>  staff     800 Nov 25 04:48 m13-chung-BxXE7Tyz.js
+-rw-r--r--@  1 <user>  staff     656 Nov 25 04:48 m13-dbs-CkpEe-2O.js
+-rw-r--r--@  1 <user>  staff     560 Nov 25 04:48 m14-C_3ZzrAI.js
+-rw-r--r--@  1 <user>  staff     991 Nov 25 04:48 m17-DyYX3leo.js
+-rw-r--r--@  1 <user>  staff     237 Nov 25 04:48 m18-types-DSZZrozW.js
+-rw-r--r--@  1 <user>  staff     857 Nov 25 04:48 m19-C4JkMBGt.js
+-rw-r--r--@  1 <user>  staff    1564 Nov 25 04:48 model-BGHmcsHS.js
+-rw-r--r--@  1 <user>  staff    1071 Nov 25 04:48 model-Bpcuifsc.js
+-rw-r--r--@  1 <user>  staff   10047 Nov 25 04:48 model-BxIQ-vcC.js
+-rw-r--r--@  1 <user>  staff    1029 Nov 25 04:48 model-C2VyZL6F.js
+-rw-r--r--@  1 <user>  staff     278 Nov 25 04:48 model-Co_p74TJ.js
+-rw-r--r--@  1 <user>  staff     987 Nov 25 04:48 model-DUbSC1ju.js
+-rw-r--r--@  1 <user>  staff     293 Nov 25 04:48 model-De5PuTB1.js
+-rw-r--r--@  1 <user>  staff    1783 Nov 25 04:48 model-XbSQ3r3G.js
+-rw-r--r--@  1 <user>  staff   27341 Nov 25 04:48 nguoi-dung-D1TUZRcW.js
+-rw-r--r--@  1 <user>  staff   16201 Nov 25 04:48 phien-ai-CuWJAlKw.js
+-rw-r--r--@  1 <user>  staff    5823 Nov 25 04:48 plan-cho-duyet-0TxmomqN.js
+-rw-r--r--@  1 <user>  staff   10979 Nov 25 04:48 queries-Bq3jdEsn.js
+-rw-r--r--@  1 <user>  staff     489 Nov 25 04:48 route-CeI0wFlm.js
+-rw-r--r--@  1 <user>  staff   57739 Nov 25 04:48 site-C3armhOk.js
+-rw-r--r--@  1 <user>  staff   11456 Nov 25 04:48 ssl-CKXWZ6Ry.js
+-rw-r--r--@  1 <user>  staff   17312 Nov 25 04:48 stack-CpdZ3waX.js
+-rw-r--r--@  1 <user>  staff   21557 Nov 25 04:48 su-co-DRp6byUz.js
+-rw-r--r--@  1 <user>  staff   10820 Nov 25 04:48 tai-nguyen--lak-hg-.js
+-rw-r--r--@  1 <user>  staff   13443 Nov 25 04:48 tao-site-Bb9lXnRA.js
+-rw-r--r--@  1 <user>  staff    2945 Nov 25 04:48 ten-mien-D0z2ROBk.js
+-rw-r--r--@  1 <user>  staff   13392 Nov 25 04:48 thung-rac-Dk7j8s_R.js
+-rw-r--r--@  1 <user>  staff   26430 Nov 25 04:48 trang-chu-19kbIg2z.js
+-rw-r--r--@  1 <user>  staff     513 Nov 25 04:48 useCopy-C0G2qb33.js
+-rw-r--r--@  1 <user>  staff     206 Nov 25 04:48 useStatusName-CcJShEoo.js
+[2026-11-25 04:48:49] (mã thoát 0)
+  => ĐẠT: web/dist có index.html và assets
+
+[2026-11-25 04:48:49] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job fe7c9eee3e2ef921
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Bật kiểm quyền file và khoá API của OPcache cho php<bản>-fpm ...
+  xong
+- Ẩn tiến trình của user khác với PHP của php<bản>-fpm ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
+
+Job fe7c9eee3e2ef921: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+[2026-11-25 04:49:22] (mã thoát 0)
+  => ĐẠT: stack install thoát 0
+  => ĐẠT: job thành công
+
+[2026-11-25 04:49:22] $ scripts/vm.sh exec systemctl is-active nginx php8.3-fpm mariadb
+active
+active
+active
+[2026-11-25 04:49:22] (mã thoát 0)
+  => ĐẠT: 3 dịch vụ active
+
+[2026-11-25 04:49:22] $ scripts/vm.sh exec systemctl is-active tpan
+inactive
+[2026-11-25 04:49:22] (mã thoát 4)
+  => ĐẠT: chưa có tpan.service trước setup
+
+
+######## [2026-11-25 04:49:22] bước 1: sudo tpan setup --yes
+
+[2026-11-25 04:49:22] $ scripts/vm.sh root tpan setup --yes
+Bắt đầu job f9d5f9b88f57b450
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job f9d5f9b88f57b450: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    E3:4B:06:51:14:5D:6A:27:85:C7:4C:0C:7B:C7:B9:8C:C4:9E:6A:A0:8B:00:3D:F0:1A:29:EB:9F:1C:64:70:79
+Mở: https://<IP của máy>:8443
+[2026-11-25 04:49:22] (mã thoát 0)
+Mật khẩu quản trị panel trong output: 1 lần (26 ký tự base32)
+  => ĐẠT: setup thoát 0
+  => ĐẠT: job setup thành công
+  => ĐẠT: mật khẩu quản trị in đúng một lần
+  => ĐẠT: có fingerprint SHA-256 dạng AB:CD:...
+
+[2026-11-25 04:49:22] $ scripts/vm.sh exec systemctl is-active tpan
+active
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: tpan.service active
+
+[2026-11-25 04:49:23] $ scripts/vm.sh exec systemctl is-enabled tpan
+enabled
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: tpan.service enabled
+
+[2026-11-25 04:49:23] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                                                           
+LISTEN 0      4096         0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=772,fd=3),("systemd",pid=1,fd=187))                           
+LISTEN 0      511          0.0.0.0:80        0.0.0.0:*    users:(("nginx",pid=13542,fd=5),("nginx",pid=13541,fd=5),("nginx",pid=9909,fd=5))
+LISTEN 0      4096   127.0.0.53%lo:53        0.0.0.0:*    users:(("systemd-resolve",pid=471,fd=15))                                        
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*    users:(("mariadbd",pid=13381,fd=23))                                             
+LISTEN 0      4096      127.0.0.54:53        0.0.0.0:*    users:(("systemd-resolve",pid=471,fd=17))                                        
+LISTEN 0      4096            [::]:22           [::]:*    users:(("sshd",pid=772,fd=4),("systemd",pid=1,fd=188))                           
+LISTEN 0      511             [::]:80           [::]:*    users:(("nginx",pid=13542,fd=6),("nginx",pid=13541,fd=6),("nginx",pid=9909,fd=6))
+LISTEN 0      4096               *:8443            *:*    users:(("tpan",pid=13817,fd=8))                                                  
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: tpan nghe cổng 8443
+
+[2026-11-25 04:49:23] $ scripts/vm.sh root stat -c %a %U:%G %n /etc/tpan /etc/tpan/tls /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /var/lib/tpan /var/lib/tpan/tpan.db /etc/systemd/system/tpan.service
+700 root:root /etc/tpan
+700 root:root /etc/tpan/tls
+600 root:root /etc/tpan/tls/cert.pem
+600 root:root /etc/tpan/tls/key.pem
+755 root:root /var/lib/tpan
+600 root:root /var/lib/tpan/tpan.db
+644 root:root /etc/systemd/system/tpan.service
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: khoá riêng 600 root
+
+[2026-11-25 04:49:23] $ scripts/vm.sh root cat /etc/systemd/system/tpan.service
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+[Unit]
+Description=tpan panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/tpan serve --listen 0.0.0.0:8443 --tls-cert /etc/tpan/tls/cert.pem --tls-key /etc/tpan/tls/key.pem
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
+[2026-11-25 04:49:23] (mã thoát 0)
+
+[2026-11-25 04:49:23] $ scripts/vm.sh root openssl x509 -in /etc/tpan/tls/cert.pem -noout -fingerprint -sha256
+sha256 Fingerprint=E3:4B:06:51:14:5D:6A:27:85:C7:4C:0C:7B:C7:B9:8C:C4:9E:6A:A0:8B:00:3D:F0:1A:29:EB:9F:1C:64:70:79
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: fingerprint setup in ra khớp openssl x509 -fingerprint -sha256 trong máy ảo
+
+[2026-11-25 04:49:23] $ scripts/vm.sh root openssl x509 -in /etc/tpan/tls/cert.pem -noout -subject -dates -ext subjectAltName,keyUsage,extendedKeyUsage
+subject=CN = tpan-m19
+notBefore=Nov 24 20:49:22 2026 GMT
+notAfter=Nov 24 21:49:22 2036 GMT
+X509v3 Key Usage: critical
+    Digital Signature
+X509v3 Extended Key Usage: 
+    TLS Web Server Authentication
+X509v3 Subject Alternative Name: 
+    DNS:tpan-m19, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:FD4B:5324:B51A:DC21:5054:FF:FE33:FB1E
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: SAN của chứng chỉ có IP máy ảo
+
+[2026-11-25 04:49:23] $ bash -c echo | openssl s_client -connect "$1" -servername localhost 2>/dev/null | openssl x509 -noout -fingerprint -sha256 _ <vm>:8443
+sha256 Fingerprint=E3:4B:06:51:14:5D:6A:27:85:C7:4C:0C:7B:C7:B9:8C:C4:9E:6A:A0:8B:00:3D:F0:1A:29:EB:9F:1C:64:70:79
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: fingerprint chứng chỉ panel đang phục vụ (đọc từ Mac bằng openssl s_client) khớp
+
+sha256 của khoá công khai (để ghim): ol0Np7bJSHT7Cyqhpk5L5s0DgV4d11SHkkoQKobJM4E=
+
+[2026-11-25 04:49:23] $ curl -sS -m 20 -k --pinnedpubkey sha256//ol0Np7bJSHT7Cyqhpk5L5s0DgV4d11SHkkoQKobJM4E= -o /dev/null -w %{http_code}\n https://<vm>:8443/api/v1/health
+200
+[2026-11-25 04:49:23] (mã thoát 0)
+  => ĐẠT: curl --pinnedpubkey đúng khoá: 200
+
+[2026-11-25 04:49:23] $ curl -sS -m 20 -k --pinnedpubkey sha256//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= -o /dev/null -w %{http_code}\n https://<vm>:8443/api/v1/health
+curl: (90) SSL: public key does not match pinned public key
+000
+[2026-11-25 04:49:23] (mã thoát 90)
+  => ĐẠT: đối chứng: ghim sai khoá thì curl từ chối (mã 90)
+
+[2026-11-25 04:49:23] $ curl -sS -m 20 -o /dev/null -w %{http_code}\n https://<vm>:8443/api/v1/health
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+000
+[2026-11-25 04:49:23] (mã thoát 60)
+  => ĐẠT: đối chứng: không --cacert thì curl không tin chứng chỉ tự ký (mã 60)
+
+Trạng thái trước khi chạy lại setup:
+
+[2026-11-25 04:49:23] $ scripts/vm.sh root bash -c sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT password_hash FROM users WHERE name = ?\", (\"admin\",)).fetchone()[0].encode()).hexdigest()[:16])"
+0e0b502bdd0a13a933faea52562a1d0cf9ccee108c23d43b12e8de9cb02c510b  /etc/tpan/tls/cert.pem
+62c4b21e59c7c9f4770be2c59cd66deeaeaaac71c613111beb192f1accc8ded4  /etc/tpan/tls/key.pem
+df72e9179b370f6d3a87a6f6f0471ff5a8b21e47adffaab8d2a494cca4d1e30f  /etc/systemd/system/tpan.service
+MainPID=13817
+ExecMainStartTimestamp=Wed 2026-11-25 04:49:22 +07
+hash mật khẩu (sha256 của hash): 6394b8172e51e3ea
+[2026-11-25 04:49:24] (mã thoát 0)
+
+
+######## [2026-11-25 04:49:24] bước 1: chạy lại setup: không đổi gì, không mật khẩu mới
+
+[2026-11-25 04:49:24] $ scripts/vm.sh root tpan setup --yes
+Bắt đầu job f7751ad4ace416d8
+- Tạo thư mục /etc/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /etc/tpan/tls ...
+  đã đúng, bỏ qua
+- Ghi chứng chỉ tự ký của panel ...
+  đã đúng, bỏ qua
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Ghi file dịch vụ systemd của tpan ...
+  đã đúng, bỏ qua
+- Chạy và bật tpan.service khi khởi động ...
+  đã đúng, bỏ qua
+
+Job f7751ad4ace416d8: thành công
+
+Mật khẩu quản trị đã có từ trước, giữ nguyên. Quên thì chạy: sudo tpan admin passwd
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    E3:4B:06:51:14:5D:6A:27:85:C7:4C:0C:7B:C7:B9:8C:C4:9E:6A:A0:8B:00:3D:F0:1A:29:EB:9F:1C:64:70:79
+Mở: https://<IP của máy>:8443
+[2026-11-25 04:49:24] (mã thoát 0)
+  => ĐẠT: chạy lại setup thoát 0
+  => ĐẠT: không in mật khẩu mới (không dòng mật khẩu base32 nào)
+  => ĐẠT: báo mật khẩu đã có, giữ nguyên
+  => ĐẠT: không bước nào chạy (không có dòng "xong")
+  => ĐẠT: cùng fingerprint
+
+[2026-11-25 04:49:24] $ scripts/vm.sh root bash -c sha256sum /etc/tpan/tls/cert.pem /etc/tpan/tls/key.pem /etc/systemd/system/tpan.service; systemctl show -p MainPID -p ExecMainStartTimestamp tpan; python3 -c "import sqlite3; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); print(\"hash mật khẩu (sha256 của hash):\", __import__(\"hashlib\").sha256(c.execute(\"SELECT password_hash FROM users WHERE name = ?\", (\"admin\",)).fetchone()[0].encode()).hexdigest()[:16])"
+0e0b502bdd0a13a933faea52562a1d0cf9ccee108c23d43b12e8de9cb02c510b  /etc/tpan/tls/cert.pem
+62c4b21e59c7c9f4770be2c59cd66deeaeaaac71c613111beb192f1accc8ded4  /etc/tpan/tls/key.pem
+df72e9179b370f6d3a87a6f6f0471ff5a8b21e47adffaab8d2a494cca4d1e30f  /etc/systemd/system/tpan.service
+MainPID=13817
+ExecMainStartTimestamp=Wed 2026-11-25 04:49:22 +07
+hash mật khẩu (sha256 của hash): 6394b8172e51e3ea
+[2026-11-25 04:49:24] (mã thoát 0)
+  => ĐẠT: cert, key, unit, PID dịch vụ, hash mật khẩu không đổi
+
+
+######## [2026-11-25 04:49:24] bước 2: từ Mac tới https://<vm>:8443 (curl --cacert cert.pem của panel)
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/
+HTTP/2 200 
+cache-control: no-cache
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: text/html; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 955
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 200, 0.002680s
+[2026-11-25 04:49:24] (mã thoát 0)
+  => ĐẠT: GET / 200
+  => ĐẠT: CSP default-src 'self' và frame-ancestors 'none'
+  => ĐẠT: X-Content-Type-Options: nosniff
+  => ĐẠT: Referrer-Policy: no-referrer
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TPAN</title>
+    <!-- Biểu tượng tab: component Logo đổi href theo trạng thái máy (mục 11 của GIAO-DIEN.md). -->
+    <link rel="icon" type="image/svg+xml" href="/tpan.svg" />
+    <!-- Đặt sáng/tối trước khi vẽ; file riêng vì CSP cấm script viết thẳng trong HTML. -->
+    <script src="/theme.js"></script>
+    <script type="module" crossorigin src="/assets/index-DZgL64De.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/ScreenHeader-CvptjUBe.js">
+    <link rel="modulepreload" crossorigin href="/assets/queries-Bq3jdEsn.js">
+    <link rel="modulepreload" crossorigin href="/assets/useCopy-C0G2qb33.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-D6gBR3g-.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+  => ĐẠT: index.html nhúng trong file chạy có thẻ script trỏ tới /assets/*.js
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -o /dev/null https://<vm>:8443/assets/index-DZgL64De.js
+HTTP/2 200 
+accept-ranges: bytes
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: text/javascript; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 391197
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 200, 0.009157s
+[2026-11-25 04:49:24] (mã thoát 0)
+  => ĐẠT: GET /assets/index-DZgL64De.js 200, kiểu javascript
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/sites/new
+HTTP/2 200 
+cache-control: no-cache
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: text/html; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 955
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 200, 0.002651s
+[2026-11-25 04:49:24] (mã thoát 0)
+  => ĐẠT: đường dẫn của giao diện (/sites/new) trả index.html
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/session
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 33
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 200, 0.002659s
+[2026-11-25 04:49:24] (mã thoát 0)
+{
+  "logged_in": false,
+  "demo": false
+}
+  => ĐẠT: /api/v1/session logged_in=false
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/overview
+HTTP/2 401 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 155
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 401, 0.002761s
+[2026-11-25 04:49:24] (mã thoát 0)
+{
+  "error": {
+    "code": "unauthorized",
+    "message": {
+      "vi": "Chưa đăng nhập hoặc phiên đã hết hạn.",
+      "en": "Not logged in, or the session has expired."
+    }
+  }
+}
+  => ĐẠT: /api/v1/overview khi chưa đăng nhập: 401 unauthorized
+
+
+######## [2026-11-25 04:49:24] bước 2: đăng nhập bằng mật khẩu setup, rồi sai 5 lần
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar1 -c <tmp>/jar1 -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login1.json https://<vm>:8443/api/v1/login
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+set-cookie: __Host-tpan=<đã che>; Path=/; HttpOnly; Secure; SameSite=Strict
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 204, 0.073485s
+[2026-11-25 04:49:24] (mã thoát 0)
+  => ĐẠT: đăng nhập bằng mật khẩu setup: 204
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar1 -c <tmp>/jar1 -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/session
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 172
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 200, 0.002808s
+[2026-11-25 04:49:24] (mã thoát 0)
+{
+  "logged_in": true,
+  "demo": false,
+  "hostname": "tpan-m19",
+  "version": "v0.2.3-53-gd432aea-dirty",
+  "expires": "2026-11-25T09:49:24.46581845Z",
+  "user": {
+    "name": "admin",
+    "role": "admin"
+  }
+}
+  => ĐẠT: phiên 1 logged_in=true
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/wrong.json https://<vm>:8443/api/v1/login
+HTTP/2 401 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 96
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 401, 0.064807s
+[2026-11-25 04:49:24] (mã thoát 0)
+"wrong_password"
+  => ĐẠT: lần sai 1: 401 wrong_password
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/wrong.json https://<vm>:8443/api/v1/login
+HTTP/2 401 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 96
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 401, 0.064578s
+[2026-11-25 04:49:24] (mã thoát 0)
+"wrong_password"
+  => ĐẠT: lần sai 2: 401 wrong_password
+
+[2026-11-25 04:49:24] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/wrong.json https://<vm>:8443/api/v1/login
+HTTP/2 401 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 96
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 401, 0.065103s
+[2026-11-25 04:49:24] (mã thoát 0)
+"wrong_password"
+  => ĐẠT: lần sai 3: 401 wrong_password
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/wrong.json https://<vm>:8443/api/v1/login
+HTTP/2 401 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 96
+date: Tue, 24 Nov 2026 21:49:24 GMT
+
+-> HTTP 401, 0.070044s
+[2026-11-25 04:49:25] (mã thoát 0)
+"wrong_password"
+  => ĐẠT: lần sai 4: 401 wrong_password
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-none -c <tmp>/jar-none -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/wrong.json https://<vm>:8443/api/v1/login
+HTTP/2 423 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+retry-after: 901
+x-content-type-options: nosniff
+content-length: 556
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 423, 0.066470s
+[2026-11-25 04:49:25] (mã thoát 0)
+"login_locked"
+  => ĐẠT: lần sai 5: 423 login_locked, có Retry-After
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-tmp -c <tmp>/jar-tmp -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login1.json https://<vm>:8443/api/v1/login
+HTTP/2 423 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+retry-after: 900
+x-content-type-options: nosniff
+content-length: 556
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 423, 0.002788s
+[2026-11-25 04:49:25] (mã thoát 0)
+{
+  "error": {
+    "code": "login_locked",
+    "message": {
+      "vi": "Sai mật khẩu quá nhiều lần từ nơi gửi này (<mac>); bị khoá thêm 15 phút. Gỡ khoá ngay (không đổi mật khẩu), chạy trên máy chủ: sudo tpan admin unlock <mac>. Quên mật khẩu quản trị: sudo tpan admin passwd",
+      "en": "Too many wrong passwords from this source (<mac>); locked for 15 more minutes. To unlock now (password unchanged), run on the server: sudo tpan admin unlock <mac>. Forgot the admin password: sudo tpan admin passwd"
+    }
+  }
+}
+  => ĐẠT: đúng mật khẩu nhưng IP đang khoá: vẫn 423
+  => ĐẠT: không đặt cookie khi bị khoá
+
+
+######## [2026-11-25 04:49:25] bước 2: sudo tpan admin passwd gỡ khoá, huỷ phiên, in mật khẩu mới
+
+[2026-11-25 04:49:25] $ scripts/vm.sh root tpan admin passwd --yes
+Mật khẩu quản trị mới (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <mật khẩu, đã che>
+Mọi phiên đăng nhập đã bị huỷ và mọi IP bị khoá đã được gỡ.
+[2026-11-25 04:49:25] (mã thoát 0)
+  => ĐẠT: admin passwd thoát 0
+  => ĐẠT: mật khẩu mới in đúng một lần
+  => ĐẠT: mật khẩu mới khác mật khẩu setup
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar1 -c <tmp>/jar1 -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/session
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 33
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 200, 0.002889s
+[2026-11-25 04:49:25] (mã thoát 0)
+{
+  "logged_in": false,
+  "demo": false
+}
+  => ĐẠT: phiên 1 (đăng nhập trước khi đặt lại) đã bị huỷ: logged_in=false
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar-tmp -c <tmp>/jar-tmp -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login1.json https://<vm>:8443/api/v1/login
+HTTP/2 401 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 96
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 401, 0.065164s
+[2026-11-25 04:49:25] (mã thoát 0)
+"wrong_password"
+  => ĐẠT: mật khẩu setup cũ: 401 (IP đã được gỡ khoá, không còn 423)
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json --data-binary @<tmp>/login2.json https://<vm>:8443/api/v1/login
+HTTP/2 204 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+referrer-policy: no-referrer
+set-cookie: __Host-tpan=<đã che>; Path=/; HttpOnly; Secure; SameSite=Strict
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 204, 0.079567s
+[2026-11-25 04:49:25] (mã thoát 0)
+  => ĐẠT: mật khẩu mới: 204
+  => ĐẠT: cookie __Host-tpan có Path=/, Secure, HttpOnly, SameSite=Strict
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/session
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 173
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 200, 0.002935s
+[2026-11-25 04:49:25] (mã thoát 0)
+{
+  "logged_in": true,
+  "demo": false,
+  "hostname": "<hostname>",
+  "version": "v0.2.3-53-gd432aea-dirty",
+  "expires": "2026-11-25T09:49:25.569581041Z",
+  "user": {
+    "name": "admin",
+    "role": "admin"
+  }
+}
+  => ĐẠT: logged_in=true
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/account/sessions
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 152
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 200, 0.002962s
+[2026-11-25 04:49:25] (mã thoát 0)
+[
+  {
+    "id": "98c248123bca0d2f",
+    "current": true,
+    "ip": "<mac>",
+    "created": "2026-11-24T21:49:25.569581041Z",
+    "last_seen": "2026-11-24T21:49:25.569581041Z"
+  }
+]
+  => ĐẠT: chỉ còn đúng 1 phiên (phiên mới)
+
+
+######## [2026-11-25 04:49:25] bước 2: CSRF (request có thay đổi, đã đăng nhập)
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json -H Sec-Fetch-Site: cross-site --data-binary @<tmp>/siteA.json https://<vm>:8443/api/v1/sites?dry_run=1
+HTTP/2 403 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 268
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 403, 0.002677s
+[2026-11-25 04:49:25] (mã thoát 0)
+{
+  "error": {
+    "code": "csrf",
+    "message": {
+      "vi": "Yêu cầu đến từ một trang khác nên bị chặn (chống CSRF). Làm lại từ chính giao diện tpan.",
+      "en": "The request came from another site and was blocked (CSRF protection). Use the tpan interface itself."
+    }
+  }
+}
+  => ĐẠT: Sec-Fetch-Site: cross-site: 403 csrf
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json -H Origin: https://evil.example --data-binary @<tmp>/siteA.json https://<vm>:8443/api/v1/sites?dry_run=1
+HTTP/2 403 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 268
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 403, 0.002775s
+[2026-11-25 04:49:25] (mã thoát 0)
+"csrf"
+  => ĐẠT: Origin lạ (không có Sec-Fetch-Site): 403 csrf
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X DELETE -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Sec-Fetch-Site: cross-site https://<vm>:8443/api/v1/sites/a.example.com?dry_run=1
+HTTP/2 403 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 268
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 403, 0.002552s
+[2026-11-25 04:49:25] (mã thoát 0)
+"csrf"
+  => ĐẠT: DELETE cross-site: 403 csrf
+
+[2026-11-25 04:49:25] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Sec-Fetch-Site: cross-site https://<vm>:8443/api/v1/logout
+HTTP/2 403 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 268
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 403, 0.002534s
+[2026-11-25 04:49:26] (mã thoát 0)
+"csrf"
+  => ĐẠT: logout cross-site: 403 (trang khác không đá được người dùng ra)
+
+[2026-11-25 04:49:26] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 --data-binary @<tmp>/siteA.json https://<vm>:8443/api/v1/sites?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 200, 0.012612s
+[2026-11-25 04:49:26] (mã thoát 0)
+  => ĐẠT: đối chứng: Sec-Fetch-Site same-origin, Origin của chính panel: không bị chặn (200)
+
+
+######## [2026-11-25 04:49:26] bước 3: tạo site a.example.com qua API như trình duyệt: xem trước
+
+[2026-11-25 04:49:26] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 --data-binary @<tmp>/siteA.json https://<vm>:8443/api/v1/sites?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:25 GMT
+
+-> HTTP 200, 0.011161s
+[2026-11-25 04:49:26] (mã thoát 0)
+{
+  "kind": "site.add",
+  "target": "a.example.com",
+  "title": "Tạo site WordPress a.example.com",
+  "steps": [
+    "site.user:tp_a_example_com_7653e4: Tạo user Linux tp_a_example_com_7653e4 cho site",
+    "dir:/var/www/a.example.com: Tạo thư mục /var/www/a.example.com",
+    "dir:/var/www/a.example.com/public: Tạo thư mục /var/www/a.example.com/public",
+    "dir:/var/www/a.example.com/tmp: Tạo thư mục /var/www/a.example.com/tmp",
+    "dir:/var/log/tpan/sites/a.example.com: Tạo thư mục /var/log/tpan/sites/a.example.com",
+    "owned-file:/var/log/tpan/sites/a.example.com/access.log: Tạo /var/log/tpan/sites/a.example.com/access.log với đúng quyền và chủ",
+    "owned-file:/var/log/tpan/sites/a.example.com/error.log: Tạo /var/log/tpan/sites/a.example.com/error.log với đúng quyền và chủ",
+    "owned-file:/var/log/tpan/sites/a.example.com/php-error.log: Tạo /var/log/tpan/sites/a.example.com/php-error.log với đúng quyền và chủ",
+    "mariadb.site-db:a.example.com: Tạo DB tp_a_example_com_7653e4 và user DB riêng của site a.example.com",
+    "file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf: Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com (/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf)",
+    "wp.archive:7.1.5: Tải WordPress 7.1.5 vào /var/cache/tpan",
+    "wp.files:a.example.com: Giải nén WordPress vào /var/www/a.example.com/public",
+    "wp.config:a.example.com: Tạo /var/www/a.example.com/public/wp-config.php",
+    "wp.constant:a.example.com:DISABLE_WP_CRON: Đặt DISABLE_WP_CRON = true trong /var/www/a.example.com/public/wp-config.php",
+    "file:/etc/cron.d/tpan-a_example_com_7653e4: Đặt lịch cron WordPress của a.example.com (5 phút một lần) (/etc/cron.d/tpan-a_example_com_7653e4)",
+    "file:/etc/nginx/sites-available/tpan-a.example.com.conf: Ghi vhost nginx cho a.example.com (/etc/nginx/sites-available/tpan-a.example.com.conf)",
+    "symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf: Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf",
+    "wp.install:a.example.com: Cài WordPress cho a.example.com"
+  ]
+}
+  => ĐẠT: Preview 200, kind site.add, target a.example.com, có bước
+
+[2026-11-25 04:49:26] $ scripts/vm.sh exec bash -c ls /var/www; id tp_a_example_com_7653e4 2>&1
+html
+id: ‘tp_a_example_com_7653e4’: no such user
+[2026-11-25 04:49:26] (mã thoát 1)
+  => ĐẠT: xem trước không tạo gì trên máy (không thư mục, không user)
+
+
+######## [2026-11-25 04:49:26] bước 3: chạy thật, nghe SSE trong lúc job chạy
+
+[2026-11-25 04:49:26] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 --data-binary @<tmp>/siteA.json https://<vm>:8443/api/v1/sites
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 30
+date: Tue, 24 Nov 2026 21:49:26 GMT
+
+-> HTTP 202, 0.010412s
+[2026-11-25 04:49:26] (mã thoát 0)
+{
+  "job_id": "772ce81c9029bd2f"
+}
+  => ĐẠT: POST /api/v1/sites: 202 có job_id
+
+[2026-11-25 04:49:26] $ curl -sN --cacert ... -b <cookie> <vm>/api/v1/jobs/772ce81c9029bd2f/events | <gắn thời điểm nhận> (chạy nền)
+
+[2026-11-25 04:49:28] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/jobs/772ce81c9029bd2f
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:28 GMT
+
+-> HTTP 200, 0.003332s
+[2026-11-25 04:49:28] (mã thoát 0)
+{
+  "job": {
+    "id": "772ce81c9029bd2f",
+    "kind": "site.add",
+    "target": "a.example.com",
+    "title": {
+      "vi": "Tạo site WordPress a.example.com",
+      "en": "Create WordPress site a.example.com"
+    },
+    "status": "running",
+    "started": "2026-11-24T21:49:26.138411391Z",
+    "actor": "admin",
+    "owner": "admin"
+  },
+  "events": 41,
+  "has_secret": false
+}
+  => ĐẠT: 2 giây sau: job vẫn running, đã có sự kiện, chưa có secret
+
+[2026-11-25 04:49:28] $ cat <tmp>/sseA
+1795556966.305 id: 1
+1795556966.305 event: job.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":1,"time":"2026-11-25T04:49:26.139583839+07:00","kind":"job.start"}
+1795556966.305 
+1795556966.305 id: 2
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":2,"time":"2026-11-25T04:49:26.14060373+07:00","kind":"step.start","step_id":"site.user:tp_a_example_com_7653e4"}
+1795556966.305 
+1795556966.305 id: 3
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":3,"time":"2026-11-25T04:49:26.141627535+07:00","kind":"command","step_id":"site.user:tp_a_example_com_7653e4","message":"getent passwd tp_a_example_com_7653e4"}
+1795556966.305 
+1795556966.305 id: 4
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":4,"time":"2026-11-25T04:49:26.143347395+07:00","kind":"command","step_id":"site.user:tp_a_example_com_7653e4","message":"getent passwd tp_a_example_com_7653e4"}
+1795556966.305 
+1795556966.305 id: 5
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":5,"time":"2026-11-25T04:49:26.144657001+07:00","kind":"command","step_id":"site.user:tp_a_example_com_7653e4","message":"useradd --system --user-group --home-dir /var/www/a.example.com --no-create-home --shell /usr/sbin/nologin tp_a_example_com_7653e4"}
+1795556966.305 
+1795556966.305 id: 6
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":6,"time":"2026-11-25T04:49:26.157446308+07:00","kind":"command","step_id":"site.user:tp_a_example_com_7653e4","message":"systemctl list-units --type=service --state=active --no-legend --plain 'tpan-cage-*-php.service'"}
+1795556966.305 
+1795556966.305 id: 7
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":7,"time":"2026-11-25T04:49:26.160423729+07:00","kind":"command","step_id":"site.user:tp_a_example_com_7653e4","message":"getent passwd tp_a_example_com_7653e4"}
+1795556966.305 
+1795556966.305 id: 8
+1795556966.305 event: output
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":8,"time":"2026-11-25T04:49:26.161739983+07:00","kind":"output","step_id":"site.user:tp_a_example_com_7653e4","message":"tp_a_example_com_7653e4:x:999:988::/var/www/a.example.com:/usr/sbin/nologin"}
+1795556966.305 
+1795556966.305 id: 9
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":9,"time":"2026-11-25T04:49:26.162573281+07:00","kind":"step.done","step_id":"site.user:tp_a_example_com_7653e4"}
+1795556966.305 
+1795556966.305 id: 10
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":10,"time":"2026-11-25T04:49:26.16327935+07:00","kind":"step.start","step_id":"dir:/var/www/a.example.com"}
+1795556966.305 
+1795556966.305 id: 11
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":11,"time":"2026-11-25T04:49:26.164119127+07:00","kind":"step.done","step_id":"dir:/var/www/a.example.com"}
+1795556966.305 
+1795556966.305 id: 12
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":12,"time":"2026-11-25T04:49:26.164844465+07:00","kind":"step.start","step_id":"dir:/var/www/a.example.com/public"}
+1795556966.305 
+1795556966.305 id: 13
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":13,"time":"2026-11-25T04:49:26.165697495+07:00","kind":"step.done","step_id":"dir:/var/www/a.example.com/public"}
+1795556966.305 
+1795556966.305 id: 14
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":14,"time":"2026-11-25T04:49:26.166457965+07:00","kind":"step.start","step_id":"dir:/var/www/a.example.com/tmp"}
+1795556966.305 
+1795556966.305 id: 15
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":15,"time":"2026-11-25T04:49:26.167580388+07:00","kind":"step.done","step_id":"dir:/var/www/a.example.com/tmp"}
+1795556966.305 
+1795556966.305 id: 16
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":16,"time":"2026-11-25T04:49:26.168356424+07:00","kind":"step.start","step_id":"dir:/var/log/tpan/sites/a.example.com"}
+1795556966.305 
+1795556966.305 id: 17
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":17,"time":"2026-11-25T04:49:26.169174197+07:00","kind":"step.done","step_id":"dir:/var/log/tpan/sites/a.example.com"}
+1795556966.305 
+1795556966.305 id: 18
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":18,"time":"2026-11-25T04:49:26.169883211+07:00","kind":"step.start","step_id":"owned-file:/var/log/tpan/sites/a.example.com/access.log"}
+1795556966.305 
+1795556966.305 id: 19
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":19,"time":"2026-11-25T04:49:26.171221595+07:00","kind":"step.done","step_id":"owned-file:/var/log/tpan/sites/a.example.com/access.log"}
+1795556966.305 
+1795556966.305 id: 20
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":20,"time":"2026-11-25T04:49:26.171920218+07:00","kind":"step.start","step_id":"owned-file:/var/log/tpan/sites/a.example.com/error.log"}
+1795556966.305 
+1795556966.305 id: 21
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":21,"time":"2026-11-25T04:49:26.17317231+07:00","kind":"step.done","step_id":"owned-file:/var/log/tpan/sites/a.example.com/error.log"}
+1795556966.305 
+1795556966.305 id: 22
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":22,"time":"2026-11-25T04:49:26.173849895+07:00","kind":"step.start","step_id":"owned-file:/var/log/tpan/sites/a.example.com/php-error.log"}
+1795556966.305 
+1795556966.305 id: 23
+1795556966.305 event: step.done
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":23,"time":"2026-11-25T04:49:26.175334736+07:00","kind":"step.done","step_id":"owned-file:/var/log/tpan/sites/a.example.com/php-error.log"}
+1795556966.305 
+1795556966.305 id: 24
+1795556966.305 event: step.start
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":24,"time":"2026-11-25T04:49:26.17604173+07:00","kind":"step.start","step_id":"mariadb.site-db:a.example.com"}
+1795556966.305 
+1795556966.305 id: 25
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":25,"time":"2026-11-25T04:49:26.176805523+07:00","kind":"command","step_id":"mariadb.site-db:a.example.com","message":"mariadb -N -B"}
+1795556966.305 
+1795556966.305 id: 26
+1795556966.305 event: output
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":26,"time":"2026-11-25T04:49:26.180753864+07:00","kind":"output","step_id":"mariadb.site-db:a.example.com","message":"0\t0"}
+1795556966.305 
+1795556966.305 id: 27
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":27,"time":"2026-11-25T04:49:26.181731892+07:00","kind":"command","step_id":"mariadb.site-db:a.example.com","message":"mariadb -N -B"}
+1795556966.305 
+1795556966.305 id: 28
+1795556966.305 event: output
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":28,"time":"2026-11-25T04:49:26.185488001+07:00","kind":"output","step_id":"mariadb.site-db:a.example.com","message":"0\t0"}
+1795556966.305 
+1795556966.305 id: 29
+1795556966.305 event: command
+1795556966.305 data: {"job_id":"772ce81c9029bd2f","seq":29,"time":"2026-11-25T04:49:26.186781325+07:00","kind":"command","step_id":"mariadb.site-db:a.example.com","message":"mariadb -N -B"}
+1795556966.305 
+1795556966.308 id: 30
+1795556966.308 event: command
+1795556966.308 data: {"job_id":"772ce81c9029bd2f","seq":30,"time":"2026-11-25T04:49:26.190633486+07:00","kind":"command","step_id":"mariadb.site-db:a.example.com","message":"mariadb -N -B"}
+1795556966.308 
+1795556966.312 id: 31
+1795556966.312 event: command
+1795556966.312 data: {"job_id":"772ce81c9029bd2f","seq":31,"time":"2026-11-25T04:49:26.194401418+07:00","kind":"command","step_id":"mariadb.site-db:a.example.com","message":"mariadb -N -B"}
+1795556966.312 
+1795556966.316 id: 32
+1795556966.316 event: command
+1795556966.316 data: {"job_id":"772ce81c9029bd2f","seq":32,"time":"2026-11-25T04:49:26.197941187+07:00","kind":"command","step_id":"mariadb.site-db:a.example.com","message":"mariadb -N -B"}
+1795556966.316 
+1795556966.319 id: 33
+1795556966.319 event: output
+1795556966.319 data: {"job_id":"772ce81c9029bd2f","seq":33,"time":"2026-11-25T04:49:26.201400387+07:00","kind":"output","step_id":"mariadb.site-db:a.example.com","message":"1\t1"}
+1795556966.319 
+1795556966.320 id: 34
+1795556966.320 event: step.done
+1795556966.320 data: {"job_id":"772ce81c9029bd2f","seq":34,"time":"2026-11-25T04:49:26.202287075+07:00","kind":"step.done","step_id":"mariadb.site-db:a.example.com"}
+1795556966.320 
+1795556966.321 id: 35
+1795556966.321 event: step.start
+1795556966.321 data: {"job_id":"772ce81c9029bd2f","seq":35,"time":"2026-11-25T04:49:26.203166905+07:00","kind":"step.start","step_id":"file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf"}
+1795556966.321 
+1795556966.323 id: 36
+1795556966.323 event: command
+1795556966.323 data: {"job_id":"772ce81c9029bd2f","seq":36,"time":"2026-11-25T04:49:26.204983028+07:00","kind":"command","step_id":"file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf","message":"php-fpm8.3 -t"}
+1795556966.323 
+1795556966.334 id: 37
+1795556966.334 event: output
+1795556966.334 data: {"job_id":"772ce81c9029bd2f","seq":37,"time":"2026-11-25T04:49:26.216797841+07:00","kind":"output","step_id":"file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf","message":"[25-Nov-2026 04:49:26] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful"}
+1795556966.334 
+1795556966.336 id: 38
+1795556966.336 event: command
+1795556966.336 data: {"job_id":"772ce81c9029bd2f","seq":38,"time":"2026-11-25T04:49:26.218279567+07:00","kind":"command","step_id":"file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf","message":"systemctl reload php8.3-fpm"}
+1795556966.336 
+1795556966.476 id: 39
+1795556966.476 event: step.done
+1795556966.476 data: {"job_id":"772ce81c9029bd2f","seq":39,"time":"2026-11-25T04:49:26.358057459+07:00","kind":"step.done","step_id":"file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf"}
+1795556966.476 
+1795556966.477 id: 40
+1795556966.477 event: step.start
+1795556966.477 data: {"job_id":"772ce81c9029bd2f","seq":40,"time":"2026-11-25T04:49:26.360190181+07:00","kind":"step.start","step_id":"wp.archive:7.1.5"}
+1795556966.477 
+1795556966.479 id: 41
+1795556966.479 event: command
+1795556966.479 data: {"job_id":"772ce81c9029bd2f","seq":41,"time":"2026-11-25T04:49:26.361956153+07:00","kind":"command","step_id":"wp.archive:7.1.5","message":"curl -fsSL -o /var/cache/tpan/wordpress-7.1.5.tar.gz https://wordpress.org/wordpress-7.1.5.tar.gz"}
+1795556966.479 
+[2026-11-25 04:49:28] (mã thoát 0)
+(đã in ở trên: những gì luồng SSE nhận được tới lúc này, 164 dòng)
+[2026-11-25 04:49:41] luồng SSE đã đóng (mã thoát 0)
+
+Sự kiện SSE đã nhận (thời điểm nhận tính từ sự kiện đầu; time là giờ của máy ảo; message cắt 160 ký tự):
++0s  #1  job.start  2026-11-25T04:49:26.139583839+07:00    
++0s  #2  step.start  2026-11-25T04:49:26.14060373+07:00  site.user:tp_a_example_com_7653e4  
++0s  #3  command  2026-11-25T04:49:26.141627535+07:00  site.user:tp_a_example_com_7653e4  getent passwd tp_a_example_com_7653e4
++0s  #4  command  2026-11-25T04:49:26.143347395+07:00  site.user:tp_a_example_com_7653e4  getent passwd tp_a_example_com_7653e4
++0s  #5  command  2026-11-25T04:49:26.144657001+07:00  site.user:tp_a_example_com_7653e4  useradd --system --user-group --home-dir /var/www/a.example.com --no-create-home --shell /usr/sbin/nologin tp_a_example_com_7653e4
++0s  #6  command  2026-11-25T04:49:26.157446308+07:00  site.user:tp_a_example_com_7653e4  systemctl list-units --type=service --state=active --no-legend --plain 'tpan-cage-*-php.service'
++0s  #7  command  2026-11-25T04:49:26.160423729+07:00  site.user:tp_a_example_com_7653e4  getent passwd tp_a_example_com_7653e4
++0s  #8  output  2026-11-25T04:49:26.161739983+07:00  site.user:tp_a_example_com_7653e4  tp_a_example_com_7653e4:x:999:988::/var/www/a.example.com:/usr/sbin/nologin
++0s  #9  step.done  2026-11-25T04:49:26.162573281+07:00  site.user:tp_a_example_com_7653e4  
++0s  #10  step.start  2026-11-25T04:49:26.16327935+07:00  dir:/var/www/a.example.com  
++0s  #11  step.done  2026-11-25T04:49:26.164119127+07:00  dir:/var/www/a.example.com  
++0s  #12  step.start  2026-11-25T04:49:26.164844465+07:00  dir:/var/www/a.example.com/public  
++0s  #13  step.done  2026-11-25T04:49:26.165697495+07:00  dir:/var/www/a.example.com/public  
++0s  #14  step.start  2026-11-25T04:49:26.166457965+07:00  dir:/var/www/a.example.com/tmp  
++0s  #15  step.done  2026-11-25T04:49:26.167580388+07:00  dir:/var/www/a.example.com/tmp  
++0s  #16  step.start  2026-11-25T04:49:26.168356424+07:00  dir:/var/log/tpan/sites/a.example.com  
++0s  #17  step.done  2026-11-25T04:49:26.169174197+07:00  dir:/var/log/tpan/sites/a.example.com  
++0s  #18  step.start  2026-11-25T04:49:26.169883211+07:00  owned-file:/var/log/tpan/sites/a.example.com/access.log  
++0s  #19  step.done  2026-11-25T04:49:26.171221595+07:00  owned-file:/var/log/tpan/sites/a.example.com/access.log  
++0s  #20  step.start  2026-11-25T04:49:26.171920218+07:00  owned-file:/var/log/tpan/sites/a.example.com/error.log  
++0s  #21  step.done  2026-11-25T04:49:26.17317231+07:00  owned-file:/var/log/tpan/sites/a.example.com/error.log  
++0s  #22  step.start  2026-11-25T04:49:26.173849895+07:00  owned-file:/var/log/tpan/sites/a.example.com/php-error.log  
++0s  #23  step.done  2026-11-25T04:49:26.175334736+07:00  owned-file:/var/log/tpan/sites/a.example.com/php-error.log  
++0s  #24  step.start  2026-11-25T04:49:26.17604173+07:00  mariadb.site-db:a.example.com  
++0s  #25  command  2026-11-25T04:49:26.176805523+07:00  mariadb.site-db:a.example.com  mariadb -N -B
++0s  #26  output  2026-11-25T04:49:26.180753864+07:00  mariadb.site-db:a.example.com  0	0
++0s  #27  command  2026-11-25T04:49:26.181731892+07:00  mariadb.site-db:a.example.com  mariadb -N -B
++0s  #28  output  2026-11-25T04:49:26.185488001+07:00  mariadb.site-db:a.example.com  0	0
++0s  #29  command  2026-11-25T04:49:26.186781325+07:00  mariadb.site-db:a.example.com  mariadb -N -B
++0.003s  #30  command  2026-11-25T04:49:26.190633486+07:00  mariadb.site-db:a.example.com  mariadb -N -B
++0.007s  #31  command  2026-11-25T04:49:26.194401418+07:00  mariadb.site-db:a.example.com  mariadb -N -B
++0.011s  #32  command  2026-11-25T04:49:26.197941187+07:00  mariadb.site-db:a.example.com  mariadb -N -B
++0.014s  #33  output  2026-11-25T04:49:26.201400387+07:00  mariadb.site-db:a.example.com  1	1
++0.015s  #34  step.done  2026-11-25T04:49:26.202287075+07:00  mariadb.site-db:a.example.com  
++0.016s  #35  step.start  2026-11-25T04:49:26.203166905+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf  
++0.018s  #36  command  2026-11-25T04:49:26.204983028+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf  php-fpm8.3 -t
++0.029s  #37  output  2026-11-25T04:49:26.216797841+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf  [25-Nov-2026 04:49:26] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful
++0.031s  #38  command  2026-11-25T04:49:26.218279567+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf  systemctl reload php8.3-fpm
++0.171s  #39  step.done  2026-11-25T04:49:26.358057459+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-a_example_com_7653e4.conf  
++0.172s  #40  step.start  2026-11-25T04:49:26.360190181+07:00  wp.archive:7.1.5  
++0.174s  #41  command  2026-11-25T04:49:26.361956153+07:00  wp.archive:7.1.5  curl -fsSL -o /var/cache/tpan/wordpress-7.1.5.tar.gz https://wordpress.org/wordpress-7.1.5.tar.gz
++10.221s  #42  step.done  2026-11-25T04:49:36.457274732+07:00  wp.archive:7.1.5  
++10.222s  #43  step.start  2026-11-25T04:49:36.465567954+07:00  wp.files:a.example.com  
++10.223s  #44  command  2026-11-25T04:49:36.466749185+07:00  wp.files:a.example.com  runuser -u tp_a_example_com_7653e4 -- tar -xzf /var/cache/tpan/wordpress-7.1.5.tar.gz -C /var/www/a.example.com/public --strip-components=1
++10.841s  #45  command  2026-11-25T04:49:37.083730729+07:00  wp.files:a.example.com  runuser -u tp_a_example_com_7653e4 -- find /var/www/a.example.com/public -mindepth 1 -type f -exec chmod 0640 '{}' +
++10.856s  #46  step.done  2026-11-25T04:49:37.10039046+07:00  wp.files:a.example.com  
++10.857s  #47  step.start  2026-11-25T04:49:37.10237979+07:00  wp.config:a.example.com  
++10.858s  #48  command  2026-11-25T04:49:37.103626332+07:00  wp.config:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp config create --dbname=tp_a_example_com_7653e4 --dbuser=tp_a_example_com_7653e4 --dbhost=localhost --dbcharset=utf8mb4 
++10.91s  #49  command  2026-11-25T04:49:37.154963608+07:00  wp.config:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp config set DISALLOW_FILE_EDIT true --raw --type=constant --quiet --path=/var/www/a.example.com/public
++10.956s  #50  command  2026-11-25T04:49:37.20120664+07:00  wp.config:a.example.com  runuser -u tp_a_example_com_7653e4 -- chmod 0600 -- /var/www/a.example.com/public/wp-config.php
++10.959s  #51  step.done  2026-11-25T04:49:37.204364128+07:00  wp.config:a.example.com  
++10.96s  #52  step.start  2026-11-25T04:49:37.205405837+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  
++10.961s  #53  command  2026-11-25T04:49:37.206383485+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  runuser -u tp_a_example_com_7653e4 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/a.example.com/public
++11.013s  #54  output  2026-11-25T04:49:37.250120404+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  Error: The constant 'DISABLE_WP_CRON' is not defined in the 'wp-config.php' file.
++11.014s  #55  command  2026-11-25T04:49:37.25918387+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  runuser -u tp_a_example_com_7653e4 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/a.example.com/public
++11.057s  #56  output  2026-11-25T04:49:37.301958217+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  Error: The constant 'DISABLE_WP_CRON' is not defined in the 'wp-config.php' file.
++11.059s  #57  command  2026-11-25T04:49:37.304248931+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  runuser -u tp_a_example_com_7653e4 -- wp config set DISABLE_WP_CRON true --raw --type=constant --quiet --path=/var/www/a.example.com/public
++11.102s  #58  command  2026-11-25T04:49:37.347806364+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  runuser -u tp_a_example_com_7653e4 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/a.example.com/public
++11.144s  #59  output  2026-11-25T04:49:37.38978213+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  true
++11.147s  #60  step.done  2026-11-25T04:49:37.392385545+07:00  wp.constant:a.example.com:DISABLE_WP_CRON  
++11.148s  #61  step.start  2026-11-25T04:49:37.393682951+07:00  file:/etc/cron.d/tpan-a_example_com_7653e4  
++11.15s  #62  step.done  2026-11-25T04:49:37.396007574+07:00  file:/etc/cron.d/tpan-a_example_com_7653e4  
++11.151s  #63  step.start  2026-11-25T04:49:37.397030908+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  
++11.153s  #64  command  2026-11-25T04:49:37.399111359+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  nginx -t
++11.156s  #65  output  2026-11-25T04:49:37.401522384+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
++11.157s  #66  output  2026-11-25T04:49:37.402619592+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  nginx: configuration file /etc/nginx/nginx.conf test is successful
++11.158s  #67  command  2026-11-25T04:49:37.403924723+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.161s  #68  output  2026-11-25T04:49:37.407193753+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    13541 nginx: worker process
++11.162s  #69  output  2026-11-25T04:49:37.408202429+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    13542 nginx: worker process
++11.163s  #70  command  2026-11-25T04:49:37.40916116+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  systemctl reload nginx
++11.179s  #71  command  2026-11-25T04:49:37.42455326+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.183s  #72  output  2026-11-25T04:49:37.428281402+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    13541 nginx: worker process
++11.184s  #73  output  2026-11-25T04:49:37.429770487+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    13542 nginx: worker process
++11.185s  #74  output  2026-11-25T04:49:37.430663403+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    14573 nginx: worker process
++11.186s  #75  output  2026-11-25T04:49:37.431689117+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    14574 nginx: worker process
++11.218s  #76  command  2026-11-25T04:49:37.464078704+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.222s  #77  output  2026-11-25T04:49:37.467813987+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    13541 nginx: worker process
++11.223s  #78  output  2026-11-25T04:49:37.469125967+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    13542 nginx: worker process
++11.224s  #79  output  2026-11-25T04:49:37.469999507+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    14573 nginx: worker process
++11.225s  #80  output  2026-11-25T04:49:37.470868412+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    14574 nginx: worker process
++11.317s  #81  command  2026-11-25T04:49:37.562341666+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.32s  #82  output  2026-11-25T04:49:37.566181391+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    14573 nginx: worker process
++11.321s  #83  output  2026-11-25T04:49:37.567211949+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf    14574 nginx: worker process
++11.322s  #84  step.done  2026-11-25T04:49:37.568659149+07:00  file:/etc/nginx/sites-available/tpan-a.example.com.conf  
++11.323s  #85  step.start  2026-11-25T04:49:37.569572152+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  
++11.324s  #86  command  2026-11-25T04:49:37.570612148+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  nginx -t
++11.327s  #87  output  2026-11-25T04:49:37.573202617+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
++11.328s  #88  output  2026-11-25T04:49:37.574117833+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  nginx: configuration file /etc/nginx/nginx.conf test is successful
++11.329s  #89  command  2026-11-25T04:49:37.575366422+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.332s  #90  output  2026-11-25T04:49:37.57831916+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14573 nginx: worker process
++11.333s  #91  output  2026-11-25T04:49:37.579239638+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14574 nginx: worker process
++11.334s  #92  command  2026-11-25T04:49:37.580101026+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  systemctl reload nginx
++11.345s  #93  command  2026-11-25T04:49:37.591632061+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.348s  #94  output  2026-11-25T04:49:37.594811265+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14573 nginx: worker process
++11.35s  #95  output  2026-11-25T04:49:37.595731242+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14574 nginx: worker process
++11.351s  #96  output  2026-11-25T04:49:37.597042387+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14584 nginx: worker process
++11.352s  #97  output  2026-11-25T04:49:37.598005336+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14585 nginx: worker process
++11.373s  #98  command  2026-11-25T04:49:37.619181014+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.375s  #99  output  2026-11-25T04:49:37.622034322+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14573 nginx: worker process
++11.376s  #100  output  2026-11-25T04:49:37.622875665+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14574 nginx: worker process
++11.377s  #101  output  2026-11-25T04:49:37.623796435+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14584 nginx: worker process
++11.378s  #102  output  2026-11-25T04:49:37.624598899+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14585 nginx: worker process
++11.423s  #103  command  2026-11-25T04:49:37.668675496+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.426s  #104  output  2026-11-25T04:49:37.672814391+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14573 nginx: worker process
++11.427s  #105  output  2026-11-25T04:49:37.673946092+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14574 nginx: worker process
++11.428s  #106  output  2026-11-25T04:49:37.674840178+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14584 nginx: worker process
++11.429s  #107  output  2026-11-25T04:49:37.675769635+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14585 nginx: worker process
++11.451s  #108  command  2026-11-25T04:49:37.697079656+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  ps -o pid=,args= --ppid 9909
++11.454s  #109  output  2026-11-25T04:49:37.700328474+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14584 nginx: worker process
++11.455s  #110  output  2026-11-25T04:49:37.701238346+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf    14585 nginx: worker process
++11.456s  #111  step.done  2026-11-25T04:49:37.702181834+07:00  symlink:/etc/nginx/sites-enabled/tpan-a.example.com.conf  
++11.456s  #112  step.start  2026-11-25T04:49:37.703080472+07:00  wp.install:a.example.com  
++11.458s  #113  command  2026-11-25T04:49:37.703959315+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/a.example.com/public
++11.583s  #114  output  2026-11-25T04:49:37.8289952+07:00  wp.install:a.example.com  PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/a.example.com/public/wp-includes/functions.php on line 6473
++11.584s  #115  output  2026-11-25T04:49:37.83080279+07:00  wp.install:a.example.com  Warning: Undefined array key "HTTP_HOST" in /var/www/a.example.com/public/wp-includes/functions.php on line 6473
++11.612s  #116  command  2026-11-25T04:49:37.858771684+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/a.example.com/public
++11.738s  #117  output  2026-11-25T04:49:37.984607861+07:00  wp.install:a.example.com  PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/a.example.com/public/wp-includes/functions.php on line 6473
++11.739s  #118  output  2026-11-25T04:49:37.986083918+07:00  wp.install:a.example.com  Warning: Undefined array key "HTTP_HOST" in /var/www/a.example.com/public/wp-includes/functions.php on line 6473
++11.767s  #119  command  2026-11-25T04:49:38.014034831+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/a.example.com/public
++11.893s  #120  output  2026-11-25T04:49:38.140181121+07:00  wp.install:a.example.com  PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/a.example.com/public/wp-includes/functions.php on line 6473
++11.894s  #121  output  2026-11-25T04:49:38.141698554+07:00  wp.install:a.example.com  Warning: Undefined array key "HTTP_HOST" in /var/www/a.example.com/public/wp-includes/functions.php on line 6473
++11.925s  #122  command  2026-11-25T04:49:38.172161063+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp core install --url=http://a.example.com '--title=Site A' --admin_user=admin --admin_email=admin@example.com --prompt=ad
++12.252s  #123  command  2026-11-25T04:49:38.499946344+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp option get permalink_structure --skip-plugins --skip-themes --path=/var/www/a.example.com/public
++12.4s  #124  output  2026-11-25T04:49:38.647998662+07:00  wp.install:a.example.com  
++12.403s  #125  command  2026-11-25T04:49:38.651809674+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp rewrite structure /%postname%/ --quiet --path=/var/www/a.example.com/public
++12.69s  #126  command  2026-11-25T04:49:38.938471715+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/a.example.com/public
++12.848s  #127  command  2026-11-25T04:49:39.097302238+07:00  wp.install:a.example.com  runuser -u tp_a_example_com_7653e4 -- wp option get permalink_structure --skip-plugins --skip-themes --path=/var/www/a.example.com/public
++12.985s  #128  output  2026-11-25T04:49:39.233555678+07:00  wp.install:a.example.com  /%postname%/
++12.988s  #129  step.done  2026-11-25T04:49:39.237309368+07:00  wp.install:a.example.com  
++12.989s  #130  check  2026-11-25T04:49:39.238894797+07:00    [pass] web.vhost:a.example.com
++12.99s  #131  check  2026-11-25T04:49:39.240145777+07:00    [pass] php.socket:a.example.com
++15.231s  #132  check  2026-11-25T04:49:41.482190162+07:00    [pass] wp.checksums:a.example.com
++15.232s  #133  check  2026-11-25T04:49:41.484875775+07:00    [pass] wp.config:a.example.com
++15.287s  #134  check  2026-11-25T04:49:41.539696942+07:00    [pass] db.access:a.example.com
++15.529s  #135  check  2026-11-25T04:49:41.781882121+07:00    [pass] http.site:a.example.com
++15.53s  #136  check  2026-11-25T04:49:41.78309751+07:00    [pass] log.perm:a.example.com
++15.531s  #137  check  2026-11-25T04:49:41.784163453+07:00    [pass] web.hardened:a.example.com
++15.532s  #138  check  2026-11-25T04:49:41.785209661+07:00    [pass] site.docroot:a.example.com
++15.536s  #139  job.done  2026-11-25T04:49:41.789110954+07:00    succeeded
+
+Tóm tắt luồng:
+{
+  "events": 139,
+  "first": "job.start",
+  "last": "job.done",
+  "last_message": "succeeded",
+  "job_ids": [
+    "772ce81c9029bd2f"
+  ],
+  "seq_contiguous": true,
+  "span_seconds": 15.53600001335144,
+  "received_2s_before_done": 131,
+  "kinds": {
+    "check": 9,
+    "command": 44,
+    "job.done": 1,
+    "job.start": 1,
+    "output": 48,
+    "step.done": 18,
+    "step.start": 18
+  },
+  "checks": {
+    "pass": 9
+  }
+}
+Số dòng data: trong luồng thô: 139; số dòng id:/event:/data: 139/139/139
+  => ĐẠT: SSE: mọi sự kiện thuộc job 772ce81c9029bd2f
+  => ĐẠT: SSE: sự kiện đầu là job.start, cuối là job.done
+  => ĐẠT: SSE: Seq liền mạch từ 1
+  => ĐẠT: SSE: job.done báo succeeded
+  => ĐẠT: SSE: log trực tiếp: luồng kéo dài trên 5 giây
+  => ĐẠT: SSE: hơn 20 sự kiện tới trước job.done ít nhất 2 giây
+  => ĐẠT: SSE: có phép kiểm (bằng chứng), không phép kiểm nào fail/unknown
+
+
+######## [2026-11-25 04:49:41] bước 3: GET /api/v1/jobs/{id}: lần đầu có mật khẩu quản trị WordPress, lần hai không
+
+[2026-11-25 04:49:41] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/jobs/772ce81c9029bd2f
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:41 GMT
+
+-> HTTP 200, 0.003316s
+[2026-11-25 04:49:41] (mã thoát 0)
+Đã đọc mật khẩu DB của a.example.com vào danh sách che (32 ký tự).
+{
+  "job": {
+    "id": "772ce81c9029bd2f",
+    "kind": "site.add",
+    "target": "a.example.com",
+    "title": {
+      "vi": "Tạo site WordPress a.example.com",
+      "en": "Create WordPress site a.example.com"
+    },
+    "status": "succeeded",
+    "started": "2026-11-24T21:49:26.138411391Z",
+    "finished": "2026-11-24T21:49:41.789110871Z",
+    "actor": "admin",
+    "owner": "admin"
+  },
+  "events": 139,
+  "secret": {
+    "url": "http://a.example.com/wp-admin/",
+    "user": "admin",
+    "password": "<mật khẩu, đã che>"
+  }
+}
+  => ĐẠT: lần đầu: job succeeded, có secret (url, user, password)
+  => ĐẠT: GET /jobs có đủ sự kiện như luồng SSE đã nhận
+
+[2026-11-25 04:49:42] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/jobs/772ce81c9029bd2f
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:42 GMT
+
+-> HTTP 200, 0.003533s
+[2026-11-25 04:49:42] (mã thoát 0)
+{
+  "job": "succeeded",
+  "events": 139,
+  "has_secret": false
+}
+  => ĐẠT: lần hai: không còn secret
+
+[2026-11-25 04:49:42] $ curl -sS -m 30 -D - -o /dev/null --resolve a.example.com:80:<vm> -b wordpress_test_cookie=WP%20Cookie%20check -d log=admin -d testcookie=1 --data-urlencode pwd@<tmp>/admin-a.example.com http://a.example.com/wp-login.php
+HTTP/1.1 302 Found
+Server: nginx/1.24.0 (Ubuntu)
+Date: Tue, 24 Nov 2026 21:49:42 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Expires: Wed, 11 Jan 1984 05:00:00 GMT
+Cache-Control: no-cache, must-revalidate, max-age=0, no-store, private
+Set-Cookie: wordpress_test_cookie=<đã che>; path=/; HttpOnly
+X-Frame-Options: SAMEORIGIN
+Content-Security-Policy: frame-ancestors 'self';
+Referrer-Policy: strict-origin-when-cross-origin
+Set-Cookie: wordpress_405022328eda096e129dbf3cbc50d63b=<đã che>; path=/wp-content/plugins; HttpOnly
+Set-Cookie: wordpress_405022328eda096e129dbf3cbc50d63b=<đã che>; path=/wp-admin; HttpOnly
+Set-Cookie: wordpress_logged_in_405022328eda096e129dbf3cbc50d63b=<đã che>; path=/; HttpOnly
+X-Redirect-By: WordPress
+Location: http://a.example.com/wp-admin/
+
+[2026-11-25 04:49:42] (mã thoát 0)
+  => ĐẠT: a.example.com: đăng nhập wp-login.php bằng mật khẩu GET /jobs/{id} trả: 302
+  => ĐẠT: a.example.com: có cookie wordpress_logged_in_
+
+[2026-11-25 04:49:42] $ curl -sS -m 30 -D - -o /dev/null --resolve a.example.com:80:<vm> -b wordpress_test_cookie=WP%20Cookie%20check -d log=admin -d testcookie=1 --data-urlencode pwd@<tmp>/wrong-password http://a.example.com/wp-login.php
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Date: Tue, 24 Nov 2026 21:49:42 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Expires: Wed, 11 Jan 1984 05:00:00 GMT
+Cache-Control: no-cache, must-revalidate, max-age=0, no-store, private
+Set-Cookie: wordpress_test_cookie=<đã che>; path=/; HttpOnly
+X-Frame-Options: SAMEORIGIN
+Content-Security-Policy: frame-ancestors 'self';
+Referrer-Policy: strict-origin-when-cross-origin
+
+[2026-11-25 04:49:42] (mã thoát 0)
+  => ĐẠT: a.example.com: đối chứng mật khẩu sai: không có cookie wordpress_logged_in_
+
+
+######## [2026-11-25 04:49:42] bước 3: GET /api/v1/sites/a.example.com: phép kiểm theo đường đi request
+
+[2026-11-25 04:49:42] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/sites/a.example.com
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:44 GMT
+
+-> HTTP 200, 1.979622s
+[2026-11-25 04:49:44] (mã thoát 0)
+{
+  "site": {
+    "domain": "a.example.com",
+    "slug": "a_example_com_7653e4",
+    "status": "active",
+    "php_version": "8.3",
+    "ssl": false,
+    "created": "2026-11-24T21:49:41.791216471Z",
+    "owner": "admin",
+    "htaccess": "an-toan",
+    "caged": false,
+    "names": {
+      "Serve": null,
+      "Redirect": null,
+      "Covered": null,
+      "Rules": null
+    }
+  },
+  "web": "nginx",
+  "checks": [
+    "pass  web  web.vhost:a.example.com  Vhost của site có, đúng dòng đầu của tpan, và đã được bật",
+    "pass  php  php.socket:a.example.com  Socket của pool có, chủ www-data:www-data, quyền 0660",
+    "pass  wordpress  wp.checksums:a.example.com  Mã nguồn WordPress khớp checksum",
+    "pass  wordpress  wp.config:a.example.com  wp-config.php quyền 0600, chủ tp_a_example_com_7653e4",
+    "pass  db  db.access:a.example.com  User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4",
+    "pass  e2e  http.site:a.example.com  Site trả 200, đúng là WordPress của a.example.com",
+    "pass  web  log.perm:a.example.com  Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640",
+    "pass  web  web.hardened:a.example.com  Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích",
+    "pass  web  site.docroot:a.example.com  /var/www/a.example.com/public là thư mục thật của tp_a_example_com_7653e4",
+    "pass  php  php.pool:a.example.com  Pool của site (1 file) nghe đúng socket riêng, chạy dưới tp_a_example_com_7653e4",
+    "pass  web  web.docroot_guard:a.example.com  Vhost có dấu của bản vá F4: không đi theo public khi nó là symlink sang chủ khác",
+    "pass  db  db.user_limit:tp_a_example_com_7653e4  User DB tp_a_example_com_7653e4 có trần 20 kết nối (max_connections là 151)"
+  ]
+}
+  => ĐẠT: 200, mọi phép kiểm pass
+  => ĐẠT: phép kiểm của site không còn config.phpfpm (đã chuyển hẳn sang phép kiểm stack, commit b94a707)
+
+Bằng chứng (lệnh và output) của phép kiểm đầu tiên:
+[
+  {
+    "command": "stat /etc/nginx/sites-available/tpan-a.example.com.conf (tpan)",
+    "exit_code": 0,
+    "output": "regular file, mode 0644, owner root:root"
+  },
+  {
+    "command": "head -n 1 /etc/nginx/sites-available/tpan-a.example.com.conf (tpan)",
+    "exit_code": 0,
+    "output": "# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch."
+  },
+  {
+    "command": "readlink /etc/nginx/sites-enabled/tpan-a.example.com.conf (tpan)",
+    "exit_code": 0,
+    "output": "/etc/nginx/sites-available/tpan-a.example.com.conf"
+  }
+]
+
+
+######## [2026-11-25 04:49:44] bước 3: GET /api/v1/machine so với /proc của máy ảo
+
+[2026-11-25 04:49:44] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/machine
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 250
+date: Tue, 24 Nov 2026 21:49:44 GMT
+
+-> HTTP 200, 0.257808s
+[2026-11-25 04:49:44] (mã thoát 0)
+{
+  "cpu_percent": 0,
+  "cpus": 2,
+  "load1": 0.84,
+  "mem_total": 4091039744,
+  "mem_used": 576405504,
+  "swap_total": 0,
+  "swap_used": 0,
+  "disk": {
+    "path": "/var/www",
+    "total": 19682557952,
+    "used": 2755563520
+  },
+  "uptime_seconds": 66.25,
+  "measured": "2026-11-25T04:49:44.642338322+07:00"
+}
+
+[2026-11-25 04:49:44] $ scripts/vm.sh exec bash -c nproc; grep -E "^(MemTotal|MemAvailable|SwapTotal|SwapFree):" /proc/meminfo; cat /proc/loadavg /proc/uptime; df -B1 --output=size,used,avail,target /var/www; stat -f -c "blocks=%b bfree=%f bavail=%a bsize=%S" /var/www
+2
+MemTotal:        3995156 kB
+MemAvailable:    3435632 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+0.84 0.31 0.11 1/159 14777
+66.49 96.54
+  1B-blocks       Used       Avail Mounted on
+19682557952 2738786304 16926994432 /
+blocks=4805312 bfree=4136663 bavail=4132567 bsize=4096
+[2026-11-25 04:49:44] (mã thoát 0)
+  => ĐẠT: cpus = nproc
+  => ĐẠT: mem_total = MemTotal × 1024
+  => ĐẠT: disk.total = df size của /var/www
+  => ĐẠT: cpu_percent đo được (0..100, khác -1)
+  => ĐẠT: không có lỗi đọc
+
+[2026-11-25 04:49:44] Tạo tải: chạy `yes` trên mọi CPU của máy ảo trong 8 giây, đọc /machine giữa chừng.
+
+[2026-11-25 04:49:47] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/machine
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 252
+date: Tue, 24 Nov 2026 21:49:48 GMT
+
+-> HTTP 200, 0.202583s
+[2026-11-25 04:49:48] (mã thoát 0)
+{
+  "cpu_percent": 100,
+  "cpus": 2,
+  "load1": 0.84
+}
+CPU% lúc rỗi: 0; lúc chạy yes trên mọi CPU: 100
+  => ĐẠT: CPU% lúc có tải > 80 và lớn hơn lúc rỗi
+
+
+######## [2026-11-25 04:49:53] bước 3: GET /api/v1/databases so với câu SQL chạy tay
+
+[2026-11-25 04:49:53] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/databases
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 226
+date: Tue, 24 Nov 2026 21:49:53 GMT
+
+-> HTTP 200, 0.077227s
+[2026-11-25 04:49:53] (mã thoát 0)
+[
+  {
+    "domain": "a.example.com",
+    "db": "tp_a_example_com_7653e4",
+    "user": "tp_a_example_com_7653e4",
+    "size_bytes": 770048,
+    "tables": 12,
+    "kind": "site",
+    "owner": "admin",
+    "charset": "utf8mb4",
+    "collation": "utf8mb4_general_ci",
+    "status": "active"
+  }
+]
+  => ĐẠT: dung lượng và số bảng khác -1, lớn hơn 0
+
+Câu SQL của core.Databases (databaseSizeSQL), chạy nguyên văn bằng mariadb -N -B, và kiểu cột của nó:
+
+[2026-11-25 04:49:53] $ scripts/vm.sh root mariadb -N -B -e SELECT s.SCHEMA_NAME, COUNT(t.TABLE_NAME), COALESCE(SUM(t.DATA_LENGTH + t.INDEX_LENGTH), 0) FROM information_schema.SCHEMATA s LEFT JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = s.SCHEMA_NAME AND t.TABLE_TYPE IN ('BASE TABLE', 'SYSTEM VERSIONED') WHERE s.SCHEMA_NAME IN ('tp_a_example_com_7653e4') GROUP BY s.SCHEMA_NAME;
+tp_a_example_com_7653e4	12	770048
+[2026-11-25 04:49:53] (mã thoát 0)
+  => ĐẠT: output thô: số nguyên, không có phần thập phân
+
+[2026-11-25 04:49:53] $ scripts/vm.sh root mariadb -t --column-type-info -e SELECT s.SCHEMA_NAME, COUNT(t.TABLE_NAME), COALESCE(SUM(t.DATA_LENGTH + t.INDEX_LENGTH), 0) FROM information_schema.SCHEMATA s LEFT JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = s.SCHEMA_NAME AND t.TABLE_TYPE IN ('BASE TABLE', 'SYSTEM VERSIONED') WHERE s.SCHEMA_NAME IN ('tp_a_example_com_7653e4') GROUP BY s.SCHEMA_NAME;
+Field   1:  `SCHEMA_NAME`
+Org_field:  `SCHEMA_NAME`
+Catalog:    `def`
+Database:   `information_schema`
+Table:      `s`
+Org_table:  `SCHEMATA`
+Type:       VAR_STRING
+Collation:  utf8mb3_general_ci (33)
+Length:     192
+Max_length: 23
+Decimals:   0
+Flags:      NOT_NULL NO_DEFAULT_VALUE 
+
+Field   2:  `COUNT(t.TABLE_NAME)`
+Org_field:  ``
+Catalog:    `def`
+Database:   ``
+Table:      ``
+Org_table:  ``
+Type:       LONGLONG
+Collation:  binary (63)
+Length:     21
+Max_length: 2
+Decimals:   0
+Flags:      NOT_NULL BINARY NUM 
+
+Field   3:  `COALESCE(SUM(t.DATA_LENGTH + t.INDEX_LENGTH), 0)`
+Org_field:  ``
+Catalog:    `def`
+Database:   ``
+Table:      ``
+Org_table:  ``
+Type:       NEWDECIMAL
+Collation:  binary (63)
+Length:     45
+Max_length: 6
+Decimals:   0
+Flags:      NOT_NULL BINARY NUM 
+
+
++-------------------------+---------------------+--------------------------------------------------+
+| SCHEMA_NAME             | COUNT(t.TABLE_NAME) | COALESCE(SUM(t.DATA_LENGTH + t.INDEX_LENGTH), 0) |
++-------------------------+---------------------+--------------------------------------------------+
+| tp_a_example_com_7653e4 |                  12 |                                           770048 |
++-------------------------+---------------------+--------------------------------------------------+
+[2026-11-25 04:49:53] (mã thoát 0)
+
+[2026-11-25 04:49:53] $ scripts/vm.sh root mariadb -N -B -e SELECT COUNT(*), SUM(DATA_LENGTH), SUM(INDEX_LENGTH) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'tp_a_example_com_7653e4'
+12	294912	475136
+[2026-11-25 04:49:53] (mã thoát 0)
+  => ĐẠT: API khớp câu SQL chạy tay (số bảng, byte)
+  => ĐẠT: số bảng khớp phép đếm độc lập
+
+
+######## [2026-11-25 04:49:53] mục 16: khoá toàn cục khi CLI đang chạy job và API cũng gọi
+
+[2026-11-25 04:49:53] $ scripts/vm.sh root tpan site add b.example.com --email admin@example.com --yes --verbose   (chạy nền, output vào file tạm)
+[2026-11-25 04:49:54] flock -n /run/tpan/tpan.lock (từ một tiến trình khác trong máy ảo): khoá đang bị giữ = yes (sau 2 lần thử)
+  => ĐẠT: CLI đang giữ khoá toàn cục
+
+[2026-11-25 04:49:54] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 --data-binary @<tmp>/siteC.json https://<vm>:8443/api/v1/sites
+HTTP/2 409 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 258
+date: Tue, 24 Nov 2026 21:49:56 GMT
+
+-> HTTP 409, 2.006146s
+[2026-11-25 04:49:56] (mã thoát 0)
+{
+  "error": {
+    "code": "job_running",
+    "message": {
+      "vi": "Đang có một việc khác đang đổi máy. Chờ nó xong rồi thử lại (xem ở Lịch sử).",
+      "en": "Another operation is changing the server. Wait for it to finish, then try again (see History)."
+    }
+  }
+}
+  => ĐẠT: API trả 409 job_running
+  => ĐẠT: sau khoảng 2 giây chờ khoá (1.9 ≤ t < 5): 2.006146 s
+
+[2026-11-25 04:49:56] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X POST -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Content-Type: application/json -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 --data-binary @<tmp>/siteC.json https://<vm>:8443/api/v1/sites?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:56 GMT
+
+-> HTTP 200, 0.034742s
+[2026-11-25 04:49:56] (mã thoát 0)
+  => ĐẠT: xem trước vẫn được trong lúc CLI chạy (không cần khoá): 200
+
+[2026-11-25 04:49:56] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/overview
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:49:56 GMT
+
+-> HTTP 200, 0.204652s
+[2026-11-25 04:49:56] (mã thoát 0)
+  => ĐẠT: đọc /overview trong lúc CLI chạy: 200
+
+[2026-11-25 04:49:56] Chờ CLI xong...
+Đã đọc mật khẩu DB của b.example.com vào danh sách che (32 ký tự).
+Bắt đầu job 3f5b9e0928a47d96
+- Tạo user Linux tp_b_example_com_cd59d5 cho site ...
+    $ getent passwd tp_b_example_com_cd59d5
+    $ getent passwd tp_b_example_com_cd59d5
+    $ useradd --system --user-group --home-dir /var/www/b.example.com --no-create-home --shell /usr/sbin/nologin tp_b_example_com_cd59d5
+    $ systemctl list-units --type=service --state=active --no-legend --plain 'tpan-cage-*-php.service'
+    $ getent passwd tp_b_example_com_cd59d5
+    | tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
+  xong
+- Tạo thư mục /var/www/b.example.com ...
+  xong
+- Tạo thư mục /var/www/b.example.com/public ...
+  xong
+- Tạo thư mục /var/www/b.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/b.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/b.example.com/access.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/b.example.com/error.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/b.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_b_example_com_cd59d5 và user DB riêng của site b.example.com ...
+    $ mariadb -N -B
+    | 0	0
+    $ mariadb -N -B
+    | 0	0
+    $ mariadb -N -B
+    $ mariadb -N -B
+    $ mariadb -N -B
+    $ mariadb -N -B
+    | 1	1
+  xong
+- Ghi pool PHP-FPM tpan-b_example_com_cd59d5 cho b.example.com ...
+    $ php-fpm8.3 -t
+    | [25-Nov-2026 04:49:53] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful
+    $ systemctl reload php8.3-fpm
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  đã đúng, bỏ qua
+- Giải nén WordPress vào /var/www/b.example.com/public ...
+    $ runuser -u tp_b_example_com_cd59d5 -- tar -xzf /var/cache/tpan/wordpress-7.1.5.tar.gz -C /var/www/b.example.com/public --strip-components=1
+    $ runuser -u tp_b_example_com_cd59d5 -- find /var/www/b.example.com/public -mindepth 1 -type f -exec chmod 0640 '{}' +
+  xong
+- Tạo /var/www/b.example.com/public/wp-config.php ...
+    $ runuser -u tp_b_example_com_cd59d5 -- wp config create --dbname=tp_b_example_com_cd59d5 --dbuser=tp_b_example_com_cd59d5 --dbhost=localhost --dbcharset=utf8mb4 --prompt=dbpass --quiet --path=/var/www/b.example.com/public
+    $ runuser -u tp_b_example_com_cd59d5 -- wp config set DISALLOW_FILE_EDIT true --raw --type=constant --quiet --path=/var/www/b.example.com/public
+    $ runuser -u tp_b_example_com_cd59d5 -- chmod 0600 -- /var/www/b.example.com/public/wp-config.php
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/b.example.com/public/wp-config.php ...
+    $ runuser -u tp_b_example_com_cd59d5 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/b.example.com/public
+    | Error: The constant 'DISABLE_WP_CRON' is not defined in the 'wp-config.php' file.
+    $ runuser -u tp_b_example_com_cd59d5 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/b.example.com/public
+    | Error: The constant 'DISABLE_WP_CRON' is not defined in the 'wp-config.php' file.
+    $ runuser -u tp_b_example_com_cd59d5 -- wp config set DISABLE_WP_CRON true --raw --type=constant --quiet --path=/var/www/b.example.com/public
+    $ runuser -u tp_b_example_com_cd59d5 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/b.example.com/public
+    | true
+  xong
+- Đặt lịch cron WordPress của b.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho b.example.com ...
+    $ nginx -t
+    | nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+    | nginx: configuration file /etc/nginx/nginx.conf test is successful
+    $ ps -o pid=,args= --ppid 9909
+    |   14584 nginx: worker process
+    |   14585 nginx: worker process
+    $ systemctl reload nginx
+    $ ps -o pid=,args= --ppid 9909
+    |   14584 nginx: worker process
+    |   14585 nginx: worker process
+    |   15195 nginx: worker process
+    |   15196 nginx: worker process
+    $ ps -o pid=,args= --ppid 9909
+    |   14584 nginx: worker process
+    |   14585 nginx: worker process
+    |   15195 nginx: worker process
+    |   15196 nginx: worker process
+    $ ps -o pid=,args= --ppid 9909
+    |   15195 nginx: worker process
+    |   15196 nginx: worker process
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-b.example.com.conf → /etc/nginx/sites-available/tpan-b.example.com.conf ...
+    $ nginx -t
+    | nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+    | nginx: configuration file /etc/nginx/nginx.conf test is successful
+    $ ps -o pid=,args= --ppid 9909
+    |   15195 nginx: worker process
+    |   15196 nginx: worker process
+    $ systemctl reload nginx
+    $ ps -o pid=,args= --ppid 9909
+    |   15195 nginx: worker process
+    |   15196 nginx: worker process
+    |   15206 nginx: worker process
+    |   15207 nginx: worker process
+    $ ps -o pid=,args= --ppid 9909
+    |   15195 nginx: worker process
+    |   15196 nginx: worker process
+    |   15206 nginx: worker process
+    |   15207 nginx: worker process
+    $ ps -o pid=,args= --ppid 9909
+    |   15195 nginx: worker process
+    |   15196 nginx: worker process
+    |   15206 nginx: worker process
+    |   15207 nginx: worker process
+    $ ps -o pid=,args= --ppid 9909
+    |   15206 nginx: worker process
+    |   15207 nginx: worker process
+  xong
+- Cài WordPress cho b.example.com ...
+    $ runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
+    | PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
+    | Warning: Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
+    $ runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
+    | PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
+    | Warning: Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
+    $ runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
+    | PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
+    | Warning: Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
+    $ runuser -u tp_b_example_com_cd59d5 -- wp core install --url=http://b.example.com --title=b.example.com --admin_user=admin --admin_email=admin@example.com --prompt=admin_password --skip-email --quiet --path=/var/www/b.example.com/public
+    $ runuser -u tp_b_example_com_cd59d5 -- wp option get permalink_structure --skip-plugins --skip-themes --path=/var/www/b.example.com/public
+    | 
+    $ runuser -u tp_b_example_com_cd59d5 -- wp rewrite structure /%postname%/ --quiet --path=/var/www/b.example.com/public
+    $ runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
+    $ runuser -u tp_b_example_com_cd59d5 -- wp option get permalink_structure --skip-plugins --skip-themes --path=/var/www/b.example.com/public
+    | /%postname%/
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] Thư mục public của site là thư mục thật của chính site
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+
+Job 3f5b9e0928a47d96: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_b_example_com_cd59d5
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_b_example_com_cd59d5
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của b.example.com
+  [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_b_example_com_cd59d5 0750, access.log và error.log là root:tp_b_example_com_cd59d5 0640
+  [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+  [đạt] Thư mục public của site là thư mục thật của chính site: /var/www/b.example.com/public là thư mục thật của tp_b_example_com_cd59d5
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com: Bị từ chối như mong đợi: tp_b_example_com_cd59d5 không chạm được vào file, log và socket của a.example.com (5 phép thử)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com: Bị từ chối như mong đợi: tp_a_example_com_7653e4 không chạm được vào file, log và socket của b.example.com (5 phép thử)
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://b.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <mật khẩu, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-25 04:49:59] (mã thoát 0)
+  => ĐẠT: CLI site add b.example.com thoát 0
+  => ĐẠT: job CLI thành công
+  => ĐẠT: CLI không gặp 'database is locked'
+
+[2026-11-25 04:49:59] $ scripts/vm.sh exec bash -c ls /var/www; id tp_c_example_com_6e5b26 2>&1; echo
+a.example.com
+b.example.com
+html
+id: ‘tp_c_example_com_6e5b26’: no such user
+[2026-11-25 04:49:59] (mã thoát 0)
+  => ĐẠT: site C không được tạo (không thư mục, không user)
+
+[2026-11-25 04:49:59] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/jobs
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 1392
+date: Tue, 24 Nov 2026 21:49:59 GMT
+
+-> HTTP 200, 0.002854s
+[2026-11-25 04:49:59] (mã thoát 0)
+[
+  {
+    "id": "3f5b9e0928a47d96",
+    "kind": "site.add",
+    "target": "b.example.com",
+    "status": "succeeded"
+  },
+  {
+    "id": "772ce81c9029bd2f",
+    "kind": "site.add",
+    "target": "a.example.com",
+    "status": "succeeded"
+  },
+  {
+    "id": "f7751ad4ace416d8",
+    "kind": "panel.setup",
+    "target": "0.0.0.0:8443",
+    "status": "succeeded"
+  },
+  {
+    "id": "f9d5f9b88f57b450",
+    "kind": "panel.setup",
+    "target": "0.0.0.0:8443",
+    "status": "succeeded"
+  },
+  {
+    "id": "fe7c9eee3e2ef921",
+    "kind": "stack.install",
+    "target": "nginx",
+    "status": "succeeded"
+  }
+]
+
+SSE của job CLI (đã xong, ở tiến trình khác): gửi hết từ store rồi đóng.
+
+[2026-11-25 04:49:59] $ curl -sN --cacert ... -b <cookie> <vm>/api/v1/jobs/3f5b9e0928a47d96/events | <gắn thời điểm nhận> (chạy nền)
+[2026-11-25 04:49:59] luồng SSE đã đóng (mã thoát 0)
+
+Sự kiện SSE đã nhận (thời điểm nhận tính từ sự kiện đầu; time là giờ của máy ảo; message cắt 160 ký tự):
++0s  #1  job.start  2026-11-25T04:49:53.628626215+07:00    
++0s  #2  step.start  2026-11-25T04:49:53.629990477+07:00  site.user:tp_b_example_com_cd59d5  
++0s  #3  command  2026-11-25T04:49:53.631319246+07:00  site.user:tp_b_example_com_cd59d5  getent passwd tp_b_example_com_cd59d5
++0s  #4  command  2026-11-25T04:49:53.633548426+07:00  site.user:tp_b_example_com_cd59d5  getent passwd tp_b_example_com_cd59d5
++0s  #5  command  2026-11-25T04:49:53.635424089+07:00  site.user:tp_b_example_com_cd59d5  useradd --system --user-group --home-dir /var/www/b.example.com --no-create-home --shell /usr/sbin/nologin tp_b_example_com_cd59d5
++0s  #6  command  2026-11-25T04:49:53.654507276+07:00  site.user:tp_b_example_com_cd59d5  systemctl list-units --type=service --state=active --no-legend --plain 'tpan-cage-*-php.service'
++0s  #7  command  2026-11-25T04:49:53.659407011+07:00  site.user:tp_b_example_com_cd59d5  getent passwd tp_b_example_com_cd59d5
++0s  #8  output  2026-11-25T04:49:53.661665658+07:00  site.user:tp_b_example_com_cd59d5  tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
++0s  #9  step.done  2026-11-25T04:49:53.663472467+07:00  site.user:tp_b_example_com_cd59d5  
++0s  #10  step.start  2026-11-25T04:49:53.664634522+07:00  dir:/var/www/b.example.com  
++0s  #11  step.done  2026-11-25T04:49:53.665952115+07:00  dir:/var/www/b.example.com  
++0s  #12  step.start  2026-11-25T04:49:53.667447974+07:00  dir:/var/www/b.example.com/public  
++0s  #13  step.done  2026-11-25T04:49:53.668907585+07:00  dir:/var/www/b.example.com/public  
++0s  #14  step.start  2026-11-25T04:49:53.670244976+07:00  dir:/var/www/b.example.com/tmp  
++0s  #15  step.done  2026-11-25T04:49:53.671661769+07:00  dir:/var/www/b.example.com/tmp  
++0s  #16  step.start  2026-11-25T04:49:53.672796659+07:00  dir:/var/log/tpan/sites/b.example.com  
++0s  #17  step.done  2026-11-25T04:49:53.674606189+07:00  dir:/var/log/tpan/sites/b.example.com  
++0s  #18  step.start  2026-11-25T04:49:53.675800515+07:00  owned-file:/var/log/tpan/sites/b.example.com/access.log  
++0s  #19  step.done  2026-11-25T04:49:53.677955861+07:00  owned-file:/var/log/tpan/sites/b.example.com/access.log  
++0s  #20  step.start  2026-11-25T04:49:53.679464946+07:00  owned-file:/var/log/tpan/sites/b.example.com/error.log  
++0s  #21  step.done  2026-11-25T04:49:53.68197289+07:00  owned-file:/var/log/tpan/sites/b.example.com/error.log  
++0s  #22  step.start  2026-11-25T04:49:53.683137372+07:00  owned-file:/var/log/tpan/sites/b.example.com/php-error.log  
++0s  #23  step.done  2026-11-25T04:49:53.68542331+07:00  owned-file:/var/log/tpan/sites/b.example.com/php-error.log  
++0s  #24  step.start  2026-11-25T04:49:53.686997398+07:00  mariadb.site-db:b.example.com  
++0s  #25  command  2026-11-25T04:49:53.688416911+07:00  mariadb.site-db:b.example.com  mariadb -N -B
++0s  #26  output  2026-11-25T04:49:53.693623159+07:00  mariadb.site-db:b.example.com  0	0
++0s  #27  command  2026-11-25T04:49:53.695554114+07:00  mariadb.site-db:b.example.com  mariadb -N -B
++0s  #28  output  2026-11-25T04:49:53.700520191+07:00  mariadb.site-db:b.example.com  0	0
++0s  #29  command  2026-11-25T04:49:53.701911367+07:00  mariadb.site-db:b.example.com  mariadb -N -B
++0s  #30  command  2026-11-25T04:49:53.706172376+07:00  mariadb.site-db:b.example.com  mariadb -N -B
++0s  #31  command  2026-11-25T04:49:53.710837758+07:00  mariadb.site-db:b.example.com  mariadb -N -B
++0s  #32  command  2026-11-25T04:49:53.715181683+07:00  mariadb.site-db:b.example.com  mariadb -N -B
++0s  #33  output  2026-11-25T04:49:53.718906764+07:00  mariadb.site-db:b.example.com  1	1
++0s  #34  step.done  2026-11-25T04:49:53.71998946+07:00  mariadb.site-db:b.example.com  
++0s  #35  step.start  2026-11-25T04:49:53.721188977+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  
++0s  #36  command  2026-11-25T04:49:53.723258936+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  php-fpm8.3 -t
++0s  #37  output  2026-11-25T04:49:53.735925308+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  [25-Nov-2026 04:49:53] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful
++0s  #38  command  2026-11-25T04:49:53.73779059+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  systemctl reload php8.3-fpm
++0s  #39  step.done  2026-11-25T04:49:53.853764016+07:00  file:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  
++0s  #40  step.start  2026-11-25T04:49:53.854921341+07:00  wp.archive:7.1.5  
++0s  #41  step.skip  2026-11-25T04:49:53.876323365+07:00  wp.archive:7.1.5  
++0s  #42  step.start  2026-11-25T04:49:53.877821358+07:00  wp.files:b.example.com  
++0s  #43  command  2026-11-25T04:49:53.87887668+07:00  wp.files:b.example.com  runuser -u tp_b_example_com_cd59d5 -- tar -xzf /var/cache/tpan/wordpress-7.1.5.tar.gz -C /var/www/b.example.com/public --strip-components=1
++0s  #44  command  2026-11-25T04:49:54.488702601+07:00  wp.files:b.example.com  runuser -u tp_b_example_com_cd59d5 -- find /var/www/b.example.com/public -mindepth 1 -type f -exec chmod 0640 '{}' +
++0s  #45  step.done  2026-11-25T04:49:54.504187384+07:00  wp.files:b.example.com  
++0s  #46  step.start  2026-11-25T04:49:54.506525509+07:00  wp.config:b.example.com  
++0s  #47  command  2026-11-25T04:49:54.507971416+07:00  wp.config:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp config create --dbname=tp_b_example_com_cd59d5 --dbuser=tp_b_example_com_cd59d5 --dbhost=localhost --dbcharset=utf8mb4 
++0s  #48  command  2026-11-25T04:49:54.556056874+07:00  wp.config:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp config set DISALLOW_FILE_EDIT true --raw --type=constant --quiet --path=/var/www/b.example.com/public
++0s  #49  command  2026-11-25T04:49:54.606504513+07:00  wp.config:b.example.com  runuser -u tp_b_example_com_cd59d5 -- chmod 0600 -- /var/www/b.example.com/public/wp-config.php
++0s  #50  step.done  2026-11-25T04:49:54.610486593+07:00  wp.config:b.example.com  
++0s  #51  step.start  2026-11-25T04:49:54.611806366+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  
++0s  #52  command  2026-11-25T04:49:54.612880108+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  runuser -u tp_b_example_com_cd59d5 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/b.example.com/public
++0s  #53  output  2026-11-25T04:49:54.656037468+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  Error: The constant 'DISABLE_WP_CRON' is not defined in the 'wp-config.php' file.
++0s  #54  command  2026-11-25T04:49:54.658336059+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  runuser -u tp_b_example_com_cd59d5 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/b.example.com/public
++0s  #55  output  2026-11-25T04:49:54.701732005+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  Error: The constant 'DISABLE_WP_CRON' is not defined in the 'wp-config.php' file.
++0s  #56  command  2026-11-25T04:49:54.704150579+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  runuser -u tp_b_example_com_cd59d5 -- wp config set DISABLE_WP_CRON true --raw --type=constant --quiet --path=/var/www/b.example.com/public
++0s  #57  command  2026-11-25T04:49:54.750671319+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  runuser -u tp_b_example_com_cd59d5 -- wp config get DISABLE_WP_CRON --type=constant --format=json --path=/var/www/b.example.com/public
++0s  #58  output  2026-11-25T04:49:54.793675102+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  true
++0s  #59  step.done  2026-11-25T04:49:54.796823867+07:00  wp.constant:b.example.com:DISABLE_WP_CRON  
++0s  #60  step.start  2026-11-25T04:49:54.798230533+07:00  file:/etc/cron.d/tpan-b_example_com_cd59d5  
++0s  #61  step.done  2026-11-25T04:49:54.800431439+07:00  file:/etc/cron.d/tpan-b_example_com_cd59d5  
++0s  #62  step.start  2026-11-25T04:49:54.801291528+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  
++0s  #63  command  2026-11-25T04:49:54.803227366+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  nginx -t
++0s  #64  output  2026-11-25T04:49:54.805844239+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
++0s  #65  output  2026-11-25T04:49:54.806805025+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  nginx: configuration file /etc/nginx/nginx.conf test is successful
++0.001s  #66  command  2026-11-25T04:49:54.80773159+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #67  output  2026-11-25T04:49:54.811137474+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    14584 nginx: worker process
++0.001s  #68  output  2026-11-25T04:49:54.812386296+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    14585 nginx: worker process
++0.001s  #69  command  2026-11-25T04:49:54.813479825+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  systemctl reload nginx
++0.001s  #70  command  2026-11-25T04:49:54.829519258+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #71  output  2026-11-25T04:49:54.832895439+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    14584 nginx: worker process
++0.001s  #72  output  2026-11-25T04:49:54.833870826+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    14585 nginx: worker process
++0.001s  #73  output  2026-11-25T04:49:54.835110527+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    15195 nginx: worker process
++0.001s  #74  output  2026-11-25T04:49:54.835993667+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    15196 nginx: worker process
++0.001s  #75  command  2026-11-25T04:49:54.915891962+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #76  output  2026-11-25T04:49:54.920085644+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    14584 nginx: worker process
++0.001s  #77  output  2026-11-25T04:49:54.921198292+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    14585 nginx: worker process
++0.001s  #78  output  2026-11-25T04:49:54.922100258+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    15195 nginx: worker process
++0.001s  #79  output  2026-11-25T04:49:54.923469983+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    15196 nginx: worker process
++0.001s  #80  command  2026-11-25T04:49:54.944553983+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #81  output  2026-11-25T04:49:54.948344374+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    15195 nginx: worker process
++0.001s  #82  output  2026-11-25T04:49:54.94944786+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf    15196 nginx: worker process
++0.001s  #83  step.done  2026-11-25T04:49:54.950507963+07:00  file:/etc/nginx/sites-available/tpan-b.example.com.conf  
++0.001s  #84  step.start  2026-11-25T04:49:54.951480003+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  
++0.001s  #85  command  2026-11-25T04:49:54.952728197+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  nginx -t
++0.001s  #86  output  2026-11-25T04:49:54.95557395+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
++0.001s  #87  output  2026-11-25T04:49:54.956571676+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  nginx: configuration file /etc/nginx/nginx.conf test is successful
++0.001s  #88  command  2026-11-25T04:49:54.957635879+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #89  output  2026-11-25T04:49:54.961093053+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15195 nginx: worker process
++0.001s  #90  output  2026-11-25T04:49:54.962133954+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15196 nginx: worker process
++0.001s  #91  command  2026-11-25T04:49:54.963300946+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  systemctl reload nginx
++0.001s  #92  command  2026-11-25T04:49:54.975253795+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #93  output  2026-11-25T04:49:54.97914003+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15195 nginx: worker process
++0.001s  #94  output  2026-11-25T04:49:54.980131105+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15196 nginx: worker process
++0.001s  #95  output  2026-11-25T04:49:54.981445649+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15206 nginx: worker process
++0.001s  #96  output  2026-11-25T04:49:54.982489186+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15207 nginx: worker process
++0.001s  #97  command  2026-11-25T04:49:55.003587338+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #98  output  2026-11-25T04:49:55.007149619+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15195 nginx: worker process
++0.001s  #99  output  2026-11-25T04:49:55.008100573+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15196 nginx: worker process
++0.001s  #100  output  2026-11-25T04:49:55.009393755+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15206 nginx: worker process
++0.001s  #101  output  2026-11-25T04:49:55.010406388+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15207 nginx: worker process
++0.001s  #102  command  2026-11-25T04:49:55.056107235+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #103  output  2026-11-25T04:49:55.060120342+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15195 nginx: worker process
++0.001s  #104  output  2026-11-25T04:49:55.061126493+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15196 nginx: worker process
++0.001s  #105  output  2026-11-25T04:49:55.062187927+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15206 nginx: worker process
++0.001s  #106  output  2026-11-25T04:49:55.063147996+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15207 nginx: worker process
++0.001s  #107  command  2026-11-25T04:49:55.090058257+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #108  output  2026-11-25T04:49:55.094197358+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15206 nginx: worker process
++0.001s  #109  output  2026-11-25T04:49:55.09529973+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15207 nginx: worker process
++0.001s  #110  step.done  2026-11-25T04:49:55.09638019+07:00  symlink:/etc/nginx/sites-enabled/tpan-b.example.com.conf  
++0.001s  #111  step.start  2026-11-25T04:49:55.097386718+07:00  wp.install:b.example.com  
++0.001s  #112  command  2026-11-25T04:49:55.09829205+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
++0.001s  #113  output  2026-11-25T04:49:55.241128622+07:00  wp.install:b.example.com  PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
++0.001s  #114  output  2026-11-25T04:49:55.243271059+07:00  wp.install:b.example.com  Warning: Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
++0.001s  #115  command  2026-11-25T04:49:55.273871518+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
++0.001s  #116  output  2026-11-25T04:49:55.40428648+07:00  wp.install:b.example.com  PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
++0.001s  #117  output  2026-11-25T04:49:55.405657148+07:00  wp.install:b.example.com  Warning: Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
++0.001s  #118  command  2026-11-25T04:49:55.437624052+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
++0.001s  #119  output  2026-11-25T04:49:55.571041245+07:00  wp.install:b.example.com  PHP Warning:  Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
++0.001s  #120  output  2026-11-25T04:49:55.572400162+07:00  wp.install:b.example.com  Warning: Undefined array key "HTTP_HOST" in /var/www/b.example.com/public/wp-includes/functions.php on line 6473
++0.001s  #121  command  2026-11-25T04:49:55.603897673+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp core install --url=http://b.example.com --title=b.example.com --admin_user=admin --admin_email=admin@example.com --prom
++0.001s  #122  command  2026-11-25T04:49:55.987382719+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp option get permalink_structure --skip-plugins --skip-themes --path=/var/www/b.example.com/public
++0.001s  #123  output  2026-11-25T04:49:56.149638606+07:00  wp.install:b.example.com  
++0.001s  #124  command  2026-11-25T04:49:56.153819748+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp rewrite structure /%postname%/ --quiet --path=/var/www/b.example.com/public
++0.001s  #125  command  2026-11-25T04:49:56.480310694+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp core is-installed --skip-plugins --skip-themes --path=/var/www/b.example.com/public
++0.001s  #126  command  2026-11-25T04:49:56.635740905+07:00  wp.install:b.example.com  runuser -u tp_b_example_com_cd59d5 -- wp option get permalink_structure --skip-plugins --skip-themes --path=/var/www/b.example.com/public
++0.001s  #127  output  2026-11-25T04:49:56.77930975+07:00  wp.install:b.example.com  /%postname%/
++0.001s  #128  step.done  2026-11-25T04:49:56.783297147+07:00  wp.install:b.example.com  
++0.001s  #129  check  2026-11-25T04:49:56.784363395+07:00    [pass] web.vhost:b.example.com
++0.001s  #130  check  2026-11-25T04:49:56.785292287+07:00    [pass] php.socket:b.example.com
++0.001s  #131  check  2026-11-25T04:49:58.557257888+07:00    [pass] wp.checksums:b.example.com
++0.001s  #132  check  2026-11-25T04:49:58.559422453+07:00    [pass] wp.config:b.example.com
++0.001s  #133  check  2026-11-25T04:49:58.617727713+07:00    [pass] db.access:b.example.com
++0.001s  #134  check  2026-11-25T04:49:58.915692736+07:00    [pass] http.site:b.example.com
++0.001s  #135  check  2026-11-25T04:49:58.916781159+07:00    [pass] log.perm:b.example.com
++0.001s  #136  check  2026-11-25T04:49:58.917728135+07:00    [pass] web.hardened:b.example.com
++0.001s  #137  check  2026-11-25T04:49:58.918724906+07:00    [pass] site.docroot:b.example.com
++0.001s  #138  check  2026-11-25T04:49:58.927734609+07:00    [pass] isolation:b.example.com:a.example.com
++0.001s  #139  check  2026-11-25T04:49:58.936028179+07:00    [pass] isolation:a.example.com:b.example.com
++0.001s  #140  job.done  2026-11-25T04:49:58.939551069+07:00    succeeded
+
+Tóm tắt luồng:
+{
+  "events": 140,
+  "first": "job.start",
+  "last": "job.done",
+  "last_message": "succeeded",
+  "job_ids": [
+    "3f5b9e0928a47d96"
+  ],
+  "seq_contiguous": true,
+  "span_seconds": 0.0009999275207519531,
+  "received_2s_before_done": 0,
+  "kinds": {
+    "check": 11,
+    "command": 43,
+    "job.done": 1,
+    "job.start": 1,
+    "output": 48,
+    "step.done": 17,
+    "step.skip": 1,
+    "step.start": 18
+  },
+  "checks": {
+    "pass": 11
+  }
+}
+Số dòng data: trong luồng thô: 140; số dòng id:/event:/data: 140/140/140
+  => ĐẠT: SSE: mọi sự kiện thuộc job 3f5b9e0928a47d96
+  => ĐẠT: SSE: sự kiện đầu là job.start, cuối là job.done
+  => ĐẠT: SSE: Seq liền mạch từ 1
+
+
+######## [2026-11-25 04:49:59] mục 16: GET /api/v1/overview lần đầu với 2 site (sau khi khởi động lại tpan, bộ nhớ đệm phép kiểm rỗng)
+
+[2026-11-25 04:49:59] $ scripts/vm.sh root systemctl restart tpan
+[2026-11-25 04:49:59] (mã thoát 0)
+  => ĐẠT: restart tpan
+
+[2026-11-25 04:50:00] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/session
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 173
+date: Tue, 24 Nov 2026 21:50:00 GMT
+
+-> HTTP 200, 0.003176s
+[2026-11-25 04:50:00] (mã thoát 0)
+  => ĐẠT: phiên còn sau khi khởi động lại (nằm trong DB)
+
+[2026-11-25 04:50:00] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/overview
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:50:00 GMT
+
+-> HTTP 200, 0.214206s
+[2026-11-25 04:50:00] (mã thoát 0)
+{
+  "hostname": "<hostname>",
+  "stack": {
+    "installed": true,
+    "web": "nginx",
+    "php_version": "8.3"
+  },
+  "sites": [
+    {
+      "domain": "a.example.com",
+      "checks": {
+        "pass": 11,
+        "warn": 1
+      }
+    },
+    {
+      "domain": "b.example.com",
+      "checks": null
+    }
+  ],
+  "machine": {
+    "cpu_percent": 0,
+    "cpus": 2,
+    "mem_total": 4091039744,
+    "mem_used": 639795200,
+    "disk": {
+      "path": "/var/www",
+      "total": 19682557952,
+      "used": 2876456960
+    }
+  },
+  "jobs": [
+    "site.add b.example.com succeeded",
+    "site.add a.example.com succeeded",
+    "panel.setup 0.0.0.0:8443 succeeded",
+    "panel.setup 0.0.0.0:8443 succeeded",
+    "stack.install nginx succeeded"
+  ],
+  "stack_checks": [
+    "pass config.nginx:nginx",
+    "pass drift:/etc/nginx/sites-available/tpan-default.conf",
+    "pass http.default:nginx",
+    "pass service.active:nginx",
+    "pass web.default.rejects",
+    "pass web.server_name.unique",
+    "pass config.phpfpm:8.3",
+    "pass php.opcache:8.3",
+    "pass php.protectproc:8.3",
+    "pass php.www_pool:8.3",
+    "pass service.active:php8.3-fpm",
+    "pass db.secure:mariadb",
+    "pass port.localonly:3306",
+    "pass service.active:mariadb",
+    "pass disk.usage:/",
+    "pass drift:/etc/cron.d/tpan-a_example_com_7653e4",
+    "pass drift:/etc/cron.d/tpan-b_example_com_cd59d5",
+    "pass drift:/etc/logrotate.d/tpan-sites",
+    "pass drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf",
+    "pass memory:ram",
+    "pass wpcli.binary:wp",
+    "pass drift:/etc/systemd/system/tpan.service",
+    "pass drift:/etc/tpan/tls/cert.pem",
+    "pass names.root.shared"
+  ]
+}
+  => ĐẠT: overview 200, 2 tuyến, mọi phép kiểm site và stack pass (trừ cảnh báo DNS, TLS của site chưa SSL)
+
+[2026-11-25 04:50:00] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/overview
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:50:00 GMT
+
+-> HTTP 200, 0.303267s
+[2026-11-25 04:50:00] (mã thoát 0)
+
+Thời gian GET /overview: lần đầu (bộ nhớ đệm rỗng, 2 site) 0.214206 s; lần hai (đệm còn hạn) 0.303267 s
+
+[2026-11-25 04:50:00] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/overview?refresh=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:50:04 GMT
+
+-> HTTP 200, 4.163763s
+[2026-11-25 04:50:04] (mã thoát 0)
+
+[2026-11-25 04:50:04] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/overview?refresh=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:50:09 GMT
+
+-> HTTP 200, 4.283642s
+[2026-11-25 04:50:09] (mã thoát 0)
+
+[2026-11-25 04:50:09] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/overview?refresh=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:50:14 GMT
+
+-> HTTP 200, 4.915106s
+[2026-11-25 04:50:14] (mã thoát 0)
+
+[2026-11-25 04:50:14] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/machine
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 248
+date: Tue, 24 Nov 2026 21:50:14 GMT
+
+-> HTTP 200, 0.232270s
+[2026-11-25 04:50:14] (mã thoát 0)
+{
+  "cpu_percent": 0
+}
+
+CPU% trong 3 lần GET /overview?refresh=1 (chạy lại mọi phép kiểm): 0 0 0; /machine riêng: 0
+  => ĐẠT: CPU% của /overview khi máy rỗi dưới 10 (không đếm tải của chính phép kiểm)
+
+
+######## [2026-11-25 04:50:14] bước 5: xoá site b.example.com qua API (xem trước rồi chạy thật)
+
+[2026-11-25 04:50:14] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X DELETE -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/sites/b.example.com?dry_run=1
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+date: Tue, 24 Nov 2026 21:50:14 GMT
+
+-> HTTP 200, 0.025019s
+[2026-11-25 04:50:14] (mã thoát 0)
+{
+  "kind": "site.rm",
+  "target": "b.example.com",
+  "steps": [
+    "[nguy hiểm] absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf: Tắt vhost của b.example.com",
+    "[nguy hiểm] absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf: Gỡ pool PHP-FPM tpan-b_example_com_cd59d5",
+    "[nguy hiểm] db.lock:b.example.com: Khoá user DB tp_b_example_com_cd59d5 của site b.example.com",
+    "user.lock:b.example.com: Khoá user Linux tp_b_example_com_cd59d5 của b.example.com",
+    "absent:/etc/cron.d/tpan-b_example_com_cd59d5: Gỡ lịch cron WordPress của b.example.com",
+    "[nguy hiểm] dir.move:/var/www/b.example.com: Chuyển thư mục của b.example.com vào thùng rác"
+  ]
+}
+  => ĐẠT: Preview 200, kind site.rm
+
+[2026-11-25 04:50:14] $ scripts/vm.sh exec ls /var/www
+a.example.com
+b.example.com
+html
+[2026-11-25 04:50:14] (mã thoát 0)
+  => ĐẠT: xem trước không xoá gì
+
+[2026-11-25 04:50:14] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X DELETE -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/sites/b.example.com
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 30
+date: Tue, 24 Nov 2026 21:50:14 GMT
+
+-> HTTP 202, 0.005048s
+[2026-11-25 04:50:14] (mã thoát 0)
+{
+  "job_id": "55dacc44f7be3bf6"
+}
+  => ĐẠT: DELETE: 202 có job_id
+
+[2026-11-25 04:50:14] $ curl -sN --cacert ... -b <cookie> <vm>/api/v1/jobs/55dacc44f7be3bf6/events | <gắn thời điểm nhận> (chạy nền)
+[2026-11-25 04:50:14] luồng SSE đã đóng (mã thoát 0)
+
+Sự kiện SSE đã nhận (thời điểm nhận tính từ sự kiện đầu; time là giờ của máy ảo; message cắt 160 ký tự):
++0s  #1  job.start  2026-11-25T04:50:14.723047953+07:00    
++0s  #2  step.start  2026-11-25T04:50:14.723873485+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  
++0s  #3  command  2026-11-25T04:50:14.725042313+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  nginx -t
++0s  #4  output  2026-11-25T04:50:14.727640957+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
++0s  #5  output  2026-11-25T04:50:14.728465738+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  nginx: configuration file /etc/nginx/nginx.conf test is successful
++0s  #6  command  2026-11-25T04:50:14.729190778+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0s  #7  output  2026-11-25T04:50:14.732589434+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15206 nginx: worker process
++0s  #8  output  2026-11-25T04:50:14.733611528+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15207 nginx: worker process
++0s  #9  command  2026-11-25T04:50:14.734499857+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  systemctl reload nginx
++0s  #10  command  2026-11-25T04:50:14.752193366+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.001s  #11  output  2026-11-25T04:50:14.75584175+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15206 nginx: worker process
++0.001s  #12  output  2026-11-25T04:50:14.756888863+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15207 nginx: worker process
++0.001s  #13  output  2026-11-25T04:50:14.757693838+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15939 nginx: worker process
++0.001s  #14  output  2026-11-25T04:50:14.758484593+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15941 nginx: worker process
++0.041s  #15  command  2026-11-25T04:50:14.804407793+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.045s  #16  output  2026-11-25T04:50:14.80818177+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15206 nginx: worker process
++0.046s  #17  output  2026-11-25T04:50:14.809051918+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15207 nginx: worker process
++0.046s  #18  output  2026-11-25T04:50:14.810052955+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15939 nginx: worker process
++0.047s  #19  output  2026-11-25T04:50:14.810919851+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15941 nginx: worker process
++0.127s  #20  command  2026-11-25T04:50:14.890274113+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++0.131s  #21  output  2026-11-25T04:50:14.894080323+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15939 nginx: worker process
++0.132s  #22  output  2026-11-25T04:50:14.895069726+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf    15941 nginx: worker process
++0.133s  #23  step.done  2026-11-25T04:50:14.896377367+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  
++0.134s  #24  step.start  2026-11-25T04:50:14.897338124+07:00  absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  
++0.135s  #25  command  2026-11-25T04:50:14.898389282+07:00  absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  php-fpm8.3 -t
++0.147s  #26  output  2026-11-25T04:50:14.910272506+07:00  absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  [25-Nov-2026 04:50:14] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful
++0.148s  #27  command  2026-11-25T04:50:14.911766911+07:00  absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  systemctl reload php8.3-fpm
++0.165s  #28  step.done  2026-11-25T04:50:14.928559333+07:00  absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  
++0.166s  #29  step.start  2026-11-25T04:50:14.930016835+07:00  db.lock:b.example.com  
++0.169s  #30  command  2026-11-25T04:50:14.931122784+07:00  db.lock:b.example.com  mariadb -N -B
++0.172s  #31  output  2026-11-25T04:50:14.935342718+07:00  db.lock:b.example.com  1	0
++0.173s  #32  command  2026-11-25T04:50:14.936430278+07:00  db.lock:b.example.com  mariadb -N -B
++0.177s  #33  output  2026-11-25T04:50:14.940409408+07:00  db.lock:b.example.com  1	0
++0.179s  #34  command  2026-11-25T04:50:14.94155105+07:00  db.lock:b.example.com  mariadb -N -B
++0.182s  #35  command  2026-11-25T04:50:14.945758683+07:00  db.lock:b.example.com  mariadb -N -B
++0.186s  #36  output  2026-11-25T04:50:14.949378295+07:00  db.lock:b.example.com  1	1
++0.187s  #37  step.done  2026-11-25T04:50:14.950329462+07:00  db.lock:b.example.com  
++0.188s  #38  step.start  2026-11-25T04:50:14.951507464+07:00  user.lock:b.example.com  
++0.189s  #39  command  2026-11-25T04:50:14.952497035+07:00  user.lock:b.example.com  getent passwd tp_b_example_com_cd59d5
++0.19s  #40  output  2026-11-25T04:50:14.953919969+07:00  user.lock:b.example.com  tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
++0.191s  #41  command  2026-11-25T04:50:14.954844908+07:00  user.lock:b.example.com  chage -l tp_b_example_com_cd59d5
++0.193s  #42  output  2026-11-25T04:50:14.956638285+07:00  user.lock:b.example.com  Last password change					: Nov 24, 2026
++0.194s  #43  output  2026-11-25T04:50:14.95747691+07:00  user.lock:b.example.com  Password expires					: never
++0.195s  #44  output  2026-11-25T04:50:14.958363862+07:00  user.lock:b.example.com  Password inactive					: never
++0.196s  #45  output  2026-11-25T04:50:14.959364107+07:00  user.lock:b.example.com  Account expires						: never
++0.197s  #46  output  2026-11-25T04:50:14.960257439+07:00  user.lock:b.example.com  Minimum number of days between password change		: -1
++0.198s  #47  output  2026-11-25T04:50:14.961202935+07:00  user.lock:b.example.com  Maximum number of days between password change		: -1
++0.199s  #48  output  2026-11-25T04:50:14.962428556+07:00  user.lock:b.example.com  Number of days of warning before password expires	: -1
++0.2s  #49  command  2026-11-25T04:50:14.963365253+07:00  user.lock:b.example.com  getent passwd tp_b_example_com_cd59d5
++0.201s  #50  output  2026-11-25T04:50:14.964658216+07:00  user.lock:b.example.com  tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
++0.202s  #51  command  2026-11-25T04:50:14.965563348+07:00  user.lock:b.example.com  chage -l tp_b_example_com_cd59d5
++0.203s  #52  output  2026-11-25T04:50:14.967035486+07:00  user.lock:b.example.com  Last password change					: Nov 24, 2026
++0.204s  #53  output  2026-11-25T04:50:14.967929694+07:00  user.lock:b.example.com  Password expires					: never
++0.206s  #54  output  2026-11-25T04:50:14.968901793+07:00  user.lock:b.example.com  Password inactive					: never
++0.206s  #55  output  2026-11-25T04:50:14.97019413+07:00  user.lock:b.example.com  Account expires						: never
++0.207s  #56  output  2026-11-25T04:50:14.971102765+07:00  user.lock:b.example.com  Minimum number of days between password change		: -1
++0.208s  #57  output  2026-11-25T04:50:14.97204284+07:00  user.lock:b.example.com  Maximum number of days between password change		: -1
++0.209s  #58  output  2026-11-25T04:50:14.972944554+07:00  user.lock:b.example.com  Number of days of warning before password expires	: -1
++0.21s  #59  command  2026-11-25T04:50:14.97385052+07:00  user.lock:b.example.com  usermod --expiredate 1 tp_b_example_com_cd59d5
++0.217s  #60  command  2026-11-25T04:50:14.981030659+07:00  user.lock:b.example.com  getent passwd tp_b_example_com_cd59d5
++0.218s  #61  output  2026-11-25T04:50:14.982314865+07:00  user.lock:b.example.com  tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
++0.22s  #62  command  2026-11-25T04:50:14.98321637+07:00  user.lock:b.example.com  chage -l tp_b_example_com_cd59d5
++0.221s  #63  output  2026-11-25T04:50:14.984934191+07:00  user.lock:b.example.com  Last password change					: Nov 24, 2026
++0.222s  #64  output  2026-11-25T04:50:14.98584587+07:00  user.lock:b.example.com  Password expires					: never
++0.223s  #65  output  2026-11-25T04:50:14.986842112+07:00  user.lock:b.example.com  Password inactive					: never
++0.224s  #66  output  2026-11-25T04:50:14.987797782+07:00  user.lock:b.example.com  Account expires						: Jan 02, 1970
++0.225s  #67  output  2026-11-25T04:50:14.988795983+07:00  user.lock:b.example.com  Minimum number of days between password change		: -1
++0.226s  #68  output  2026-11-25T04:50:14.989946757+07:00  user.lock:b.example.com  Maximum number of days between password change		: -1
++0.227s  #69  output  2026-11-25T04:50:14.990865733+07:00  user.lock:b.example.com  Number of days of warning before password expires	: -1
++0.228s  #70  step.done  2026-11-25T04:50:14.991753686+07:00  user.lock:b.example.com  
++0.229s  #71  step.start  2026-11-25T04:50:14.992661821+07:00  absent:/etc/cron.d/tpan-b_example_com_cd59d5  
++0.23s  #72  step.done  2026-11-25T04:50:14.993659147+07:00  absent:/etc/cron.d/tpan-b_example_com_cd59d5  
++0.231s  #73  step.start  2026-11-25T04:50:14.994572952+07:00  dir.move:/var/www/b.example.com  
++0.232s  #74  step.done  2026-11-25T04:50:14.995663139+07:00  dir.move:/var/www/b.example.com  
++0.236s  #75  check  2026-11-25T04:50:14.999144565+07:00    [pass] http.gone:b.example.com
++0.238s  #76  job.done  2026-11-25T04:50:15.002264494+07:00    succeeded
+
+Tóm tắt luồng:
+{
+  "events": 76,
+  "first": "job.start",
+  "last": "job.done",
+  "last_message": "succeeded",
+  "job_ids": [
+    "55dacc44f7be3bf6"
+  ],
+  "seq_contiguous": true,
+  "span_seconds": 0.23800015449523926,
+  "received_2s_before_done": 0,
+  "kinds": {
+    "check": 1,
+    "command": 19,
+    "job.done": 1,
+    "job.start": 1,
+    "output": 42,
+    "step.done": 6,
+    "step.start": 6
+  },
+  "checks": {
+    "pass": 1
+  }
+}
+Số dòng data: trong luồng thô: 76; số dòng id:/event:/data: 76/76/76
+  => ĐẠT: SSE: mọi sự kiện thuộc job 55dacc44f7be3bf6
+  => ĐẠT: SSE: sự kiện đầu là job.start, cuối là job.done
+  => ĐẠT: SSE: Seq liền mạch từ 1
+  => ĐẠT: job xoá succeeded
+
+[2026-11-25 04:50:15] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X DELETE -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n -H Sec-Fetch-Site: same-origin -H Origin: https://<vm>:8443 https://<vm>:8443/api/v1/trash/b.example.com
+HTTP/2 202 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 30
+date: Tue, 24 Nov 2026 21:50:15 GMT
+
+-> HTTP 202, 0.017426s
+[2026-11-25 04:50:15] (mã thoát 0)
+{
+  "job_id": "9622bd3c6205bfac"
+}
+  => ĐẠT: DELETE /trash/b.example.com: 202 có job_id
+
+[2026-11-25 04:50:15] $ curl -sN --cacert ... -b <cookie> <vm>/api/v1/jobs/9622bd3c6205bfac/events | <gắn thời điểm nhận> (chạy nền)
+[2026-11-25 04:50:17] luồng SSE đã đóng (mã thoát 0)
+
+Sự kiện SSE đã nhận (thời điểm nhận tính từ sự kiện đầu; time là giờ của máy ảo; message cắt 160 ký tự):
++0s  #1  job.start  2026-11-25T04:50:15.097494039+07:00    
++0s  #2  step.start  2026-11-25T04:50:15.098306119+07:00  backup.create:b.example.com  
++0s  #3  command  2026-11-25T04:50:15.099511271+07:00  backup.create:b.example.com  du -sb --one-file-system -- /var/lib/tpan/trash/b_example_com_cd59d5/public
++0s  #4  output  2026-11-25T04:50:15.105739719+07:00  backup.create:b.example.com  110139060	/var/lib/tpan/trash/b_example_com_cd59d5/public
++0s  #5  command  2026-11-25T04:50:15.10660025+07:00  backup.create:b.example.com  mariadb -N -B
++0s  #6  output  2026-11-25T04:50:15.110561162+07:00  backup.create:b.example.com  770048
++0s  #7  command  2026-11-25T04:50:15.112396472+07:00  backup.create:b.example.com  mariadb-dump --single-transaction --quick --result-file=/var/lib/tpan/backups/b.example.com/.tmp-20261124-215015/db.sql tp_b_example_com_cd59d5
++0s  #8  command  2026-11-25T04:50:15.122849103+07:00  backup.create:b.example.com  tail -n 1 -- /var/lib/tpan/backups/b.example.com/.tmp-20261124-215015/db.sql
++0s  #9  output  2026-11-25T04:50:15.125307984+07:00  backup.create:b.example.com  -- Dump completed on 2026-11-25  4:50:15
++0s  #10  command  2026-11-25T04:50:15.126096964+07:00  backup.create:b.example.com  sha256sum -- /var/lib/tpan/backups/b.example.com/.tmp-20261124-215015/db.sql
++0s  #11  output  2026-11-25T04:50:15.127600663+07:00  backup.create:b.example.com  f687ac3264c540d89285b3747f76bc9afb09c2ba093761d1d84cbff71ff8607e  /var/lib/tpan/backups/b.example.com/.tmp-20261124-215015/db.sql
++0s  #12  command  2026-11-25T04:50:15.129749697+07:00  backup.create:b.example.com  tar --create --gzip --file=/var/lib/tpan/backups/b.example.com/b.example.com-20261124-215015.tar.gz.part --one-file-system --directory=/var/lib/tpan/backups/b.e
++2.205s  #13  command  2026-11-25T04:50:17.336839369+07:00  backup.create:b.example.com  sha256sum -- /var/lib/tpan/backups/b.example.com/b.example.com-20261124-215015.tar.gz
++2.223s  #14  output  2026-11-25T04:50:17.370165868+07:00  backup.create:b.example.com  cd0df26194a57b74ab306173ce995a4999adb2c1dffc19900b4cec65059274c3  /var/lib/tpan/backups/b.example.com/b.example.com-20261124-215015.tar.gz
++2.224s  #15  step.done  2026-11-25T04:50:17.371475029+07:00  backup.create:b.example.com  
++2.226s  #16  step.start  2026-11-25T04:50:17.372586642+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  
++2.227s  #17  step.skip  2026-11-25T04:50:17.37390952+07:00  absent:/etc/nginx/sites-enabled/tpan-b.example.com.conf  
++2.227s  #18  step.start  2026-11-25T04:50:17.37483501+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  
++2.229s  #19  command  2026-11-25T04:50:17.375745531+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  nginx -t
++2.232s  #20  output  2026-11-25T04:50:17.378889243+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
++2.232s  #21  output  2026-11-25T04:50:17.379885071+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  nginx: configuration file /etc/nginx/nginx.conf test is successful
++2.233s  #22  command  2026-11-25T04:50:17.380743057+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++2.236s  #23  output  2026-11-25T04:50:17.38385875+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    15939 nginx: worker process
++2.237s  #24  output  2026-11-25T04:50:17.38482289+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    15941 nginx: worker process
++2.238s  #25  command  2026-11-25T04:50:17.385682044+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  systemctl reload nginx
++2.252s  #26  command  2026-11-25T04:50:17.39843009+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++2.255s  #27  output  2026-11-25T04:50:17.402371415+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    15939 nginx: worker process
++2.256s  #28  output  2026-11-25T04:50:17.403352066+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    15941 nginx: worker process
++2.257s  #29  output  2026-11-25T04:50:17.404367449+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    16016 nginx: worker process
++2.258s  #30  output  2026-11-25T04:50:17.405403053+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    16018 nginx: worker process
++2.308s  #31  command  2026-11-25T04:50:17.45513315+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++2.312s  #32  output  2026-11-25T04:50:17.45866929+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    15939 nginx: worker process
++2.313s  #33  output  2026-11-25T04:50:17.459976115+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    15941 nginx: worker process
++2.314s  #34  output  2026-11-25T04:50:17.461024311+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    16016 nginx: worker process
++2.314s  #35  output  2026-11-25T04:50:17.46194905+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    16018 nginx: worker process
++2.412s  #36  command  2026-11-25T04:50:17.559140156+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  ps -o pid=,args= --ppid 9909
++2.416s  #37  output  2026-11-25T04:50:17.563027486+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    16016 nginx: worker process
++2.416s  #38  output  2026-11-25T04:50:17.563997005+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf    16018 nginx: worker process
++2.418s  #39  step.done  2026-11-25T04:50:17.564949887+07:00  absent:/etc/nginx/sites-available/tpan-b.example.com.conf  
++2.419s  #40  step.start  2026-11-25T04:50:17.565978529+07:00  absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  
++2.42s  #41  step.skip  2026-11-25T04:50:17.567322421+07:00  absent:/etc/php/8.3/fpm/pool.d/tpan-b_example_com_cd59d5.conf  
++2.421s  #42  step.start  2026-11-25T04:50:17.568337053+07:00  absent:/etc/cron.d/tpan-b_example_com_cd59d5  
++2.422s  #43  step.skip  2026-11-25T04:50:17.569243571+07:00  absent:/etc/cron.d/tpan-b_example_com_cd59d5  
++2.423s  #44  step.start  2026-11-25T04:50:17.570251365+07:00  mariadb.site-db-absent:b.example.com  
++2.424s  #45  command  2026-11-25T04:50:17.571352513+07:00  mariadb.site-db-absent:b.example.com  mariadb -N -B
++2.428s  #46  output  2026-11-25T04:50:17.57592655+07:00  mariadb.site-db-absent:b.example.com  1	1
++2.43s  #47  command  2026-11-25T04:50:17.576949562+07:00  mariadb.site-db-absent:b.example.com  mariadb -N -B
++2.498s  #48  command  2026-11-25T04:50:17.644974221+07:00  mariadb.site-db-absent:b.example.com  mariadb -N -B
++2.502s  #49  output  2026-11-25T04:50:17.64902737+07:00  mariadb.site-db-absent:b.example.com  0	0
++2.502s  #50  step.done  2026-11-25T04:50:17.650072523+07:00  mariadb.site-db-absent:b.example.com  
++2.503s  #51  step.start  2026-11-25T04:50:17.650998095+07:00  remove-tree:/var/lib/tpan/trash/b_example_com_cd59d5  
++2.504s  #52  command  2026-11-25T04:50:17.65194193+07:00  remove-tree:/var/lib/tpan/trash/b_example_com_cd59d5  rm -r --one-file-system -- /var/lib/tpan/trash/b_example_com_cd59d5
++2.537s  #53  step.done  2026-11-25T04:50:17.683556335+07:00  remove-tree:/var/lib/tpan/trash/b_example_com_cd59d5  
++2.543s  #54  step.start  2026-11-25T04:50:17.685577468+07:00  remove-tree:/var/log/tpan/sites/b.example.com  
++2.548s  #55  command  2026-11-25T04:50:17.691729928+07:00  remove-tree:/var/log/tpan/sites/b.example.com  rm -r --one-file-system -- /var/log/tpan/sites/b.example.com
++2.551s  #56  step.done  2026-11-25T04:50:17.697185091+07:00  remove-tree:/var/log/tpan/sites/b.example.com  
++2.552s  #57  step.start  2026-11-25T04:50:17.6996338+07:00  site.user.absent:tp_b_example_com_cd59d5  
++2.553s  #58  command  2026-11-25T04:50:17.700801992+07:00  site.user.absent:tp_b_example_com_cd59d5  getent passwd tp_b_example_com_cd59d5
++2.554s  #59  output  2026-11-25T04:50:17.702138629+07:00  site.user.absent:tp_b_example_com_cd59d5  tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
++2.556s  #60  command  2026-11-25T04:50:17.70307129+07:00  site.user.absent:tp_b_example_com_cd59d5  getent passwd tp_b_example_com_cd59d5
++2.557s  #61  output  2026-11-25T04:50:17.704874654+07:00  site.user.absent:tp_b_example_com_cd59d5  tp_b_example_com_cd59d5:x:997:987::/var/www/b.example.com:/usr/sbin/nologin
++2.558s  #62  command  2026-11-25T04:50:17.705867188+07:00  site.user.absent:tp_b_example_com_cd59d5  userdel tp_b_example_com_cd59d5
++2.578s  #63  command  2026-11-25T04:50:17.725208194+07:00  site.user.absent:tp_b_example_com_cd59d5  systemctl list-units --type=service --state=active --no-legend --plain 'tpan-cage-*-php.service'
++2.582s  #64  command  2026-11-25T04:50:17.72883652+07:00  site.user.absent:tp_b_example_com_cd59d5  getent passwd tp_b_example_com_cd59d5
++2.583s  #65  step.done  2026-11-25T04:50:17.730745704+07:00  site.user.absent:tp_b_example_com_cd59d5  
++2.586s  #66  job.done  2026-11-25T04:50:17.733294271+07:00    succeeded
+
+Tóm tắt luồng:
+{
+  "events": 66,
+  "first": "job.start",
+  "last": "job.done",
+  "last_message": "succeeded",
+  "job_ids": [
+    "9622bd3c6205bfac"
+  ],
+  "seq_contiguous": true,
+  "span_seconds": 2.5859999656677246,
+  "received_2s_before_done": 12,
+  "kinds": {
+    "command": 23,
+    "job.done": 1,
+    "job.start": 1,
+    "output": 23,
+    "step.done": 6,
+    "step.skip": 3,
+    "step.start": 9
+  },
+  "checks": null
+}
+Số dòng data: trong luồng thô: 66; số dòng id:/event:/data: 66/66/66
+  => ĐẠT: SSE: mọi sự kiện thuộc job 9622bd3c6205bfac
+  => ĐẠT: SSE: sự kiện đầu là job.start, cuối là job.done
+  => ĐẠT: SSE: Seq liền mạch từ 1
+  => ĐẠT: job xoá hẳn succeeded
+
+[2026-11-25 04:50:17] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/sites/b.example.com
+HTTP/2 404 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 216
+date: Tue, 24 Nov 2026 21:50:17 GMT
+
+-> HTTP 404, 0.003308s
+[2026-11-25 04:50:17] (mã thoát 0)
+{
+  "error": {
+    "code": "site_not_found",
+    "message": {
+      "vi": "không có site b.example.com trong tpan; xem danh sách bằng: sudo tpan site list",
+      "en": "tpan has no site b.example.com; list sites with: sudo tpan site list"
+    }
+  }
+}
+  => ĐẠT: GET /sites/b.example.com: 404 site_not_found
+
+[2026-11-25 04:50:17] $ curl -sS -m 120 --cacert <tmp>/cert.pem -b <tmp>/jar -c <tmp>/jar -X GET -D - -o <tmp>/body -w -> HTTP %{http_code}, %{time_total}s\n https://<vm>:8443/api/v1/sites
+HTTP/2 200 
+content-security-policy: default-src 'self'; frame-ancestors 'none'
+content-type: application/json; charset=utf-8
+referrer-policy: no-referrer
+x-content-type-options: nosniff
+content-length: 270
+date: Tue, 24 Nov 2026 21:50:17 GMT
+
+-> HTTP 200, 0.003127s
+[2026-11-25 04:50:17] (mã thoát 0)
+[
+  "a.example.com"
+]
+  => ĐẠT: chỉ còn a.example.com
+
+[2026-11-25 04:50:18] $ scripts/vm.sh root bash -c 
+d=$1; u=$2; slug=$3
+getent passwd "$u" >/dev/null && echo "CÒN user Linux $u" || echo "không có user Linux $u"
+mariadb -N -B -e "SHOW DATABASES" | grep -qx "$u" && echo "CÒN DB $u" || echo "không có DB $u"
+mariadb -N -B -e "SELECT User FROM mysql.user" | grep -qx "$u" && echo "CÒN user DB $u" || echo "không có user DB $u"
+for p in /var/www/$d /var/log/tpan/sites/$d /etc/php/*/fpm/pool.d/tpan-$slug.conf /run/php/tpan-$slug-8.3.sock /etc/nginx/sites-enabled/tpan-$d.conf /etc/nginx/sites-available/tpan-$d.conf; do
+  if [ -e "$p" ] || [ -L "$p" ]; then echo "CÒN $p"; else echo "không có $p"; fi
+done
+python3 -c "import sqlite3,sys; c = sqlite3.connect(\"file:/var/lib/tpan/tpan.db?mode=ro\", uri=True); n = c.execute(\"SELECT COUNT(*) FROM sites WHERE domain = ?\", (sys.argv[1],)).fetchone()[0]; print((\"CÒN\" if n else \"không có\") + \" dòng \" + sys.argv[1] + \" trong bảng sites\")" "$d"
+ _ b.example.com tp_b_example_com_cd59d5 b_example_com_cd59d5
+không có user Linux tp_b_example_com_cd59d5
+không có DB tp_b_example_com_cd59d5
+không có user DB tp_b_example_com_cd59d5
+không có /var/www/b.example.com
+không có /var/log/tpan/sites/b.example.com
+không có /etc/php/*/fpm/pool.d/tpan-b_example_com_cd59d5.conf
+không có /run/php/tpan-b_example_com_cd59d5-8.3.sock
+không có /etc/nginx/sites-enabled/tpan-b.example.com.conf
+không có /etc/nginx/sites-available/tpan-b.example.com.conf
+không có dòng b.example.com trong bảng sites
+[2026-11-25 04:50:18] (mã thoát 0)
+  => ĐẠT: không còn gì của b.example.com
+
+[2026-11-25 04:50:18] $ scripts/vm.sh exec curl -sS -m 10 -o /dev/null -w %{http_code}\n --resolve b.example.com:80:127.0.0.1 http://b.example.com/
+curl: (52) Empty reply from server
+000
+[2026-11-25 04:50:18] (mã thoát 52)
+  => ĐẠT: b.example.com giờ rơi vào site mặc định (nginx 444, curl mã 52)
+
+[2026-11-25 04:50:18] $ scripts/vm.sh exec curl -sS -m 10 -o /dev/null -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+200
+[2026-11-25 04:50:18] (mã thoát 0)
+  => ĐẠT: a.example.com vẫn 200
+
+
+######## [2026-11-25 04:50:18] bước 4 (đồ nghề, chỉ máy ảo test): bản serve HTTP loopback + socat 8081, cookie tpan qua http://<vm>:8081
+
+[2026-11-25 04:50:18] $ scripts/vm.sh root env DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=120 install -y -q socat
+Reading package lists...
+Building dependency tree...
+Reading state information...
+socat is already the newest version (1.8.0.0-4ubuntu0.1).
+socat set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 68 not upgraded.
+[2026-11-25 04:50:18] (mã thoát 0)
+  => ĐẠT: cài socat (đồ nghề test)
+
+[2026-11-25 04:50:18] $ scripts/vm.sh root systemd-run --collect --unit=tpan-e2e-http --description=tpan e2e: serve HTTP loopback (chi may ao test) /usr/local/bin/tpan serve --listen 127.0.0.1:8080
+Running as unit: tpan-e2e-http.service; invocation ID: 45624f1f17c04845ada13aefe29bdcb0
+[2026-11-25 04:50:18] (mã thoát 0)
+  => ĐẠT: chạy bản serve HTTP 127.0.0.1:8080
+
+[2026-11-25 04:50:18] $ scripts/vm.sh root systemd-run --collect --unit=tpan-e2e-socat --description=tpan e2e: socat 8081 -> 127.0.0.1:8080 (chi may ao test) /usr/bin/socat TCP-LISTEN:8081,fork,reuseaddr TCP:127.0.0.1:8080
+Running as unit: tpan-e2e-socat.service; invocation ID: 34ff386201b1497bbc975ce45f41de6f
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: chạy socat 8081 -> 127.0.0.1:8080
+
+[2026-11-25 04:50:19] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                                                           
+LISTEN 0      4096         0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=772,fd=3),("systemd",pid=1,fd=187))                           
+LISTEN 0      511          0.0.0.0:80        0.0.0.0:*    users:(("nginx",pid=16018,fd=5),("nginx",pid=16016,fd=5),("nginx",pid=9909,fd=5))
+LISTEN 0      4096       127.0.0.1:8080      0.0.0.0:*    users:(("tpan",pid=16326,fd=8))                                                  
+LISTEN 0      4096   127.0.0.53%lo:53        0.0.0.0:*    users:(("systemd-resolve",pid=471,fd=15))                                        
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*    users:(("mariadbd",pid=13381,fd=23))                                             
+LISTEN 0      4096      127.0.0.54:53        0.0.0.0:*    users:(("systemd-resolve",pid=471,fd=17))                                        
+LISTEN 0      4096            [::]:22           [::]:*    users:(("sshd",pid=772,fd=4),("systemd",pid=1,fd=188))                           
+LISTEN 0      511             [::]:80           [::]:*    users:(("nginx",pid=16018,fd=6),("nginx",pid=16016,fd=6),("nginx",pid=9909,fd=6))
+LISTEN 0      4096               *:8443            *:*    users:(("tpan",pid=15431,fd=8))                                                  
+LISTEN 0      5                  *:8081            *:*    users:(("socat",pid=16398,fd=5))                                                 
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: 8080 chỉ nghe ở 127.0.0.1 (tpan), 8081 do socat nghe
+
+[2026-11-25 04:50:19] $ curl -sS -m 10 -D - -o /dev/null http://<vm>:8081/
+HTTP/1.1 200 OK
+Cache-Control: no-cache
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'
+Content-Type: text/html; charset=utf-8
+Referrer-Policy: no-referrer
+X-Content-Type-Options: nosniff
+Date: Tue, 24 Nov 2026 21:50:19 GMT
+Content-Length: 955
+
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: GET http://<vm>:8081/ 200, vẫn có CSP
+
+[2026-11-25 04:50:19] $ curl -sS -m 30 -D - -o /dev/null -b <tmp>/jar-http -c <tmp>/jar-http -H Content-Type: application/json -H Origin: http://<vm>:8081 --data-binary @<tmp>/login-http.json http://<vm>:8081/api/v1/login
+HTTP/1.1 204 No Content
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'
+Referrer-Policy: no-referrer
+Set-Cookie: tpan=<đã che>; Path=/; HttpOnly; SameSite=Strict
+X-Content-Type-Options: nosniff
+Date: Tue, 24 Nov 2026 21:50:19 GMT
+
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: đăng nhập qua http://<vm>:8081: 204
+  => ĐẠT: cookie tên tpan, Path=/, HttpOnly, SameSite=Strict, không Secure
+
+[2026-11-25 04:50:19] $ curl -sS -m 10 -b <tmp>/jar-http http://<vm>:8081/api/v1/session
+{"logged_in":true,"demo":false,"hostname":"tpan-m19","version":"v0.2.3-53-gd432aea-dirty","expires":"2026-11-25T09:50:19.433268778Z","user":{"name":"admin","role":"admin"}}
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: phiên qua http://<vm>:8081 logged_in=true
+
+[2026-11-25 04:50:19] $ curl -sS -m 10 -o /dev/null -w %{http_code}\n -b <tmp>/jar-http -X POST -H Content-Type: application/json -H Sec-Fetch-Site: cross-site --data-binary @<tmp>/siteC.json http://<vm>:8081/api/v1/sites?dry_run=1
+403
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: CSRF qua socat vẫn chặn cross-site: 403
+
+[2026-11-25 04:50:19] $ curl -sS -m 10 -o /dev/null -w %{http_code}\n -b <tmp>/jar-http -X POST -H Content-Type: application/json -H Sec-Fetch-Site: same-origin -H Origin: http://<vm>:8081 --data-binary @<tmp>/siteC.json http://<vm>:8081/api/v1/sites?dry_run=1
+200
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: đối chứng same-origin qua socat: 200
+
+[2026-11-25 04:50:19] $ scripts/vm.sh root systemctl stop tpan-e2e-socat tpan-e2e-http
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: tắt socat và bản serve HTTP
+
+[2026-11-25 04:50:19] $ scripts/vm.sh root ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                                                           
+LISTEN 0      4096         0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=772,fd=3),("systemd",pid=1,fd=187))                           
+LISTEN 0      511          0.0.0.0:80        0.0.0.0:*    users:(("nginx",pid=16018,fd=5),("nginx",pid=16016,fd=5),("nginx",pid=9909,fd=5))
+LISTEN 0      4096   127.0.0.53%lo:53        0.0.0.0:*    users:(("systemd-resolve",pid=471,fd=15))                                        
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*    users:(("mariadbd",pid=13381,fd=23))                                             
+LISTEN 0      4096      127.0.0.54:53        0.0.0.0:*    users:(("systemd-resolve",pid=471,fd=17))                                        
+LISTEN 0      4096            [::]:22           [::]:*    users:(("sshd",pid=772,fd=4),("systemd",pid=1,fd=188))                           
+LISTEN 0      511             [::]:80           [::]:*    users:(("nginx",pid=16018,fd=6),("nginx",pid=16016,fd=6),("nginx",pid=9909,fd=6))
+LISTEN 0      4096               *:8443            *:*    users:(("tpan",pid=15431,fd=8))                                                  
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: không còn gì nghe 8080, 8081; tpan.service vẫn nghe 8443
+
+[2026-11-25 04:50:19] $ scripts/vm.sh exec systemctl is-active tpan
+active
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: tpan.service active
+
+[2026-11-25 04:50:19] $ curl -sS -m 10 --cacert <tmp>/cert.pem -o /dev/null -w %{http_code}\n https://<vm>:8443/api/v1/health
+200
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: https://<vm>:8443/api/v1/health 200
+
+
+######## [2026-11-25 04:50:19] nhật ký audit và log dịch vụ
+
+[2026-11-25 04:50:19] $ scripts/vm.sh root python3 -c import sqlite3; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); [print(*r) for r in c.execute("SELECT time, ip, action, target, result, job_id FROM audit ORDER BY id")]
+2026-11-24T21:49:22.030681504Z cli stack.install nginx ok fe7c9eee3e2ef921
+2026-11-24T21:49:22.800508574Z cli setup 0.0.0.0:8443 ok f9d5f9b88f57b450
+2026-11-24T21:49:24.019721447Z cli setup 0.0.0.0:8443 ok f7751ad4ace416d8
+2026-11-24T21:49:24.467069054Z <mac> login admin ok 
+2026-11-24T21:49:24.609036489Z <mac> login.fail <mac> wrong_password 
+2026-11-24T21:49:24.719364244Z <mac> login.fail <mac> wrong_password 
+2026-11-24T21:49:24.830083801Z <mac> login.fail <mac> wrong_password 
+2026-11-24T21:49:24.946789605Z <mac> login.fail <mac> wrong_password 
+2026-11-24T21:49:25.059836931Z <mac> login.fail <mac> locked 
+2026-11-24T21:49:25.296977400Z cli admin.passwd  ok 
+2026-11-24T21:49:25.454721161Z <mac> login.fail <mac> wrong_password 
+2026-11-24T21:49:25.586267757Z <mac> login admin ok 
+2026-11-24T21:49:41.792565953Z <mac> site.add a.example.com ok 772ce81c9029bd2f
+2026-11-24T21:49:56.240110049Z <mac> site.add c.example.com job_running 
+2026-11-24T21:49:58.941729920Z cli site.add b.example.com ok 3f5b9e0928a47d96
+2026-11-24T21:50:15.005308584Z <mac> site.rm b.example.com ok 55dacc44f7be3bf6
+2026-11-24T21:50:17.738149661Z <mac> site.purge b.example.com ok 9622bd3c6205bfac
+2026-11-24T21:50:19.436887666Z 127.0.0.1 login admin ok 
+[2026-11-25 04:50:19] (mã thoát 0)
+  => ĐẠT: audit có login.fail, locked, admin.passwd, login, site.add job_running, site.rm
+
+Log của tpan.service: 255 dòng; "database is locked": 0; level=ERROR: 0
+
+  => ĐẠT: log dịch vụ không có 'database is locked'
+
+
+######## [2026-11-25 04:50:20] mật khẩu không lọt vào DB, log dịch vụ, luồng SSE
+Đối chứng: chuỗi "site.add" có trong tpan.db + WAL ở 32 dòng
+  => ĐẠT: đối chứng: cách tìm này thấy được chữ có thật trong DB
+Bí mật thứ 1: tpan.db + WAL 0 dòng; log dịch vụ 0 dòng; luồng SSE 0 dòng
+  => ĐẠT: bí mật thứ 1 không nằm trong DB, log dịch vụ, SSE
+Bí mật thứ 2: tpan.db + WAL 0 dòng; log dịch vụ 0 dòng; luồng SSE 0 dòng
+  => ĐẠT: bí mật thứ 2 không nằm trong DB, log dịch vụ, SSE
+Bí mật thứ 3: tpan.db + WAL 0 dòng; log dịch vụ 0 dòng; luồng SSE 0 dòng
+  => ĐẠT: bí mật thứ 3 không nằm trong DB, log dịch vụ, SSE
+Bí mật thứ 4: tpan.db + WAL 0 dòng; log dịch vụ 0 dòng; luồng SSE 0 dòng
+  => ĐẠT: bí mật thứ 4 không nằm trong DB, log dịch vụ, SSE
+Bí mật thứ 5: tpan.db + WAL 0 dòng; log dịch vụ 0 dòng; luồng SSE 0 dòng
+  => ĐẠT: bí mật thứ 5 không nằm trong DB, log dịch vụ, SSE
+Bí mật thứ 6: tpan.db + WAL 0 dòng; log dịch vụ 0 dòng; luồng SSE 0 dòng
+  => ĐẠT: bí mật thứ 6 không nằm trong DB, log dịch vụ, SSE
+  => ĐẠT: đã kiểm 2 mật khẩu panel, 2 mật khẩu WordPress, 2 mật khẩu DB
+
+
+######## [2026-11-25 04:50:20] bí mật, IP, tên user Mac, cookie có lọt vào chính file log không
+Số bí mật đã gặp: 6; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu nào
+  => ĐẠT: log không chứa IP máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+  => ĐẠT: log không chứa giá trị cookie nào
+
+
+######## [2026-11-25 04:50:20] TỔNG KẾT: 0 khẳng định không đạt

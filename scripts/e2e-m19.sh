@@ -13,7 +13,10 @@
 #   apache    máy ảo về sạch rồi làm lại đúng các bước trên với stack Apache
 #   nang-cap  cài BẢN NGAY TRƯỚC M19 (commit f6a68b9), hai site (một có SSL), nâng lên
 #             bản của cây: E60, E61, E62
-#   all       = nginx apache nang-cap
+#   nang-cap-v020  cài v0.2.0 (gói phát hành, dist/release/v0.2.0) trên stack nginx, hai site
+#             (example.com có SSL, old2.example.com), nâng lên bản của cây: site_names chỉ có
+#             hai dòng primary, không tên phụ nào tự thêm, health không có phép tên mới chưa đạt
+#   all       = nginx apache nang-cap nang-cap-v020
 #
 # Biến môi trường (Makefile truyền vào):
 #   E2E_BUILD            1 (mặc định): make build-linux trước; 0: dùng bin/ sẵn có
@@ -21,6 +24,7 @@
 #   E2E_OLD_BIN_PREFIX   tiền tố file chạy của bản trước M19 (mặc định bin/tpan-truoc-m19-linux)
 #   E2E_OLD_COMMIT       commit bản trước M19 (mặc định f6a68b9)
 #   E2E_NC_WEB           stack của phần nang-cap (mặc định apache)
+#   E2E_V020_DIR         thư mục gói v0.2.0 (mặc định dist/release/v0.2.0)
 #
 # KHÔNG thuộc script này (ghi trong log để người đọc không tưởng là bỏ sót):
 #   E10 phần giao diện, E23, E41: cần trình duyệt, ở e2e-m19-gd. Ở đây E10 thay bằng
@@ -68,6 +72,8 @@ DEFAULT_PREFIX=bin/tpan-linux
 OLD_PREFIX="${E2E_OLD_BIN_PREFIX:-bin/tpan-truoc-m19-linux}"
 OLD_COMMIT="${E2E_OLD_COMMIT:-f6a68b9}"
 NC_WEB="${E2E_NC_WEB:-apache}"
+OLD_VER=v0.2.0
+OLD_DIR="${E2E_V020_DIR:-dist/release/$OLD_VER}"
 R=/home/ubuntu/e2e-m19 # thư mục script trong máy ảo
 PASSES=0
 FAILS=0
@@ -110,6 +116,18 @@ vm_run() {
   mask "$out"
   printf '\n[%s] <<< %s xong trong %s giây\n' "$(ts)" "$label" "$((t1 - t0))"
   verdicts "$out"
+}
+
+# vm_plain <nhãn> <lệnh vm.sh...>: chạy một lệnh khác (không đếm khẳng định).
+vm_plain() {
+  local label=$1 out rc
+  shift
+  printf '\n[%s] $ %s\n' "$(ts)" "$label"
+  out="$("$VM" "$@" </dev/null 2>&1)"
+  rc=$?
+  mask "$out"
+  printf '\n[%s] (mã thoát %s)\n' "$(ts)" "$rc"
+  return "$rc"
 }
 
 part_begin() { P0=$PASSES F0=$FAILS; section "PHẦN $*"; }
@@ -201,6 +219,17 @@ push_scripts() {
   done
 }
 
+# stage_v020: chép gói v0.2.0 vào máy ảo (install.sh, SHA256SUMS, hai file chạy).
+stage_v020() {
+  printf '[%s] chép gói %s vào máy ảo\n' "$(ts)" "$OLD_VER"
+  [ -d "$OLD_DIR" ] || { echo "Chưa có $OLD_DIR"; return 1; }
+  local f
+  for f in install.sh SHA256SUMS tpan-linux-amd64 tpan-linux-arm64; do
+    [ -f "$OLD_DIR/$f" ] && "$VM" push "$OLD_DIR/$f" "/home/ubuntu/$OLD_VER/$f" </dev/null >/dev/null 2>&1
+  done
+  return 0
+}
+
 # ---------------------------------------------------------------- các phần
 
 part_stack() { # part_stack <apache|nginx>
@@ -232,17 +261,36 @@ part_nangcap() {
   part_end NÂNG-CẤP
 }
 
+# part_nangcap_v020: nâng từ gói phát hành v0.2.0 (luật 2 của agent-dev/LO-TRINH.md). Cài như
+# scripts/e2e-m28-dot2.sh (install.sh của gói), nhưng KHÔNG đưa --web: tpan stack install chạy
+# trong nang-cap-v020.sh sau bước chờ khoá apt của máy vừa về snapshot. Chỉ stack nginx
+# (lý do ở đầu scripts/e2e-m19/nang-cap-v020.sh).
+part_nangcap_v020() {
+  part_begin "NÂNG CẤP TỪ $OLD_VER lên bản của cây (nginx)"
+  reset_vm || { part_end NÂNG-CẤP-V020; return; }
+  stage_v020 || { echo "  => KHÔNG ĐẠT: có gói $OLD_VER ($OLD_DIR)"; FAILS=$((FAILS + 1)); part_end NÂNG-CẤP-V020; return; }
+  push_scripts
+  vm_plain "cài $OLD_VER bằng install.sh của gói" \
+    exec bash -c "cd /home/ubuntu/$OLD_VER && sudo bash ./install.sh"
+  vm_run "cài máy nginx trên $OLD_VER, hai site (example.com có SSL), ghi mốc" nang-cap-v020.sh truoc nginx
+  printf '\n[%s] thay file chạy bằng bản của cây rồi restart tpan\n' "$(ts)"
+  deploy_tree
+  "$VM" exec tpan version </dev/null 2>&1 | head -1
+  vm_run "sau nâng từ $OLD_VER: site_names, http và https, health, site add chạy lại" nang-cap-v020.sh sau nginx
+  part_end NÂNG-CẤP-V020
+}
+
 # ---------------------------------------------------------------- điều phối
 
 PARTS=()
 for a in "$@"; do
   case "$a" in
-    all) PARTS+=(nginx apache nang-cap) ;;
-    nginx | apache | nang-cap) PARTS+=("$a") ;;
-    *) echo "Phần lạ: $a (dùng: nginx apache nang-cap all)" >&2; exit 2 ;;
+    all) PARTS+=(nginx apache nang-cap nang-cap-v020) ;;
+    nginx | apache | nang-cap | nang-cap-v020) PARTS+=("$a") ;;
+    *) echo "Phần lạ: $a (dùng: nginx apache nang-cap nang-cap-v020 all)" >&2; exit 2 ;;
   esac
 done
-[ ${#PARTS[@]} -gt 0 ] || { echo "Cách dùng: $0 <phần>...  (nginx apache nang-cap all)" >&2; exit 2; }
+[ ${#PARTS[@]} -gt 0 ] || { echo "Cách dùng: $0 <phần>...  (nginx apache nang-cap nang-cap-v020 all)" >&2; exit 2; }
 
 section "e2e M19 bước 22 (dòng lệnh và API) — máy ảo $VMNAME — phần: ${PARTS[*]} — log ${E2E_LOG:-(stdout)}"
 printf 'E2E_BUILD=%s  E2E_BIN_PREFIX=%s  E2E_OLD_BIN_PREFIX=%s  E2E_OLD_COMMIT=%s\n' "$E2E_BUILD" "$BIN_PREFIX" "$OLD_PREFIX" "$OLD_COMMIT"
@@ -254,6 +302,7 @@ for p in "${PARTS[@]}"; do
   case "$p" in
     apache | nginx) part_stack "$p" ;;
     nang-cap) part_nangcap ;;
+    nang-cap-v020) part_nangcap_v020 ;;
   esac
 done
 
