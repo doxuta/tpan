@@ -1,16 +1,16 @@
-e2e M20 (bước 23). Bản cũ: v0.2.0; bản A (của cây): v0.2.3-84-g668156c; máy ảo: tpan-m20
+e2e M20 (bước 23). Bản cũ: v0.2.0; bản A (của cây): v0.2.3-95-gb905eb5; máy ảo: tpan-m20
 
 
-######## [2026-11-25 04:05:26] PHẦN 0: đóng gói bản A, build đồ nghề
+######## [2026-11-25 04:32:48] PHẦN 0: đóng gói bản A, build đồ nghề
 
-[2026-11-25 04:05:26] $ git log --oneline -1
-668156c Gộp dev (M28 đợt 2 nhóm B) vào moc/M20: admin đã bật hai bước tạo phiên ở /login/2fa nên tên dùng để vào panel (B1, panel.hosts) cũng được ghi ở bước hai; hàm chung rememberPanelHost cho cả hai chỗ tạo phiên, có test
-[2026-11-25 04:05:26] (mã thoát 0)
+[2026-11-25 04:32:48] $ git log --oneline -1
+b905eb5 Merge remote-tracking branch 'origin/dev' into moc/M20
+[2026-11-25 04:32:48] (mã thoát 0)
 
-[2026-11-25 04:05:26] $ git status --short
-[2026-11-25 04:05:26] (mã thoát 0)
+[2026-11-25 04:32:48] $ git status --short
+[2026-11-25 04:32:49] (mã thoát 0)
 
-[2026-11-25 04:05:26] $ bash -c cd "$1" && ls -l && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.0
+[2026-11-25 04:32:49] $ bash -c cd "$1" && ls -l && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.0
 total 90144
 -rw-------@ 1 <user>  staff       243 Nov 23 14:10 SHA256SUMS
 -rw-------@ 1 <user>  staff     20194 Nov 23 14:10 install.sh
@@ -19,14 +19,14 @@ total 90144
 tpan-linux-amd64: OK
 tpan-linux-arm64: OK
 install.sh: OK
-[2026-11-25 04:05:26] (mã thoát 0)
+[2026-11-25 04:32:49] (mã thoát 0)
   => ĐẠT: gói v0.2.0 đã phát hành: đủ file, sha256 khớp SHA256SUMS
 
-[2026-11-25 04:05:26] $ make release VERSION=v0.2.3-84-g668156c DATE=2026-11-24T21:05:26Z
+[2026-11-25 04:32:49] $ make release VERSION=v0.2.3-95-gb905eb5 DATE=2026-11-24T21:32:48Z
 cd web && pnpm install --frozen-lockfile && pnpm build
 ✓ Lockfile passes supply-chain policies (verified 4d ago)
 Lockfile is up to date, resolution step is skipped
-Done in 31ms using pnpm v12.15.0
+Done in 26ms using pnpm v12.15.0
 $ tsc --noEmit && vite build
 vite v8.3.8 building client environment for production...
 transforming...
@@ -47,113 +47,113 @@ dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
 dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
 dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
 dist/assets/index-CZ86rNfq.css                                   39.56 kB │ gzip:   9.08 kB
-dist/assets/useStatusName-C5560htU.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/useStatusName-CVpOZ4Zp.js                             0.20 kB │ gzip:   0.18 kB
 dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
 dist/assets/model-Co_p74TJ.js                                     0.27 kB │ gzip:   0.18 kB
-dist/assets/OriginTag-DIDHk-k6.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/OriginTag-6o-Sfmzv.js                                 0.27 kB │ gzip:   0.22 kB
 dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
-dist/assets/DomainText-Ai4nJtJ9.js                                0.30 kB │ gzip:   0.22 kB
-dist/assets/SuspendTag-D6pjqDCO.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/DomainText-Cx-FgHYW.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-CRZpFWN9.js                                0.37 kB │ gzip:   0.26 kB
 dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
-dist/assets/useCopy-B_L9BEqi.js                                   0.51 kB │ gzip:   0.32 kB
-dist/assets/m14-D0iZIYlP.js                                       0.56 kB │ gzip:   0.34 kB
-dist/assets/m13-dbs-B07WnP3B.js                                   0.65 kB │ gzip:   0.38 kB
-dist/assets/SegmentButton-DQ9-9yKk.js                             0.70 kB │ gzip:   0.45 kB
-dist/assets/RowActions-Bghb9dV6.js                                0.70 kB │ gzip:   0.42 kB
-dist/assets/m13-chung-DYPv_6f5.js                                 0.80 kB │ gzip:   0.45 kB
-dist/assets/Rows-BkaGXXgi.js                                      0.84 kB │ gzip:   0.35 kB
+dist/assets/useCopy-CZ7EzaFX.js                                   0.51 kB │ gzip:   0.32 kB
+dist/assets/m14-BrEh2Osy.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-jsdG8fbJ.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/SegmentButton-BhvvuHNq.js                             0.70 kB │ gzip:   0.45 kB
+dist/assets/RowActions-skEsh-2-.js                                0.70 kB │ gzip:   0.42 kB
+dist/assets/m13-chung-Bi-328YA.js                                 0.80 kB │ gzip:   0.44 kB
+dist/assets/Rows-Cqf5gUOX.js                                      0.84 kB │ gzip:   0.35 kB
 dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
-dist/assets/UsageMeter-Cs6YeXur.js                                0.86 kB │ gzip:   0.46 kB
+dist/assets/UsageMeter--x-Idklm.js                                0.86 kB │ gzip:   0.46 kB
 dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
-dist/assets/m17-BVpktZpc.js                                       0.99 kB │ gzip:   0.45 kB
-dist/assets/Frame-CcgFZ0Ge.js                                     1.00 kB │ gzip:   0.51 kB
+dist/assets/m17-CkZ8FWbR.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/Frame-M9oWZdUO.js                                     1.00 kB │ gzip:   0.51 kB
 dist/assets/model-C2VyZL6F.js                                     1.02 kB │ gzip:   0.54 kB
 dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
-dist/assets/Dialog-K9JfNWCC.js                                    1.18 kB │ gzip:   0.64 kB
-dist/assets/model-BQXIjU-7.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/Dialog-cmGZeTuM.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/model-Bs67rUeX.js                                     1.56 kB │ gzip:   0.61 kB
 dist/assets/model-XbSQ3r3G.js                                     1.78 kB │ gzip:   0.86 kB
-dist/assets/PreviewedOp-wF7O2piV.js                               1.90 kB │ gzip:   1.00 kB
-dist/assets/TokenTable-BZxprgtB.js                                1.94 kB │ gzip:   0.95 kB
-dist/assets/TableList-ChWi5OVP.js                                 2.21 kB │ gzip:   0.95 kB
-dist/assets/RouteMap-Dyz-sXfZ.js                                  2.32 kB │ gzip:   1.02 kB
-dist/assets/useMutation-BYCZfNBO.js                               2.33 kB │ gzip:   0.97 kB
-dist/assets/Bulk-BUIc7t0A.js                                      3.03 kB │ gzip:   1.39 kB
-dist/assets/model-mIyJzHqV.js                                     3.74 kB │ gzip:   1.53 kB
-dist/assets/bat-hai-buoc-Dm9uI2DI.js                              3.93 kB │ gzip:   1.89 kB
-dist/assets/plan-cho-duyet-8dxdhXyZ.js                            5.86 kB │ gzip:   2.05 kB
-dist/assets/RecoveryCodes-BjXEFGtL.js                             6.03 kB │ gzip:   2.24 kB
-dist/assets/StorageFlow-nIcbubyQ.js                               6.41 kB │ gzip:   2.57 kB
-dist/assets/Self-CsjGuBlv.js                                      8.49 kB │ gzip:   2.70 kB
-dist/assets/goi-qLChgZ4h.js                                       9.16 kB │ gzip:   3.77 kB
-dist/assets/tai-khoan-BRmzlQau.js                                 9.61 kB │ gzip:   3.17 kB
-dist/assets/model-DpWhxzST.js                                    10.06 kB │ gzip:   3.97 kB
-dist/assets/tai-nguyen-DQEk6iBl.js                               10.83 kB │ gzip:   4.03 kB
-dist/assets/backup-BamM16Wb.js                                   10.94 kB │ gzip:   3.49 kB
-dist/assets/queries-BpBgM30X.js                                  10.97 kB │ gzip:   3.32 kB
-dist/assets/cong-cu-NvjVdonx.js                                  11.22 kB │ gzip:   4.33 kB
-dist/assets/ssl-CMVp6vD9.js                                      11.48 kB │ gzip:   4.54 kB
-dist/assets/cap-nhat-Cy37znq-.js                                 11.90 kB │ gzip:   4.29 kB
-dist/assets/duyet-plan-DWjIRjjd.js                               11.99 kB │ gzip:   4.34 kB
-dist/assets/cron-OF0GM5tx.js                                     13.01 kB │ gzip:   4.88 kB
-dist/assets/thung-rac-Bn-o7Vsa.js                                13.42 kB │ gzip:   4.74 kB
-dist/assets/tao-site-BoPOkYsN.js                                 13.48 kB │ gzip:   4.93 kB
-dist/assets/Reauth-BgElKyPp.js                                   14.10 kB │ gzip:   5.28 kB
-dist/assets/co-so-du-lieu-DRytFqHX.js                            14.62 kB │ gzip:   4.81 kB
-dist/assets/dang-nhap-F9WwYn6V.js                                14.81 kB │ gzip:   5.26 kB
-dist/assets/MfaError-D3fyQIep.js                                 15.22 kB │ gzip:   5.62 kB
-dist/assets/co-so-du-lieu-B_69rRD7.js                            15.70 kB │ gzip:   4.97 kB
-dist/assets/cai-may-moi-v9T4wFdq.js                              15.76 kB │ gzip:   5.75 kB
-dist/assets/phien-ai-DPMq94YF.js                                 16.19 kB │ gzip:   5.31 kB
-dist/assets/stack-DmTCGItk.js                                    17.33 kB │ gzip:   5.51 kB
-dist/assets/nguoi-dung-CF4_ZmTm.js                               17.93 kB │ gzip:   5.99 kB
-dist/assets/CheckRow-D9JT28f9.js                                 18.07 kB │ gzip:   6.20 kB
-dist/assets/su-co-C3Q-Ng00.js                                    21.59 kB │ gzip:   7.19 kB
-dist/assets/backup-BPEkPQNV.js                                   24.66 kB │ gzip:   7.86 kB
-dist/assets/bao-mat-VrnkOskO.js                                  25.27 kB │ gzip:   7.08 kB
-dist/assets/trang-chu-CkA8eqLI.js                                26.46 kB │ gzip:   8.48 kB
-dist/assets/lich-su-CDVV5D9g.js                                  28.65 kB │ gzip:   9.26 kB
-dist/assets/ErrorNote-B-d80tRQ.js                                31.19 kB │ gzip:  10.15 kB
-dist/assets/cai-dat-CYjTCcGP.js                                  38.64 kB │ gzip:  12.19 kB
-dist/assets/site-DI-x-iva.js                                     43.09 kB │ gzip:  12.48 kB
-dist/assets/ScreenHeader-Biy23cy6.js                            147.95 kB │ gzip:  49.03 kB
-dist/assets/index-BnvvOQgQ.js                                   388.39 kB │ gzip: 124.59 kB
+dist/assets/PreviewedOp-BXZgHeB2.js                               1.90 kB │ gzip:   1.00 kB
+dist/assets/TokenTable-DH9cd3Ma.js                                1.94 kB │ gzip:   0.94 kB
+dist/assets/TableList-gBOhpXNB.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/RouteMap-BqFmxKtU.js                                  2.32 kB │ gzip:   1.02 kB
+dist/assets/useMutation-WgzQQ-aG.js                               2.33 kB │ gzip:   0.97 kB
+dist/assets/Bulk-CUAgXb_J.js                                      3.03 kB │ gzip:   1.38 kB
+dist/assets/model-B-zdd99k.js                                     3.74 kB │ gzip:   1.53 kB
+dist/assets/bat-hai-buoc-BNOvB6uz.js                              3.93 kB │ gzip:   1.89 kB
+dist/assets/plan-cho-duyet-DUNVJN93.js                            5.86 kB │ gzip:   2.05 kB
+dist/assets/RecoveryCodes-DuqchcoI.js                             6.03 kB │ gzip:   2.24 kB
+dist/assets/StorageFlow-C2ESelcd.js                               6.41 kB │ gzip:   2.57 kB
+dist/assets/Self-PnK8YqCn.js                                      8.49 kB │ gzip:   2.70 kB
+dist/assets/goi-Zo2up2Qv.js                                       9.16 kB │ gzip:   3.76 kB
+dist/assets/tai-khoan-qHyV4Jop.js                                 9.61 kB │ gzip:   3.17 kB
+dist/assets/model-BS7_z6Jv.js                                    10.06 kB │ gzip:   3.97 kB
+dist/assets/tai-nguyen-CdPhO2SL.js                               10.83 kB │ gzip:   4.03 kB
+dist/assets/backup-3i3YkIMP.js                                   10.94 kB │ gzip:   3.50 kB
+dist/assets/queries-CI_aQ8Vj.js                                  10.97 kB │ gzip:   3.32 kB
+dist/assets/cong-cu-CXem29f3.js                                  11.22 kB │ gzip:   4.33 kB
+dist/assets/ssl-CzTTdS8l.js                                      11.48 kB │ gzip:   4.53 kB
+dist/assets/cap-nhat-HPJRyv0e.js                                 11.90 kB │ gzip:   4.29 kB
+dist/assets/duyet-plan-BTBEoCXP.js                               11.99 kB │ gzip:   4.34 kB
+dist/assets/cron-B2C1f2MU.js                                     13.01 kB │ gzip:   4.88 kB
+dist/assets/thung-rac-Cv2_qjDs.js                                13.42 kB │ gzip:   4.73 kB
+dist/assets/tao-site-BTdxDJR5.js                                 13.48 kB │ gzip:   4.93 kB
+dist/assets/Reauth-DpOpYJ6M.js                                   14.11 kB │ gzip:   5.28 kB
+dist/assets/co-so-du-lieu-BlWygAOg.js                            14.62 kB │ gzip:   4.81 kB
+dist/assets/dang-nhap-B_dlpjdM.js                                14.81 kB │ gzip:   5.25 kB
+dist/assets/MfaError-QVMXacyZ.js                                 15.22 kB │ gzip:   5.62 kB
+dist/assets/co-so-du-lieu-CN2t697c.js                            15.70 kB │ gzip:   4.97 kB
+dist/assets/cai-may-moi-CmULb9sM.js                              15.78 kB │ gzip:   5.76 kB
+dist/assets/phien-ai-D67wElaR.js                                 16.19 kB │ gzip:   5.31 kB
+dist/assets/stack-B7zXwO3c.js                                    17.33 kB │ gzip:   5.51 kB
+dist/assets/nguoi-dung-DypQ7vuT.js                               17.93 kB │ gzip:   5.99 kB
+dist/assets/CheckRow-EIj42wJC.js                                 18.07 kB │ gzip:   6.20 kB
+dist/assets/su-co-DTCtmXbn.js                                    21.59 kB │ gzip:   7.19 kB
+dist/assets/backup-BUyGSlo9.js                                   24.66 kB │ gzip:   7.86 kB
+dist/assets/bao-mat-BFwjZDow.js                                  25.27 kB │ gzip:   7.08 kB
+dist/assets/trang-chu-x3NoxJ3k.js                                26.46 kB │ gzip:   8.47 kB
+dist/assets/lich-su-D7uSWpjf.js                                  28.65 kB │ gzip:   9.25 kB
+dist/assets/ErrorNote-kfMSsYAM.js                                31.19 kB │ gzip:  10.15 kB
+dist/assets/cai-dat-CDLlRLRt.js                                  38.66 kB │ gzip:  12.19 kB
+dist/assets/site-9ibrXGZV.js                                     43.09 kB │ gzip:  12.48 kB
+dist/assets/ScreenHeader-BQI9hm-t.js                            147.95 kB │ gzip:  49.03 kB
+dist/assets/index-Bzwrwdnw.js                                   388.39 kB │ gzip: 124.59 kB
 
-✓ built in 213ms
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-84-g668156c -X github.com/doxuta/tpan/internal/buildinfo.Commit=668156c -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:05:26Z' -o bin/tpan-linux-amd64 ./cmd/tpan
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-84-g668156c -X github.com/doxuta/tpan/internal/buildinfo.Commit=668156c -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:05:26Z' -o bin/tpan-linux-arm64 ./cmd/tpan
-rm -rf dist/release/v0.2.3-84-g668156c
-mkdir -p dist/release/v0.2.3-84-g668156c
-cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.3-84-g668156c/
-chmod 0755 dist/release/v0.2.3-84-g668156c/tpan-linux-amd64 dist/release/v0.2.3-84-g668156c/tpan-linux-arm64 dist/release/v0.2.3-84-g668156c/install.sh
-cd dist/release/v0.2.3-84-g668156c && if command -v sha256sum >/dev/null 2>&1; then \
+✓ built in 214ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-95-gb905eb5 -X github.com/doxuta/tpan/internal/buildinfo.Commit=b905eb5 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:32:48Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-95-gb905eb5 -X github.com/doxuta/tpan/internal/buildinfo.Commit=b905eb5 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:32:48Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/v0.2.3-95-gb905eb5
+mkdir -p dist/release/v0.2.3-95-gb905eb5
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.3-95-gb905eb5/
+chmod 0755 dist/release/v0.2.3-95-gb905eb5/tpan-linux-amd64 dist/release/v0.2.3-95-gb905eb5/tpan-linux-arm64 dist/release/v0.2.3-95-gb905eb5/install.sh
+cd dist/release/v0.2.3-95-gb905eb5 && if command -v sha256sum >/dev/null 2>&1; then \
 	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	else \
 	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	fi > SHA256SUMS
-printf '%s\n' 'v0.2.3-84-g668156c' > dist/release/v0.2.3-84-g668156c/VERSION
-Gói phát hành: dist/release/v0.2.3-84-g668156c/
+printf '%s\n' 'v0.2.3-95-gb905eb5' > dist/release/v0.2.3-95-gb905eb5/VERSION
+Gói phát hành: dist/release/v0.2.3-95-gb905eb5/
 total 103216
--rw-------@ 1 <user>  staff       243 Nov 25 04:05 SHA256SUMS
--rw-------@ 1 <user>  staff        19 Nov 25 04:05 VERSION
--rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 04:05 install.sh
--rwxr-xr-x@ 1 <user>  staff  27644064 Nov 25 04:05 tpan-linux-amd64
--rwxr-xr-x@ 1 <user>  staff  25165984 Nov 25 04:05 tpan-linux-arm64
-[2026-11-25 04:05:33] (mã thoát 0)
-  => ĐẠT: make release (bản A, v0.2.3-84-g668156c)
+-rw-------@ 1 <user>  staff       243 Nov 25 04:32 SHA256SUMS
+-rw-------@ 1 <user>  staff        19 Nov 25 04:32 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 04:32 install.sh
+-rwxr-xr-x@ 1 <user>  staff  27644064 Nov 25 04:32 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  25165984 Nov 25 04:32 tpan-linux-arm64
+[2026-11-25 04:32:53] (mã thoát 0)
+  => ĐẠT: make release (bản A, v0.2.3-95-gb905eb5)
 
-[2026-11-25 04:05:33] $ go build -o <tmp>/anh ./scripts/anh-readme
-[2026-11-25 04:05:34] (mã thoát 0)
+[2026-11-25 04:32:53] $ go build -o <tmp>/anh ./scripts/anh-readme
+[2026-11-25 04:32:53] (mã thoát 0)
   => ĐẠT: build chương trình trình duyệt (scripts/anh-readme)
 
-[2026-11-25 04:05:34] $ go build -o <tmp>/qrpng ./scripts/e2e-m20/qrpng
-[2026-11-25 04:05:34] (mã thoát 0)
+[2026-11-25 04:32:53] $ go build -o <tmp>/qrpng ./scripts/e2e-m20/qrpng
+[2026-11-25 04:32:53] (mã thoát 0)
   => ĐẠT: build qrpng (vẽ ma trận QR ra PNG, scripts/e2e-m20/qrpng)
 
-[2026-11-25 04:05:34] $ go build -o <tmp>/bangroute ./scripts/e2e-m20/bangroute
-[2026-11-25 04:05:35] (mã thoát 0)
+[2026-11-25 04:32:53] $ go build -o <tmp>/bangroute ./scripts/e2e-m20/bangroute
+[2026-11-25 04:32:54] (mã thoát 0)
   => ĐẠT: build bangroute (bảng route của server, scripts/e2e-m20/bangroute)
 
-[2026-11-25 04:05:35] $ bash -c 
+[2026-11-25 04:32:54] $ bash -c 
     set -e
     st=$1; a=$2
     rm -rf "$st"
@@ -164,65 +164,65 @@ total 103216
       CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -o "$st/mcpclient-$arch" ./scripts/e2e-m7/mcpclient
     done
     ls -lR "$st"
-   _ dist/e2e-m20 v0.2.3-84-g668156c
+   _ dist/e2e-m20 v0.2.3-95-gb905eb5
 total 45312
--rw-------@ 1 <user>  staff      4745 Nov 25 04:05 bang-token.sh
--rw-------@ 1 <user>  staff      1763 Nov 25 04:05 chung-chi.sh
--rw-------@ 1 <user>  staff      1884 Nov 25 04:05 db.py
--rw-------@ 1 <user>  staff      2482 Nov 25 04:05 gom.sh
--rw-------@ 1 <user>  staff      2547 Nov 25 04:05 khoa-ip.sh
--rw-------@ 1 <user>  staff      2128 Nov 25 04:05 ma.sh
--rwx------@ 1 <user>  wheel  12026230 Nov 25 04:05 mcpclient-amd64
--rwx------@ 1 <user>  wheel  11130846 Nov 25 04:05 mcpclient-arm64
--rw-------@ 1 <user>  staff      2005 Nov 25 04:05 pebble.sh
--rw-------@ 1 <user>  staff      2460 Nov 25 04:05 quet.sh
-drwx------@ 3 <user>  staff        96 Nov 25 04:05 rel
+-rw-------@ 1 <user>  staff      4745 Nov 25 04:32 bang-token.sh
+-rw-------@ 1 <user>  staff      1763 Nov 25 04:32 chung-chi.sh
+-rw-------@ 1 <user>  staff      1884 Nov 25 04:32 db.py
+-rw-------@ 1 <user>  staff      2482 Nov 25 04:32 gom.sh
+-rw-------@ 1 <user>  staff      2547 Nov 25 04:32 khoa-ip.sh
+-rw-------@ 1 <user>  staff      2128 Nov 25 04:32 ma.sh
+-rwx------@ 1 <user>  wheel  12026230 Nov 25 04:32 mcpclient-amd64
+-rwx------@ 1 <user>  wheel  11130846 Nov 25 04:32 mcpclient-arm64
+-rw-------@ 1 <user>  staff      2005 Nov 25 04:32 pebble.sh
+-rw-------@ 1 <user>  staff      2460 Nov 25 04:32 quet.sh
+drwx------@ 3 <user>  staff        96 Nov 25 04:32 rel
 
 dist/e2e-m20/rel:
 total 0
-drwx------@ 7 <user>  staff  224 Nov 25 04:05 a
+drwx------@ 7 <user>  staff  224 Nov 25 04:32 a
 
 dist/e2e-m20/rel/a:
 total 103216
--rw-------@ 1 <user>  staff       243 Nov 25 04:05 SHA256SUMS
--rw-------@ 1 <user>  staff        19 Nov 25 04:05 VERSION
--rwx------@ 1 <user>  staff     20194 Nov 25 04:05 install.sh
--rwx------@ 1 <user>  staff  27644064 Nov 25 04:05 tpan-linux-amd64
--rwx------@ 1 <user>  staff  25165984 Nov 25 04:05 tpan-linux-arm64
-[2026-11-25 04:05:37] (mã thoát 0)
+-rw-------@ 1 <user>  staff       243 Nov 25 04:32 SHA256SUMS
+-rw-------@ 1 <user>  staff        19 Nov 25 04:32 VERSION
+-rwx------@ 1 <user>  staff     20194 Nov 25 04:32 install.sh
+-rwx------@ 1 <user>  staff  27644064 Nov 25 04:32 tpan-linux-amd64
+-rwx------@ 1 <user>  staff  25165984 Nov 25 04:32 tpan-linux-arm64
+[2026-11-25 04:32:56] (mã thoát 0)
   => ĐẠT: dựng thư mục đồ nghề dist/e2e-m20 (gói A, script con, db.py, mcpclient cho Linux)
 
 ==== Phần 0: 6 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:05:37] PHẦN U (T80–T85): máy sạch, cài v0.2.0, nâng lên bản A bằng self-update của v0.2.0
+######## [2026-11-25 04:32:56] PHẦN U (T80–T85): máy sạch, cài v0.2.0, nâng lên bản A bằng self-update của v0.2.0
 Máy ảo: tpan-m20
 
-[2026-11-25 04:05:37] $ make vm-reset
+[2026-11-25 04:32:56] $ make vm-reset
 scripts/vm.sh reset
-[2K[0A[0EStopping tpan-m20  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  /-\ [2K[0A[0ESnapshot restored: tpan-m20.clean
-[2K[0A[0EStarting tpan-m20  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
-[2026-11-25 04:05:50] (mã thoát 0)
+[2K[0A[0EStopping tpan-m20  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m20.clean
+[2K[0A[0EStarting tpan-m20  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E
+[2026-11-25 04:33:09] (mã thoát 0)
   => ĐẠT: máy ảo về snapshot clean
 
-[2026-11-25 04:05:50] $ scripts/vm.sh exec cloud-init status --wait
+[2026-11-25 04:33:09] $ scripts/vm.sh exec cloud-init status --wait
 status: done
-[2026-11-25 04:05:50] (mã thoát 0)
+[2026-11-25 04:33:10] (mã thoát 0)
   => ĐẠT: cloud-init xong
 IP máy ảo: <vm>; IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
 
-[2026-11-25 04:05:51] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+[2026-11-25 04:33:10] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
 ls: cannot access '/etc/tpan': No such file or directory
 ls: cannot access '/var/lib/tpan': No such file or directory
-[2026-11-25 04:05:51] (mã thoát 2)
+[2026-11-25 04:33:10] (mã thoát 2)
   => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
 Kiến trúc máy ảo: arm64
 
-[2026-11-25 04:05:52] $ multipass transfer -r dist/e2e-m20 tpan-m20:/home/ubuntu/
-[2026-11-25 04:05:52] (mã thoát 0)
+[2026-11-25 04:33:10] $ multipass transfer -r dist/e2e-m20 tpan-m20:/home/ubuntu/
+[2026-11-25 04:33:10] (mã thoát 0)
   => ĐẠT: chép thư mục đồ nghề sang máy ảo (/home/ubuntu/e2e-m20)
 
-[2026-11-25 04:05:52] $ scripts/vm.sh exec bash -c mkdir -p "$1" && chmod 700 "$1" && chmod 755 "$2"/*.sh "$2"/mcpclient-* && stat -c "%a %U %n" "$1" && ls "$2" _ /home/ubuntu/e2e-m20/bm /home/ubuntu/e2e-m20
+[2026-11-25 04:33:10] $ scripts/vm.sh exec bash -c mkdir -p "$1" && chmod 700 "$1" && chmod 755 "$2"/*.sh "$2"/mcpclient-* && stat -c "%a %U %n" "$1" && ls "$2" _ /home/ubuntu/e2e-m20/bm /home/ubuntu/e2e-m20
 700 ubuntu /home/ubuntu/e2e-m20/bm
 bang-token.sh
 bm
@@ -236,23 +236,23 @@ mcpclient-arm64
 pebble.sh
 quet.sh
 rel
-[2026-11-25 04:05:52] (mã thoát 0)
+[2026-11-25 04:33:11] (mã thoát 0)
   => ĐẠT: thư mục bí mật /home/ubuntu/e2e-m20/bm là 0700 của ubuntu
 
-[2026-11-25 04:05:52] $ multipass transfer -r dist/release/v0.2.0 tpan-m20:/home/ubuntu/
-[2026-11-25 04:05:52] (mã thoát 0)
+[2026-11-25 04:33:11] $ multipass transfer -r dist/release/v0.2.0 tpan-m20:/home/ubuntu/
+[2026-11-25 04:33:11] (mã thoát 0)
   => ĐẠT: chép gói v0.2.0 sang máy ảo
 
-[2026-11-25 04:05:52] $ scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8020 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m20/rel
-Running as unit: tpan-e2e-http.service; invocation ID: 0593c83a0f5549c295377f9619d6ca01
-[2026-11-25 04:05:53] (mã thoát 0)
+[2026-11-25 04:33:11] $ scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8020 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m20/rel
+Running as unit: tpan-e2e-http.service; invocation ID: badb353d10d942808c3dd894beac8037
+[2026-11-25 04:33:11] (mã thoát 0)
 
-[2026-11-25 04:05:55] $ scripts/vm.sh exec bash -c printf "a: SHA256SUMS %s, VERSION %s\n" "$(curl -s -o /dev/null -w "%{http_code}" "$1/a/SHA256SUMS")" "$(curl -s "$1/a/VERSION")" _ http://127.0.0.1:8020
-a: SHA256SUMS 200, VERSION v0.2.3-84-g668156c
-[2026-11-25 04:05:55] (mã thoát 0)
+[2026-11-25 04:33:13] $ scripts/vm.sh exec bash -c printf "a: SHA256SUMS %s, VERSION %s\n" "$(curl -s -o /dev/null -w "%{http_code}" "$1/a/SHA256SUMS")" "$(curl -s "$1/a/VERSION")" _ http://127.0.0.1:8020
+a: SHA256SUMS 200, VERSION v0.2.3-95-gb905eb5
+[2026-11-25 04:33:13] (mã thoát 0)
   => ĐẠT: (đồ nghề) nguồn tải loopback trả gói A
 
-[2026-11-25 04:05:55] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.2.0 && sudo bash ./install.sh --web nginx
+[2026-11-25 04:33:13] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.2.0 && sudo bash ./install.sh --web nginx
 
 ==> Kiểm máy
 Ubuntu 24.04
@@ -268,7 +268,7 @@ tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
 Đã đặt /usr/local/bin/tpan
 
 ==> Khởi tạo panel: tpan setup
-Bắt đầu job f2ed3f7624628066
+Bắt đầu job 190f8e6c9bfa26de
 - Tạo thư mục /etc/tpan ...
   xong
 - Tạo thư mục /etc/tpan/tls ...
@@ -284,16 +284,16 @@ Bắt đầu job f2ed3f7624628066
 - Chạy và bật tpan.service khi khởi động ...
   xong
 
-Job f2ed3f7624628066: thành công
+Job 190f8e6c9bfa26de: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
     <bí mật, đã che>
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    4F:A6:5D:77:A2:CB:99:C6:37:FC:92:8F:9D:B4:45:55:95:78:23:9F:C7:7B:1A:4B:8B:0C:F2:01:D4:F0:92:0E
+    AB:37:63:48:E3:17:E1:E5:0C:BD:45:41:95:56:6F:4C:05:5D:4C:01:46:9C:55:92:45:AF:6A:A2:8B:BD:48:0F
 Mở: https://<IP của máy>:8443
 
 ==> Cài stack: tpan stack install --web nginx
-Bắt đầu job 47fcd93c4e0dbfeb
+Bắt đầu job 71456630bbf94018
 - Làm mới danh sách gói (apt-get update) ...
   xong
 - Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
@@ -344,7 +344,7 @@ Bắt đầu job 47fcd93c4e0dbfeb
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
 
-Job 47fcd93c4e0dbfeb: thành công
+Job 71456630bbf94018: thành công
 Kiểm chứng:
   [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
   [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
@@ -363,18 +363,18 @@ Kiểm chứng:
 Xong. Bước tiếp:
   sudo tpan site add example.com --email admin@example.com
   sudo tpan health
-[2026-11-25 04:06:32] (mã thoát 0)
+[2026-11-25 04:33:51] (mã thoát 0)
 Mật khẩu quản trị panel trong output: 1 lần
   => ĐẠT: install.sh v0.2.0 thoát 0
 
-[2026-11-25 04:06:32] $ scripts/vm.sh exec tpan version
+[2026-11-25 04:33:51] $ scripts/vm.sh exec tpan version
 tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
-[2026-11-25 04:06:32] (mã thoát 0)
+[2026-11-25 04:33:51] (mã thoát 0)
   => ĐẠT: tpan version là v0.2.0
   => ĐẠT: panel v0.2.0 trả lời qua TLS bằng chứng chỉ của nó
 
-[2026-11-25 04:06:32] $ scripts/vm.sh root tpan site add up.example.com --email admin@example.com --yes
-Bắt đầu job b6510f98e43dc0f2
+[2026-11-25 04:33:51] $ scripts/vm.sh root tpan site add up.example.com --email admin@example.com --yes
+Bắt đầu job af1cda3c80a56360
 - Tạo user Linux tp_up_example_com_8f73fc cho site ...
   xong
 - Tạo thư mục /var/www/up.example.com ...
@@ -420,7 +420,7 @@ Bắt đầu job b6510f98e43dc0f2
   [đạt] Log của site không đọc được bởi site khác
   [đạt] Vhost của site có đủ các dòng chặn cô lập
 
-Job b6510f98e43dc0f2: thành công
+Job af1cda3c80a56360: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -436,20 +436,20 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-25 04:06:53] (mã thoát 0)
+[2026-11-25 04:34:08] (mã thoát 0)
   => ĐẠT: site add up.example.com : thoát 0, job thành công
 
-[2026-11-25 04:06:53] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve up.example.com:80:127.0.0.1 http://up.example.com/
+[2026-11-25 04:34:08] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve up.example.com:80:127.0.0.1 http://up.example.com/
 200
-[2026-11-25 04:06:53] (mã thoát 0)
+[2026-11-25 04:34:08] (mã thoát 0)
   => ĐẠT: up.example.com trả 200 trên v0.2.0
 
-[2026-11-25 04:06:53] $ curl -X POST <panel>/api/v1/login   (phiên: jar.u-cu)
+[2026-11-25 04:34:08] $ curl -X POST <panel>/api/v1/login   (phiên: jar.u-cu)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: T80: đăng nhập API trên v0.2.0: 204, giữ cookie
 
-[2026-11-25 04:06:53] $ scripts/vm.sh root tpan health
+[2026-11-25 04:34:08] $ scripts/vm.sh root tpan health
 
 == Máy và stack ==
 [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
@@ -519,11 +519,11 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
       sudo ls /var/lib/tpan/backups/_tpan
 
 8 đạt, 1 cảnh báo
-[2026-11-25 04:06:55] (mã thoát 0)
+[2026-11-25 04:34:11] (mã thoát 0)
 Số dòng [lỗi] của tpan health: 0
 
-[2026-11-25 04:06:55] $ scripts/vm.sh root tpan self-update --yes --url http://127.0.0.1:8020/a
-Bắt đầu job eb297dc0e376a9b9
+[2026-11-25 04:34:11] $ scripts/vm.sh root tpan self-update --yes --url http://127.0.0.1:8020/a
+Bắt đầu job a876b4aaf1a6789f
 - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
   xong
 - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
@@ -532,56 +532,56 @@ Bắt đầu job eb297dc0e376a9b9
   xong
   [đạt] File chạy /usr/local/bin/tpan chạy được
 
-Job eb297dc0e376a9b9: thành công
+Job a876b4aaf1a6789f: thành công
 Kiểm chứng:
-  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.3-84-g668156c (commit 668156c, build 2026-11-24T21:05:26Z)
-tpan đã đổi: v0.2.0 -> v0.2.3-84-g668156c
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.3-95-gb905eb5 (commit b905eb5, build 2026-11-24T21:32:48Z)
+tpan đã đổi: v0.2.0 -> v0.2.3-95-gb905eb5
 Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
-[2026-11-25 04:06:55] (mã thoát 0)
+[2026-11-25 04:34:11] (mã thoát 0)
   => ĐẠT: T80: tpan self-update của v0.2.0 lên bản A: thoát 0, job thành công
-  => ĐẠT: T80: in v0.2.0 -> v0.2.3-84-g668156c
+  => ĐẠT: T80: in v0.2.0 -> v0.2.3-95-gb905eb5
   => ĐẠT: panel bản A trả lời qua TLS bằng chứng chỉ tự ký cũ (không đổi chứng chỉ)
 
-[2026-11-25 04:06:56] $ scripts/vm.sh exec tpan version
-tpan v0.2.3-84-g668156c (commit 668156c, build 2026-11-24T21:05:26Z)
-[2026-11-25 04:06:56] (mã thoát 0)
-  => ĐẠT: sau khi nâng: tpan version là bản A (v0.2.3-84-g668156c)
+[2026-11-25 04:34:11] $ scripts/vm.sh exec tpan version
+tpan v0.2.3-95-gb905eb5 (commit b905eb5, build 2026-11-24T21:32:48Z)
+[2026-11-25 04:34:12] (mã thoát 0)
+  => ĐẠT: sau khi nâng: tpan version là bản A (v0.2.3-95-gb905eb5)
 
-[2026-11-25 04:06:56] $ curl -X GET <panel>/api/v1/session   (phiên: jar.u-cu)
+[2026-11-25 04:34:12] $ curl -X GET <panel>/api/v1/session   (phiên: jar.u-cu)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-84-g668156c","expires":"2026-11-25T09:06:53.40396717Z","user":{"name":"admin","role":"admin"}}
+    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-95-gb905eb5","expires":"2026-11-25T09:34:08.793019012Z","user":{"name":"admin","role":"admin"}}
   => ĐẠT: T81: cookie của v0.2.0 vẫn là phiên đăng nhập (logged_in, admin, không mfa_enroll_required)
 
-[2026-11-25 04:06:56] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.u-cu)
+[2026-11-25 04:34:12] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.u-cu)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): [{"domain":"up.example.com","slug":"up_example_com_8f73fc","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:06:52.82933992Z","owner":"admin","htaccess":"an-toan","caged":false}]
+    thân nhận (tối đa 700 byte): [{"domain":"up.example.com","slug":"up_example_com_8f73fc","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:34:08.401966552Z","owner":"admin","htaccess":"an-toan","caged":false}]
   => ĐẠT: T81: cookie cũ gọi GET /sites: 200
 
-[2026-11-25 04:06:56] $ curl -X POST <panel>/api/v1/login   (phiên: jar.u-moi)
+[2026-11-25 04:34:12] $ curl -X POST <panel>/api/v1/login   (phiên: jar.u-moi)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: T82: đăng nhập bằng mật khẩu cũ trên bản A: 204 (không có chặng hai)
 
-[2026-11-25 04:06:56] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.u-moi)
+[2026-11-25 04:34:12] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.u-moi)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"enabled":false,"pending":false,"recovery_left":0,"required":false,"policy":"off"}
   => ĐẠT: T82: hai bước mặc định tắt, chính sách off
 
-[2026-11-25 04:06:56] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve up.example.com:80:127.0.0.1 http://up.example.com/
+[2026-11-25 04:34:12] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve up.example.com:80:127.0.0.1 http://up.example.com/
 200
-[2026-11-25 04:06:56] (mã thoát 0)
+[2026-11-25 04:34:12] (mã thoát 0)
   => ĐẠT: T84: up.example.com vẫn 200 sau khi nâng
 
-[2026-11-25 04:06:56] $ scripts/vm.sh root bash -c ls -la /etc/tpan/; if [ -e /etc/tpan/secret.key ]; then echo "CÓ secret.key"; else echo "không có /etc/tpan/secret.key"; fi
+[2026-11-25 04:34:12] $ scripts/vm.sh root bash -c ls -la /etc/tpan/; if [ -e /etc/tpan/secret.key ]; then echo "CÓ secret.key"; else echo "không có /etc/tpan/secret.key"; fi
 total 12
-drwx------   3 root root 4096 Nov 25 04:05 .
-drwxr-xr-x 114 root root 4096 Nov 25 04:06 ..
-drwx------   2 root root 4096 Nov 25 04:05 tls
+drwx------   3 root root 4096 Nov 25 04:33 .
+drwxr-xr-x 114 root root 4096 Nov 25 04:33 ..
+drwx------   2 root root 4096 Nov 25 04:33 tls
 không có /etc/tpan/secret.key
-[2026-11-25 04:06:56] (mã thoát 0)
+[2026-11-25 04:34:12] (mã thoát 0)
   => ĐẠT: T85: không có /etc/tpan/secret.key (chỉ tạo khi có người bật hai bước)
 
-[2026-11-25 04:06:56] $ scripts/vm.sh root tpan health --json
+[2026-11-25 04:34:12] $ scripts/vm.sh root tpan health --json
 số phép kiểm theo trạng thái: fail=1 pass=46 warn=5
 --- warn dns.a:up.example.com: up.example.com chưa có bản ghi A
 --- warn tls.cert:up.example.com: Chưa có chứng chỉ cho up.example.com
@@ -599,10 +599,10 @@ số phép kiểm theo trạng thái: fail=1 pass=46 warn=5
 --- pass tpan.2fa:attempts: Không có user nào bị nhập sai mã hai bước nhiều lần
 --- pass tpan.clock: Chưa ai bật đăng nhập hai bước nên chưa cần kiểm đồng hồ
 --- pass tpan.secretkey: Chưa ai bật đăng nhập hai bước nên chưa cần file khoá
-[2026-11-25 04:06:59] (mã thoát 1)
+[2026-11-25 04:34:14] (mã thoát 1)
   => ĐẠT: T85: health có cảnh báo vàng tpan.2fa:admins
 
-[2026-11-25 04:06:59] $ scripts/vm.sh root tpan health
+[2026-11-25 04:34:14] $ scripts/vm.sh root tpan health
 
 == Máy và stack ==
 [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
@@ -692,64 +692,64 @@ số phép kiểm theo trạng thái: fail=1 pass=46 warn=5
 [đạt] File khoá của đăng nhập hai bước còn nguyên: Chưa ai bật đăng nhập hai bước nên chưa cần file khoá
 
 12 đạt, 2 cảnh báo
-[2026-11-25 04:07:01] (mã thoát 1)
+[2026-11-25 04:34:17] (mã thoát 1)
 Số dòng [lỗi] của tpan health: 1
 [lỗi] mới so với trước khi nâng:
 [lỗi] Vhost không đi theo public khi nó là symlink sang chủ khác: Vhost chưa có bản vá F4: dòng 17: "disable_symlinks if_not_owner from=$document_root;" khác "disable_symlinks if_not_owner;"; thiếu dòng "disable_symlinks if_not_owner;"
   -- GHI NHẬN: các [lỗi] mới đều là phép kiểm nâng cấp của M28 (cần tpan security harden), không tính
   => ĐẠT: T85: tpan health sau khi nâng không có [lỗi] mới (trừ phép kiểm chờ harden của M28)
 
-[2026-11-25 04:07:01] $ scripts/vm.sh root tpan admin passwd --yes --json
+[2026-11-25 04:34:17] $ scripts/vm.sh root tpan admin passwd --yes --json
 {
   "admin_password": "<bí mật, đã che>"
 }
-[2026-11-25 04:07:01] (mã thoát 0)
+[2026-11-25 04:34:17] (mã thoát 0)
   => ĐẠT: T83: tpan admin passwd chạy trên bản A: thoát 0, in mật khẩu mới (đã che)
 
-[2026-11-25 04:07:01] $ curl -X GET <panel>/api/v1/session   (phiên: jar.u-cu)
+[2026-11-25 04:34:17] $ curl -X GET <panel>/api/v1/session   (phiên: jar.u-cu)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"logged_in":false,"demo":false}
   => ĐẠT: T83: admin passwd huỷ phiên cũ (cookie cũ không còn logged_in)
 
-[2026-11-25 04:07:01] $ curl -X POST <panel>/api/v1/login   (phiên: jar.u-moi2)
+[2026-11-25 04:34:17] $ curl -X POST <panel>/api/v1/login   (phiên: jar.u-moi2)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: T83: mật khẩu mới đăng nhập được: 204
 
-[2026-11-25 04:07:01] $ scripts/vm.sh root systemctl stop tpan-e2e-http
-[2026-11-25 04:07:01] (mã thoát 0)
+[2026-11-25 04:34:17] $ scripts/vm.sh root systemctl stop tpan-e2e-http
+[2026-11-25 04:34:17] (mã thoát 0)
 
 ==== Phần U: 28 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:07:01] PHẦN A (T1, T2): máy sạch, cài bản A, đồ nghề, user, site
+######## [2026-11-25 04:34:17] PHẦN A (T1, T2): máy sạch, cài bản A, đồ nghề, user, site
 Máy ảo: tpan-m20
 
-[2026-11-25 04:07:01] $ make vm-reset
+[2026-11-25 04:34:17] $ make vm-reset
 scripts/vm.sh reset
-[2K[0A[0EStopping tpan-m20  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m20.clean
-[2K[0A[0EStarting tpan-m20  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E
-[2026-11-25 04:07:14] (mã thoát 0)
+[2K[0A[0EStopping tpan-m20  /-\|/- [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m20.clean
+[2K[0A[0EStarting tpan-m20  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ [2K[0A[0E
+[2026-11-25 04:34:31] (mã thoát 0)
   => ĐẠT: máy ảo về snapshot clean
 
-[2026-11-25 04:07:14] $ scripts/vm.sh exec cloud-init status --wait
+[2026-11-25 04:34:31] $ scripts/vm.sh exec cloud-init status --wait
 status: done
-[2026-11-25 04:07:15] (mã thoát 0)
+[2026-11-25 04:34:31] (mã thoát 0)
   => ĐẠT: cloud-init xong
 IP máy ảo: <vm>; IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
 
-[2026-11-25 04:07:15] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+[2026-11-25 04:34:31] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
 ls: cannot access '/etc/tpan': No such file or directory
 ls: cannot access '/var/lib/tpan': No such file or directory
-[2026-11-25 04:07:15] (mã thoát 2)
+[2026-11-25 04:34:32] (mã thoát 2)
   => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
 Kiến trúc máy ảo: arm64
 
-[2026-11-25 04:07:15] $ multipass transfer -r dist/e2e-m20 tpan-m20:/home/ubuntu/
-[2026-11-25 04:07:15] (mã thoát 0)
+[2026-11-25 04:34:32] $ multipass transfer -r dist/e2e-m20 tpan-m20:/home/ubuntu/
+[2026-11-25 04:34:32] (mã thoát 0)
   => ĐẠT: chép thư mục đồ nghề sang máy ảo (/home/ubuntu/e2e-m20)
 
-[2026-11-25 04:07:15] $ scripts/vm.sh exec bash -c mkdir -p "$1" && chmod 700 "$1" && chmod 755 "$2"/*.sh "$2"/mcpclient-* && stat -c "%a %U %n" "$1" && ls "$2" _ /home/ubuntu/e2e-m20/bm /home/ubuntu/e2e-m20
+[2026-11-25 04:34:32] $ scripts/vm.sh exec bash -c mkdir -p "$1" && chmod 700 "$1" && chmod 755 "$2"/*.sh "$2"/mcpclient-* && stat -c "%a %U %n" "$1" && ls "$2" _ /home/ubuntu/e2e-m20/bm /home/ubuntu/e2e-m20
 700 ubuntu /home/ubuntu/e2e-m20/bm
 bang-token.sh
 bm
@@ -763,10 +763,10 @@ mcpclient-arm64
 pebble.sh
 quet.sh
 rel
-[2026-11-25 04:07:15] (mã thoát 0)
+[2026-11-25 04:34:32] (mã thoát 0)
   => ĐẠT: thư mục bí mật /home/ubuntu/e2e-m20/bm là 0700 của ubuntu
 
-[2026-11-25 04:07:15] $ scripts/vm.sh exec bash -c cd /home/ubuntu/e2e-m20/rel/a && sudo bash ./install.sh --web nginx
+[2026-11-25 04:34:32] $ scripts/vm.sh exec bash -c cd /home/ubuntu/e2e-m20/rel/a && sudo bash ./install.sh --web nginx
 
 ==> Kiểm máy
 Ubuntu 24.04
@@ -778,11 +778,11 @@ Kiến trúc: arm64
 sha256 khớp: tpan-linux-arm64
 
 ==> Đặt /usr/local/bin/tpan
-tpan v0.2.3-84-g668156c (commit 668156c, build 2026-11-24T21:05:26Z)
+tpan v0.2.3-95-gb905eb5 (commit b905eb5, build 2026-11-24T21:32:48Z)
 Đã đặt /usr/local/bin/tpan
 
 ==> Khởi tạo panel: tpan setup
-Bắt đầu job 01981e8be29ff324
+Bắt đầu job dd034e3ac25b4c2c
 - Tạo thư mục /etc/tpan ...
   xong
 - Tạo thư mục /etc/tpan/tls ...
@@ -798,16 +798,16 @@ Bắt đầu job 01981e8be29ff324
 - Chạy và bật tpan.service khi khởi động ...
   xong
 
-Job 01981e8be29ff324: thành công
+Job dd034e3ac25b4c2c: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
     <bí mật, đã che>
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    C1:6B:72:7A:4D:7A:AC:EC:9B:9E:F2:FD:70:06:08:C9:B3:56:C1:90:4D:3D:D3:58:05:9D:B3:B9:25:96:9C:DF
+    7F:C7:C9:46:15:14:45:46:49:5A:60:83:E3:22:0A:95:D1:29:12:B6:F0:7F:67:73:CA:72:0E:5F:74:0A:FA:DF
 Mở: https://<IP của máy>:8443
 
 ==> Cài stack: tpan stack install --web nginx
-Bắt đầu job 09133863cdaf90b1
+Bắt đầu job 193c0880c4b8cdef
 - Làm mới danh sách gói (apt-get update) ...
   xong
 - Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
@@ -858,7 +858,7 @@ Bắt đầu job 09133863cdaf90b1
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
 
-Job 09133863cdaf90b1: thành công
+Job 193c0880c4b8cdef: thành công
 Kiểm chứng:
   [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
   [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
@@ -877,25 +877,25 @@ Kiểm chứng:
 Xong. Bước tiếp:
   sudo tpan site add example.com --email admin@example.com
   sudo tpan health
-[2026-11-25 04:07:54] (mã thoát 0)
+[2026-11-25 04:35:15] (mã thoát 0)
 Mật khẩu quản trị panel trong output: 1 lần
   => ĐẠT: install.sh của bản A thoát 0
   => ĐẠT: mật khẩu quản trị in đúng một lần (giữ ngoài log)
 
-[2026-11-25 04:07:54] $ scripts/vm.sh exec tpan version
-tpan v0.2.3-84-g668156c (commit 668156c, build 2026-11-24T21:05:26Z)
-[2026-11-25 04:07:54] (mã thoát 0)
-  => ĐẠT: tpan version là bản A (v0.2.3-84-g668156c)
+[2026-11-25 04:35:15] $ scripts/vm.sh exec tpan version
+tpan v0.2.3-95-gb905eb5 (commit b905eb5, build 2026-11-24T21:32:48Z)
+[2026-11-25 04:35:15] (mã thoát 0)
+  => ĐẠT: tpan version là bản A (v0.2.3-95-gb905eb5)
 
-[2026-11-25 04:07:54] $ scripts/vm.sh exec systemctl is-active tpan nginx php8.3-fpm mariadb
+[2026-11-25 04:35:15] $ scripts/vm.sh exec systemctl is-active tpan nginx php8.3-fpm mariadb
 active
 active
 active
 active
-[2026-11-25 04:07:54] (mã thoát 0)
+[2026-11-25 04:35:15] (mã thoát 0)
   => ĐẠT: tpan.service và ba dịch vụ của stack đều active
 
-[2026-11-25 04:07:54] $ scripts/vm.sh root env DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=180 install -y -q oathtool zbar-tools jq
+[2026-11-25 04:35:15] $ scripts/vm.sh root env DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=180 install -y -q oathtool zbar-tools jq
 Reading package lists...
 Building dependency tree...
 Reading state information...
@@ -1003,7 +1003,7 @@ Get:62 http://ports.ubuntu.com/ubuntu-ports noble/universe arm64 libzbar0t64 arm
 Get:63 http://ports.ubuntu.com/ubuntu-ports noble-updates/universe arm64 oathtool arm64 2.6.11-2.1ubuntu0.1 [24.3 kB]
 Get:64 http://ports.ubuntu.com/ubuntu-ports noble/universe arm64 zbar-tools arm64 0.23.93-4build3 [22.3 kB]
 Preconfiguring packages ...
-Fetched 29.0 MB in 5s (5944 kB/s)
+Fetched 29.0 MB in 5s (5449 kB/s)
 Selecting previously unselected package fonts-droid-fallback.
 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 79318 files and directories currently installed.)
 Preparing to unpack .../00-fonts-droid-fallback_1%3a6.0.1r16-1.1build1_all.deb ...
@@ -1277,17 +1277,17 @@ No containers need to be restarted.
 No user sessions are running outdated binaries.
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
-[2026-11-25 04:08:07] (mã thoát 0)
+[2026-11-25 04:35:29] (mã thoát 0)
   => ĐẠT: (đồ nghề) cài oathtool, zbar-tools, jq từ kho Ubuntu
 
-[2026-11-25 04:08:07] $ scripts/vm.sh exec bash -c oathtool --version | head -1; zbarimg --version; jq --version
+[2026-11-25 04:35:29] $ scripts/vm.sh exec bash -c oathtool --version | head -1; zbarimg --version; jq --version
 oathtool (OATH Toolkit) 2.6.11
 0.23.93
 jq-1.7
-[2026-11-25 04:08:07] (mã thoát 0)
+[2026-11-25 04:35:29] (mã thoát 0)
   => ĐẠT: T1: panel trả lời qua TLS ở cổng 8443
 
-[2026-11-25 04:08:07] $ scripts/vm.sh root tpan user add khach --full-name Khach M20 --email khach@example.com --yes --json
+[2026-11-25 04:35:29] $ scripts/vm.sh root tpan user add khach --full-name Khach M20 --email khach@example.com --yes --json
 {
   "user": {
     "user": {
@@ -1297,7 +1297,7 @@ jq-1.7
       "role": "user",
       "package": "default",
       "status": "active",
-      "created": "2026-11-24T21:08:08.047120383Z"
+      "created": "2026-11-24T21:35:30.041505091Z"
     },
     "limits": {
       "name": "default",
@@ -1312,7 +1312,7 @@ jq-1.7
       "io_read_mb": 0,
       "io_write_mb": 0,
       "php_workers": 0,
-      "created": "2026-11-24T21:07:16Z"
+      "created": "2026-11-24T21:34:32Z"
     },
     "usage": {
       "sites": 0,
@@ -1323,10 +1323,10 @@ jq-1.7
   },
   "password": "<bí mật, đã che>"
 }
-[2026-11-25 04:08:08] (mã thoát 0)
+[2026-11-25 04:35:30] (mã thoát 0)
   => ĐẠT: user add khach (vai user): thoát 0, mật khẩu sinh một lần (đã che)
 
-[2026-11-25 04:08:08] $ scripts/vm.sh root tpan user add admin2 --role admin --full-name Admin Hai --email admin2@example.com --yes --json
+[2026-11-25 04:35:30] $ scripts/vm.sh root tpan user add admin2 --role admin --full-name Admin Hai --email admin2@example.com --yes --json
 {
   "user": {
     "user": {
@@ -1336,7 +1336,7 @@ jq-1.7
       "role": "admin",
       "package": "default",
       "status": "active",
-      "created": "2026-11-24T21:08:08.335125291Z"
+      "created": "2026-11-24T21:35:30.336408757Z"
     },
     "limits": {
       "name": "default",
@@ -1351,7 +1351,7 @@ jq-1.7
       "io_read_mb": 0,
       "io_write_mb": 0,
       "php_workers": 0,
-      "created": "2026-11-24T21:07:16Z"
+      "created": "2026-11-24T21:34:32Z"
     },
     "usage": {
       "sites": 0,
@@ -1362,10 +1362,10 @@ jq-1.7
   },
   "password": "<bí mật, đã che>"
 }
-[2026-11-25 04:08:08] (mã thoát 0)
+[2026-11-25 04:35:30] (mã thoát 0)
   => ĐẠT: user add admin2 (vai admin)
 
-[2026-11-25 04:08:08] $ scripts/vm.sh root tpan user add thu_khoa --full-name Thu Khoa --email khoa@example.com --yes --json
+[2026-11-25 04:35:30] $ scripts/vm.sh root tpan user add thu_khoa --full-name Thu Khoa --email khoa@example.com --yes --json
 {
   "user": {
     "user": {
@@ -1375,7 +1375,7 @@ jq-1.7
       "role": "user",
       "package": "default",
       "status": "active",
-      "created": "2026-11-24T21:08:08.624076189Z"
+      "created": "2026-11-24T21:35:30.613153007Z"
     },
     "limits": {
       "name": "default",
@@ -1390,7 +1390,7 @@ jq-1.7
       "io_read_mb": 0,
       "io_write_mb": 0,
       "php_workers": 0,
-      "created": "2026-11-24T21:07:16Z"
+      "created": "2026-11-24T21:34:32Z"
     },
     "usage": {
       "sites": 0,
@@ -1401,11 +1401,11 @@ jq-1.7
   },
   "password": "<bí mật, đã che>"
 }
-[2026-11-25 04:08:08] (mã thoát 0)
+[2026-11-25 04:35:30] (mã thoát 0)
   => ĐẠT: user add thu_khoa (vai user)
 
-[2026-11-25 04:08:08] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
-Bắt đầu job 4270886c52e9f1e0
+[2026-11-25 04:35:30] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job d0b83c722717a4e0
 - Kiểm a.example.com không phải tên miền của panel ...
   đã đúng, bỏ qua
 - Tạo user Linux tp_a_example_com_7653e4 cho site ...
@@ -1454,7 +1454,7 @@ Bắt đầu job 4270886c52e9f1e0
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Thư mục public của site là thư mục thật của chính site
 
-Job 4270886c52e9f1e0: thành công
+Job d0b83c722717a4e0: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1471,11 +1471,11 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-25 04:08:26] (mã thoát 0)
+[2026-11-25 04:35:49] (mã thoát 0)
   => ĐẠT: site add a.example.com : thoát 0, job thành công
 
-[2026-11-25 04:08:26] $ scripts/vm.sh root tpan site add khach.example.org --email admin@example.com --yes --owner khach
-Bắt đầu job 22e3e9883f20dea2
+[2026-11-25 04:35:49] $ scripts/vm.sh root tpan site add khach.example.org --email admin@example.com --yes --owner khach
+Bắt đầu job b59a5b38efee6887
 - Kiểm khach.example.org không phải tên miền của panel ...
   đã đúng, bỏ qua
 - Tạo user Linux tp_khach_example_or_16eafb cho site ...
@@ -1526,7 +1526,7 @@ Bắt đầu job 22e3e9883f20dea2
   [đạt] Site khach.example.org không chạm được vào file, log và socket của site a.example.com
   [đạt] Site a.example.com không chạm được vào file, log và socket của site khach.example.org
 
-Job 22e3e9883f20dea2: thành công
+Job b59a5b38efee6887: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1545,15 +1545,15 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-25 04:08:31] (mã thoát 0)
+[2026-11-25 04:35:55] (mã thoát 0)
   => ĐẠT: site add khach.example.org --owner khach: thoát 0, job thành công
 
-[2026-11-25 04:08:31] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+[2026-11-25 04:35:55] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
 200
-[2026-11-25 04:08:32] (mã thoát 0)
+[2026-11-25 04:35:55] (mã thoát 0)
   => ĐẠT: a.example.com trả 200
 
-[2026-11-25 04:08:32] $ scripts/vm.sh root tpan health
+[2026-11-25 04:35:55] $ scripts/vm.sh root tpan health
 
 == Máy và stack ==
 [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
@@ -1571,7 +1571,7 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
 [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
 [đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 2 site đều chỉ được khai ở vhost của chính site đó
 [đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
-[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 81.2% (3.1 GiB trên 3.8 GiB); máy không có swap
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 82.3% (3.1 GiB trên 3.8 GiB); máy không có swap
 [đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
 [đạt] File /etc/cron.d/tpan-khach_example_or_16eafb còn đúng như tpan đã ghi: File /etc/cron.d/tpan-khach_example_or_16eafb đúng như tpan đã ghi
 [đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
@@ -1667,21 +1667,21 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
 [đạt] File khoá của đăng nhập hai bước còn nguyên: Chưa ai bật đăng nhập hai bước nên chưa cần file khoá
 
 12 đạt, 2 cảnh báo
-[2026-11-25 04:08:36] (mã thoát 0)
+[2026-11-25 04:36:02] (mã thoát 0)
 Số dòng [lỗi] của tpan health: 0
 
-[2026-11-25 04:08:36] $ curl -X POST <panel>/api/v1/login   (phiên: jar.adm)
+[2026-11-25 04:36:02] $ curl -X POST <panel>/api/v1/login   (phiên: jar.adm)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: T1: admin đăng nhập bằng API khi chưa ai bật hai bước: 204
   => ĐẠT: T1: jar có cookie phiên, không có cookie phiếu
 
-[2026-11-25 04:08:36] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.adm)
+[2026-11-25 04:36:02] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.adm)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"enabled":false,"pending":false,"recovery_left":0,"required":false,"policy":"off"}
   => ĐẠT: T2: GET /account/2fa: enabled=false, pending=false, policy off
 
-[2026-11-25 04:08:36] $ scripts/vm.sh root tpan health --json
+[2026-11-25 04:36:03] $ scripts/vm.sh root tpan health --json
 số phép kiểm theo trạng thái: pass=65 warn=6
 --- warn dns.a:a.example.com: a.example.com chưa có bản ghi A
 --- warn tls.cert:a.example.com: Chưa có chứng chỉ cho a.example.com
@@ -1699,234 +1699,234 @@ số phép kiểm theo trạng thái: pass=65 warn=6
 --- pass tpan.2fa:attempts: Không có user nào bị nhập sai mã hai bước nhiều lần
 --- pass tpan.clock: Chưa ai bật đăng nhập hai bước nên chưa cần kiểm đồng hồ
 --- pass tpan.secretkey: Chưa ai bật đăng nhập hai bước nên chưa cần file khoá
-[2026-11-25 04:08:40] (mã thoát 0)
+[2026-11-25 04:36:07] (mã thoát 0)
   => ĐẠT: T2: health có cảnh báo tpan.2fa:admins (admin chưa bật hai bước)
 
 ==== Phần A: 21 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:08:40] PHẦN B (T21, T4, T3): chính sách khi chưa bật; QR; oathtool và đồng hồ
+######## [2026-11-25 04:36:07] PHẦN B (T21, T4, T3): chính sách khi chưa bật; QR; oathtool và đồng hồ
 
-[2026-11-25 04:08:40] $ curl -X POST <panel>/api/v1/login   (phiên: jar.a2)
+[2026-11-25 04:36:07] $ curl -X POST <panel>/api/v1/login   (phiên: jar.a2)
     thân gửi: {"name":"admin2","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: admin2 đăng nhập: 204
 
-[2026-11-25 04:08:40] $ curl -X POST <panel>/api/v1/settings/auth   (phiên: jar.a2)
+[2026-11-25 04:36:07] $ curl -X POST <panel>/api/v1/settings/auth   (phiên: jar.a2)
     thân gửi: {"require_2fa":"all"}
 -> HTTP 409
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_enroll_self_first","message":{"vi":"Bật đăng nhập hai bước cho chính bạn trước, rồi mới bắt buộc người khác.","en":"Turn on two-step login for yourself first, then require it for others."}}}
   => ĐẠT: T21: admin2 (admin chưa bật hai bước) đặt chính sách all: 409 mfa_enroll_self_first
 
-[2026-11-25 04:08:41] $ curl -X POST <panel>/api/v1/settings/auth   (phiên: jar.adm)
+[2026-11-25 04:36:07] $ curl -X POST <panel>/api/v1/settings/auth   (phiên: jar.adm)
     thân gửi: {"require_2fa":"admin"}
 -> HTTP 409
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_enroll_self_first","message":{"vi":"Bật đăng nhập hai bước cho chính bạn trước, rồi mới bắt buộc người khác.","en":"Turn on two-step login for yourself first, then require it for others."}}}
   => ĐẠT: T21: admin (chưa bật) đặt chính sách admin: 409 mfa_enroll_self_first
 
-[2026-11-25 04:08:41] $ curl -X GET <panel>/api/v1/settings/auth   (phiên: jar.adm)
+[2026-11-25 04:36:07] $ curl -X GET <panel>/api/v1/settings/auth   (phiên: jar.adm)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"require_2fa":"off","token_max_days":90,"token_groups":["sites","databases","backups","cron","jobs","health","ssl","system"]}
   => ĐẠT: T21: chính sách vẫn off
 
-[2026-11-25 04:08:41] $ curl -X POST <panel>/api/v1/account/2fa/setup   (phiên: jar.adm)
+[2026-11-25 04:36:07] $ curl -X POST <panel>/api/v1/account/2fa/setup   (phiên: jar.adm)
     thân gửi: {}
 -> HTTP 200
     thân nhận: (hiện MỘT lần, có bí mật: không in) khoá: ["account","issuer","qr","secret","uri"]; cache-control: no-store
 
-[2026-11-25 04:08:41] $ (đưa totp.admin vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/totp.admin; không in nội dung)
+[2026-11-25 04:36:07] $ (đưa totp.admin vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/totp.admin; không in nội dung)
 600 ubuntu 32 byte /home/ubuntu/e2e-m20/bm/totp.admin
-[2026-11-25 04:08:41] (mã thoát 0)
+[2026-11-25 04:36:07] (mã thoát 0)
   => ĐẠT: setup: 200
   => ĐẠT: setup: Cache-Control: no-store
   => ĐẠT: setup: bí mật 32 ký tự base32, URI otpauth://totp/TPAN:admin@…, issuer TPAN, ma trận QR vuông
 
-[2026-11-25 04:08:41] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.adm)
+[2026-11-25 04:36:07] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.adm)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"enabled":false,"pending":true,"recovery_left":0,"required":false,"policy":"off"}
   => ĐẠT: sau setup: pending=true, enabled=false
 
-[2026-11-25 04:08:41] $ <tmp>/qrpng -vao <tmp>/setup.admin.json -ra <tmp>/qr.png
+[2026-11-25 04:36:07] $ <tmp>/qrpng -vao <tmp>/setup.admin.json -ra <tmp>/qr.png
 ma trận 45×45 module, ảnh 424×424 px (vùng trắng 4 module mỗi bên)
-[2026-11-25 04:08:41] (mã thoát 0)
+[2026-11-25 04:36:08] (mã thoát 0)
   => ĐẠT: T4: qrpng vẽ ma trận của setup ra PNG
 
-[2026-11-25 04:08:41] $ multipass transfer <tmp>/qr.png tpan-m20:/home/ubuntu/e2e-m20/bm/qr.png
-[2026-11-25 04:08:41] (mã thoát 0)
+[2026-11-25 04:36:08] $ multipass transfer <tmp>/qr.png tpan-m20:/home/ubuntu/e2e-m20/bm/qr.png
+[2026-11-25 04:36:08] (mã thoát 0)
 
-[2026-11-25 04:08:41] $ (đưa uri.admin vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/uri.admin; không in nội dung)
+[2026-11-25 04:36:08] $ (đưa uri.admin vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/uri.admin; không in nội dung)
 600 ubuntu 120 byte /home/ubuntu/e2e-m20/bm/uri.admin
-[2026-11-25 04:08:42] (mã thoát 0)
+[2026-11-25 04:36:08] (mã thoát 0)
 
-[2026-11-25 04:08:42] $ scripts/vm.sh exec bash -c z=$(zbarimg --raw -q "$1/qr.png" | tr -d "\n"); u=$(cat "$1/uri.admin"); if [ -n "$z" ] && [ "$z" = "$u" ]; then echo "zbarimg đọc ra đúng uri của setup (nhãn ${u%%\?*}; phần còn lại có bí mật, không in)"; else echo "KHÁC: zbarimg ra ${#z} ký tự, nhãn ${z%%\?*}"; exit 1; fi _ /home/ubuntu/e2e-m20/bm
+[2026-11-25 04:36:08] $ scripts/vm.sh exec bash -c z=$(zbarimg --raw -q "$1/qr.png" | tr -d "\n"); u=$(cat "$1/uri.admin"); if [ -n "$z" ] && [ "$z" = "$u" ]; then echo "zbarimg đọc ra đúng uri của setup (nhãn ${u%%\?*}; phần còn lại có bí mật, không in)"; else echo "KHÁC: zbarimg ra ${#z} ký tự, nhãn ${z%%\?*}"; exit 1; fi _ /home/ubuntu/e2e-m20/bm
 zbarimg đọc ra đúng uri của setup (nhãn otpauth://totp/TPAN:admin@tpan-m20; phần còn lại có bí mật, không in)
-[2026-11-25 04:08:42] (mã thoát 0)
+[2026-11-25 04:36:08] (mã thoát 0)
   => ĐẠT: T4: zbarimg đọc PNG ra đúng URI otpauth:// mà setup trả
 
-[2026-11-25 04:08:42] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 0 1 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851817 (giờ máy +0 giây, cần bước >= 1); mã ghi vào file, không in
-[2026-11-25 04:08:42] (mã thoát 0)
+[2026-11-25 04:36:08] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 0 1 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851872 (giờ máy +0 giây, cần bước >= 1); mã ghi vào file, không in
+[2026-11-25 04:36:08] (mã thoát 0)
 
-[2026-11-25 04:08:42] $ curl -X POST <panel>/api/v1/account/2fa/enable   (phiên: jar.adm)
+[2026-11-25 04:36:08] $ curl -X POST <panel>/api/v1/account/2fa/enable   (phiên: jar.adm)
     thân gửi: (từ file req.enable, có mật khẩu hay mã: không in)
 -> HTTP 200
     thân nhận: (hiện MỘT lần, có bí mật: không in) khoá: ["recovery_codes"]; cache-control: no-store
-  => ĐẠT: T3: mã oathtool tính trong máy ảo (bước 59851817) được máy chủ nhận khi bật: 200
+  => ĐẠT: T3: mã oathtool tính trong máy ảo (bước 59851872) được máy chủ nhận khi bật: 200
   => ĐẠT: T3: enable trả 10 mã dự phòng dạng xxxx-xxxx-xxxx-xxxx, Cache-Control: no-store
   => ĐẠT: T3: enable có Cache-Control: no-store
 
-[2026-11-25 04:08:42] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.adm)
+[2026-11-25 04:36:08] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.adm)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): {"enabled":true,"enabled_at":"2026-11-24T21:08:42.382770552Z","pending":false,"recovery_left":10,"required":false,"policy":"off"}
+    thân nhận (tối đa 700 byte): {"enabled":true,"enabled_at":"2026-11-24T21:36:08.59163795Z","pending":false,"recovery_left":10,"required":false,"policy":"off"}
   => ĐẠT: sau khi bật: enabled=true, recovery_left=10, phiên đang dùng vẫn sống
 
-[2026-11-25 04:08:42] $ scripts/vm.sh root stat -c %a %U %s %F %n /etc/tpan/secret.key
+[2026-11-25 04:36:08] $ scripts/vm.sh root stat -c %a %U %s %F %n /etc/tpan/secret.key
 600 root 32 regular file /etc/tpan/secret.key
-[2026-11-25 04:08:42] (mã thoát 0)
+[2026-11-25 04:36:08] (mã thoát 0)
   => ĐẠT: file khoá /etc/tpan/secret.key: 600 root, 32 byte, file thường (tạo lúc setup đầu tiên)
 
 
-######## [2026-11-25 04:08:42] T3: lệch đồng hồ ở bước hai: ±90 giây bị từ chối, ±15 giây được nhận
+######## [2026-11-25 04:36:08] T3: lệch đồng hồ ở bước hai: ±90 giây bị từ chối, ±15 giây được nhận
 
-[2026-11-25 04:08:42] $ curl -X POST <panel>/api/v1/login   (phiên: jar.t3a)
+[2026-11-25 04:36:08] $ curl -X POST <panel>/api/v1/login   (phiên: jar.t3a)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"mfa_required":true}
   => ĐẠT: admin (đã bật) đăng nhập bằng mật khẩu: 200 mfa_required, có cookie phiếu, chưa có phiên
   => ĐẠT: thân của bước một là {mfa_required:true}
 
-[2026-11-25 04:08:42] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin -90 0 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851814 (giờ máy -90 giây, cần bước >= 0); mã ghi vào file, không in
-[2026-11-25 04:08:42] (mã thoát 0)
+[2026-11-25 04:36:09] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin -90 0 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851869 (giờ máy -90 giây, cần bước >= 0); mã ghi vào file, không in
+[2026-11-25 04:36:09] (mã thoát 0)
 
-[2026-11-25 04:08:42] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3a)
+[2026-11-25 04:36:09] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3a)
     thân gửi: (từ file code.json, có mật khẩu hay mã: không in)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_code_wrong","message":{"vi":"Sai mã. Nhập mã 6 số đang hiện trong app xác thực, hoặc một mã dự phòng.","en":"Wrong code. Enter the 6-digit code shown in your authenticator app, or a recovery code."}}}
-  => ĐẠT: T3: mã của giờ máy −90 giây (bước 59851814): 401 mfa_code_wrong
+  => ĐẠT: T3: mã của giờ máy −90 giây (bước 59851869): 401 mfa_code_wrong
 
-[2026-11-25 04:08:43] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 90 0 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851820 (giờ máy +90 giây, cần bước >= 0); mã ghi vào file, không in
-[2026-11-25 04:08:43] (mã thoát 0)
+[2026-11-25 04:36:09] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 90 0 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851875 (giờ máy +90 giây, cần bước >= 0); mã ghi vào file, không in
+[2026-11-25 04:36:09] (mã thoát 0)
 
-[2026-11-25 04:08:43] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3a)
+[2026-11-25 04:36:09] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3a)
     thân gửi: (từ file code.json, có mật khẩu hay mã: không in)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_code_wrong","message":{"vi":"Sai mã. Nhập mã 6 số đang hiện trong app xác thực, hoặc một mã dự phòng.","en":"Wrong code. Enter the 6-digit code shown in your authenticator app, or a recovery code."}}}
-  => ĐẠT: T3: mã của giờ máy +90 giây (bước 59851820): 401 mfa_code_wrong
+  => ĐẠT: T3: mã của giờ máy +90 giây (bước 59851875): 401 mfa_code_wrong
 
-[2026-11-25 04:08:43] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin -15 59851818 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851818 (giờ máy -15 giây, cần bước >= 59851818); mã ghi vào file, không in
-[2026-11-25 04:09:17] (mã thoát 0)
+[2026-11-25 04:36:09] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin -15 59851873 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851873 (giờ máy -15 giây, cần bước >= 59851873); mã ghi vào file, không in
+[2026-11-25 04:36:47] (mã thoát 0)
 
-[2026-11-25 04:09:17] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3a)
+[2026-11-25 04:36:47] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3a)
     thân gửi: (từ file code.json, có mật khẩu hay mã: không in)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"wrong_codes":2}
-  => ĐẠT: T3: mã của giờ máy −15 giây (bước 59851818): được nhận
+  => ĐẠT: T3: mã của giờ máy −15 giây (bước 59851873): được nhận
   => ĐẠT: R5: vào sau hai mã sai thì 200 {wrong_codes: 2}
   => ĐẠT: R5: wrong_codes = 2
   => ĐẠT: vào xong: jar có cookie phiên, cookie phiếu đã xoá
 
-[2026-11-25 04:09:17] $ curl -X POST <panel>/api/v1/login   (phiên: jar.t3b)
+[2026-11-25 04:36:48] $ curl -X POST <panel>/api/v1/login   (phiên: jar.t3b)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"mfa_required":true}
 
-[2026-11-25 04:09:17] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 15 59851819 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851819 (giờ máy +15 giây, cần bước >= 59851819); mã ghi vào file, không in
-[2026-11-25 04:09:17] (mã thoát 0)
+[2026-11-25 04:36:48] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 15 59851874 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851874 (giờ máy +15 giây, cần bước >= 59851874); mã ghi vào file, không in
+[2026-11-25 04:36:48] (mã thoát 0)
 
-[2026-11-25 04:09:17] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3b)
+[2026-11-25 04:36:48] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.t3b)
     thân gửi: (từ file code.json, có mật khẩu hay mã: không in)
 -> HTTP 204
-  => ĐẠT: T3: mã của giờ máy +15 giây (bước 59851819): 204 (không còn lần sai nào để báo)
+  => ĐẠT: T3: mã của giờ máy +15 giây (bước 59851874): 204 (không còn lần sai nào để báo)
 
-[2026-11-25 04:09:17] $ curl -X GET <panel>/api/v1/session   (phiên: jar.t3b)
+[2026-11-25 04:36:48] $ curl -X GET <panel>/api/v1/session   (phiên: jar.t3b)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-84-g668156c","expires":"2026-11-25T09:09:17.891208239Z","user":{"name":"admin","role":"admin"}}
+    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-95-gb905eb5","expires":"2026-11-25T09:36:48.389215612Z","user":{"name":"admin","role":"admin"}}
   => ĐẠT: phiên mới sau bước hai: logged_in, admin
 
 ==== Phần B: 25 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:09:17] PHẦN C (T10–T15): mã sai, mã cũ, mã đã dùng, mã dự phòng, cookie phiếu
+######## [2026-11-25 04:36:48] PHẦN C (T10–T15): mã sai, mã cũ, mã đã dùng, mã dự phòng, cookie phiếu
 
-[2026-11-25 04:09:17] $ curl -X POST <panel>/api/v1/login   (phiên: jar.c1)
+[2026-11-25 04:36:48] $ curl -X POST <panel>/api/v1/login   (phiên: jar.c1)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"mfa_required":true}
 
-[2026-11-25 04:09:18] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 0 59851820 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851820 (giờ máy +0 giây, cần bước >= 59851820); mã ghi vào file, không in
-[2026-11-25 04:10:02] (mã thoát 0)
+[2026-11-25 04:36:48] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 0 59851875 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851875 (giờ máy +0 giây, cần bước >= 59851875); mã ghi vào file, không in
+[2026-11-25 04:37:32] (mã thoát 0)
 
-[2026-11-25 04:10:02] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c1)
+[2026-11-25 04:37:32] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c1)
     thân gửi: (từ file code.json, có mật khẩu hay mã: không in)
 -> HTTP 204
-  => ĐẠT: mã đúng (bước 59851820): 204
+  => ĐẠT: mã đúng (bước 59851875): 204
 
-[2026-11-25 04:10:02] $ curl -X POST <panel>/api/v1/login   (phiên: jar.c2)
+[2026-11-25 04:37:32] $ curl -X POST <panel>/api/v1/login   (phiên: jar.c2)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"mfa_required":true}
 
-[2026-11-25 04:10:03] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
+[2026-11-25 04:37:32] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
     thân gửi: (từ file code.used.json, có mật khẩu hay mã: không in)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_code_used","message":{"vi":"Mã này vừa được dùng rồi. Chờ app hiện mã mới (30 giây) rồi nhập lại.","en":"This code was just used. Wait for the app to show a new code (30 seconds) and enter it."}}}
-  => ĐẠT: T12: mã vừa dùng (bước 59851820) trên phiếu mới: 401 mfa_code_used
+  => ĐẠT: T12: mã vừa dùng (bước 59851875) trên phiếu mới: 401 mfa_code_used
 
-[2026-11-25 04:10:03] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh sai /home/ubuntu/e2e-m20/bm/totp.admin /home/ubuntu/e2e-m20/bm/code.json
-mã sai: khác mã của bảy bước quanh giờ máy (bước 59851820 ±3); không in
-[2026-11-25 04:10:03] (mã thoát 0)
+[2026-11-25 04:37:32] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh sai /home/ubuntu/e2e-m20/bm/totp.admin /home/ubuntu/e2e-m20/bm/code.json
+mã sai: khác mã của bảy bước quanh giờ máy (bước 59851875 ±3); không in
+[2026-11-25 04:37:32] (mã thoát 0)
 
-[2026-11-25 04:10:03] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
+[2026-11-25 04:37:32] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
     thân gửi: (từ file code.json, có mật khẩu hay mã: không in)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_code_wrong","message":{"vi":"Sai mã. Nhập mã 6 số đang hiện trong app xác thực, hoặc một mã dự phòng.","en":"Wrong code. Enter the 6-digit code shown in your authenticator app, or a recovery code."}}}
   => ĐẠT: T10: mã sai: 401 mfa_code_wrong
 
-[2026-11-25 04:10:03] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin -60 0 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851818 (giờ máy -60 giây, cần bước >= 0); mã ghi vào file, không in
-[2026-11-25 04:10:03] (mã thoát 0)
+[2026-11-25 04:37:32] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin -60 0 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851873 (giờ máy -60 giây, cần bước >= 0); mã ghi vào file, không in
+[2026-11-25 04:37:33] (mã thoát 0)
 
-[2026-11-25 04:10:03] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
+[2026-11-25 04:37:33] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
     thân gửi: (từ file code.json, có mật khẩu hay mã: không in)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_code_wrong","message":{"vi":"Sai mã. Nhập mã 6 số đang hiện trong app xác thực, hoặc một mã dự phòng.","en":"Wrong code. Enter the 6-digit code shown in your authenticator app, or a recovery code."}}}
-  => ĐẠT: T11: mã của bước −2 (bước 59851818, giờ máy −60 giây): 401 mfa_code_wrong
+  => ĐẠT: T11: mã của bước −2 (bước 59851873, giờ máy −60 giây): 401 mfa_code_wrong
 
-[2026-11-25 04:10:03] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
+[2026-11-25 04:37:33] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c2)
     thân gửi: (từ file req.rc, có mật khẩu hay mã: không in)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"recovery_left":9,"wrong_codes":2}
   => ĐẠT: T13: mã dự phòng thứ nhất (có gạch) trên cùng phiếu: 200
   => ĐẠT: T13: recovery_left = 9, wrong_codes = 2 (mã đã dùng không tính là đoán sai)
 
-[2026-11-25 04:10:03] $ curl -X GET <panel>/api/v1/session   (phiên: jar.c2)
+[2026-11-25 04:37:33] $ curl -X GET <panel>/api/v1/session   (phiên: jar.c2)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-84-g668156c","expires":"2026-11-25T09:10:03.732721757Z","user":{"name":"admin","role":"admin"}}
+    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-95-gb905eb5","expires":"2026-11-25T09:37:33.21765163Z","user":{"name":"admin","role":"admin"}}
   => ĐẠT: T13: vào bằng mã dự phòng: logged_in
 
-[2026-11-25 04:10:03] $ curl -X POST <panel>/api/v1/login   (phiên: jar.c3)
+[2026-11-25 04:37:33] $ curl -X POST <panel>/api/v1/login   (phiên: jar.c3)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"mfa_required":true}
 
-[2026-11-25 04:10:03] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c3)
+[2026-11-25 04:37:33] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c3)
     thân gửi: (từ file req.rc, có mật khẩu hay mã: không in)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_code_wrong","message":{"vi":"Sai mã. Nhập mã 6 số đang hiện trong app xác thực, hoặc một mã dự phòng.","en":"Wrong code. Enter the 6-digit code shown in your authenticator app, or a recovery code."}}}
   => ĐẠT: T14: cùng mã dự phòng lần hai: 401 mfa_code_wrong
 
-[2026-11-25 04:10:04] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c3)
+[2026-11-25 04:37:33] $ curl -X POST <panel>/api/v1/login/2fa   (phiên: jar.c3)
     thân gửi: (từ file req.rc, có mật khẩu hay mã: không in)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"recovery_left":8,"wrong_codes":1}
   => ĐẠT: mã dự phòng thứ hai, chữ hoa, bỏ gạch: được nhận, recovery_left = 8, wrong_codes = 1
 
-[2026-11-25 04:10:04] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT action, target, result FROM audit WHERE action LIKE 'login%' ORDER BY id DESC LIMIT 8
+[2026-11-25 04:37:33] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT action, target, result FROM audit WHERE action LIKE 'login%' ORDER BY id DESC LIMIT 8
 login	admin	ok_recovery
 login.2fa.ip	<mac>	wrong_password
 login.2fa	admin	wrong_code
@@ -1935,49 +1935,49 @@ login	admin	ok_recovery
 login.2fa.ip	<mac>	wrong_password
 login.2fa	admin	wrong_code
 login.2fa.ip	<mac>	wrong_password
-[2026-11-25 04:10:04] (mã thoát 0)
+[2026-11-25 04:37:33] (mã thoát 0)
   => ĐẠT: nhật ký có login ok_recovery và login.2fa wrong_code
 
 
-######## [2026-11-25 04:10:04] T15: cookie phiếu không phải phiên
+######## [2026-11-25 04:37:33] T15: cookie phiếu không phải phiên
 
-[2026-11-25 04:10:04] $ curl -X POST <panel>/api/v1/login   (phiên: jar.phieu)
+[2026-11-25 04:37:33] $ curl -X POST <panel>/api/v1/login   (phiên: jar.phieu)
     thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"mfa_required":true}
   => ĐẠT: T15: bước một xong: jar chỉ có cookie phiếu (1 phiếu, 0 phiên)
 
-[2026-11-25 04:10:04] $ curl -X GET <panel>/api/v1/session   (phiên: jar.phieu)
+[2026-11-25 04:37:34] $ curl -X GET <panel>/api/v1/session   (phiên: jar.phieu)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"logged_in":false,"demo":false,"mfa_pending":true}
   => ĐẠT: T15: GET /session: logged_in=false, mfa_pending=true
 
-[2026-11-25 04:10:04] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.phieu)
+[2026-11-25 04:37:34] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.phieu)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
   => ĐẠT: T15: cookie phiếu GET /sites: 401
 
-[2026-11-25 04:10:04] $ curl -X GET <panel>/api/v1/overview   (phiên: jar.phieu)
+[2026-11-25 04:37:34] $ curl -X GET <panel>/api/v1/overview   (phiên: jar.phieu)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
   => ĐẠT: T15: cookie phiếu GET /overview: 401
 
-[2026-11-25 04:10:04] $ curl -X POST <panel>/api/v1/sites   (phiên: jar.phieu)
+[2026-11-25 04:37:34] $ curl -X POST <panel>/api/v1/sites   (phiên: jar.phieu)
     thân gửi: {"domain":"phieu.example.com","email":"admin@example.com"}
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
   => ĐẠT: T15: cookie phiếu POST /sites (Origin, Sec-Fetch-Site cùng origin): 401, không phải 403 csrf
 
-[2026-11-25 04:10:04] $ curl -X GET <panel>/api/v1/account/tokens   (phiên: jar.phieu)
+[2026-11-25 04:37:34] $ curl -X GET <panel>/api/v1/account/tokens   (phiên: jar.phieu)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
   => ĐẠT: T15: cookie phiếu GET /account/tokens: 401
 
-[2026-11-25 04:10:04] $ curl -X POST <panel>/api/v1/logout   (phiên: jar.phieu)
+[2026-11-25 04:37:34] $ curl -X POST <panel>/api/v1/logout   (phiên: jar.phieu)
 -> HTTP 204
   => ĐẠT: đăng xuất ở chặng hai: 204
 
-[2026-11-25 04:10:04] $ curl -X GET <panel>/api/v1/session   (phiên: jar.phieu)
+[2026-11-25 04:37:34] $ curl -X GET <panel>/api/v1/session   (phiên: jar.phieu)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"logged_in":false,"demo":false}
   => ĐẠT: sau đăng xuất: không còn mfa_pending
@@ -1985,33 +1985,33 @@ login.2fa.ip	<mac>	wrong_password
 ==== Phần C: 18 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:10:04] PHẦN D (T5): trình duyệt thật: admin2 bật hai bước ở /account, đăng nhập lại qua chặng hai
+######## [2026-11-25 04:37:34] PHẦN D (T5): trình duyệt thật: admin2 bật hai bước ở /account, đăng nhập lại qua chặng hai
 
-[2026-11-25 04:10:04] $ curl -X POST <panel>/api/v1/login   (phiên: jar.a2b)
+[2026-11-25 04:37:34] $ curl -X POST <panel>/api/v1/login   (phiên: jar.a2b)
     thân gửi: {"name":"admin2","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: admin2 đăng nhập API trước khi bật (để xem phiên này có bị đăng xuất): 204
 
-[2026-11-25 04:10:04] $ anh-readme -bo m20-that -buoc bat -ten admin2 -bi-mat-ra <tmp>/bm.admin2   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 04:37:34] $ anh-readme -bo m20-that -buoc bat -ten admin2 -bi-mat-ra <tmp>/bm.admin2   (Chrome không giao diện trên Mac, panel <panel>)
 giờ máy chủ lệch giờ Mac 0s (mã TOTP tính theo giờ máy chủ)
   => ĐẠT: admin2 đăng nhập qua form bằng mật khẩu (chưa có hai bước): tới /
   => ĐẠT: /account có thẻ Đăng nhập hai bước (#hai-buoc) và thẻ Token API (#token); tiêu đề «Tài khoản của tôi»
   => ĐẠT: bấm "Bật hai bước": trang hiện mã QR (svg một path) và chuỗi bí mật 32 ký tự base32 (<bí mật>, không in)
-  => ĐẠT: mã tính trong chương trình (bước 59851820) và mật khẩu được nhận: thấy 10 mã dự phòng, 10 mã đúng dạng xxxx-xxxx-xxxx-xxxx (<bí mật>)
+  => ĐẠT: mã tính trong chương trình (bước 59851875) và mật khẩu được nhận: thấy 10 mã dự phòng, 10 mã đúng dạng xxxx-xxxx-xxxx-xxxx (<bí mật>)
   => ĐẠT: bấm "Đã lưu mã": thẻ hai bước chuyển sang trạng thái đã bật (có nút "Tạo lại mã dự phòng")
   => ĐẠT: đăng xuất, đăng nhập lại bằng mật khẩu: vẫn ở /dang-nhap, hiện chặng hai (ô #ma-hai-buoc)
   => ĐẠT: mã sai: báo «Mã chưa đúng…», vẫn ở chặng hai
   => ĐẠT: mã đúng sau một mã sai: thẻ «Đã đăng nhập» báo có 1 lần nhập sai mã («Có 1 lần nhập sai mã hai bước cho tài khoản của bạn kể từ lần đăng nhập trước. Nếu không phải bạn, mật khẩu đã lộ: đổi mật khẩu ngay.»)
-  => ĐẠT: mã đúng (bước 59851821): vào panel, tới /, thấy «Bảng điều khiển»
-[2026-11-25 04:10:32] (mã thoát 0)
+  => ĐẠT: mã đúng (bước 59851876): vào panel, tới /, thấy «Bảng điều khiển»
+[2026-11-25 04:38:02] (mã thoát 0)
   => ĐẠT: chương trình trình duyệt ghi ra bí mật và 10 mã dự phòng (cho phần quét J)
 
-[2026-11-25 04:10:32] $ curl -X GET <panel>/api/v1/session   (phiên: jar.a2b)
+[2026-11-25 04:38:02] $ curl -X GET <panel>/api/v1/session   (phiên: jar.a2b)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"logged_in":false,"demo":false}
   => ĐẠT: bật xong: phiên API khác của admin2 bị đăng xuất
 
-[2026-11-25 04:10:32] $ scripts/vm.sh root tpan health --json
+[2026-11-25 04:38:02] $ scripts/vm.sh root tpan health --json
 số phép kiểm theo trạng thái: pass=66 warn=5
 --- warn dns.a:a.example.com: a.example.com chưa có bản ghi A
 --- warn tls.cert:a.example.com: Chưa có chứng chỉ cho a.example.com
@@ -2029,55 +2029,55 @@ số phép kiểm theo trạng thái: pass=66 warn=5
 --- pass tpan.2fa:attempts: Không có user nào bị nhập sai mã hai bước nhiều lần
 --- pass tpan.clock: Đồng hồ đã đồng bộ NTP
 --- pass tpan.secretkey: File khoá /etc/tpan/secret.key đúng: file thường 32 byte, 0600, root
-[2026-11-25 04:10:37] (mã thoát 0)
+[2026-11-25 04:38:08] (mã thoát 0)
   => ĐẠT: mọi admin đã bật hai bước: tpan.2fa:admins đạt
   => ĐẠT: tpan.secretkey đạt
 
 ==== Phần D: 14 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:10:37] PHẦN E (T20): chính sách bắt buộc
+######## [2026-11-25 04:38:08] PHẦN E (T20): chính sách bắt buộc
 
-[2026-11-25 04:10:37] $ curl -X POST <panel>/api/v1/settings/auth   (phiên: jar.adm)
+[2026-11-25 04:38:08] $ curl -X POST <panel>/api/v1/settings/auth   (phiên: jar.adm)
     thân gửi: {"require_2fa":"all"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"require_2fa":"all","token_max_days":90,"token_groups":["sites","databases","backups","cron","jobs","health","ssl","system"]}
   => ĐẠT: T20: admin (đã bật) đặt chính sách all: 200
   => ĐẠT: T20: require_2fa = all
 
-[2026-11-25 04:10:37] $ curl -X POST <panel>/api/v1/login   (phiên: jar.k)
+[2026-11-25 04:38:08] $ curl -X POST <panel>/api/v1/login   (phiên: jar.k)
     thân gửi: {"name":"khach","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: T20: khach (chưa bật) đăng nhập bằng mật khẩu: 204
 
-[2026-11-25 04:10:37] $ curl -X GET <panel>/api/v1/session   (phiên: jar.k)
+[2026-11-25 04:38:08] $ curl -X GET <panel>/api/v1/session   (phiên: jar.k)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-84-g668156c","expires":"2026-11-25T09:10:37.187914331Z","user":{"name":"khach","role":"user"},"mfa_enroll_required":true}
+    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.3-95-gb905eb5","expires":"2026-11-25T09:38:08.724545312Z","user":{"name":"khach","role":"user"},"mfa_enroll_required":true}
   => ĐẠT: T20: phiên của khach báo mfa_enroll_required
 
-[2026-11-25 04:10:37] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.k)
+[2026-11-25 04:38:08] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.k)
 -> HTTP 403
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_enroll_required","message":{"vi":"Quản trị viên yêu cầu bật đăng nhập hai bước. Bật nó ở trang Tài khoản rồi dùng tiếp.","en":"The administrator requires two-step login. Turn it on in the Account page to continue."}}}
   => ĐẠT: T20: khach GET /sites: 403 mfa_enroll_required
 
-[2026-11-25 04:10:37] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.k)
+[2026-11-25 04:38:08] $ curl -X GET <panel>/api/v1/account/2fa   (phiên: jar.k)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"enabled":false,"pending":false,"recovery_left":0,"required":true,"policy":"all"}
   => ĐẠT: T20: khach GET /account/2fa: 200, required=true
   => ĐẠT: T20: GET /account/2fa trả 200
 
-[2026-11-25 04:10:37] $ anh-readme -bo m20-that -buoc bat-buoc -ten khach -bi-mat-ra <tmp>/bm.khach   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 04:38:08] $ anh-readme -bo m20-that -buoc bat-buoc -ten khach -bi-mat-ra <tmp>/bm.khach   (Chrome không giao diện trên Mac, panel <panel>)
 giờ máy chủ lệch giờ Mac 0s (mã TOTP tính theo giờ máy chủ)
   => ĐẠT: khach (chưa bật, bị chính sách bắt) đăng nhập qua form: tới /bat-hai-buoc (mong /bat-hai-buoc)
   => ĐẠT: gõ thẳng /sites: bị đưa về /bat-hai-buoc (đang ở /bat-hai-buoc)
   => ĐẠT: bấm "Bật hai bước": trang hiện mã QR (svg một path) và chuỗi bí mật 32 ký tự base32 (<bí mật>, không in)
-  => ĐẠT: mã tính trong chương trình (bước 59851821) và mật khẩu được nhận: thấy 10 mã dự phòng, 10 mã đúng dạng xxxx-xxxx-xxxx-xxxx (<bí mật>)
+  => ĐẠT: mã tính trong chương trình (bước 59851876) và mật khẩu được nhận: thấy 10 mã dự phòng, 10 mã đúng dạng xxxx-xxxx-xxxx-xxxx (<bí mật>)
   => ĐẠT: bấm "Đã lưu mã": rời /bat-hai-buoc, tới /tools
   => ĐẠT: mở /sites: tiêu đề «Site», 0 lỗi console, cuộn ngang: false
   => ĐẠT: bật xong: /sites mở được (không bị đưa về /bat-hai-buoc)
-[2026-11-25 04:10:40] (mã thoát 0)
+[2026-11-25 04:38:12] (mã thoát 0)
 
-[2026-11-25 04:10:40] $ curl -X GET <panel>/api/v1/session   (phiên: jar.k)
+[2026-11-25 04:38:12] $ curl -X GET <panel>/api/v1/session   (phiên: jar.k)
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"logged_in":false,"demo":false}
   => ĐẠT: T20: bật xong trong trình duyệt: phiên API cũ của khach bị đăng xuất
@@ -2085,36 +2085,36 @@ giờ máy chủ lệch giờ Mac 0s (mã TOTP tính theo giờ máy chủ)
 ==== Phần E: 15 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:10:40] PHẦN F (T30): lối thoát bằng CLI: chính sách off, đặt lại hai bước của khach
+######## [2026-11-25 04:38:12] PHẦN F (T30): lối thoát bằng CLI: chính sách off, đặt lại hai bước của khach
 
-[2026-11-25 04:10:40] $ scripts/vm.sh root tpan user 2fa policy off
+[2026-11-25 04:38:12] $ scripts/vm.sh root tpan user 2fa policy off
 Đã đặt chính sách bắt buộc hai bước: off
-[2026-11-25 04:10:41] (mã thoát 0)
+[2026-11-25 04:38:12] (mã thoát 0)
   => ĐẠT: T30: tpan user 2fa policy off: thoát 0
 
-[2026-11-25 04:10:41] $ scripts/vm.sh root tpan user 2fa policy
+[2026-11-25 04:38:12] $ scripts/vm.sh root tpan user 2fa policy
 Chính sách bắt buộc hai bước: off
-[2026-11-25 04:10:41] (mã thoát 0)
+[2026-11-25 04:38:12] (mã thoát 0)
   => ĐẠT: T30: tpan user 2fa policy in chính sách đang có: off
 
-[2026-11-25 04:10:41] $ scripts/vm.sh root tpan user 2fa status
+[2026-11-25 04:38:12] $ scripts/vm.sh root tpan user 2fa status
 TÊN                  VAI    BẬT    TỪ LÚC            MÃ DỰ PHÒNG CHÍNH SÁCH
-admin                admin  có     2026-11-25 04:08  8          -
-admin2               admin  có     2026-11-25 04:10  10         -
-khach                user   có     2026-11-25 04:10  10         -
+admin                admin  có     2026-11-25 04:36  8          -
+admin2               admin  có     2026-11-25 04:37  10         -
+khach                user   có     2026-11-25 04:38  10         -
 thu_khoa             user   không  -                 -          -
 
 Chính sách bắt buộc: off
-[2026-11-25 04:10:41] (mã thoát 0)
+[2026-11-25 04:38:13] (mã thoát 0)
   => ĐẠT: tpan user 2fa status: thoát 0
 
-[2026-11-25 04:10:41] $ scripts/vm.sh root tpan user 2fa reset khach --yes
+[2026-11-25 04:38:13] $ scripts/vm.sh root tpan user 2fa reset khach --yes
 Đã gỡ hai bước của khach.
 Mọi phiên của khach đã bị đăng xuất.
-[2026-11-25 04:10:41] (mã thoát 0)
+[2026-11-25 04:38:13] (mã thoát 0)
   => ĐẠT: T30: tpan user 2fa reset khach --yes: thoát 0
 
-[2026-11-25 04:10:41] $ scripts/vm.sh root tpan user 2fa status khach --json
+[2026-11-25 04:38:13] $ scripts/vm.sh root tpan user 2fa status khach --json
 [
   {
     "user": "khach",
@@ -2124,66 +2124,66 @@ Mọi phiên của khach đã bị đăng xuất.
     "required": false
   }
 ]
-[2026-11-25 04:10:41] (mã thoát 0)
+[2026-11-25 04:38:13] (mã thoát 0)
   => ĐẠT: T30: status --json: khach không còn hai bước
 
-[2026-11-25 04:10:41] $ curl -X POST <panel>/api/v1/login   (phiên: jar.k2)
+[2026-11-25 04:38:13] $ curl -X POST <panel>/api/v1/login   (phiên: jar.k2)
     thân gửi: {"name":"khach","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: T30: khach đăng nhập lại bằng mật khẩu (chính sách off, đã đặt lại): 204
 
-[2026-11-25 04:10:41] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT ip || ' ' || action || ' ' || target FROM audit WHERE action IN ('user.2fa_reset', 'auth.require_2fa') ORDER BY id
+[2026-11-25 04:38:13] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT ip || ' ' || action || ' ' || target FROM audit WHERE action IN ('user.2fa_reset', 'auth.require_2fa') ORDER BY id
 <mac> auth.require_2fa all
 cli auth.require_2fa off
 cli user.2fa_reset khach
-[2026-11-25 04:10:41] (mã thoát 0)
+[2026-11-25 04:38:13] (mã thoát 0)
   => ĐẠT: T30: audit có user.2fa_reset khach với ip cli
   => ĐẠT: T30: audit có auth.require_2fa với ip cli
 
 ==== Phần F: 8 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:10:41] PHẦN G (T40–T42): token API
+######## [2026-11-25 04:38:13] PHẦN G (T40–T42): token API
 
 
-######## [2026-11-25 04:10:41] tạo token qua API: đòi mật khẩu và mã, hiện một lần
+######## [2026-11-25 04:38:13] tạo token qua API: đòi mật khẩu và mã, hiện một lần
 
-[2026-11-25 04:10:41] $ curl -X POST <panel>/api/v1/account/tokens   (phiên: jar.adm)
+[2026-11-25 04:38:13] $ curl -X POST <panel>/api/v1/account/tokens   (phiên: jar.adm)
     thân gửi: (từ file req.tok, có mật khẩu hay mã: không in)
 -> HTTP 400
     thân nhận (tối đa 700 byte): {"error":{"code":"mfa_code_required","message":{"vi":"Tài khoản đã bật đăng nhập hai bước: nhập thêm mã 6 số trong app (hoặc một mã dự phòng).","en":"Two-step login is on: also enter the 6-digit code from your app (or a recovery code)."}}}
   => ĐẠT: tạo token khi đã bật hai bước mà không có mã: 400 mfa_code_required
 
-[2026-11-25 04:10:41] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 0 59851821 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851821 (giờ máy +0 giây, cần bước >= 59851821); mã ghi vào file, không in
-[2026-11-25 04:10:41] (mã thoát 0)
+[2026-11-25 04:38:13] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.admin 0 59851876 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851876 (giờ máy +0 giây, cần bước >= 59851876); mã ghi vào file, không in
+[2026-11-25 04:38:14] (mã thoát 0)
 
-[2026-11-25 04:10:42] $ curl -X POST <panel>/api/v1/account/tokens   (phiên: jar.adm)
+[2026-11-25 04:38:14] $ curl -X POST <panel>/api/v1/account/tokens   (phiên: jar.adm)
     thân gửi: (từ file req.tok, có mật khẩu hay mã: không in)
 -> HTTP 201
     thân nhận: (hiện MỘT lần, có bí mật: không in) khoá: ["row","token"]; cache-control: no-store
-  => ĐẠT: tạo token có mã (bước 59851821): 201
+  => ĐẠT: tạo token có mã (bước 59851876): 201
   => ĐẠT: tạo token: Cache-Control: no-store
   => ĐẠT: tạo token: token tpan_… 44 ký tự, row có hint, không có token
 
-[2026-11-25 04:10:42] $ curl -X GET <panel>/api/v1/account/tokens   (phiên: jar.adm)
+[2026-11-25 04:38:14] $ curl -X GET <panel>/api/v1/account/tokens   (phiên: jar.adm)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): {"tokens":[{"id":"15f5102715ccb18a","user":"admin","name":"e2e-api","scopes":["sites:read"],"hint":"tpan_pcdoak…","created":"2026-11-24T21:10:42.118011302Z","expires":"2026-11-25T21:10:42.118011302Z","status":"active"}],"max_days":90,"groups":["sites","databases","backups","cron","jobs","health","ssl","system"]}
+    thân nhận (tối đa 700 byte): {"tokens":[{"id":"88a1f28ebbdff325","user":"admin","name":"e2e-api","scopes":["sites:read"],"hint":"tpan_cyczzy…","created":"2026-11-24T21:38:14.247460129Z","expires":"2026-11-25T21:38:14.247460129Z","status":"active"}],"max_days":90,"groups":["sites","databases","backups","cron","jobs","health","ssl","system"]}
   => ĐẠT: GET /account/tokens: có token e2e-api, có max_days và groups, không lộ token
 
-[2026-11-25 04:10:42] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.api.h)
+[2026-11-25 04:38:14] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.api.h)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): [{"domain":"a.example.com","slug":"a_example_com_7653e4","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:08:25.980701489Z","owner":"admin","htaccess":"an-toan","caged":false},{"domain":"khach.example.org","slug":"khach_example_or_16eafb","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:08:31.661718119Z","owner":"khach","htaccess":"an-toan","caged":false}]
+    thân nhận (tối đa 700 byte): [{"domain":"a.example.com","slug":"a_example_com_7653e4","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:35:49.23536204Z","owner":"admin","htaccess":"an-toan","caged":false},{"domain":"khach.example.org","slug":"khach_example_or_16eafb","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:35:55.179784931Z","owner":"khach","htaccess":"an-toan","caged":false}]
   => ĐẠT: token tạo qua API (sites:read) GET /sites: 200
 
 
-######## [2026-11-25 04:10:42] tạo token qua CLI (in một lần)
+######## [2026-11-25 04:38:14] tạo token qua CLI (in một lần)
 
-[2026-11-25 04:10:42] $ scripts/vm.sh root tpan token create admin --name e2e-du --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write --days 1 --json
+[2026-11-25 04:38:14] $ scripts/vm.sh root tpan token create admin --name e2e-du --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write --days 1 --json
 {
   "token": "<bí mật, đã che>",
   "row": {
-    "id": "a12535ea7ae56a96",
+    "id": "e4a1b1f501c6a627",
     "user": "admin",
     "name": "e2e-du",
     "scopes": [
@@ -2196,24 +2196,24 @@ bước 59851821 (giờ máy +0 giây, cần bước >= 59851821); mã ghi vào 
       "ssl:write",
       "system:write"
     ],
-    "hint": "tpan_un22y2…",
-    "created": "2026-11-25T04:10:42.36073994+07:00",
-    "expires": "2026-11-26T04:10:42.36073994+07:00",
+    "hint": "tpan_yvmurc…",
+    "created": "2026-11-25T04:38:14.535287058+07:00",
+    "expires": "2026-11-26T04:38:14.535287058+07:00",
     "status": "active"
   }
 }
-[2026-11-25 04:10:42] (mã thoát 0)
+[2026-11-25 04:38:14] (mã thoát 0)
   => ĐẠT: tpan token create admin --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write: thoát 0, in token 44 ký tự tpan_… một lần (đã che), có id
 
-[2026-11-25 04:10:42] $ (đưa tok.du.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.du.h; không in nội dung)
+[2026-11-25 04:38:14] $ (đưa tok.du.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.du.h; không in nội dung)
 600 ubuntu 67 byte /home/ubuntu/e2e-m20/bm/tok.du.h
-[2026-11-25 04:10:42] (mã thoát 0)
+[2026-11-25 04:38:14] (mã thoát 0)
 
-[2026-11-25 04:10:42] $ scripts/vm.sh root tpan token create admin --name e2e-doc --scope sites:read,databases:read,backups:read,cron:read,jobs:read,health:read,ssl:read,system:read --days 1 --json
+[2026-11-25 04:38:14] $ scripts/vm.sh root tpan token create admin --name e2e-doc --scope sites:read,databases:read,backups:read,cron:read,jobs:read,health:read,ssl:read,system:read --days 1 --json
 {
   "token": "<bí mật, đã che>",
   "row": {
-    "id": "22699916a52d2123",
+    "id": "a161a2ed02f41d07",
     "user": "admin",
     "name": "e2e-doc",
     "scopes": [
@@ -2226,70 +2226,70 @@ bước 59851821 (giờ máy +0 giây, cần bước >= 59851821); mã ghi vào 
       "ssl:read",
       "system:read"
     ],
-    "hint": "tpan_nhk4jt…",
-    "created": "2026-11-25T04:10:42.640197343+07:00",
-    "expires": "2026-11-26T04:10:42.640197343+07:00",
+    "hint": "tpan_ig6ovl…",
+    "created": "2026-11-25T04:38:14.88771767+07:00",
+    "expires": "2026-11-26T04:38:14.88771767+07:00",
     "status": "active"
   }
 }
-[2026-11-25 04:10:42] (mã thoát 0)
+[2026-11-25 04:38:15] (mã thoát 0)
   => ĐẠT: tpan token create admin --scope sites:read,databases:read,backups:read,cron:read,jobs:read,health:read,ssl:read,system:read: thoát 0, in token 44 ký tự tpan_… một lần (đã che), có id
 
-[2026-11-25 04:10:42] $ (đưa tok.doc.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.doc.h; không in nội dung)
+[2026-11-25 04:38:15] $ (đưa tok.doc.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.doc.h; không in nội dung)
 600 ubuntu 67 byte /home/ubuntu/e2e-m20/bm/tok.doc.h
-[2026-11-25 04:10:42] (mã thoát 0)
+[2026-11-25 04:38:15] (mã thoát 0)
 
-[2026-11-25 04:10:42] $ scripts/vm.sh root tpan token create admin --name e2e-thieu-a --scope cron:read --days 1 --json
+[2026-11-25 04:38:15] $ scripts/vm.sh root tpan token create admin --name e2e-thieu-a --scope cron:read --days 1 --json
 {
   "token": "<bí mật, đã che>",
   "row": {
-    "id": "9c9b30b79bad2940",
+    "id": "5952b61e4e1b846a",
     "user": "admin",
     "name": "e2e-thieu-a",
     "scopes": [
       "cron:read"
     ],
-    "hint": "tpan_rz5gbq…",
-    "created": "2026-11-25T04:10:42.93131729+07:00",
-    "expires": "2026-11-26T04:10:42.93131729+07:00",
+    "hint": "tpan_uj7wtf…",
+    "created": "2026-11-25T04:38:15.301436809+07:00",
+    "expires": "2026-11-26T04:38:15.301436809+07:00",
     "status": "active"
   }
 }
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:15] (mã thoát 0)
   => ĐẠT: tpan token create admin --scope cron:read: thoát 0, in token 44 ký tự tpan_… một lần (đã che), có id
 
-[2026-11-25 04:10:43] $ (đưa tok.thieu-a.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.thieu-a.h; không in nội dung)
+[2026-11-25 04:38:15] $ (đưa tok.thieu-a.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.thieu-a.h; không in nội dung)
 600 ubuntu 67 byte /home/ubuntu/e2e-m20/bm/tok.thieu-a.h
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:15] (mã thoát 0)
 
-[2026-11-25 04:10:43] $ scripts/vm.sh root tpan token create admin --name e2e-thieu-b --scope jobs:read --days 1 --json
+[2026-11-25 04:38:15] $ scripts/vm.sh root tpan token create admin --name e2e-thieu-b --scope jobs:read --days 1 --json
 {
   "token": "<bí mật, đã che>",
   "row": {
-    "id": "e8a38eae4f895cb9",
+    "id": "54c8c3492fcbe23b",
     "user": "admin",
     "name": "e2e-thieu-b",
     "scopes": [
       "jobs:read"
     ],
-    "hint": "tpan_qhcd5d…",
-    "created": "2026-11-25T04:10:43.197493655+07:00",
-    "expires": "2026-11-26T04:10:43.197493655+07:00",
+    "hint": "tpan_s7xr3h…",
+    "created": "2026-11-25T04:38:15.604341089+07:00",
+    "expires": "2026-11-26T04:38:15.604341089+07:00",
     "status": "active"
   }
 }
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:15] (mã thoát 0)
   => ĐẠT: tpan token create admin --scope jobs:read: thoát 0, in token 44 ký tự tpan_… một lần (đã che), có id
 
-[2026-11-25 04:10:43] $ (đưa tok.thieu-b.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.thieu-b.h; không in nội dung)
+[2026-11-25 04:38:15] $ (đưa tok.thieu-b.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.thieu-b.h; không in nội dung)
 600 ubuntu 67 byte /home/ubuntu/e2e-m20/bm/tok.thieu-b.h
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:15] (mã thoát 0)
 
-[2026-11-25 04:10:43] $ scripts/vm.sh root tpan token create admin --name e2e-het-han --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write --days 1 --json
+[2026-11-25 04:38:15] $ scripts/vm.sh root tpan token create admin --name e2e-het-han --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write --days 1 --json
 {
   "token": "<bí mật, đã che>",
   "row": {
-    "id": "3dd4a018b9bcfe6f",
+    "id": "a34c7a07f4f982fb",
     "user": "admin",
     "name": "e2e-het-han",
     "scopes": [
@@ -2302,24 +2302,24 @@ bước 59851821 (giờ máy +0 giây, cần bước >= 59851821); mã ghi vào 
       "ssl:write",
       "system:write"
     ],
-    "hint": "tpan_5a343v…",
-    "created": "2026-11-25T04:10:43.497727152+07:00",
-    "expires": "2026-11-26T04:10:43.497727152+07:00",
+    "hint": "tpan_sq2b7r…",
+    "created": "2026-11-25T04:38:15.926989684+07:00",
+    "expires": "2026-11-26T04:38:15.926989684+07:00",
     "status": "active"
   }
 }
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:16] (mã thoát 0)
   => ĐẠT: tpan token create admin --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write: thoát 0, in token 44 ký tự tpan_… một lần (đã che), có id
 
-[2026-11-25 04:10:43] $ (đưa tok.het-han.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.het-han.h; không in nội dung)
+[2026-11-25 04:38:16] $ (đưa tok.het-han.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.het-han.h; không in nội dung)
 600 ubuntu 67 byte /home/ubuntu/e2e-m20/bm/tok.het-han.h
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:16] (mã thoát 0)
 
-[2026-11-25 04:10:43] $ scripts/vm.sh root tpan token create admin --name e2e-thu-hoi --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write --days 1 --json
+[2026-11-25 04:38:16] $ scripts/vm.sh root tpan token create admin --name e2e-thu-hoi --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write --days 1 --json
 {
   "token": "<bí mật, đã che>",
   "row": {
-    "id": "bbd8eb53dc5cf312",
+    "id": "e0faf07b84b9f9c3",
     "user": "admin",
     "name": "e2e-thu-hoi",
     "scopes": [
@@ -2332,68 +2332,68 @@ bước 59851821 (giờ máy +0 giây, cần bước >= 59851821); mã ghi vào 
       "ssl:write",
       "system:write"
     ],
-    "hint": "tpan_jbphen…",
-    "created": "2026-11-25T04:10:43.782069683+07:00",
-    "expires": "2026-11-26T04:10:43.782069683+07:00",
+    "hint": "tpan_rrl35n…",
+    "created": "2026-11-25T04:38:16.227565593+07:00",
+    "expires": "2026-11-26T04:38:16.227565593+07:00",
     "status": "active"
   }
 }
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:16] (mã thoát 0)
   => ĐẠT: tpan token create admin --scope sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write,system:write: thoát 0, in token 44 ký tự tpan_… một lần (đã che), có id
 
-[2026-11-25 04:10:43] $ (đưa tok.thu-hoi.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.thu-hoi.h; không in nội dung)
+[2026-11-25 04:38:16] $ (đưa tok.thu-hoi.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.thu-hoi.h; không in nội dung)
 600 ubuntu 67 byte /home/ubuntu/e2e-m20/bm/tok.thu-hoi.h
-[2026-11-25 04:10:43] (mã thoát 0)
+[2026-11-25 04:38:16] (mã thoát 0)
 
-[2026-11-25 04:10:43] $ scripts/vm.sh root tpan token create admin2 --name e2e-a2 --scope system:read --days 1 --json
+[2026-11-25 04:38:16] $ scripts/vm.sh root tpan token create admin2 --name e2e-a2 --scope system:read --days 1 --json
 {
   "token": "<bí mật, đã che>",
   "row": {
-    "id": "9c0ddee83b8a8c83",
+    "id": "663e7f6fd29d7ec8",
     "user": "admin2",
     "name": "e2e-a2",
     "scopes": [
       "system:read"
     ],
-    "hint": "tpan_bt3evn…",
-    "created": "2026-11-25T04:10:44.056109149+07:00",
-    "expires": "2026-11-26T04:10:44.056109149+07:00",
+    "hint": "tpan_2rjgo6…",
+    "created": "2026-11-25T04:38:16.583189686+07:00",
+    "expires": "2026-11-26T04:38:16.583189686+07:00",
     "status": "active"
   }
 }
-[2026-11-25 04:10:44] (mã thoát 0)
+[2026-11-25 04:38:16] (mã thoát 0)
   => ĐẠT: tpan token create admin2 --scope system:read: thoát 0, in token 44 ký tự tpan_… một lần (đã che), có id
 
-[2026-11-25 04:10:44] $ (đưa tok.a2.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.a2.h; không in nội dung)
+[2026-11-25 04:38:16] $ (đưa tok.a2.h vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/tok.a2.h; không in nội dung)
 600 ubuntu 67 byte /home/ubuntu/e2e-m20/bm/tok.a2.h
-[2026-11-25 04:10:44] (mã thoát 0)
+[2026-11-25 04:38:16] (mã thoát 0)
 
-[2026-11-25 04:10:44] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py hethan 3dd4a018b9bcfe6f
-token 3dd4a018b9bcfe6f: 1 dòng, expires_at = 2026-11-24T20:10:44.331082000Z
-[2026-11-25 04:10:44] (mã thoát 0)
+[2026-11-25 04:38:16] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py hethan a34c7a07f4f982fb
+token a34c7a07f4f982fb: 1 dòng, expires_at = 2026-11-24T20:38:16.928459000Z
+[2026-11-25 04:38:16] (mã thoát 0)
   => ĐẠT: (đồ nghề) expires_at của token het-han ghi lùi về một giờ trước
 
-[2026-11-25 04:10:44] $ scripts/vm.sh root tpan token revoke bbd8eb53dc5cf312 --yes
-Đã thu hồi token bbd8eb53dc5cf312.
-[2026-11-25 04:10:44] (mã thoát 0)
+[2026-11-25 04:38:16] $ scripts/vm.sh root tpan token revoke e0faf07b84b9f9c3 --yes
+Đã thu hồi token e0faf07b84b9f9c3.
+[2026-11-25 04:38:17] (mã thoát 0)
   => ĐẠT: tpan token revoke: thoát 0
 
-[2026-11-25 04:10:44] $ scripts/vm.sh root tpan token list --json
+[2026-11-25 04:38:17] $ scripts/vm.sh root tpan token list --json
 [
   {
-    "id": "9c0ddee83b8a8c83",
+    "id": "663e7f6fd29d7ec8",
     "user": "admin2",
     "name": "e2e-a2",
     "scopes": [
       "system:read"
     ],
-    "hint": "tpan_bt3evn…",
-    "created": "2026-11-24T21:10:44.056109149Z",
-    "expires": "2026-11-25T21:10:44.056109149Z",
+    "hint": "tpan_2rjgo6…",
+    "created": "2026-11-24T21:38:16.583189686Z",
+    "expires": "2026-11-25T21:38:16.583189686Z",
     "status": "active"
   },
   {
-    "id": "bbd8eb53dc5cf312",
+    "id": "e0faf07b84b9f9c3",
     "user": "admin",
     "name": "e2e-thu-hoi",
     "scopes": [
@@ -2406,14 +2406,14 @@ token 3dd4a018b9bcfe6f: 1 dòng, expires_at = 2026-11-24T20:10:44.331082000Z
       "ssl:write",
       "system:write"
     ],
-    "hint": "tpan_jbphen…",
-    "created": "2026-11-24T21:10:43.782069683Z",
-    "expires": "2026-11-25T21:10:43.782069683Z",
-    "revoked": "2026-11-24T21:10:44.438794838Z",
+    "hint": "tpan_rrl35n…",
+    "created": "2026-11-24T21:38:16.227565593Z",
+    "expires": "2026-11-25T21:38:16.227565593Z",
+    "revoked": "2026-11-24T21:38:17.043810741Z",
     "status": "revoked"
   },
   {
-    "id": "3dd4a018b9bcfe6f",
+    "id": "a34c7a07f4f982fb",
     "user": "admin",
     "name": "e2e-het-han",
     "scopes": [
@@ -2426,37 +2426,37 @@ token 3dd4a018b9bcfe6f: 1 dòng, expires_at = 2026-11-24T20:10:44.331082000Z
       "ssl:write",
       "system:write"
     ],
-    "hint": "tpan_5a343v…",
-    "created": "2026-11-24T21:10:43.497727152Z",
-    "expires": "2026-11-24T20:10:44.331082Z",
+    "hint": "tpan_sq2b7r…",
+    "created": "2026-11-24T21:38:15.926989684Z",
+    "expires": "2026-11-24T20:38:16.928459Z",
     "status": "expired"
   },
   {
-    "id": "e8a38eae4f895cb9",
+    "id": "54c8c3492fcbe23b",
     "user": "admin",
     "name": "e2e-thieu-b",
     "scopes": [
       "jobs:read"
     ],
-    "hint": "tpan_qhcd5d…",
-    "created": "2026-11-24T21:10:43.197493655Z",
-    "expires": "2026-11-25T21:10:43.197493655Z",
+    "hint": "tpan_s7xr3h…",
+    "created": "2026-11-24T21:38:15.604341089Z",
+    "expires": "2026-11-25T21:38:15.604341089Z",
     "status": "active"
   },
   {
-    "id": "9c9b30b79bad2940",
+    "id": "5952b61e4e1b846a",
     "user": "admin",
     "name": "e2e-thieu-a",
     "scopes": [
       "cron:read"
     ],
-    "hint": "tpan_rz5gbq…",
-    "created": "2026-11-24T21:10:42.93131729Z",
-    "expires": "2026-11-25T21:10:42.93131729Z",
+    "hint": "tpan_uj7wtf…",
+    "created": "2026-11-24T21:38:15.301436809Z",
+    "expires": "2026-11-25T21:38:15.301436809Z",
     "status": "active"
   },
   {
-    "id": "22699916a52d2123",
+    "id": "a161a2ed02f41d07",
     "user": "admin",
     "name": "e2e-doc",
     "scopes": [
@@ -2469,13 +2469,13 @@ token 3dd4a018b9bcfe6f: 1 dòng, expires_at = 2026-11-24T20:10:44.331082000Z
       "ssl:read",
       "system:read"
     ],
-    "hint": "tpan_nhk4jt…",
-    "created": "2026-11-24T21:10:42.640197343Z",
-    "expires": "2026-11-25T21:10:42.640197343Z",
+    "hint": "tpan_ig6ovl…",
+    "created": "2026-11-24T21:38:14.88771767Z",
+    "expires": "2026-11-25T21:38:14.88771767Z",
     "status": "active"
   },
   {
-    "id": "a12535ea7ae56a96",
+    "id": "e4a1b1f501c6a627",
     "user": "admin",
     "name": "e2e-du",
     "scopes": [
@@ -2488,44 +2488,44 @@ token 3dd4a018b9bcfe6f: 1 dòng, expires_at = 2026-11-24T20:10:44.331082000Z
       "ssl:write",
       "system:write"
     ],
-    "hint": "tpan_un22y2…",
-    "created": "2026-11-24T21:10:42.36073994Z",
-    "expires": "2026-11-25T21:10:42.36073994Z",
+    "hint": "tpan_yvmurc…",
+    "created": "2026-11-24T21:38:14.535287058Z",
+    "expires": "2026-11-25T21:38:14.535287058Z",
     "status": "active"
   },
   {
-    "id": "15f5102715ccb18a",
+    "id": "88a1f28ebbdff325",
     "user": "admin",
     "name": "e2e-api",
     "scopes": [
       "sites:read"
     ],
-    "hint": "tpan_pcdoak…",
-    "created": "2026-11-24T21:10:42.118011302Z",
-    "expires": "2026-11-25T21:10:42.118011302Z",
-    "last_used": "2026-11-24T21:10:42.240194983Z",
+    "hint": "tpan_cyczzy…",
+    "created": "2026-11-24T21:38:14.247460129Z",
+    "expires": "2026-11-25T21:38:14.247460129Z",
+    "last_used": "2026-11-24T21:38:14.388135493Z",
     "last_ip": "<mac>",
     "status": "active"
   }
 ]
-[2026-11-25 04:10:44] (mã thoát 0)
+[2026-11-25 04:38:17] (mã thoát 0)
   => ĐẠT: tpan token list --json: có token expired và revoked
   => ĐẠT: tpan token list --json: output thô (trước khi che) không có token nào, chỉ hint
 
 
-######## [2026-11-25 04:10:44] T40: bảng mọi route × trạng thái token
+######## [2026-11-25 04:38:17] T40: bảng mọi route × trạng thái token
 
-[2026-11-25 04:10:44] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT id FROM jobs WHERE kind = 'site.add' AND status = 'succeeded' ORDER BY started_at LIMIT 1
-4270886c52e9f1e0
-[2026-11-25 04:10:44] (mã thoát 0)
+[2026-11-25 04:38:17] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT id FROM jobs WHERE kind = 'site.add' AND status = 'succeeded' ORDER BY started_at LIMIT 1
+d0b83c722717a4e0
+[2026-11-25 04:38:17] (mã thoát 0)
 
-[2026-11-25 04:10:44] $ bash -c "$1" -khong-co >"$2" && wc -l <"$2" _ <tmp>/bangroute <tmp>/route-gia.tsv
+[2026-11-25 04:38:17] $ bash -c "$1" -khong-co >"$2" && wc -l <"$2" _ <tmp>/bangroute <tmp>/route-gia.tsv
 bangroute: 129 route API không công khai; bỏ qua 7 (công khai, catch-all)
      129
-[2026-11-25 04:10:45] (mã thoát 0)
+[2026-11-25 04:38:18] (mã thoát 0)
   => ĐẠT: bangroute -khong-co chạy được
 
-[2026-11-25 04:10:45] $ bash -c "$1" -domain "$3" -job "$4" -user "$5" -token "$6" >"$2" && cut -f1,2,3 "$2" _ <tmp>/bangroute <tmp>/route-that.tsv a.example.com 4270886c52e9f1e0 khach bbd8eb53dc5cf312
+[2026-11-25 04:38:18] $ bash -c "$1" -domain "$3" -job "$4" -user "$5" -token "$6" >"$2" && cut -f1,2,3 "$2" _ <tmp>/bangroute <tmp>/route-that.tsv a.example.com d0b83c722717a4e0 khach e0faf07b84b9f9c3
 bangroute: 129 route API không công khai; bỏ qua 7 (công khai, catch-all)
 POST	/api/v1/account/password	-
 GET	/api/v1/account/sessions	-
@@ -2539,8 +2539,8 @@ POST	/api/v1/sites	sites
 GET	/api/v1/sites/a.example.com	sites
 DELETE	/api/v1/sites/a.example.com	sites
 GET	/api/v1/jobs	jobs
-GET	/api/v1/jobs/4270886c52e9f1e0	jobs
-GET	/api/v1/jobs/4270886c52e9f1e0/events	jobs
+GET	/api/v1/jobs/d0b83c722717a4e0	jobs
+GET	/api/v1/jobs/d0b83c722717a4e0/events	jobs
 GET	/api/v1/databases	databases
 GET	/api/v1/ssl	ssl
 POST	/api/v1/ssl/settings	ssl
@@ -2649,25 +2649,25 @@ POST	/api/v1/account/2fa/disable	-
 POST	/api/v1/account/2fa/recovery	-
 GET	/api/v1/account/tokens	-
 POST	/api/v1/account/tokens	-
-DELETE	/api/v1/account/tokens/bbd8eb53dc5cf312	-
+DELETE	/api/v1/account/tokens/e0faf07b84b9f9c3	-
 GET	/api/v1/settings/auth	-
 POST	/api/v1/settings/auth	-
 GET	/api/v1/tokens	-
-DELETE	/api/v1/tokens/bbd8eb53dc5cf312	-
+DELETE	/api/v1/tokens/e0faf07b84b9f9c3	-
 GET	/api/v1/panel	system
 POST	/api/v1/panel/domain	system
-[2026-11-25 04:10:45] (mã thoát 0)
+[2026-11-25 04:38:18] (mã thoát 0)
   => ĐẠT: T40: bảng route của server có ít nhất 110 route API không công khai
 
-[2026-11-25 04:10:45] $ (đưa route-gia.tsv vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/route-gia.tsv; không in nội dung)
+[2026-11-25 04:38:18] $ (đưa route-gia.tsv vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/route-gia.tsv; không in nội dung)
 600 ubuntu 8852 byte /home/ubuntu/e2e-m20/bm/route-gia.tsv
-[2026-11-25 04:10:45] (mã thoát 0)
+[2026-11-25 04:38:18] (mã thoát 0)
 
-[2026-11-25 04:10:45] $ (đưa route-that.tsv vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/route-that.tsv; không in nội dung)
+[2026-11-25 04:38:18] $ (đưa route-that.tsv vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/route-that.tsv; không in nội dung)
 600 ubuntu 8788 byte /home/ubuntu/e2e-m20/bm/route-that.tsv
-[2026-11-25 04:10:45] (mã thoát 0)
+[2026-11-25 04:38:18] (mã thoát 0)
 
-[2026-11-25 04:10:45] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/bang-token.sh /home/ubuntu/e2e-m20/bm/route-gia.tsv /home/ubuntu/e2e-m20/bm/route-that.tsv /home/ubuntu/e2e-m20/bm /home/ubuntu/e2e-m20/bm/t40
+[2026-11-25 04:38:18] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/bang-token.sh /home/ubuntu/e2e-m20/bm/route-gia.tsv /home/ubuntu/e2e-m20/bm/route-that.tsv /home/ubuntu/e2e-m20/bm /home/ubuntu/e2e-m20/bm/t40
 số route (không công khai): 129; request đủ phạm vi (GET và POST xem trước): 35
 đếm theo trạng thái (trạng thái, mã HTTP, error.code, số request):
   chi-phien      403 token_forbidden    47
@@ -2682,107 +2682,114 @@ số route (không công khai): 129; request đủ phạm vi (GET và POST xem t
   thieu          403 token_scope        82
   thu-hoi        401 token_revoked      129
 TỔNG: 471 request, sai=0
-[2026-11-25 04:10:54] (mã thoát 0)
+[2026-11-25 04:38:28] (mã thoát 0)
   => ĐẠT: T40: mọi route × {hết hạn 401 token_expired, thu hồi 401 token_revoked, chỉ phiên 403 token_forbidden, thiếu phạm vi 403 token_scope, chỉ đọc trên route ghi 403 token_scope}, đủ phạm vi không 401/403
   => ĐẠT: T40: không có dòng SAI
 
 
-######## [2026-11-25 04:10:54] T41: token theo vai hiện tại của chủ
+######## [2026-11-25 04:38:28] T41: token theo vai hiện tại của chủ
 
-[2026-11-25 04:10:54] $ curl -X GET <panel>/api/v1/stack   (token: header từ file tok.a2.h)
+[2026-11-25 04:38:28] $ curl -X GET <panel>/api/v1/stack   (token: header từ file tok.a2.h)
 -> HTTP 200
 sed: RE error: illegal byte sequence
   => ĐẠT: T41: token system:read của admin2 (đang là admin) GET /stack: 200
 
-[2026-11-25 04:10:55] $ scripts/vm.sh root tpan user edit admin2 --role user --yes
+[2026-11-25 04:38:28] $ scripts/vm.sh root tpan user edit admin2 --role user --yes
 Đã sửa user admin2.
-[2026-11-25 04:10:55] (mã thoát 0)
+[2026-11-25 04:38:29] (mã thoát 0)
   => ĐẠT: T41: hạ admin2 xuống vai user: thoát 0
 
-[2026-11-25 04:10:55] $ curl -X GET <panel>/api/v1/stack   (token: header từ file tok.a2.h)
+[2026-11-25 04:38:29] $ curl -X GET <panel>/api/v1/stack   (token: header từ file tok.a2.h)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"token_revoked","message":{"vi":"Token đã bị thu hồi.","en":"The token has been revoked."}}}
   => ĐẠT: T41: cùng token GET /stack sau khi hạ vai: 401 token_revoked (đổi vai trò thu hồi token)
 
-[2026-11-25 04:10:55] $ scripts/vm.sh root tpan user suspend admin2 --yes
-Bắt đầu job 3b7fb745ea311762
+[2026-11-25 04:38:29] $ scripts/vm.sh root tpan user suspend admin2 --yes
+Bắt đầu job be136cc97a2e4c68
 
-Job 3b7fb745ea311762: thành công
-[2026-11-25 04:10:55] (mã thoát 0)
+Job be136cc97a2e4c68: thành công
+[2026-11-25 04:38:29] (mã thoát 0)
   => ĐẠT: T41: khoá admin2: thoát 0
 
-[2026-11-25 04:10:55] $ curl -X GET <panel>/api/v1/stack   (token: header từ file tok.a2.h)
+[2026-11-25 04:38:29] $ curl -X GET <panel>/api/v1/stack   (token: header từ file tok.a2.h)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"token_revoked","message":{"vi":"Token đã bị thu hồi.","en":"The token has been revoked."}}}
   => ĐẠT: T41: token của user đang khoá: 401 (đã thu hồi lúc hạ vai; user khoá)
 
 
-######## [2026-11-25 04:10:55] T42: token sai dạng
+######## [2026-11-25 04:38:29] T42: token sai dạng
 
-[2026-11-25 04:10:55] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.hong.h)
+[2026-11-25 04:38:29] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.hong.h)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"token_malformed","message":{"vi":"Token sai dạng (thiếu hay thừa ký tự khi chép?).","en":"The token is malformed (characters lost or added when copying?)."}}}
   => ĐẠT: T42: token đổi một ký tự: 401 token_malformed (bắt bằng phần kiểm, không hỏi DB)
 
-[2026-11-25 04:10:55] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.khong-bearer.h)
+[2026-11-25 04:38:29] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.khong-bearer.h)
 -> HTTP 401
     thân nhận (tối đa 700 byte): {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, chủ token không còn hoặc đang bị khoá). Header phải là: Authorization: Bearer tpan_…","en":"Invalid token (unknown, or its owner is gone or suspended). The header must be: Authorization: Bearer tpan_…"}}}
   => ĐẠT: header Authorization thiếu chữ Bearer: 401 token_invalid (có Authorization thì không dùng cookie)
 
-[2026-11-25 04:10:55] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.du.h)
+[2026-11-25 04:38:29] $ curl -X GET <panel>/api/v1/sites   (token: header từ file tok.du.h)
 -> HTTP 200
-    thân nhận (tối đa 700 byte): [{"domain":"a.example.com","slug":"a_example_com_7653e4","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:08:25.980701489Z","owner":"admin","htaccess":"an-toan","caged":false},{"domain":"khach.example.org","slug":"khach_example_or_16eafb","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:08:31.661718119Z","owner":"khach","htaccess":"an-toan","caged":false}]
+    thân nhận (tối đa 700 byte): [{"domain":"a.example.com","slug":"a_example_com_7653e4","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:35:49.23536204Z","owner":"admin","htaccess":"an-toan","caged":false},{"domain":"khach.example.org","slug":"khach_example_or_16eafb","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T21:35:55.179784931Z","owner":"khach","htaccess":"an-toan","caged":false}]
   => ĐẠT: token đủ phạm vi của admin GET /sites: 200
   => ĐẠT: token đủ phạm vi đã dùng được trước khi quét (để T63 có dữ liệu)
 
 ==== Phần G: 30 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:10:55] PHẦN H (T50): chứng chỉ panel được tin (pebble)
+######## [2026-11-25 04:38:29] PHẦN H (T50): chứng chỉ panel được tin (pebble)
 
-[2026-11-25 04:10:55] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/pebble.sh /etc/tpan-e2e-pebble tpan-e2e-pebble
+[2026-11-25 04:38:29] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/pebble.sh /etc/tpan-e2e-pebble tpan-e2e-pebble
 
-Running kernel seems to be up-to-date.
+Restarting services...
 
-No services need to be restarted.
+Service restarts being deferred:
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart getty@tty1.service
+ systemctl restart serial-getty@ttyAMA0.service
+ systemctl restart systemd-logind.service
+ systemctl restart unattended-upgrades.service
 
 No containers need to be restarted.
 
-No user sessions are running outdated binaries.
+User sessions running outdated binaries:
+ ubuntu @ session #1: sshd[887]
+ ubuntu @ user manager service: systemd[892]
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
 done.
-Running as unit: tpan-e2e-pebble.service; invocation ID: a455ab54da02456cac34cdc34606347a
+Running as unit: tpan-e2e-pebble.service; invocation ID: fb4ac9eea395430b982f2b4053ca259a
 pebble /dir: HTTP 200
-[2026-11-25 04:11:00] (mã thoát 0)
+[2026-11-25 04:39:12] (mã thoát 0)
   => ĐẠT: (đồ nghề) dựng pebble: /dir trả 200
 
-[2026-11-25 04:11:00] $ scripts/vm.sh root bash -c echo "127.0.0.1 $1" >>/etc/hosts && getent ahostsv4 "$1" | head -1 _ panel.m20.test
+[2026-11-25 04:39:12] $ scripts/vm.sh root bash -c echo "127.0.0.1 $1" >>/etc/hosts && getent ahostsv4 "$1" | head -1 _ panel.m20.test
 127.0.0.1       STREAM panel.m20.test
-[2026-11-25 04:11:00] (mã thoát 0)
+[2026-11-25 04:39:12] (mã thoát 0)
   => ĐẠT: (đồ nghề) panel.m20.test -> 127.0.0.1 trong /etc/hosts
 
-[2026-11-25 04:11:00] $ scripts/vm.sh root tpan ssl settings --email admin@example.com --server https://localhost:14000/dir
+[2026-11-25 04:39:12] $ scripts/vm.sh root tpan ssl settings --email admin@example.com --server https://localhost:14000/dir
 Email:     admin@example.com
 Staging:   bật (chứng chỉ thử, trình duyệt không tin)
 ACME:      https://localhost:14000/dir
-[2026-11-25 04:11:00] (mã thoát 0)
+[2026-11-25 04:39:12] (mã thoát 0)
   => ĐẠT: ssl settings: email và máy chủ ACME thử (ssl.server có giá trị nên không cần tắt staging, 11.4)
 
-[2026-11-25 04:11:00] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
-phuc-vu: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F tu-ky=co issuer=CN=tpan-m20 san=DNS:tpan-m20,DNS:localhost,IPAddress:127.0.0.1,IPAddress:<vm>,IPAddress:0:0:0:0:0:0:0:1,IPAddress:FD4B:5324:B51A:DC21:5054:FF:FE88:21D2
-tu-ky-tren-dia: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F
+[2026-11-25 04:39:12] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
+phuc-vu: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD tu-ky=co issuer=CN=tpan-m20 san=DNS:tpan-m20,DNS:localhost,IPAddress:127.0.0.1,IPAddress:<vm>,IPAddress:0:0:0:0:0:0:0:1,IPAddress:FD4B:5324:B51A:DC21:5054:FF:FE88:21D2
+tu-ky-tren-dia: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD
 lineage-tpan-panel: không có
-[2026-11-25 04:11:00] (mã thoát 0)
+[2026-11-25 04:39:12] (mã thoát 0)
   => ĐẠT: T50: trước khi đặt tên: SNI panel.m20.test được phục vụ chứng chỉ tự ký (serial bằng /etc/tpan/tls/cert.pem)
 
-[2026-11-25 04:11:01] $ scripts/vm.sh exec systemctl show -p MainPID --value tpan
-1685
-[2026-11-25 04:11:01] (mã thoát 0)
+[2026-11-25 04:39:12] $ scripts/vm.sh exec systemctl show -p MainPID --value tpan
+1683
+[2026-11-25 04:39:12] (mã thoát 0)
 
-[2026-11-25 04:11:01] $ scripts/vm.sh root tpan panel domain set panel.m20.test --yes
-Bắt đầu job d01e6f3c4d5cf942
+[2026-11-25 04:39:12] $ scripts/vm.sh root tpan panel domain set panel.m20.test --yes
+Bắt đầu job 058d3f90d858de8b
 - Kiểm panel.m20.test không thuộc site nào ...
   đã đúng, bỏ qua
 - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
@@ -2798,16 +2805,16 @@ Bắt đầu job d01e6f3c4d5cf942
   [đạt] Gia hạn thử chứng chỉ tpan-panel (certbot renew --dry-run) thành công
   [đạt] Panel phục vụ chứng chỉ Let's Encrypt cho panel.m20.test
 
-Job d01e6f3c4d5cf942: thành công
+Job 058d3f90d858de8b: thành công
 Kiểm chứng:
-  [đạt] Chứng chỉ Let's Encrypt của panel còn đúng và còn hạn: Chứng chỉ của panel cho panel.m20.test còn 1825 ngày, do Pebble Intermediate CA 4264d8 ký
+  [đạt] Chứng chỉ Let's Encrypt của panel còn đúng và còn hạn: Chứng chỉ của panel cho panel.m20.test còn 1825 ngày, do Pebble Intermediate CA 56a6fd ký
   [đạt] Dịch vụ certbot.timer đang chạy và tự bật cùng máy: certbot.timer đang chạy và tự bật khi khởi động máy
   [đạt] Gia hạn thử chứng chỉ tpan-panel (certbot renew --dry-run) thành công: certbot gia hạn thử tpan-panel thành công
-  [đạt] Panel phục vụ chứng chỉ Let's Encrypt cho panel.m20.test: Panel phục vụ đúng chứng chỉ của lineage cho panel.m20.test (serial 45BC12BB61CB705F)
-[2026-11-25 04:11:06] (mã thoát 0)
+  [đạt] Panel phục vụ chứng chỉ Let's Encrypt cho panel.m20.test: Panel phục vụ đúng chứng chỉ của lineage cho panel.m20.test (serial 68618362B9E10729)
+[2026-11-25 04:39:17] (mã thoát 0)
   => ĐẠT: T50: tpan panel domain set panel.m20.test --yes: thoát 0, job thành công
 
-[2026-11-25 04:11:06] $ scripts/vm.sh root tpan panel domain show --json
+[2026-11-25 04:39:17] $ scripts/vm.sh root tpan panel domain show --json
 {
   "domain": "panel.m20.test",
   "cert": {
@@ -2819,38 +2826,38 @@ Kiểm chứng:
     },
     "status": "pass",
     "summary": {
-      "vi": "Chứng chỉ của panel cho panel.m20.test còn 1825 ngày, do Pebble Intermediate CA 4264d8 ký",
-      "en": "The panel certificate for panel.m20.test has 1825 days left, signed by Pebble Intermediate CA 4264d8"
+      "vi": "Chứng chỉ của panel cho panel.m20.test còn 1825 ngày, do Pebble Intermediate CA 56a6fd ký",
+      "en": "The panel certificate for panel.m20.test has 1825 days left, signed by Pebble Intermediate CA 56a6fd"
     },
     "evidence": [
       {
         "command": "read /etc/letsencrypt/live/tpan-panel/fullchain.pem (tpan)",
         "exit_code": 0,
-        "output": "SAN: panel.m20.test\nissuer: Pebble Intermediate CA 4264d8\nserial: 45BC12BB61CB705F\nnotBefore: 2026-11-24T21:11:02Z\nnotAfter: 2031-11-24T21:11:01Z"
+        "output": "SAN: panel.m20.test\nissuer: Pebble Intermediate CA 56a6fd\nserial: 68618362B9E10729\nnotBefore: 2026-11-24T21:39:14Z\nnotAfter: 2031-11-24T21:39:13Z"
       }
     ]
   }
 }
-[2026-11-25 04:11:06] (mã thoát 0)
+[2026-11-25 04:39:17] (mã thoát 0)
   => ĐẠT: T50: panel domain show: panel.m20.test
 
-[2026-11-25 04:11:06] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
-phuc-vu: serial=45BC12BB61CB705F tu-ky=khong issuer=CN=Pebble Intermediate CA 4264d8 san=DNS:panel.m20.test
-tu-ky-tren-dia: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F
-lineage-tpan-panel: serial=45BC12BB61CB705F san=DNS:panel.m20.test
-[2026-11-25 04:11:07] (mã thoát 0)
+[2026-11-25 04:39:17] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
+phuc-vu: serial=68618362B9E10729 tu-ky=khong issuer=CN=Pebble Intermediate CA 56a6fd san=DNS:panel.m20.test
+tu-ky-tren-dia: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD
+lineage-tpan-panel: serial=68618362B9E10729 san=DNS:panel.m20.test
+[2026-11-25 04:39:18] (mã thoát 0)
   => ĐẠT: T50: SNI panel.m20.test: chứng chỉ do pebble ký (không tự ký), serial bằng fullchain của lineage tpan-panel (lần đọc 1)
   => ĐẠT: T50: SAN của chứng chỉ phục vụ và của lineage là DNS:panel.m20.test
 
-[2026-11-25 04:11:07] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh -
-phuc-vu: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F tu-ky=co issuer=CN=tpan-m20 san=DNS:tpan-m20,DNS:localhost,IPAddress:127.0.0.1,IPAddress:<vm>,IPAddress:0:0:0:0:0:0:0:1,IPAddress:FD4B:5324:B51A:DC21:5054:FF:FE88:21D2
-tu-ky-tren-dia: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F
-lineage-tpan-panel: serial=45BC12BB61CB705F san=DNS:panel.m20.test
-[2026-11-25 04:11:07] (mã thoát 0)
+[2026-11-25 04:39:18] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh -
+phuc-vu: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD tu-ky=co issuer=CN=tpan-m20 san=DNS:tpan-m20,DNS:localhost,IPAddress:127.0.0.1,IPAddress:<vm>,IPAddress:0:0:0:0:0:0:0:1,IPAddress:FD4B:5324:B51A:DC21:5054:FF:FE88:21D2
+tu-ky-tren-dia: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD
+lineage-tpan-panel: serial=68618362B9E10729 san=DNS:panel.m20.test
+[2026-11-25 04:39:18] (mã thoát 0)
   => ĐẠT: T50: vào bằng IP (không SNI) vẫn là chứng chỉ tự ký (B9)
   => ĐẠT: T50: từ Mac vào bằng IP, tin đúng chứng chỉ tự ký cũ (--cacert): được
 
-[2026-11-25 04:11:07] $ scripts/vm.sh root tpan health --json
+[2026-11-25 04:39:18] $ scripts/vm.sh root tpan health --json
 số phép kiểm theo trạng thái: pass=67 warn=5
 --- warn dns.a:a.example.com: a.example.com chưa có bản ghi A
 --- warn tls.cert:a.example.com: Chưa có chứng chỉ cho a.example.com
@@ -2868,15 +2875,15 @@ số phép kiểm theo trạng thái: pass=67 warn=5
 --- pass tpan.2fa:attempts: Không có user nào bị nhập sai mã hai bước nhiều lần
 --- pass tpan.clock: Đồng hồ đã đồng bộ NTP
 --- pass tpan.secretkey: File khoá /etc/tpan/secret.key đúng: file thường 32 byte, 0600, root
---- pass tpan.panelcert:panel.m20.test: Chứng chỉ của panel cho panel.m20.test còn 1825 ngày, do Pebble Intermediate CA 4264d8 ký
-[2026-11-25 04:11:11] (mã thoát 0)
+--- pass tpan.panelcert:panel.m20.test: Chứng chỉ của panel cho panel.m20.test còn 1825 ngày, do Pebble Intermediate CA 56a6fd ký
+[2026-11-25 04:39:22] (mã thoát 0)
   => ĐẠT: T50: health tpan.panelcert:panel.m20.test đạt
   => ĐẠT: T50: tóm tắt nói số ngày còn hạn
 
 
-######## [2026-11-25 04:11:11] T50: gia hạn ép: serial mới được phục vụ, tpan.service không khởi động lại
+######## [2026-11-25 04:39:22] T50: gia hạn ép: serial mới được phục vụ, tpan.service không khởi động lại
 
-[2026-11-25 04:11:11] $ scripts/vm.sh root certbot renew --cert-name tpan-panel --force-renewal --no-random-sleep-on-renew --server https://localhost:14000/dir
+[2026-11-25 04:39:22] $ scripts/vm.sh root certbot renew --cert-name tpan-panel --force-renewal --no-random-sleep-on-renew --server https://localhost:14000/dir
 Saving debug log to /var/log/letsencrypt/letsencrypt.log
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2888,31 +2895,31 @@ Renewing an existing certificate for panel.m20.test
 Congratulations, all renewals succeeded: 
   /etc/letsencrypt/live/tpan-panel/fullchain.pem (success)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-[2026-11-25 04:11:14] (mã thoát 0)
+[2026-11-25 04:39:25] (mã thoát 0)
   => ĐẠT: T50: certbot renew --cert-name tpan-panel --force-renewal: thoát 0
 
-[2026-11-25 04:11:14] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
-phuc-vu: serial=64EC5DA25D03B9E8 tu-ky=khong issuer=CN=Pebble Intermediate CA 4264d8 san=DNS:panel.m20.test
-tu-ky-tren-dia: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F
-lineage-tpan-panel: serial=64EC5DA25D03B9E8 san=DNS:panel.m20.test
-[2026-11-25 04:11:14] (mã thoát 0)
+[2026-11-25 04:39:25] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
+phuc-vu: serial=3D2C934986084F81 tu-ky=khong issuer=CN=Pebble Intermediate CA 56a6fd san=DNS:panel.m20.test
+tu-ky-tren-dia: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD
+lineage-tpan-panel: serial=3D2C934986084F81 san=DNS:panel.m20.test
+[2026-11-25 04:39:25] (mã thoát 0)
   => ĐẠT: T50: serial mới của lineage khác serial cũ và được panel phục vụ (lần đọc 1)
 
-[2026-11-25 04:11:14] $ scripts/vm.sh exec systemctl show -p MainPID --value tpan
-1685
-[2026-11-25 04:11:14] (mã thoát 0)
-  => ĐẠT: T50: MainPID của tpan.service không đổi (1685)
+[2026-11-25 04:39:25] $ scripts/vm.sh exec systemctl show -p MainPID --value tpan
+1683
+[2026-11-25 04:39:25] (mã thoát 0)
+  => ĐẠT: T50: MainPID của tpan.service không đổi (1683)
 
 
-######## [2026-11-25 04:11:14] T50: tên panel và tên site không giành nhau
+######## [2026-11-25 04:39:25] T50: tên panel và tên site không giành nhau
 
-[2026-11-25 04:11:14] $ curl -X POST <panel>/api/v1/panel/domain?dry_run=1   (phiên: jar.adm)
+[2026-11-25 04:39:25] $ curl -X POST <panel>/api/v1/panel/domain?dry_run=1   (phiên: jar.adm)
     thân gửi: {"domain":"a.example.com"}
 -> HTTP 409
     thân nhận (tối đa 700 byte): {"error":{"code":"panel_domain_is_site","message":{"vi":"a.example.com đã thuộc về một site (có trong danh sách site của tpan); panel không dùng chung tên với site: mã PHP của site sẽ đọc được cookie của panel. Chọn tên khác cho panel, ví dụ panel.a.example.com","en":"a.example.com already belongs to a site (it is in tpan's site list); the panel cannot share a name with a site: the site's PHP could read the panel's cookies. Pick another name for the panel, for example panel.a.example.com"}}}
   => ĐẠT: T50: đặt tên panel trùng site a.example.com: 409 panel_domain_is_site
 
-[2026-11-25 04:11:14] $ scripts/vm.sh root tpan site add panel.m20.test --email admin@example.com --dry-run --json
+[2026-11-25 04:39:25] $ scripts/vm.sh root tpan site add panel.m20.test --email admin@example.com --dry-run --json
 {
   "error": {
     "code": "domain_is_panel",
@@ -2922,69 +2929,69 @@ lineage-tpan-panel: serial=64EC5DA25D03B9E8 san=DNS:panel.m20.test
     }
   }
 }
-[2026-11-25 04:11:14] (mã thoát 1)
+[2026-11-25 04:39:26] (mã thoát 1)
   => ĐẠT: T50: CLI tạo site tên panel.m20.test (--dry-run): từ chối domain_is_panel
 
-[2026-11-25 04:11:14] $ curl -X POST <panel>/api/v1/sites?dry_run=1   (phiên: jar.adm)
+[2026-11-25 04:39:26] $ curl -X POST <panel>/api/v1/sites?dry_run=1   (phiên: jar.adm)
     thân gửi: {"domain":"panel.m20.test","email":"admin@example.com"}
 -> HTTP 409
     thân nhận (tối đa 700 byte): {"error":{"code":"domain_is_panel","message":{"vi":"panel.m20.test đang là tên miền của panel tpan; một site không được dùng chung tên với panel. Chọn tên khác, hoặc bỏ tên của panel trước: sudo tpan panel domain set --clear","en":"panel.m20.test is the tpan panel's domain; a site cannot share its name with the panel. Pick another name, or drop the panel's domain first: sudo tpan panel domain set --clear"}}}
   => ĐẠT: T50: API tạo site tên panel.m20.test (dry_run): 409 domain_is_panel
 
 
-######## [2026-11-25 04:11:14] 11.2, R2, R12: Host là tên một site → 421
+######## [2026-11-25 04:39:26] 11.2, R2, R12: Host là tên một site → 421
 
-[2026-11-25 04:11:14] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
+[2026-11-25 04:39:26] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
 [ -n "$h" ] && a+=(-H @"$h")
 r=$(curl "${a[@]}" "https://$d:8443$p"); ec=$(jq -r ".error.code // \"-\"" "$f" 2>/dev/null); echo "https://$d:8443$p -> HTTP $r error.code=${ec:--}"; rm -f "$f" _ a.example.com /api/v1/session
 https://a.example.com:8443/api/v1/session -> HTTP 421 application/json; charset=utf-8 error.code=host_is_site
-[2026-11-25 04:11:14] (mã thoát 0)
+[2026-11-25 04:39:26] (mã thoát 0)
   => ĐẠT: Host a.example.com, /api/v1/session: 421 host_is_site (JSON)
 
-[2026-11-25 04:11:14] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
+[2026-11-25 04:39:26] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
 [ -n "$h" ] && a+=(-H @"$h")
 r=$(curl "${a[@]}" "https://$d:8443$p"); ec=$(jq -r ".error.code // \"-\"" "$f" 2>/dev/null); echo "https://$d:8443$p -> HTTP $r error.code=${ec:--}"; rm -f "$f" _ khach.example.org /
 https://khach.example.org:8443/ -> HTTP 421 text/html; charset=utf-8 error.code=-
-[2026-11-25 04:11:14] (mã thoát 0)
+[2026-11-25 04:39:26] (mã thoát 0)
   => ĐẠT: Host khach.example.org (site của user), đường dẫn giao diện: 421, trang HTML
 
-[2026-11-25 04:11:14] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
+[2026-11-25 04:39:26] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
 [ -n "$h" ] && a+=(-H @"$h")
 r=$(curl "${a[@]}" "https://$d:8443$p"); ec=$(jq -r ".error.code // \"-\"" "$f" 2>/dev/null); echo "https://$d:8443$p -> HTTP $r error.code=${ec:--}"; rm -f "$f" _ a.example.com /api/v1/sites /home/ubuntu/e2e-m20/bm/tok.du.h
 https://a.example.com:8443/api/v1/sites -> HTTP 200 application/json; charset=utf-8 error.code=-
-[2026-11-25 04:11:15] (mã thoát 0)
+[2026-11-25 04:39:26] (mã thoát 0)
   => ĐẠT: R12: cùng Host nhưng có Authorization (token): được miễn 421, 200
 
-[2026-11-25 04:11:15] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
+[2026-11-25 04:39:26] $ scripts/vm.sh exec bash -c d=$1 p=$2 h=${3-}; f=$(mktemp); a=(-sk -m 10 --resolve "$d:8443:127.0.0.1" -o "$f" -w "%{http_code} %{content_type}")
 [ -n "$h" ] && a+=(-H @"$h")
 r=$(curl "${a[@]}" "https://$d:8443$p"); ec=$(jq -r ".error.code // \"-\"" "$f" 2>/dev/null); echo "https://$d:8443$p -> HTTP $r error.code=${ec:--}"; rm -f "$f" _ panel.m20.test /api/v1/session
 https://panel.m20.test:8443/api/v1/session -> HTTP 200 application/json; charset=utf-8 error.code=-
-[2026-11-25 04:11:15] (mã thoát 0)
+[2026-11-25 04:39:26] (mã thoát 0)
   => ĐẠT: Host là panel.m20.test: không 421 (200)
 
 
-######## [2026-11-25 04:11:15] T50: xoá tên panel thì về tự ký
+######## [2026-11-25 04:39:26] T50: xoá tên panel thì về tự ký
 
-[2026-11-25 04:11:15] $ scripts/vm.sh root tpan panel domain set --clear --yes
-Bắt đầu job e179b250b62403ac
+[2026-11-25 04:39:26] $ scripts/vm.sh root tpan panel domain set --clear --yes
+Bắt đầu job bf52562a1072a6e4
 - Bỏ tên miền của panel ...
   xong
 - Xoá chứng chỉ tpan-panel đang có ...
   xong
 
-Job e179b250b62403ac: thành công
-[2026-11-25 04:11:15] (mã thoát 0)
+Job bf52562a1072a6e4: thành công
+[2026-11-25 04:39:26] (mã thoát 0)
   => ĐẠT: T50: tpan panel domain set --clear --yes: thoát 0, job thành công
 
-[2026-11-25 04:11:15] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
-phuc-vu: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F tu-ky=co issuer=CN=tpan-m20 san=DNS:tpan-m20,DNS:localhost,IPAddress:127.0.0.1,IPAddress:<vm>,IPAddress:0:0:0:0:0:0:0:1,IPAddress:FD4B:5324:B51A:DC21:5054:FF:FE88:21D2
-tu-ky-tren-dia: serial=6A4486D30445E0A8A8A439E7BB07F1433BD2C33F
+[2026-11-25 04:39:26] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/chung-chi.sh panel.m20.test
+phuc-vu: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD tu-ky=co issuer=CN=tpan-m20 san=DNS:tpan-m20,DNS:localhost,IPAddress:127.0.0.1,IPAddress:<vm>,IPAddress:0:0:0:0:0:0:0:1,IPAddress:FD4B:5324:B51A:DC21:5054:FF:FE88:21D2
+tu-ky-tren-dia: serial=626C777F27CAE65C9D688BFC6C4F5E9366666DBD
 lineage-tpan-panel: không có
-[2026-11-25 04:11:15] (mã thoát 0)
+[2026-11-25 04:39:27] (mã thoát 0)
   => ĐẠT: T50: sau --clear, SNI panel.m20.test lại là chứng chỉ tự ký (lần đọc 1)
   => ĐẠT: T50: lineage tpan-panel đã bị xoá (certbot delete)
 
-[2026-11-25 04:11:15] $ scripts/vm.sh root tpan health --json
+[2026-11-25 04:39:27] $ scripts/vm.sh root tpan health --json
 số phép kiểm theo trạng thái: pass=66 warn=5
 --- warn dns.a:a.example.com: a.example.com chưa có bản ghi A
 --- warn tls.cert:a.example.com: Chưa có chứng chỉ cho a.example.com
@@ -3002,48 +3009,48 @@ số phép kiểm theo trạng thái: pass=66 warn=5
 --- pass tpan.2fa:attempts: Không có user nào bị nhập sai mã hai bước nhiều lần
 --- pass tpan.clock: Đồng hồ đã đồng bộ NTP
 --- pass tpan.secretkey: File khoá /etc/tpan/secret.key đúng: file thường 32 byte, 0600, root
-[2026-11-25 04:11:19] (mã thoát 0)
+[2026-11-25 04:39:31] (mã thoát 0)
   => ĐẠT: T50: health không còn phép kiểm tpan.panelcert:panel.m20.test
 
 ==== Phần H: 26 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:11:19] PHẦN I (T16, T17): khoá IP ở bước hai, phiếu quá 5 lần sai bị xoá
+######## [2026-11-25 04:39:31] PHẦN I (T16, T17): khoá IP ở bước hai, phiếu quá 5 lần sai bị xoá
 
-[2026-11-25 04:11:19] $ curl -X POST <panel>/api/v1/login   (phiên: jar.kh)
+[2026-11-25 04:39:31] $ curl -X POST <panel>/api/v1/login   (phiên: jar.kh)
     thân gửi: {"name":"thu_khoa","password":"<bí mật, đã che>"}
 -> HTTP 204
   => ĐẠT: thu_khoa đăng nhập: 204
 
-[2026-11-25 04:11:19] $ curl -X POST <panel>/api/v1/account/2fa/setup   (phiên: jar.kh)
+[2026-11-25 04:39:31] $ curl -X POST <panel>/api/v1/account/2fa/setup   (phiên: jar.kh)
     thân gửi: {}
 -> HTTP 200
     thân nhận: (hiện MỘT lần, có bí mật: không in) khoá: ["account","issuer","qr","secret","uri"]; cache-control: no-store
 
-[2026-11-25 04:11:19] $ (đưa totp.thu_khoa vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/totp.thu_khoa; không in nội dung)
+[2026-11-25 04:39:31] $ (đưa totp.thu_khoa vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/totp.thu_khoa; không in nội dung)
 600 ubuntu 32 byte /home/ubuntu/e2e-m20/bm/totp.thu_khoa
-[2026-11-25 04:11:20] (mã thoát 0)
+[2026-11-25 04:39:31] (mã thoát 0)
   => ĐẠT: thu_khoa setup: 200
 
-[2026-11-25 04:11:20] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.thu_khoa 0 1 /home/ubuntu/e2e-m20/bm/code.json
-bước 59851822 (giờ máy +0 giây, cần bước >= 1); mã ghi vào file, không in
-[2026-11-25 04:11:20] (mã thoát 0)
+[2026-11-25 04:39:31] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh dung /home/ubuntu/e2e-m20/bm/totp.thu_khoa 0 1 /home/ubuntu/e2e-m20/bm/code.json
+bước 59851879 (giờ máy +0 giây, cần bước >= 1); mã ghi vào file, không in
+[2026-11-25 04:39:32] (mã thoát 0)
 
-[2026-11-25 04:11:20] $ curl -X POST <panel>/api/v1/account/2fa/enable   (phiên: jar.kh)
+[2026-11-25 04:39:32] $ curl -X POST <panel>/api/v1/account/2fa/enable   (phiên: jar.kh)
     thân gửi: (từ file req.enable, có mật khẩu hay mã: không in)
 -> HTTP 200
     thân nhận: (hiện MỘT lần, có bí mật: không in) khoá: ["recovery_codes"]; cache-control: no-store
-  => ĐẠT: thu_khoa bật hai bước bằng mã oathtool (bước 59851822): 200
+  => ĐẠT: thu_khoa bật hai bước bằng mã oathtool (bước 59851879): 200
 
-[2026-11-25 04:11:20] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh sai /home/ubuntu/e2e-m20/bm/totp.thu_khoa /home/ubuntu/e2e-m20/bm/ma-sai.json
-mã sai: khác mã của bảy bước quanh giờ máy (bước 59851822 ±3); không in
-[2026-11-25 04:11:20] (mã thoát 0)
+[2026-11-25 04:39:33] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/ma.sh sai /home/ubuntu/e2e-m20/bm/totp.thu_khoa /home/ubuntu/e2e-m20/bm/ma-sai.json
+mã sai: khác mã của bảy bước quanh giờ máy (bước 59851879 ±3); không in
+[2026-11-25 04:39:33] (mã thoát 0)
 
-[2026-11-25 04:11:20] $ (đưa pw.thu_khoa vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/pw.thu_khoa; không in nội dung)
+[2026-11-25 04:39:33] $ (đưa pw.thu_khoa vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/pw.thu_khoa; không in nội dung)
 600 ubuntu 26 byte /home/ubuntu/e2e-m20/bm/pw.thu_khoa
-[2026-11-25 04:11:20] (mã thoát 0)
+[2026-11-25 04:39:33] (mã thoát 0)
 
-[2026-11-25 04:11:20] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/khoa-ip.sh https://<vm>:8443 thu_khoa /home/ubuntu/e2e-m20/bm/pw.thu_khoa /home/ubuntu/e2e-m20/bm
+[2026-11-25 04:39:33] $ scripts/vm.sh exec bash /home/ubuntu/e2e-m20/khoa-ip.sh https://<vm>:8443 thu_khoa /home/ubuntu/e2e-m20/bm/pw.thu_khoa /home/ubuntu/e2e-m20/bm
 đăng nhập bằng mật khẩu: HTTP 200 -
 thân: {"mfa_required":true}
 cookie phiếu trong jar: 1
@@ -3055,144 +3062,144 @@ mã sai lần 5: HTTP 423 login_locked (Retry-After 901)
 GET /session bằng cookie phiếu: HTTP 200 -
 thân: {"logged_in":false,"mfa_pending":null}
 đăng nhập lại bằng ĐÚNG mật khẩu từ IP đang khoá: HTTP 423 login_locked (Retry-After 900)
-[2026-11-25 04:11:20] (mã thoát 0)
+[2026-11-25 04:39:33] (mã thoát 0)
   => ĐẠT: bước một từ IP của máy ảo: 200 mfa_required, có cookie phiếu
   => ĐẠT: mã sai lần 1 tới 4: 401 mfa_code_wrong
   => ĐẠT: T17: mã sai lần 5: 423 login_locked kèm Retry-After (IP bị khoá)
   => ĐẠT: T16: cookie phiếu sau lần sai thứ 5: không còn mfa_pending
   => ĐẠT: T17: đúng mật khẩu từ IP đang khoá: 423 login_locked
 
-[2026-11-25 04:11:20] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT COUNT(*) FROM login_challenges WHERE user_name = ? thu_khoa
+[2026-11-25 04:39:33] $ scripts/vm.sh root python3 -I /home/ubuntu/e2e-m20/db.py sql SELECT COUNT(*) FROM login_challenges WHERE user_name = ? thu_khoa
 0
-[2026-11-25 04:11:20] (mã thoát 0)
+[2026-11-25 04:39:33] (mã thoát 0)
   => ĐẠT: T16: phiếu quá 5 lần sai đã bị xoá khỏi tpan.db (0 phiếu của thu_khoa)
 
-[2026-11-25 04:11:20] $ curl -X POST <panel>/api/v1/login   (phiên: jar.kh2)
+[2026-11-25 04:39:33] $ curl -X POST <panel>/api/v1/login   (phiên: jar.kh2)
     thân gửi: {"name":"thu_khoa","password":"<bí mật, đã che>"}
 -> HTTP 200
     thân nhận (tối đa 700 byte): {"mfa_required":true}
   => ĐẠT: T17: từ Mac (IP khác) thu_khoa vẫn qua bước một: 200 mfa_required (khoá IP không khoá đường chính)
 
-[2026-11-25 04:11:21] $ curl -X POST <panel>/api/v1/logout   (phiên: jar.kh2)
+[2026-11-25 04:39:33] $ curl -X POST <panel>/api/v1/logout   (phiên: jar.kh2)
 -> HTTP 204
 
 ==== Phần I: 10 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:11:21] PHẦN J (T60–T66): bí mật không nằm ở đâu ngoài câu trả lời lần đầu
+######## [2026-11-25 04:39:34] PHẦN J (T60–T66): bí mật không nằm ở đâu ngoài câu trả lời lần đầu
 
-[2026-11-25 04:11:21] $ scripts/vm.sh root tpan backup create --all --yes
-Bắt đầu job eed23dc321aadc51
+[2026-11-25 04:39:34] $ scripts/vm.sh root tpan backup create --all --yes
+Bắt đầu job 726fa422ce64b628
 - Backup site a.example.com vào /var/lib/tpan/backups/a.example.com ...
   xong
-Bắt đầu job 06dad569d2ed0a32
+Bắt đầu job 993ce3fede4cf51f
 - Backup site khach.example.org vào /var/lib/tpan/backups/khach.example.org ...
   xong
 
 == a.example.com
 
-Job eed23dc321aadc51: thành công
+Job 726fa422ce64b628: thành công
 
 == khach.example.org
 
-Job 06dad569d2ed0a32: thành công
+Job 993ce3fede4cf51f: thành công
 
-Bản sao tpan.db: /var/lib/tpan/backups/_tpan/tpan-20261124-211126.db
-[2026-11-25 04:11:26] (mã thoát 0)
+Bản sao tpan.db: /var/lib/tpan/backups/_tpan/tpan-20261124-213938.db
+[2026-11-25 04:39:38] (mã thoát 0)
   => ĐẠT: tpan backup create --all --yes: thoát 0
 
-[2026-11-25 04:11:26] $ scripts/vm.sh root bash -c ls -1t /var/lib/tpan/backups/_tpan/tpan-*.db | head -1
-/var/lib/tpan/backups/_tpan/tpan-20261124-211126.db
-[2026-11-25 04:11:26] (mã thoát 0)
+[2026-11-25 04:39:38] $ scripts/vm.sh root bash -c ls -1t /var/lib/tpan/backups/_tpan/tpan-*.db | head -1
+/var/lib/tpan/backups/_tpan/tpan-20261124-213938.db
+[2026-11-25 04:39:38] (mã thoát 0)
   => ĐẠT: có bản sao tpan.db vừa tạo
 
-[2026-11-25 04:11:26] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/gom.sh /home/ubuntu/e2e-m20/bm/tok.du.h /home/ubuntu/e2e-m20/mcpclient-arm64 /home/ubuntu/e2e-m20/bm/gom
+[2026-11-25 04:39:38] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/gom.sh /home/ubuntu/e2e-m20/bm/tok.du.h /home/ubuntu/e2e-m20/mcpclient-arm64 /home/ubuntu/e2e-m20/bm/gom
 GET /api/v1/jobs?limit=500: HTTP 200
-job: 9; GET /jobs/{id} 200: 9; /events 200: 9; tổng cỡ: 667529 byte
-mcpclient: mã thoát 0; lời gọi công cụ: 11, có isError: 0; cỡ output: 416250 byte
+job: 9; GET /jobs/{id} 200: 9; /events 200: 9; tổng cỡ: 669596 byte
+mcpclient: mã thoát 0; lời gọi công cụ: 11, có isError: 0; cỡ output: 417649 byte
       9 get_job
       1 list_jobs
       1 list_sites
-[2026-11-25 04:11:26] (mã thoát 0)
+[2026-11-25 04:39:39] (mã thoát 0)
   => ĐẠT: gom sự kiện, bằng chứng mọi job qua API và output MCP: có job, mcpclient thoát 0
   => ĐẠT: MCP: có list_sites, list_jobs, get_job, không lời gọi nào isError
 câu trả lời API đã lưu: 69; trong đó hiện bí mật lần đầu: 5
 
-[2026-11-25 04:11:26] $ multipass transfer -r <tmp>/resp-quet tpan-m20:/home/ubuntu/e2e-m20/bm/
-[2026-11-25 04:11:27] (mã thoát 0)
+[2026-11-25 04:39:39] $ multipass transfer -r <tmp>/resp-quet tpan-m20:/home/ubuntu/e2e-m20/bm/
+[2026-11-25 04:39:39] (mã thoát 0)
 
-[2026-11-25 04:11:27] $ multipass transfer -r <tmp>/resp-lan-dau tpan-m20:/home/ubuntu/e2e-m20/bm/
-[2026-11-25 04:11:27] (mã thoát 0)
+[2026-11-25 04:39:39] $ multipass transfer -r <tmp>/resp-lan-dau tpan-m20:/home/ubuntu/e2e-m20/bm/
+[2026-11-25 04:39:39] (mã thoát 0)
 
-[2026-11-25 04:11:27] $ multipass transfer <tmp>/e2e.log tpan-m20:/home/ubuntu/e2e-m20/bm/e2e.log
-[2026-11-25 04:11:27] (mã thoát 0)
+[2026-11-25 04:39:39] $ multipass transfer <tmp>/e2e.log tpan-m20:/home/ubuntu/e2e-m20/bm/e2e.log
+[2026-11-25 04:39:39] (mã thoát 0)
 danh sách quét: 4 bí mật TOTP, 40 mã dự phòng, 8 token
   => ĐẠT: danh sách quét có đủ: 4 bí mật TOTP (admin, admin2, khach, thu_khoa), 40 mã dự phòng, 8 token (1 qua API, 7 qua CLI)
 
-[2026-11-25 04:11:27] $ (đưa quet.txt vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/quet.txt; không in nội dung)
+[2026-11-25 04:39:39] $ (đưa quet.txt vào máy ảo qua stdin: /home/ubuntu/e2e-m20/bm/quet.txt; không in nội dung)
 600 ubuntu 1480 byte /home/ubuntu/e2e-m20/bm/quet.txt
-[2026-11-25 04:11:27] (mã thoát 0)
+[2026-11-25 04:39:40] (mã thoát 0)
 
-[2026-11-25 04:11:27] $ scripts/vm.sh root bash -c mkdir -p "$1" && journalctl -u tpan --no-pager >"$1/journal-tpan.txt" 2>&1; journalctl --no-pager >"$1/journal-all.txt" 2>&1; wc -l "$1"/journal-*.txt _ /home/ubuntu/e2e-m20/bm/scan
-  4193 /home/ubuntu/e2e-m20/bm/scan/journal-all.txt
-    30 /home/ubuntu/e2e-m20/bm/scan/journal-tpan.txt
-  4223 total
-[2026-11-25 04:11:27] (mã thoát 0)
+[2026-11-25 04:39:40] $ scripts/vm.sh root bash -c mkdir -p "$1" && journalctl -u tpan --no-pager >"$1/journal-tpan.txt" 2>&1; journalctl --no-pager >"$1/journal-all.txt" 2>&1; wc -l "$1"/journal-*.txt _ /home/ubuntu/e2e-m20/bm/scan
+  4955 /home/ubuntu/e2e-m20/bm/scan/journal-all.txt
+    72 /home/ubuntu/e2e-m20/bm/scan/journal-tpan.txt
+  5027 total
+[2026-11-25 04:39:40] (mã thoát 0)
 
-[2026-11-25 04:11:27] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt đối chứng: câu trả lời lần đầu /home/ubuntu/e2e-m20/bm/resp-lan-dau
+[2026-11-25 04:39:40] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt đối chứng: câu trả lời lần đầu /home/ubuntu/e2e-m20/bm/resp-lan-dau
 đối chứng: câu trả lời lần đầu: totp=4 totp-hex=0 ma=20 ma-bo-gach=0 token=1 khoa-hex=0 khoa-base64=0 tong=25
-[2026-11-25 04:11:27] (mã thoát 0)
+[2026-11-25 04:39:40] (mã thoát 0)
   => ĐẠT: đối chứng: phép quét THẤY bí mật trong các câu trả lời lần đầu (phép quét không mù)
 
-[2026-11-25 04:11:27] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T60 tpan.db, -wal /var/lib/tpan/tpan.db /var/lib/tpan/tpan.db-wal
+[2026-11-25 04:39:40] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T60 tpan.db, -wal /var/lib/tpan/tpan.db /var/lib/tpan/tpan.db-wal
 T60 tpan.db, -wal: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:27] (mã thoát 0)
+[2026-11-25 04:39:40] (mã thoát 0)
   => ĐẠT: T60: không có trong tpan.db và tpan.db-wal
 
-[2026-11-25 04:11:27] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T61 journalctl /home/ubuntu/e2e-m20/bm/scan/journal-tpan.txt /home/ubuntu/e2e-m20/bm/scan/journal-all.txt
+[2026-11-25 04:39:40] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T61 journalctl /home/ubuntu/e2e-m20/bm/scan/journal-tpan.txt /home/ubuntu/e2e-m20/bm/scan/journal-all.txt
 T61 journalctl: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:28] (mã thoát 0)
+[2026-11-25 04:39:40] (mã thoát 0)
   => ĐẠT: T61: không có trong journalctl -u tpan và cả journal
 
-[2026-11-25 04:11:28] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T62 /var/log /var/log
+[2026-11-25 04:39:40] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T62 /var/log /var/log
 T62 /var/log: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:28] (mã thoát 0)
+[2026-11-25 04:39:40] (mã thoát 0)
   => ĐẠT: T62: không có trong /var/log/
 
-[2026-11-25 04:11:28] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T63 job qua API /home/ubuntu/e2e-m20/bm/gom/jobs.json /home/ubuntu/e2e-m20/bm/gom/jobs
+[2026-11-25 04:39:40] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T63 job qua API /home/ubuntu/e2e-m20/bm/gom/jobs.json /home/ubuntu/e2e-m20/bm/gom/jobs
 T63 job qua API: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:28] (mã thoát 0)
+[2026-11-25 04:39:40] (mã thoát 0)
   => ĐẠT: T63: không có trong sự kiện và bằng chứng của mọi job
 
-[2026-11-25 04:11:28] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T64 câu trả lời API /home/ubuntu/e2e-m20/bm/resp-quet /home/ubuntu/e2e-m20/bm/t40/body
+[2026-11-25 04:39:41] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T64 câu trả lời API /home/ubuntu/e2e-m20/bm/resp-quet /home/ubuntu/e2e-m20/bm/t40/body
 T64 câu trả lời API: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:28] (mã thoát 0)
+[2026-11-25 04:39:41] (mã thoát 0)
   => ĐẠT: T64: không có trong mọi câu trả lời API đã lưu (trừ lần đầu), kể cả của bảng T40
 
-[2026-11-25 04:11:28] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T65 MCP /home/ubuntu/e2e-m20/bm/gom/mcp.out /home/ubuntu/e2e-m20/bm/gom/mcp.err
+[2026-11-25 04:39:41] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T65 MCP /home/ubuntu/e2e-m20/bm/gom/mcp.out /home/ubuntu/e2e-m20/bm/gom/mcp.err
 T65 MCP: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:28] (mã thoát 0)
+[2026-11-25 04:39:41] (mã thoát 0)
   => ĐẠT: T65: không có trong output công cụ MCP
 
-[2026-11-25 04:11:28] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T66 bản sao tpan.db /var/lib/tpan/backups/_tpan/tpan-20261124-211126.db
+[2026-11-25 04:39:41] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T66 bản sao tpan.db /var/lib/tpan/backups/_tpan/tpan-20261124-213938.db
 T66 bản sao tpan.db: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:28] (mã thoát 0)
+[2026-11-25 04:39:41] (mã thoát 0)
   => ĐẠT: T66: không có trong bản sao tpan.db của backup
 
-[2026-11-25 04:11:28] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T66 file log e2e /home/ubuntu/e2e-m20/bm/e2e.log
+[2026-11-25 04:39:41] $ scripts/vm.sh root bash /home/ubuntu/e2e-m20/quet.sh /home/ubuntu/e2e-m20/bm/quet.txt T66 file log e2e /home/ubuntu/e2e-m20/bm/e2e.log
 T66 file log e2e: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-base64=0 tong=0
-[2026-11-25 04:11:29] (mã thoát 0)
+[2026-11-25 04:39:41] (mã thoát 0)
   => ĐẠT: T66: không có trong file log e2e tới lúc này (cả file khoá dạng hex, base64)
 
-[2026-11-25 04:11:29] $ scripts/vm.sh root rm -rf /home/ubuntu/e2e-m20/bm/resp-lan-dau /home/ubuntu/e2e-m20/bm/resp-quet /home/ubuntu/e2e-m20/bm/e2e.log /home/ubuntu/e2e-m20/bm/scan /home/ubuntu/e2e-m20/bm/gom /home/ubuntu/e2e-m20/bm/t40 /home/ubuntu/e2e-m20/bm/quet.txt
-[2026-11-25 04:11:29] (mã thoát 0)
+[2026-11-25 04:39:41] $ scripts/vm.sh root rm -rf /home/ubuntu/e2e-m20/bm/resp-lan-dau /home/ubuntu/e2e-m20/bm/resp-quet /home/ubuntu/e2e-m20/bm/e2e.log /home/ubuntu/e2e-m20/bm/scan /home/ubuntu/e2e-m20/bm/gom /home/ubuntu/e2e-m20/bm/t40 /home/ubuntu/e2e-m20/bm/quet.txt
+[2026-11-25 04:39:41] (mã thoát 0)
 
 ==== Phần J: 14 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:11:29] PHẦN CUỐI: health, site
+######## [2026-11-25 04:39:41] PHẦN CUỐI: health, site
 
-[2026-11-25 04:11:29] $ scripts/vm.sh root tpan health
+[2026-11-25 04:39:41] $ scripts/vm.sh root tpan health
 
 == Máy và stack ==
 [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
@@ -3204,13 +3211,13 @@ T66 file log e2e: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-ba
 [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
 [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
 [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
-[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 16.0%
+[đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 17.4%
 [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
 [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
 [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
 [đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 2 site đều chỉ được khai ở vhost của chính site đó
 [đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
-[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 81.7% (3.1 GiB trên 3.8 GiB); máy không có swap
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 80.7% (3.1 GiB trên 3.8 GiB); máy không có swap
 [đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
 [đạt] File /etc/cron.d/tpan-khach_example_or_16eafb còn đúng như tpan đã ghi: File /etc/cron.d/tpan-khach_example_or_16eafb đúng như tpan đã ghi
 [đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
@@ -3283,14 +3290,14 @@ T66 file log e2e: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-ba
 
 == tpan ==
 [đạt] Cơ sở dữ liệu của tpan toàn vẹn: PRAGMA integrity_check trả ok
-[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.4 GiB
+[đạt] Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống: Ổ đĩa chứa /var/lib/tpan còn trống 15.1 GiB
 [đạt] Chứng chỉ HTTPS của panel còn hạn: Chứng chỉ của panel còn 824 ngày
 [đạt] /var/lib/tpan/tpan.db có quyền 0600, chủ root:root: /var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng
 [đạt] /etc/tpan/tls/key.pem có quyền 0600, chủ root:root: /etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng
 [đạt] /etc/tpan có quyền 0700, chủ root:root: /etc/tpan: quyền 0700, chủ root:root đúng
 [đạt] Không có job nào bị treo: Không có job nào chạy quá lâu
 [đạt] Bộ hẹn giờ health của tpan còn chạy: Bộ hẹn giờ health vẫn chạy
-[đạt] tpan.db có bản sao lưu gần đây: Bản sao lưu tpan.db mới nhất: tpan-20261124-211126.db
+[đạt] tpan.db có bản sao lưu gần đây: Bản sao lưu tpan.db mới nhất: tpan-20261124-213938.db
 [đạt] Không còn site thử và user thử của phép thử tấn công: Không còn gì sót lại của phép thử tấn công
 [đạt] Mọi admin đã bật đăng nhập hai bước: Mọi admin đang hoạt động đã bật đăng nhập hai bước
 [đạt] Không ai đang dò mã hai bước: Không có user nào bị nhập sai mã hai bước nhiều lần
@@ -3298,22 +3305,22 @@ T66 file log e2e: totp=0 totp-hex=0 ma=0 ma-bo-gach=0 token=0 khoa-hex=0 khoa-ba
 [đạt] File khoá của đăng nhập hai bước còn nguyên: File khoá /etc/tpan/secret.key đúng: file thường 32 byte, 0600, root
 
 14 đạt
-[2026-11-25 04:11:33] (mã thoát 0)
+[2026-11-25 04:39:45] (mã thoát 0)
 Số dòng [lỗi] của tpan health: 0
   => ĐẠT: cuối kịch bản tpan health không có [lỗi] mới so với lúc mới cài
 
-[2026-11-25 04:11:33] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+[2026-11-25 04:39:45] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
 200
-[2026-11-25 04:11:33] (mã thoát 0)
+[2026-11-25 04:39:46] (mã thoát 0)
   => ĐẠT: a.example.com vẫn 200
 
-[2026-11-25 04:11:33] $ scripts/vm.sh root systemctl stop tpan-e2e-pebble
-[2026-11-25 04:11:33] (mã thoát 0)
+[2026-11-25 04:39:46] $ scripts/vm.sh root systemctl stop tpan-e2e-pebble
+[2026-11-25 04:39:46] (mã thoát 0)
 
 ==== Phần CUỐI: 2 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:11:33] bí mật, IP, tên user Mac có lọt vào chính file log không (trên Mac)
+######## [2026-11-25 04:39:46] bí mật, IP, tên user Mac có lọt vào chính file log không (trên Mac)
 Số bí mật đã gặp: 129; số dòng của log chứa một trong số đó: 0
   => ĐẠT: log không chứa mật khẩu, bí mật TOTP, mã dự phòng, token, cookie nào
   => ĐẠT: log không chứa IP máy ảo
@@ -3322,4 +3329,4 @@ Số bí mật đã gặp: 129; số dòng của log chứa một trong số đ�
   => ĐẠT: log không chứa thư mục nhà hay tên user Mac
 
 
-######## [2026-11-25 04:11:34] TỔNG KẾT: 222 khẳng định đạt, 0 khẳng định không đạt
+######## [2026-11-25 04:39:46] TỔNG KẾT: 222 khẳng định đạt, 0 khẳng định không đạt
