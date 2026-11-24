@@ -888,7 +888,7 @@ part_b() {
   ok "setup: 200" code_is 200
   ok "setup: Cache-Control: no-store" no_store
   ok "setup: bí mật 32 ký tự base32, URI otpauth://totp/TPAN:admin@…, issuer TPAN, ma trận QR vuông" \
-    bq '(.secret | test("^[A-Z2-7]{32}$")) and (.uri | startswith("otpauth://totp/TPAN:admin")) and .issuer == "TPAN" and (.qr | length) >= 21 and all(.qr[]; length == (.qr | length))'
+    bq '(.secret | test("^[A-Z2-7]{32}$")) and (.uri | startswith("otpauth://totp/TPAN:admin")) and .issuer == "TPAN" and (.qr | length) >= 21 and ((.qr | length) as $n | all(.qr[]; length == $n))'
   api "$JAR_ADM" GET /api/v1/account/2fa
   ok "sau setup: pending=true, enabled=false" bq '.pending == true and .enabled == false'
 
@@ -1293,7 +1293,7 @@ part_j() {
   ok "có bản sao tpan.db vừa tạo" has '^/var/lib/tpan/backups/_tpan/tpan-[0-9]{8}-[0-9]{6}\.db$'
   vroot bash "$E/gom.sh" "$BM/tok.du.h" "$E/mcpclient-$ARCH" "$BM/gom"
   ok "gom sự kiện, bằng chứng mọi job qua API và output MCP: có job, mcpclient thoát 0" bash -c 'grep -q "^job: [1-9]" <<<"$1" && grep -q "^mcpclient: mã thoát 0" <<<"$1"' _ "$OUT"
-  ok "MCP: có list_sites, list_jobs, get_job, không lời gọi nào isError" bash -c 'grep -q "list_sites" <<<"$1" && grep -q "list_jobs" <<<"$1" && grep -q "get_job" <<<"$1" && ! grep -q "isError\|LỖI GIAO THỨC" <<<"$1"' _ "$OUT"
+  ok "MCP: có list_sites, list_jobs, get_job, không lời gọi nào isError" bash -c 'grep -q "list_sites" <<<"$1" && grep -q "list_jobs" <<<"$1" && grep -q "get_job" <<<"$1" && grep -q "có isError: 0;" <<<"$1" && ! grep -q "LỖI GIAO THỨC" <<<"$1"' _ "$OUT"
 
   # Câu trả lời API đã lưu: tách lần đầu (đối chứng) và phần còn lại (T64).
   mkdir -p "$TMPD/resp-quet" "$TMPD/resp-lan-dau"
