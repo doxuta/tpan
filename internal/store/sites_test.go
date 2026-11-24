@@ -52,8 +52,8 @@ func TestSiteThemVaDocRa(t *testing.T) {
 	}
 	want := in
 	want.Slug = validate.SlugOf(in.Domain)
-	want.Owner = "admin"              // Owner rỗng lưu thành admin (M13)
-	want.Htaccess = site.HtaccessSafe // Htaccess rỗng lưu thành an-toan (M14)
+	want.Owner = "admin"                                           // Owner rỗng lưu thành admin (M13)
+	want.Htaccess = site.HtaccessSafe                              // Htaccess rỗng lưu thành an-toan (M14)
 	want.Names = site.Names{Covered: []validate.Domain{in.Domain}} // M19: site SSL, tên chính có trong chứng chỉ
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("đọc ra %+v, muốn %+v", got, want)

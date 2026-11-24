@@ -24,6 +24,7 @@ import (
 // M19: core lấy NameStore bằng ép kiểu, nên khẳng định ở đây cho lệch chữ ký
 // thì không biên dịch.
 var _ core.NameStore = (*store.Store)(nil)
+var _ core.RedirectStore = (*store.Store)(nil)
 
 func main() {
 	// Ctrl+C hoặc `systemctl stop` gửi tín hiệu; ctx bị huỷ, server tắt êm, job

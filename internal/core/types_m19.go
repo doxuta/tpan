@@ -7,16 +7,12 @@ package core
 
 import (
 	"context"
-	"errors"
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/validate"
 )
-
-// errM19TODO: thân thật do thợ đợt 1 đến 4 viết.
-var errM19TODO = errors.New("core: M19 chưa làm")
 
 // NamesOp là một thay đổi tên phụ hay luật chuyển hướng đã qua điều kiện đầu.
 // Preview và Execute ở names_m19.go.
@@ -37,6 +33,11 @@ type NamesOp struct {
 	needsCert bool
 	// sslNote: ghi chú job site.ssl chạy tiếp, cho bản xem trước (S14).
 	sslNote *i18n.Text
+	// rs khác nil: thao tác luật chuyển hướng (site.redirect.add/rm); Execute
+	// đi đường executeRedirect (redirects_m19.go). rule là luật được thêm (ID
+	// điền lúc giữ chỗ) hay được gỡ.
+	rs   RedirectStore
+	rule site.Redirect
 }
 
 // NamesResult là kết quả của một NamesOp.
@@ -81,19 +82,23 @@ type NameStore interface {
 	NameSite(ctx context.Context, name validate.Domain) (site.Name, bool, error)
 }
 
-func (s *Sites) PrepareRedirectAdd(ctx context.Context, siteD validate.Domain, in RedirectInput) (*NamesOp, error) {
-	return nil, errM19TODO
-}
-
-func (s *Sites) PrepareRedirectRemove(ctx context.Context, siteD validate.Domain, id int64) (*NamesOp, error) {
-	return nil, errM19TODO
-}
-
-func (s *Sites) RedirectList(ctx context.Context, siteD validate.Domain) ([]site.Redirect, error) {
-	return nil, errM19TODO
+// RedirectStore là phần store giữ luật chuyển hướng (mục 3.2), cùng khuôn
+// NameStore: *store.Store cài nó; cmd/tpan/main.go có dòng kiểm lúc biên dịch.
+// Thân PrepareRedirectAdd, PrepareRedirectRemove, RedirectList ở redirects_m19.go.
+type RedirectStore interface {
+	// AddRedirectPending: đếm < site.MaxRedirects và kiểm trùng nguồn trong
+	// cùng transaction; lời từ chối là *validate.Error mã redirect_exists hay
+	// redirect_limit. Dòng pending cùng nguồn được nhận lại (S9).
+	AddRedirectPending(ctx context.Context, siteD validate.Domain, r site.Redirect) (int64, error)
+	ActivateRedirect(ctx context.Context, id int64) error
+	// ReleaseRedirect chỉ xoá dòng pending.
+	ReleaseRedirect(ctx context.Context, id int64) error
+	DeleteRedirect(ctx context.Context, siteD validate.Domain, id int64) error
+	// RedirectsOf: luật active, theo (created_at, id).
+	RedirectsOf(ctx context.Context, siteD validate.Domain) ([]site.Redirect, error)
 }
 
 // RouteExplainHost như RouteExplain nhưng nhận cả tên phụ (mục 3.8).
 func (s *Sites) RouteExplainHost(ctx context.Context, host validate.Domain) (RouteTrace, error) {
-	return RouteTrace{}, errM19TODO
+	return s.routeExplainHost(ctx, host)
 }

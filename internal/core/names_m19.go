@@ -460,6 +460,9 @@ func (o *NamesOp) Preview(ctx context.Context) (engine.Preview, error) {
 // error chỉ khác nil khi không chạy được hay không ghi được DB; job hỏng thì
 // xem Report.Job.Status.
 func (o *NamesOp) Execute(ctx context.Context, onEvent func(engine.Event)) (NamesResult, error) {
+	if o.rs != nil {
+		return o.executeRedirect(ctx, onEvent)
+	}
 	s := o.sites
 	var res NamesResult
 	if s.Journal == nil {

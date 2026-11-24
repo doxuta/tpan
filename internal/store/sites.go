@@ -82,7 +82,12 @@ func (s *Store) Site(ctx context.Context, d validate.Domain) (site.Site, bool, e
 	if err != nil {
 		return site.Site{}, false, fmt.Errorf("đọc site %s: %w", d, err)
 	}
+	rules, err := activeRules(ctx, s.db, d.String(), "")
+	if err != nil {
+		return site.Site{}, false, fmt.Errorf("đọc site %s: %w", d, err)
+	}
 	st.Names = names[d.String()]
+	st.Names.Rules = rules[d.String()]
 	return st, true, nil
 }
 
@@ -118,8 +123,13 @@ func (s *Store) SitesOf(ctx context.Context, owner string) ([]site.Site, error) 
 	if err != nil {
 		return nil, fmt.Errorf("đọc danh sách site của %q: %w", owner, err)
 	}
+	rules, err := activeRules(ctx, s.db, "", owner)
+	if err != nil {
+		return nil, fmt.Errorf("đọc danh sách site của %q: %w", owner, err)
+	}
 	for i := range out {
 		out[i].Names = names[out[i].Domain.String()]
+		out[i].Names.Rules = rules[out[i].Domain.String()]
 	}
 	return out, nil
 }

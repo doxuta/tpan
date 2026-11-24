@@ -127,6 +127,89 @@ func TestNameProbeRejectsBadInput(t *testing.T) {
 	}
 }
 
+func m19Source(t *testing.T, s string) validate.RedirectSource {
+	t.Helper()
+	r, err := validate.ParseRedirectSource(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+func TestRedirectProbe(t *testing.T) {
+	noSleep(t)
+	l := site.LayoutOf(m19Domain(t, "example.com"))
+	src := m19Source(t, "/old")
+	for _, c := range []struct {
+		name  string
+		ssl   bool
+		code  int
+		loc   string
+		out   string
+		exit  int
+		ok    bool
+		https bool
+	}{
+		{name: "301 đúng", code: 301, loc: "http://example.com/new", out: m19Answer("", "http://example.com/new", "", "301"), ok: true},
+		{name: "302 đúng, đích ngoài", code: 302, loc: "https://example.org/x?a=1", out: m19Answer("", "https://example.org/x?a=1", "", "302"), ok: true},
+		{name: "SSL gọi 443", ssl: true, code: 301, loc: "https://example.com/new", out: m19Answer("", "https://example.com/new", "", "301"), ok: true, https: true},
+		{name: "sai mã", code: 301, loc: "http://example.com/new", out: m19Answer("", "http://example.com/new", "", "302")},
+		{name: "sai Location", code: 301, loc: "http://example.com/new", out: m19Answer("", "http://evil.example.net/new", "", "301")},
+		{name: "WordPress trả trước luật", code: 301, loc: "http://example.com/new", out: m19Answer("", "http://example.com/new", "WordPress", "301")},
+		{name: "trang 200", code: 301, loc: "http://example.com/new", out: m19Answer("<wp-content>", "", "", "200")},
+		{name: "curl lỗi", code: 301, loc: "http://example.com/new", exit: 7},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			m := system.NewFake()
+			m.Handle([]string{"curl"}, func(system.Cmd) system.Result { return system.Result{Stdout: c.out, ExitCode: c.exit} })
+			p := &RedirectProbe{Layout: l, SSL: c.ssl, Source: src, Code: c.code, Location: c.loc}
+			ctx := context.Background()
+			if done, err := p.Check(ctx, m); err != nil || done {
+				t.Fatalf("Check trước Apply = %v, %v", done, err)
+			}
+			err := p.Apply(ctx, m)
+			if (err == nil) != c.ok {
+				t.Fatalf("Apply = %v, muốn ok=%v", err, c.ok)
+			}
+			ran := m.Ran()
+			if !c.ok && len(ran) != nameProbeTries {
+				t.Errorf("hỏng phải thử %d lần, đã gọi %d", nameProbeTries, len(ran))
+			}
+			args := ran[0].Args
+			wantURL, wantRes := "http://example.com/old", "example.com:80:127.0.0.1"
+			if c.https {
+				wantURL, wantRes = "https://example.com/old", "example.com:443:127.0.0.1"
+			}
+			if args[len(args)-1] != wantURL || !slices.Contains(args, wantRes) || slices.Contains(args, "-L") {
+				t.Errorf("lệnh sai: %v", args)
+			}
+			if c.ok {
+				m.ResetRan()
+				if done, _ := p.Check(ctx, m); !done || len(m.Ran()) != 0 {
+					t.Error("Check sau Apply phải true và không gọi lệnh")
+				}
+				if err := p.Undo(ctx, m); err != nil || len(m.Ran()) != 0 {
+					t.Error("Undo không được làm gì")
+				}
+			}
+		})
+	}
+	for _, p := range []*RedirectProbe{
+		{Layout: l, Code: 301, Location: "http://example.com/new"},
+		{Layout: l, Source: src, Code: 303, Location: "http://example.com/new"},
+		{Layout: l, Source: src, Code: 301},
+		{Source: src, Code: 301, Location: "http://example.com/new"},
+	} {
+		if err := p.Apply(context.Background(), system.NewFake()); err == nil {
+			t.Errorf("%+v: muốn lỗi", p)
+		}
+	}
+	// nameCurl giữ nguyên lệnh của NameProbe.
+	if a := nameCurl("www.example.com", false).Args; a[len(a)-1] != "http://www.example.com/" {
+		t.Errorf("nameCurl đổi: %v", a)
+	}
+}
+
 func TestNameGone(t *testing.T) {
 	noSleep(t)
 	l := site.LayoutOf(m19Domain(t, "example.com"))

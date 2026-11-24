@@ -27,6 +27,7 @@ import (
 var (
 	_ engine.Step = (*NameProbe)(nil)
 	_ engine.Step = (*NameGone)(nil)
+	_ engine.Step = (*RedirectProbe)(nil)
 )
 
 const (
@@ -115,6 +116,12 @@ func cleanHeader(s string) string {
 // -r 0-65535: xin tối đa 64 KiB thân (máy chủ có thể bỏ qua; vẫn cắt khi đọc).
 // %header{} có từ curl 7.84.0 (Ubuntu 24.04 có 8.5.0).
 func nameCurl(host string, https bool) system.Cmd {
+	return probeCurl(host, "/", https)
+}
+
+// probeCurl như nameCurl nhưng gọi đường dẫn path (đã qua validate, bắt đầu
+// bằng "/").
+func probeCurl(host, path string, https bool) system.Cmd {
 	scheme, port := "http", "80"
 	args := []string{"-sS", "--max-time", "15"}
 	if https {
@@ -124,7 +131,7 @@ func nameCurl(host string, https bool) system.Cmd {
 	}
 	args = append(args, "--resolve", host+":"+port+":127.0.0.1", "-r", "0-65535",
 		"-w", `\nTPAN_LOCATION=%header{location}\nTPAN_REDIRECT_BY=%header{x-redirect-by}\nTPAN_HTTP_CODE=%{http_code}`,
-		scheme+"://"+host+"/")
+		scheme+"://"+host+path)
 	return system.Cmd{Name: "curl", Args: args}
 }
 
@@ -338,3 +345,97 @@ func (s *NameGone) Apply(ctx context.Context, sys system.System) error {
 
 // Undo không làm gì (xem NoUndo trong Info).
 func (s *NameGone) Undo(context.Context, system.System) error { return nil }
+
+// ============================================================== RedirectProbe
+
+// RedirectProbe kiểm một luật chuyển hướng vừa vẽ vào vhost (mục 3.5,
+// site.redirect.add): gọi <scheme>://<tên chính><Source> về 127.0.0.1 (https
+// khi site có SSL), mong đúng mã Code, Location đúng bằng Location (người gọi
+// tính: đích dạng đường dẫn thành <scheme>://<tên chính><đích>, S16), và không
+// có X-Redirect-By (do vhost trả, không phải WordPress hay plugin).
+type RedirectProbe struct {
+	Layout   site.Layout
+	SSL      bool
+	Source   validate.RedirectSource
+	Code     int
+	Location string
+
+	passed bool
+}
+
+func (s *RedirectProbe) validate() error {
+	if err := webCheckLayout(s.Layout); err != nil {
+		return err
+	}
+	if s.Source.IsZero() {
+		return errors.New("thiếu đường dẫn nguồn của luật cần kiểm")
+	}
+	if s.Code != 301 && s.Code != 302 {
+		return fmt.Errorf("mã chuyển hướng %d không phải 301 hay 302", s.Code)
+	}
+	if s.Location == "" {
+		return errors.New("thiếu Location mong đợi")
+	}
+	return nil
+}
+
+func (s *RedirectProbe) cmd() system.Cmd {
+	return probeCurl(s.Layout.Domain.String(), s.Source.String(), s.SSL)
+}
+
+func (s *RedirectProbe) Info() engine.StepInfo {
+	src := s.Source.String()
+	return engine.StepInfo{
+		ID:    "redirect.probe:" + src,
+		Title: i18n.T("Gọi thử "+src+" và kiểm nó chuyển về "+s.Location, "Request "+src+" and check it redirects to "+s.Location),
+		Why: i18n.T(
+			"Ghi vhost và kiểm cú pháp chưa chứng minh luật có hiệu lực: một location khác hay luật trong .htaccess có thể trả lời trước. Gọi thật qua 127.0.0.1 thì thấy ngay; hỏng thì vhost được trả về như cũ.",
+			"Writing the vhost and passing the syntax test does not prove the rule takes effect: another location or an .htaccess rule may answer first. A real request through 127.0.0.1 shows it at once; on failure the vhost is put back."),
+		Commands: []string{s.cmd().String()},
+		NoUndo:   i18n.T("Bước này chỉ gọi HTTP, không đổi gì trên máy.", "This step only makes an HTTP request and changes nothing on the machine."),
+	}
+}
+
+func (s *RedirectProbe) Check(context.Context, system.System) (bool, error) {
+	if err := s.validate(); err != nil {
+		return false, err
+	}
+	return s.passed, nil
+}
+
+func (s *RedirectProbe) Apply(ctx context.Context, sys system.System) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	cmd, code := s.cmd(), fmt.Sprint(s.Code)
+	var last error
+	for i := range nameProbeTries {
+		if i > 0 {
+			if err := nameProbeSleep(ctx, time.Second); err != nil {
+				return err
+			}
+		}
+		res, err := sys.Run(ctx, cmd)
+		if err != nil {
+			last = fmt.Errorf("gọi %s: %w", s.Source, err)
+			continue
+		}
+		a := splitNameAnswer(res.Stdout)
+		switch {
+		case a.code != code:
+			last = fmt.Errorf("mong %s về %s, nhận mã %q", code, s.Location, a.code)
+		case a.location != s.Location:
+			last = fmt.Errorf("mong %s về %s, nhận Location %q", code, s.Location, a.location)
+		case a.redirectBy != "":
+			last = fmt.Errorf("mong chuyển hướng do vhost trả, nhận X-Redirect-By %q (trang của site trả lời trước luật)", a.redirectBy)
+		default:
+			s.passed = true
+			return nil
+		}
+		last = fmt.Errorf("luật %s: %w", s.Source, last)
+	}
+	return fmt.Errorf("%w; lệnh đã chạy: %s", last, cmd.String())
+}
+
+// Undo không làm gì (xem NoUndo trong Info).
+func (s *RedirectProbe) Undo(context.Context, system.System) error { return nil }
