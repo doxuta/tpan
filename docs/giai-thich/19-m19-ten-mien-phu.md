@@ -29,26 +29,24 @@ Ba ý chính để nói:
 
 ## 2. Chạy thử
 
-### 2.1 Trạng thái số liệu e2e
+### 2.1 Số liệu e2e
 
-e2e bước 22 là `scripts/e2e-m19.sh`, chạy hai phần (A nginx, B Apache), log cuối sẽ nằm ở `docs/bang-chung/M19.log`. Số cuối cùng của mốc: `<<SỐ E2E>>`.
-
-Trong lúc chưa có số đó, bằng chứng thật mình có là lần chạy thử phần nginx ngày 25/11/2026, `docs/bang-chung/M19-thu-1-nginx.log` (máy ảo `tpan-m19`). Log chạy bằng bản `tpan v0.2.3-16-gbc7005d-dirty` (cây làm việc chưa sạch lúc build). Dòng cuối của nó:
+e2e bước 22 là `scripts/e2e-m19.sh` (`make e2e-m19 P="nginx apache nang-cap"`), chạy trên máy ảo `tpan-m19` ngày 25/11/2026, trên mã đã gộp `dev`. Log: `docs/bang-chung/M19.log`. Dòng cuối:
 
 ```
-######## [2026-11-25 03:06:44] TỔNG KẾT: 162 khẳng định đạt, 12 khẳng định không đạt
+==== Phần NGINX: 173 khẳng định đạt, 0 không đạt
+==== Phần APACHE: 173 khẳng định đạt, 0 không đạt
+==== Phần NÂNG-CẤP: 27 khẳng định đạt, 0 không đạt
+######## [2026-11-25 04:18:34] TỔNG KẾT: 373 khẳng định đạt, 0 khẳng định không đạt
 ```
 
-12 chỗ không đạt trong log đó, đếm từ dòng `=> KHÔNG ĐẠT`:
+Phần giao diện bấm thật bằng trình duyệt (`make e2e-m19-gd`: thêm tên phụ, lời từ chối của user B, tên chưa đạt, thêm luật): 94 khẳng định đạt, 0 không đạt, `docs/bang-chung/M19-giao-dien.log`; ảnh ở `docs/bang-chung/M19/`.
 
-- E24 (1 chỗ): khẳng định "đúng một người thắng" sai kỳ vọng. Log ghi 3 người thắng, nhưng cả ba cùng thêm `www.e24.test` vào cùng một site (`site giữ www.e24.test: www.example.org`): chạy lại đúng lệnh trên đúng site là nhận lại dòng pending của chính mình (luật S9). Commit `8c19f24` đổi khẳng định thành "mọi người thắng thuộc cùng một site". Mình chưa thấy log chạy lại sau commit đó.
-- E11, E12 (7 chỗ), E44 (2 chỗ), E53 (2 chỗ): lúc chạy, phần SSL nhiều tên chưa nối vào lệnh `tpan ssl issue` (chứng chỉ chỉ có `example.com`, nên không thấy `www.example.com` và `example.net` trong SAN, và gỡ `example.net` không làm serial chứng chỉ đổi). Commit `8c19f24` ghi đúng điều này: "SSL chưa nối, E53 build trước health". Commit `7adb79a` là chỗ nối SSL. Chưa có log chạy lại sau đó.
-
-Nên log thử cho thấy: 162 khẳng định về tên phụ, quyền sở hữu, chuyển hướng, route explain, bộ R01 đến R14 đã đạt ở nginx; phần SSL nhiều tên và health chưa có bằng chứng chạy thật. Hai điều đó là việc của số e2e cuối ở đầu mục này.
+Trước đó có một lần chạy thử phần nginx khi phần chứng chỉ chưa nối (`docs/bang-chung/M19-thu-1-nginx.log`, 162 đạt, 12 không đạt). Mình giữ nó vì nó cho thấy hai điều: 11 chỗ đỏ đúng là phần SSL chưa làm (chứng chỉ chỉ có `example.com`), và 1 chỗ (E24) là kỳ vọng sai của script: ba lần "thắng" đều thêm cùng một tên vào cùng một site, kết quả một dòng. Bất biến thật là "mọi người thắng thuộc cùng một site", script đã sửa theo.
 
 ### 2.2 Output thật trích từ log thử
 
-Toàn bộ khối này là `docs/bang-chung/M19-thu-1-nginx.log`, chạy trên máy ảo, stack nginx. Mình không chạy lại chúng trong phiên viết file này.
+Các khối dưới đây trích từ lần chạy thử `docs/bang-chung/M19-thu-1-nginx.log` (máy ảo, stack nginx); lần chạy cuối `M19.log` cho cùng kết quả ở các khẳng định này.
 
 Tạo site có sẵn tên phụ `www` (E01, E02, E03):
 
@@ -552,7 +550,7 @@ Cách phát hiện chung: đọc mã thật thay vì đọc thiết kế, và ch
 6. `pendingTTL` = 1 giờ (`internal/store/names.go`). Với tên chính chưa có site thì `alias rm` không áp dụng được (cần site có thật, và từ chối tên chính `alias_primary`), nên không có thao tác nào gỡ; không có cơ chế quá hạn thì tên và cả tên miền gốc bị khoá mãi với chủ khác. Với tên phụ thì `alias rm` gỡ được dòng pending.
 7. Ví dụ: `scripts/vm.sh root tpan site alias list example.com` (thấy `www.example.com alias redirect active`) rồi `scripts/vm.sh exec curl -si -H 'Host: www.example.com' 'http://127.0.0.1/a?b=1'`; kỳ vọng `HTTP/1.1 301` và `Location: http://example.com/a?b=1` (đường dẫn và query giữ nguyên). Chưa chạy trong phiên viết; log thử E02 có kết quả đúng như vậy.
 8. Kỳ vọng 404 của WordPress cho cả hai, không phải 301: luật chỉ khớp đúng đường dẫn `/old-page`, phân biệt hoa thường và dấu `/` cuối (nginx `location =`, Apache `RewriteCond =`). Log thử E30 ghi đúng như vậy.
-9. Có: `TestVhostZeroNamesGolden` (mình đã chạy, `ok`) so output với file vàng sinh từ mã trước M19, cho cả bốn biến thể trên nginx và Apache. Chưa có: kết quả e2e E60 đến E62 (máy cài bản trước M19 rồi nâng); thiết kế (trả lời S7) yêu cầu so với output của bản ngay trước M19 chứ không so với file do v0.2.0 ghi, vì template đã đổi từ v0.2.0. Mục đó nằm trong số e2e cuối (mục 2.1), hiện chưa có bằng chứng.
+9. Có hai lớp. `TestVhostZeroNamesGolden` so output với file vàng sinh từ mã trước M19, cho cả bốn biến thể trên nginx và Apache. Và e2e E60 đến E62 (phần NÂNG-CẤP của `M19.log`, 27 đạt, 0 không đạt): máy cài bản ngay trước M19 (commit `f6a68b9`), hai site, một có SSL, rồi nâng: `site_names` chỉ có hai dòng tên chính, sha256 hai vhost không đổi, `health --fix` ghi lại vhost vẫn ra đúng từng byte, `site add` chạy lại không thêm tên phụ. So với bản ngay trước M19 chứ không so với file do v0.2.0 ghi, vì template đã đổi từ v0.2.0 (các bản vá M14, M28).
 
 ## 7. Giới hạn còn lại
 

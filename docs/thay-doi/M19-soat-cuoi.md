@@ -312,3 +312,16 @@ Nhánh soát câu 2 chạy nginx thật trong container (`nginx:1.30-alpine`, th
 - **Site tạm khoá có tên phụ.** Cổng 80 phủ mọi tên, cổng 443 chỉ tên đã phủ, không vẽ luật. Bỏ khoá thì vẽ lại đủ tên.
 - **Khối chuyển tên** vẫn phục vụ thử thách ACME, nên gia hạn không gãy.
 - **Plan cũ giữa hai request API.** Không có cửa sổ, vì `planJob` giành cờ "một job một lúc" trước khi Prepare (`api_ssl.go:66`).
+
+## Trả lời của phiên chính (25/11/2026)
+
+- **C1 (sửa).** Gốc lỗi là giá trị mặc định "zero là admin" của `core.Sites.NotAdmin` khi server dựng `Sites`. Sửa tận gốc: `apiSites()` mặc định `NotAdmin: true` (chặt); chỉ handler biết vai (tạo site, apply, tên phụ) đặt lại theo phiên. Test `TestApplyUserRespectsAliasRoot`. Plan do AI đề xuất (`apiPlanner`) giữ luật chặt.
+- **C2 (sửa cùng C1).** Sau sửa, `/apply` của user thường trả `site_not_found` đúng lời của `POST /sites` (cùng test).
+- **C3 (để rủi ro).** `POST .../ssl` và `tpan ssl issue` gọi tay không có hạn mức là hành vi có từ M5; trần tự chạy của M19 chặn đường tự động. Ghi ở mục "Giới hạn còn lại" của KE-HOACH 6.17 và giải thích.
+- **C4 (để rủi ro).** Mọi Plan của TPAN dựng lúc Prepare và lấy khoá lúc Execute; cửa sổ chỉ mở khi admin để một lệnh dòng lệnh chờ xác nhận trong lúc tên đổi chủ qua API. Giữ chỗ (`ClaimNames`) trong Execute vẫn chặn được `alias.add`; ca còn lại là `alias.rm`/`alias.set` cũ ghi lại vhost cũ. Sửa đúng là dựng lại nội dung vhost dưới khoá; để mốc sau.
+- **C5, C6, C7, C10 (nhẹ, để sau).** Ghi lại ở đây; không cái nào cho user chiếm tên hay chèn cấu hình.
+- **C8 (sửa).** Tên phụ dài hơn 46 byte bị từ chối (`name_too_long`, mọi stack, vì máy Apache có thể đổi sang nginx); tên `www.` mặc định dài thì bỏ qua kèm ghi chú. Không đổi `server_names_hash_bucket_size` toàn máy (đổi hành vi máy nâng cấp). Test `TestAliasNameTooLong`, `TestSiteAddLongNameSkipsWWW`, `TestCheckClaimsNameTooLong`.
+- **C9 (sửa).** Tên `www.` mặc định qua cùng phép kiểm "vhost khác đã khai" như `alias.add`; `DeclaredFile` hiểu wildcard nginx (`*.x`, `.x`, `x.*`) và Apache. Test `TestSiteAddWWWDeclaredElsewhere`, `TestAliasAddDeclaredWildcard`, `TestDeclaredNamesWildcard`.
+- **Ghi chú quy trình.** Nhánh soát câu 2 chạy nginx trong một container dùng một lần và `httpd` trên máy Mac, không root, không đụng máy thật hay VPS; chỉ để đo cú pháp. Ghi lại để chủ dự án biết.
+
+Sau các bản sửa: `make check` xanh; e2e bước 22 chạy lại trên mã đã gộp `dev`: 373 đạt, 0 không đạt.
