@@ -1,0 +1,1132 @@
+tpan của cây: v0.2.2-110-gafc0bed; bản cũ: v0.1.1; máy ảo: tpan-m20
+
+
+######## [2026-11-25 00:51:18] PHẦN U0: gói phát hành v0.1.1 (bản đã phát hành, không build lại), máy sạch
+
+[2026-11-25 00:51:18] $ mkdir -p dist/release
+[2026-11-25 00:51:18] (mã thoát 0)
+
+[2026-11-25 00:51:18] $ cp -R ~/tpan/.git/../dist/release/v0.1.1 dist/release/v0.1.1
+[2026-11-25 00:51:18] (mã thoát 0)
+
+[2026-11-25 00:51:18] $ bash -c cd "$1" && ls -l && cat SHA256SUMS && shasum -a 256 -c SHA256SUMS _ dist/release/v0.1.1
+total 84904
+-rw-r--r--@ 1 <user>  staff       243 Nov 25 00:51 SHA256SUMS
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 00:51 install.sh
+-rwxr-xr-x@ 1 <user>  staff  22597792 Nov 25 00:51 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  20840608 Nov 25 00:51 tpan-linux-arm64
+c03783c2a9eafd008d3f2bb6f44f85b56b0b7f256f75fe0c2509efea7d03a143  tpan-linux-amd64
+ad345853ca22cf66daa9248b8324f06da7762447e718ac5a858f20dcda3e2f84  tpan-linux-arm64
+e78a9d9de614d04456176b535cb98fc7b1d1c116482e21c6464ecd4929578d9d  install.sh
+tpan-linux-amd64: OK
+tpan-linux-arm64: OK
+install.sh: OK
+[2026-11-25 00:51:18] (mã thoát 0)
+  => ĐẠT: gói v0.1.1 có đủ file, SHA256SUMS khớp
+Máy ảo: tpan-m20
+
+[2026-11-25 00:51:18] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m20  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m20.clean
+[2K[0A[0EStarting tpan-m20  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E
+[2026-11-25 00:51:32] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-25 00:51:32] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-25 00:51:32] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-25 00:51:34] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+ls: cannot access '/etc/tpan': No such file or directory
+ls: cannot access '/var/lib/tpan': No such file or directory
+[2026-11-25 00:51:34] (mã thoát 2)
+  => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
+
+[2026-11-25 00:51:34] $ multipass transfer -r dist/release/v0.1.1 tpan-m20:/home/ubuntu/
+[2026-11-25 00:51:34] (mã thoát 0)
+  => ĐẠT: chép gói v0.1.1 sang máy ảo
+
+==== Phần U0: 5 đạt, 0 không đạt
+
+
+######## [2026-11-25 00:51:34] PHẦN U1: cài v0.1.1 bằng install.sh của chính nó, tạo site, đăng nhập
+
+[2026-11-25 00:51:34] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.1.1 && sudo ./install.sh --web nginx
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /home/ubuntu/v0.1.1/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+tpan v0.1.1 (commit b946767, build 2026-11-20T06:53:42Z)
+Đã đặt /usr/local/bin/tpan
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job 14abeaab7c244f6c
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+
+Job 14abeaab7c244f6c: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+    <bí mật, đã che>
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    49:4C:ED:26:96:48:81:BA:65:44:BA:CF:1C:D0:E4:4B:04:70:56:B8:E5:64:64:B1:04:0A:88:56:47:D7:56:2F
+Mở: https://<IP của máy>:8443
+
+==> Cài stack: tpan stack install --web nginx
+Bắt đầu job 29a092c1308c254a
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+
+Job 29a092c1308c254a: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+
+Xong. Bước tiếp:
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-25 00:52:06] (mã thoát 0)
+Mật khẩu quản trị panel trong output: 1 lần
+  => ĐẠT: install.sh v0.1.1 thoát 0
+  => ĐẠT: install.sh in bản v0.1.1
+  => ĐẠT: mật khẩu quản trị in đúng một lần
+
+[2026-11-25 00:52:06] $ scripts/vm.sh exec tpan version
+tpan v0.1.1 (commit b946767, build 2026-11-20T06:53:42Z)
+[2026-11-25 00:52:06] (mã thoát 0)
+  => ĐẠT: tpan version là v0.1.1
+
+[2026-11-25 00:52:06] $ scripts/vm.sh root tpan site add up.example.com --email admin@example.com --yes
+Bắt đầu job 42eaf3b066124977
+- Tạo user Linux tp_up_example_com_8f73fc cho site ...
+  xong
+- Tạo thư mục /var/www/up.example.com ...
+  xong
+- Tạo thư mục /var/www/up.example.com/public ...
+  xong
+- Tạo thư mục /var/www/up.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/up.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/up.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_up_example_com_8f73fc và user DB riêng của site up.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-up_example_com_8f73fc cho up.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/up.example.com/public ...
+  xong
+- Tạo /var/www/up.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/up.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của up.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho up.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-up.example.com.conf → /etc/nginx/sites-available/tpan-up.example.com.conf ...
+  xong
+- Cài WordPress cho up.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job 42eaf3b066124977: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_up_example_com_8f73fc
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_up_example_com_8f73fc
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của up.example.com
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://up.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <bí mật, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-25 00:52:22] (mã thoát 0)
+  => ĐẠT: site add up.example.com : thoát 0, job thành công
+
+[2026-11-25 00:52:22] $ scripts/vm.sh exec bash -c 
+d=$1; scheme=${2:-http}; path=${3:-/}
+port=80; [ "$scheme" = https ] && port=443
+f=$(mktemp)
+code=$(curl -sk -m 20 --resolve "$d:$port:127.0.0.1" -o "$f" -w "%{http_code}" "$scheme://$d$path"); rc=$?
+echo "$scheme://$d$path curl=$rc http=$code marker=$(grep -c tpan-suspended-page "$f") title=$(grep -o "<title>[^<]*</title>" "$f" | head -1)"
+rm -f "$f"
+ _ up.example.com
+http://up.example.com/ curl=0 http=200 marker=0 title=<title>up.example.com</title>
+[2026-11-25 00:52:22] (mã thoát 0)
+  => ĐẠT: up.example.com trả 200
+  => ĐẠT: panel trả lời qua https (--cacert)
+
+[2026-11-25 00:52:22] $ curl -X POST <panel>/api/v1/login   (phiên: jar.old)
+    thân gửi: {"password":"<bí mật, đã che>"}
+-> HTTP 204
+  => ĐẠT: v0.1.1: POST /login chỉ có mật khẩu: 204
+
+[2026-11-25 00:52:22] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.old)
+-> HTTP 200
+    thân nhận (tối đa 700 byte): [{"domain":"up.example.com","slug":"up_example_com_8f73fc","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T17:52:22.362864328Z"}]
+  => ĐẠT: v0.1.1: GET /sites 200, có up.example.com
+
+[2026-11-25 00:52:22] $ scripts/vm.sh root python3 -c import sqlite3, hashlib; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); print("hash mật khẩu (sha256 của hash):", hashlib.sha256(c.execute("SELECT value FROM settings WHERE key = ?", ("admin.password_hash",)).fetchone()[0].encode()).hexdigest()[:16]); print("migration:", [r[0] for r in c.execute("SELECT version FROM schema_migrations ORDER BY version")])
+hash mật khẩu (sha256 của hash): aff5288cf2eaba4a
+migration: [1, 2, 3, 400, 600, 700, 701, 800, 900]
+[2026-11-25 00:52:23] (mã thoát 0)
+  => ĐẠT: đọc được dấu của hash mật khẩu quản trị trong settings (v0.1.1)
+  => ĐẠT: v0.1.1 chưa có migration 1300
+
+==== Phần U1: 11 đạt, 0 không đạt
+
+
+######## [2026-11-25 00:52:23] PHẦN U2: nâng lên v0.2.2-110-gafc0bed bằng tpan self-update --url của bản v0.1.1
+
+[2026-11-25 00:52:23] $ git log --oneline -1
+afc0bed bằng chứng M20: e2e bước 23 trên tpan-m20 từ máy sạch (bản v0.2.2-109-g82eeb72, cây sạch): 222 đạt, 0 không đạt — nâng từ v0.2.0, bật hai bước (API và trình duyệt thật), oathtool, zbarimg, bước hai, chính sách, lối thoát CLI, bảng route × token, chứng chỉ panel với pebble, khoá IP, quét bí mật
+[2026-11-25 00:52:23] (mã thoát 0)
+
+[2026-11-25 00:52:23] $ git status --short
+?? docs/bang-chung/M20-hoi-quy-m13-nang-cap.log
+?? docs/bang-chung/M20-hoi-quy-m13.log
+?? docs/bang-chung/M20-hoi-quy-m6.log
+[2026-11-25 00:52:23] (mã thoát 0)
+
+[2026-11-25 00:52:23] $ make release VERSION=v0.2.2-110-gafc0bed DATE=2026-11-24T17:51:18Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 3d ago)
+Lockfile is up to date, resolution step is skipped
+Done in 27ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 429 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.95 kB │ gzip:   0.55 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-WSeS9eMc.css                                   39.35 kB │ gzip:   9.04 kB
+dist/assets/useStatusName-9kEunyjM.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
+dist/assets/OriginTag-BmVz0cSU.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/DomainText-D6uOaHjF.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-CoSUGabg.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
+dist/assets/m14-D159d7La.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-J2FQqtWZ.js                                   0.65 kB │ gzip:   0.39 kB
+dist/assets/SegmentButton-BKs8uTku.js                             0.70 kB │ gzip:   0.45 kB
+dist/assets/RowActions-CvCJLQZ-.js                                0.70 kB │ gzip:   0.42 kB
+dist/assets/m13-chung-CbLMVi7J.js                                 0.80 kB │ gzip:   0.45 kB
+dist/assets/Rows-DJxB3E4e.js                                      0.84 kB │ gzip:   0.36 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/UsageMeter-DH_86R4M.js                                0.86 kB │ gzip:   0.46 kB
+dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
+dist/assets/Frame-DFemmOlF.js                                     1.00 kB │ gzip:   0.51 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/Dialog-BrH8F2Tf.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/model-DU9pjXHn.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/PreviewedOp-C19-ml36.js                               1.90 kB │ gzip:   1.00 kB
+dist/assets/TokenTable-_q4qwyzT.js                                1.94 kB │ gzip:   0.95 kB
+dist/assets/model-sW5idu4U.js                                     2.01 kB │ gzip:   0.95 kB
+dist/assets/TableList-DCtCTWP8.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/RouteMap-BMOgZ92O.js                                  2.32 kB │ gzip:   1.02 kB
+dist/assets/useMutation-qawX_TAc.js                               2.33 kB │ gzip:   0.97 kB
+dist/assets/Bulk-CoB6vZwJ.js                                      3.03 kB │ gzip:   1.39 kB
+dist/assets/model-B43PxPmT.js                                     3.74 kB │ gzip:   1.52 kB
+dist/assets/bat-hai-buoc-jVDtQzXf.js                              3.93 kB │ gzip:   1.89 kB
+dist/assets/plan-cho-duyet-Bm_K3u0c.js                            5.86 kB │ gzip:   2.04 kB
+dist/assets/RecoveryCodes-B-7ulDAl.js                             5.99 kB │ gzip:   2.22 kB
+dist/assets/StorageFlow-BAztbGPL.js                               6.37 kB │ gzip:   2.56 kB
+dist/assets/Self-hCekoygP.js                                      8.49 kB │ gzip:   2.71 kB
+dist/assets/goi-B_FhrvTn.js                                       8.50 kB │ gzip:   3.67 kB
+dist/assets/tai-khoan-DTUce1Vr.js                                 9.62 kB │ gzip:   3.16 kB
+dist/assets/backup-CJfiyEn3.js                                   10.94 kB │ gzip:   3.50 kB
+dist/assets/cong-cu-J0TCxhhL.js                                  10.97 kB │ gzip:   4.25 kB
+dist/assets/queries-BXGOs6_y.js                                  10.97 kB │ gzip:   3.33 kB
+dist/assets/ssl-DLc0VwYF.js                                      11.48 kB │ gzip:   4.54 kB
+dist/assets/cap-nhat-DZP0OXbC.js                                 11.90 kB │ gzip:   4.29 kB
+dist/assets/duyet-plan-Dwor12VK.js                               11.99 kB │ gzip:   4.35 kB
+dist/assets/CheckRow-CG5EWG-M.js                                 12.35 kB │ gzip:   4.52 kB
+dist/assets/cron-DPjxS9z5.js                                     13.01 kB │ gzip:   4.87 kB
+dist/assets/thung-rac-CNuHnuyk.js                                13.43 kB │ gzip:   4.75 kB
+dist/assets/tao-site-CGKSkT1f.js                                 13.47 kB │ gzip:   4.94 kB
+dist/assets/Reauth-8Xxll2h-.js                                   13.50 kB │ gzip:   5.04 kB
+dist/assets/co-so-du-lieu-BrBjnljB.js                            14.62 kB │ gzip:   4.82 kB
+dist/assets/dang-nhap-CFKcd1O-.js                                14.81 kB │ gzip:   5.28 kB
+dist/assets/bao-mat-CrcSTlKP.js                                  14.90 kB │ gzip:   4.72 kB
+dist/assets/MfaError-BswifwW4.js                                 15.22 kB │ gzip:   5.63 kB
+dist/assets/co-so-du-lieu-ghZu-XCT.js                            15.70 kB │ gzip:   4.97 kB
+dist/assets/cai-may-moi-BNVSQlNL.js                              15.73 kB │ gzip:   5.74 kB
+dist/assets/phien-ai-C774KiZG.js                                 16.20 kB │ gzip:   5.35 kB
+dist/assets/stack-C3E6Dgj6.js                                    17.34 kB │ gzip:   5.52 kB
+dist/assets/nguoi-dung-BxN8j6qa.js                               17.44 kB │ gzip:   5.77 kB
+dist/assets/su-co-CAvWthA6.js                                    21.58 kB │ gzip:   7.20 kB
+dist/assets/backup-JeMNrUD1.js                                   24.66 kB │ gzip:   7.88 kB
+dist/assets/trang-chu-CgeWq204.js                                26.43 kB │ gzip:   8.49 kB
+dist/assets/ErrorNote-CTm12zMK.js                                28.09 kB │ gzip:   9.29 kB
+dist/assets/lich-su-DEVixzd6.js                                  28.61 kB │ gzip:   9.24 kB
+dist/assets/cai-dat-DcjstyoY.js                                  38.64 kB │ gzip:  12.18 kB
+dist/assets/site-54dNA5N8.js                                     38.75 kB │ gzip:  11.52 kB
+dist/assets/ScreenHeader-Ga37zj1D.js                            148.35 kB │ gzip:  49.18 kB
+dist/assets/index-C20Ex5Xu.js                                   387.88 kB │ gzip: 124.42 kB
+
+✓ built in 216ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-110-gafc0bed -X github.com/doxuta/tpan/internal/buildinfo.Commit=afc0bed -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T17:51:18Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-110-gafc0bed -X github.com/doxuta/tpan/internal/buildinfo.Commit=afc0bed -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T17:51:18Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/v0.2.2-110-gafc0bed
+mkdir -p dist/release/v0.2.2-110-gafc0bed
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.2-110-gafc0bed/
+chmod 0755 dist/release/v0.2.2-110-gafc0bed/tpan-linux-amd64 dist/release/v0.2.2-110-gafc0bed/tpan-linux-arm64 dist/release/v0.2.2-110-gafc0bed/install.sh
+cd dist/release/v0.2.2-110-gafc0bed && if command -v sha256sum >/dev/null 2>&1; then \
+	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	else \
+	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
+	fi > SHA256SUMS
+printf '%s\n' 'v0.2.2-110-gafc0bed' > dist/release/v0.2.2-110-gafc0bed/VERSION
+Gói phát hành: dist/release/v0.2.2-110-gafc0bed/
+total 101600
+-rw-r--r--@ 1 <user>  staff       243 Nov 25 00:52 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff        20 Nov 25 00:52 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 00:52 install.sh
+-rwxr-xr-x@ 1 <user>  staff  27209888 Nov 25 00:52 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  24772768 Nov 25 00:52 tpan-linux-arm64
+[2026-11-25 00:52:27] (mã thoát 0)
+  => ĐẠT: make release VERSION=v0.2.2-110-gafc0bed
+
+[2026-11-25 00:52:27] $ bash -c cd "$1" && cat SHA256SUMS && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.2-110-gafc0bed
+00b69090b28037b1c40a5a7bc7d71e3227031ef17f93aab7efd65b4f00137a23  tpan-linux-amd64
+75aacadc1ec3a121988e19909052cdea3b8309770675bb86842633f8b9c1b1e2  tpan-linux-arm64
+e78a9d9de614d04456176b535cb98fc7b1d1c116482e21c6464ecd4929578d9d  install.sh
+tpan-linux-amd64: OK
+tpan-linux-arm64: OK
+install.sh: OK
+[2026-11-25 00:52:27] (mã thoát 0)
+  => ĐẠT: SHA256SUMS của gói v0.2.2-110-gafc0bed khớp
+
+[2026-11-25 00:52:27] $ scripts/vm.sh exec mkdir -p /home/ubuntu/rel
+[2026-11-25 00:52:27] (mã thoát 0)
+
+[2026-11-25 00:52:27] $ multipass transfer -r dist/release/v0.2.2-110-gafc0bed tpan-m20:/home/ubuntu/rel/
+[2026-11-25 00:52:27] (mã thoát 0)
+  => ĐẠT: chép gói v0.2.2-110-gafc0bed sang máy ảo
+
+[2026-11-25 00:52:27] $ scripts/vm.sh root systemd-run --unit=tpan-e2e-rel python3 -m http.server 18713 --bind 127.0.0.1 --directory /home/ubuntu/rel
+Running as unit: tpan-e2e-rel.service; invocation ID: 397fe52e4f0f4647b02cca62dac442d1
+[2026-11-25 00:52:28] (mã thoát 0)
+
+[2026-11-25 00:52:30] $ scripts/vm.sh exec curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:18713/v0.2.2-110-gafc0bed/SHA256SUMS
+200
+[2026-11-25 00:52:30] (mã thoát 0)
+  => ĐẠT: (đồ nghề) máy chủ HTTP loopback trả v0.2.2-110-gafc0bed/SHA256SUMS
+
+[2026-11-25 00:52:30] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18713/v0.2.2-110-gafc0bed --dry-run
+Kế hoạch: Cập nhật tpan (đang chạy bản v0.1.1)
+3 bước sẽ chạy, 0 bước đã đúng sẽ bỏ qua, 2 bước có thể gián đoạn dịch vụ.
+
+ 1. [sẽ chạy] Tải bản tpan mới vào /usr/local/bin/tpan.new  (self.download:/usr/local/bin/tpan.new)
+    Vì sao: Bản mới được tải vào file riêng và kiểm sha256 theo SHA256SUMS của bản phát hành trước khi đụng tới file đang chạy. File hỏng hay bị sửa giữa đường thì bị xoá, không bao giờ được chạy bằng quyền root.
+    $ curl -fsSL --max-time 30 --proto-redir =https http://127.0.0.1:18713/v0.2.2-110-gafc0bed/SHA256SUMS
+    $ curl -fsSL --max-time 300 --proto-redir =https -o /usr/local/bin/tpan.new http://127.0.0.1:18713/v0.2.2-110-gafc0bed/tpan-linux-arm64
+    $ /usr/local/bin/tpan.new version
+ 2. [sẽ chạy] Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old  (self.install:/usr/local/bin/tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Đây là lúc bản mới thành file chạy của tpan. Bản cũ không bị xoá mà đổi tên thành /usr/local/bin/tpan.old, để quay về được nếu bản mới có lỗi. Dịch vụ tpan chỉ dùng bản mới sau khi khởi động lại.
+ 3. [sẽ chạy] Khởi động lại tpan  (service.restart:tpan)
+    NGUY HIỂM: bước này có thể làm gián đoạn dịch vụ.
+    Vì sao: Dịch vụ đang chạy vẫn dùng bản cũ trong bộ nhớ cho tới khi được khởi động lại; không làm bước này thì bản vá chưa có tác dụng. Cấu hình được kiểm trước, sai thì không khởi động lại.
+    $ systemctl restart tpan
+    Ghi chú hoàn tác: Khởi động lại không đổi cấu hình nào, không có trạng thái cũ để trả về.
+[2026-11-25 00:52:30] (mã thoát 0)
+  => ĐẠT: self-update --dry-run (bản v0.1.1) thoát 0
+
+[2026-11-25 00:52:30] $ scripts/vm.sh exec systemctl show -p MainPID tpan
+MainPID=1673
+[2026-11-25 00:52:30] (mã thoát 0)
+
+[2026-11-25 00:52:30] $ scripts/vm.sh root tpan self-update --url http://127.0.0.1:18713/v0.2.2-110-gafc0bed --yes
+Bắt đầu job ac73b8df086d2014
+- Tải bản tpan mới vào /usr/local/bin/tpan.new ...
+  xong
+- Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
+  xong
+- Khởi động lại tpan ...
+  xong
+  [đạt] File chạy /usr/local/bin/tpan chạy được
+
+Job ac73b8df086d2014: thành công
+Kiểm chứng:
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.2-110-gafc0bed (commit afc0bed, build 2026-11-24T17:51:18Z)
+tpan đã đổi: v0.1.1 -> v0.2.2-110-gafc0bed
+[2026-11-25 00:52:30] (mã thoát 0)
+  => ĐẠT: self-update (bản v0.1.1) thoát 0, job thành công
+  => ĐẠT: in v0.1.1 -> v0.2.2-110-gafc0bed
+
+[2026-11-25 00:52:30] $ scripts/vm.sh exec bash -c tpan version; /usr/local/bin/tpan.old version; ls -la /usr/local/bin
+tpan v0.2.2-110-gafc0bed (commit afc0bed, build 2026-11-24T17:51:18Z)
+tpan v0.1.1 (commit b946767, build 2026-11-20T06:53:42Z)
+total 51536
+drwxr-xr-x  2 root root     4096 Nov 25 00:52 .
+drwxr-xr-x 10 root root     4096 Oct 17 19:57 ..
+-rwxr-xr-x  1 root root 24772768 Nov 25 00:52 tpan
+-rwxr-xr-x  1 root root 20840608 Nov 25 00:51 tpan.old
+-rwxr-xr-x  1 root root  7142777 Nov 25 00:52 wp
+[2026-11-25 00:52:30] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.2-110-gafc0bed, tpan.old là v0.1.1
+
+[2026-11-25 00:52:30] $ scripts/vm.sh exec systemctl show -p MainPID -p ActiveState tpan
+MainPID=14612
+ActiveState=active
+[2026-11-25 00:52:30] (mã thoát 0)
+  => ĐẠT: tpan.service active, PID mới
+
+[2026-11-25 00:52:30] $ scripts/vm.sh root bash -c p=$(systemctl show -p MainPID --value tpan); /proc/$p/exe version
+tpan v0.2.2-110-gafc0bed (commit afc0bed, build 2026-11-24T17:51:18Z)
+[2026-11-25 00:52:30] (mã thoát 0)
+  => ĐẠT: tiến trình của tpan.service chạy bản v0.2.2-110-gafc0bed
+
+==== Phần U2: 10 đạt, 0 không đạt
+
+
+######## [2026-11-25 00:52:30] PHẦN U3: sau khi nâng: cookie cũ, đăng nhập chỉ mật khẩu, chủ của site cũ, admin passwd
+
+[2026-11-25 00:52:30] $ curl -X GET <panel>/api/v1/session   (phiên: jar.old)
+-> HTTP 200
+    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-110-gafc0bed","expires":"2026-11-25T05:52:22.878117436Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: cookie cũ (tạo bởi v0.1.1): GET /session 200, logged_in, user admin vai admin
+
+[2026-11-25 00:52:30] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.old)
+-> HTTP 200
+    thân nhận (tối đa 700 byte): [{"domain":"up.example.com","slug":"up_example_com_8f73fc","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T17:52:22.362864328Z","owner":"admin","htaccess":"day-du","caged":false}]
+  => ĐẠT: cookie cũ: GET /sites 200, up.example.com có chủ admin
+
+[2026-11-25 00:52:31] $ curl -X POST <panel>/api/v1/login   (phiên: jar.new)
+    thân gửi: {"password":"<bí mật, đã che>"}
+-> HTTP 204
+  => ĐẠT: POST /login chỉ có mật khẩu (không tên): 204
+
+[2026-11-25 00:52:31] $ curl -X GET <panel>/api/v1/session   (phiên: jar.new)
+-> HTTP 200
+    thân nhận (tối đa 700 byte): {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-110-gafc0bed","expires":"2026-11-25T05:52:31.126375142Z","user":{"name":"admin","role":"admin"}}
+  => ĐẠT: phiên mới là admin
+
+[2026-11-25 00:52:31] $ curl -X GET <panel>/api/v1/users   (phiên: jar.new)
+-> HTTP 200
+    thân nhận (tối đa 700 byte): [{"user":{"name":"admin","full_name":"","email":"","role":"admin","package":"default","status":"active","created":"2026-11-24T17:51:35.054227962Z"},"limits":{"name":"default","max_sites":0,"max_dbs":0,"disk_mb":0,"max_backups":0,"cage":false,"cpu_percent":0,"ram_mb":0,"tasks":0,"io_read_mb":0,"io_write_mb":0,"php_workers":0,"created":"2026-11-24T17:52:30Z"},"usage":{"sites":1,"dbs":0,"disk_bytes":-1},"over_quota":false}]
+  => ĐẠT: GET /users (route admin của M13) 200, có admin
+
+[2026-11-25 00:52:31] $ scripts/vm.sh root tpan site list
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+up.example.com                           active   8.3   không 2026-11-25 00:52 admin          -
+[2026-11-25 00:52:31] (mã thoát 0)
+  => ĐẠT: tpan site list: up.example.com, cột CHỦ là admin
+
+[2026-11-25 00:52:31] $ scripts/vm.sh root tpan site info up.example.com --json
+{
+  "site": {
+    "domain": "up.example.com",
+    "slug": "up_example_com_8f73fc",
+    "status": "active",
+    "php_version": "8.3",
+    "ssl": false,
+    "created": "2026-11-24T17:52:22.362864328Z",
+    "owner": "admin",
+    "htaccess": "day-du",
+    "caged": false
+  },
+  "layout": {
+    "domain": "up.example.com",
+    "slug": "up_example_com_8f73fc",
+    "user": "tp_up_example_com_8f73fc",
+    "db": "tp_up_example_com_8f73fc",
+    "dir": "/var/www/up.example.com",
+    "public": "/var/www/up.example.com/public",
+    "tmp": "/var/www/up.example.com/tmp",
+    "wp_config": "/var/www/up.example.com/public/wp-config.php",
+    "log_dir": "/var/log/tpan/sites/up.example.com",
+    "access_log": "/var/log/tpan/sites/up.example.com/access.log",
+    "error_log": "/var/log/tpan/sites/up.example.com/error.log",
+    "php_error_log": "/var/log/tpan/sites/up.example.com/php-error.log",
+    "pool": "tpan-up_example_com_8f73fc",
+    "nginx_conf": "/etc/nginx/sites-available/tpan-up.example.com.conf",
+    "nginx_link": "/etc/nginx/sites-enabled/tpan-up.example.com.conf",
+    "apache_conf": "/etc/apache2/sites-available/tpan-up.example.com.conf",
+    "apache_link": "/etc/apache2/sites-enabled/tpan-up.example.com.conf"
+  },
+  "socket": "/run/php/tpan-up_example_com_8f73fc-8.3.sock",
+  "web": "nginx",
+  "checks": [
+    {
+      "id": "web.vhost:up.example.com",
+      "stage": "web",
+      "title": {
+        "vi": "Vhost của site có, do tpan quản lý và đang được bật",
+        "en": "The site vhost exists, is managed by tpan and is enabled"
+      },
+      "status": "pass",
+      "summary": {
+        "vi": "Vhost của site có, đúng dòng đầu của tpan, và đã được bật",
+        "en": "The site vhost exists, has the tpan header and is enabled"
+      },
+      "evidence": [
+        {
+          "command": "stat /etc/nginx/sites-available/tpan-up.example.com.conf (tpan)",
+          "exit_code": 0,
+          "output": "regular file, mode 0644, owner root:root"
+        },
+        {
+          "command": "head -n 1 /etc/nginx/sites-available/tpan-up.example.com.conf (tpan)",
+          "exit_code": 0,
+          "output": "# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch."
+        },
+        {
+          "command": "readlink /etc/nginx/sites-enabled/tpan-up.example.com.conf (tpan)",
+          "exit_code": 0,
+          "output": "/etc/nginx/sites-available/tpan-up.example.com.conf"
+        }
+      ]
+    },
+    {
+      "id": "php.socket:up.example.com",
+      "stage": "php",
+      "title": {
+        "vi": "Socket của pool PHP có, đúng chủ và đúng quyền",
+        "en": "The PHP pool socket exists, with the right owner and mode"
+      },
+      "status": "pass",
+      "summary": {
+        "vi": "Socket của pool có, chủ www-data:www-data, quyền 0660",
+        "en": "The pool socket exists, owned by www-data:www-data, mode 0660"
+      },
+      "evidence": [
+        {
+          "command": "stat /run/php/tpan-up_example_com_8f73fc-8.3.sock (tpan)",
+          "exit_code": 0,
+          "output": "socket, mode 0660, owner www-data:www-data"
+        }
+      ]
+    },
+    {
+      "id": "wp.checksums:up.example.com",
+      "stage": "wordpress",
+      "title": {
+        "vi": "Mã nguồn WordPress nguyên vẹn (khớp checksum)",
+        "en": "The WordPress source is intact (checksums match)"
+      },
+      "status": "pass",
+      "summary": {
+        "vi": "Mã nguồn WordPress khớp checksum",
+        "en": "The WordPress source matches the checksums"
+      },
+      "evidence": [
+        {
+          "command": "runuser -u tp_up_example_com_8f73fc -- wp core verify-checksums --path=/var/www/up.example.com/public",
+          "exit_code": 0,
+          "output": "Success: WordPress installation verifies against checksums."
+        }
+      ]
+    },
+    {
+      "id": "wp.config:up.example.com",
+      "stage": "wordpress",
+      "title": {
+        "vi": "wp-config.php có quyền 0600 và đúng chủ",
+        "en": "wp-config.php has mode 0600 and the right owner"
+      },
+      "status": "pass",
+      "summary": {
+        "vi": "wp-config.php quyền 0600, chủ tp_up_example_com_8f73fc",
+        "en": "wp-config.php has mode 0600, owner tp_up_example_com_8f73fc"
+      },
+      "evidence": [
+        {
+          "command": "stat /var/www/up.example.com/public/wp-config.php (tpan)",
+          "exit_code": 0,
+          "output": "regular file, mode 0600, owner tp_up_example_com_8f73fc:www-data"
+        }
+      ]
+    },
+    {
+      "id": "db.access:up.example.com",
+      "stage": "db",
+      "title": {
+        "vi": "User DB của site đăng nhập được, chỉ thấy DB của site",
+        "en": "The site's DB user can log in and sees only the site's database"
+      },
+      "status": "pass",
+      "summary": {
+        "vi": "User DB đăng nhập được và chỉ thấy DB tp_up_example_com_8f73fc",
+        "en": "The DB user logs in and sees only the database tp_up_example_com_8f73fc"
+      },
+      "evidence": [
+        {
+          "command": "runuser -u tp_up_example_com_8f73fc -- wp db query 'SHOW DATABASES' --skip-column-names --path=/var/www/up.example.com/public",
+          "exit_code": 0,
+          "output": "information_schema\ntp_up_example_com_8f73fc"
+        }
+      ]
+    },
+    {
+      "id": "http.site:up.example.com",
+      "stage": "e2e",
+      "title": {
+        "vi": "Gọi HTTP vào site trả 200 và đúng là WordPress của site",
+        "en": "An HTTP request to the site returns 200 and is the site's WordPress"
+      },
+      "status": "pass",
+      "summary": {
+        "vi": "Site trả 200, đúng là WordPress của up.example.com",
+        "en": "The site answers 200 and is the WordPress of up.example.com"
+      },
+      "evidence": [
+        {
+          "command": "curl -sS --max-time 15 --resolve up.example.com:80:127.0.0.1 -w 'TPAN_HTTP_CODE=%{http_code}' http://up.example.com/",
+          "exit_code": 0,
+          "output": "HTTP 200, 69673 byte\n\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en-US\"\u003e\n\u003chead\u003e\n\t\u003cmeta charset=\"UTF-8\" /\u003e\n\t\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /\u003e\n\u003cmeta name='robots' content='max-image-preview:large' /\u003e\n\u003ctitle\u003eup.example.com\u003c/title\u003e\n\u003clink rel=\"alternate\" type=\"application/rss+xml\" title=\"up.example.com \u0026raquo; Feed\" href=\"http://up.example.com/feed/\" /\u003e\n\u003clink rel=\"alternate\" type=\"application/rss+xml\" title=\"up.example.com \u0026raquo; Comments Feed\" href=\"http://up.example.com/comments/feed/\" /\u003e\n\u003cstyle id=\"wp-img-auto-sizes-contain-inline-css\"\u003e\nimg:is([sizes=auto i],[sizes^=\"auto,\" i]){contain-intrinsic-size:3000px 1500px}\n/*# sourceURL=wp-img-auto-sizes-contain-inline-css */\n\u003c/style\u003e\n\u003cstyle id=\"wp-block-site-title-inline-css\"\u003e\n.wp-block-site-title{box-sizing:border-box}.wp-block-site-title :where(a){color:inherit;font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;text-decoration:inherit}\n/*# sourceURL=http://up.example.com/wp-includes/blocks/site-ti\n[... đã cắt phần sau / rest cut ...]"
+        }
+      ]
+    },
+    {
+      "id": "log.perm:up.example.com",
+      "stage": "web",
+      "title": {
+        "vi": "Log của site không đọc được bởi site khác",
+        "en": "The site logs cannot be read by other sites"
+      },
+      "status": "fail",
+      "summary": {
+        "vi": "Quyền log của site sai: /var/log/tpan/sites/up.example.com thuộc root:root, phải là root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com có quyền 0755, phải là 0750; /var/log/tpan/sites/up.example.com/access.log thuộc root:root, phải là root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com/access.log có quyền 0644, phải là 0640; /var/log/tpan/sites/up.example.com/error.log thuộc root:root, phải là root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com/error.log có quyền 0644, phải là 0640",
+        "en": "The site log permissions are wrong: /var/log/tpan/sites/up.example.com is owned by root:root, it must be root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com has mode 0755, it must be 0750; /var/log/tpan/sites/up.example.com/access.log is owned by root:root, it must be root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com/access.log has mode 0644, it must be 0640; /var/log/tpan/sites/up.example.com/error.log is owned by root:root, it must be root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com/error.log has mode 0644, it must be 0640"
+      },
+      "evidence": [
+        {
+          "command": "stat /var/log/tpan/sites/up.example.com (tpan)",
+          "exit_code": 0,
+          "output": "directory, mode 0755, owner root:root"
+        },
+        {
+          "command": "stat /var/log/tpan/sites/up.example.com/access.log (tpan)",
+          "exit_code": 0,
+          "output": "regular file, mode 0644, owner root:root"
+        },
+        {
+          "command": "stat /var/log/tpan/sites/up.example.com/error.log (tpan)",
+          "exit_code": 0,
+          "output": "regular file, mode 0644, owner root:root"
+        }
+      ],
+      "cause": {
+        "vi": "access.log và error.log có IP của khách và URL kèm tham số. Thư mục log phải là root:tp_up_example_com_8f73fc 0750 và hai file là 0640 để chỉ site này (và root) đọc được. Quyền rộng hơn thì một site khác bị chiếm đọc được log của site này; sai nhóm thì site không đọc được log của chính nó; thiếu file thì web server tự tạo lại với quyền 0644.",
+        "en": "access.log and error.log hold visitor IPs and URLs with their parameters. The log directory must be root:tp_up_example_com_8f73fc 0750 and both files 0640 so that only this site (and root) can read them. With wider modes another compromised site can read this site's logs; with the wrong group the site cannot read its own logs; a missing file is created again by the web server with mode 0644."
+      },
+      "manual_fix": [
+        "chown root:tp_up_example_com_8f73fc /var/log/tpan/sites/up.example.com",
+        "chmod 750 /var/log/tpan/sites/up.example.com",
+        "chown root:tp_up_example_com_8f73fc /var/log/tpan/sites/up.example.com/access.log",
+        "chmod 640 /var/log/tpan/sites/up.example.com/access.log",
+        "chown root:tp_up_example_com_8f73fc /var/log/tpan/sites/up.example.com/error.log",
+        "chmod 640 /var/log/tpan/sites/up.example.com/error.log",
+        "ls -ld /var/log/tpan/sites/up.example.com /var/log/tpan/sites/up.example.com/access.log /var/log/tpan/sites/up.example.com/error.log"
+      ]
+    },
+    {
+      "id": "web.hardened:up.example.com",
+      "stage": "web",
+      "title": {
+        "vi": "Vhost của site có đủ các dòng chặn cô lập",
+        "en": "The site vhost carries all the isolation guard lines"
+      },
+      "status": "fail",
+      "summary": {
+        "vi": "Vhost của site chưa đủ dòng chặn: thiếu dòng \"disable_symlinks if_not_owner from=$document_root;\"",
+        "en": "The site vhost lacks guard lines: the line \"disable_symlinks if_not_owner from=$document_root;\" is missing"
+      },
+      "evidence": [
+        {
+          "command": "grep -nE disable_symlinks /etc/nginx/sites-available/tpan-up.example.com.conf (tpan)",
+          "exit_code": 1,
+          "output": ""
+        }
+      ],
+      "cause": {
+        "vi": "Vhost này do một bản tpan cũ ghi hoặc đã bị sửa. Lỗ còn mở: nginx (chạy dưới www-data) đọc được mọi site qua quyền nhóm, nên một symlink trong site này trỏ sang file của site khác sẽ được trả về, kể cả mã nguồn PHP dưới một tên khác.",
+        "en": "This vhost was written by an older tpan or was edited. Still open: nginx (running as www-data) can read every site through the group, so a symlink in this site that points at another site's file is served, PHP source under another name included."
+      },
+      "manual_fix": [
+        "sudo tpan security harden",
+        "grep -nE disable_symlinks /etc/nginx/sites-available/tpan-up.example.com.conf"
+      ]
+    }
+  ]
+}
+[2026-11-25 00:52:33] (mã thoát 0)
+  => ĐẠT: site info --json: owner admin, không tạm khoá
+
+[2026-11-25 00:52:33] $ scripts/vm.sh root tpan user list
+TÊN                  VAI    GÓI            SITE    DB      DUNG LƯỢNG           TRẠNG THÁI
+admin                admin  default        1/∞     0/∞     ?                    hoạt động
+[2026-11-25 00:52:33] (mã thoát 0)
+  => ĐẠT: tpan user list có admin
+
+[2026-11-25 00:52:33] $ scripts/vm.sh root tpan user list --json
+[
+  {
+    "user": {
+      "name": "admin",
+      "full_name": "",
+      "email": "",
+      "role": "admin",
+      "package": "default",
+      "status": "active",
+      "created": "2026-11-24T17:51:35.054227962Z"
+    },
+    "limits": {
+      "name": "default",
+      "max_sites": 0,
+      "max_dbs": 0,
+      "disk_mb": 0,
+      "max_backups": 0,
+      "cage": false,
+      "cpu_percent": 0,
+      "ram_mb": 0,
+      "tasks": 0,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 0,
+      "created": "2026-11-24T17:52:30Z"
+    },
+    "usage": {
+      "sites": 1,
+      "dbs": 0,
+      "disk_bytes": -1
+    },
+    "over_quota": false
+  }
+]
+[2026-11-25 00:52:33] (mã thoát 0)
+  => ĐẠT: user list --json: admin vai admin, gói default, active
+
+[2026-11-25 00:52:33] $ scripts/vm.sh root python3 -c import sqlite3, hashlib; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); print("hash mật khẩu (sha256 của hash):", hashlib.sha256(c.execute("SELECT password_hash FROM users WHERE name = ?", ("admin",)).fetchone()[0].encode()).hexdigest()[:16]); print("settings còn admin.password_hash:", c.execute("SELECT COUNT(*) FROM settings WHERE key = ?", ("admin.password_hash",)).fetchone()[0]); print("migration 1300:", c.execute("SELECT COUNT(*) FROM schema_migrations WHERE version = 1300").fetchone()[0]); print("phiên:", c.execute("SELECT user_name, view_as FROM sessions").fetchall())
+hash mật khẩu (sha256 của hash): aff5288cf2eaba4a
+settings còn admin.password_hash: 0
+migration 1300: 1
+phiên: [('admin', ''), ('admin', '')]
+[2026-11-25 00:52:33] (mã thoát 0)
+  => ĐẠT: hash mật khẩu chuyển sang users giữ nguyên (aff5288cf2eaba4a), settings không còn khoá cũ, có migration 1300
+
+[2026-11-25 00:52:34] $ scripts/vm.sh exec bash -c 
+d=$1; scheme=${2:-http}; path=${3:-/}
+port=80; [ "$scheme" = https ] && port=443
+f=$(mktemp)
+code=$(curl -sk -m 20 --resolve "$d:$port:127.0.0.1" -o "$f" -w "%{http_code}" "$scheme://$d$path"); rc=$?
+echo "$scheme://$d$path curl=$rc http=$code marker=$(grep -c tpan-suspended-page "$f") title=$(grep -o "<title>[^<]*</title>" "$f" | head -1)"
+rm -f "$f"
+ _ up.example.com
+http://up.example.com/ curl=0 http=200 marker=0 title=<title>up.example.com</title>
+[2026-11-25 00:52:34] (mã thoát 0)
+  => ĐẠT: up.example.com vẫn 200
+
+
+######## [2026-11-25 00:52:34] U3: tpan admin passwd
+
+[2026-11-25 00:52:34] $ scripts/vm.sh root tpan admin passwd --yes --json
+{
+  "admin_password": "<bí mật, đã che>"
+}
+[2026-11-25 00:52:34] (mã thoát 0)
+  => ĐẠT: admin passwd thoát 0, có mật khẩu mới (đã che)
+
+[2026-11-25 00:52:34] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.new)
+-> HTTP 401
+    thân nhận (tối đa 700 byte): {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+  => ĐẠT: phiên cũ bị huỷ: 401
+
+[2026-11-25 00:52:34] $ curl -X POST <panel>/api/v1/login   (phiên: jar.adm)
+    thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
+-> HTTP 204
+  => ĐẠT: đăng nhập tên admin + mật khẩu mới: 204
+
+[2026-11-25 00:52:34] $ curl -X GET <panel>/api/v1/users   (phiên: jar.adm)
+-> HTTP 200
+    thân nhận (tối đa 700 byte): [{"user":{"name":"admin","full_name":"","email":"","role":"admin","package":"default","status":"active","created":"2026-11-24T17:51:35.054227962Z"},"limits":{"name":"default","max_sites":0,"max_dbs":0,"disk_mb":0,"max_backups":0,"cage":false,"cpu_percent":0,"ram_mb":0,"tasks":0,"io_read_mb":0,"io_write_mb":0,"php_workers":0,"created":"2026-11-24T17:52:30Z"},"usage":{"sites":1,"dbs":0,"disk_bytes":-1},"over_quota":false}]
+  => ĐẠT: GET /users 200
+
+
+######## [2026-11-25 00:52:34] U3: (M14) tpan security harden trên máy vừa nâng
+
+[2026-11-25 00:52:34] $ scripts/vm.sh root tpan health  --json
+nhóm: (máy, stack), up.example.com, tpan
+số phép kiểm theo trạng thái: fail=3 pass=40 warn=5
+--- fail php.opcache:8.3 (chặng php): OPcache của PHP-FPM 8.3 chưa được siết: không có file /etc/php/8.3/fpm/conf.d/99-tpan.ini; opcache.validate_permission đang là Off (cần On); opcache.restrict_api đang là "no value" (cần /usr/local/lib/tpan/opcache-api/)
+--- warn php.protectproc:8.3 (chặng php): Dịch vụ php8.3-fpm có ProtectProc=default, cần invisible
+--- warn dns.a:up.example.com (chặng dns): up.example.com chưa có bản ghi A
+--- warn tls.cert:up.example.com (chặng tls): Chưa có chứng chỉ cho up.example.com
+--- fail log.perm:up.example.com (chặng web): Quyền log của site sai: /var/log/tpan/sites/up.example.com thuộc root:root, phải là root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com có quyền 0755, phải là 0750; /var/log/tpan/sites/up.example.com/access.log thuộc root:root, phải là root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com/access.log có quyền 0644, phải là 0640; /var/log/tpan/sites/up.example.com/error.log thuộc root:root, phải là root:tp_up_example_com_8f73fc; /var/log/tpan/sites/up.example.com/error.log có quyền 0644, phải là 0640
+--- fail web.hardened:up.example.com (chặng web): Vhost của site chưa đủ dòng chặn: thiếu dòng "disable_symlinks if_not_owner from=$document_root;"
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+--- warn tpan.2fa:admins (chặng tpan): Admin chưa bật đăng nhập hai bước: admin
+sự cố vừa mở: #1 php.opcache:8.3, #2 log.perm:up.example.com, #3 web.hardened:up.example.com
+sự cố vừa đóng: 
+[2026-11-25 00:52:37] (mã thoát 1)
+  => ĐẠT: health sau khi nâng: có lỗi, và chỉ thuộc ba loại của M14 (php.opcache, log.perm, web.hardened)
+
+[2026-11-25 00:52:37] $ scripts/vm.sh root tpan security harden --yes
+Chế độ .htaccess:
+  Chuyển sang an-toan (1 site, .htaccess không có chỉ thị nào ngoài danh sách cho phép):
+    up.example.com
+
+Bắt đầu job f669f96556dfd558
+- Bật kiểm quyền file và khoá API của OPcache cho php8.3-fpm ...
+  xong
+- Ẩn tiến trình của user khác với PHP của php8.3-fpm ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/up.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/up.example.com/access.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/up.example.com/error.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/up.example.com/php-error.log với đúng quyền và chủ ...
+  đã đúng, bỏ qua
+- Ghi vhost nginx cho up.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-up.example.com.conf → /etc/nginx/sites-available/tpan-up.example.com.conf ...
+  đã đúng, bỏ qua
+- Kiểm cấu hình rồi nạp lại nginx một lần cho mọi vhost vừa ghi ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
+  [đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó
+  [đạt] Request mang tên miền lạ bị vhost mặc định từ chối
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+
+Job f669f96556dfd558: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.5%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  [đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó
+  [đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
+  [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_up_example_com_8f73fc 0750, access.log và error.log là root:tp_up_example_com_8f73fc 0640
+  [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của up.example.com
+[2026-11-25 00:52:38] (mã thoát 0)
+  => ĐẠT: tpan security harden thoát 0, job thành công
+
+[2026-11-25 00:52:38] $ scripts/vm.sh root tpan health  --json
+nhóm: (máy, stack), up.example.com, tpan
+số phép kiểm theo trạng thái: pass=46 warn=4
+--- warn dns.a:up.example.com (chặng dns): up.example.com chưa có bản ghi A
+--- warn tls.cert:up.example.com (chặng tls): Chưa có chứng chỉ cho up.example.com
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+--- warn tpan.2fa:admins (chặng tpan): Admin chưa bật đăng nhập hai bước: admin
+sự cố vừa mở: 
+sự cố vừa đóng: #1 php.opcache:8.3, #2 log.perm:up.example.com, #3 web.hardened:up.example.com
+[2026-11-25 00:52:40] (mã thoát 0)
+  => ĐẠT: health không có Fail
+
+[2026-11-25 00:52:40] $ scripts/vm.sh exec bash -c 
+d=$1; scheme=${2:-http}; path=${3:-/}
+port=80; [ "$scheme" = https ] && port=443
+f=$(mktemp)
+code=$(curl -sk -m 20 --resolve "$d:$port:127.0.0.1" -o "$f" -w "%{http_code}" "$scheme://$d$path"); rc=$?
+echo "$scheme://$d$path curl=$rc http=$code marker=$(grep -c tpan-suspended-page "$f") title=$(grep -o "<title>[^<]*</title>" "$f" | head -1)"
+rm -f "$f"
+ _ up.example.com
+http://up.example.com/ curl=0 http=200 marker=0 title=<title>up.example.com</title>
+[2026-11-25 00:52:40] (mã thoát 0)
+  => ĐẠT: up.example.com vẫn 200 sau harden
+
+==== Phần U3: 19 đạt, 0 không đạt
+
+
+######## [2026-11-25 00:52:40] PHẦN U4: tpan self-update --rollback (ghi nguyên output cho hướng dẫn)
+
+[2026-11-25 00:52:40] $ scripts/vm.sh exec systemctl show -p MainPID -p NRestarts tpan
+MainPID=14612
+NRestarts=0
+[2026-11-25 00:52:40] (mã thoát 0)
+
+[2026-11-25 00:52:40] $ scripts/vm.sh root tpan self-update --rollback --dry-run
+Từ chối: bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 2000, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. Hai đường còn lại: chép lại bản sao /var/lib/tpan/tpan.db có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này
+[2026-11-25 00:52:40] (mã thoát 1)
+  => ĐẠT: rollback --dry-run thoát 1, từ chối: bản trước không mở được tpan.db (câu của file cũ: DB ở bản 2000)
+
+[2026-11-25 00:52:40] $ scripts/vm.sh root tpan self-update --rollback --yes
+Từ chối: bản trước (/usr/local/bin/tpan.old) không mở được /var/lib/tpan/tpan.db hiện tại, thường vì bản đang chạy đã nâng cấu trúc DB. Quay về lúc này thì dịch vụ tpan khởi động lại liên tục, nên chưa đổi gì. Bản trước báo: tpan: mở DB /var/lib/tpan/tpan.db: migration DB /var/lib/tpan/tpan.db: DB ở bản 2000, tpan này chỉ biết tới bản 900: hãy dùng tpan mới hơn. Hai đường còn lại: chép lại bản sao /var/lib/tpan/tpan.db có từ trước khi nâng rồi mới quay về, hoặc ở lại bản này
+[2026-11-25 00:52:40] (mã thoát 1)
+(Output thật của lệnh rollback ở trên.)
+  => ĐẠT: rollback --yes thoát 1, từ chối như trên, chưa đổi gì
+
+[2026-11-25 00:52:40] $ scripts/vm.sh exec bash -c tpan version; ls -la /usr/local/bin
+tpan v0.2.2-110-gafc0bed (commit afc0bed, build 2026-11-24T17:51:18Z)
+total 51536
+drwxr-xr-x  2 root root     4096 Nov 25 00:52 .
+drwxr-xr-x 10 root root     4096 Oct 17 19:57 ..
+-rwxr-xr-x  1 root root 24772768 Nov 25 00:52 tpan
+-rwxr-xr-x  1 root root 20840608 Nov 25 00:51 tpan.old
+-rwxr-xr-x  1 root root  7142777 Nov 25 00:52 wp
+[2026-11-25 00:52:40] (mã thoát 0)
+  => ĐẠT: file chạy vẫn là v0.2.2-110-gafc0bed, tpan.old vẫn còn
+
+[2026-11-25 00:52:40] $ scripts/vm.sh exec systemctl show -p MainPID -p NRestarts tpan
+MainPID=14612
+NRestarts=0
+[2026-11-25 00:52:41] (mã thoát 0)
+  => ĐẠT: tpan.service không khởi động lại: MainPID và NRestarts như trước rollback
+
+[2026-11-25 00:52:41] $ scripts/vm.sh exec systemctl is-active tpan
+active
+[2026-11-25 00:52:41] (mã thoát 0)
+  => ĐẠT: tpan.service active
+
+[2026-11-25 00:52:41] $ curl -sS -m 5 --cacert <tmp>/cert.pem -o /dev/null -w %{http_code}\n https://<vm>:8443/api/v1/health
+200
+[2026-11-25 00:52:41] (mã thoát 0)
+  => ĐẠT: panel vẫn trả lời 200
+
+[2026-11-25 00:52:41] $ scripts/vm.sh root tpan site list
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+up.example.com                           active   8.3   không 2026-11-25 00:52 admin          -
+[2026-11-25 00:52:41] (mã thoát 0)
+  => ĐẠT: tpan site list của bản v0.2.2-110-gafc0bed chạy được, còn up.example.com
+
+==== Phần U4: 7 đạt, 0 không đạt
+
+
+######## [2026-11-25 00:52:41] PHẦN U5: về lại v0.2.2-110-gafc0bed bằng install.sh của gói v0.2.2-110-gafc0bed (file chạy có sẵn trong gói)
+
+[2026-11-25 00:52:41] $ scripts/vm.sh exec bash -c cd /home/ubuntu/rel/v0.2.2-110-gafc0bed && sudo ./install.sh
+
+==> Kiểm máy
+Ubuntu 24.04
+Kiến trúc: arm64
+
+==> Dùng file chạy /home/ubuntu/rel/v0.2.2-110-gafc0bed/tpan-linux-arm64
+
+==> Kiểm sha256
+sha256 khớp: tpan-linux-arm64
+
+==> Đặt /usr/local/bin/tpan
+/usr/local/bin/tpan đã đúng bản này, giữ nguyên
+tpan v0.2.2-110-gafc0bed (commit afc0bed, build 2026-11-24T17:51:18Z)
+
+==> Khởi tạo panel: tpan setup
+Bắt đầu job 99f9edd915a90985
+- Tạo thư mục /etc/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /etc/tpan/tls ...
+  đã đúng, bỏ qua
+- Ghi chứng chỉ tự ký của panel ...
+  đã đúng, bỏ qua
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Ghi file dịch vụ systemd của tpan ...
+  đã đúng, bỏ qua
+- Chạy và bật tpan.service khi khởi động ...
+  đã đúng, bỏ qua
+
+Job 99f9edd915a90985: thành công
+
+Mật khẩu quản trị đã có từ trước, giữ nguyên. Quên thì chạy: sudo tpan admin passwd
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    49:4C:ED:26:96:48:81:BA:65:44:BA:CF:1C:D0:E4:4B:04:70:56:B8:E5:64:64:B1:04:0A:88:56:47:D7:56:2F
+Mở: https://<IP của máy>:8443
+
+Xong. Bước tiếp:
+  sudo tpan stack install --web nginx    # hoặc apache
+  sudo tpan site add example.com --email admin@example.com
+  sudo tpan health
+[2026-11-25 00:52:41] (mã thoát 0)
+Mật khẩu quản trị panel trong output: 0 lần
+  => ĐẠT: install.sh v0.2.2-110-gafc0bed thoát 0
+  => ĐẠT: kiểm sha256 trong install.sh: khớp
+  => ĐẠT: install.sh không sinh mật khẩu quản trị mới (đã có)
+
+[2026-11-25 00:52:41] $ scripts/vm.sh exec tpan version
+tpan v0.2.2-110-gafc0bed (commit afc0bed, build 2026-11-24T17:51:18Z)
+[2026-11-25 00:52:41] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.2-110-gafc0bed
+
+[2026-11-25 00:52:41] $ scripts/vm.sh root bash -c p=$(systemctl show -p MainPID --value tpan); /proc/$p/exe version; systemctl is-active tpan
+tpan v0.2.2-110-gafc0bed (commit afc0bed, build 2026-11-24T17:51:18Z)
+active
+[2026-11-25 00:52:41] (mã thoát 0)
+  => ĐẠT: tpan.service active, chạy bản v0.2.2-110-gafc0bed
+
+[2026-11-25 00:52:41] $ curl -X POST <panel>/api/v1/login   (phiên: jar.adm)
+    thân gửi: {"name":"admin","password":"<bí mật, đã che>"}
+-> HTTP 204
+  => ĐẠT: đăng nhập admin bằng mật khẩu đặt ở U3: 204
+
+[2026-11-25 00:52:42] $ curl -X GET <panel>/api/v1/sites   (phiên: jar.adm)
+-> HTTP 200
+    thân nhận (tối đa 700 byte): [{"domain":"up.example.com","slug":"up_example_com_8f73fc","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T17:52:22.362864328Z","owner":"admin","htaccess":"an-toan","caged":false}]
+  => ĐẠT: GET /sites 200, còn up.example.com
+
+[2026-11-25 00:52:42] $ scripts/vm.sh root python3 -c import sqlite3; c = sqlite3.connect("file:/var/lib/tpan/tpan.db?mode=ro", uri=True); print("integrity:", c.execute("PRAGMA integrity_check").fetchone()[0]); print("migration:", [r[0] for r in c.execute("SELECT version FROM schema_migrations ORDER BY version")]); print("users:", c.execute("SELECT name, role, status FROM users").fetchall()); print("job self.*:", c.execute("SELECT kind, status FROM jobs WHERE kind LIKE ? ORDER BY started_at", ("self.%",)).fetchall())
+integrity: ok
+migration: [1, 2, 3, 400, 600, 700, 701, 800, 900, 1300, 1400, 1700, 1800, 2000]
+users: [('admin', 'admin', 'active')]
+job self.*: [('self.update', 'succeeded')]
+[2026-11-25 00:52:42] (mã thoát 0)
+  => ĐẠT: tpan.db nguyên vẹn sau khi bản cũ chạm vào
+
+[2026-11-25 00:52:42] $ scripts/vm.sh exec bash -c 
+d=$1; scheme=${2:-http}; path=${3:-/}
+port=80; [ "$scheme" = https ] && port=443
+f=$(mktemp)
+code=$(curl -sk -m 20 --resolve "$d:$port:127.0.0.1" -o "$f" -w "%{http_code}" "$scheme://$d$path"); rc=$?
+echo "$scheme://$d$path curl=$rc http=$code marker=$(grep -c tpan-suspended-page "$f") title=$(grep -o "<title>[^<]*</title>" "$f" | head -1)"
+rm -f "$f"
+ _ up.example.com
+http://up.example.com/ curl=0 http=200 marker=0 title=<title>up.example.com</title>
+[2026-11-25 00:52:42] (mã thoát 0)
+  => ĐẠT: up.example.com 200
+
+[2026-11-25 00:52:42] $ scripts/vm.sh root tpan health  --json
+nhóm: (máy, stack), up.example.com, tpan
+số phép kiểm theo trạng thái: pass=46 warn=4
+--- warn dns.a:up.example.com (chặng dns): up.example.com chưa có bản ghi A
+--- warn tls.cert:up.example.com (chặng tls): Chưa có chứng chỉ cho up.example.com
+--- warn tpan.backup:db (chặng tpan): chưa có bản sao lưu tpan.db nào
+--- warn tpan.2fa:admins (chặng tpan): Admin chưa bật đăng nhập hai bước: admin
+sự cố vừa mở: 
+sự cố vừa đóng: 
+[2026-11-25 00:52:44] (mã thoát 0)
+  => ĐẠT: health không có Fail
+
+[2026-11-25 00:52:44] $ scripts/vm.sh root systemctl stop tpan-e2e-rel
+[2026-11-25 00:52:44] (mã thoát 0)
+
+==== Phần U5: 10 đạt, 0 không đạt
+
+
+######## [2026-11-25 00:52:44] bí mật, IP, tên user Mac, cookie có lọt vào chính file log không
+Số bí mật đã gặp: 8; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu hay cookie nào
+  => ĐẠT: mọi trường password trong log đều đã che
+  => ĐẠT: log không chứa IP máy ảo (IPv4)
+  => ĐẠT: log không chứa mạng Multipass
+  => ĐẠT: log không chứa IPv6 của máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+
+
+######## [2026-11-25 00:52:44] TỔNG KẾT: 69 khẳng định đạt, 0 khẳng định không đạt
