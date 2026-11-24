@@ -105,7 +105,7 @@ const vi = {
   cancel: "Huỷ",
 
   loading: "Đang tải…",
-  errorNetwork: "Không tới được máy chủ tpan. Kiểm tra kết nối rồi tải lại trang.",
+  errorNetwork: "Không tới được máy chủ TPAN. Kiểm tra kết nối rồi tải lại trang.",
   errorHttp: (code: number) => `Máy chủ trả lỗi HTTP ${code}. Tải lại trang; vẫn lỗi thì xem log của tpan.`,
   retry: "Tải lại",
 

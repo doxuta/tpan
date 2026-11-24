@@ -121,7 +121,7 @@ const vi = {
   none: "Không có",
   sharedIncident: "Cả máy",
   // Một dòng phụ dưới tiêu đề thẻ sự cố; nơi bị lỗi đã nằm ở tiêu đề.
-  incidentMeta: (stage: string, title: string, since: string) => `hỏng ở ${stage} ·${title} · từ ${since}`,
+  incidentMeta: (stage: string, title: string, since: string) => `hỏng ở ${stage} · ${title} · từ ${since}`,
   openIncident: "Mở sự cố",
   openIncidentFor: (where: string) => `Mở sự cố ${where}`,
   allIncidents: "Xem mọi sự cố",

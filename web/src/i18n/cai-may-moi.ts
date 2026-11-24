@@ -13,7 +13,7 @@ const vi = {
   webNginx: "nginx",
   webApache: "apache",
   privateLabel: "Panel chỉ mở qua đường hầm SSH",
-  privateHint: "Panel của máy mới chỉ nghe 127.0.0.1, ngoài mạng không mở được. Từ máy của bạn, vào bằng:",
+  privateHint: "Panel của máy mới chỉ nhận kết nối từ 127.0.0.1, ngoài mạng không mở được. Từ máy của bạn, vào bằng:",
   privateCmd: "ssh -L 8443:127.0.0.1:8443 <máy mới>",
   privateOff: "Không chọn thì panel mở ở cổng 8443 cho mọi địa chỉ.",
 
