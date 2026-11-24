@@ -185,3 +185,87 @@ func TestAliasAPIChayThat(t *testing.T) {
 		t.Fatalf("job = %+v", j)
 	}
 }
+
+// TestRedirectInvalidField: nguồn, đích, mã sai bị chặn ở biên HTTP (trước
+// core) với 400 kèm "field", cả xem trước lẫn chạy thật; lời từ chối không in
+// lại chuỗi lạ (S11: / và /index.php là redirect_reserved).
+func TestRedirectInvalidField(t *testing.T) {
+	e := newM14Env(t)
+	path := "/api/v1/sites/" + m14Shop + "/redirects"
+	for _, c := range []struct{ name, body, code, field string }{
+		{"nguồn gốc", `{"source":"/","target":"/new"}`, "redirect_reserved", "source"},
+		{"nguồn index.php", `{"source":"/index.php","target":"/new"}`, "redirect_reserved", "source"},
+		{"nguồn rỗng", `{"source":"","target":"/new"}`, "redirect_invalid", "source"},
+		{"nguồn không bắt đầu bằng /", `{"source":"old","target":"/new"}`, "redirect_invalid", "source"},
+		{"nguồn có dấu chấm phẩy", `{"source":"/a;id","target":"/new"}`, "redirect_invalid", "source"},
+		{"nguồn có $()", `{"source":"/$(id)","target":"/new"}`, "redirect_invalid", "source"},
+		{"nguồn đoạn ẩn", `{"source":"/.well-known/x","target":"/new"}`, "redirect_invalid", "source"},
+		{"nguồn có query", `{"source":"/a?b=1","target":"/new"}`, "redirect_invalid", "source"},
+		{"nguồn dài 300", `{"source":"/` + strings.Repeat("a", 300) + `","target":"/new"}`, "redirect_invalid", "source"},
+		{"đích javascript", `{"source":"/old","target":"javascript:alert(1)"}`, "redirect_invalid", "target"},
+		{"đích có khoảng trắng", `{"source":"/old","target":"/a b"}`, "redirect_invalid", "target"},
+		{"đích xuống dòng", `{"source":"/old","target":"/a\nreturn 200"}`, "redirect_invalid", "target"},
+		{"đích rỗng", `{"source":"/old","target":""}`, "redirect_invalid", "target"},
+		{"mã 303", `{"source":"/old","target":"/new","code":303}`, "redirect_invalid", "code"},
+		{"mã âm", `{"source":"/old","target":"/new","code":-301}`, "redirect_invalid", "code"},
+		// Nguồn hỏng đứng trước đích hỏng.
+		{"cả hai hỏng", `{"source":"x","target":"y"}`, "redirect_invalid", "source"},
+	} {
+		for _, q := range []string{"?dry_run=1", ""} {
+			rec := e.call("POST", path+q, c.body, m14UserA)
+			got := apiDecode[ErrorBody](t, rec, 400).Error
+			if got.Code != c.code || got.Field != c.field {
+				t.Errorf("%s%s: mã %q field %q, muốn %q %q", c.name, q, got.Code, got.Field, c.code, c.field)
+			}
+			if b := rec.Body.String(); strings.Contains(b, "$(id)") || strings.Contains(b, "alert(1)") || strings.Contains(b, "return 200") {
+				t.Errorf("%s%s: lời từ chối in lại chuỗi lạ: %s", c.name, q, b)
+			}
+		}
+	}
+	// Id không phải số dương là "không có luật này".
+	for _, id := range []string{"abc", "0", "-1", "%24%28id%29", "99999999999999999999"} {
+		rec := e.call("DELETE", path+"/"+id, "", m14UserA)
+		if code := apiErrCode(t, rec, 404); code != "redirect_not_found" || strings.Contains(rec.Body.String(), "$(id)") {
+			t.Errorf("DELETE %s: %s %s", id, code, rec.Body)
+		}
+	}
+}
+
+// TestRedirectErrorStatus: bảng mã lỗi redirect_* của 3.7 (core trả
+// RefusedError; apiErrorStatus chọn mã HTTP).
+func TestRedirectErrorStatus(t *testing.T) {
+	for code, want := range map[string]int{
+		"redirect_invalid": 400, "redirect_reserved": 400, "redirect_loop": 400, "redirect_query_conflict": 400,
+		"redirect_not_found": 404, "redirect_exists": 409, "redirect_limit": 409,
+	} {
+		st, body := apiErrorStatus(&core.RefusedError{Code: code, Message: i18n.T("x", "x")})
+		if st != want || body.Error.Code != code {
+			t.Errorf("%s: %d, muốn %d", code, st, want)
+		}
+	}
+}
+
+// --- Hai test dưới cần thân core của thợ đợt 2 (PrepareRedirectAdd,
+// RedirectList): đỏ cho tới khi ghép.
+
+// TestRedirectAPIDryRun: xem trước trả 200 và bản xem trước, không job, không
+// nhật ký, không thêm luật vào site.
+func TestRedirectAPIDryRun(t *testing.T) {
+	e := newM14Env(t)
+	base := "/api/v1/sites/" + m14Blog + "/redirects"
+	pv := apiDecode[engine.Preview](t, e.call("POST", base+"?dry_run=1",
+		`{"source":"/old","target":"/new","code":302,"keep_query":true}`, account.AdminName), 200)
+	if pv.Kind != "site.redirect.add" || len(pv.Steps) == 0 {
+		t.Errorf("Preview = %+v", pv)
+	}
+	if a := e.audit(t, "site.redirect.add"); len(a) != 0 {
+		t.Errorf("xem trước mà có nhật ký: %+v", a)
+	}
+	if got := apiDecode[[]RedirectView](t, e.call("GET", base, "", account.AdminName), 200); len(got) != 0 {
+		t.Errorf("xem trước đã thêm luật: %+v", got)
+	}
+	// Gỡ luật không có: 404 redirect_not_found (kể cả xem trước).
+	if code := apiErrCode(t, e.call("DELETE", base+"/424242?dry_run=1", "", account.AdminName), 404); code != "redirect_not_found" {
+		t.Errorf("gỡ luật không có: %s", code)
+	}
+}

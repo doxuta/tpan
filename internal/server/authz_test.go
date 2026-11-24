@@ -299,6 +299,9 @@ func TestAuthzTable(t *testing.T) {
 		"POST /api/v1/sites/{domain}/names":             ownerSite,
 		"POST /api/v1/sites/{domain}/names/{name}/mode": ownerSite,
 		"DELETE /api/v1/sites/{domain}/names/{name}":    ownerSite,
+		"GET /api/v1/sites/{domain}/redirects":          ownerSite,
+		"POST /api/v1/sites/{domain}/redirects":         ownerSite,
+		"DELETE /api/v1/sites/{domain}/redirects/{id}":  ownerSite,
 		"GET /api/v1/domains":                           anyone,
 	} {
 		r, ok := rules[p]

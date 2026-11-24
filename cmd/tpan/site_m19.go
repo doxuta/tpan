@@ -1,13 +1,16 @@
 package main
 
-// tpan site alias add|set|rm|list (M19, docs/thay-doi/M19-thiet-ke.md mục
-// 3.8): tên phụ của site. Mỗi thao tác đổi là một Plan có xem trước như các
+// tpan site alias add|set|rm|list và tpan site redirect add|rm|list (M19,
+// docs/thay-doi/M19-thiet-ke.md mục 3.8): tên phụ và luật chuyển hướng của
+// site. Mỗi thao tác đổi là một Plan có xem trước như các
 // lệnh site khác (--dry-run, --yes, --json). CLI chạy bằng root nên là admin
 // (core.Sites.NotAdmin để zero).
 
 import (
 	"context"
 	"errors"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -127,11 +130,9 @@ func siteAliasRmCmd(e *env) *cobra.Command {
 	return c
 }
 
-// runAliasJob là runSiteJob cho NamesOp: NamesOp không lộ engine.Plan, nên bộ
-// in tiến độ dựng từ bản xem trước (luôn tính, kể cả khi --yes).
+// runAliasJob đọc <domain> <name> rồi chạy thao tác tên phụ.
 func runAliasJob(cmd *cobra.Command, e *env, f *planRun, args []string, action string,
 	prepare func(context.Context, *core.Sites, validate.Domain, validate.Domain) (*core.NamesOp, error)) error {
-	ctx := cmd.Context()
 	d, err := parseDomainArg(args[0])
 	if err != nil {
 		return fail(e, f.asJSON, err)
@@ -140,6 +141,17 @@ func runAliasJob(cmd *cobra.Command, e *env, f *planRun, args []string, action s
 	if err != nil {
 		return fail(e, f.asJSON, err)
 	}
+	return runNamesOp(cmd, e, f, d, action, func(ctx context.Context, s *core.Sites) (*core.NamesOp, error) {
+		return prepare(ctx, s, d, n)
+	})
+}
+
+// runNamesOp là runSiteJob cho NamesOp (tên phụ và luật chuyển hướng): NamesOp
+// không lộ engine.Plan, nên bộ in tiến độ dựng từ bản xem trước (luôn tính, kể
+// cả khi --yes). Đầu vào đã kiểm xong trước khi gọi.
+func runNamesOp(cmd *cobra.Command, e *env, f *planRun, d validate.Domain, action string,
+	prepare func(context.Context, *core.Sites) (*core.NamesOp, error)) error {
+	ctx := cmd.Context()
 	if !f.dryRun {
 		if err := requireRoot(e, cmd); err != nil {
 			return fail(e, f.asJSON, err)
@@ -151,7 +163,7 @@ func runAliasJob(cmd *cobra.Command, e *env, f *planRun, args []string, action s
 	}
 	defer done()
 
-	op, err := prepare(ctx, s, d, n)
+	op, err := prepare(ctx, s)
 	if err != nil {
 		return fail(e, f.asJSON, nameRefusalCLI(err))
 	}
@@ -241,5 +253,171 @@ func printNameList(e *env, list []core.NameView) {
 			cert = e.tr("có", "yes")
 		}
 		printf(w, "%-40s %-8s %-9s %-8s %-8s %s\n", v.Name, v.Kind, v.Mode, v.State, v.DNS, cert)
+	}
+}
+
+func siteRedirectCmd(e *env) *cobra.Command {
+	c := &cobra.Command{
+		Use:   "redirect",
+		Short: "Luật chuyển hướng theo đường dẫn của site: thêm, gỡ, liệt kê",
+	}
+	c.AddCommand(siteRedirectAddCmd(e), siteRedirectRmCmd(e), siteRedirectListCmd(e))
+	return c
+}
+
+// parseRedirectArgs kiểm nguồn, đích, mã trước khi chạm máy hay DB. Core kiểm
+// lại (vòng lặp, trùng, trần 50: những luật cần biết site).
+func parseRedirectArgs(source, target string, code int) (core.RedirectInput, error) {
+	src, err := validate.ParseRedirectSource(source)
+	if err != nil {
+		return core.RedirectInput{}, asRefusal(err)
+	}
+	tgt, err := validate.ParseRedirectTarget(target)
+	if err != nil {
+		return core.RedirectInput{}, asRefusal(err)
+	}
+	if code != 301 && code != 302 {
+		return core.RedirectInput{}, &core.RefusedError{Code: validate.CodeRedirectInvalid, Message: i18n.T(
+			"--code phải là 301 hoặc 302", "--code must be 301 or 302")}
+	}
+	return core.RedirectInput{Source: src.String(), Target: tgt.String(), Code: code}, nil
+}
+
+func siteRedirectAddCmd(e *env) *cobra.Command {
+	var (
+		f         planRun
+		code      int
+		keepQuery bool
+	)
+	c := &cobra.Command{
+		Use:   "add <domain> <source> <target> [--code 301|302] [--keep-query]",
+		Short: "Thêm luật chuyển hướng: <source> (đường dẫn, khớp đúng) sang <target> (đường dẫn hay URL http/https)",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			d, err := parseDomainArg(args[0])
+			if err != nil {
+				return fail(e, f.asJSON, err)
+			}
+			in, err := parseRedirectArgs(args[1], args[2], code)
+			if err != nil {
+				return fail(e, f.asJSON, err)
+			}
+			in.KeepQuery = keepQuery
+			return runNamesOp(cmd, e, &f, d, "site.redirect.add",
+				func(ctx context.Context, s *core.Sites) (*core.NamesOp, error) {
+					return s.PrepareRedirectAdd(ctx, d, in)
+				})
+		},
+	}
+	c.Flags().IntVar(&code, "code", 301, "mã chuyển hướng: 301 (vĩnh viễn) hoặc 302 (tạm)")
+	c.Flags().BoolVar(&keepQuery, "keep-query", false, "giữ phần ?query của request khi chuyển (đích không được có query)")
+	f.flags(c)
+	return c
+}
+
+func siteRedirectRmCmd(e *env) *cobra.Command {
+	var f planRun
+	c := &cobra.Command{
+		Use:   "rm <domain> <id>",
+		Short: "Gỡ một luật chuyển hướng theo số id (xem bằng: tpan site redirect list)",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			d, err := parseDomainArg(args[0])
+			if err != nil {
+				return fail(e, f.asJSON, err)
+			}
+			id, err := strconv.ParseInt(args[1], 10, 64)
+			if err != nil || id <= 0 {
+				return fail(e, f.asJSON, &core.RefusedError{Code: "redirect_not_found", Message: i18n.T(
+					"id luật phải là số dương (xem bằng: tpan site redirect list <domain>)",
+					"the rule id must be a positive number (see: tpan site redirect list <domain>)")})
+			}
+			return runNamesOp(cmd, e, &f, d, "site.redirect.rm",
+				func(ctx context.Context, s *core.Sites) (*core.NamesOp, error) {
+					return s.PrepareRedirectRemove(ctx, d, id)
+				})
+		},
+	}
+	f.flags(c)
+	return c
+}
+
+// redirectRow là một dòng của `redirect list --json`: cùng trường với
+// GET /api/v1/sites/{domain}/redirects.
+type redirectRow struct {
+	ID        int64  `json:"id"`
+	Source    string `json:"source"`
+	Target    string `json:"target"`
+	Code      int    `json:"code"`
+	KeepQuery bool   `json:"keep_query"`
+	State     string `json:"state"`
+}
+
+func siteRedirectListCmd(e *env) *cobra.Command {
+	var asJSON bool
+	c := &cobra.Command{
+		Use:   "list <domain>",
+		Short: "Liệt kê luật chuyển hướng của site",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			d, err := parseDomainArg(args[0])
+			if err != nil {
+				return fail(e, asJSON, err)
+			}
+			if err := requireRoot(e, cmd); err != nil {
+				return fail(e, asJSON, err)
+			}
+			s, done, err := openSites(cmd.Context(), e, false)
+			if err != nil {
+				return err
+			}
+			defer done()
+			rules, err := s.RedirectList(cmd.Context(), d)
+			if err != nil {
+				return fail(e, asJSON, nameRefusalCLI(err))
+			}
+			rows := make([]redirectRow, 0, len(rules))
+			for _, x := range rules {
+				rows = append(rows, redirectRow{ID: x.ID, Source: x.Source.String(), Target: x.Target.String(),
+					Code: x.Code, KeepQuery: x.KeepQuery, State: "active"})
+			}
+			if asJSON {
+				return writeJSON(e.stdout, rows)
+			}
+			printRedirectList(e, rows)
+			return nil
+		},
+	}
+	c.Flags().BoolVar(&asJSON, "json", false, "in kết quả dạng JSON")
+	return c
+}
+
+func printRedirectList(e *env, rows []redirectRow) {
+	w := e.stdout
+	printf(w, "%-6s %-32s %-44s %-5s %s\n", "ID", e.tr("NGUỒN", "SOURCE"), e.tr("ĐÍCH", "TARGET"),
+		e.tr("MÃ", "CODE"), e.tr("GIỮ QUERY", "KEEP QUERY"))
+	for _, r := range rows {
+		keep := e.tr("không", "no")
+		if r.KeepQuery {
+			keep = e.tr("có", "yes")
+		}
+		printf(w, "%-6d %-32s %-44s %-5d %s\n", r.ID, r.Source, r.Target, r.Code, keep)
+	}
+}
+
+// warnExportOmitted (S21): file export chưa mang tên phụ và luật chuyển hướng,
+// nên báo ra stderr (stdout là file) khi có site mang chúng. Không có thì im.
+func warnExportOmitted(e *env, o core.ExportOmitted) {
+	if len(o.NameSites) > 0 {
+		list := strings.Join(o.NameSites, ", ")
+		printf(e.stderr, "%s\n", e.tr(
+			"tpan: cảnh báo: file export chưa mang tên phụ. Site có tên phụ: "+list+". Thêm lại bằng: tpan site alias add",
+			"tpan: warning: the export file does not carry secondary names. Sites with secondary names: "+list+". Add them back with: tpan site alias add"))
+	}
+	if len(o.RuleSites) > 0 {
+		list := strings.Join(o.RuleSites, ", ")
+		printf(e.stderr, "%s\n", e.tr(
+			"tpan: cảnh báo: file export chưa mang luật chuyển hướng. Site có luật: "+list+". Thêm lại bằng: tpan site redirect add",
+			"tpan: warning: the export file does not carry redirect rules. Sites with rules: "+list+". Add them back with: tpan site redirect add"))
 	}
 }

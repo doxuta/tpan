@@ -30,7 +30,21 @@ const codeSitesFileInvalid = "sites_file_invalid"
 type SitesFile struct {
 	Defaults SitesDefaults `yaml:"defaults,omitempty" json:"defaults"`
 	Sites    []SitesEntry  `yaml:"sites" json:"sites"`
+	// Omitted (M19, S21): thứ có trên máy mà file export chưa mang. Chỉ Export
+	// điền; không ra YAML hay JSON, người gọi dùng nó để cảnh báo.
+	Omitted ExportOmitted `yaml:"-" json:"-"`
 }
+
+// ExportOmitted liệt kê site mang tên phụ hay luật chuyển hướng: sites.yaml
+// chưa có chỗ cho chúng, nên `tpan apply -f` trên máy khác không tạo lại. Thêm
+// lại bằng `tpan site alias add` và `tpan site redirect add`.
+type ExportOmitted struct {
+	NameSites []string // site có tên phụ active
+	RuleSites []string // site có luật chuyển hướng active
+}
+
+// Any cho biết có gì bị bỏ lại.
+func (o ExportOmitted) Any() bool { return len(o.NameSites)+len(o.RuleSites) > 0 }
 
 // SitesDefaults áp cho mọi dòng không tự ghi trường đó.
 type SitesDefaults struct {
@@ -134,6 +148,9 @@ const sitesFileHeader = `# File này do "tpan export" sinh từ trạng thái hi
 # Chỉ có domain, ssl và owner (khi chủ không phải admin): tpan không lưu
 # title và admin_email của từng site, nên hai trường đó không có ở đây. Muốn tạo site mới từ file này thì thêm
 # admin_email (ở defaults hoặc từng dòng) và title nếu cần.
+# Tên phụ (www., tên miền khác) và luật chuyển hướng của site cũng không có
+# trong file này: sau khi áp file, thêm lại bằng "tpan site alias add" và
+# "tpan site redirect add".
 `
 
 // Marshal ghi file ra YAML (cho `tpan export`), có dòng chú thích đầu nói file
@@ -299,8 +316,16 @@ func (s *Sites) ExportScope(ctx context.Context, scope string) (SitesFile, error
 			e.SSL = &t
 		}
 		f.Sites = append(f.Sites, e)
+		if len(st.Names.Serve)+len(st.Names.Redirect) > 0 {
+			f.Omitted.NameSites = append(f.Omitted.NameSites, e.Domain)
+		}
+		if len(st.Names.Rules) > 0 {
+			f.Omitted.RuleSites = append(f.Omitted.RuleSites, e.Domain)
+		}
 	}
 	// Store hứa sắp theo domain nhưng export phải ổn định dù store đổi cách sắp.
 	slices.SortFunc(f.Sites, func(a, b SitesEntry) int { return strings.Compare(a.Domain, b.Domain) })
+	slices.Sort(f.Omitted.NameSites)
+	slices.Sort(f.Omitted.RuleSites)
 	return f, nil
 }

@@ -30,7 +30,7 @@ func siteCmd(e *env) *cobra.Command {
 			func(ctx context.Context, s *core.Sites, d validate.Domain) (*core.Planned, error) {
 				return s.PrepareUnsuspend(ctx, d)
 			}),
-		siteSetCmd(e), siteAliasCmd(e))
+		siteSetCmd(e), siteAliasCmd(e), siteRedirectCmd(e))
 	return c
 }
 

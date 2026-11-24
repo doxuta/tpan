@@ -153,6 +153,9 @@ type ErrorDetail struct {
 	Message i18n.Text `json:"message"`
 	// Checks: các điều kiện đầu không đạt (từ core.RefusedError).
 	Checks []checks.Result `json:"checks,omitempty"`
+	// Field (M19): trường đầu vào hỏng, khi lỗi là của một trường của thân
+	// (luật chuyển hướng: "source" | "target" | "code").
+	Field string `json:"field,omitempty"`
 }
 
 // ---- auth ----

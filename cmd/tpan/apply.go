@@ -414,6 +414,7 @@ func runExport(ctx context.Context, e *env, asJSON bool) error {
 	if err != nil {
 		return err
 	}
+	warnExportOmitted(e, sf.Omitted) // M19 S21: tên phụ và luật chuyển hướng chưa có trong file
 	if asJSON {
 		return writeJSON(e.stdout, sf)
 	}

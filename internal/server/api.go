@@ -101,7 +101,12 @@ func (s *Server) apiStack() *core.Stack {
 func apiErrorStatus(err error) (status int, body ErrorBody) {
 	var ve *validate.Error
 	var re *core.RefusedError
+	var rde *validate.RedirectError
 	switch {
+	case errors.As(err, &rde):
+		// M19: lỗi của luật chuyển hướng kèm trường hỏng ("field"). Đứng trước
+		// ve vì RedirectError unwrap ra *validate.Error.
+		return http.StatusBadRequest, ErrorBody{Error: ErrorDetail{Code: rde.Err.Code, Message: rde.Err.Message, Field: rde.Field}}
 	case errors.As(err, &ve):
 		return http.StatusBadRequest, ErrorBody{Error: ErrorDetail{Code: ve.Code, Message: ve.Message}}
 	case errors.As(err, &re):
@@ -125,7 +130,9 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			// dành cho phép thử tấn công.
 			core.CodePackageLimitInvalid, core.CodePackageLimitsNeedCage, core.CodeDomainReserved,
 			// M19: kiểu tên phụ sai, tên phụ trùng tên chính, tên là public suffix.
-			"name_mode_invalid", "alias_primary", "domain_public_suffix":
+			"name_mode_invalid", "alias_primary", "domain_public_suffix",
+			// M19: luật chuyển hướng (core từ chối khi cần biết site).
+			"redirect_invalid", "redirect_reserved", "redirect_loop", "redirect_query_conflict":
 			status = http.StatusBadRequest
 		case "site_not_found",
 			// M9: id backup không có (hoặc không thuộc site đó) là "không có".
@@ -136,7 +143,7 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			// M17: số liệu của site ngoài lồng (không có cgroup riêng để đọc).
 			core.CodeUsageNotCaged,
 			// M19: tên phụ không có trên site.
-			"alias_not_found":
+			"alias_not_found", "redirect_not_found", core.CodeNameUnknown:
 			status = http.StatusNotFound
 		}
 		return status, ErrorBody{Error: ErrorDetail{Code: re.Code, Message: re.Message, Checks: re.Checks}}

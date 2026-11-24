@@ -249,6 +249,9 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/sites/{domain}/names", rule: ownerSite, h: s.handleAliasAdd},
 		{pattern: "POST /api/v1/sites/{domain}/names/{name}/mode", rule: ownerSite, h: s.handleAliasMode},
 		{pattern: "DELETE /api/v1/sites/{domain}/names/{name}", rule: ownerSite, h: s.handleAliasRemove},
+		{pattern: "GET /api/v1/sites/{domain}/redirects", rule: ownerSite, h: s.handleRedirectList},
+		{pattern: "POST /api/v1/sites/{domain}/redirects", rule: ownerSite, h: s.handleRedirectAdd},
+		{pattern: "DELETE /api/v1/sites/{domain}/redirects/{id}", rule: ownerSite, h: s.handleRedirectRemove},
 		{pattern: "GET /api/v1/domains", rule: anyone, h: s.handleDomains},
 
 		// Còn lại: đường dẫn API lạ là 404 JSON; mọi thứ khác là giao diện web

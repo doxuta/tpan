@@ -1,8 +1,7 @@
 package server
 
 // API của M19 (docs/thay-doi/M19-thiet-ke.md mục 3.7; kiểu ở types_m19.go,
-// luật ở routes.go): tên phụ của site và màn "Tên miền". Luật chuyển hướng là
-// đợt 2.
+// luật ở routes.go): tên phụ của site, luật chuyển hướng và màn "Tên miền".
 //
 // Mọi POST/DELETE đi qua planJobKick như các Plan khác (?dry_run=1 trả bản
 // xem trước, không thì 202 kèm job). core.Sites dựng cho M19 luôn mang
@@ -14,6 +13,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
@@ -237,6 +237,92 @@ func (s *Server) handleAliasRemove(w http.ResponseWriter, r *http.Request) {
 	}
 	s.namesJob(w, r, "site.alias.rm", d, func(ctx context.Context, ss *core.Sites) (*core.NamesOp, error) {
 		return ss.PrepareAliasRemove(ctx, d, n)
+	})
+}
+
+// fieldRedirectCode: tên trường "code" trong lỗi của luật chuyển hướng
+// (validate chỉ khai source và target, vì chỉ hai trường đó là chuỗi).
+const fieldRedirectCode = "code"
+
+// redirectInput kiểm thân POST .../redirects ở biên HTTP: nguồn, đích, mã (rỗng
+// là 301). Lỗi là *validate.RedirectError nên apiFail trả 400 kèm "field".
+// Core kiểm lại (luật cần biết site: vòng lặp, trùng, trần 50).
+func redirectInput(b RedirectAdd) (core.RedirectInput, error) {
+	src, err := validate.ParseRedirectSource(b.Source)
+	if err != nil {
+		return core.RedirectInput{}, err
+	}
+	tgt, err := validate.ParseRedirectTarget(b.Target)
+	if err != nil {
+		return core.RedirectInput{}, err
+	}
+	code := b.Code
+	if code == 0 {
+		code = 301
+	}
+	if code != 301 && code != 302 {
+		return core.RedirectInput{}, &validate.RedirectError{Field: fieldRedirectCode, Err: &validate.Error{
+			Code: validate.CodeRedirectInvalid,
+			Message: i18n.T("mã chuyển hướng phải là 301 hoặc 302",
+				"the redirect code must be 301 or 302")}}
+	}
+	return core.RedirectInput{Source: src.String(), Target: tgt.String(), Code: code, KeepQuery: b.KeepQuery}, nil
+}
+
+// handleRedirectList: GET /sites/{domain}/redirects.
+func (s *Server) handleRedirectList(w http.ResponseWriter, r *http.Request) {
+	d, ok := pathSiteDomain(w, r)
+	if !ok {
+		return
+	}
+	rules, err := s.m19Sites(r).RedirectList(r.Context(), d)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	out := make([]RedirectView, 0, len(rules))
+	for _, x := range rules {
+		out = append(out, RedirectView{ID: x.ID, Source: x.Source.String(), Target: x.Target.String(),
+			Code: x.Code, KeepQuery: x.KeepQuery, State: "active"})
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// handleRedirectAdd: POST /sites/{domain}/redirects.
+func (s *Server) handleRedirectAdd(w http.ResponseWriter, r *http.Request) {
+	d, ok := pathSiteDomain(w, r)
+	if !ok {
+		return
+	}
+	var body RedirectAdd
+	if !apiReadJSON(w, r, &body) {
+		return
+	}
+	in, err := redirectInput(body)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	s.namesJob(w, r, "site.redirect.add", d, func(ctx context.Context, ss *core.Sites) (*core.NamesOp, error) {
+		return ss.PrepareRedirectAdd(ctx, d, in)
+	})
+}
+
+// handleRedirectRemove: DELETE /sites/{domain}/redirects/{id}. id không phải số
+// dương là "không có luật này", không in lại chuỗi lạ.
+func (s *Server) handleRedirectRemove(w http.ResponseWriter, r *http.Request) {
+	d, ok := pathSiteDomain(w, r)
+	if !ok {
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		writeError(w, http.StatusNotFound, "redirect_not_found", i18n.T(
+			"Site không có luật chuyển hướng này.", "The site has no such redirect rule."))
+		return
+	}
+	s.namesJob(w, r, "site.redirect.rm", d, func(ctx context.Context, ss *core.Sites) (*core.NamesOp, error) {
+		return ss.PrepareRedirectRemove(ctx, d, id)
 	})
 }
 
