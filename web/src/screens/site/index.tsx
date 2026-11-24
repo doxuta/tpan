@@ -6,6 +6,8 @@
 //                  Tổng quan (đường đi request, request một giờ qua, sự cố của site),
 //                  Phép kiểm (theo chặng; phép cô lập gộp một khối), Log, PHP, Backup,
 //                  Cài đặt site (.htaccess, tạm khoá, tên và đường dẫn, thùng rác).
+//                  M19: thêm hai tab Tên miền (tên phụ) và Chuyển hướng (luật theo đường dẫn),
+//                  chỉ hiện khi site có web server như tab Log và PHP.
 //                  Đưa site vào thùng rác đi qua bản xem trước (M6: DELETE không còn xoá
 //                  hẳn, xoá hẳn ở màn Thùng rác). M14: "Request tới site này đi đường
 //                  nào" (RouteExplain) và chế độ .htaccess khi web server là Apache.
@@ -51,7 +53,9 @@ import { formatDate, formatTime } from "./format";
 import { HtaccessBlock } from "./HtaccessBlock";
 import { groupIsolation, touchesSite, type IsolationGroup } from "./isolation";
 import { LiveLog } from "./LiveLog";
+import { Names } from "./Names";
 import { PhpBlock } from "./PhpBlock";
+import { Redirects } from "./Redirects";
 import { RouteExplain } from "./RouteExplain";
 import { Legend, RouteMap, stageGroupId } from "./RouteMap";
 import { checksOfStage, routeStages, stageOrder, worstMark } from "./route";
@@ -265,7 +269,7 @@ export function SiteDetail() {
   return <SiteView key={domain} domain={domain} info={q.data} updatedAt={q.dataUpdatedAt} />;
 }
 
-type TabId = "tong-quan" | "phep-kiem" | "log" | "php" | "backup" | "cai-dat";
+type TabId = "tong-quan" | "phep-kiem" | "log" | "php" | "ten-mien" | "chuyen-huong" | "backup" | "cai-dat";
 
 /** Nhãn "tạm khoá" đặt thẳng trên nền trang (meta của ScreenHeader): cùng ruột với SuspendTag nhưng nền Tag là --surface. */
 function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo; updatedAt: number }) {
@@ -290,7 +294,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
 
   // ---- tab: nằm trong ?tab=, giá trị lạ hay tab đang ẩn thì coi như Tổng quan ----
   const [params, setParams] = useSearchParams();
-  const visible: TabId[] = hasLogs ? ["tong-quan", "phep-kiem", "log", "php", "backup", "cai-dat"] : ["tong-quan", "phep-kiem", "backup", "cai-dat"];
+  const visible: TabId[] = hasLogs ? ["tong-quan", "phep-kiem", "log", "php", "ten-mien", "chuyen-huong", "backup", "cai-dat"] : ["tong-quan", "phep-kiem", "backup", "cai-dat"];
   const raw = params.get("tab");
   const tab: TabId = visible.find((v) => v === raw) ?? "tong-quan";
   const setTab = (v: TabId) =>
@@ -502,6 +506,19 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
         {hasLogs && (
           <TabPanel value="php">
             <PhpBlock domain={domain} version={info.site.php_version} socket={info.socket} blocked={phpBlocked} />
+          </TabPanel>
+        )}
+
+        {/* M19: tên phụ và luật chuyển hướng cần vhost của site, nên cùng điều kiện hiện với tab Log và PHP. */}
+        {hasLogs && (
+          <TabPanel value="ten-mien">
+            <Names domain={domain} suspended={siteSuspended} />
+          </TabPanel>
+        )}
+
+        {hasLogs && (
+          <TabPanel value="chuyen-huong">
+            <Redirects domain={domain} suspended={siteSuspended} />
           </TabPanel>
         )}
 
