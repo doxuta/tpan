@@ -181,14 +181,20 @@ func (s *Sites) cageStateCheck(ctx context.Context, st site.Site) (checks.Check,
 // ở mọi bản PHP đang cài, phpVers), web.docroot_guard (S5: Plan không ghi vhost
 // thì không làm hỏng nó vì vhost cũ), cả hai chỉ cho site không tạm khoá (site
 // tạm khoá không có pool và vhost của nó không trỏ vào public); db.user_limit
-// cho mọi site (user khoá vẫn có trần).
+// khi cả site lẫn DB của nó không tạm khoá.
 func siteHealthChecks(st site.Site, cfg StackConfig, others []site.Site, lim *account.Limits, phpVers []string) []checks.Check {
 	cs := siteStateChecks(st, cfg, others, lim, false)
 	l := st.Layout()
 	if st.Suspended == account.NotSuspended {
 		cs = append(cs, checks.PHPPool(l, phpVers), checks.DocrootGuard(string(cfg.Web), l))
 	}
-	return append(cs, checks.DBUserLimit(l.DB))
+	// db.user_limit ở chặng DB: site hay DB đang tạm khoá thì chặng DB chỉ hiện
+	// "tạm khoá" xám (M13), nên không xét; harden vẫn đặt trần cho user khoá, và
+	// mở khoá xong thì health xét lại.
+	if st.Suspended == account.NotSuspended && st.DBSuspended == account.NotSuspended {
+		cs = append(cs, checks.DBUserLimit(l.DB))
+	}
+	return cs
 }
 
 // healthPHPVers là các bản PHP đang cài cho php.pool; nil khi không có System
