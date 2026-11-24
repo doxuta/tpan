@@ -382,6 +382,18 @@ func TestSiteUserAbsentDonDauVet(t *testing.T) {
 		}
 	})
 
+	t.Run("điểm mount FUSE của user khác: cả hai lần find thoát 1, không in file nào, vẫn userdel (B2)", func(t *testing.T) {
+		m := f1Purge(t, l)
+		m.failCmd([]string{"find", "/tmp", "-xdev", "-uid", "65536", "!", "-type", "d", "-delete"}, 1, "find: '/tmp/k1/m': Permission denied")
+		m.failCmd([]string{"find", "/tmp", "-xdev", "-uid", "65536", "!", "-type", "d", "-print"}, 1, "find: '/tmp/k1/m': Permission denied")
+		if err := (&SiteUserAbsent{Layout: l}).Apply(ctx, m); err != nil {
+			t.Fatalf("Apply = %v", err)
+		}
+		if !userRanString(m, "userdel "+u) {
+			t.Errorf("không userdel: %v", ranStrings(m.Ran()))
+		}
+	})
+
 	t.Run("find lỗi mà còn file của UID thì lỗi, không userdel", func(t *testing.T) {
 		m := f1Purge(t, l)
 		m.failCmd([]string{"find", "/var/tmp", "-xdev", "-uid", "65536", "!", "-type", "d", "-delete"}, 1, "find: cannot delete")

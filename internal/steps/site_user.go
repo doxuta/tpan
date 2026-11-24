@@ -650,8 +650,13 @@ func userTmpClean(ctx context.Context, sys system.System, dir, uid string) error
 		return fmt.Errorf("kiểm %s: %w", dir, err)
 	}
 	if res, err := sys.Run(ctx, userFindFiles(dir, uid)); err != nil {
+		// find thoát khác 0 cả khi chỉ một mục không đọc được, ví dụ điểm mount
+		// FUSE của user khác trong /tmp (từ chối cả root): coi đó là hỏng thì
+		// một user bất kỳ chặn được mọi lần xoá hẳn trên máy (B2 của soát cuối
+		// nhóm B). Chỉ hỏng khi hỏi lại còn thấy đúng một file của UID; mã thoát
+		// của lần hỏi lại không tính, vì nó gặp lại đúng điểm mount đó.
 		left, lerr := sys.Run(ctx, userFindLeft(dir, uid))
-		if lerr != nil || strings.TrimSpace(left.Stdout) != "" {
+		if strings.TrimSpace(left.Stdout) != "" {
 			return withStdout(fmt.Errorf("xoá file của UID %s trong %s (còn %q, hỏi lại: %v): %w",
 				uid, dir, strings.TrimSpace(left.Stdout), lerr, err), res)
 		}
