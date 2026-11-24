@@ -188,7 +188,9 @@ func pathDBName(r *http.Request) (raw, target string) {
 // xem trước không thành chỗ dò tên site). Lỗ phải chặn: route này là any, và
 // core chạy lại site đã có mà bỏ qua Owner, nên user thường gửi domain của
 // người khác là chạy lại site của người đó. Ở đây: user thường đặt chủ khác
-// mình thì 403; domain đã có mà không phải của mình thì 404 như không tồn tại.
+// mình thì 403; domain đã có mà không phải của mình, hay domain mới chung
+// eTLD+1 với site của người khác (M28 P4, core.RegistrableTaken), thì 404 như
+// không tồn tại.
 // Admin rỗng là chính mình (dòng lệnh không tên: core hiểu là admin).
 func (s *Server) siteCreateOwner(w http.ResponseWriter, r *http.Request, d validate.Domain, asked string) (string, bool) {
 	id := who(r)
@@ -210,7 +212,23 @@ func (s *Server) siteCreateOwner(w http.ResponseWriter, r *http.Request, d valid
 		apiFail(w, r, err)
 		return "", false
 	}
-	if found && owner != id.Name {
+	taken := found && owner != id.Name
+	if !found {
+		// M28 P4: site mới không được chung tên miền gốc (eTLD+1) với site của
+		// người khác, không thì chiếm được www.<site của họ> và xin được chứng
+		// chỉ cho tên đó. Chạy lại site đã có của chính mình không qua luật này.
+		all, err := s.deps.Store.Sites(r.Context())
+		if err != nil {
+			apiFail(w, r, err)
+			return "", false
+		}
+		if taken, err = core.RegistrableTaken(all, d, id.Name); err != nil {
+			apiFail(w, r, err)
+			return "", false
+		}
+	}
+	if taken {
+		// Cùng lời với site không tồn tại: không lộ là tên đó thuộc người khác.
 		if !apiDryRun(r) {
 			s.audit(r, "site.add", d.String(), "site_not_found", "")
 		}

@@ -442,10 +442,12 @@ func TestApplyScopeQuotaM13(t *testing.T) {
 	ue.as.put(account.User{Name: "carol", Role: account.RoleUser})
 	ue.site(t, "own.example.com", "bob", nil)
 	ue.site(t, "old.example.com", "bob", nil)
-	ue.site(t, "other.example.com", "carol", nil)
-	ue.site(t, "root.example.com", "", nil)
+	// M28 P4: site của người khác nằm dưới tên miền gốc khác example.com, không
+	// thì mọi site mới example.com của bob đều bị từ chối (RegistrableTaken).
+	ue.site(t, "other.example.net", "carol", nil)
+	ue.site(t, "root.example.org", "", nil)
 
-	in := ue.applyList(t, "own.example.com", "other.example.com", "n1.example.com", "n2.example.com", "n3.example.com")
+	in := ue.applyList(t, "own.example.com", "other.example.net", "n1.example.com", "n2.example.com", "n3.example.com")
 	in[4].Input.Owner = "carol"
 	a, err := ue.s.PrepareApply(ctx, ApplyInput{Sites: in, Prune: true, Scope: "bob"})
 	if err != nil {
@@ -453,7 +455,7 @@ func TestApplyScopeQuotaM13(t *testing.T) {
 	}
 	want := []ApplyItem{
 		{Domain: "own.example.com", Action: ApplySkip},
-		{Domain: "other.example.com", Action: ApplyRefused, Code: "site_not_found"},
+		{Domain: "other.example.net", Action: ApplyRefused, Code: "site_not_found"},
 		{Domain: "n1.example.com", Action: ApplyCreate},
 		// 2 site đã có + n1 trong lô = 3/3.
 		{Domain: "n2.example.com", Action: ApplyRefused, Code: CodeQuotaSites},
