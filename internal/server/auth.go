@@ -399,6 +399,9 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		authNoStore(w)
 		return
 	}
+	if refuseAuthorizationOnLogin(w, r) {
+		return
+	}
 	host, ok := loginHost(w, r)
 	if !ok {
 		return

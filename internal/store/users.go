@@ -169,11 +169,20 @@ func endSessionsOf(ctx context.Context, q querier, name string) error {
 }
 
 // DeleteSessionsOf huỷ mọi phiên của user; phiên admin đang "xem như" họ thoát
-// chế độ xem như (không bị huỷ).
+// chế độ xem như (không bị huỷ). Gọi khi đổi vai trò và khi tạm khoá user.
+//
+// M20 (soát cuối trên máy ảo, V2): cùng transaction thu hồi mọi token còn sống
+// của user. Token luôn theo vai hiện tại nên lúc đang bị hạ vai hay khoá nó đã
+// mất quyền, nhưng nếu không thu hồi thì nâng vai lại hay mở khoá làm token cũ
+// sống lại: quản trị khoá một tài khoản vì sự cố rồi mở ra là trả lại luôn
+// token có thể đã lộ.
 func (s *Store) DeleteSessionsOf(ctx context.Context, name string) error {
 	return s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := endSessionsOf(ctx, tx, name); err != nil {
 			return fmt.Errorf("phiên của %s: %w", name, err)
+		}
+		if _, err := revokeTokens(ctx, tx, name, s.now()); err != nil {
+			return fmt.Errorf("token của %s: %w", name, err)
 		}
 		return nil
 	})

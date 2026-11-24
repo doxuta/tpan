@@ -1180,3 +1180,61 @@ tpan site rm a.example.com: rc=0; trạng thái: trashed
 tpan panel domain set a.example.com: rc=1 Từ chối: a.example.com đã thuộc về một site (có trong danh sách site của tpan); panel không dùng chung
 Host a.example.com (site trong thùng rác) -> HTTP 421
 tpan site restore a.example.com: rc=0
+
+
+######## KẾT LUẬN
+
+Không có đường nào khai thác được (không phát hiện NẶNG hay VỪA). Hai phát hiện NHẸ:
+
+V1 (NHẸ) POST /login có header Authorization (bất kỳ, kể cả "Bearer x") được miễn 421 dưới tên site và
+   vẫn tạo phiên: 204 + Set-Cookie, phiên gắn Host là tên site (6.3: "Host site + Authorization giả,
+   POST /login đúng mật khẩu -> HTTP 204 ; set-cookie: 1"). Không khai thác được: phiên đó chỉ dùng được
+   bằng cookie dưới đúng tên site, mà request chỉ có cookie dưới tên site thì bị 421 và xoá phiên; trình
+   duyệt không tự gửi Authorization (cross-origin thì cần preflight, panel không trả CORS). Chỉ để lại
+   phiên rác và dòng audit login ok dưới tên site. Sửa: handleLogin, handleLogin2FA (và route public có
+   đặt cookie) trả 400 khi hasAuthorization(r); hoặc chỉ miễn 421 cho route không public.
+
+V2 (NHẸ, đúng thiết kế hiện tại) Hạ vai và tạm khoá KHÔNG thu hồi token: token system:read của admin2
+   bị 403 khi hạ vai, 401 khi khoá, nhưng nâng vai lại hay mở khoá thì token sống lại (4.2: GET /stack
+   200 -> 403 -> 200 -> 401 -> 200). Nếu quản trị dùng hạ vai/khoá như phản ứng sự cố thì token cũ trở
+   lại cùng tài khoản. Sửa: thu hồi token khi hạ admin -> user và khi suspend (như đặt lại mật khẩu
+   đã làm, store.SetUserPassword), hoặc ghi rõ vào tài liệu và in số token còn sống khi mở khoá/nâng vai.
+
+Đã thử, không lọt:
+- Phiếu chờ: 13 route cần phiên (cả SSE /jobs/x/events, POST /sites, /account/*) đều 401; 14 dạng đường
+  dẫn lạ (.., %2e%2e, //, %2f, chữ hoa, %61pi) 401/404/307 hoặc trang web; giá trị phiếu dưới tên cookie
+  phiên 401; phiếu từ IP nguồn khác hoặc Host khác: mfa_challenge_invalid; phiếu đã tiêu không dùng lại.
+- Đua bước hai: 20 phiếu x 5 mã sai = 100 request song song từ 20 IP: audit đúng 10 lần wrong_code rồi
+  khoá user (lock_count=1); mã TOTP đúng khi đang khoá 423; mã dự phòng vẫn vào (recovery_left 9,
+  wrong_codes 10). Cùng mã TOTP trên hai phiếu song song: một 204, một mfa_code_used. Cùng mã dự phòng
+  song song: một 200, một mfa_code_wrong. Một phiếu, hai mã dự phòng khác nhau: đúng một phiên mới, mã
+  thứ hai không bị tiêu.
+- Cookie phiên sang Host khác (localhost, [::1], IP máy ảo, tên site có và không có SSL thật): phiên bị
+  xoá, audit session.host_mismatch; 127.0.0.1. và :9999 chuẩn hoá về cùng tên (đúng). Tên site chữ hoa,
+  dấu chấm cuối, có cổng: 421; site trong thùng rác: 421.
+- View-as: ghi bị read_only_view (tạo token, setup/disable hai bước); thoát được.
+- Chính sách all: token và phiên cũ của user chưa bật 403 mfa_enroll_required; admin chưa bật không
+  view-as được; setup được (allowEnroll).
+- Token: user thường gọi route admin 403 (token_scope/forbidden); route chỉ phiên 403 token_forbidden
+  (users, tokens, settings/auth, plans, ai, backups/target, account/*, view-as); site của người khác 404;
+  thiếu phạm vi 403; CLI từ chối system cho user thường và quá trần ngày; đặt lại mật khẩu thu hồi mọi
+  token (token_revoked); xoá user rồi tạo lại cùng tên: token cũ token_invalid (bảng cascade);
+  overview?refresh=1 bằng token không chạy health (F3).
+- Header Authorization: bearer/BEARER, Bearer<TAB>, hai header, hai token một header, Basic, token
+  thiếu/sai ký tự, ?access_token=, X-Authorization: đều 401; Authorization rỗng + cookie admin: 401
+  (không rơi về phiên); token user + cookie admin: chạy bằng token user.
+- CSRF: Origin lạ, Origin null, Sec-Fetch-Site cross-site/same-site, cổng khác: 403 csrf (cả /login).
+- Mật khẩu hiện một lần của job (tạo DB rời bằng token K): token khác của cùng user, phiên admin: không
+  có db_secret và không làm mất; token K lấy được đúng một lần.
+- Bí mật: 0 lần trúng (TOTP base32/hex/byte thô, mã dự phòng có/không gạch, token, mật khẩu, cookie, khoá
+  hex/base64) trong tpan.db, -wal, -shm, journal (tpan và toàn máy), 34 file /var/log, bản sao tpan.db và
+  tar.gz của backup --all, output tpan mcp (list_sites, list_jobs, get_job), 16 câu trả lời API sau lần
+  đầu, bảng audit; đối chứng thấy đủ. /etc/tpan 0700, secret.key 0600 root 32 byte; tpan.db, backup
+  0600/0700 root; user ubuntu và user PHP của site không đọc được.
+- Chứng chỉ panel: tên trùng site (cả chữ hoa, site trong thùng rác) bị từ chối; site trùng tên panel
+  (API, CLI, chữ hoa) domain_is_panel; đua CLI đặt tên với API tạo site: hai chiều đều bị chặn (job_running
+  hoặc panel.namefree kiểm trước khi chạy); đổi tên hay --clear: SNI tên cũ về chứng chỉ tự ký ngay; SNI
+  chữ hoa nhận đúng; SNI site trên 8443 nhận tự ký; 443 theo IP từ chối bắt tay (unrecognized name).
+
+Chưa thử: gọi từ Mac qua IP máy ảo (mọi phép đều chạy trong máy ảo; IP nguồn khác lấy bằng 127.0.0.x và IP
+máy ảo); certbot renew sau khi xoá tên (e2e T50 đã làm phần renew).

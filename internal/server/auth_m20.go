@@ -71,6 +71,20 @@ func hasAuthorization(r *http.Request) bool {
 	return len(r.Header.Values("Authorization")) > 0
 }
 
+// refuseAuthorizationOnLogin: đăng nhập (cả bước hai) không bao giờ đi cùng
+// header Authorization. Request có header đó được miễn 421 (không dùng cookie
+// nên không có gì để lộ); nếu /login nhận nó thì phiên được tạo dưới tên của
+// một site, đúng chỗ 421 muốn chặn (soát cuối trên máy ảo, V1). true là đã trả lời.
+func refuseAuthorizationOnLogin(w http.ResponseWriter, r *http.Request) bool {
+	if !hasAuthorization(r) {
+		return false
+	}
+	writeError(w, http.StatusBadRequest, "authorization_on_login", i18n.T(
+		"Đăng nhập không nhận header Authorization. Token dùng thẳng cho API, không cần đăng nhập.",
+		"Login does not accept an Authorization header. Tokens are used directly on the API, without logging in."))
+	return true
+}
+
 // loginHost: POST /login cần tên máy để gắn phiên (R10); không có thì 400
 // trước khi tốn argon2. false nghĩa là đã trả lời.
 func loginHost(w http.ResponseWriter, r *http.Request) (string, bool) {
@@ -270,6 +284,9 @@ func (s *Server) handleLogin2FA(w http.ResponseWriter, r *http.Request) {
 	st := s.deps.Store
 	if st == nil {
 		authNoStore(w)
+		return
+	}
+	if refuseAuthorizationOnLogin(w, r) {
 		return
 	}
 	var req LoginCode
