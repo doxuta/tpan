@@ -376,10 +376,19 @@ func TestM14IsolationTuKetQuaDaLuu(t *testing.T) {
 		t.Errorf("trước health: machine %d, per_site %d, needs_harden %v", len(iso.Machine), len(iso.PerSite), iso.NeedsHarden)
 	}
 
-	// Sau health: mọi ô có kết quả đạt, đúng ID, kèm bằng chứng.
+	// Sau health: mọi ô có kết quả đạt, đúng ID, kèm bằng chứng. Trừ hàng của
+	// hai site trong lồng của demo (M17, internal/demo/m17.go): không có phép
+	// cô lập đi từ site trong lồng (core.siteChecks), cage.fence thay cho nó.
 	e.runHealth(t)
 	iso = get()
+	caged := []string{"cua-hang-so-mot.khach-hang-vi-du.example.com", "tin-tuc.to-soan-bao-vi-du.example.org"}
 	for _, c := range iso.Cells {
+		if slices.Contains(caged, c.From) {
+			if c.Result != nil {
+				t.Errorf("ô %s→%s (đi từ site trong lồng) có kết quả: %+v", c.From, c.To, c.Result)
+			}
+			continue
+		}
 		if c.Result == nil || c.Result.ID != "isolation:"+c.From+":"+c.To || c.Result.Status != checks.Pass || len(c.Result.Evidence) == 0 {
 			t.Errorf("ô %s→%s sau health: %+v", c.From, c.To, c.Result)
 		}

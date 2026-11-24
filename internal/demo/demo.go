@@ -147,6 +147,10 @@ func seed(ctx context.Context, m *machine, st *store.Store) error {
 	if err := seedM18(ctx, m, st); err != nil {
 		return err
 	}
+	// M17 (m17.go): gói có lồng, hai site trong lồng, số liệu, thử tấn công.
+	if err := seedM17(ctx, m, st); err != nil {
+		return err
+	}
 
 	// Làm hỏng sau cùng: hoàn tác ở lần thất bại ở trên reload PHP-FPM, và mọi
 	// lần reload đều dựng lại socket.
