@@ -1,46 +1,46 @@
 
 
-######## [2026-11-25 04:54:31] e2e M19 bước 22 (dòng lệnh và API) — máy ảo tpan-m19 — phần: nginx apache nang-cap nang-cap-v020 — log docs/bang-chung/M19.log
+######## [2026-11-25 05:39:13] e2e M19 bước 22 (dòng lệnh và API) — máy ảo tpan-m19 — phần: nginx apache nang-cap nang-cap-v020 — log docs/bang-chung/M19.log
 E2E_BUILD=1  E2E_BIN_PREFIX=bin/tpan-linux  E2E_OLD_BIN_PREFIX=bin/tpan-truoc-m19-linux  E2E_OLD_COMMIT=f6a68b9
 E10 giao diện: ở e2e-m19-gd (ở đây E10 thay bằng thêm example.net qua API)
 E23 giao diện, E41 giao diện: ở e2e-m19-gd
 E70, E71: hồi quy các e2e cũ, chạy riêng (ngoài script này)
 
 
-######## [2026-11-25 04:54:31] PHẦN NGINX
+######## [2026-11-25 05:39:13] PHẦN NGINX
 
-[2026-11-25 04:54:31] đưa máy ảo tpan-m19 về sạch
-[2026-11-25 04:54:45] máy ảo sạch, kiến trúc arm64, IP <vm>
-[2026-11-25 04:54:45] make build-linux
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T21:54:45Z)
-[2026-11-25 04:59:52] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
+[2026-11-25 05:39:13] đưa máy ảo tpan-m19 về sạch
+[2026-11-25 05:39:28] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-25 05:39:28] make build-linux
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T22:39:28Z)
+[2026-11-25 05:44:35] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
 
-[2026-11-25 04:59:53] >>> dựng máy (nginx), pebble, hai user thường  (bash dung-may.sh nginx)
+[2026-11-25 05:44:36] >>> dựng máy (nginx), pebble, hai user thường  (bash dung-may.sh nginx)
 
---- [04:59:53] tpan version
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T21:54:45Z)
+--- [05:44:36] tpan version
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T22:39:28Z)
 
---- [04:59:53] tpan setup
-Job 1b2e14d7d9f26f9b: thành công
+--- [05:44:36] tpan setup
+Job 8e0e30c4d1461b2c: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    24:B4:9F:79:D6:57:9D:90:7D:01:2C:88:5B:B5:AF:28:79:F4:74:80:45:23:C8:91:1A:F2:10:4B:37:D0:43:8B
+    ED:1A:ED:42:07:C7:CD:E7:64:A8:4A:81:84:DA:BC:EA:2F:AA:BE:D3:A9:78:7A:41:35:10:4A:71:D2:EB:91:63
 Mở: https://<IP của máy>:8443
   => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m19-admin.pw, không in)
   => ĐẠT: tpan.service active
 
---- [04:59:54] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+--- [05:44:37] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
   apt rảnh sau khoảng 0 giây
 
---- [04:59:54] tpan stack install --web nginx --yes
-  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
+--- [05:44:37] tpan stack install --web nginx --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
   => ĐẠT: stack install --web nginx thoát 0
 
---- [05:00:31] pebble (đồ nghề test) và tpan ssl settings
+--- [05:45:13] pebble (đồ nghề test) và tpan ssl settings
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
@@ -53,27 +53,27 @@ Staging:   bật (chứng chỉ thử, trình duyệt không tin)
 ACME:      https://localhost:14000/dir
   => ĐẠT: ssl settings thoát 0
 
---- [05:00:36] hai user thường (vai user) và /etc/hosts
+--- [05:45:18] hai user thường (vai user) và /etc/hosts
   => ĐẠT: user add khach_a thoát 0, có mật khẩu (không in)
   => ĐẠT: user add khach_b thoát 0, có mật khẩu (không in)
   /etc/hosts: example.com www.example.com blog.example.com example.net xn--vitnam-jk8b.example.net www.example.org example.org shop.khach-b.test www.e24.test -> 127.0.0.1
   => ĐẠT: nodns.example.invalid không phân giải được (cố ý)
 
---- [05:00:36] phiên API: admin, khach_a, khach_b
+--- [05:45:18] phiên API: admin, khach_a, khach_b
   đăng nhập admin: HTTP 204
   => ĐẠT: admin đăng nhập
   đăng nhập khach_a: HTTP 204
   => ĐẠT: khach_a đăng nhập
   đăng nhập khach_b: HTTP 204
   => ĐẠT: khach_b đăng nhập
-  khach_a GET /session: HTTP 200, 0.001982s (curl thoát 0), 175 byte; lỗi: 
+  khach_a GET /session: HTTP 200, 0.001846s (curl thoát 0), 175 byte; lỗi: 
   => ĐẠT: phiên của khach_a có vai user
   stack: nginx
-[2026-11-25 05:00:37] <<< dựng máy (nginx), pebble, hai user thường xong trong 44 giây
+[2026-11-25 05:45:19] <<< dựng máy (nginx), pebble, hai user thường xong trong 43 giây
 
-[2026-11-25 05:00:37] >>> E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (nginx)  (bash ten.sh )
+[2026-11-25 05:45:19] >>> E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (nginx)  (bash ten.sh )
 
---- [05:00:37] E01. tpan site add example.com (admin; mặc định --www redirect)
+--- [05:45:19] E01. tpan site add example.com (admin; mặc định --www redirect)
   $ tpan site add example.com  (thoát 0)
     |   [đạt] Log của site không đọc được bởi site khác
     |   [đạt] Vhost của site có đủ các dòng chặn cô lập
@@ -84,18 +84,18 @@ ACME:      https://localhost:14000/dir
     | www.example.com alias redirect active dns=warn in_cert=False
   => ĐẠT: E01: site alias list có www.example.com redirect active
 
---- [05:00:55] E02. Host: www.example.com (redirect) -> 301 về tên chính, giữ đường dẫn và query
+--- [05:45:38] E02. Host: www.example.com (redirect) -> 301 về tên chính, giữ đường dẫn và query
   GET http://www.example.com/a?b=1: HTTP 301, Location: http://example.com/a?b=1, X-Redirect-By: -
   => ĐẠT: E02: 301, Location http://example.com/a?b=1
 
---- [05:00:55] E03. Host: example.com -> 200, trang WordPress
+--- [05:45:38] E03. Host: example.com -> 200, trang WordPress
   GET http://example.com/: HTTP 200, Location: -, X-Redirect-By: -
   => ĐẠT: E03: 200 và là trang WordPress
   => ĐẠT: E03: thân có dấu WordPress
 
---- [05:00:55] E04. alias set www.example.com --mode serve (S2: đo bằng /readme.html và X-Redirect-By)
+--- [05:45:38] E04. alias set www.example.com --mode serve (S2: đo bằng /readme.html và X-Redirect-By)
   $ tpan site alias set example.com www.example.com --mode serve --yes (thoát 0)
-    | Bắt đầu job 00665d6484885bf2
+    | Bắt đầu job 47a6c9b7a3ab7b3b
     | - Ghi vhost nginx cho example.com ...
     |   xong
     | - Bật /etc/nginx/sites-enabled/tpan-example.com.conf → /etc/nginx/sites-available/tpan-example.com.conf ...
@@ -109,7 +109,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job 00665d6484885bf2: thành công
+    | Job 47a6c9b7a3ab7b3b: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -123,7 +123,7 @@ ACME:      https://localhost:14000/dir
   GET http://www.example.com/: HTTP 301, Location: http://example.com/, X-Redirect-By: WordPress
   => ĐẠT: E04: / qua www.example.com kiểu serve trả 301 có X-Redirect-By: WordPress (WordPress tự đưa www về tên trong cài đặt)
   $ tpan site alias set example.com www.example.com --mode redirect --yes (thoát 0)
-    | Bắt đầu job a0176e85eee0b47f
+    | Bắt đầu job 3e1cc4dc18210fd3
     | - Ghi vhost nginx cho example.com ...
     |   xong
     | - Bật /etc/nginx/sites-enabled/tpan-example.com.conf → /etc/nginx/sites-available/tpan-example.com.conf ...
@@ -137,7 +137,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job a0176e85eee0b47f: thành công
+    | Job 3e1cc4dc18210fd3: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -148,7 +148,7 @@ ACME:      https://localhost:14000/dir
   GET http://www.example.com/a?b=1: HTTP 301, Location: http://example.com/a?b=1, X-Redirect-By: -
   => ĐẠT: E04: sau khi đặt lại: 301 về tên chính, không có X-Redirect-By
 
---- [05:00:59] E05. tpan site add www.example.org --owner khach_a --www redirect (khach_a)
+--- [05:45:42] E05. tpan site add www.example.org --owner khach_a --www redirect (khach_a)
   $ tpan site add www.example.org --owner khach_a --www redirect (thoát 0)
     |   [đạt] Thư mục public của site là thư mục thật của chính site
     |   [đạt] Site www.example.org không chạm được vào file, log và socket của site example.com
@@ -161,7 +161,7 @@ ACME:      https://localhost:14000/dir
   GET http://example.org/: HTTP 301, Location: http://www.example.org/, X-Redirect-By: -
   => ĐẠT: E05: example.org chuyển về www.example.org (301, Location http://www.example.org/)
 
---- [05:01:05] E06. tpan site add blog.example.com (tên con: không có tên phụ nào)
+--- [05:45:47] E06. tpan site add blog.example.com (tên con: không có tên phụ nào)
   $ tpan site add blog.example.com  (thoát 0)
     |   [đạt] Site example.com không chạm được vào file, log và socket của site blog.example.com
     |   [đạt] Site blog.example.com không chạm được vào file, log và socket của site www.example.org
@@ -171,49 +171,49 @@ ACME:      https://localhost:14000/dir
     | blog.example.com primary serve active dns=warn in_cert=False
   => ĐẠT: E06: không có tên phụ
 
---- [05:01:10] E10. thêm tên phụ example.net (serve) và việtnam.example.net (serve) cho example.com bằng API (admin). E10 giao diện: ở e2e-m19-gd
-  admin POST /sites/example.com/names: HTTP 202, 0.007795s (curl thoát 0), 30 byte; lỗi: 
-  job cfff1d37aa999f5f: succeeded
+--- [05:45:53] E10. thêm tên phụ example.net (serve) và việtnam.example.net (serve) cho example.com bằng API (admin). E10 giao diện: ở e2e-m19-gd
+  admin POST /sites/example.com/names: HTTP 202, 0.007953s (curl thoát 0), 30 byte; lỗi: 
+  job 2df8a3471e043ac9: succeeded
   => ĐẠT: E10: POST names example.net: 202, job succeeded
   GET http://example.net/readme.html: HTTP 200, Location: -, X-Redirect-By: -
   => ĐẠT: E10: Host example.net (serve) trả 200 cho /readme.html
-  admin POST /sites/example.com/names: HTTP 202, 0.007896s (curl thoát 0), 30 byte; lỗi: 
-  job 4269e26ea68335ba: succeeded
+  admin POST /sites/example.com/names: HTTP 202, 0.007888s (curl thoát 0), 30 byte; lỗi: 
+  job 99965f1950fdf30e: succeeded
   => ĐẠT: E10: POST names việtnam.example.net: 202, job succeeded
-  admin GET /sites/example.com/names: HTTP 200, 0.007036s (curl thoát 0), 423 byte; lỗi: 
+  admin GET /sites/example.com/names: HTTP 200, 0.008942s (curl thoát 0), 423 byte; lỗi: 
   => ĐẠT: E10: tên UTF-8 được lưu dạng punycode xn--vitnam-jk8b.example.net (t4)
-  admin GET /domains: HTTP 200, 0.002095s (curl thoát 0), 229 byte; lỗi: 
+  admin GET /domains: HTTP 200, 0.002127s (curl thoát 0), 229 byte; lỗi: 
   => ĐẠT: E10: GET /domains (admin) nêu example.com với các tên phụ www.example.com, example.net, xn--vitnam-jk8b.example.net
 
---- [05:01:17] E20 (S1). khach_b: POST names www.example.com (tên của site người khác) -> 409 name_unavailable, không lộ tên site hay chủ
+--- [05:45:59] E20 (S1). khach_b: POST names www.example.com (tên của site người khác) -> 409 name_unavailable, không lộ tên site hay chủ
   $ tpan site add shop.khach-b.test --owner khach_b (thoát 0)
     |   [đạt] Site example.com không chạm được vào file, log và socket của site shop.khach-b.test
     |   [đạt] Site shop.khach-b.test không chạm được vào file, log và socket của site www.example.org
     |   [đạt] Site www.example.org không chạm được vào file, log và socket của site shop.khach-b.test
   => ĐẠT: (dựng) site add shop.khach-b.test --owner khach_b thoát 0
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.004215s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003349s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E20: 409
   => ĐẠT: E20: mã name_unavailable (user thường không thấy name_taken/name_root_foreign)
   => ĐẠT: E20: thân không có tên site hay tên chủ của người khác
-  admin POST /sites/shop.khach-b.test/names?dry_run=1: HTTP 409, 0.002226s (curl thoát 0), 198 byte; lỗi: name_taken
+  admin POST /sites/shop.khach-b.test/names?dry_run=1: HTTP 409, 0.002130s (curl thoát 0), 198 byte; lỗi: name_taken
   -- GHI NHẬN: admin cùng yêu cầu trên site của khach_b (dry_run): HTTP 409, mã name_taken (admin được miễn luật tên miền gốc; tên đã có chủ vẫn bị từ chối bằng mã chi tiết name_taken)
   => ĐẠT: E20: admin nhận mã chi tiết name_taken (S1: admin thấy mã thật)
 
---- [05:01:23] E21. khach_b: tên thuộc tên miền gốc của admin (example.com), dạng khác nhau -> 409 hoặc 400, không thêm dòng
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003299s (curl thoát 0), 318 byte; lỗi: name_unavailable
+--- [05:46:05] E21. khach_b: tên thuộc tên miền gốc của admin (example.com), dạng khác nhau -> 409 hoặc 400, không thêm dòng
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003537s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: shop.example.com -> 409 hay 400 (mã name_unavailable)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 400, 0.002175s (curl thoát 0), 153 byte; lỗi: domain_invalid
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 400, 0.001887s (curl thoát 0), 153 byte; lỗi: domain_invalid
   => ĐẠT: E21: example.com. -> 409 hay 400 (mã domain_invalid)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003486s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.014337s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: EXAMPLE.COM -> 409 hay 400 (mã name_unavailable)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003390s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.009632s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: xn--vitnam-jk8b.example.net -> 409 hay 400 (mã name_unavailable)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.006460s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003226s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: example.net -> 409 hay 400 (mã name_unavailable)
   => ĐẠT: E21: site_names của shop.khach-b.test không thêm dòng (1 dòng trước và sau)
 
---- [05:01:23] E22 (S1). khach_b tạo site chung tên miền gốc với admin: 404 site_not_found như M28
-  khach_b POST /sites?dry_run=1: HTTP 404, 0.002061s (curl thoát 0), 222 byte; lỗi: site_not_found
+--- [05:46:05] E22 (S1). khach_b tạo site chung tên miền gốc với admin: 404 site_not_found như M28
+  khach_b POST /sites?dry_run=1: HTTP 404, 0.003213s (curl thoát 0), 222 byte; lỗi: site_not_found
   => ĐẠT: E22: POST /sites shop.example.com của khach_b: 404
   => ĐẠT: E22: mã site_not_found
   -- GHI NHẬN: E22 lệch bảng 7.2: bản 7.2 viết 'admin làm hộ bị name_root_foreign'; S1 cho admin miễn luật tên miền gốc (Claim.ByAdmin), nên chỉ thử --dry-run và ghi nhận, không khẳng định
@@ -231,26 +231,26 @@ ACME:      https://localhost:14000/dir
     |  4. [sẽ chạy] Tạo thư mục /var/www/shop.example.com/public  (dir:/var/www/shop.example.com/public)
     |     Vì sao: Các bước sau ghi file   => ĐẠT: E22: dry-run của admin không ghi dòng nào vào site_names
 
---- [05:01:23] E23. giao diện của khach_b: ở e2e-m19-gd
+--- [05:46:05] E23. giao diện của khach_b: ở e2e-m19-gd
 
---- [05:01:23] E25, E26. chủ site thường tự thêm và gỡ tên phụ của mình; user khác không thấy site (404)
-  khach_a POST /sites/www.example.org/names: HTTP 202, 0.007840s (curl thoát 0), 30 byte; lỗi: 
-  job 2f222d606388efa6: succeeded
+--- [05:46:05] E25, E26. chủ site thường tự thêm và gỡ tên phụ của mình; user khác không thấy site (404)
+  khach_a POST /sites/www.example.org/names: HTTP 202, 0.007601s (curl thoát 0), 30 byte; lỗi: 
+  job 63f23e38fd1f0904: succeeded
   => ĐẠT: E25: khach_a thêm blog.example.org (tên miền gốc của chính mình): 202, job succeeded
   GET http://blog.example.org/readme.html: HTTP 200, Location: -, X-Redirect-By: -
   => ĐẠT: E25: tên đó (serve) trả 200 cho /readme.html
-  khach_a POST /sites/www.example.org/names/blog.example.org/mode?dry_run=1: HTTP 200, 0.002648s (curl thoát 0), 12498 byte; lỗi: 
+  khach_a POST /sites/www.example.org/names/blog.example.org/mode?dry_run=1: HTTP 200, 0.002559s (curl thoát 0), 12498 byte; lỗi: 
   => ĐẠT: E25: POST names/{name}/mode?dry_run=1: 200
-  khach_a DELETE /sites/www.example.org/names/blog.example.org: HTTP 202, 0.005389s (curl thoát 0), 30 byte; lỗi: 
-  job 44de353c73d73cbf: succeeded
+  khach_a DELETE /sites/www.example.org/names/blog.example.org: HTTP 202, 0.007023s (curl thoát 0), 30 byte; lỗi: 
+  job cc9febcb94cb3b70: succeeded
   => ĐẠT: E25: khach_a gỡ blog.example.org: 202, job succeeded
-  khach_b GET /sites/www.example.org/names: HTTP 404, 0.002000s (curl thoát 0), 220 byte; lỗi: site_not_found
+  khach_b GET /sites/www.example.org/names: HTTP 404, 0.001900s (curl thoát 0), 220 byte; lỗi: site_not_found
   => ĐẠT: E26: khach_b xem tên của site khach_a: 404 site_not_found
-  khach_a POST /sites/example.com/names?dry_run=1: HTTP 404, 0.001921s (curl thoát 0), 212 byte; lỗi: site_not_found
+  khach_a POST /sites/example.com/names?dry_run=1: HTTP 404, 0.001802s (curl thoát 0), 212 byte; lỗi: site_not_found
   => ĐẠT: E26: khach_a thêm tên cho site của admin: 404 site_not_found
 
---- [05:01:29] E24 (S6). khach_a, khach_b: 10 + 10 request song song thêm www.e24.test; thêm 3 lệnh CLI tpan site alias add song song
-  người thắng: API a2, job 71cca37f3a5df96d: succeeded
+--- [05:46:11] E24 (S6). khach_a, khach_b: 10 + 10 request song song thêm www.e24.test; thêm 3 lệnh CLI tpan site alias add song song
+  người thắng: API a1, job 52a57b2139856694: succeeded
   người thắng: CLI 1
   người thắng: CLI 2
   CLI 3 thua (thoát 1): Từ chối: tên www.e24.test đã thuộc một site khác trên máy này 
@@ -269,7 +269,7 @@ ACME:      https://localhost:14000/dir
   => ĐẠT: E24: vhost của example.com không lặp tên trong server_name/ServerAlias (lặp: )
   => ĐẠT: E24: cú pháp config của nginx đạt, không có 'conflicting server name'
   $ tpan site alias rm www.example.org www.e24.test --yes (thoát 0)
-    | Bắt đầu job 5745dfbfb651d3ad
+    | Bắt đầu job 82c512a8e56dfb00
     | - Ghi vhost nginx cho www.example.org ...
     |   xong
     | - Bật /etc/nginx/sites-enabled/tpan-www.example.org.conf → /etc/nginx/sites-available/tpan-www.example.org.conf ...
@@ -283,7 +283,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job 5745dfbfb651d3ad: thành công
+    | Job 82c512a8e56dfb00: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -292,9 +292,9 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_www_example_org_8a59b0
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPres  => ĐẠT: E24: dọn: alias rm www.e24.test thoát 0
 
---- [05:01:39] S12. site tạm khoá: thao tác tên phụ -> site_suspended; site trong thùng rác -> site_not_active
+--- [05:46:21] S12. site tạm khoá: thao tác tên phụ -> site_suspended; site trong thùng rác -> site_not_active
   $ tpan site suspend blog.example.com --yes (thoát 0)
-    | Bắt đầu job ef29043844fa9121
+    | Bắt đầu job 11e838f7b92be6a0
     | - Ghi trang tạm khoá /var/lib/tpan/suspended/tpan-suspended.html ...
     |   xong
     | - Ghi vhost nginx bản tạm khoá cho blog.example.com ...
@@ -309,19 +309,19 @@ ACME:      https://localhost:14000/dir
     |   [đạt] Cấu hình nginx hợp lệ
     |   [đạt] Gọi vào site đang tạm khoá trả 403 kèm trang tạm khoá
     | 
-    | Job ef29043844fa9121: thành công
+    | Job 11e838f7b92be6a0: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
     |   [đạt] Gọi vào site đang tạm khoá trả 403 kèm trang tạm khoá: Site trả 403 kèm trang tạm khoá
   => ĐẠT: S12: site suspend blog.example.com thoát 0
-  admin POST /sites/blog.example.com/names: HTTP 409, 0.004222s (curl thoát 0), 316 byte; lỗi: site_suspended
+  admin POST /sites/blog.example.com/names: HTTP 409, 0.004071s (curl thoát 0), 316 byte; lỗi: site_suspended
   => ĐẠT: S12: thêm tên phụ trên site tạm khoá: 409 site_suspended
   $ tpan site alias add blog.example.com www.blog.example.com --yes (thoát 1)
     | Từ chối: site blog.example.com đang tạm khoá; mở khoá trước rồi mới đổi tên phụ: sudo tpan site unsuspend blog.example.com
   => ĐẠT: S12: CLI alias add trên site tạm khoá: thoát khác 0
   $ tpan site unsuspend blog.example.com --yes (thoát 0)
-    | Bắt đầu job ae1b7d15e6684bf5
+    | Bắt đầu job de77fc91a27b4068
     | - Bật lại pool PHP-FPM tpan-blog_example_com_bd0054 ...
     |   xong
     | - Bật lại cron WordPress của blog.example.com ...
@@ -347,7 +347,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] Site shop.khach-b.test không chạm được vào file, log và socket của site blog.example.com
   => ĐẠT: S12: site unsuspend blog.example.com thoát 0
   $ tpan site rm blog.example.com --yes (thoát 0)
-    | Bắt đầu job fe96248572599978
+    | Bắt đầu job 9ced082fa2001c7c
     | - Tắt vhost của blog.example.com ...
     |   xong
     | - Gỡ pool PHP-FPM tpan-blog_example_com_bd0054 ...
@@ -362,15 +362,15 @@ ACME:      https://localhost:14000/dir
     |   xong
     |   [đạt] Domain blog.example.com không còn được phục vụ
     | 
-    | Job fe96248572599978: thành công
+    | Job 9ced082fa2001c7c: thành công
     | Kiểm chứng:
     |   [đạt] Domain blog.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 52, HTTP 000)
-    | Site blog.example.com đã vào thùng rác; xoá hẳn lúc 2026-12-02 05:01. Khôi phục: sudo tpan site restore blog.example.com
+    | Site blog.example.com đã vào thùng rác; xoá hẳn lúc 2026-12-02 05:46. Khôi phục: sudo tpan site restore blog.example.com
   => ĐẠT: S12: site rm blog.example.com (vào thùng rác) thoát 0
-  admin POST /sites/blog.example.com/names: HTTP 409, 0.003167s (curl thoát 0), 275 byte; lỗi: site_not_active
+  admin POST /sites/blog.example.com/names: HTTP 409, 0.003071s (curl thoát 0), 275 byte; lỗi: site_not_active
   => ĐẠT: S12: thêm tên phụ trên site trong thùng rác: mã site_not_active (HTTP 409)
   $ tpan site restore blog.example.com --yes (thoát 0)
-    | Bắt đầu job a20ca0c91c7e23e4
+    | Bắt đầu job b7f5a2f2204afd4a
     | - Chuyển thư mục của blog.example.com ra khỏi thùng rác ...
     |   xong
     | - Mở khoá user Linux tp_blog_example_com_bd0054 của blog.example.com ...
@@ -398,11 +398,11 @@ ACME:      https://localhost:14000/dir
     |   [đạt] Log của site không đọc được bởi site khác
     |   [đạt] Vhost của site có đủ các dòng chặn cô lập
     |   [đạt] Thư mục public của site là thư mục thật của c  => ĐẠT: S12: site restore blog.example.com thoát 0
-[2026-11-25 05:01:52] <<< E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (nginx) xong trong 75 giây
+[2026-11-25 05:46:28] <<< E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (nginx) xong trong 69 giây
 
-[2026-11-25 05:01:52] >>> E50-E52: bộ R01-R14 và route explain (nginx)  (bash dinh-tuyen.sh )
+[2026-11-25 05:46:28] >>> E50-E52: bộ R01-R14 và route explain (nginx)  (bash dinh-tuyen.sh )
 
---- [05:01:52] E50. bộ R01-R14 trên stack nginx (trạng thái: chưa SSL; www.example.com redirect; example.net và xn--vitnam-jk8b.example.net serve)
+--- [05:46:28] E50. bộ R01-R14 trên stack nginx (trạng thái: chưa SSL; www.example.com redirect; example.net và xn--vitnam-jk8b.example.net serve)
   R01 (nginx): STATUS 301, LOCATION http://example.com/ (bảng: 301, Location http://example.com/)
   => ĐẠT: R01: Host WWW.EXAMPLE.COM -> 301 về tên chính
   R02 (nginx): STATUS 200, LOCATION - (bảng: 200)
@@ -432,7 +432,7 @@ ACME:      https://localhost:14000/dir
   R14 (nginx): STATUS 301, LOCATION http://example.com/x (bảng: 301)
   => ĐẠT: R14: GET http://www.example.com/x, Host evil.example.org -> 301 (chọn theo dòng yêu cầu)
 
---- [05:01:53] E51. tpan route explain với tên phụ
+--- [05:46:28] E51. tpan route explain với tên phụ
   $ tpan route explain www.example.com (thoát 0)
     | Request tới www.example.com (nginx)
     | Tên phụ (redirect) của site example.com
@@ -448,8 +448,8 @@ ACME:      https://localhost:14000/dir
     |       ::ffff:127.0.0.1 DGRAM  
     |       ::ffff:127.0.0.1 RAW
     |     $ ip -o addr show scope global  (mã thoát 0)
-    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3169sec preferred_lft 3169sec
-    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591924sec preferred_lft 604724sec
+    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3176sec preferred_lft 3176sec
+    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591953sec preferred_lft 604753sec
     | [đạt] Vhost nhận tên miền: /etc/nginx/sites-enabled/tpan-example.com.conf:72
     |     Tên miền www.example.com (cổng 80) do vhost của chính site nhận: /etc/nginx/sites-enabled/tpan-example.com.conf:72
     | [đạt] Web server chuyển tên này về tên chính (301): 301 http://example.com/
@@ -473,8 +473,8 @@ ACME:      https://localhost:14000/dir
     |       ::ffff:127.0.0.1 DGRAM  
     |       ::ffff:127.0.0.1 RAW
     |     $ ip -o addr show scope global  (mã thoát 0)
-    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3169sec preferred_lft 3169sec
-    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591924sec preferred_lft 604724sec
+    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3176sec preferred_lft 3176sec
+    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591953sec preferred_lft 604753sec
     | [đạt] Vhost nhận tên miền: /etc/nginx/sites-enabled/tpan-example.com.conf:8
     |     Tên miền example.net (cổng 80) do vhost của chính site nhận: /etc/nginx/sites-enabled/tpan-example.com.conf:8
     | [đạt] Thư mục gốc của vhost: /var/www/example.com/public
@@ -486,21 +486,21 @@ ACME:      https://localhost:14000/dir
   => ĐẠT: E51: đi tới chặng HTTP
   => ĐẠT: E51: --json có host = www.example.com
 
---- [05:01:53] E52. tpan route explain evil.example.org (không thuộc site nào)
+--- [05:46:29] E52. tpan route explain evil.example.org (không thuộc site nào)
   $ tpan route explain evil.example.org (thoát 1)
     | Từ chối: không site nào có tên này; request với Host này rơi vào vhost mặc định và bị từ chối
   => ĐẠT: E52: thoát 1
   => ĐẠT: E52: nói tên không thuộc site nào (name_unknown)
-[2026-11-25 05:01:53] <<< E50-E52: bộ R01-R14 và route explain (nginx) xong trong 1 giây
+[2026-11-25 05:46:29] <<< E50-E52: bộ R01-R14 và route explain (nginx) xong trong 1 giây
 
-[2026-11-25 05:01:53] >>> E30-E33, S11: luật chuyển hướng (nginx)  (bash redirect.sh )
+[2026-11-25 05:46:29] >>> E30-E33, S11: luật chuyển hướng (nginx)  (bash redirect.sh )
 
---- [05:01:53] E30 (cổng). tpan site redirect có không?
+--- [05:46:29] E30 (cổng). tpan site redirect có không?
   có lệnh tpan site redirect
 
---- [05:01:53] E30. tpan site redirect add example.com /old-page /new-page: 301 đúng đích, query bị bỏ
+--- [05:46:29] E30. tpan site redirect add example.com /old-page /new-page: 301 đúng đích, query bị bỏ
   $ tpan site redirect add example.com /old-page /new-page --yes (thoát 0)
-    | Bắt đầu job 35028458c3155ffc
+    | Bắt đầu job b83befc9423d7f30
     | - Ghi vhost nginx cho example.com ...
     |   xong
     | - Bật /etc/nginx/sites-enabled/tpan-example.com.conf → /etc/nginx/sites-available/tpan-example.com.conf ...
@@ -514,7 +514,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job 35028458c3155ffc: thành công
+    | Job b83befc9423d7f30: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -531,9 +531,9 @@ ACME:      https://localhost:14000/dir
   => ĐẠT: E30: redirect list --json thoát 0 và có đúng 1 luật
   => ĐẠT: E30: luật trong list là /old-page -> /new-page 301
 
---- [05:01:56] E33. keep_query, 302, và các luật từ chối (query_conflict, exists, loop)
+--- [05:46:31] E33. keep_query, 302, và các luật từ chối (query_conflict, exists, loop)
   $ tpan site redirect add example.com /kq /dich-kq --yes --keep-query (thoát 0)
-    | Bắt đầu job a2a3ced58fac0460
+    | Bắt đầu job ac6e4d79807b815a
     | - Ghi vhost nginx cho example.com ...
     |   xong
     | - Bật /etc/nginx/sites-enabled/tpan-example.com.conf → /etc/nginx/sites-available/tpan-example.com.conf ...
@@ -547,7 +547,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job a2a3ced58fac0460: thành công
+    | Job ac6e4d79807b815a: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -556,19 +556,19 @@ ACME:      https://localhost:14000/dir
 fig.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_example_com_a379a6
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_example_com_a379a6
 
-[2026-11-25 05:04:11] <<< E30-E33, S11: luật chuyển hướng (nginx) xong trong 138 giây
+[2026-11-25 05:48:43] <<< E30-E33, S11: luật chuyển hướng (nginx) xong trong 134 giây
 
-[2026-11-25 05:04:11] >>> E11, E12, E40-E44, E53: chứng chỉ nhiều tên (nginx)  (bash ssl.sh )
+[2026-11-25 05:48:43] >>> E11, E12, E40-E44, E53: chứng chỉ nhiều tên (nginx)  (bash ssl.sh )
 sed: RE error: illegal byte sequence
 
---- [05:04:11] E11. tpan ssl issue example.com (pebble): chứng chỉ có example.com, www.example.com, example.net
+--- [05:48:43] E11. tpan ssl issue example.com (pebble): chứng chỉ có example.com, www.example.com, example.net
   $ tpan ssl issue example.com --yes (thoát 0)
     | [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
     |     Nguyên nhân: Tên miền trỏ về máy khác, hoặc máy này đứng sau NAT (IP public không hiện trên card mạng, thường gặp ở VPS đám mây). Nếu là NAT thì vẫn xin chứng chỉ được; bước thử HTTP sẽ cho câu trả lời thật.
     |     Sửa tay (gõ trên máy này, thư mục nào cũng được):
     |       sudo ip -o addr show scope global
     |       sudo getent ahostsv4 example.com
-    | Bắt đầu job db8ca8496fae1a65
+    | Bắt đầu job 40fe9f95e5ca17d7
     | - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
     |   xong
     | - Thử đường HTTP mà Let's Encrypt sẽ kiểm cho từng tên của example.com ...
@@ -590,45 +590,45 @@ sed: RE error: illegal byte sequence
     |   [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật
 
-[2026-11-25 05:04:46] <<< E11, E12, E40-E44, E53: chứng chỉ nhiều tên (nginx) xong trong 35 giây
+[2026-11-25 05:49:19] <<< E11, E12, E40-E44, E53: chứng chỉ nhiều tên (nginx) xong trong 36 giây
 
 ==== Phần NGINX: 173 khẳng định đạt, 0 không đạt
 
 
-######## [2026-11-25 05:04:46] PHẦN APACHE
+######## [2026-11-25 05:49:19] PHẦN APACHE
 
-[2026-11-25 05:04:46] đưa máy ảo tpan-m19 về sạch
-[2026-11-25 05:05:00] máy ảo sạch, kiến trúc arm64, IP <vm>
-[2026-11-25 05:05:00] make build-linux
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:05:00Z)
-[2026-11-25 05:10:04] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
+[2026-11-25 05:49:19] đưa máy ảo tpan-m19 về sạch
+[2026-11-25 05:49:33] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-25 05:49:33] make build-linux
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T22:49:33Z)
+[2026-11-25 05:54:36] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
 
-[2026-11-25 05:10:05] >>> dựng máy (apache), pebble, hai user thường  (bash dung-may.sh apache)
+[2026-11-25 05:54:38] >>> dựng máy (apache), pebble, hai user thường  (bash dung-may.sh apache)
 
---- [05:10:05] tpan version
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:05:00Z)
+--- [05:54:38] tpan version
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T22:49:33Z)
 
---- [05:10:05] tpan setup
-Job 8e60d01d8b921641: thành công
+--- [05:54:38] tpan setup
+Job f5025c878abe9cde: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    60:92:CF:6C:05:6F:AC:D2:15:55:1D:EE:40:6A:77:15:23:1B:B5:46:F8:09:DF:DD:17:CB:CA:4C:2B:C5:EB:29
+    0C:0B:A9:E0:3D:9F:89:2F:41:E6:06:05:EF:E6:82:19:CC:10:6A:C2:55:3E:1F:A6:D9:27:2E:B7:04:8E:B2:A3
 Mở: https://<IP của máy>:8443
   => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m19-admin.pw, không in)
   => ĐẠT: tpan.service active
 
---- [05:10:06] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+--- [05:54:38] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
   apt rảnh sau khoảng 0 giây
 
---- [05:10:06] tpan stack install --web apache --yes
+--- [05:54:38] tpan stack install --web apache --yes
   [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
   => ĐẠT: stack install --web apache thoát 0
 
---- [05:10:43] pebble (đồ nghề test) và tpan ssl settings
+--- [05:55:13] pebble (đồ nghề test) và tpan ssl settings
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
@@ -641,27 +641,27 @@ Staging:   bật (chứng chỉ thử, trình duyệt không tin)
 ACME:      https://localhost:14000/dir
   => ĐẠT: ssl settings thoát 0
 
---- [05:10:49] hai user thường (vai user) và /etc/hosts
+--- [05:55:18] hai user thường (vai user) và /etc/hosts
   => ĐẠT: user add khach_a thoát 0, có mật khẩu (không in)
   => ĐẠT: user add khach_b thoát 0, có mật khẩu (không in)
   /etc/hosts: example.com www.example.com blog.example.com example.net xn--vitnam-jk8b.example.net www.example.org example.org shop.khach-b.test www.e24.test -> 127.0.0.1
   => ĐẠT: nodns.example.invalid không phân giải được (cố ý)
 
---- [05:10:49] phiên API: admin, khach_a, khach_b
+--- [05:55:18] phiên API: admin, khach_a, khach_b
   đăng nhập admin: HTTP 204
   => ĐẠT: admin đăng nhập
   đăng nhập khach_a: HTTP 204
   => ĐẠT: khach_a đăng nhập
   đăng nhập khach_b: HTTP 204
   => ĐẠT: khach_b đăng nhập
-  khach_a GET /session: HTTP 200, 0.001980s (curl thoát 0), 175 byte; lỗi: 
+  khach_a GET /session: HTTP 200, 0.001829s (curl thoát 0), 175 byte; lỗi: 
   => ĐẠT: phiên của khach_a có vai user
   stack: nginx
-[2026-11-25 05:10:49] <<< dựng máy (apache), pebble, hai user thường xong trong 44 giây
+[2026-11-25 05:55:19] <<< dựng máy (apache), pebble, hai user thường xong trong 41 giây
 
-[2026-11-25 05:10:49] >>> E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (apache)  (bash ten.sh )
+[2026-11-25 05:55:19] >>> E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (apache)  (bash ten.sh )
 
---- [05:10:50] E01. tpan site add example.com (admin; mặc định --www redirect)
+--- [05:55:19] E01. tpan site add example.com (admin; mặc định --www redirect)
   $ tpan site add example.com  (thoát 0)
     |   [đạt] Vhost của site có đủ các dòng chặn cô lập
     |   [đạt] Thư mục public của site là thư mục thật của chính site
@@ -672,18 +672,18 @@ ACME:      https://localhost:14000/dir
     | www.example.com alias redirect active dns=warn in_cert=False
   => ĐẠT: E01: site alias list có www.example.com redirect active
 
---- [05:11:04] E02. Host: www.example.com (redirect) -> 301 về tên chính, giữ đường dẫn và query
+--- [05:55:35] E02. Host: www.example.com (redirect) -> 301 về tên chính, giữ đường dẫn và query
   GET http://www.example.com/a?b=1: HTTP 301, Location: http://example.com/a?b=1, X-Redirect-By: -
   => ĐẠT: E02: 301, Location http://example.com/a?b=1
 
---- [05:11:04] E03. Host: example.com -> 200, trang WordPress
+--- [05:55:35] E03. Host: example.com -> 200, trang WordPress
   GET http://example.com/: HTTP 200, Location: -, X-Redirect-By: -
   => ĐẠT: E03: 200 và là trang WordPress
   => ĐẠT: E03: thân có dấu WordPress
 
---- [05:11:04] E04. alias set www.example.com --mode serve (S2: đo bằng /readme.html và X-Redirect-By)
+--- [05:55:35] E04. alias set www.example.com --mode serve (S2: đo bằng /readme.html và X-Redirect-By)
   $ tpan site alias set example.com www.example.com --mode serve --yes (thoát 0)
-    | Bắt đầu job 7079b8c090aa0273
+    | Bắt đầu job afeaab0e8df13851
     | - Ghi vhost apache cho example.com ...
     |   xong
     | - Bật /etc/apache2/sites-enabled/tpan-example.com.conf → /etc/apache2/sites-available/tpan-example.com.conf ...
@@ -697,7 +697,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job 7079b8c090aa0273: thành công
+    | Job afeaab0e8df13851: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -711,7 +711,7 @@ ACME:      https://localhost:14000/dir
   GET http://www.example.com/: HTTP 301, Location: http://example.com/, X-Redirect-By: WordPress
   => ĐẠT: E04: / qua www.example.com kiểu serve trả 301 có X-Redirect-By: WordPress (WordPress tự đưa www về tên trong cài đặt)
   $ tpan site alias set example.com www.example.com --mode redirect --yes (thoát 0)
-    | Bắt đầu job a4c9e95ec469a9aa
+    | Bắt đầu job b9425a1adbb78e7e
     | - Ghi vhost apache cho example.com ...
     |   xong
     | - Bật /etc/apache2/sites-enabled/tpan-example.com.conf → /etc/apache2/sites-available/tpan-example.com.conf ...
@@ -725,7 +725,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job a4c9e95ec469a9aa: thành công
+    | Job b9425a1adbb78e7e: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -736,7 +736,7 @@ ACME:      https://localhost:14000/dir
   GET http://www.example.com/a?b=1: HTTP 301, Location: http://example.com/a?b=1, X-Redirect-By: -
   => ĐẠT: E04: sau khi đặt lại: 301 về tên chính, không có X-Redirect-By
 
---- [05:11:09] E05. tpan site add www.example.org --owner khach_a --www redirect (khach_a)
+--- [05:55:40] E05. tpan site add www.example.org --owner khach_a --www redirect (khach_a)
   $ tpan site add www.example.org --owner khach_a --www redirect (thoát 0)
     |   [đạt] .htaccess của site chỉ dùng chỉ thị được phép
     |   [đạt] Site www.example.org không chạm được vào file, log và socket của site example.com
@@ -749,7 +749,7 @@ ACME:      https://localhost:14000/dir
   GET http://example.org/: HTTP 301, Location: http://www.example.org/, X-Redirect-By: -
   => ĐẠT: E05: example.org chuyển về www.example.org (301, Location http://www.example.org/)
 
---- [05:11:14] E06. tpan site add blog.example.com (tên con: không có tên phụ nào)
+--- [05:55:45] E06. tpan site add blog.example.com (tên con: không có tên phụ nào)
   $ tpan site add blog.example.com  (thoát 0)
     |   [đạt] Site example.com không chạm được vào file, log và socket của site blog.example.com
     |   [đạt] Site blog.example.com không chạm được vào file, log và socket của site www.example.org
@@ -759,49 +759,49 @@ ACME:      https://localhost:14000/dir
     | blog.example.com primary serve active dns=warn in_cert=False
   => ĐẠT: E06: không có tên phụ
 
---- [05:11:20] E10. thêm tên phụ example.net (serve) và việtnam.example.net (serve) cho example.com bằng API (admin). E10 giao diện: ở e2e-m19-gd
-  admin POST /sites/example.com/names: HTTP 202, 0.020622s (curl thoát 0), 30 byte; lỗi: 
-  job 3f7b881b6f7495a1: succeeded
+--- [05:55:50] E10. thêm tên phụ example.net (serve) và việtnam.example.net (serve) cho example.com bằng API (admin). E10 giao diện: ở e2e-m19-gd
+  admin POST /sites/example.com/names: HTTP 202, 0.020940s (curl thoát 0), 30 byte; lỗi: 
+  job 719c186638fa376a: succeeded
   => ĐẠT: E10: POST names example.net: 202, job succeeded
   GET http://example.net/readme.html: HTTP 200, Location: -, X-Redirect-By: -
   => ĐẠT: E10: Host example.net (serve) trả 200 cho /readme.html
-  admin POST /sites/example.com/names: HTTP 202, 0.044529s (curl thoát 0), 30 byte; lỗi: 
-  job 9bc1db3e5144c634: succeeded
+  admin POST /sites/example.com/names: HTTP 202, 0.020559s (curl thoát 0), 30 byte; lỗi: 
+  job a96b120708d46d16: succeeded
   => ĐẠT: E10: POST names việtnam.example.net: 202, job succeeded
-  admin GET /sites/example.com/names: HTTP 200, 0.006959s (curl thoát 0), 423 byte; lỗi: 
+  admin GET /sites/example.com/names: HTTP 200, 0.006694s (curl thoát 0), 423 byte; lỗi: 
   => ĐẠT: E10: tên UTF-8 được lưu dạng punycode xn--vitnam-jk8b.example.net (t4)
-  admin GET /domains: HTTP 200, 0.002144s (curl thoát 0), 229 byte; lỗi: 
+  admin GET /domains: HTTP 200, 0.002009s (curl thoát 0), 229 byte; lỗi: 
   => ĐẠT: E10: GET /domains (admin) nêu example.com với các tên phụ www.example.com, example.net, xn--vitnam-jk8b.example.net
 
---- [05:11:27] E20 (S1). khach_b: POST names www.example.com (tên của site người khác) -> 409 name_unavailable, không lộ tên site hay chủ
+--- [05:55:58] E20 (S1). khach_b: POST names www.example.com (tên của site người khác) -> 409 name_unavailable, không lộ tên site hay chủ
   $ tpan site add shop.khach-b.test --owner khach_b (thoát 0)
     |   [đạt] Site example.com không chạm được vào file, log và socket của site shop.khach-b.test
     |   [đạt] Site shop.khach-b.test không chạm được vào file, log và socket của site www.example.org
     |   [đạt] Site www.example.org không chạm được vào file, log và socket của site shop.khach-b.test
   => ĐẠT: (dựng) site add shop.khach-b.test --owner khach_b thoát 0
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.004582s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.004208s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E20: 409
   => ĐẠT: E20: mã name_unavailable (user thường không thấy name_taken/name_root_foreign)
   => ĐẠT: E20: thân không có tên site hay tên chủ của người khác
-  admin POST /sites/shop.khach-b.test/names?dry_run=1: HTTP 409, 0.002317s (curl thoát 0), 198 byte; lỗi: name_taken
+  admin POST /sites/shop.khach-b.test/names?dry_run=1: HTTP 409, 0.002190s (curl thoát 0), 198 byte; lỗi: name_taken
   -- GHI NHẬN: admin cùng yêu cầu trên site của khach_b (dry_run): HTTP 409, mã name_taken (admin được miễn luật tên miền gốc; tên đã có chủ vẫn bị từ chối bằng mã chi tiết name_taken)
   => ĐẠT: E20: admin nhận mã chi tiết name_taken (S1: admin thấy mã thật)
 
---- [05:11:33] E21. khach_b: tên thuộc tên miền gốc của admin (example.com), dạng khác nhau -> 409 hoặc 400, không thêm dòng
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003448s (curl thoát 0), 318 byte; lỗi: name_unavailable
+--- [05:56:03] E21. khach_b: tên thuộc tên miền gốc của admin (example.com), dạng khác nhau -> 409 hoặc 400, không thêm dòng
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003664s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: shop.example.com -> 409 hay 400 (mã name_unavailable)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 400, 0.071080s (curl thoát 0), 153 byte; lỗi: domain_invalid
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 400, 0.002027s (curl thoát 0), 153 byte; lỗi: domain_invalid
   => ĐẠT: E21: example.com. -> 409 hay 400 (mã domain_invalid)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003898s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003613s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: EXAMPLE.COM -> 409 hay 400 (mã name_unavailable)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003485s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003411s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: xn--vitnam-jk8b.example.net -> 409 hay 400 (mã name_unavailable)
-  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003684s (curl thoát 0), 318 byte; lỗi: name_unavailable
+  khach_b POST /sites/shop.khach-b.test/names: HTTP 409, 0.003249s (curl thoát 0), 318 byte; lỗi: name_unavailable
   => ĐẠT: E21: example.net -> 409 hay 400 (mã name_unavailable)
   => ĐẠT: E21: site_names của shop.khach-b.test không thêm dòng (1 dòng trước và sau)
 
---- [05:11:33] E22 (S1). khach_b tạo site chung tên miền gốc với admin: 404 site_not_found như M28
-  khach_b POST /sites?dry_run=1: HTTP 404, 0.002249s (curl thoát 0), 222 byte; lỗi: site_not_found
+--- [05:56:03] E22 (S1). khach_b tạo site chung tên miền gốc với admin: 404 site_not_found như M28
+  khach_b POST /sites?dry_run=1: HTTP 404, 0.003268s (curl thoát 0), 222 byte; lỗi: site_not_found
   => ĐẠT: E22: POST /sites shop.example.com của khach_b: 404
   => ĐẠT: E22: mã site_not_found
   -- GHI NHẬN: E22 lệch bảng 7.2: bản 7.2 viết 'admin làm hộ bị name_root_foreign'; S1 cho admin miễn luật tên miền gốc (Claim.ByAdmin), nên chỉ thử --dry-run và ghi nhận, không khẳng định
@@ -819,36 +819,36 @@ ACME:      https://localhost:14000/dir
     |  4. [sẽ chạy] Tạo thư mục /var/www/shop.example.com/public  (dir:/var/www/shop.example.com/public)
     |     Vì sao: Các bước sau ghi file   => ĐẠT: E22: dry-run của admin không ghi dòng nào vào site_names
 
---- [05:11:33] E23. giao diện của khach_b: ở e2e-m19-gd
+--- [05:56:03] E23. giao diện của khach_b: ở e2e-m19-gd
 
---- [05:11:33] E25, E26. chủ site thường tự thêm và gỡ tên phụ của mình; user khác không thấy site (404)
-  khach_a POST /sites/www.example.org/names: HTTP 202, 0.021626s (curl thoát 0), 30 byte; lỗi: 
-  job 783bc3c97586ad12: succeeded
+--- [05:56:03] E25, E26. chủ site thường tự thêm và gỡ tên phụ của mình; user khác không thấy site (404)
+  khach_a POST /sites/www.example.org/names: HTTP 202, 0.056385s (curl thoát 0), 30 byte; lỗi: 
+  job a60f7480d95f438a: succeeded
   => ĐẠT: E25: khach_a thêm blog.example.org (tên miền gốc của chính mình): 202, job succeeded
   GET http://blog.example.org/readme.html: HTTP 200, Location: -, X-Redirect-By: -
   => ĐẠT: E25: tên đó (serve) trả 200 cho /readme.html
-  khach_a POST /sites/www.example.org/names/blog.example.org/mode?dry_run=1: HTTP 200, 0.002852s (curl thoát 0), 20136 byte; lỗi: 
+  khach_a POST /sites/www.example.org/names/blog.example.org/mode?dry_run=1: HTTP 200, 0.002652s (curl thoát 0), 20136 byte; lỗi: 
   => ĐẠT: E25: POST names/{name}/mode?dry_run=1: 200
-  khach_a DELETE /sites/www.example.org/names/blog.example.org: HTTP 202, 0.004800s (curl thoát 0), 30 byte; lỗi: 
-  job fdb2a87b8e4532f0: succeeded
+  khach_a DELETE /sites/www.example.org/names/blog.example.org: HTTP 202, 0.005118s (curl thoát 0), 30 byte; lỗi: 
+  job e6899da1066f3443: succeeded
   => ĐẠT: E25: khach_a gỡ blog.example.org: 202, job succeeded
-  khach_b GET /sites/www.example.org/names: HTTP 404, 0.002205s (curl thoát 0), 220 byte; lỗi: site_not_found
+  khach_b GET /sites/www.example.org/names: HTTP 404, 0.002156s (curl thoát 0), 220 byte; lỗi: site_not_found
   => ĐẠT: E26: khach_b xem tên của site khach_a: 404 site_not_found
-  khach_a POST /sites/example.com/names?dry_run=1: HTTP 404, 0.002102s (curl thoát 0), 212 byte; lỗi: site_not_found
+  khach_a POST /sites/example.com/names?dry_run=1: HTTP 404, 0.002412s (curl thoát 0), 212 byte; lỗi: site_not_found
   => ĐẠT: E26: khach_a thêm tên cho site của admin: 404 site_not_found
 
---- [05:11:39] E24 (S6). khach_a, khach_b: 10 + 10 request song song thêm www.e24.test; thêm 3 lệnh CLI tpan site alias add song song
-  người thắng: API b10, job 309933210f410919: succeeded
-  CLI 1 thua (thoát 1): Từ chối: tên www.e24.test đã thuộc một site khác trên máy này 
-  CLI 2 thua (thoát 1): Từ chối: tên www.e24.test đã thuộc một site khác trên máy này 
-  người thắng: CLI 3
-  số người thắng (202 của API + CLI thoát 0): 2
-  site của người thắng: b b (số site khác nhau: 1)
+--- [05:56:11] E24 (S6). khach_a, khach_b: 10 + 10 request song song thêm www.e24.test; thêm 3 lệnh CLI tpan site alias add song song
+  người thắng: API a3, job 1eb6a77fdfb06496: succeeded
+  người thắng: CLI 1
+  người thắng: CLI 2
+  CLI 3 thua (thoát 1): Từ chối: tên www.e24.test đã thuộc một site khác trên máy này 
+  số người thắng (202 của API + CLI thoát 0): 3
+  site của người thắng: a a a (số site khác nhau: 1)
   => ĐẠT: E24: có người thắng và mọi người thắng thuộc cùng một site (API và CLI)
   => ĐẠT: E24: mọi request thua nhận 409 job_running / name_unavailable / alias_exists / name_taken
   => ĐẠT: E24: site_names có đúng một dòng mang tên www.e24.test
   => ĐẠT: E24: dòng đó active (job thắng đã xong, không còn pending mồ côi)
-  site giữ www.e24.test: shop.khach-b.test
+  site giữ www.e24.test: www.example.org
 
   => ĐẠT: E24: vhost của www.example.org không lặp tên trong server_name/ServerAlias (lặp: )
 
@@ -856,11 +856,11 @@ ACME:      https://localhost:14000/dir
 
   => ĐẠT: E24: vhost của example.com không lặp tên trong server_name/ServerAlias (lặp: )
   => ĐẠT: E24: cú pháp config của apache đạt, không có 'conflicting server name'
-  $ tpan site alias rm shop.khach-b.test www.e24.test --yes (thoát 0)
-    | Bắt đầu job dca00f02ccb17b1d
-    | - Ghi vhost apache cho shop.khach-b.test ...
+  $ tpan site alias rm www.example.org www.e24.test --yes (thoát 0)
+    | Bắt đầu job 29fe9fbec6638a4f
+    | - Ghi vhost apache cho www.example.org ...
     |   xong
-    | - Bật /etc/apache2/sites-enabled/tpan-shop.khach-b.test.conf → /etc/apache2/sites-available/tpan-shop.khach-b.test.conf ...
+    | - Bật /etc/apache2/sites-enabled/tpan-www.example.org.conf → /etc/apache2/sites-available/tpan-www.example.org.conf ...
     |   đã đúng, bỏ qua
     | - Kiểm www.e24.test không còn vào site ...
     |   xong
@@ -871,18 +871,18 @@ ACME:      https://localhost:14000/dir
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job dca00f02ccb17b1d: thành công
+    | Job 29fe9fbec6638a4f: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
     |   [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
-    |   [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_shop_khach_b_tes_d4ef5e
-    |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_shop_khach_b_tes_d4ef5e
-    |   [đạt] Gọi HTTP vào site trả 200 và đúng  => ĐẠT: E24: dọn: alias rm www.e24.test thoát 0
+    |   [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_www_example_org_8a59b0
+    |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_www_example_org_8a59b0
+    |   [đạt] Gọi HTTP vào site trả 200 và đúng là Wor  => ĐẠT: E24: dọn: alias rm www.e24.test thoát 0
 
---- [05:11:45] S12. site tạm khoá: thao tác tên phụ -> site_suspended; site trong thùng rác -> site_not_active
+--- [05:56:21] S12. site tạm khoá: thao tác tên phụ -> site_suspended; site trong thùng rác -> site_not_active
   $ tpan site suspend blog.example.com --yes (thoát 0)
-    | Bắt đầu job 35c5e01373416b50
+    | Bắt đầu job 4c255cf458d4139e
     | - Ghi trang tạm khoá /var/lib/tpan/suspended/tpan-suspended.html ...
     |   xong
     | - Ghi vhost apache bản tạm khoá cho blog.example.com ...
@@ -897,19 +897,19 @@ ACME:      https://localhost:14000/dir
     |   [đạt] Cấu hình Apache hợp lệ
     |   [đạt] Gọi vào site đang tạm khoá trả 403 kèm trang tạm khoá
     | 
-    | Job 35c5e01373416b50: thành công
+    | Job 4c255cf458d4139e: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
     |   [đạt] Gọi vào site đang tạm khoá trả 403 kèm trang tạm khoá: Site trả 403 kèm trang tạm khoá
   => ĐẠT: S12: site suspend blog.example.com thoát 0
-  admin POST /sites/blog.example.com/names: HTTP 409, 0.003423s (curl thoát 0), 316 byte; lỗi: site_suspended
+  admin POST /sites/blog.example.com/names: HTTP 409, 0.003883s (curl thoát 0), 316 byte; lỗi: site_suspended
   => ĐẠT: S12: thêm tên phụ trên site tạm khoá: 409 site_suspended
   $ tpan site alias add blog.example.com www.blog.example.com --yes (thoát 1)
     | Từ chối: site blog.example.com đang tạm khoá; mở khoá trước rồi mới đổi tên phụ: sudo tpan site unsuspend blog.example.com
   => ĐẠT: S12: CLI alias add trên site tạm khoá: thoát khác 0
   $ tpan site unsuspend blog.example.com --yes (thoát 0)
-    | Bắt đầu job f4677c50981f85e0
+    | Bắt đầu job ca130df2f38e4116
     | - Bật lại pool PHP-FPM tpan-blog_example_com_bd0054 ...
     |   xong
     | - Bật lại cron WordPress của blog.example.com ...
@@ -925,9 +925,9 @@ ACME:      https://localhost:14000/dir
     |   [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
     |   [đạt] wp-config.php có quyền 0600 và đúng chủ
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
-    |   [đạt] Gọi HTTP vàsed: RE error: illegal byte sequence
-o site trả 200 và đúng là WordPress của site
-    |   [đạt] Log của site không đọc được bởi site khác
+    |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+    |   [đạt] Log của sed: RE error: illegal byte sequence
+site không đọc được bởi site khác
     |   [đạt] Vhost của site có đủ các dòng chặn cô lập
     |   [đạt] Thư mục public của site là thư mục thật của chính site
     |   [đạt] .htaccess của site chỉ dùng chỉ thị được phép
@@ -936,7 +936,7 @@ o site trả 200 và đúng là WordPress của site
     |   [đạt] Site blog.example.com không chạm được vào file, log và socket của site shop.khach-b.test
     |   [đạt] Site shop.khach-b.test k  => ĐẠT: S12: site unsuspend blog.example.com thoát 0
   $ tpan site rm blog.example.com --yes (thoát 0)
-    | Bắt đầu job 1fc77004fdbb611d
+    | Bắt đầu job 735998ded8e7b96e
     | - Tắt vhost của blog.example.com ...
     |   xong
     | - Gỡ pool PHP-FPM tpan-blog_example_com_bd0054 ...
@@ -951,15 +951,15 @@ o site trả 200 và đúng là WordPress của site
     |   xong
     |   [đạt] Domain blog.example.com không còn được phục vụ
     | 
-    | Job 1fc77004fdbb611d: thành công
+    | Job 735998ded8e7b96e: thành công
     | Kiểm chứng:
     |   [đạt] Domain blog.example.com không còn được phục vụ: Domain không còn được phục vụ (curl mã thoát 0, HTTP 403)
-    | Site blog.example.com đã vào thùng rác; xoá hẳn lúc 2026-12-02 05:11. Khôi phục: sudo tpan site restore blog.example.com
+    | Site blog.example.com đã vào thùng rác; xoá hẳn lúc 2026-12-02 05:56. Khôi phục: sudo tpan site restore blog.example.com
   => ĐẠT: S12: site rm blog.example.com (vào thùng rác) thoát 0
-  admin POST /sites/blog.example.com/names: HTTP 409, 0.004214s (curl thoát 0), 275 byte; lỗi: site_not_active
+  admin POST /sites/blog.example.com/names: HTTP 409, 0.003084s (curl thoát 0), 275 byte; lỗi: site_not_active
   => ĐẠT: S12: thêm tên phụ trên site trong thùng rác: mã site_not_active (HTTP 409)
   $ tpan site restore blog.example.com --yes (thoát 0)
-    | Bắt đầu job 0e0699c5541a6d40
+    | Bắt đầu job 0163af809714afd4
     | - Chuyển thư mục của blog.example.com ra khỏi thùng rác ...
     |   xong
     | - Mở khoá user Linux tp_blog_example_com_bd0054 của blog.example.com ...
@@ -987,11 +987,11 @@ o site trả 200 và đúng là WordPress của site
     |   [đạt] Log của site không đọc được bởi site khác
     |   [đạt] Vhost của site có đủ các dòng chặn cô lập
 
-[2026-11-25 05:11:53] <<< E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (apache) xong trong 64 giây
+[2026-11-25 05:56:28] <<< E01-E06, E10, E20-E24, S1, S12: tên phụ và quyền (apache) xong trong 69 giây
 
-[2026-11-25 05:11:53] >>> E50-E52: bộ R01-R14 và route explain (apache)  (bash dinh-tuyen.sh )
+[2026-11-25 05:56:28] >>> E50-E52: bộ R01-R14 và route explain (apache)  (bash dinh-tuyen.sh )
 
---- [05:11:53] E50. bộ R01-R14 trên stack apache (trạng thái: chưa SSL; www.example.com redirect; example.net và xn--vitnam-jk8b.example.net serve)
+--- [05:56:29] E50. bộ R01-R14 trên stack apache (trạng thái: chưa SSL; www.example.com redirect; example.net và xn--vitnam-jk8b.example.net serve)
   R01 (apache): STATUS 301, LOCATION http://example.com/ (bảng: 301, Location http://example.com/)
   => ĐẠT: R01: Host WWW.EXAMPLE.COM -> 301 về tên chính
   R02 (apache): STATUS 200, LOCATION - (bảng: 200)
@@ -1021,7 +1021,7 @@ o site trả 200 và đúng là WordPress của site
   R14 (apache): STATUS 301, LOCATION http://example.com/x (bảng: 301)
   => ĐẠT: R14: GET http://www.example.com/x, Host evil.example.org -> 301 (chọn theo dòng yêu cầu)
 
---- [05:11:53] E51. tpan route explain với tên phụ
+--- [05:56:29] E51. tpan route explain với tên phụ
   $ tpan route explain www.example.com (thoát 0)
     | Request tới www.example.com (apache)
     | Tên phụ (redirect) của site example.com
@@ -1037,8 +1037,8 @@ o site trả 200 và đúng là WordPress của site
     |       ::ffff:127.0.0.1 DGRAM  
     |       ::ffff:127.0.0.1 RAW
     |     $ ip -o addr show scope global  (mã thoát 0)
-    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3185sec preferred_lft 3185sec
-    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591964sec preferred_lft 604764sec
+    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3181sec preferred_lft 3181sec
+    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591878sec preferred_lft 604678sec
     | [đạt] Vhost nhận tên miền: /etc/apache2/sites-enabled/tpan-example.com.conf:96
     |     Tên miền www.example.com (cổng 80) do vhost của chính site nhận: /etc/apache2/sites-enabled/tpan-example.com.conf:96
     | [đạt] Web server chuyển tên này về tên chính (301): 301 http://example.com/
@@ -1062,8 +1062,8 @@ o site trả 200 và đúng là WordPress của site
     |       ::ffff:127.0.0.1 DGRAM  
     |       ::ffff:127.0.0.1 RAW
     |     $ ip -o addr show scope global  (mã thoát 0)
-    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3184sec preferred_lft 3184sec
-    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591964sec preferred_lft 604764sec
+    |       2: eth0    inet <vm>/24 metric 100 brd 192.168.252.255 scope global dynamic eth0\       valid_lft 3181sec preferred_lft 3181sec
+    |       2: eth0    inet6 fd4b:5324:b51a:dc21:5054:ff:fe33:fb1e/64 scope global dynamic mngtmpaddr noprefixroute \       valid_lft 2591878sec preferred_lft 604678sec
     | [đạt] Vhost nhận tên miền: /etc/apache2/sites-enabled/tpan-example.com.conf:5
     |     Tên miền example.net (cổng 80) do vhost của chính site nhận: /etc/apache2/sites-enabled/tpan-example.com.conf:5
     | [đạt] Thư mục gốc của vhost: /var/www/example.com/public
@@ -1075,21 +1075,21 @@ o site trả 200 và đúng là WordPress của site
   => ĐẠT: E51: đi tới chặng HTTP
   => ĐẠT: E51: --json có host = www.example.com
 
---- [05:11:53] E52. tpan route explain evil.example.org (không thuộc site nào)
+--- [05:56:29] E52. tpan route explain evil.example.org (không thuộc site nào)
   $ tpan route explain evil.example.org (thoát 1)
     | Từ chối: không site nào có tên này; request với Host này rơi vào vhost mặc định và bị từ chối
   => ĐẠT: E52: thoát 1
   => ĐẠT: E52: nói tên không thuộc site nào (name_unknown)
-[2026-11-25 05:11:54] <<< E50-E52: bộ R01-R14 và route explain (apache) xong trong 0 giây
+[2026-11-25 05:56:29] <<< E50-E52: bộ R01-R14 và route explain (apache) xong trong 1 giây
 
-[2026-11-25 05:11:54] >>> E30-E33, S11: luật chuyển hướng (apache)  (bash redirect.sh )
+[2026-11-25 05:56:29] >>> E30-E33, S11: luật chuyển hướng (apache)  (bash redirect.sh )
 
---- [05:11:54] E30 (cổng). tpan site redirect có không?
+--- [05:56:29] E30 (cổng). tpan site redirect có không?
   có lệnh tpan site redirect
 
---- [05:11:54] E30. tpan site redirect add example.com /old-page /new-page: 301 đúng đích, query bị bỏ
+--- [05:56:29] E30. tpan site redirect add example.com /old-page /new-page: 301 đúng đích, query bị bỏ
   $ tpan site redirect add example.com /old-page /new-page --yes (thoát 0)
-    | Bắt đầu job f749637620964383
+    | Bắt đầu job 9ff6622499979f8f
     | - Ghi vhost apache cho example.com ...
     |   xong
     | - Bật /etc/apache2/sites-enabled/tpan-example.com.conf → /etc/apache2/sites-available/tpan-example.com.conf ...
@@ -1103,7 +1103,7 @@ o site trả 200 và đúng là WordPress của site
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job f749637620964383: thành công
+    | Job 9ff6622499979f8f: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1120,9 +1120,9 @@ o site trả 200 và đúng là WordPress của site
   => ĐẠT: E30: redirect list --json thoát 0 và có đúng 1 luật
   => ĐẠT: E30: luật trong list là /old-page -> /new-page 301
 
---- [05:11:56] E33. keep_query, 302, và các luật từ chối (query_conflict, exists, loop)
+--- [05:56:32] E33. keep_query, 302, và các luật từ chối (query_conflict, exists, loop)
   $ tpan site redirect add example.com /kq /dich-kq --yes --keep-query (thoát 0)
-    | Bắt đầu job 4a84753676f086b7
+    | Bắt đầu job 80b95518cd08648f
     | - Ghi vhost apache cho example.com ...
     |   xong
     | - Bật /etc/apache2/sites-enabled/tpan-example.com.conf → /etc/apache2/sites-available/tpan-example.com.conf ...
@@ -1136,7 +1136,7 @@ o site trả 200 và đúng là WordPress của site
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job 4a84753676f086b7: thành công
+    | Job 80b95518cd08648f: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1147,7 +1147,7 @@ o site trả 200 và đúng là WordPress của site
   GET http://example.com/kq?a=1&b=2: HTTP 301, Location: http://example.com/dich-kq?a=1&b=2, X-Redirect-By: -
   => ĐẠT: E33: keep_query: 301, Location http://example.com/dich-kq?a=1&b=2
   $ tpan site redirect add example.com /tam /dich-tam --yes --code 302 (thoát 0)
-    | Bắt đầu job 838eae0b5d3a8aae
+    | Bắt đầu job 6ee41c9362321a7b
     | - Ghi vhost apache cho example.com ...
     |   xong
     | - Bật /etc/apache2/sites-enabled/tpan-example.com.conf → /etc/apache2/sites-available/tpan-example.com.conf ...
@@ -1161,7 +1161,7 @@ o site trả 200 và đúng là WordPress của site
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job 838eae0b5d3a8aae: thành công
+    | Job 6ee41c9362321a7b: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1171,16 +1171,16 @@ o site trả 200 và đúng là WordPress của site
     |   [đạt] Gọi HTTP vào site trả 200 và đ  => ĐẠT: E33: redirect add /tam --code 302 thoát 0
   GET http://example.com/tam?z=1: HTTP 302, Location: http://example.com/dich-tam, X-Redirect-By: -
   => ĐẠT: E33: 302, Location http://example.com/dich-tam (query bỏ)
-  admin POST /sites/example.com/redirects: HTTP 400, 0.003408s (curl thoát 0), 244 byte; lỗi: redirect_query_conflict
+  admin POST /sites/example.com/redirects: HTTP 400, 0.003513s (curl thoát 0), 244 byte; lỗi: redirect_query_conflict
   => ĐẠT: E33: --keep-query với đích đã có query: 400 redirect_query_conflict
-  admin POST /sites/example.com/redirects: HTTP 409, 0.003331s (curl thoát 0), 305 byte; lỗi: redirect_exists
+  admin POST /sites/example.com/redirects: HTTP 409, 0.003200s (curl thoát 0), 305 byte; lỗi: redirect_exists
   => ĐẠT: E33: thêm lại luật đã có: 409 redirect_exists
-  admin POST /sites/example.com/redirects: HTTP 400, 0.003296s (curl thoát 0), 254 byte; lỗi: redirect_loop
+  admin POST /sites/example.com/redirects: HTTP 400, 0.003276s (curl thoát 0), 254 byte; lỗi: redirect_loop
   => ĐẠT: E33 (S15): nguồn bằng đích: 400 redirect_loop
-  admin POST /sites/example.com/redirects: HTTP 400, 0.003464s (curl thoát 0), 278 byte; lỗi: redirect_loop
+  admin POST /sites/example.com/redirects: HTTP 400, 0.003096s (curl thoát 0), 278 byte; lỗi: redirect_loop
   => ĐẠT: E33 (S15): đích là URL tuyệt đối về chính tên của site, cùng đường dẫn với nguồn: 400 redirect_loop
   $ tpan site redirect add example.com /la /lb --yes (thoát 0)
-    | Bắt đầu job 8140dcfb2d30df51
+    | Bắt đầu job 2edb80b26c04c152
     | - Ghi vhost apache cho example.com ...
     |   xong
     | - Bật /etc/apache2/sites-enabled/tpan-example.com.conf → /etc/apache2/sites-available/tpan-example.com.conf ...
@@ -1195,7 +1195,7 @@ o site trả 200 và đúng là WordPress của site
 y DB của site
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     | 
-    | Job 8140dcfb2d30df51: thành công
+    | Job 2edb80b26c04c152: thành công
     | Kiểm chứng:
     |   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
     |   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -1203,19 +1203,19 @@ y DB của site
     |   [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_example_com_a379a6
     |   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_example_com_a379a6
 
-[2026-11-25 05:14:30] <<< E30-E33, S11: luật chuyển hướng (apache) xong trong 156 giây
+[2026-11-25 05:58:52] <<< E30-E33, S11: luật chuyển hướng (apache) xong trong 143 giây
 
-[2026-11-25 05:14:30] >>> E11, E12, E40-E44, E53: chứng chỉ nhiều tên (apache)  (bash ssl.sh )
+[2026-11-25 05:58:52] >>> E11, E12, E40-E44, E53: chứng chỉ nhiều tên (apache)  (bash ssl.sh )
 sed: RE error: illegal byte sequence
 
---- [05:14:30] E11. tpan ssl issue example.com (pebble): chứng chỉ có example.com, www.example.com, example.net
+--- [05:58:52] E11. tpan ssl issue example.com (pebble): chứng chỉ có example.com, www.example.com, example.net
   $ tpan ssl issue example.com --yes (thoát 0)
     | [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
     |     Nguyên nhân: Tên miền trỏ về máy khác, hoặc máy này đứng sau NAT (IP public không hiện trên card mạng, thường gặp ở VPS đám mây). Nếu là NAT thì vẫn xin chứng chỉ được; bước thử HTTP sẽ cho câu trả lời thật.
     |     Sửa tay (gõ trên máy này, thư mục nào cũng được):
     |       sudo ip -o addr show scope global
     |       sudo getent ahostsv4 example.com
-    | Bắt đầu job d785ee155e5c423f
+    | Bắt đầu job 47f0d70f1d75c07e
     | - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
     |   xong
     | - Thử đường HTTP mà Let's Encrypt sẽ kiểm cho từng tên của example.com ...
@@ -1239,48 +1239,48 @@ sed: RE error: illegal byte sequence
     | - Ghi hook gia hạn chứng chỉ ...
     |   xong
 
-[2026-11-25 05:15:05] <<< E11, E12, E40-E44, E53: chứng chỉ nhiều tên (apache) xong trong 35 giây
+[2026-11-25 05:59:26] <<< E11, E12, E40-E44, E53: chứng chỉ nhiều tên (apache) xong trong 34 giây
 
 ==== Phần APACHE: 173 khẳng định đạt, 0 không đạt
 
 
-######## [2026-11-25 05:15:05] PHẦN NÂNG CẤP: bản ngay trước M19 (f6a68b9) lên bản của cây (apache)
+######## [2026-11-25 05:59:26] PHẦN NÂNG CẤP: bản ngay trước M19 (f6a68b9) lên bản của cây (apache)
 
-[2026-11-25 05:15:05] đưa máy ảo tpan-m19 về sạch
-[2026-11-25 05:15:19] máy ảo sạch, kiến trúc arm64, IP <vm>
-[2026-11-25 05:15:19] dùng bin/tpan-truoc-m19-linux-arm64 có sẵn
-[2026-11-25 05:15:19] chép bin/tpan-truoc-m19-linux-arm64 vào máy ảo
-[2026-11-25 05:15:19] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
+[2026-11-25 05:59:26] đưa máy ảo tpan-m19 về sạch
+[2026-11-25 05:59:40] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-25 05:59:40] dùng bin/tpan-truoc-m19-linux-arm64 có sẵn
+[2026-11-25 05:59:40] chép bin/tpan-truoc-m19-linux-arm64 vào máy ảo
+[2026-11-25 05:59:41] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
 
-[2026-11-25 05:15:21] >>> cài bản trước M19, hai site, SSL cho một site, ghi sha256 vhost và health  (bash nang-cap.sh truoc apache)
+[2026-11-25 05:59:42] >>> cài bản trước M19, hai site, SSL cho một site, ghi sha256 vhost và health  (bash nang-cap.sh truoc apache)
 
---- [05:15:20] N0. bản đang chạy (trước M19)
+--- [05:59:42] N0. bản đang chạy (trước M19)
 tpan dev (commit none, build unknown)
 
---- [05:15:20] tpan version
+--- [05:59:42] tpan version
 tpan dev (commit none, build unknown)
 
---- [05:15:20] tpan setup
-Job 2cd1e953c1554e9a: thành công
+--- [05:59:42] tpan setup
+Job ed6f77c15d41ff01: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    95:28:16:7E:15:69:45:82:47:FA:D0:00:C7:7C:AD:6F:F8:DF:78:5F:1F:4F:FB:56:19:C0:A0:3F:F4:E9:10:FD
+    5F:48:DC:DE:A6:6F:59:42:BA:A5:52:35:BB:5F:79:90:51:79:22:8B:2E:3F:42:B3:AA:31:82:12:FE:C6:57:99
 Mở: https://<IP của máy>:8443
   => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m19-admin.pw, không in)
   => ĐẠT: tpan.service active
 
---- [05:15:21] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+--- [05:59:43] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
   apt rảnh sau khoảng 0 giây
 
---- [05:15:21] tpan stack install --web apache --yes
+--- [05:59:43] tpan stack install --web apache --yes
   [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
   => ĐẠT: stack install --web apache thoát 0
 
---- [05:15:55] pebble (đồ nghề test) và tpan ssl settings
+--- [06:00:17] pebble (đồ nghề test) và tpan ssl settings
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
@@ -1294,7 +1294,7 @@ ACME:      https://localhost:14000/dir
   => ĐẠT: ssl settings thoát 0
   /etc/hosts: example.com old2.example.com -> 127.0.0.1
 
---- [05:16:00] N1. trên bản trước M19: site example.com (SSL bằng pebble) và old2.example.com
+--- [06:00:22] N1. trên bản trước M19: site example.com (SSL bằng pebble) và old2.example.com
   $ tpan site add example.com  (thoát 0)
     |   [đạt] Vhost của site có đủ các dòng chặn cô lập
     |   [đạt] Thư mục public của site là thư mục thật của chính site
@@ -1311,7 +1311,7 @@ ACME:      https://localhost:14000/dir
     |     Sửa tay (gõ trên máy này, thư mục nào cũng được):
     |       sudo ip -o addr show scope global
     |       sudo getent ahostsv4 example.com
-    | Bắt đầu job 3e4d764598a7769b
+    | Bắt đầu job 610401a861400f20
     | - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
     |   xong
     | - Thử đường HTTP mà Let's Encrypt sẽ kiểm cho example.com ...
@@ -1337,7 +1337,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] Chứng chỉ SSL có, khớp tên miền và còn  => ĐẠT: ssl issue example.com thoát 0
   => ĐẠT: bản trước M19 chưa có bảng site_names (xác nhận đang đo đúng bản cũ)
 
---- [05:16:32] N2. mốc: sha256 hai vhost và health
+--- [06:00:52] N2. mốc: sha256 hai vhost và health
 6745502b1107c0381cd8605478e3b4989e3b79753845bcd79d0bfa4ad7bd5eb6  /etc/apache2/sites-available/tpan-example.com.conf
 5e5d6699a6f5670fa1fe40564b2f4e6674ca6516511f825447cf97e96e2b2544  /etc/apache2/sites-available/tpan-old2.example.com.conf
   => ĐẠT: có sha256 của cả hai vhost
@@ -1346,18 +1346,18 @@ ACME:      https://localhost:14000/dir
   | [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của old2.example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
   | [cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho old2.example.com
   | [cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
-[2026-11-25 05:16:36] <<< cài bản trước M19, hai site, SSL cho một site, ghi sha256 vhost và health xong trong 75 giây
+[2026-11-25 06:00:57] <<< cài bản trước M19, hai site, SSL cho một site, ghi sha256 vhost và health xong trong 75 giây
 
-[2026-11-25 05:16:36] thay file chạy bằng bản của cây rồi restart tpan
-[2026-11-25 05:16:40] chép bin/tpan-linux-arm64 vào máy ảo
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:16:36Z)
+[2026-11-25 06:00:57] thay file chạy bằng bản của cây rồi restart tpan
+[2026-11-25 06:01:00] chép bin/tpan-linux-arm64 vào máy ảo
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T23:00:57Z)
 
-[2026-11-25 05:16:40] >>> E60-E62: sau nâng cấp  (bash nang-cap.sh sau apache)
+[2026-11-25 06:01:01] >>> E60-E62: sau nâng cấp  (bash nang-cap.sh sau apache)
 
---- [05:16:40] N3. bản đang chạy (bản của cây)
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:16:36Z)
+--- [06:01:01] N3. bản đang chạy (bản của cây)
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T23:00:57Z)
 
---- [05:16:40] E60. sau nâng: site_names chỉ có hai dòng primary; vhost không đổi; health không có dòng mới
+--- [06:01:01] E60. sau nâng: site_names chỉ có hai dòng primary; vhost không đổi; health không có dòng mới
   => ĐẠT: E60: site_names có đúng 2 dòng
   => ĐẠT: E60: cả hai dòng là primary, active
   => ĐẠT: E60: tên là example.com và old2.example.com
@@ -1367,15 +1367,13 @@ tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:16:36Z)
 /etc/apache2/sites-available/tpan-example.com.conf: OK
 /etc/apache2/sites-available/tpan-old2.example.com.conf: OK
   => ĐẠT: E60: sha256 hai vhost không đổi so với bản trước M19
-  dòng mới:
-[cảnh báo] Mọi admin đã bật đăng nhập hai bước: Admin chưa bật đăng nhập hai bước: admin
-  => KHÔNG ĐẠT: E60: tpan health không có dòng [lỗi] hay [cảnh báo] mới so với trước khi nâng
+  => ĐẠT: E60: tpan health không có dòng [lỗi] hay [cảnh báo] mới so với trước khi nâng
   GET https://example.com/readme.html: HTTP 200 (curl thoát 0), Location: -
   => ĐẠT: E60: https://example.com/ trả 200
   GET http://old2.example.com/readme.html: HTTP 200, Location: -, X-Redirect-By: -
   => ĐẠT: E60: http://old2.example.com/ trả 200
 
---- [05:16:44] E61. sửa lệch vhost (bỏ dòng đầu của tpan), tpan health --fix ghi lại, sha256 vẫn bằng bản trước
+--- [06:01:05] E61. sửa lệch vhost (bỏ dòng đầu của tpan), tpan health --fix ghi lại, sha256 vẫn bằng bản trước
   => ĐẠT: E61: sau khi bỏ dòng đầu, sha256 khác bản trước (đã lệch thật)
   web.vhost:example.com: fail,fail; web.vhost:old2.example.com: fail,fail
   => ĐẠT: E61: health thấy hai vhost lệch (web.vhost fail)
@@ -1403,7 +1401,7 @@ tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:16:36Z)
   GET https://example.com/readme.html: HTTP 200 (curl thoát 0), Location: -
   => ĐẠT: E61: https://example.com/ vẫn 200
 
---- [05:16:57] E62. site add chạy lại trên site cũ (tên miền gốc): không có tên phụ mới
+--- [06:01:18] E62. site add chạy lại trên site cũ (tên miền gốc): không có tên phụ mới
   $ tpan site add example.com  (thoát 0)
     |   [đạt] .htaccess của site chỉ dùng chỉ thị được phép
     |   [đạt] Site example.com không chạm được vào file, log và socket của site old2.example.com
@@ -1416,19 +1414,19 @@ tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:16:36Z)
 /etc/apache2/sites-available/tpan-example.com.conf: OK
 /etc/apache2/sites-available/tpan-old2.example.com.conf: OK
   => ĐẠT: E62: sha256 hai vhost vẫn như bản trước M19
-[2026-11-25 05:16:59] <<< E60-E62: sau nâng cấp xong trong 19 giây
+[2026-11-25 06:01:20] <<< E60-E62: sau nâng cấp xong trong 19 giây
 
-==== Phần NÂNG-CẤP: 26 khẳng định đạt, 1 không đạt
+==== Phần NÂNG-CẤP: 27 khẳng định đạt, 0 không đạt
 
 
-######## [2026-11-25 05:16:59] PHẦN NÂNG CẤP TỪ v0.2.0 lên bản của cây (nginx)
+######## [2026-11-25 06:01:20] PHẦN NÂNG CẤP TỪ v0.2.0 lên bản của cây (nginx)
 
-[2026-11-25 05:16:59] đưa máy ảo tpan-m19 về sạch
-[2026-11-25 05:17:13] máy ảo sạch, kiến trúc arm64, IP <vm>
-[2026-11-25 05:17:13] chép gói v0.2.0 vào máy ảo
-[2026-11-25 05:17:14] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
+[2026-11-25 06:01:20] đưa máy ảo tpan-m19 về sạch
+[2026-11-25 06:01:34] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-25 06:01:34] chép gói v0.2.0 vào máy ảo
+[2026-11-25 06:01:35] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
 
-[2026-11-25 05:17:15] $ cài v0.2.0 bằng install.sh của gói
+[2026-11-25 06:01:36] $ cài v0.2.0 bằng install.sh của gói
 
 ==> Kiểm máy
 Ubuntu 24.04
@@ -1444,7 +1442,7 @@ tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
 Đã đặt /usr/local/bin/tpan
 
 ==> Khởi tạo panel: tpan setup
-Bắt đầu job 13dc2dc54be0228b
+Bắt đầu job 758336fe29752486
 - Tạo thư mục /etc/tpan ...
   xong
 - Tạo thư mục /etc/tpan/tls ...
@@ -1460,43 +1458,43 @@ Bắt đầu job 13dc2dc54be0228b
 - Chạy và bật tpan.service khi khởi động ...
   xong
 
-Job 13dc2dc54be0228b: thành công
+Job 758336fe29752486: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
     <mật khẩu đã che>
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    1A:12:A8:8E:3E:D6:9F:60:6C:AE:D6:11:2C:6D:AA:EF:66:73:2D:3E:BF:A7:C0:48:ED:25:C4:F1:77:FA:98:F4
+    5F:6D:9C:73:A0:2F:80:FF:02:93:62:95:16:C4:72:82:78:5A:2F:07:47:7E:D0:37:DA:B6:9E:4A:76:23:DD:83
 Mở: https://<IP của máy>:8443
 
 Xong. Bước tiếp:
   sudo tpan stack install --web nginx    # hoặc apache
   sudo tpan site add example.com --email admin@example.com
   sudo tpan health
-[2026-11-25 05:17:16] (mã thoát 0)
+[2026-11-25 06:01:37] (mã thoát 0)
 
-[2026-11-25 05:17:16] >>> cài máy nginx trên v0.2.0, hai site (example.com có SSL), ghi mốc  (bash nang-cap-v020.sh truoc nginx)
+[2026-11-25 06:01:37] >>> cài máy nginx trên v0.2.0, hai site (example.com có SSL), ghi mốc  (bash nang-cap-v020.sh truoc nginx)
 
---- [05:17:16] N0. bản đang chạy (phải là v0.2.0)
+--- [06:01:37] N0. bản đang chạy (phải là v0.2.0)
 tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
 
---- [05:17:16] tpan version
+--- [06:01:37] tpan version
 tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
 
---- [05:17:16] tpan setup
+--- [06:01:37] tpan setup
   -- GHI NHẬN: tpan đã setup (bỏ qua)
   => ĐẠT: tpan.service active
 
---- [05:17:16] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+--- [06:01:37] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
   apt rảnh sau khoảng 0 giây
 
---- [05:17:16] tpan stack install --web nginx --yes
+--- [06:01:37] tpan stack install --web nginx --yes
   [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
   => ĐẠT: stack install --web nginx thoát 0
 
---- [05:17:48] pebble (đồ nghề test) và tpan ssl settings
+--- [06:02:12] pebble (đồ nghề test) và tpan ssl settings
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
@@ -1510,7 +1508,7 @@ ACME:      https://localhost:14000/dir
   => ĐẠT: ssl settings thoát 0
   /etc/hosts: example.com old2.example.com -> 127.0.0.1
 
---- [05:17:53] N1. trên v0.2.0: site example.com (tên miền gốc, SSL bằng pebble) và old2.example.com
+--- [06:02:17] N1. trên v0.2.0: site example.com (tên miền gốc, SSL bằng pebble) và old2.example.com
   $ tpan site add example.com  (thoát 0)
     |   [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
     |   [đạt] Log của site không đọc được bởi site khác
@@ -1527,7 +1525,7 @@ ACME:      https://localhost:14000/dir
     |     Sửa tay (gõ trên máy này, thư mục nào cũng được):
     |       sudo ip -o addr show scope global
     |       sudo getent ahostsv4 example.com
-    | Bắt đầu job 4e94de7fc9d3d855
+    | Bắt đầu job 2b55b64e54672009
     | - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
     |   xong
     | - Thử đường HTTP mà Let's Encrypt sẽ kiểm cho example.com ...
@@ -1551,7 +1549,7 @@ ACME:      https://localhost:14000/dir
     |   [đạt] Socket củ  => ĐẠT: ssl issue example.com thoát 0
   => ĐẠT: v0.2.0 chưa có bảng site_names (xác nhận đang đo đúng bản cũ)
 
---- [05:18:21] N2. mốc trên v0.2.0: http, chứng chỉ, health
+--- [06:02:47] N2. mốc trên v0.2.0: http, chứng chỉ, health
   GET http://example.com/readme.html: HTTP 301, Location: https://example.com/readme.html, X-Redirect-By: -
   => ĐẠT: http://example.com/ có đáp án (200, hay 301 vì site có SSL)
   GET http://old2.example.com/readme.html: HTTP 200, Location: -, X-Redirect-By: -
@@ -1562,18 +1560,18 @@ ACME:      https://localhost:14000/dir
   GET https://example.com/readme.html (CA pebble): HTTP 200 (curl thoát 0)
   => ĐẠT: https://example.com/ trả 200 (chứng chỉ tin được bằng CA pebble)
   số dòng [lỗi] hay [cảnh báo] trên v0.2.0: 4
-[2026-11-25 05:18:25] <<< cài máy nginx trên v0.2.0, hai site (example.com có SSL), ghi mốc xong trong 69 giây
+[2026-11-25 06:02:51] <<< cài máy nginx trên v0.2.0, hai site (example.com có SSL), ghi mốc xong trong 74 giây
 
-[2026-11-25 05:18:25] thay file chạy bằng bản của cây rồi restart tpan
-[2026-11-25 05:18:29] chép bin/tpan-linux-arm64 vào máy ảo
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:26Z)
+[2026-11-25 06:02:51] thay file chạy bằng bản của cây rồi restart tpan
+[2026-11-25 06:02:55] chép bin/tpan-linux-arm64 vào máy ảo
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T23:02:51Z)
 
-[2026-11-25 05:18:30] >>> sau nâng từ v0.2.0: site_names, http và https, health, site add chạy lại  (bash nang-cap-v020.sh sau nginx)
+[2026-11-25 06:02:55] >>> sau nâng từ v0.2.0: site_names, http và https, health, site add chạy lại  (bash nang-cap-v020.sh sau nginx)
 
---- [05:18:30] N3. bản đang chạy (bản của cây)
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:26Z)
+--- [06:02:55] N3. bản đang chạy (bản của cây)
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T23:02:51Z)
 
---- [05:18:30] K1. site_names: đúng hai dòng primary active, không có tên phụ
+--- [06:02:55] K1. site_names: đúng hai dòng primary active, không có tên phụ
   => ĐẠT: site_names có đúng 2 dòng
   => ĐẠT: cả hai dòng là primary, active
   => ĐẠT: tên là example.com và old2.example.com
@@ -1584,7 +1582,7 @@ tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:26Z)
     | old2.example.com primary serve active dns=warn in_cert=False
   => ĐẠT: site alias list old2.example.com: chỉ tên chính
 
---- [05:18:30] K2. http và https như trước khi nâng
+--- [06:02:56] K2. http và https như trước khi nâng
   GET http://example.com/readme.html: HTTP 301, Location: https://example.com/readme.html, X-Redirect-By: -
   => ĐẠT: http://example.com/ giữ đáp án như trên v0.2.0 (mã và Location)
   GET http://old2.example.com/readme.html: HTTP 200, Location: -, X-Redirect-By: -
@@ -1593,12 +1591,12 @@ tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:26Z)
   => ĐẠT: https://example.com/ trả 200 (chứng chỉ tin được bằng CA pebble)
   => ĐẠT: chứng chỉ example.com không đổi: vẫn chỉ có tên example.com
 
---- [05:18:30] K3. health: không có phép về tên phụ, chứng chỉ, tên miền gốc, trùng server_name chưa đạt
+--- [06:02:56] K3. health: không có phép về tên phụ, chứng chỉ, tên miền gốc, trùng server_name chưa đạt
   trạng thái các phép M19: site.alias.: [] ssl.names: [] names.root.shared: [pass] web.server_name.unique: [pass]
   => ĐẠT: health không có phép site.alias. ssl.names names.root.shared web.server_name.unique nào ở trạng thái warn hay fail
   số dòng [lỗi] hay [cảnh báo]: v0.2.0 4, bản của cây 9
 
---- [05:18:38] K4. site add example.com chạy lại (tên miền gốc): không thêm tên phụ
+--- [06:03:04] K4. site add example.com chạy lại (tên miền gốc): không thêm tên phụ
   $ tpan site add example.com  (thoát 0)
     |   [đạt] Thư mục public của site là thư mục thật của chính site
     |   [đạt] Site example.com không chạm được vào file, log và socket của site old2.example.com
@@ -1612,9 +1610,9 @@ tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:26Z)
   => ĐẠT: chứng chỉ example.com vẫn chỉ có tên example.com
   GET https://example.com/readme.html (CA pebble): HTTP 200 (curl thoát 0)
   => ĐẠT: https://example.com/ vẫn 200
-[2026-11-25 05:18:41] <<< sau nâng từ v0.2.0: site_names, http và https, health, site add chạy lại xong trong 11 giây
+[2026-11-25 06:03:06] <<< sau nâng từ v0.2.0: site_names, http và https, health, site add chạy lại xong trong 11 giây
 
 ==== Phần NÂNG-CẤP-V020: 29 khẳng định đạt, 0 không đạt
 
 
-######## [2026-11-25 05:18:41] TỔNG KẾT: 401 khẳng định đạt, 1 khẳng định không đạt
+######## [2026-11-25 06:03:06] TỔNG KẾT: 402 khẳng định đạt, 0 khẳng định không đạt

@@ -1,45 +1,45 @@
-e2e giao diện M19. tpan của cây: v0.2.3-132-g45bff31-dirty; máy ảo: tpan-m19; các phần: a b c d e
+e2e giao diện M19. tpan của cây: v0.2.3-143-gd9ee76e-dirty; máy ảo: tpan-m19; các phần: a b c d e
 
 
-######## [2026-11-25 05:18:41] PHẦN A: máy sạch, tpan của cây, dựng máy (stack nginx, pebble, hai user), hai site
+######## [2026-11-25 06:03:06] PHẦN A: máy sạch, tpan của cây, dựng máy (stack nginx, pebble, hai user), hai site
 
-[2026-11-25 05:18:41] $ git log --oneline -1
-45bff31 gộp M20 vào M19: tám route của M19 vào nhóm token sites (bảng quyết định token của M20); CertbotCert giữ cả Names/Probe (M19) lẫn CertName (M20), Check đọc SAN cho cả hai
-[2026-11-25 05:18:41] (mã thoát 0)
+[2026-11-25 06:03:06] $ git log --oneline -1
+d9ee76e gộp dev (bản vá soát cuối M28 nhóm B) vào M19: luật B7 (tên là đuôi công cộng chặn mọi tên con của nó cho chủ khác) chuyển vào site.RootForeign, chỗ duy nhất của luật P4, nên áp cả cho tên phụ
+[2026-11-25 06:03:06] (mã thoát 0)
 
-[2026-11-25 05:18:41] $ git status --short
+[2026-11-25 06:03:06] $ git status --short
  M docs/bang-chung/M19.log
-[2026-11-25 05:18:41] (mã thoát 0)
+[2026-11-25 06:03:06] (mã thoát 0)
 
-[2026-11-25 05:18:41] $ go build -o <tmp>/anh ./scripts/anh-readme
-[2026-11-25 05:18:42] (mã thoát 0)
+[2026-11-25 06:03:06] $ go build -o <tmp>/anh ./scripts/anh-readme
+[2026-11-25 06:03:07] (mã thoát 0)
   => ĐẠT: build chương trình trình duyệt (scripts/anh-readme)
 Máy ảo: tpan-m19
 
-[2026-11-25 05:18:42] $ make vm-reset
+[2026-11-25 06:03:07] $ make vm-reset
 scripts/vm.sh reset
 [2K[0A[0EStopping tpan-m19  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m19.clean
-[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ [2K[0A[0E
-[2026-11-25 05:18:55] (mã thoát 0)
+[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\ [2K[0A[0E
+[2026-11-25 06:03:19] (mã thoát 0)
   => ĐẠT: máy ảo về snapshot clean
 
-[2026-11-25 05:18:55] $ scripts/vm.sh exec cloud-init status --wait
+[2026-11-25 06:03:20] $ scripts/vm.sh exec cloud-init status --wait
 status: done
-[2026-11-25 05:18:56] (mã thoát 0)
+[2026-11-25 06:03:20] (mã thoát 0)
   => ĐẠT: cloud-init xong
 IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
 
-[2026-11-25 05:18:56] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+[2026-11-25 06:03:22] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
 ls: cannot access '/etc/tpan': No such file or directory
 ls: cannot access '/var/lib/tpan': No such file or directory
-[2026-11-25 05:18:56] (mã thoát 2)
+[2026-11-25 06:03:22] (mã thoát 2)
   => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
 
-[2026-11-25 05:18:56] $ make vm-deploy DATE=2026-11-24T22:18:41Z
+[2026-11-25 06:03:22] $ make vm-deploy DATE=2026-11-24T23:03:06Z
 cd web && pnpm install --frozen-lockfile && pnpm build
 ✓ Lockfile passes supply-chain policies (verified 4d ago)
 Lockfile is up to date, resolution step is skipped
-Done in 29ms using pnpm v12.15.0
+Done in 10ms using pnpm v12.15.0
 $ tsc --noEmit && vite build
 vite v8.3.8 building client environment for production...
 transforming...
@@ -134,20 +134,20 @@ dist/assets/site-Bsszv1lT.js                                     57.82 kB │ gz
 dist/assets/ScreenHeader-CBB9GnFz.js                            146.71 kB │ gzip:  48.76 kB
 dist/assets/index-De9vSrlK.js                                   388.70 kB │ gzip: 124.75 kB
 
-✓ built in 204ms
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:18:41Z' -o bin/tpan-linux-amd64 ./cmd/tpan
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:18:41Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+✓ built in 180ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-143-gd9ee76e-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=d9ee76e -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T23:03:06Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-143-gd9ee76e-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=d9ee76e -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T23:03:06Z' -o bin/tpan-linux-arm64 ./cmd/tpan
 scripts/vm.sh deploy
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:41Z)
-[2026-11-25 05:18:59] (mã thoát 0)
-  => ĐẠT: make vm-deploy: build và chép tpan v0.2.3-132-g45bff31-dirty vào máy ảo
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T23:03:06Z)
+[2026-11-25 06:03:24] (mã thoát 0)
+  => ĐẠT: make vm-deploy: build và chép tpan v0.2.3-143-gd9ee76e-dirty vào máy ảo
 
-[2026-11-25 05:18:59] $ scripts/vm.sh exec tpan version
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:41Z)
-[2026-11-25 05:18:59] (mã thoát 0)
-  => ĐẠT: tpan version là v0.2.3-132-g45bff31-dirty
+[2026-11-25 06:03:24] $ scripts/vm.sh exec tpan version
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T23:03:06Z)
+[2026-11-25 06:03:24] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.3-143-gd9ee76e-dirty
 
-[2026-11-25 05:19:01] $ scripts/vm.sh root bash -c ls "$1" _ /home/ubuntu/e2e-m19
+[2026-11-25 06:03:26] $ scripts/vm.sh root bash -c ls "$1" _ /home/ubuntu/e2e-m19
 chung.sh
 dinh-tuyen.sh
 dung-may.sh
@@ -159,35 +159,35 @@ pebble.sh
 redirect.sh
 ssl.sh
 ten.sh
-[2026-11-25 05:19:01] (mã thoát 0)
+[2026-11-25 06:03:26] (mã thoát 0)
   => ĐẠT: (đồ nghề) 11 file đã chép vào /home/ubuntu/e2e-m19, có dung-may.sh, chung.sh, pebble.sh, jobs.py
 
-[2026-11-25 05:19:01] $ scripts/vm.sh root bash /home/ubuntu/e2e-m19/dung-may.sh nginx
+[2026-11-25 06:03:26] $ scripts/vm.sh root bash /home/ubuntu/e2e-m19/dung-may.sh nginx
 
---- [05:19:01] tpan version
-tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:41Z)
+--- [06:03:25] tpan version
+tpan v0.2.3-143-gd9ee76e-dirty (commit d9ee76e, build 2026-11-24T23:03:06Z)
 
---- [05:19:01] tpan setup
-Job 3d4bd0ac0b00fe21: thành công
+--- [06:03:25] tpan setup
+Job 8d1f61300ad826a0: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    00:F3:07:5E:63:EB:B2:BB:B4:9A:F8:AE:A2:2B:F5:75:46:BB:E0:59:BB:A4:9A:E6:A6:65:BD:9E:E8:80:5C:B4
+    F2:9B:B3:CF:12:3A:2F:8D:12:05:6B:54:02:A6:2B:D3:99:35:4E:EC:28:AF:62:3C:6D:04:5B:05:D5:74:E2:A5
 Mở: https://<IP của máy>:8443
   => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m19-admin.pw, không in)
   => ĐẠT: tpan.service active
 
---- [05:19:01] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+--- [06:03:26] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
   apt rảnh sau khoảng 0 giây
 
---- [05:19:01] tpan stack install --web nginx --yes
-  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+--- [06:03:26] tpan stack install --web nginx --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
   => ĐẠT: stack install --web nginx thoát 0
 
---- [05:19:32] pebble (đồ nghề test) và tpan ssl settings
+--- [06:04:00] pebble (đồ nghề test) và tpan ssl settings
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
@@ -200,55 +200,55 @@ Staging:   bật (chứng chỉ thử, trình duyệt không tin)
 ACME:      https://localhost:14000/dir
   => ĐẠT: ssl settings thoát 0
 
---- [05:19:37] hai user thường (vai user) và /etc/hosts
+--- [06:04:06] hai user thường (vai user) và /etc/hosts
   => ĐẠT: user add khach_a thoát 0, có mật khẩu (không in)
   => ĐẠT: user add khach_b thoát 0, có mật khẩu (không in)
   /etc/hosts: example.com www.example.com blog.example.com example.net xn--vitnam-jk8b.example.net www.example.org example.org shop.khach-b.test www.e24.test -> 127.0.0.1
   => ĐẠT: nodns.example.invalid không phân giải được (cố ý)
 
---- [05:19:37] phiên API: admin, khach_a, khach_b
+--- [06:04:06] phiên API: admin, khach_a, khach_b
   đăng nhập admin: HTTP 204
   => ĐẠT: admin đăng nhập
   đăng nhập khach_a: HTTP 204
   => ĐẠT: khach_a đăng nhập
   đăng nhập khach_b: HTTP 204
   => ĐẠT: khach_b đăng nhập
-  khach_a GET /session: HTTP 200, 0.002022s (curl thoát 0), 175 byte; lỗi: 
+  khach_a GET /session: HTTP 200, 0.001665s (curl thoát 0), 175 byte; lỗi: 
   => ĐẠT: phiên của khach_a có vai user
   stack: nginx
-[2026-11-25 05:19:38] (mã thoát 0)
+[2026-11-25 06:04:07] (mã thoát 0)
 
-[2026-11-25 05:19:38] (đọc /root/m19-admin.pw vào danh sách che; không in giá trị; có mật khẩu: có)
+[2026-11-25 06:04:07] (đọc /root/m19-admin.pw vào danh sách che; không in giá trị; có mật khẩu: có)
 
-[2026-11-25 05:19:38] (đọc /root/m19-khach_b.pw vào danh sách che; không in giá trị; có mật khẩu: có)
+[2026-11-25 06:04:07] (đọc /root/m19-khach_b.pw vào danh sách che; không in giá trị; có mật khẩu: có)
 
-[2026-11-25 05:19:38] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ example.com admin@example.com
+[2026-11-25 06:04:07] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ example.com admin@example.com
 tpan site add example.com: thoát 0
   [đạt] Log của site không đọc được bởi site khác
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Thư mục public của site là thư mục thật của chính site
-[2026-11-25 05:19:53] (mã thoát 0)
+[2026-11-25 06:04:21] (mã thoát 0)
   => ĐẠT: site add example.com (admin): thoát 0
 
-[2026-11-25 05:19:53] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ shop.khach-b.test admin@example.com --owner khach_b
+[2026-11-25 06:04:21] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ shop.khach-b.test admin@example.com --owner khach_b
 tpan site add shop.khach-b.test: thoát 0
   [đạt] Thư mục public của site là thư mục thật của chính site
   [đạt] Site shop.khach-b.test không chạm được vào file, log và socket của site example.com
   [đạt] Site example.com không chạm được vào file, log và socket của site shop.khach-b.test
-[2026-11-25 05:19:58] (mã thoát 0)
+[2026-11-25 06:04:26] (mã thoát 0)
   => ĐẠT: site add shop.khach-b.test --owner khach_b: thoát 0
 
-[2026-11-25 05:19:58] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.com http://127.0.0.1/
+[2026-11-25 06:04:26] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.com http://127.0.0.1/
 200
-[2026-11-25 05:19:59] (mã thoát 0)
+[2026-11-25 06:04:26] (mã thoát 0)
   => ĐẠT: site example.com trả 200
 
-[2026-11-25 05:19:59] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: shop.khach-b.test http://127.0.0.1/
+[2026-11-25 06:04:26] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: shop.khach-b.test http://127.0.0.1/
 200
-[2026-11-25 05:19:59] (mã thoát 0)
+[2026-11-25 06:04:26] (mã thoát 0)
   => ĐẠT: site shop.khach-b.test trả 200
 
-[2026-11-25 05:19:59] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 06:04:26] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -267,17 +267,17 @@ tpan site add shop.khach-b.test: thoát 0
     "in_cert": false
   }
 ]
-[2026-11-25 05:19:59] (mã thoát 0)
+[2026-11-25 06:04:27] (mã thoát 0)
   => ĐẠT: example.com có tên phụ mặc định www.example.com (redirect, active) và chưa có example.net
   => ĐẠT: panel trả lời ở https://<vm>:8443 (gọi từ Mac)
 
 ==== Phần A: 25 đạt, 0 không đạt
 
 
-######## [2026-11-25 05:19:59] PHẦN B: E10 thêm tên phụ example.net bằng giao diện (bấm thật), thấy dòng trong bảng
+######## [2026-11-25 06:04:27] PHẦN B: E10 thêm tên phụ example.net bằng giao diện (bấm thật), thấy dòng trong bảng
 Mốc job trước khi bấm: 4
 
-[2026-11-25 05:20:00] $ anh-readme -bo m19-that -buoc them-ten -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 06:04:27] $ anh-readme -bo m19-that -buoc them-ten -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: mở /sites/example.com?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: tab Tên miền có thẻ «Tên của site»
   => ĐẠT: bảng có tên chính example.com
@@ -285,18 +285,18 @@ Mốc job trước khi bấm: 4
   => ĐẠT: gõ example.net vào ô «Tên phụ», chọn kiểu «Phục vụ cùng nội dung»
   => ĐẠT: bấm «Xem trước»: bản xem trước hiện ra, nút chạy ghi «Chạy 2 bước»
   => ĐẠT: bản xem trước nhắc tên example.net
-  => ĐẠT: job site.alias.add f70f3766dbe18b19 kết thúc: succeeded
+  => ĐẠT: job site.alias.add e3b5d6256f1ecfb2 kết thúc: succeeded
   => ĐẠT: thẻ theo dõi job báo «Xong»
   => ĐẠT: bảng tên có dòng example.net sau khi job xong
   => ĐẠT: dòng example.net ở cột Kiểu ghi «phục vụ» (đang là "phục vụ | chưa kiểm được | chưa")
   => ĐẠT: GET /api/v1/sites/example.com/names: example.net serve và active (đang là "serve|active")
   => ĐẠT: lượt thêm tên: 0 lỗi console
-[2026-11-25 05:20:12] (mã thoát 0)
+[2026-11-25 06:04:42] (mã thoát 0)
 
 
-######## [2026-11-25 05:20:12] B: kiểm trong máy ảo
+######## [2026-11-25 06:04:42] B: kiểm trong máy ảo
 
-[2026-11-25 05:20:12] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 06:04:42] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -323,33 +323,33 @@ Mốc job trước khi bấm: 4
     "in_cert": false
   }
 ]
-[2026-11-25 05:20:12] (mã thoát 0)
+[2026-11-25 06:04:43] (mã thoát 0)
   => ĐẠT: E10: site alias list có example.net kiểu serve, active (do cú bấm của trình duyệt)
   => ĐẠT: E10: www.example.com vẫn là tên phụ redirect (cú bấm không đụng tên khác)
 
-[2026-11-25 05:20:12] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m19/jobs.py since 4
-job f70f3766dbe18b19 succeeded site.alias.add example.com loi=
-[2026-11-25 05:20:13] (mã thoát 0)
+[2026-11-25 06:04:43] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m19/jobs.py since 4
+job e3b5d6256f1ecfb2 succeeded site.alias.add example.com loi=
+[2026-11-25 06:04:43] (mã thoát 0)
   => ĐẠT: E10: Lịch sử có job site.alias.add của example.com, mọi job sau mốc đều succeeded
   => ĐẠT: E10: không job nào sau mốc thất bại
 
-[2026-11-25 05:20:13] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.net http://127.0.0.1/readme.html
+[2026-11-25 06:04:43] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.net http://127.0.0.1/readme.html
 200
-[2026-11-25 05:20:13] (mã thoát 0)
+[2026-11-25 06:04:43] (mã thoát 0)
   => ĐẠT: E10: Host example.net (serve) trả 200 cho /readme.html
 
 ==== Phần B: 18 đạt, 0 không đạt
 
 
-######## [2026-11-25 05:20:13] PHẦN C: E41 tab Tên miền hiện tên chưa đạt (nodns.example.invalid), site có SSL
+######## [2026-11-25 06:04:43] PHẦN C: E41 tab Tên miền hiện tên chưa đạt (nodns.example.invalid), site có SSL
 
-[2026-11-25 05:20:13] $ scripts/vm.sh root tpan ssl issue example.com --yes
+[2026-11-25 06:04:43] $ scripts/vm.sh root tpan ssl issue example.com --yes
 [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
     Nguyên nhân: Tên miền trỏ về máy khác, hoặc máy này đứng sau NAT (IP public không hiện trên card mạng, thường gặp ở VPS đám mây). Nếu là NAT thì vẫn xin chứng chỉ được; bước thử HTTP sẽ cho câu trả lời thật.
     Sửa tay (gõ trên máy này, thư mục nào cũng được):
       sudo ip -o addr show scope global
       sudo getent ahostsv4 example.com
-Bắt đầu job dea28dc8ea1884fb
+Bắt đầu job 1f06f1b39af2e8e3
 - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
   xong
 - Thử đường HTTP mà Let's Encrypt sẽ kiểm cho từng tên của example.com ...
@@ -378,7 +378,7 @@ Bắt đầu job dea28dc8ea1884fb
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site
   [đạt] Dịch vụ certbot.timer đang chạy và tự bật cùng máy
   [đạt] Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công
-Bắt đầu job c269dcae3e8c2b54
+Bắt đầu job 22cac110ef6005c3
 - Ghi vhost nginx có HTTPS cho example.com ...
   xong
 - Bật /etc/nginx/sites-enabled/tpan-example.com.conf → /etc/nginx/sites-available/tpan-example.com.conf ...
@@ -388,9 +388,9 @@ Bắt đầu job c269dcae3e8c2b54
 - name.probe:www.example.com ...
   xong
 
-Job dea28dc8ea1884fb: thành công
+Job 1f06f1b39af2e8e3: thành công
 Kiểm chứng:
-  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 31e954 cấp
+  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 16e902 cấp
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
   [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
@@ -400,18 +400,18 @@ Kiểm chứng:
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site: Site trả 200 qua https, đúng là WordPress của example.com
   [đạt] Dịch vụ certbot.timer đang chạy và tự bật cùng máy: certbot.timer đang chạy và tự bật khi khởi động máy
   [đạt] Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công: certbot gia hạn thử example.com thành công
-[2026-11-25 05:20:22] (mã thoát 0)
+[2026-11-25 06:04:53] (mã thoát 0)
   => ĐẠT: E41 (dựng): ssl issue example.com (pebble) thoát 0
   => ĐẠT: E41 (dựng): mọi job SSL đã xong
 
-[2026-11-25 05:20:22] $ scripts/vm.sh root bash -c openssl x509 -in "/etc/letsencrypt/live/$1/cert.pem" -noout -ext subjectAltName _ example.com
+[2026-11-25 06:04:53] $ scripts/vm.sh root bash -c openssl x509 -in "/etc/letsencrypt/live/$1/cert.pem" -noout -ext subjectAltName _ example.com
 X509v3 Subject Alternative Name: 
     DNS:example.com, DNS:example.net, DNS:www.example.com
-[2026-11-25 05:20:22] (mã thoát 0)
+[2026-11-25 06:04:53] (mã thoát 0)
   => ĐẠT: E41 (dựng): chứng chỉ có example.com và example.net (tên thêm bằng giao diện ở phần B)
 
-[2026-11-25 05:20:23] $ scripts/vm.sh root tpan site alias add example.com nodns.example.invalid --mode serve --yes
-Bắt đầu job f4f4054524c6d265
+[2026-11-25 06:04:53] $ scripts/vm.sh root tpan site alias add example.com nodns.example.invalid --mode serve --yes
+Bắt đầu job 79d12666259097a2
 - Kiểm tên nodns.example.invalid chưa được vhost khác khai ...
   đã đúng, bỏ qua
 - Ghi vhost nginx có HTTPS cho example.com ...
@@ -428,7 +428,7 @@ Bắt đầu job f4f4054524c6d265
   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
   [đạt] Cổng 80 chuyển hướng 301 sang https
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site
-Bắt đầu job 0bcb1d67662ce00c
+Bắt đầu job ad19f8814442ea8d
 - dir:/var/lib/tpan/acme/.well-known/acme-challenge ...
   đã đúng, bỏ qua
 - ssl.probe:example.com ...
@@ -458,9 +458,9 @@ Bắt đầu job 0bcb1d67662ce00c
   [đạt] Dịch vụ certbot.timer đang chạy và tự bật cùng máy
   [đạt] Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công
 
-Job f4f4054524c6d265: thành công
+Job 79d12666259097a2: thành công
 Kiểm chứng:
-  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 31e954 cấp
+  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 16e902 cấp
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
   [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
@@ -468,13 +468,13 @@ Kiểm chứng:
   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_example_com_a379a6
   [đạt] Cổng 80 chuyển hướng 301 sang https: Cổng 80 chuyển hướng 301 tới https://example.com/
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site: Site trả 200 qua https, đúng là WordPress của example.com
-Tên nodns.example.invalid chưa vào chứng chỉ: thử http://nodns.example.invalid/.well-known/acme-challenge/ không tới được máy này (Let's Encrypt cũng sẽ thất bại): curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/gjqlaiyt3usfufdctn5unw3fuy: mã thoát 6: curl: (6) Could not resolve host: nodns.example.invalid; nodns.example.invalid không phân giải được (getent ahosts nodns.example.invalid: mã thoát 2) theo DNS của máy; lệnh đã chạy: curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/gjqlaiyt3usfufdctn5unw3fuy
-Job SSL chạy tiếp: 0bcb1d67662ce00c
-[2026-11-25 05:20:32] (mã thoát 0)
+Tên nodns.example.invalid chưa vào chứng chỉ: thử http://nodns.example.invalid/.well-known/acme-challenge/ không tới được máy này (Let's Encrypt cũng sẽ thất bại): curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/omw25u6eszacscgh7cw6gzc6m7: mã thoát 6: curl: (6) Could not resolve host: nodns.example.invalid; nodns.example.invalid không phân giải được (getent ahosts nodns.example.invalid: mã thoát 2) theo DNS của máy; lệnh đã chạy: curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/omw25u6eszacscgh7cw6gzc6m7
+Job SSL chạy tiếp: ad19f8814442ea8d
+[2026-11-25 06:05:01] (mã thoát 0)
   => ĐẠT: E41 (dựng): site alias add nodns.example.invalid thoát 0 (thêm được dù không có DNS)
   => ĐẠT: E41 (dựng): job SSL tự chạy tiếp sau khi thêm tên đã xong
 
-[2026-11-25 05:20:32] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 06:05:01] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -509,10 +509,10 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
     "in_cert": false
   }
 ]
-[2026-11-25 05:20:32] (mã thoát 0)
+[2026-11-25 06:05:01] (mã thoát 0)
   => ĐẠT: E41 (dựng): nodns.example.invalid active, in_cert false; example.net in_cert true
 
-[2026-11-25 05:20:32] $ anh-readme -bo m19-that -buoc chua-dat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 06:05:01] $ anh-readme -bo m19-that -buoc chua-dat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: mở /sites/example.com?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: bảng tên có dòng nodns.example.invalid
   => ĐẠT: cột DNS của nodns.example.invalid không ghi «đã trỏ về máy» (đang là "chưa trỏ về máy")
@@ -520,14 +520,14 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
   => ĐẠT: API: nodns.example.invalid in_cert=false, dns=missing (không phải ok)
   => ĐẠT: mở /sites/example.com?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: tab Tên miền của site có tên chưa đạt: 0 lỗi console
-[2026-11-25 05:20:41] (mã thoát 0)
+[2026-11-25 06:05:10] (mã thoát 0)
 
 ==== Phần C: 13 đạt, 0 không đạt
 
 
-######## [2026-11-25 05:20:41] PHẦN D: E23 khach_b thêm www.example.com (tên của site admin) bằng giao diện: câu từ chối chung
+######## [2026-11-25 06:05:10] PHẦN D: E23 khach_b thêm www.example.com (tên của site admin) bằng giao diện: câu từ chối chung
 
-[2026-11-25 05:20:42] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
+[2026-11-25 06:05:10] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
 [
   {
     "name": "shop.khach-b.test",
@@ -538,9 +538,9 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
     "in_cert": false
   }
 ]
-[2026-11-25 05:20:42] (mã thoát 0)
+[2026-11-25 06:05:11] (mã thoát 0)
 
-[2026-11-25 05:20:42] $ anh-readme -bo m19-that -buoc tu-choi -ten khach_b -site shop.khach-b.test   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 06:05:11] $ anh-readme -bo m19-that -buoc tu-choi -ten khach_b -site shop.khach-b.test   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: user thường khach_b đăng nhập qua form
   => ĐẠT: mở /sites/shop.khach-b.test?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: không có bản xem trước cho tên www.example.com của người khác
@@ -551,12 +551,12 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
   => ĐẠT: GET /api/v1/domains của B chỉ có site của B (đang là "shop.khach-b.test")
   => ĐẠT: bảng tên của shop.khach-b.test vẫn 1 dòng
   => ĐẠT: lượt thử tên bị từ chối: 0 lỗi console ngoài dòng 409 chờ trước
-[2026-11-25 05:20:46] (mã thoát 0)
+[2026-11-25 06:05:15] (mã thoát 0)
 
 
-######## [2026-11-25 05:20:46] D: kiểm trong máy ảo
+######## [2026-11-25 06:05:15] D: kiểm trong máy ảo
 
-[2026-11-25 05:20:46] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
+[2026-11-25 06:05:15] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
 [
   {
     "name": "shop.khach-b.test",
@@ -567,10 +567,10 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
     "in_cert": false
   }
 ]
-[2026-11-25 05:20:46] (mã thoát 0)
+[2026-11-25 06:05:15] (mã thoát 0)
   => ĐẠT: E23: site shop.khach-b.test vẫn 1 tên, không có www.example.com
 
-[2026-11-25 05:20:46] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 06:05:15] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -605,15 +605,15 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
     "in_cert": false
   }
 ]
-[2026-11-25 05:20:47] (mã thoát 0)
+[2026-11-25 06:05:16] (mã thoát 0)
   => ĐẠT: E23: www.example.com vẫn là tên phụ của example.com (không bị cướp)
 
 ==== Phần D: 12 đạt, 0 không đạt
 
 
-######## [2026-11-25 05:20:47] PHẦN E: luật chuyển hướng bằng giao diện (nguồn sai báo dưới ô nguồn, rồi /cu → /moi)
+######## [2026-11-25 06:05:16] PHẦN E: luật chuyển hướng bằng giao diện (nguồn sai báo dưới ô nguồn, rồi /cu → /moi)
 
-[2026-11-25 05:20:47] $ anh-readme -bo m19-that -buoc them-luat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 06:05:16] $ anh-readme -bo m19-that -buoc them-luat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: mở /sites/example.com?tab=chuyen-huong: tab «Chuyển hướng» đang được chọn, thẻ bảng có mặt
   => ĐẠT: tab Chuyển hướng có thẻ «Luật chuyển hướng»
   => ĐẠT: trước khi thêm: bảng chưa có luật /cu
@@ -625,17 +625,17 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
   => ĐẠT: lượt nguồn sai: 0 lỗi console ngoài dòng 400 chờ trước
   => ĐẠT: sửa thành /cu: dấu lỗi ở ô nguồn đã mất
   => ĐẠT: bản xem trước hiện ra, nút chạy ghi «Chạy 2 bước»
-  => ĐẠT: job site.redirect.add c268bded14577f05 kết thúc: succeeded
+  => ĐẠT: job site.redirect.add 24245ca4abc83e31 kết thúc: succeeded
   => ĐẠT: thẻ theo dõi job báo «Xong»
   => ĐẠT: bảng luật có dòng /cu sau khi job xong
   => ĐẠT: dòng /cu: đích /moi, mã 301 (đang là "/moi | 301")
   => ĐẠT: lượt thêm luật: 0 lỗi console
-[2026-11-25 05:20:55] (mã thoát 0)
+[2026-11-25 06:05:24] (mã thoát 0)
 
 
-######## [2026-11-25 05:20:55] E: kiểm trong máy ảo
+######## [2026-11-25 06:05:24] E: kiểm trong máy ảo
 
-[2026-11-25 05:20:55] $ scripts/vm.sh root tpan site redirect list example.com --json
+[2026-11-25 06:05:24] $ scripts/vm.sh root tpan site redirect list example.com --json
 [
   {
     "id": 1,
@@ -646,19 +646,19 @@ Job SSL chạy tiếp: 0bcb1d67662ce00c
     "state": "active"
   }
 ]
-[2026-11-25 05:20:55] (mã thoát 0)
+[2026-11-25 06:05:24] (mã thoát 0)
   => ĐẠT: site redirect list có luật /cu → /moi mã 301 (do cú bấm của trình duyệt)
   => ĐẠT: nguồn sai "/a b" không vào danh sách
 
-[2026-11-25 05:20:55] $ scripts/vm.sh root bash -c curl -sk -m 30 -o /dev/null -D - --resolve "$1:443:127.0.0.1" "https://$1/cu" _ example.com
+[2026-11-25 06:05:24] $ scripts/vm.sh root bash -c curl -sk -m 30 -o /dev/null -D - --resolve "$1:443:127.0.0.1" "https://$1/cu" _ example.com
 HTTP/1.1 301 Moved Permanently
 Server: nginx/1.24.0 (Ubuntu)
-Date: Tue, 24 Nov 2026 22:20:55 GMT
+Date: Tue, 24 Nov 2026 23:05:24 GMT
 Content-Type: text/html
 Content-Length: 178
 Connection: keep-alive
 Location: https://example.com/moi
-[2026-11-25 05:20:55] (mã thoát 0)
+[2026-11-25 06:05:25] (mã thoát 0)
   => ĐẠT: https://example.com/cu trả 301
   => ĐẠT: Location của /cu trỏ tới /moi
 
@@ -667,7 +667,7 @@ Location: https://example.com/moi
 Ảnh của trình duyệt (7 file) đã chép vào docs/bang-chung/M19
 
 
-######## [2026-11-25 05:20:55] PHẦN F: mật khẩu, IP, thư mục nhà có lọt vào chính file log không
+######## [2026-11-25 06:05:25] PHẦN F: mật khẩu, IP, thư mục nhà có lọt vào chính file log không
 Số mật khẩu đã gặp: 2; số dòng của log chứa một trong số đó: 0
   => ĐẠT: log không chứa mật khẩu nào
   => ĐẠT: log không chứa IP máy ảo (IPv4)
@@ -677,4 +677,4 @@ Số mật khẩu đã gặp: 2; số dòng của log chứa một trong số đ
   => ĐẠT: log không chứa thư mục nhà hay tên user Mac
 
 
-######## [2026-11-25 05:20:55] TỔNG KẾT: 94 khẳng định đạt, 0 khẳng định không đạt
+######## [2026-11-25 06:05:25] TỔNG KẾT: 94 khẳng định đạt, 0 khẳng định không đạt
