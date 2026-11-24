@@ -809,7 +809,13 @@ part_u() {
   health_errs "$h1"
   moi="$(new_errs "$h0" "$h1")"
   [ -n "$moi" ] && printf '[lỗi] mới so với trước khi nâng:\n%s\n' "$moi"
-  ok "T85: tpan health sau khi nâng không có [lỗi] mới" test -z "$moi"
+  # M28 đợt 2 (KE-HOACH 6.27, "Bản vá áp lúc nào"): máy nâng từ bản cũ được
+  # health báo ba phép kiểm này chưa đạt cho tới khi chạy `tpan security
+  # harden`; đó là thiết kế của M28, không phải lỗi M20 đem tới.
+  moi20="$(grep -v -e 'Vhost không đi theo public khi nó là symlink sang chủ khác' \
+    -e 'mod_status của Apache đang tắt' -e 'User DB có trần số kết nối cùng lúc' <<<"$moi")"
+  [ -n "$moi" ] && [ -z "$moi20" ] && note "các [lỗi] mới đều là phép kiểm nâng cấp của M28 (cần tpan security harden), không tính"
+  ok "T85: tpan health sau khi nâng không có [lỗi] mới (trừ phép kiểm chờ harden của M28)" test -z "$moi20"
 
   json_secret admin '.admin_password' "$VM" root tpan admin passwd --yes --json
   ok "T83: tpan admin passwd chạy trên bản A: thoát 0, in mật khẩu mới (đã che)" bash -c '[ "$1" = 0 ] && [ -n "$2" ]' _ "$RC" "$JS_PW"
@@ -1132,11 +1138,13 @@ part_g() {
   vroot tpan user edit "$U_ADMIN2" --role user --yes
   ok "T41: hạ $U_ADMIN2 xuống vai user: thoát 0" rc_is 0
   tapi "$TMPD/tok.a2.h" GET /api/v1/stack
-  ok "T41: cùng token GET /stack sau khi hạ vai: 403 (luật admin của route, không phải lỗi token)" bash -c '[ "$1" = 403 ] && [[ $2 != token_* ]]' _ "$CODE" "$(ecode)"
+  # Soát cuối trên máy ảo (V2): đổi vai trò thu hồi mọi token của user, nên
+  # token cũ không sống lại khi nâng vai về.
+  ok "T41: cùng token GET /stack sau khi hạ vai: 401 token_revoked (đổi vai trò thu hồi token)" expect 401 token_revoked
   vroot tpan user suspend "$U_ADMIN2" --yes
   ok "T41: khoá $U_ADMIN2: thoát 0" rc_is 0
   tapi "$TMPD/tok.a2.h" GET /api/v1/stack
-  ok "T41: token của user đang khoá: 401 token_invalid" expect 401 token_invalid
+  ok "T41: token của user đang khoá: 401 (đã thu hồi lúc hạ vai; user khoá)" bash -c '[ "$1" = 401 ] && [[ $2 == token_revoked || $2 == token_invalid ]]' _ "$CODE" "$(ecode)"
 
   section "T42: token sai dạng"
   tok_bad="$(sed -n 's/^Authorization: Bearer //p' "$TMPD/tok.du.h")"
