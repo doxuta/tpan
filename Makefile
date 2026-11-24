@@ -108,6 +108,16 @@ e2e-m18-gd: ## e2e giao diện M18 trên máy ảo trong .tpan-vm (đặt đích
 	  cp tmp-phien/e2e-m18-gd.log docs/bang-chung/M18-giao-dien.log; \
 	  echo "e2e-m18-gd: mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' tmp-phien/e2e-m18-gd.log), không đạt $$(grep -c '=> KHÔNG ĐẠT' tmp-phien/e2e-m18-gd.log)"; exit $$rc
 
+.PHONY: anh-m19 e2e-m19-gd
+anh-m19: web ## Chụp các màn của M19 (tab Tên miền, tab Chuyển hướng, /domains, Công cụ) ở 1440 sáng, tối và 390 px vào docs/bang-chung/M19, kiểm như anh-m18
+	$(ANH) -bo m19 -out docs/bang-chung/M19
+
+e2e-m19-gd: ## e2e giao diện M19 trên máy ảo trong .tpan-vm (E10, E23, E41 và luật chuyển hướng bằng trình duyệt); log vào docs/bang-chung/M19-giao-dien.log, ảnh vào docs/bang-chung/M19
+	@# Như e2e-m18-gd: log ghi ra tmp-phien/ rồi mới chép, để tên bản được đóng gói không có đuôi -dirty.
+	E2E_LOG=tmp-phien/e2e-m19-gd.log bash scripts/e2e-m19-gd.sh </dev/null >tmp-phien/e2e-m19-gd.log 2>&1; rc=$$?; \
+	  cp tmp-phien/e2e-m19-gd.log docs/bang-chung/M19-giao-dien.log; \
+	  echo "e2e-m19-gd: mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' tmp-phien/e2e-m19-gd.log), không đạt $$(grep -c '=> KHÔNG ĐẠT' tmp-phien/e2e-m19-gd.log)"; exit $$rc
+
 lay-dev: ## git fetch origin (trước khi ghép dev vào nhánh mốc)
 	git fetch origin
 
