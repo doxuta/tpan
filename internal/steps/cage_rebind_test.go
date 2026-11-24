@@ -63,20 +63,20 @@ func TestDoiUserThiGanLaiPasswdCuaLong(t *testing.T) {
 	t.Run("SiteUser tạo user", func(t *testing.T) {
 		m := userMachine(t)
 		replyCmd(m.FakeSystem, rebindList, 0, rebindListOut)
-		if err := (&SiteUser{Layout: l}).Apply(ctx, m); err != nil {
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m); err != nil {
 			t.Fatalf("Apply: %v", err)
 		}
-		assertRebind(t, m.Ran(), "useradd --system --user-group --home-dir "+l.Dir+" --no-create-home --shell "+userShell+" "+l.User)
+		assertRebind(t, m.Ran(), "useradd --system --uid 65536 --gid 65536 --home-dir "+l.Dir+" --no-create-home --shell "+userShell+" "+l.User)
 	})
 	t.Run("SiteUser đã có user: không đổi gì nên không gắn lại", func(t *testing.T) {
 		m := userMachine(t)
 		replyCmd(m.FakeSystem, rebindList, 0, rebindListOut)
-		s := &SiteUser{Layout: l}
+		s := &SiteUser{Layout: l, UIDs: &memUIDs{}}
 		if err := s.Apply(ctx, m); err != nil {
 			t.Fatal(err)
 		}
 		m.ResetRan()
-		if err := (&SiteUser{Layout: l}).Apply(ctx, m); err != nil {
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m); err != nil {
 			t.Fatal(err)
 		}
 		for _, c := range ranStrings(m.Ran()) {
@@ -87,7 +87,7 @@ func TestDoiUserThiGanLaiPasswdCuaLong(t *testing.T) {
 	})
 	t.Run("SiteUserAbsent xoá user", func(t *testing.T) {
 		m := userMachine(t)
-		if err := (&SiteUser{Layout: l}).Apply(ctx, m); err != nil {
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m); err != nil {
 			t.Fatal(err)
 		}
 		replyCmd(m.FakeSystem, rebindList, 0, rebindListOut)
@@ -100,14 +100,14 @@ func TestDoiUserThiGanLaiPasswdCuaLong(t *testing.T) {
 		m := userMachine(t)
 		replyCmd(m.FakeSystem, rebindList, 0, rebindListOut)
 		replyCmd(m.FakeSystem, []string{"systemctl", "bind"}, 1, "")
-		if err := (&SiteUser{Layout: l}).Apply(ctx, m); err != nil {
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m); err != nil {
 			t.Fatalf("Apply hỏng vì gắn lại hỏng: %v", err)
 		}
 	})
 	t.Run("không liệt kê được lồng: bước vẫn xong, không bind", func(t *testing.T) {
 		m := userMachine(t)
 		replyCmd(m.FakeSystem, rebindList, 1, "")
-		if err := (&SiteUser{Layout: l}).Apply(ctx, m); err != nil {
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m); err != nil {
 			t.Fatalf("Apply: %v", err)
 		}
 	})

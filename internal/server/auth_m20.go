@@ -357,6 +357,7 @@ func (s *Server) handleLogin2FA(w http.ResponseWriter, r *http.Request) {
 		authInternal(w, "tạo phiên", err)
 		return
 	}
+	rememberPanelHost(r, st, u.Role)
 	mfaSetCookie(w, r, "", -1)
 	result := "ok"
 	if method == "recovery" {

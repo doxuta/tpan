@@ -388,6 +388,19 @@ func (s *Server) authCheckPassword(w http.ResponseWriter, r *http.Request, name,
 // nhưng vẫn đi qua hash giả như tên không có thật.
 const authMaxName = 64
 
+// rememberPanelHost (M28 đợt 2, B1): tên admin dùng để vào panel thành tên
+// dành riêng (không site mới nào mang được tên đó). Gọi ở cả hai chỗ tạo phiên
+// sau lần đăng nhập đúng: handleLogin, và bước hai (handleLogin2FA) cho người
+// đã bật hai bước. Ghi lỗi thì chỉ ghi nhật ký.
+func rememberPanelHost(r *http.Request, st core.SettingsRW, role account.Role) {
+	if role != account.RoleAdmin {
+		return
+	}
+	if err := core.RecordPanelHost(r.Context(), st, r.Host); err != nil {
+		slog.Error("ghi tên vào panel", "err", err)
+	}
+}
+
 // handleLogin: POST /api/v1/login.
 // Thứ tự: chờ tới lượt của khoá nguồn (các lần thử của một nguồn chạy lần
 // lượt), nguồn đang khoá thì từ chối ngay (không tốn argon2), rồi mới so mật
@@ -494,6 +507,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		authInternal(w, "tạo phiên", err)
 		return
 	}
+	rememberPanelHost(r, st, u.Role)
 	authSetCookie(w, r, token, 0)
 	s.audit(r, "login", name, "ok", "")
 	w.WriteHeader(http.StatusNoContent)

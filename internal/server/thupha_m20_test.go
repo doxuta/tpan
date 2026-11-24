@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/core"
 )
 
 // TestDangNhapKhongNhanAuthorization (V1): /login và /login/2fa có header
@@ -29,6 +30,29 @@ func TestDangNhapKhongNhanAuthorization(t *testing.T) {
 	// Không có header: đăng nhập như thường.
 	if rec := e.loginAs("", m20IP); rec.Code != http.StatusNoContent {
 		t.Fatalf("đăng nhập thường: %d %s", rec.Code, rec.Body)
+	}
+}
+
+// TestHaiBuocGhiTenPanel (gộp M28 đợt 2, B1): admin đã bật hai bước tạo phiên
+// ở /login/2fa, không ở /login, nên tên dùng để vào panel phải được ghi ở bước
+// hai. Bước một đúng mật khẩu thôi thì chưa ghi.
+func TestHaiBuocGhiTenPanel(t *testing.T) {
+	e := newM20Env(t)
+	ctx := context.Background()
+	secret, _ := e.enable(account.AdminName)
+	rec := e.loginAs(account.AdminName, m20IP)
+	ch := cookieNamed(rec, mfaCookieTLS)
+	if ch == nil {
+		t.Fatalf("bước một không ra phiếu: %d %s", rec.Code, rec.Body)
+	}
+	if v, ok, _ := e.st.GetSetting(ctx, core.SettingPanelHosts); ok {
+		t.Errorf("mới qua bước một đã ghi %q", v)
+	}
+	if rec := e.step2(e.code(secret), m20IP, ch); rec.Code != http.StatusNoContent {
+		t.Fatalf("bước hai: %d %s", rec.Code, rec.Body)
+	}
+	if v, _, _ := e.st.GetSetting(ctx, core.SettingPanelHosts); v != `["`+m20Host+`"]` {
+		t.Errorf("panel.hosts = %q, muốn [%q]", v, m20Host)
 	}
 }
 

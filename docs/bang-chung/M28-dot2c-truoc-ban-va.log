@@ -1,0 +1,331 @@
+
+
+######## [2026-11-25 01:41:51] e2e M28 đợt 2 (nhóm A) — máy ảo tpan-m28 — phần: nginx — log docs/bang-chung/M28-dot2c-truoc-ban-va.log
+E2E_BUILD=0  E2E_BIN_PREFIX=bin/tpan-m28-dot2c-truoc-linux
+
+
+######## [2026-11-25 01:41:51] PHẦN NGINX
+
+[2026-11-25 01:41:51] đưa máy ảo tpan-m28 về sạch
+[2026-11-25 01:42:05] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-25 01:42:05] chép bản build sẵn bin/tpan-m28-dot2c-truoc-linux-arm64 vào máy ảo
+tpan v0.2.2-104-gc7e607a (commit c7e607a, build 2026-11-24T18:30:17Z)
+[2026-11-25 01:42:06] chép scripts/e2e-m28/ và scripts/e2e-m28-dot2/ vào máy ảo (/home/ubuntu/e2e-m28)
+
+[2026-11-25 01:42:10] >>> dựng máy (nginx)  (bash dung-may.sh nginx)
+
+--- [01:42:10] tpan version
+tpan v0.2.2-104-gc7e607a (commit c7e607a, build 2026-11-24T18:30:17Z)
+
+--- [01:42:10] tpan setup
+  xong
+
+Job 1a573c089eb2be29: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    16:74:76:E2:2E:DA:24:2D:32:C5:07:AF:9F:84:CC:04:54:23:E0:2E:62:79:28:2E:67:90:48:01:34:13:82:02
+Mở: https://<IP của máy>:8443
+  => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m28-admin.pw, không in)
+  => ĐẠT: tpan.service active
+
+--- [01:42:10] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+  apt rảnh sau khoảng 0 giây
+
+--- [01:42:10] tpan stack install --web nginx --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web nginx thoát 0
+
+--- [01:42:45] tpan site add a.example.com (admin)
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+  [đạt] Thư mục public của site là thư mục thật của chính site
+  => ĐẠT: site add a.example.com thoát 0
+
+--- [01:42:58] tpan site add b.example.com (admin)
+  [đạt] Thư mục public của site là thư mục thật của chính site
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site a.example.com
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site b.example.com
+  => ĐẠT: site add b.example.com thoát 0
+
+--- [01:43:04] user khach1 (vai user) và site e.example.com của khach1
+  => ĐẠT: user add khach1 thoát 0, có mật khẩu (không in)
+  [đạt] Site a.example.com không chạm được vào file, log và socket của site e.example.com
+  [đạt] Site e.example.com không chạm được vào file, log và socket của site b.example.com
+  [đạt] Site b.example.com không chạm được vào file, log và socket của site e.example.com
+  => ĐẠT: site add e.example.com --owner khach1 thoát 0
+
+--- [01:43:10] hiện trạng
+DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+a.example.com                            active   8.3   không 2026-11-25 01:42 admin          -
+b.example.com                            active   8.3   không 2026-11-25 01:43 admin          -
+e.example.com                            active   8.3   không 2026-11-25 01:43 khach1         -
+  /var/www/a.example.com  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public  tp_a_example_com_7653e4:www-data 2750
+  /var/www/a.example.com/public/.htaccess: không có
+  a.example.com: HTTP 200
+  => ĐẠT: a.example.com trả 200
+  /var/www/b.example.com  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public  tp_b_example_com_cd59d5:www-data 2750
+  /var/www/b.example.com/public/.htaccess: không có
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+  /var/www/e.example.com  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public  tp_e_example_com_25cfc7:www-data 2750
+  /var/www/e.example.com/public/.htaccess: không có
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200
+  site e.example.com chạy bằng user Linux tp_e_example_com_25cfc7; stack nginx
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+  => ĐẠT: khach1 đăng nhập API: HTTP 204
+  khach1 GET /session: HTTP 200, 0.001851s (curl thoát 0; 28 là quá hạn 30s), câu trả lời 168 byte
+  phiên: khach1 vai user
+  => ĐẠT: phiên của khach1 có vai user
+[2026-11-25 01:43:11] <<< dựng máy (nginx) xong trong 61 giây
+
+[2026-11-25 01:43:11] >>> F4 public là symlink sang site khác (nginx), D5 health  (bash f4.sh )
+
+--- [01:43:11] F4.0. file của B (640, thư mục ẩn và ngoài docroot), user Linux của B là tp_b_example_com_cd59d5
+  /var/www/b.example.com/public/.bimat-8725225d4f/config: tp_b_example_com_cd59d5:www-data 640
+  /var/www/b.example.com/rieng-ngoai-8725225d4f/dump.sql: tp_b_example_com_cd59d5:www-data 640
+  => ĐẠT: www-data đọc được hai file 640 của B (điều kiện để phép thử có nghĩa)
+  => ĐẠT: user tp_e_example_com_25cfc7 của e không đọc được file của B (đúng cô lập file)
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200 trước khi tráo public
+
+--- [01:43:11] F4.1 (D1). public của e.example.com -> symlink sang thư mục ẩn của B (file 640): chan
+  lrwxrwxrwx 1 tp_e_example_com_25cfc7 www-data 47 Nov 25 01:43 /var/www/e.example.com/public -> /var/www/b.example.com/public/.bimat-8725225d4f
+  GET e.example.com/config: HTTP 404, 162 byte
+  => ĐẠT: D1: không có chuỗi đánh dấu của B trong thân
+  => ĐẠT: D1: mã là 403 hay 404 (HTTP 404)
+
+--- [01:43:11] F4.2 (D5). trong lúc lỗ mở: tpan health e.example.com
+  số dòng health: 42; dòng [lỗi]: 2
+  khớp: [lỗi] Thư mục public của site là thư mục thật của chính site: /var/www/e.example.com/public là symlink, không phải thư mục thật (đích ở bằng chứng)
+  => ĐẠT: health có một dòng [lỗi] nhắc tới public là symlink
+
+--- [01:43:11] F4.3 (D2). public của e.example.com -> symlink sang thư mục ngoài docroot của B (file 640): chan
+  GET e.example.com/dump.sql: HTTP 404, 162 byte
+  => ĐẠT: D2: không có chuỗi đánh dấu của B trong thân
+  => ĐẠT: D2: mã là 403 hay 404 (HTTP 404)
+  => ĐẠT: public của e.example.com là thư mục thật trở lại
+
+--- [01:43:11] F4.4. ca hợp lệ: symlink BÊN TRONG public (public/m28-hople) sang thư mục khác của CHÍNH e.example.com
+  lrwxrwxrwx 1 tp_e_example_com_25cfc7 www-data 41 Nov 25 01:43 /var/www/e.example.com/public/m28-hople -> /var/www/e.example.com/ban-moi-8725225d4f
+  GET e.example.com/m28-hople/ok.txt: HTTP 200, 23 byte
+  => ĐẠT: ca hợp lệ: HTTP 200 (chủ link và chủ đích cùng là tp_e_example_com_25cfc7)
+  => ĐẠT: ca hợp lệ: thân đúng nội dung thư mục mới
+
+--- [01:43:11] F4.5. kết thúc: public thật ở chỗ cũ, site e và site b trả 200
+  => ĐẠT: public của e.example.com là thư mục thật
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200 sau khi trả public
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200
+[2026-11-25 01:43:11] <<< F4 public là symlink sang site khác (nginx), D5 health xong trong 0 giây
+
+[2026-11-25 01:43:11] >>> M1-DBCONN trần kết nối DB  (bash dbconn.sh )
+  user DB của e.example.com: tp_e_example_com_25cfc7 (mật khẩu có 32 ký tự, không in), DB tp_e_example_com_25cfc7, host localhost
+  max_user_connections của user này: 20 
+
+--- [01:43:11] DBCONN.0. mốc: site b trả 200, tài khoản của e vào được DB (chan)
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200 trước phép thử
+  => ĐẠT: tài khoản DB của e kết nối được (thông tin lấy từ wp-config.php đúng)
+
+--- [01:43:11] DBCONN.1. mở 160 kết nối song song bằng tài khoản của e, giữ 40 giây
+  kết nối của tp_e_example_com_25cfc7 đang mở (root nhìn): 20
+  Threads_connected: Threads_connected 21
+
+--- [01:43:20] DBCONN.2. trong lúc đó gọi b.example.com ba lần
+  mã HTTP của b.example.com: 200 200 200
+
+--- [01:43:23] DBCONN.3. đếm kết nối của e thành công (tiến trình mariadb thoát 0)
+  thành công: 20 trên 160; lỗi của các kết nối bị từ chối:
+        140 ERROR 1226 (42000)
+  => ĐẠT: e mở được ít nhất 1 kết nối (phép thử có nghĩa)
+  => ĐẠT: e không mở được quá 20 kết nối (20)
+  => ĐẠT: b.example.com trả 200 cả ba lần trong lúc e mở kết nối (200 200 200)
+
+--- [01:43:51] DBCONN.4. dọn và kiểm sau phép thử
+  => ĐẠT: không còn kết nối của tp_e_example_com_25cfc7
+  b.example.com: HTTP 200
+  => ĐẠT: b.example.com trả 200 sau phép thử
+  e.example.com: HTTP 200
+  => ĐẠT: e.example.com trả 200 sau phép thử
+[2026-11-25 01:43:54] <<< M1-DBCONN trần kết nối DB xong trong 43 giây
+
+[2026-11-25 01:43:54] >>> P1 khoá đăng nhập  (bash p1.sh )
+
+--- [01:43:54] P1a. K1 (user Linux tp_e_example_com_25cfc7 của site e): 20 lần sai mật khẩu admin, mỗi lần một nguồn 127.0.0.x, cứ 4 lần sai xen 1 lần đăng nhập đúng của khach1
+  lần:mã = 1:401 2:401 3:401 4:401 (khach1 đúng:204) 5:423 6:423 7:423 8:423 (khach1 đúng:423) 9:423 10:423 11:423 12:423 (khach1 đúng:423) 13:423 14:423 15:423 16:423 (khach1 đúng:423) 17:423 18:423 19:423 20:423 (khach1 đúng:423)
+  số 401: 4; lần sai đầu tiên bị 423: 5 (0 là không lần nào)
+  => ĐẠT: P1a: có 423, chậm nhất ở lần sai thứ 6 (đầu tiên ở lần 5)
+  => ĐẠT: P1a: không quá 5 lần so mật khẩu sai (401 x4)
+  => ĐẠT: P1a: đã khoá thì không lần sai nào còn 401 (401 sau khoá: 0)
+  sau đó, ĐÚNG mật khẩu admin, cùng user, nguồn mới: HTTP 423
+  => ĐẠT: P1a: đang khoá thì mật khẩu admin đúng cũng 423
+
+--- [01:43:54] P1b. 20 lần sai bắn song song, user m28p1b, cùng nguồn 127.0.0.32
+  mã       4 401
+  mã      16 429
+  => ĐẠT: P1b: số câu 401 không quá 5 (4), còn lại chỉ 423 hay 429
+  sau loạt song song, các lần sai tuần tự: 423; tổng 401: 4
+  => ĐẠT: P1b: tổng số lần sai được so mật khẩu (401) không quá 5 (4), rồi 423
+  => ĐẠT: P1b: khoá nằm ở khoá nguồn uid:994 trong login_failures (dòng: 1)
+  => ĐẠT: P1b: đang khoá thì mật khẩu admin đúng vẫn 423 (HTTP 423)
+  dòng login.fail mới trong audit: 5
+  => ĐẠT: P1b: không quá 5 lần so mật khẩu sai thật (login.fail trong audit: 5)
+
+--- [01:43:55] P1c. ca hợp lệ (user m28p1c): admin sai 4 lần rồi đúng; sau đó sai 4 lần nữa chưa bị khoá; tpan admin unlock gỡ được khoá
+  4 lần sai: 401 401 401 401
+  => ĐẠT: P1c: 4 lần sai đầu đều 401
+  => ĐẠT: P1c: admin gõ đúng thì vào được (HTTP 204)
+  4 lần sai nữa: 401 401 401 401
+  => ĐẠT: P1c: bộ đếm về 0 sau lần đúng: 4 lần sai nữa vẫn 401
+  lần sai thứ 5: HTTP 423; rồi mật khẩu đúng: HTTP 423
+  => ĐẠT: P1c: lần sai thứ 5 khoá, mật khẩu đúng sau đó 423 (5: 423, đúng: 423)
+  | Đã gỡ khoá đăng nhập của uid:993.
+  => ĐẠT: P1c: sau tpan admin unlock, mật khẩu đúng vào được (HTTP 204)
+
+--- [01:43:56] P1d. tpan còn sống
+  tpan: PID 4831 -> 4831 (active), NRestarts 0 -> 0
+  => ĐẠT: tpan: PID và NRestarts không đổi
+[2026-11-25 01:43:56] <<< P1 khoá đăng nhập xong trong 2 giây
+
+[2026-11-25 01:43:56] >>> P2 trần argon2id cùng lúc  (bash p2.sh )
+  một lần đăng nhập sai mất 0.065803s; N = 150
+  dọn: xoá 0 dòng login_failures của IP thử
+
+--- [01:43:56] P2.0. mốc: tpan serve PID 4831
+  RSS trước: 166 MiB; NRestarts 0
+                 total        used        free      shared  buff/cache   available
+  Mem:            3901         719        1900          65        1522        3182
+
+--- [01:43:56] P2.1. 150 request đăng nhập song song, mỗi cái từ một địa chỉ riêng; lấy mẫu RSS mỗi 0,1 giây
+  mã      48 401
+  mã     102 429
+  thời gian: nhanh nhất 0.336558s, chậm nhất 3.612987s
+  RSS đỉnh 356 MiB, tăng 189 MiB so với trước; 429: 102; dòng OOM mới trong dmesg: 0
+
+--- [01:44:01] P2.2. khẳng định
+  => ĐẠT: RSS đỉnh trừ RSS trước không quá 400 MiB (tăng 189 MiB)
+  => ĐẠT: có ít nhất một câu 429 (102 trên 150)
+  => ĐẠT: hơn 5 câu 401 (48): mỗi request một khoá nguồn, 429 đến từ trần argon2
+  tpan: PID 4831 -> 4831 (active), NRestarts 0 -> 0
+  => ĐẠT: tpan: PID và NRestarts không đổi
+  dọn: xoá 48 dòng login_failures của IP thử
+[2026-11-25 01:44:01] <<< P2 trần argon2id cùng lúc xong trong 5 giây
+
+[2026-11-25 01:44:01] >>> P4 tên con của domain người khác (nhóm B)  (bash p4.sh )
+
+--- [01:44:02] P4.0. user khach2 (vai user) tạo thật site example.net qua API
+  => ĐẠT: user add khach2 có mật khẩu (không in)
+  đăng nhập khach2: HTTP 204
+  => ĐẠT: khach2 đăng nhập được
+  khach2 POST /sites: HTTP 202, 0.008838s (curl thoát 0; 28 là quá hạn 300s), câu trả lời 30 byte
+  => ĐẠT: khach2 gửi tạo site example.net: 202 (HTTP 202)
+  DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
+  example.net                              active   8.3   không 2026-11-25 01:44 khach2         -
+  => ĐẠT: site example.net của khach2 đã active
+
+--- [01:44:10] P4.1. khach1 xin bản xem trước site add cho tên con của example.net (của khach2): chan
+  khach1 POST /sites?dry_run=1: HTTP 404, 0.002031s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 220 byte
+  => ĐẠT: khach1 không tạo được www.example.net: 404 (HTTP 404)
+  => ĐẠT: lời là site_not_found, như site không tồn tại
+  khach1 POST /sites?dry_run=1: HTTP 404, 0.001839s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 222 byte
+  => ĐẠT: khach1 không tạo được mail.example.net: 404 (HTTP 404)
+  => ĐẠT: lời là site_not_found, như site không tồn tại
+
+--- [01:44:10] P4.2. ca hợp lệ
+  khach2 POST /sites?dry_run=1: HTTP 200, 0.030869s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 24793 byte
+  => ĐẠT: khach2 tạo được www.example.net của chính mình (bản xem trước 200, HTTP 200)
+  khach1 POST /sites?dry_run=1: HTTP 200, 0.030055s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 25865 byte
+  => ĐẠT: khach1 tạo được shop-ee86e375bf.example.org (tên miền gốc không ai dùng; HTTP 200)
+[2026-11-25 01:44:10] <<< P4 tên con của domain người khác (nhóm B) xong trong 9 giây
+
+[2026-11-25 01:44:10] >>> P7 chủ của job suy từ tên (nhóm B)  (bash p7.sh )
+
+--- [01:44:10] P7.0. admin tạo user khach1_p7y (vai user); khach1 xin tạo DB rời p7y (tên đầy đủ khach1_p7y): chan
+  => ĐẠT: user khach1_p7y có trong tpan
+  khach1 POST /dbs: HTTP 409, 0.004239s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 262 byte
+  => ĐẠT: khach1 không tạo được DB rời trùng tên user khach1_p7y: 409 (HTTP 409)
+  dòng DB rời khach1_p7y trong tpan.db: 0
+
+--- [01:44:11] P7.1. admin khoá user khach1_p7y qua API
+  đăng nhập admin: HTTP 204
+  => ĐẠT: admin đăng nhập được
+  admin POST /users/khach1_p7y/suspend: HTTP 202, 0.004167s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 30 byte
+  => ĐẠT: admin gửi khoá user khach1_p7y: 202 (HTTP 202)
+  job khoá user: c370ff31380da251, xong: succeeded, chủ ghi trong tpan.db: admin
+
+--- [01:44:11] P7.2. khach1 tìm job khoá user của admin
+  khach1 GET /jobs?limit=200: HTTP 200, 0.001983s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 291 byte
+  job c370ff31380da251 trong GET /jobs của khach1: 0 lần
+  khach1 GET /jobs/c370ff31380da251: HTTP 404, 0.001816s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 95 byte
+  => ĐẠT: khach1 không đọc được job khoá user của admin: 404 (HTTP 404)
+  => ĐẠT: job đó không có trong GET /jobs của khach1
+
+--- [01:44:11] P7.3. ca hợp lệ: khach1 tạo DB rời p7z (không trùng tên user nào), job thuộc khach1
+  khach1 POST /dbs: HTTP 202, 0.012227s (curl thoát 0; 28 là quá hạn 120s), câu trả lời 30 byte
+  => ĐẠT: khach1 tạo được DB rời p7z (HTTP 202)
+  job: e325609452b65096, xong: succeeded
+  => ĐẠT: chủ của job tạo DB khach1_p7z là khach1
+  khach1 GET /jobs/e325609452b65096: HTTP 200, 0.002924s (curl thoát 0; 28 là quá hạn 60s), câu trả lời 2290 byte
+  => ĐẠT: khach1 đọc được job của chính mình (HTTP 200)
+  => ĐẠT: DB rời khach1_p7z có trong tpan.db
+[2026-11-25 01:44:12] <<< P7 chủ của job suy từ tên (nhóm B) xong trong 2 giây
+
+[2026-11-25 01:44:12] >>> F1 UID dùng lại sau xoá hẳn (nhóm B)  (bash f1.sh )
+
+--- [01:44:12] F1.0. admin tạo site x1.example.com
+  => ĐẠT: site add x1.example.com thoát 0
+  user tp_x1_example_com_450f87: uid 993, gid 984
+
+--- [01:44:17] F1.1. user tp_x1_example_com_450f87 để lại dấu vết: file setuid ở /var/tmp, file ở /dev/shm, crontab
+  -rw------- 1 993 984     9 Nov 25 01:44 /dev/shm/m28f1-shm
+  -rwsr-xr-x 1 993 984 67952 Nov 25 01:44 /var/tmp/m28f1-id
+  => ĐẠT: đã đặt đủ dấu vết (file setuid, crontab)
+
+--- [01:44:17] F1.2. xoá hẳn x1.example.com
+  | - Xoá user Linux tp_x1_example_com_450f87 ...
+  |   xong
+  | 
+  | Job 7b68081840752076: thành công
+  => ĐẠT: xoá hẳn x1.example.com thoát 0
+  sau xoá hẳn: getent passwd 993: ''; getent group 984: ''
+  -rw------- 1 993 984     9 Nov 25 01:44 /dev/shm/m28f1-shm
+  -rwsr-xr-x 1 993 984 67952 Nov 25 01:44 /var/tmp/m28f1-id
+
+--- [01:44:21] F1.3. admin tạo site x2.example.com (sau xoá hẳn): chan
+  => ĐẠT: site add x2.example.com thoát 0
+  user tp_x2_example_com_351da2: uid 993, gid 984
+  -rwsr-xr-x 1 tp_x2_example_com_351da2 tp_x2_example_com_351da2 67952 Nov 25 01:44 /var/tmp/m28f1-id
+  => KHÔNG ĐẠT: x2.example.com không nhận lại UID của x1.example.com (993 khác 993, và lớn hơn)
+  => KHÔNG ĐẠT: GID của tp_x2_example_com_351da2 bằng UID (984)
+  => KHÔNG ĐẠT: không còn file của uid 993 ở /var/tmp, /dev/shm
+  => KHÔNG ĐẠT: không còn crontab của tp_x1_example_com_450f87
+  => ĐẠT: không còn user, nhóm của x1.example.com
+  x2.example.com: HTTP 200
+  => ĐẠT: x2.example.com trả 200
+
+--- [01:44:26] F1.4. tiến trình sót: site x3.example.com để lại một tiến trình ngủ, rồi xoá hẳn
+  => ĐẠT: site add x3.example.com thoát 0
+  tiến trình của uid 992 trước khi xoá hẳn: 2
+  |   đã hoàn tác
+  | 
+  | Job 422e34ad45dabd0a: hỏng, đã hoàn tác sạch
+  | Lỗi: bước site.user.absent:tp_x3_example_com_92f5a8: thực hiện: xoá user tp_x3_example_com_92f5a8: còn tiến trình đang chạy dưới user này (thường là worker PHP-FPM chưa thoá
+  xoá hẳn x3.example.com: mã 1; tiến trình của uid 992 còn: 1
+  => KHÔNG ĐẠT: xoá hẳn x3.example.com xong dù user còn tiến trình (mã 1)
+  => KHÔNG ĐẠT: không còn tiến trình của uid 992
+[2026-11-25 01:44:35] <<< F1 UID dùng lại sau xoá hẳn (nhóm B) xong trong 23 giây
+
+==== Phần NGINX: 80 khẳng định đạt, 6 không đạt
+
+
+######## [2026-11-25 01:44:35] TỔNG KẾT: 80 khẳng định đạt, 6 khẳng định không đạt

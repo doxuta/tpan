@@ -377,6 +377,14 @@ func TestLenhRootKhongNhanDuongDanSite(t *testing.T) {
 		{"c5-useradd-P", Cmd{Name: "useradd", Args: []string{"-M", "-P", "/var/www/a/x", "tp_a_1"}}, false},
 		{"c5-useradd-shell", Cmd{Name: "useradd", Args: []string{"--system", "--home-dir", "/var/www/a", "--no-create-home", "--shell", "/var/www/a/x", "tp_a_1"}}, false},
 		{"useradd-that", Cmd{Name: "useradd", Args: []string{"--system", "--user-group", "--home-dir", "/var/www/a", "--no-create-home", "--shell", "/usr/sbin/nologin", "tp_a_1"}}, true},
+		// M28 đợt 2, F1: UID và GID do tpan cấp; chỉ nhận số.
+		{"f1-useradd-uid-gid", Cmd{Name: "useradd", Args: []string{"--system", "--uid", "65536", "--gid", "65536", "--home-dir", "/var/www/a", "--no-create-home", "--shell", "/usr/sbin/nologin", "tp_a_1"}}, true},
+		{"f1-useradd-gid-ten", Cmd{Name: "useradd", Args: []string{"--system", "--uid", "65536", "--gid", "tp_a_1", "--home-dir", "/var/www/a", "--no-create-home", "tp_a_1"}}, false},
+		{"f1-useradd-uid-am", Cmd{Name: "useradd", Args: []string{"--system", "--uid", "-1", "--home-dir", "/var/www/a", "--no-create-home", "tp_a_1"}}, false},
+		{"f1-useradd-uid-rong", Cmd{Name: "useradd", Args: []string{"--system", "--uid", "", "--home-dir", "/var/www/a", "--no-create-home", "tp_a_1"}}, false},
+		{"f1-useradd-uid-cuoi", Cmd{Name: "useradd", Args: []string{"--system", "--home-dir", "/var/www/a", "--no-create-home", "--uid"}}, false},
+		{"f1-useradd-uid-duong-dan", Cmd{Name: "useradd", Args: []string{"--system", "--uid", "/var/www/a/x", "--home-dir", "/var/www/a", "--no-create-home", "tp_a_1"}}, false},
+		{"f1-useradd-uid-dinh", Cmd{Name: "useradd", Args: []string{"--system", "--uid=65536", "--home-dir", "/var/www/a", "--no-create-home", "tp_a_1"}}, false},
 		// Soát cuối M28, C12: --file= tương đối vẫn trỏ được vào vùng site
 		// (tar ghép nó với thư mục làm việc) mà không chứa chuỗi "/var/www/".
 		{"c12-tar-file-tuong-doi", Cmd{Name: "tar", Args: []string{"--create", "--gzip", "--file=var/www/a/out.tar", "--directory=/var/www/a", "public"}}, false},

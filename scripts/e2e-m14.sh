@@ -801,7 +801,9 @@ part_a() {
   web_assert "$A" "site A"
   web_assert "$B" "site B"
   vroot bash -c 'grep -n disable_symlinks /etc/nginx/sites-available/tpan-*.conf; stat -c "%U:%G %a %n" /var/log/tpan/sites/* /var/log/tpan/sites/*/*.log'
-  ok "vhost của hai site có disable_symlinks if_not_owner" count_is 2 'disable_symlinks if_not_owner from=\$document_root;'
+  # Từ M28 đợt 2 (F4) dòng là `disable_symlinks if_not_owner;` (không còn from=,
+  # để nginx xét cả chính thư mục public).
+  ok "vhost của hai site có disable_symlinks if_not_owner" count_is 2 'disable_symlinks if_not_owner;'
 
   section "A: bộ phép thử tấn công, A=$A bị chiếm, B=$B nạn nhân"
   tancong "$A" "$B"

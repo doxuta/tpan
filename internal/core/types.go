@@ -12,6 +12,7 @@ import (
 	"context"
 
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -67,4 +68,7 @@ type SiteStore interface {
 	SaveSite(ctx context.Context, s site.Site) error
 	// DeleteSite xoá dòng của site; không có thì lỗi thoả errors.Is(err, store.ErrNotFound).
 	DeleteSite(ctx context.Context, d validate.Domain) error
+	// ReserveSiteUID cấp UID cho user Linux của site mới, không bao giờ cấp
+	// lại số đã cấp (M28 đợt 2, F1; steps.SiteUser, store.ReserveSiteUID).
+	steps.UIDReserver
 }

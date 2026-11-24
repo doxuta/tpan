@@ -712,7 +712,7 @@ Chép nguyên từ mục 6.27 của `docs/KE-HOACH.md` (cách gây ra giữ ngo�
 - Kẻ chiếm site còn vài khoá nguồn phụ ngoài `uid:<n>`, nên được vài lần đoán hơn 5 mỗi 15 phút.
 - Phần còn lại của D2: ngoài harden, một site bị chiếm vẫn làm được các Plan khác chạm tới nó bị hoàn tác (có từ M14; không mở lỗ đọc file, chỉ chặn thao tác của admin tới khi sửa site đó).
 - Hồi quy cho site hợp lệ (D13 của soát cuối): site có `public` là symlink cùng chủ (kiểu thư mục `current` của công cụ triển khai) vẫn chạy nhưng mọi Plan trên site đó bị hoàn tác vì `site.docroot`; đổi `public` thành thư mục thật.
-- Nhóm B của đợt 2: P4, P7 đã vá (xem `28c-m28-dot-2-nhom-b.md`); F1, P06, T3 và các phát hiện vừa còn lại chưa làm.
+- Nhóm B của đợt 2: P4, P7 (xem `28c-m28-dot-2-nhom-b.md`), F1 (xem `28d-m28-dot-2-f1.md`) đã vá; T3 đã đóng ở đợt 1; P06 và các phát hiện vừa còn lại chưa làm.
 
 Nếu bị hỏi "bản này đã an toàn hoàn toàn chưa": chưa. Bốn gạch đầu là lỗ chưa vá. Gạch thứ nhất là lý do để khuyên nginx cho máy nhiều khách.
 

@@ -66,6 +66,13 @@ var rootZoneCommands = map[string]func(args []string, prefix string) bool{
 		for i := 0; i < len(args); i++ {
 			switch a := args[i]; a {
 			case "--system", "--user-group", "--no-create-home":
+			case "--uid", "--gid":
+				// M28 đợt 2, F1: UID, GID do tpan cấp (steps.SiteUser). Chỉ
+				// chữ số: --gid còn nhận tên nhóm, tpan không dùng dạng đó.
+				if i+1 >= len(args) || args[i+1] == "" || strings.Trim(args[i+1], "0123456789") != "" {
+					return false
+				}
+				i++
 			case "--home-dir":
 				// Tuyệt đối, sạch, và trong vùng thì phải đúng là một neo
 				// (checkRootZone còn cho cả <neo>/<một tên>, rộng hơn mức cần;
