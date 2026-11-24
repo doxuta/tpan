@@ -53,8 +53,11 @@ import (
 type Probe struct {
 	Sys      system.System
 	Settings Settings
-	Store    SiteStore // chỉ đọc (lấy stack, tránh tên trùng); site thử KHÔNG được ghi vào đây
-	Runs     ProbeStore
+	// Store chỉ để đọc (lấy stack, tránh tên trùng): site thử KHÔNG được ghi
+	// vào bảng sites. Ngoại lệ duy nhất (M28 đợt 2, F1): user của site thử
+	// cũng nhận UID qua Store.ReserveSiteUID, mỗi lượt hai số, không trả lại.
+	Store SiteStore
+	Runs  ProbeStore
 	// Journal nhận job khi Execute. Plan của phép thử chạy với một Journal bọc
 	// bỏ qua RecordFile, ForgetFile (file của site thử không vào managed_files).
 	Journal engine.Journal
@@ -465,7 +468,7 @@ func (j *ProbeJob) siteSteps(l site.Layout, withArchive bool) ([]engine.Step, er
 		AdminUser: siteAdminUser, AdminEmail: email, AdminPassword: adminPw,
 	}}
 	version, hash := j.p.wordpress()
-	plan, err := addPlan(j.cfg.Web, j.cfg.PHPVersion, l, dbPw, version, hash, install, false, site.HtaccessSafe)
+	plan, err := addPlan(j.cfg.Web, j.cfg.PHPVersion, l, dbPw, version, hash, install, false, site.HtaccessSafe, j.p.Store)
 	if err != nil {
 		return nil, err
 	}

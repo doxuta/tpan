@@ -60,6 +60,10 @@ func (EmptySiteStore) DeleteSite(_ context.Context, d validate.Domain) error {
 	return fmt.Errorf("xoá site %s: chưa có DB (chế độ chỉ xem)", d)
 }
 
+func (EmptySiteStore) ReserveSiteUID(context.Context, int) (int, error) {
+	return 0, errors.New("cấp UID cho user site: chưa có DB (chế độ chỉ xem)")
+}
+
 // Sites gom những gì các ca sử dụng của site cần. Dựng mới cho mỗi lệnh.
 type Sites struct {
 	Sys      system.System
@@ -559,7 +563,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if lim != nil {
 		want = *lim
 	}
-	plan, err := addPlanSite(rec, cfg, want, dbPw, version, hash, install)
+	plan, err := addPlanSite(rec, cfg, want, dbPw, version, hash, install, s.Store)
 	if err != nil {
 		return nil, err
 	}
@@ -598,9 +602,9 @@ func (s *Sites) newOwner(ctx context.Context, owner string) (string, error) {
 // addPlan là chữ ký cũ của addPlanSite cho một site mới ở ngoài lồng (phép
 // thử tấn công ở probe.go dựng site thử bằng nó). Dựng bản ghi tương ứng rồi
 // gọi addPlanSite: cùng pool, cùng vhost như trước M17.
-func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep, ssl bool, mode site.HtaccessMode) (engine.Plan, error) {
+func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep, ssl bool, mode site.HtaccessMode, uids steps.UIDReserver) (engine.Plan, error) {
 	rec := site.Site{Domain: l.Domain, Slug: l.Slug, Status: site.Active, PHPVersion: php, SSL: ssl, Htaccess: mode}
-	return addPlanSite(rec, StackConfig{Web: web, PHPVersion: php}, account.Limits{}, dbPw, wpVersion, wpHash, install)
+	return addPlanSite(rec, StackConfig{Web: web, PHPVersion: php}, account.Limits{}, dbPw, wpVersion, wpHash, install, uids)
 }
 
 // addPlanSite dựng Plan "site.add" đúng thứ tự mục 6.2. rec là dòng sẽ ghi (site
@@ -611,12 +615,12 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 // CageSocket và vhost của lồng, không ghi lại pool chung (bất biến 7). Site
 // ngoài lồng: đúng pool và vhost như trước (site tạm khoá đã bị từ chối ở
 // PrepareAdd nên nhánh tạm khoá của siteVhost không xảy ra ở đây).
-func addPlanSite(rec site.Site, cfg StackConfig, lim account.Limits, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep) (engine.Plan, error) {
+func addPlanSite(rec site.Site, cfg StackConfig, lim account.Limits, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep, uids steps.UIDReserver) (engine.Plan, error) {
 	l, web, mode := rec.Layout(), cfg.Web, rec.Htaccess.OrDefault()
 	wrap := func(err error) error { return fmt.Errorf("dựng Plan tạo site %s: %w", l.Domain, err) }
 
 	// Bước 2, 3, 4: user Linux, thư mục và log, DB.
-	ss := []engine.Step{&steps.SiteUser{Layout: l}}
+	ss := []engine.Step{&steps.SiteUser{Layout: l, UIDs: uids}}
 	ss = append(ss, steps.SiteDirs(l)...)
 	ss = append(ss, &steps.SiteDB{Layout: l, Password: dbPw})
 

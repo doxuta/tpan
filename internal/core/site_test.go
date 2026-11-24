@@ -434,9 +434,17 @@ type memSites struct {
 	mu       sync.Mutex
 	sites    map[string]site.Site
 	failSave error
+	maxUID   int // cùng luật với store.ReserveSiteUID
 }
 
 func newMemSites() *memSites { return &memSites{sites: map[string]site.Site{}} }
+
+func (m *memSites) ReserveSiteUID(_ context.Context, floor int) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.maxUID = max(m.maxUID+1, floor)
+	return m.maxUID, nil
+}
 
 func (m *memSites) Site(_ context.Context, d validate.Domain) (site.Site, bool, error) {
 	m.mu.Lock()
