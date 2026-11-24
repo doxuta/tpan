@@ -45,7 +45,7 @@ Một lượt trước đó (trên mã vừa gộp M20) có 1 không đạt do s
 
 Hai đường nâng cấp khác nhau có chủ ý. Phần `nang-cap` cài bản ngay trước M19 rồi lên: vhost phải giống từng byte. Phần `nang-cap-v020` cài gói phát hành v0.2.0 rồi lên: không so từng byte (template đã đổi từ v0.2.0 ở M14, M28), chỉ khẳng định không tên phụ nào tự sinh, site vẫn 200, health không có dòng mới về tên phụ.
 
-Hồi quy: M16 120/0 và M14 270/0 trên mã cuối; M13 293/0, M5 256/0, M3 151/0 trên mã trước khi gộp M20 (`docs/bang-chung/M19-hoi-quy-*.log`).
+Hồi quy: M3 151/0, M5 256/0, M13 293/0 trên mã cuối; M14 270/0 và M16 120/0 trên mã đã gộp M20 (`docs/bang-chung/M19-hoi-quy-*.log`).
 
 Phần giao diện bấm thật bằng trình duyệt (`make e2e-m19-gd`: thêm tên phụ, lời từ chối của user B, tên chưa đạt, thêm luật): 94 khẳng định đạt, 0 không đạt, `docs/bang-chung/M19-giao-dien.log`; ảnh ở `docs/bang-chung/M19/`.
 
