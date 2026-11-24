@@ -209,7 +209,25 @@ type SSLIssue struct {
 	Preconditions []checks.Result
 	Plan          engine.Plan
 
-	ssl *SSL
+	// M19 (mục 3.6 ý 6): điền sau job thành công, khi store giữ được tên.
+	// Names: mọi tên của site, có trong chứng chỉ mới không, và lý do khi bị
+	// loại vì bước thử hỏng. Notes: ghi chú (S3 giữ chứng chỉ cũ, job vẽ lại
+	// vhost hỏng). FollowUpJob: ID job site.vhost vẽ lại vhost khi bộ tên phủ đổi.
+	Names       []SSLName
+	Notes       []i18n.Text
+	FollowUpJob string
+
+	// probe: kết quả của ACMEProbeNames; nil khi Plan đi đường một tên như trước M19.
+	probe *steps.ProbeResult
+	ssl   *SSL
+}
+
+// SSLName là một tên của site trong kết quả job site.ssl (M19, mục 3.6 ý 6).
+type SSLName struct {
+	Name   validate.Domain `json:"name"`
+	InCert bool            `json:"in_cert"`
+	// Reason: vì sao tên bị bỏ khỏi đơn xin (bước thử hỏng); nil khi không bị bỏ.
+	Reason *i18n.Text `json:"reason,omitempty"`
 }
 
 // PrepareIssue làm phần chỉ đọc của "xin SSL": kiểm điều kiện đầu, dựng Plan.
@@ -286,11 +304,40 @@ func (s *SSL) PrepareIssue(ctx context.Context, d validate.Domain) (*SSLIssue, e
 	if err != nil {
 		return nil, err
 	}
-	plan, err := sslPlan(stack, php, st, email, cfg, lim)
+	plan, probe, err := sslPlan(stack, php, st, email, cfg, lim, sslCertHasOthers(s.Sys, l))
 	if err != nil {
 		return nil, err
 	}
-	return &SSLIssue{Site: st, Layout: l, Config: cfg, Preconditions: results, Plan: plan, ssl: s}, nil
+	return &SSLIssue{Site: st, Layout: l, Config: cfg, Preconditions: results, Plan: plan, probe: probe, ssl: s}, nil
+}
+
+// siteAliases: tên phụ active của site (cả serve lẫn redirect), theo thứ tự vẽ.
+func siteAliases(st site.Site) []validate.Domain {
+	return slices.Concat(st.Names.Serve, st.Names.Redirect)
+}
+
+// sslCertNames đọc SAN của chứng chỉ đang có. Đọc fullchain.pem: khối đầu của
+// nó chính là cert.pem (chứng chỉ của site), và là file mọi bước khác đã đọc.
+func sslCertNames(sys system.System, l site.Layout) ([]validate.Domain, error) {
+	p := l.CertFullchain()
+	data, err := sys.ReadFile(p)
+	if err != nil {
+		return nil, fmt.Errorf("đọc %s: %w", p, err)
+	}
+	names, err := steps.CertNames(data)
+	if err != nil {
+		return nil, fmt.Errorf("đọc tên trong %s: %w", p, err)
+	}
+	return names, nil
+}
+
+// sslCertHasOthers: chứng chỉ đang có mang tên khác tên chính. Khi đó Plan đi
+// đường nhiều tên dù site không còn tên phụ, để certbot xin lại chỉ với tên
+// chính (B9: alias.rm đã xoá dòng tên nên st.Names không còn biết tên đó).
+// Chưa có chứng chỉ hay đọc không được: false (đường một tên như trước M19).
+func sslCertHasOthers(sys system.System, l site.Layout) bool {
+	names, err := sslCertNames(sys, l)
+	return err == nil && slices.ContainsFunc(names, func(n validate.Domain) bool { return n != l.Domain })
 }
 
 // sslPlan dựng Plan "site.ssl" đúng thứ tự ở đầu file. Vhost 443 ghi qua
@@ -300,7 +347,12 @@ func (s *SSL) PrepareIssue(ctx context.Context, d validate.Domain) (*SSLIssue, e
 // M17: kiểm chứng đi qua siteRequestChecks (lim là trần của lồng, nil khi site
 // ở ngoài lồng): site ngoài lồng giữ đúng checks.SiteChecksSSL như trước, site
 // trong lồng ra SiteChecksSSLCaged (không gọi socket pool chung không có).
-func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, cfg SSLConfig, lim *account.Limits) (engine.Plan, error) {
+//
+// M19 (mục 3.6): site có tên phụ (hay chứng chỉ đang có mang tên khác tên
+// chính, certOthers) thì bước thử là ACMEProbeNames cho tên chính + mọi tên phụ
+// active, và certbot chỉ xin các tên đã qua; probe trả về là nơi ghi kết quả
+// thử. Còn lại: đúng các bước và argv trước M19, probe nil.
+func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, cfg SSLConfig, lim *account.Limits, certOthers bool) (engine.Plan, *steps.ProbeResult, error) {
 	web, l := string(stack.Web), st.Layout()
 	d := l.Domain.String()
 	wrap := func(err error) error { return fmt.Errorf("dựng Plan SSL cho %s: %w", d, err) }
@@ -308,24 +360,33 @@ func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, 
 	// Bước thử và bước xin dùng CHUNG một CertbotCert: bước thử hỏi nó "chứng
 	// chỉ đã đúng chưa" để bỏ qua khi chạy lại.
 	cert := &steps.CertbotCert{Layout: l, Webroot: acmeRoot, Email: email, Server: cfg.ServerURL()}
+	var probe engine.Step = &steps.ACMEProbe{Layout: l, Webroot: acmeRoot, Cert: cert}
+	var res *steps.ProbeResult
+	if aliases := siteAliases(st); len(aliases) > 0 || certOthers {
+		res = &steps.ProbeResult{}
+		pn := &steps.ACMEProbeNames{Layout: l, Webroot: acmeRoot, Names: append([]validate.Domain{l.Domain}, aliases...),
+			Covered: st.Names.Covered, Result: res, Cert: cert}
+		cert.Names, cert.Probe = pn.CertbotNames, res
+		probe = pn
+	}
 	ss := []engine.Step{
 		&steps.Dir{Path: acmeRoot + "/.well-known/acme-challenge", Perm: 0o755, Owner: system.Root},
-		&steps.ACMEProbe{Layout: l, Webroot: acmeRoot, Cert: cert},
+		probe,
 		cert,
 	}
 	def, err := steps.DefaultSSL(web)
 	if err != nil {
-		return engine.Plan{}, wrap(err)
+		return engine.Plan{}, nil, wrap(err)
 	}
 	next := st
 	next.SSL, next.PHPVersion = true, php
 	vhost, err := siteVhost(next, stack)
 	if err != nil {
-		return engine.Plan{}, wrap(err)
+		return engine.Plan{}, nil, wrap(err)
 	}
 	hook, err := templates.RenewHook(tpanBin)
 	if err != nil {
-		return engine.Plan{}, wrap(err)
+		return engine.Plan{}, nil, wrap(err)
 	}
 	ss = append(ss, def...)
 	ss = append(ss, vhost...)
@@ -359,7 +420,7 @@ func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, 
 		Title:  i18n.T("Xin chứng chỉ SSL cho "+d, "Get an SSL certificate for "+d),
 		Steps:  ss,
 		Verify: verify,
-	}, nil
+	}, res, nil
 }
 
 // Preview là bản xem trước. Chỉ đọc máy.
@@ -391,7 +452,107 @@ func (i *SSLIssue) Execute(ctx context.Context, onEvent func(engine.Event)) (eng
 			rep.Job.ID, st.Domain, err, st.Domain)
 	}
 	i.Site = st
+	// Store giả của test cũ không giữ tên: không có in_cert để ghi.
+	if ns, ok := s.Store.(NameStore); ok {
+		if err := i.afterCert(ctx, ns, onEvent); err != nil {
+			return rep, fmt.Errorf("job %s đã cài chứng chỉ cho %s: %w. Chạy lại `tpan ssl issue %s` (các bước đã đúng sẽ được bỏ qua)",
+				rep.Job.ID, st.Domain, err, st.Domain)
+		}
+	}
 	return rep, nil
+}
+
+// afterCert (M19, mục 3.6 ý 5): đọc SAN của chứng chỉ vừa có, ghi in_cert cho
+// mọi tên của site (cả đường bật SSL lần đầu: SaveSite không đổi in_cert của
+// dòng đã có), điền Names/Notes, và khi bộ tên phụ được phủ đổi thì chạy tiếp
+// job site.vhost để cổng 443 phục vụ đúng các tên đó.
+func (i *SSLIssue) afterCert(ctx context.Context, ns NameStore, onEvent func(engine.Event)) error {
+	st, d := i.Site, i.Site.Domain
+	san, err := sslCertNames(i.ssl.Sys, i.Layout)
+	if err != nil {
+		return err
+	}
+	if err := ns.SetInCert(ctx, d, san); err != nil {
+		return err
+	}
+	aliases := siteAliases(st)
+	i.Names = []SSLName{{Name: d, InCert: slices.Contains(san, d)}}
+	var added []validate.Domain
+	changed := false
+	for _, a := range aliases {
+		n := SSLName{Name: a, InCert: slices.Contains(san, a)}
+		if i.probe != nil {
+			for _, f := range i.probe.Failed {
+				if f.Name == a {
+					r := f.Reason
+					n.Reason = &r
+				}
+			}
+		}
+		i.Names = append(i.Names, n)
+		was := slices.Contains(st.Names.Covered, a)
+		changed = changed || was != n.InCert
+		if n.InCert && !was {
+			added = append(added, a)
+		}
+	}
+	if i.probe != nil && i.probe.Blocked {
+		// S3: một tên đang trong chứng chỉ hỏng bước thử; không xin lại.
+		i.Notes = append(i.Notes, i18n.T(
+			"Có tên đang nằm trong chứng chỉ mà không qua bước thử (xem lý do từng tên): giữ chứng chỉ cũ, không xin lại. Sửa DNS của tên đó rồi chạy lại: sudo tpan ssl issue "+d.String(),
+			"A name already in the certificate failed the test (see each name's reason): the current certificate is kept and nothing was requested. Fix that name's DNS, then run again: sudo tpan ssl issue "+d.String()))
+	}
+	if !changed {
+		return nil
+	}
+	return i.redrawVhost(ctx, added, onEvent)
+}
+
+// redrawVhost chạy job site.vhost: vhost vẽ lại từ DB (Covered mới) và
+// NameProbe cho từng tên vừa được phủ. Job hỏng thì engine trả vhost về như
+// cũ; chứng chỉ mới vẫn hợp lệ cho các tên cũ và in_cert đã đúng với file.
+func (i *SSLIssue) redrawVhost(ctx context.Context, added []validate.Domain, onEvent func(engine.Event)) error {
+	s := i.ssl
+	sites := &Sites{Sys: s.Sys, Settings: s.Settings, Store: s.Store}
+	next, err := sites.find(ctx, i.Site.Domain)
+	if err != nil {
+		return err
+	}
+	stack, err := sites.stack(ctx)
+	if err != nil {
+		return err
+	}
+	ss, err := siteVhost(next, stack)
+	if err != nil {
+		return fmt.Errorf("dựng vhost mới cho %s: %w", next.Domain, err)
+	}
+	for _, a := range added {
+		m := site.ModeRedirect
+		if slices.Contains(next.Names.Serve, a) {
+			m = site.ModeServe
+		}
+		ss = append(ss, &steps.NameProbe{Layout: next.Layout(), Host: a, Mode: m, SSL: next.SSL, Covered: next.Names.Covered})
+	}
+	d := next.Domain.String()
+	// ponytail: không Verify riêng; bước File kiểm cú pháp, NameProbe gọi thật
+	// từng tên mới. Nâng cấp: thêm siteRequestChecks như NamesOp.build.
+	plan := engine.Plan{
+		Kind: "site.vhost", Target: d, Steps: ss,
+		Title: i18n.T("Vẽ lại vhost của "+d+" theo các tên trong chứng chỉ mới", "Redraw the vhost of "+d+" for the names in the new certificate"),
+	}
+	rep, err := engine.New(s.Sys, engine.Options{Journal: s.Journal, OnEvent: onEvent}).Execute(engine.WithOwner(ctx, ownerOf(next)), plan)
+	i.FollowUpJob = rep.Job.ID
+	if err != nil {
+		return fmt.Errorf("chạy %s: %w", plan.Kind, err)
+	}
+	if rep.Job.Status != engine.JobSucceeded {
+		i.Notes = append(i.Notes, i18n.T(
+			"Job "+rep.Job.ID+" vẽ lại vhost hỏng ("+rep.Job.Error+"); vhost đã về như cũ, chứng chỉ mới vẫn dùng được cho các tên cũ. Sửa rồi chạy: sudo tpan health --fix "+d,
+			"Job "+rep.Job.ID+" redrawing the vhost failed ("+rep.Job.Error+"); the vhost is back as before and the new certificate still works for the old names. Fix it, then run: sudo tpan health --fix "+d))
+		return nil
+	}
+	i.Site = next
+	return nil
 }
 
 // ReloadWeb là việc của `tpan internal reload-web` (hook gia hạn gọi): đọc

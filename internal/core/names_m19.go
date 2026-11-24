@@ -508,12 +508,77 @@ func (o *NamesOp) Execute(ctx context.Context, onEvent func(engine.Event)) (Name
 			rep.Job.ID, d, o.name, dbErr)
 	}
 	res.NeedsCert = o.needsCert
-	if o.sslNote != nil {
-		res.Notes = append(res.Notes, i18n.T(
-			o.sslNote.Vi+". Chạy: sudo tpan ssl issue "+d.String(),
-			o.sslNote.En+". Run: sudo tpan ssl issue "+d.String()))
+	if !o.needsCert {
+		return res, nil
 	}
-	return res, nil
+	return res, o.followUpSSL(ctx, onEvent, &res)
+}
+
+// sslAutoLimit: số job site.ssl tối đa của một chủ trong sslAutoWindow mà
+// thao tác tên phụ còn được tự chạy tiếp (S17). Gọi tay `tpan ssl issue` không
+// bị giới hạn này.
+const (
+	sslAutoLimit  = 5
+	sslAutoWindow = 24 * time.Hour
+)
+
+// jobCounter là phần store đếm job (store.CountJobs). Store giả không cài:
+// không giới hạn.
+type jobCounter interface {
+	CountJobs(ctx context.Context, kind, owner string, since time.Time) (int, error)
+}
+
+// followUpSSL (mục 3.6, S14, S17): job tên phụ đã thành công trên site SSL;
+// chạy tiếp job site.ssl để chứng chỉ khớp bộ tên mới, đặt FollowUpJob. Job
+// SSL hỏng hay bị từ chối không gỡ thay đổi tên (chỉ ghi chú); error chỉ khác
+// nil khi không chạy được hay không ghi được DB.
+func (o *NamesOp) followUpSSL(ctx context.Context, onEvent func(engine.Event), res *NamesResult) error {
+	s, d, owner := o.sites, o.site.Domain, ownerOf(o.site)
+	manual := i18n.T("Chạy tay: sudo tpan ssl issue "+d.String(), "Run by hand: sudo tpan ssl issue "+d.String())
+	note := func(vi, en string) {
+		res.Notes = append(res.Notes, i18n.T(vi+" "+manual.Vi, en+" "+manual.En))
+	}
+	if jc, ok := s.Store.(jobCounter); ok {
+		// ponytail: đếm mọi job site.ssl của chủ (cả chạy tay), không riêng job
+		// tự chạy: bảng jobs không có cột phân biệt. Chặt hơn đặc tả, không lỏng hơn.
+		n, err := jc.CountJobs(ctx, "site.ssl", owner, time.Now().Add(-sslAutoWindow))
+		if err != nil {
+			return err
+		}
+		if n >= sslAutoLimit {
+			note(fmt.Sprintf("ssl_rate_limited: chủ site đã có %d job site.ssl trong 24 giờ qua (trần %d, để giữ hạn mức Let's Encrypt chung của máy); job site.ssl không tự chạy, thử lại sau vài giờ.", n, sslAutoLimit),
+				fmt.Sprintf("ssl_rate_limited: the site owner already has %d site.ssl jobs in the last 24 hours (limit %d, to protect the machine's shared Let's Encrypt quota); the site.ssl job did not run automatically, try again in a few hours.", n, sslAutoLimit))
+			return nil
+		}
+	}
+	ssl := &SSL{Sys: s.Sys, Settings: s.Settings, Store: s.Store, Journal: s.Journal, Accounts: s.Accounts}
+	iss, err := ssl.PrepareIssue(ctx, d)
+	if err != nil {
+		var re *RefusedError
+		if !errors.As(err, &re) {
+			return err
+		}
+		note("Chưa chạy được job site.ssl: "+re.Message.Vi+".", "The site.ssl job could not run: "+re.Message.En+".")
+		return nil
+	}
+	rep, err := iss.Execute(engine.WithOwner(ctx, owner), onEvent)
+	res.FollowUpJob = rep.Job.ID
+	if err != nil {
+		return fmt.Errorf("thay đổi tên của %s đã xong, nhưng job site.ssl chạy tiếp lỗi: %w", d, err)
+	}
+	if rep.Job.Status != engine.JobSucceeded {
+		note("Job site.ssl "+rep.Job.ID+" hỏng ("+rep.Job.Error+"); thay đổi tên vẫn giữ, chứng chỉ cũ không đổi.",
+			"Job site.ssl "+rep.Job.ID+" failed ("+rep.Job.Error+"); the name change stays and the old certificate is unchanged.")
+		return nil
+	}
+	for _, n := range iss.Names {
+		if n.Reason != nil {
+			res.Notes = append(res.Notes, i18n.T("Tên "+n.Name.String()+" chưa vào chứng chỉ: "+n.Reason.Vi,
+				"The name "+n.Name.String()+" is not in the certificate: "+n.Reason.En))
+		}
+	}
+	res.Notes = append(res.Notes, iss.Notes...)
+	return nil
 }
 
 // ---------------------------------------------------------------- site.add

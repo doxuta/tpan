@@ -62,7 +62,13 @@ const sslMachineIP = "203.0.113.10"
 
 func newSSLEnv(t *testing.T, web WebServer) *sslEnv {
 	t.Helper()
-	se := &sslEnv{siteEnv: newSiteEnv(t, web), a4: sslMachineIP + " STREAM x\n", wpURL: map[string]string{}}
+	return sslEnvOn(t, newSiteEnv(t, web))
+}
+
+// sslEnvOn thêm phần giả lập SSL vào một siteEnv có sẵn (M19: env tên phụ).
+func sslEnvOn(t *testing.T, base *siteEnv) *sslEnv {
+	t.Helper()
+	se := &sslEnv{siteEnv: base, a4: sslMachineIP + " STREAM x\n", wpURL: map[string]string{}}
 	m := se.m
 	se.ssl = &SSL{Sys: m, Settings: se.st, Store: se.sites, Journal: se.st}
 	m.SetDir(acmeRoot, 0o755, system.Root)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/doxuta/tpan/internal/engine"
 )
@@ -36,4 +37,17 @@ func (s *Store) AbortStaleJobs(ctx context.Context, kinds []string, reason strin
 		return 0, fmt.Errorf("đóng job đứt của %v: %w", kinds, err)
 	}
 	return int(n), nil
+}
+
+// CountJobs đếm job loại kind của owner bắt đầu từ since trở đi, mọi trạng
+// thái (M19, S17: trần job site.ssl tự chạy sau thay đổi tên phụ). started_at
+// ghi bằng fmtTime (UTC, độ dài cố định) nên so chuỗi là so thời gian.
+func (s *Store) CountJobs(ctx context.Context, kind, owner string, since time.Time) (int, error) {
+	var n int
+	if err := s.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM jobs WHERE kind = ? AND owner = ? AND started_at >= ?",
+		kind, owner, fmtTime(since)).Scan(&n); err != nil {
+		return 0, fmt.Errorf("đếm job %s của %s: %w", kind, owner, err)
+	}
+	return n, nil
 }
