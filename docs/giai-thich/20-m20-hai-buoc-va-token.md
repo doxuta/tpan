@@ -6,7 +6,7 @@ Cách đọc file này: "Nói trong một phút" là thứ bạn nói được k
 
 Quy ước: **phiếu** là "phiếu chờ bước hai", thứ panel đưa cho người vừa gõ đúng mật khẩu mà chưa nhập mã. **App xác thực** là ứng dụng trên điện thoại hiện mã 6 số đổi mỗi 30 giây (Google Authenticator, Aegis, 1Password...). Khi ví dụ cần tên: `khach_a` là user demo đã bật hai bước, `admin` là quản trị viên.
 
-**Trạng thái trung thực của mốc này (cập nhật 25/11/2026).** Mã và test đơn vị đã xong và xanh trên Mac. Bộ ảnh giao diện đã chụp (39 ảnh, 0 không đạt). **E2E bước 23 đã chạy trên máy ảo `tpan-m20`: 222 khẳng định đạt, 0 không đạt** (`docs/bang-chung/M20.log`, bản `v0.2.2-109-g82eeb72`, cây sạch, mỗi lần từ máy sạch). Hồi quy năm kịch bản cũng xanh (mục 2.6). Còn thiếu: phần "thử phá trên máy ảo" của soát cuối, đang chạy lúc viết, xem `docs/thay-doi/M20.md`; và vài chỗ nhỏ mà log không có (mục 6). Chỗ nào log không có thì file này vẫn ghi "chưa chạy" kèm lệnh.
+**Trạng thái trung thực của mốc này (cập nhật 25/11/2026).** Mã và test đơn vị đã xong và xanh trên Mac. Bộ ảnh giao diện đã chụp (39 ảnh, 0 không đạt). **E2E bước 23 đã chạy trên máy ảo `tpan-m20`: 222 khẳng định đạt, 0 không đạt** (`docs/bang-chung/M20.log`; chạy lại trên bản cuối đã gộp M28 đợt 2, vẫn 222/0). Hồi quy năm kịch bản cũng xanh (mục 2.6). Soát cuối thử phá trên máy ảo xong: không có lỗ nặng hay vừa, hai điểm nhẹ đã vá (`docs/bang-chung/M20-thu-pha.log`, mục 5.4). Còn vài chỗ nhỏ mà log không có (mục 6). Chỗ nào log không có thì file này vẫn ghi "chưa chạy" kèm lệnh.
 
 ## Nói trong một phút
 
@@ -39,7 +39,7 @@ Mọi output dưới đây là output thật. Nguồn:
 - `docs/bang-chung/M20-anh.log` và 39 ảnh trong `docs/bang-chung/M20/`: mục 2.5.
 - `docs/bang-chung/M20.log`: e2e bước 23 trên máy ảo `tpan-m20` (25/11/2026), 222 đạt, 0 không đạt. Trích ở mục 2.6 và rải trong mục 3, 4, 7, 8 kèm số dòng hoặc tên phần. Log đã che mật khẩu, bí mật, token; phần cuối của log tự quét xem có lọt không.
 - `docs/bang-chung/M20-hoi-quy-m6.log`, `-m13.log`, `-m13-nang-cap.log`, `-m15.log`, `-m16.log`: hồi quy, mục 2.6.
-- **Chưa có**: `docs/bang-chung/M20-thu-pha.log` (thử phá trên máy ảo của soát cuối). File này chưa tồn tại lúc viết; đang chạy, xem `docs/thay-doi/M20.md`.
+- **Thử phá trên máy ảo** (soát cuối, thợ chưa đọc mã): `docs/bang-chung/M20-thu-pha.log`, không có lỗ nặng hay vừa.
 
 ### 2.1 Bảng lệch đồng hồ (Mac)
 
@@ -617,11 +617,13 @@ Chỗ khác nhận ra khi viết mã (M20.md): `RecordTOTPFailure` không thể 
 - **F2 (vừa):** token `backups:write` đổi được đích sao lưu ngoài máy (M18) sang kho của kẻ khác, tức rút được dữ liệu mọi site. Sửa: đổi đích và cloud-init chỉ dùng được bằng phiên.
 - **F3, F4, F5 (nhẹ):** token `health:read` chạy được lượt health đầy đủ qua `?refresh=1`; trần 5 lần mỗi phiếu và mỗi IP còn "kiểm trước, ghi sau" (trần 10 lần theo user vẫn đúng); trang 421 in tên miền panel cho người lạ.
 
+**Thử phá trên máy ảo (25/11/2026).** Một thợ opus chưa đọc mã thử phá trên `tpan-m20` (`docs/bang-chung/M20-thu-pha.log`): không có lỗ nặng hay vừa. Hai điểm nhẹ đã vá: **V1** `/login` kèm header `Authorization` được miễn 421 dưới tên site nên tạo được phiên dưới tên đó (không khai thác được, nhưng trái ý của 421): nay trả 400; **V2** hạ vai hay tạm khoá làm token mất quyền ngay, nhưng nâng vai lại hay mở khoá thì token cũ sống lại: nay đổi vai trò và tạm khoá thu hồi mọi token của user.
+
 **Phát hiện bằng cách nào:** đọc thiết kế rồi đọc mã khung và đi theo từng kịch bản tấn công trên giấy, chưa chạy gì. Mỗi bản sửa có test đơn vị (xanh trên Mac). Sau đó e2e trên máy ảo (25/11/2026, `M20.log`, 222 đạt, 0 không đạt) xác nhận một số bản sửa bằng máy thật, nhưng không phải tất cả:
 
 - **S2 (cookie lộ cho chủ site): có bằng chứng máy ảo.** Phần H, dòng 2901 đến 2931: Host là tên của site `a.example.com` ở đường `/api/v1/session` trả `421 host_is_site` (JSON); Host `khach.example.org` (site của user thường, đường giao diện) trả 421 và trang HTML; cùng Host mà có `Authorization` (token) thì được miễn, 200; Host là `panel.m20.test` thì 200. Chặn đặt tên panel trùng site: `409 panel_domain_is_site`; tạo site tên panel: `domain_is_panel` cả CLI lẫn API (dòng 2873 đến 2900). Chưa thấy trong log: cookie thật bị xoá khi đổi tên panel, và cuộc đua CLI với job tạo site (chỉ có test đơn vị).
 - **S3 và F2 (token lấy quá quyền): chỉ có gián tiếp.** T40 (dòng 2482 đến 2653) dựng bảng từ `RouteTable()` rồi thử mọi route với từng kiểu token: `T40: mọi route × {hết hạn 401 token_expired, thu hồi 401 token_revoked, chỉ phiên 403 token_forbidden, thiếu phạm vi 403 token_scope, chỉ đọc trên route ghi 403 token_scope}, đủ phạm vi không 401/403` và `không có dòng SAI`, trên máy thật với 110 route API không công khai trở lên. Việc "token chỉ đọc không lấy được mật khẩu job" không có phép thử riêng trong log; phần J chỉ cho thấy 9 job được đọc qua API và 11 lời gọi MCP bằng một token đủ phạm vi, và không bí mật nào lọt ra ngoài các câu trả lời lần đầu.
-- **S1 (đoán mã song song), F1 đến F5 (soát cuối): chưa có bằng chứng máy ảo.** Log e2e không bắn mã song song và không thử cửa sau của F1. Bằng chứng vẫn là test đơn vị trên Mac (`TestBuocHaiSongSongKhongVuotTran`, `TestPhieuSongSongKhongVuotTran5`, `TestTaoUserCanXacNhan` và các test khác). Phần "thử phá trên máy ảo" của soát cuối đang chạy lúc viết; `docs/bang-chung/M20-thu-pha.log` chưa có, xem `docs/thay-doi/M20.md` khi nó xong.
+- **S1 (đoán mã song song), F1 đến F5 (soát cuối): chưa có bằng chứng máy ảo.** Log e2e không bắn mã song song và không thử cửa sau của F1. Bằng chứng vẫn là test đơn vị trên Mac (`TestBuocHaiSongSongKhongVuotTran`, `TestPhieuSongSongKhongVuotTran5`, `TestTaoUserCanXacNhan` và các test khác). Lượt thử phá trên máy ảo (`docs/bang-chung/M20-thu-pha.log`) đã bắn 100 request song song từ 20 IP vào bước hai: đúng 10 lần sai rồi khoá user, mã dự phòng vẫn vào; và thử lại cửa sau F1 cùng các route chỉ phiên bằng token: không lọt.
 - **Bản sửa nâng cấp: có bằng chứng.** Phần U (T80 đến T85): cookie của v0.2.0 vẫn là phiên sau khi nâng (`T81: ... 200`), đăng nhập cũ vẫn 204 không có chặng hai (`T82`), hai bước mặc định tắt, `/etc/tpan/secret.key` chưa tồn tại (`T85`), health có cảnh báo vàng `tpan.2fa:admins`.
 
 Ba chỗ đỏ của hồi quy lượt đầu (mục 2.6) cũng là "agent làm sai" nhưng ở đồ nghề, không ở mã M20: thiếu gói `v0.1.2` trong worktree, hai kịch bản cũ (M15) khẳng định theo chữ và hành vi đã đổi ở `dev`. Phát hiện bằng cách chạy hồi quy trên máy ảo và đọc chỗ đỏ. Bài học cho người review: kịch bản e2e cũ là mã, và mã cũ hỏng khi `dev` đổi chữ trên giao diện.
@@ -630,7 +632,6 @@ Ba chỗ đỏ của hồi quy lượt đầu (mục 2.6) cũng là "agent làm 
 
 Từ 25/11/2026 phần lớn đã có (mục 2.6): e2e bước 23 đạt 222, không đạt 0, và năm hồi quy xanh. Những thứ dưới đây **vẫn không** có bằng chứng từ máy ảo:
 
-- Soát cuối kiểu "thử phá trên máy ảo" bởi một thợ chưa đọc mã mốc này (mục 8, đợt 4 của thiết kế). Đang chạy lúc viết; `docs/bang-chung/M20-thu-pha.log` chưa có. Xem `docs/thay-doi/M20.md`.
 - Đoán mã song song (S1) và cửa sau F1 đến F5 trên máy thật: log e2e không bắn mã song song, không tạo admin bằng cookie bị chiếm. Chỉ có test đơn vị trên Mac.
 - Bảng lệch đồng hồ ở 45 giây trên máy ảo: e2e chỉ thử ±15 và ±90 giây (T3). Con số 50% chỉ từ test Mac.
 - Tên cookie `__Host-tpan` và `__Host-tpan-2fa` trên panel có TLS: log không in tên cookie. Mở trình duyệt xem mới chắc (mục 4.6).
