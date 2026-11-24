@@ -7,7 +7,7 @@ import { defineStrings } from "./index";
 
 const vi = {
   title: "Tài nguyên đang dùng",
-  summary: (n: number) => `${n} site trong lồng. Số đọc ngay từ máy, tự đọc lại mỗi 30 giây.`,
+  summary: (n: number) => `${n} site trong lồng. Số liệu lấy thẳng từ máy, tự làm mới mỗi 30 giây.`,
 
   // Bảng Theo site
   siteTitle: "Theo site",
@@ -26,7 +26,7 @@ const vi = {
   hits: (ram: number, tasks: number) => `RAM ${ram}, tiến trình ${tasks}`,
   hitsNone: "0",
   hitsHint: "RAM: số lần bị giết vì chạm mức RAM. Tiến trình: số lần bị từ chối vì chạm mức tiến trình. Đếm từ khi lồng chạy.",
-  cpuWait: "Chưa tính được: CPU cần hai lần đọc liên tiếp, lần sau tới trong tối đa 30 giây.",
+  cpuWait: "Chưa tính được CPU: cần hai lần đọc liên tiếp, lần đọc sau sẽ tới trong vòng 30 giây.",
   cpuHint: "CPU trung bình giữa hai lần đọc gần nhất, tính theo một nhân.",
 
   // Bảng Theo user
@@ -56,7 +56,7 @@ const vi = {
   sugRange: (from: string, to: string) => `từ ${from} đến ${to}`,
   sugLowData: "Ít số liệu",
   sugLowDataHint: "Dưới 24 giờ số liệu: gợi ý có thể chưa sát.",
-  sugNone: "Chưa có gợi ý nào: chưa site nào trong lồng có số liệu để tính.",
+  sugNone: "Chưa có gợi ý: chưa site nào trong lồng có số liệu để tính.",
   sugError: "Chưa đọc được gợi ý mức tối đa.",
 
   // Rỗng

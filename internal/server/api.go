@@ -360,7 +360,7 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 	// Phiên "xem như" chỉ đọc: không được lấy mất mật khẩu hiện một lần của
 	// user (admin mở job vừa xong của A lúc đang xem như A thì A mất mật khẩu).
 	if job.Status != engine.JobRunning && !who(r).ReadOnly() {
-		sec := s.api.takeSecret(id)
+		sec := s.api.takeSecret(id, tokenIDOf(r.Context()))
 		d.Secret, d.Secrets, d.DBSecret = sec.one, sec.many, sec.db
 	}
 	writeJSON(w, http.StatusOK, d)

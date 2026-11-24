@@ -153,6 +153,10 @@
   --fail-text: #B42A06;
   --unknown: #7E848A;
 
+  /* Mã QR (M20): GIỐNG NHAU ở sáng và tối, ô tối trên nền sáng, vì nhiều app không đọc được QR đảo màu. */
+  --qr-fg: #000000;
+  --qr-bg: #FFFFFF;
+
   --scrim: rgb(23 26 31 / 0.45);
   --shadow-pop: 0 8px 24px rgb(23 26 31 / 0.14);
 
@@ -190,6 +194,9 @@
   --on-fail: #190B07;
   --fail-text: #FF8A70;
   --unknown: #8A9096;
+
+  --qr-fg: #000000;
+  --qr-bg: #FFFFFF;
 
   --scrim: rgb(0 0 0 / 0.6);
   --shadow-pop: 0 8px 24px rgb(0 0 0 / 0.5);

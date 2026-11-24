@@ -61,7 +61,7 @@ const vi = {
   fBackups: "Số backup tối đa mỗi site",
   fZeroHint: "0 là không giới hạn.",
   fCage: "Đưa site của gói vào lồng",
-  fCageHint: "Lồng là hàng rào riêng của mỗi site: PHP chạy bằng user của site và bị giới hạn theo các mức bên dưới. Site đang có chưa tự vào lồng: đưa vào ở trang từng site.",
+  fCageHint: "Lồng là hàng rào riêng của mỗi site: PHP chạy bằng user của site và bị giới hạn theo các mức bên dưới. Site đã có sẵn không tự vào lồng: đưa vào ở trang từng site.",
   fLimitsLegend: "Mức tối đa của mỗi site trong lồng",
   fLocked: "Chọn “Đưa site của gói vào lồng” trước, rồi mới đặt được các mức.",
   fLimit: {
@@ -88,7 +88,7 @@ const vi = {
   nameMissing: "Chưa có tên gói. Gõ tên rồi bấm lại.",
   notNumber: "Giới hạn phải là số nguyên từ 0 trở lên. Sửa ô bị đánh dấu rồi bấm lại.",
   addedDone: (name: string) => `Đã thêm gói ${name}.`,
-  editedDone: (name: string) => `Đã lưu gói ${name}. User đang dùng gói này theo giới hạn mới ngay.`,
+  editedDone: (name: string) => `Đã lưu gói ${name}. User đang dùng gói này được áp giới hạn mới ngay.`,
   cageOnDone: "Site của gói chưa tự vào lồng: đưa vào ở trang từng site.",
   editedJob: (name: string) => `Đang lưu gói ${name} và áp mức mới cho các site trong lồng. Thẻ ở góc dưới báo tiến độ.`,
   deletedDone: (name: string) => `Đã xoá gói ${name}.`,

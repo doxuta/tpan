@@ -316,9 +316,14 @@ export type SessionInfo = {
   expires?: string;
   /** M13: người đang đăng nhập; không có khi chưa đăng nhập. */
   user?: Identity;
+  /** M20: chưa có phiên nhưng có phiếu chờ bước hai còn hạn (hiện chặng nhập mã). */
+  mfa_pending?: boolean;
+  /** M20: chính sách bắt user này bật hai bước mà họ chưa bật: chỉ vào được /bat-hai-buoc. */
+  mfa_enroll_required?: boolean;
 };
 
-export type PasswordChange = { current: string; new: string };
+/** code (M20): bắt buộc khi user đã bật hai bước; thiếu thì 400 mfa_code_required. */
+export type PasswordChange = { current: string; new: string; code?: string };
 
 export type SessionRow = {
   id: string;
@@ -860,10 +865,14 @@ export type UserCreate = {
   package: string;
   /** Không có thì tpan sinh và trả về một lần trong UserCreated.password. */
   password?: string;
-};
+} & Reauth;
 export type UserCreated = { user: UserRow; password?: string };
-export type UserEdit = { full_name?: string; email?: string; role?: Role; package?: string };
-export type PasswordSet = { password?: string };
+/** Xác nhận lại của admin đang làm (M20, soát cuối F1): mật khẩu của chính mình, và mã hai bước khi đã bật. */
+export type Reauth = { current_password?: string; code?: string };
+/** current_password (+ code) bắt buộc khi role đổi thành admin. */
+export type UserEdit = { full_name?: string; email?: string; role?: Role; package?: string } & Reauth;
+/** current_password (+ code) bắt buộc. */
+export type PasswordSet = { password?: string } & Reauth;
 export type PasswordSetResult = { password?: string };
 export type SuspendRequest = { reason?: string };
 

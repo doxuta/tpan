@@ -519,6 +519,9 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		if in.Email.IsZero() {
 			return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị (--email): site mới cần email cho tài khoản quản trị WordPress", "the admin email is missing (--email): a new site needs an email for its WordPress admin account"))
 		}
+		if err := RefusePanelDomain(ctx, s.Settings, d); err != nil {
+			return nil, err
+		}
 		if rec.Owner, err = s.newOwner(ctx, in.Owner); err != nil {
 			return nil, err
 		}
@@ -571,6 +574,9 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	plan, err := addPlanSite(rec, cfg, want, dbPw, version, hash, install, s.Store)
 	if err != nil {
 		return nil, err
+	}
+	if !found { // M20: kiểm lại tên panel dưới khoá (panel_m20.go)
+		plan.Steps = append([]engine.Step{&siteNotPanel{settings: s.Settings, d: d}}, plan.Steps...)
 	}
 	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, rec, others, lim)
 	return &SiteAdd{

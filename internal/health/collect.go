@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/mfa"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
@@ -117,7 +119,11 @@ func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, instal
 	}
 
 	if !r.NoSelf {
-		add(store.TargetTPAN, r.selfChecks()...)
+		self, err := r.selfChecks(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+		add(store.TargetTPAN, self...)
 		s3cs, err := r.s3Checks(ctx)
 		if err != nil {
 			return nil, false, err
@@ -183,8 +189,78 @@ func isPoolConf(path, pool string) bool {
 
 // selfChecks là phép kiểm của chính tpan (mục 6.7). Quyền lấy đúng như
 // cmd/tpan/setup.go tạo: /etc/tpan 0700, khoá TLS 0600, tpan.db 0600 (store.Open).
-func (r *Runner) selfChecks() []checks.Check {
+// M20: hai bước, đồng hồ, file khoá, và chứng chỉ ACME của panel khi đã đặt tên.
+// error chỉ khác nil khi ctx bị huỷ (như s3Checks).
+func (r *Runner) selfChecks(ctx context.Context) ([]checks.Check, error) {
 	now := r.clock()
+	cs, err := r.m20Checks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return append(r.baseSelfChecks(now), cs...), nil
+}
+
+// m20Statuses lọc MFAStatuses; lỗi đi thẳng ra để phép kiểm ra Unknown.
+func (r *Runner) m20Statuses(ctx context.Context, keep func(store.MFAStatus) bool) ([]string, error) {
+	all, err := r.Store.MFAStatuses(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, s := range all {
+		if keep(s) {
+			out = append(out, s.User)
+		}
+	}
+	return out, nil
+}
+
+// lockedRecently: user bị khoá bước hai (audit login.2fa_locked, kết quả
+// locked; target là tên user) trong 7 ngày qua (soát lượt hai R5).
+func (r *Runner) lockedRecently(ctx context.Context) ([]string, error) {
+	m, err := r.Store.CountAuditSince(ctx, "login.2fa_locked", "locked", r.clock()().Add(-7*24*time.Hour))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(m))
+	for u, n := range m {
+		if n > 0 {
+			out = append(out, u)
+		}
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
+func (r *Runner) m20Checks(ctx context.Context) ([]checks.Check, error) {
+	anyEnabled := func(ctx context.Context) (bool, error) {
+		on, err := r.m20Statuses(ctx, func(s store.MFAStatus) bool { return s.Enabled })
+		return len(on) > 0, err
+	}
+	cs := []checks.Check{
+		checks.AdminsWithout2FA(func(ctx context.Context) ([]string, error) {
+			return r.m20Statuses(ctx, func(s store.MFAStatus) bool {
+				return s.Role == account.RoleAdmin && s.Status == account.Active && !s.Enabled
+			})
+		}),
+		checks.TwoFAAttempts(r.lockedRecently),
+		checks.Clock(anyEnabled),
+		checks.SecretKey(mfa.KeyFile, anyEnabled),
+	}
+	// Chỉ khi đã đặt tên: máy không đặt tên thì không thêm dòng nào.
+	d, ok, err := (&core.Panel{Settings: r.Store}).Domain(ctx)
+	switch {
+	case err != nil && ctx.Err() != nil:
+		return nil, err
+	case err == nil && ok:
+		cs = append(cs, checks.PanelACMECert(d, r.clock()))
+	}
+	// err khác (setting hỏng do sửa tay): bỏ qua; server cũng không dùng giá trị đó.
+	return cs, nil
+}
+
+// baseSelfChecks là phép kiểm tự kiểm có từ M4 tới M18.
+func (r *Runner) baseSelfChecks(now func() time.Time) []checks.Check {
 	cs := []checks.Check{
 		checks.TPANDatabase(r.Store.IntegrityCheck),
 		checks.FreeSpace(StateDir, TPANMinFree, checks.StageTPAN),

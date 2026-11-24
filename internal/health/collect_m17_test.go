@@ -13,7 +13,11 @@ import (
 // probeResult chạy selfChecks và trả kết quả probe.leftover.
 func probeResult(t *testing.T, e *env) checks.Result {
 	t.Helper()
-	for _, c := range e.r.selfChecks() {
+	cs, err := e.r.selfChecks(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range cs {
 		if r := c.Run(context.Background(), e.sys); r.ID == "probe.leftover:tpan" {
 			return r
 		}

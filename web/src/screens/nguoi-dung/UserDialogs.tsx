@@ -19,6 +19,7 @@ import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/nguoi-dung";
 import { ErrorNote } from "../site/ErrorNote";
 import type { Secret } from "./PasswordBox";
+import { ReauthError, ReauthFields, useReauth } from "./Reauth";
 
 /** Mật khẩu do người gõ: rỗng là để tpan sinh. Đếm theo ký tự như máy chủ. */
 const tooShort = (pw: string, min: number) => pw !== "" && [...pw].length < min;
@@ -61,6 +62,11 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
   const [pkg, setPkg] = useState(row?.user.package ?? "default");
   const [password, setPassword] = useState("");
   const [local, setLocal] = useState<string | null>(null);
+  // Thêm user, hoặc nâng người chưa là admin lên admin: máy chủ hỏi lại mật khẩu (và mã hai bước) của admin đang thao tác.
+  const promote = edit && role === "admin" && row.user.role !== "admin";
+  const needReauth = !edit || promote;
+  const [saveError, setSaveError] = useState<unknown>(null);
+  const re = useReauth(saveError);
 
   const options = packages.includes(pkg) ? packages : [pkg, ...packages];
 
@@ -82,8 +88,9 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
   const save = useMutation({
     mutationFn: (): Promise<UserCreated | UserRow | JobStarted> =>
       edit
-        ? post<UserRow | JobStarted>(userPath(row.user.name), editBody())
-        : post<UserCreated>(usersPath, { name: name.trim(), full_name: full, email, role, package: pkg, password: password || undefined }),
+        ? // Mật khẩu hỏi lại chỉ đi kèm lần lưu thật; bản xem trước (?dry_run=1) không cần nó.
+          post<UserRow | JobStarted>(userPath(row.user.name), { ...editBody(), ...(needReauth && re.body()) })
+        : post<UserCreated>(usersPath, { name: name.trim(), full_name: full, email, role, package: pkg, password: password || undefined, ...re.body() }),
     onSuccess: (res) => {
       refreshAccounts(qc);
       void qc.invalidateQueries({ queryKey: packagesKey });
@@ -95,6 +102,10 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
       }
       onClose();
     },
+    onError: (err) => {
+      setSaveError(err);
+      re.afterError(err);
+    },
   });
 
   const submit = () => {
@@ -102,6 +113,8 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
     save.reset();
     if (!edit && name.trim() === "") return setLocal(t.nameMissing);
     if (!edit && tooShort(password, t.minPassword)) return setLocal(t.passwordTooShort(t.minPassword));
+    const missing = needReauth ? re.problem() : null;
+    if (missing) return setLocal(missing);
     setLocal(null);
     if (edit && pkg !== row.user.package && planned === null) {
       setChecking(true);
@@ -144,13 +157,14 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
           ))}
         </SelectField>
         {!edit && <TextField id="u-mat-khau" type="password" label={t.fPassword} hint={t.fPasswordHint} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
+        {needReauth && <ReauthFields r={re} idPrefix="u" why={edit ? t.reauthWhyAdmin : t.reauthWhyCreate} error={save.error} />}
         {planned !== null && <Notice kind="warn">{t.cageSyncNote(pkg, planned)}</Notice>}
         {local && (
           <Notice kind="fail" role="alert">
             {local}
           </Notice>
         )}
-        {save.isError && <ErrorNote error={save.error} />}
+        {save.isError && <ReauthError error={save.error} />}
       </Form>
     </Dialog>
   );
@@ -178,17 +192,25 @@ export function PasswordDialog({ name, onClose, onDone }: { name: string; onClos
   const t = useStrings(strings);
   const [password, setPassword] = useState("");
   const [local, setLocal] = useState<string | null>(null);
+  const [changeError, setChangeError] = useState<unknown>(null);
+  const re = useReauth(changeError);
   const change = useMutation({
-    mutationFn: () => post<PasswordSetResult>(userPath(name, "/password"), { password: password || undefined }),
+    mutationFn: () => post<PasswordSetResult>(userPath(name, "/password"), { password: password || undefined, ...re.body() }),
     onSuccess: (res) => {
       onDone(name, res.password ? { name, password: res.password } : null);
       onClose();
+    },
+    onError: (err) => {
+      setChangeError(err);
+      re.afterError(err);
     },
   });
   const submit = () => {
     if (change.isPending) return;
     change.reset();
     if (tooShort(password, t.minPassword)) return setLocal(t.passwordTooShort(t.minPassword));
+    const missing = re.problem();
+    if (missing) return setLocal(missing);
     setLocal(null);
     change.mutate();
   };
@@ -196,12 +218,13 @@ export function PasswordDialog({ name, onClose, onDone }: { name: string; onClos
     <Dialog open onOpenChange={(o) => !o && onClose()} title={t.pwTitle(name)} description={t.pwDesc} confirmLabel={change.isPending ? t.saving : t.pwConfirm} onConfirm={submit} busy={change.isPending}>
       <Form onSubmit={submit}>
         <TextField id="u-mk-moi" type="password" label={t.fPassword} hint={t.fPasswordHint} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
+        <ReauthFields r={re} idPrefix="u-mk" why={t.reauthWhyPassword} error={change.error} />
         {local && (
           <Notice kind="fail" role="alert">
             {local}
           </Notice>
         )}
-        {change.isError && <ErrorNote error={change.error} />}
+        {change.isError && <ReauthError error={change.error} />}
       </Form>
     </Dialog>
   );

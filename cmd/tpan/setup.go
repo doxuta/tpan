@@ -327,19 +327,26 @@ func setupCert(sys system.System) (certPEM, keyPEM []byte, err error) {
 // chỉ vẫn dùng được qua IP).
 var dnsName = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$`)
 
-// newSelfSignedCert sinh khoá ECDSA P-256 và chứng chỉ tự ký hạn 10 năm cho
+// selfCertDays là hạn chứng chỉ tự ký mới sinh (M20, mục 3.8 của thiết kế):
+// 825 ngày là trần Apple đặt cho chứng chỉ máy chủ TLS trên macOS và iOS;
+// thiết kế chọn đúng trần đó thay cho 10 năm của bản cũ.
+const selfCertDays = 825
+
+// newSelfSignedCert sinh khoá ECDSA P-256 và chứng chỉ tự ký hạn 825 ngày cho
 // hostname và các IP của máy. Tự ký nên trình duyệt sẽ cảnh báo; người dùng
-// đối chiếu fingerprint setup in ra để biết đúng là panel của mình.
+// đối chiếu fingerprint setup in ra để biết đúng là panel của mình. Chứng chỉ
+// đang có thì setupCert giữ nguyên (không bắt ai chấp nhận lại cảnh báo).
 func newSelfSignedCert(host string, addrs []net.Addr, now time.Time) (certPEM, keyPEM []byte, err error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, nil, fmt.Errorf("sinh khoá cho chứng chỉ: %w", err)
 	}
+	notBefore := now.Add(-time.Hour) // đồng hồ hai máy lệch nhau chút vẫn nhận
 	tmpl := &x509.Certificate{
 		// SerialNumber để nil: Go tự sinh số ngẫu nhiên.
 		Subject:     pkix.Name{CommonName: "tpan"},
-		NotBefore:   now.Add(-time.Hour), // đồng hồ hai máy lệch nhau chút vẫn nhận
-		NotAfter:    now.AddDate(10, 0, 0),
+		NotBefore:   notBefore,
+		NotAfter:    notBefore.Add(selfCertDays * 24 * time.Hour),
 		KeyUsage:    x509.KeyUsageDigitalSignature,
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		DNSNames:    []string{"localhost"},

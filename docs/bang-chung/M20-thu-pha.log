@@ -1,0 +1,1240 @@
+# M20 — thử phá trên máy ảo (soát cuối bảo mật, phần máy ảo)
+# Máy ảo: tpan-m20 (Multipass, Ubuntu 24.04), bản tpan v0.2.2-113-g5043e04 (commit 5043e04, nhánh moc/M20).
+# Ngày chạy: 2026-11-25 (giờ máy 01:17–02:00). Chỉ trong máy ảo; mọi lệnh chạy bằng root TRONG máy ảo, panel gọi ở https://127.0.0.1:8443.
+# Che: mật khẩu, bí mật TOTP (base32, hex, ma trận QR), mã dự phòng, token, cookie, mật khẩu DB của job => <che>; token dạng tpan_... => tpan_<token>; IP máy ảo => <vm>.
+# Mã TOTP tính trong máy ảo bằng oathtool (gói Ubuntu) và không bao giờ in.
+# Cấu trúc: với mỗi phần, nguyên văn script đã chạy (lệnh), rồi output thật của nó.
+
+######## DỰNG
+$ make build-linux && scripts/vm.sh reset && scripts/vm.sh deploy   (trên Mac)
+$ scripts/vm.sh root: tpan stack install --web nginx --yes  -> stack rc=0
+$ apt-get install -y oathtool jq sqlite3 -> rc=0
+$ tpan setup --yes -> setup rc=0 (mật khẩu admin giữ ở /root/tp/pw.admin trong máy ảo, 0600)
+$ tpan user add khach|vic|vic2 --role user; tpan user add admin2 --role admin  (mật khẩu giữ trong /root/tp)
+$ tpan site add a.example.com (chủ admin) -> rc=0; tpan site add k.example.org --owner khach -> rc=0
+
+######## THƯ VIỆN: lib.sh
+# Thư viện thử phá M20, chạy TRONG máy ảo bằng root. Bí mật nằm ở /root/tp (0700),
+# không bao giờ in ra: mọi output đi qua mask.
+T=/root/tp
+mkdir -p "$T" && chmod 700 "$T"
+umask 077
+touch "$T/secrets"
+B=https://127.0.0.1:8443
+VMIP=$(hostname -I | awk '{print $1}')
+
+mask() {
+  local s p
+  s=$(cat)
+  while IFS= read -r p; do
+    [ -n "$p" ] && s="${s//"$p"/<che>}"
+  done <"$T/secrets"
+  [ -n "$VMIP" ] && s="${s//"$VMIP"/<vm>}"
+  s=$(sed -E 's/(set-cookie: *[^=<cookie>;]*/\1<cookie>/I; s/tpan_[A-Za-z0-9_-]{16,}/tpan_<token>/g' <<<"$s")
+  printf '%s\n' "$s"
+}
+keep() { [ -n "$1" ] && printf '%s\n' "$1" >>"$T/secrets"; }
+say() { printf '\n### %s\n' "$*"; }
+# c <jar> <METHOD> <path> [curl args...]: in "HTTP <mã> <thân rút gọn>"
+c() {
+  local jar=$1 m=$2 p=$3
+  shift 3
+  curl -sk -o "$T/body" -w '%{http_code}' -b "$T/$jar" -c "$T/$jar" -X "$m" "$@" "$B$p" >"$T/code" 2>"$T/cerr"
+  printf '%s %s %s -> HTTP %s %s\n' "$m" "$p" "[$jar]" "$(cat "$T/code")" "$(head -c 400 "$T/body" | tr '\n' ' ')" | mask
+}
+code() { cat "$T/code"; }
+body() { cat "$T/body"; }
+# login <jar> <user>: mật khẩu ở $T/pw.<user>
+login() {
+  : >"$T/$1"
+  printf '{"name":"%s","password":"%s"}' "$2" "$(cat "$T/pw.$2")" >"$T/req.login"
+  c "$1" POST /api/v1/login -H 'Content-Type: application/json' --data-binary @"$T/req.login"
+}
+# totp <user> [offset giây] -> mã ra stdout (không in ra log)
+totp() {
+  local off=${2:-0}
+  oathtool --totp -b --now "$(date -u -d "@$(($(date +%s) + off))" '+%Y-%m-%d %H:%M:%S UTC')" "$(cat "$T/totp.$1")"
+}
+# wait_fresh: chờ vào đầu một bước TOTP mới (giây 1..3 của bước)
+wait_fresh() {
+  local s
+  while :; do s=$(($(date +%s) % 30)); [ "$s" -ge 1 ] && [ "$s" -le 3 ] && break; sleep 1; done
+}
+codejson() { printf '{"code":"%s"}' "$1" >"$T/req.code"; }
+sq() { sqlite3 /var/lib/tpan/tpan.db "$@"; }
+
+######## THƯ VIỆN: scan.py
+#!/usr/bin/env python3
+# scan.py <danh sách loại:giá trị> <file...>: đếm số lần mỗi LOẠI bí mật xuất hiện trong mỗi file
+# (dạng chữ, và dạng byte thô cho bí mật TOTP và file khoá). Không in giá trị.
+import base64, sys
+
+pats = []
+for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
+    line = line.rstrip("\n")
+    if ":" not in line:
+        continue
+    kind, val = line.split(":", 1)
+    if len(val) < 8:
+        continue
+    pats.append((kind, val.encode()))
+    if kind == "totp":
+        raw = base64.b32decode(val + "=" * (-len(val) % 8))
+        pats.append(("totp-raw", raw))
+        pats.append(("totp-hex", raw.hex().encode()))
+        pats.append(("totp-b32-lower", val.lower().encode()))
+    if kind == "rc":
+        pats.append(("rc-nodash", val.replace("-", "").encode()))
+        pats.append(("rc-lower", val.lower().encode()))
+total = 0
+for f in sys.argv[2:]:
+    try:
+        data = open(f, "rb").read()
+    except OSError as e:
+        print(f"{f}: không đọc được ({e.strerror})")
+        continue
+    hits = {}
+    for kind, p in pats:
+        n = data.count(p)
+        if n:
+            hits[kind] = hits.get(kind, 0) + n
+    total += sum(hits.values())
+    print(f"{f}: {len(data)} byte, trúng: {hits if hits else 0}")
+print(f"TỔNG trúng: {total}")
+
+######## en2fa.sh (bật hai bước qua API cho admin, khach, vic, vic2)
+#!/usr/bin/env bash
+# en2fa.sh <user>: bật hai bước cho user qua API; giữ bí mật, mã dự phòng trong /root/tp.
+. /home/ubuntu/tps/lib.sh
+u=$1
+say "bật hai bước cho $u"
+login "j.$u" "$u"
+c "j.$u" POST /api/v1/account/2fa/setup -H 'Content-Type: application/json' --data '{}' >/dev/null
+echo "setup -> HTTP $(code), khoá: $(jq -c 'keys' "$T/body")"
+jq -r .secret "$T/body" >"$T/totp.$u"
+keep "$(cat "$T/totp.$u")"
+# bản hex của bí mật, để quét sau
+python3 -c 'import base64,sys;s=open(sys.argv[1]).read().strip();print(base64.b32decode(s+"="*(-len(s)%8)).hex())' "$T/totp.$u" >"$T/totphex.$u"
+keep "$(cat "$T/totphex.$u")"
+wait_fresh
+printf '{"password":"%s","code":"%s"}' "$(cat "$T/pw.$u")" "$(totp "$u")" >"$T/req.en"
+c "j.$u" POST /api/v1/account/2fa/enable -H 'Content-Type: application/json' --data-binary @"$T/req.en" >/dev/null
+echo "enable -> HTTP $(code), khoá: $(jq -c 'keys' "$T/body")"
+jq -r '.recovery_codes[]' "$T/body" >"$T/rc.$u"
+while read -r x; do keep "$x"; keep "${x//-/}"; done <"$T/rc.$u"
+echo "mã dự phòng: $(wc -l <"$T/rc.$u") (không in)"
+---- output
+
+### bật hai bước cho admin
+POST /api/v1/login [j.admin] -> HTTP 204 
+setup -> HTTP 200, khoá: ["account","issuer","qr","secret","uri"]
+enable -> HTTP 200, khoá: ["recovery_codes"]
+mã dự phòng: 10 (không in)
+
+### bật hai bước cho khach
+POST /api/v1/login [j.khach] -> HTTP 204 
+setup -> HTTP 200, khoá: ["account","issuer","qr","secret","uri"]
+enable -> HTTP 200, khoá: ["recovery_codes"]
+mã dự phòng: 10 (không in)
+
+### bật hai bước cho vic
+POST /api/v1/login [j.vic] -> HTTP 204 
+setup -> HTTP 200, khoá: ["account","issuer","qr","secret","uri"]
+enable -> HTTP 200, khoá: ["recovery_codes"]
+mã dự phòng: 10 (không in)
+
+### bật hai bước cho vic2
+POST /api/v1/login [j.vic2] -> HTTP 204 
+setup -> HTTP 200, khoá: ["account","issuer","qr","secret","uri"]
+enable -> HTTP 200, khoá: ["recovery_codes"]
+mã dự phòng: 10 (không in)
+
+
+######## t1.sh
+#!/usr/bin/env bash
+# t1: vượt bước hai bằng phiếu chờ (user khach đã bật hai bước).
+. /home/ubuntu/tps/lib.sh
+say "1.1 khach đăng nhập mật khẩu -> phiếu chờ (cookie __Host-tpan-2fa)"
+login p khach
+grep -o '__Host-tpan[-a-z0-9]*' "$T/p" | sort -u
+PV=$(awk '$6=="__Host-tpan-2fa"{print $7}' "$T/p")
+keep "$PV"
+
+say "1.2 phiếu chờ gọi các route cần phiên (kỳ vọng 401 hết)"
+for p in /api/v1/sites /api/v1/overview /api/v1/account/2fa /api/v1/account/tokens /api/v1/account/sessions \
+  /api/v1/jobs /api/v1/jobs/x/events /api/v1/sites/k.example.org /api/v1/export /api/v1/backups; do
+  c p GET "$p"
+done
+c p POST /api/v1/account/2fa/disable -H 'Content-Type: application/json' --data '{}'
+c p POST /api/v1/account/password -H 'Content-Type: application/json' --data '{}'
+c p POST /api/v1/sites -H 'Content-Type: application/json' --data '{"domain":"z.example.com"}'
+c p GET /api/v1/session
+
+say "1.3 đường dẫn lạ, mã hoá, .. (curl --path-as-is)"
+for p in '/api/v1/../api/v1/sites' '/api/v1/%2e%2e/v1/sites' '/api//v1/sites' '/API/v1/sites' '/api/v1/sites/' \
+  '/api/v1/sites%2f' '/./api/v1/sites' '/api/v1/sites/..%2fsites' '/api/v1/health/../sites' '/api/v1/login/../sites' \
+  '/api/v1/sites/k.example.org%2f..%2f..%2fusers' '/api/v1/session/../sites' '/api/v1/sites?x=/api/v1/health' '/%61pi/v1/sites'; do
+  curl -sk --path-as-is -o "$T/body" -w '%{http_code}' -b "$T/p" "$B$p" >"$T/code"
+  printf 'GET %s -> HTTP %s %s\n' "$p" "$(code)" "$(head -c 160 "$T/body" | tr '\n' ' ')" | mask
+done
+
+say "1.4 nâng phiếu thành phiên: gửi giá trị phiếu dưới tên cookie phiên"
+for n in __Host-tpan tpan; do
+  curl -sk -o "$T/body" -w '%{http_code}' -H "Cookie: $n=$PV" "$B/api/v1/sites" >"$T/code"
+  echo "Cookie $n=<phiếu> GET /api/v1/sites -> HTTP $(code) $(head -c 160 "$T/body")" | mask
+done
+curl -sk -o "$T/body" -w '%{http_code}' -H "Cookie: __Host-tpan=$PV; __Host-tpan-2fa=$PV" "$B/api/v1/sites" >"$T/code"
+echo "cả hai cookie = phiếu -> HTTP $(code) $(head -c 160 "$T/body")" | mask
+echo "phiếu trong bảng sessions? $(sq "select count(*) from sessions where user_name='khach'") phiên của khach"
+
+say "1.5 phiếu từ IP khác (cùng Host 127.0.0.1, kết nối từ <vm>) và Host khác (localhost)"
+wait_fresh
+codejson "$(totp khach)"
+curl -sk -o "$T/body" -w '%{http_code}' -b "$T/p" --connect-to "127.0.0.1:8443:$VMIP:8443" -H 'Content-Type: application/json' \
+  --data-binary @"$T/req.code" "$B/api/v1/login/2fa" >"$T/code"
+echo "IP nguồn <vm>, mã đúng -> HTTP $(code) $(head -c 200 "$T/body")" | mask
+curl -sk -o "$T/body" -w '%{http_code}' -H "Cookie: __Host-tpan-2fa=$PV" -H 'Host: localhost' -H 'Content-Type: application/json' \
+  --data-binary @"$T/req.code" "$B/api/v1/login/2fa" >"$T/code"
+echo "Host localhost, mã đúng -> HTTP $(code) $(head -c 200 "$T/body")" | mask
+echo "phiếu còn trong DB: $(sq "select count(*) from login_challenges where user_name='khach'")"
+c p POST /api/v1/login/2fa -H 'Content-Type: application/json' --data-binary @"$T/req.code"
+echo "(đúng IP, đúng Host, cùng mã — mã chưa bị dùng ở hai lần trên thì 204)"
+c p GET /api/v1/sites
+SV=$(awk '$6=="__Host-tpan"{print $7}' "$T/p")
+keep "$SV"
+echo "phiếu sau khi vào: $(sq "select count(*) from login_challenges where user_name='khach'") (phiếu cũ còn thì là lỗi)"
+curl -sk -o "$T/body" -w '%{http_code}' -H "Cookie: __Host-tpan-2fa=$PV" -H 'Content-Type: application/json' --data-binary @"$T/req.code" "$B/api/v1/login/2fa" >"$T/code"
+echo "dùng lại phiếu đã tiêu -> HTTP $(code) $(head -c 160 "$T/body")" | mask
+
+say "1.6 cookie phiên chép sang Host khác"
+cp "$T/p" "$T/p.bak"
+for h in 'Host: 127.0.0.1.' 'Host: 127.0.0.1:9999' 'Host: [::1]'; do
+  curl -sk -o "$T/body" -w '%{http_code}' -H "Cookie: __Host-tpan=$SV" -H "$h" "$B/api/v1/session" >"$T/code"
+  echo "$h -> HTTP $(code) $(head -c 120 "$T/body")" | mask
+done
+echo "(127.0.0.1. và :9999 chuẩn hoá về cùng tên; [::1] là tên khác)"
+curl -sk -o "$T/body" -w '%{http_code}' -H "Cookie: __Host-tpan=$SV" "$B/api/v1/session" >"$T/code"
+echo "Host gốc sau lần [::1] -> HTTP $(code) $(head -c 120 "$T/body")" | mask
+
+---- output t1
+
+### 1.1 khach đăng nhập mật khẩu -> phiếu chờ (cookie __Host-tpan-2fa)
+POST /api/v1/login [p] -> HTTP 200 {"mfa_required":true} 
+__Host-tpan-2fa
+
+### 1.2 phiếu chờ gọi các route cần phiên (kỳ vọng 401 hết)
+GET /api/v1/sites [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/overview [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/account/2fa [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/account/tokens [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/account/sessions [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/jobs [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/jobs/x/events [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/sites/k.example.org [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/export [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/backups [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+POST /api/v1/account/2fa/disable [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+POST /api/v1/account/password [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+POST /api/v1/sites [p] -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/session [p] -> HTTP 200 {"logged_in":false,"demo":false,"mfa_pending":true} 
+
+### 1.3 đường dẫn lạ, mã hoá, .. (curl --path-as-is)
+GET /api/v1/../api/v1/sites -> HTTP 307 <a href="/api/api/v1/sites">Temporary Redirect</a>.  
+GET /api/v1/%2e%2e/v1/sites -> HTTP 404 {"error":{"code":"not_found","message":{"vi":"Không có đường dẫn API này.","en":"No such API path."}}} 
+GET /api//v1/sites -> HTTP 307 <a href="/api/v1/sites">Temporary Redirect</a>.  
+GET /API/v1/sites -> HTTP 200 <!doctype html> <html lang="vi">   <head>     <meta charset="UTF-8" />     <meta name="viewport" content="width=device-width, initial-scale=1.0" />     <title>T
+GET /api/v1/sites/ -> HTTP 404 {"error":{"code":"not_found","message":{"vi":"Không có đường dẫn API này.","en":"No such API path."}}} 
+GET /api/v1/sites%2f -> HTTP 404 {"error":{"code":"not_found","message":{"vi":"Không có đường dẫn API này.","en":"No such API path."}}} 
+GET /./api/v1/sites -> HTTP 307 <a href="/api/v1/sites">Temporary Redirect</a>.  
+GET /api/v1/sites/..%2fsites -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/health/../sites -> HTTP 307 <a href="/api/v1/sites">Temporary Redirect</a>.  
+GET /api/v1/login/../sites -> HTTP 307 <a href="/api/v1/sites">Temporary Redirect</a>.  
+GET /api/v1/sites/k.example.org%2f..%2f..%2fusers -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /api/v1/session/../sites -> HTTP 307 <a href="/api/v1/sites">Temporary Redirect</a>.  
+GET /api/v1/sites?x=/api/v1/health -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+GET /%61pi/v1/sites -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}} 
+
+### 1.4 nâng phiếu thành phiên: gửi giá trị phiếu dưới tên cookie phiên
+Cookie __Host-tpan=<phiếu> GET /api/v1/sites -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+Cookie tpan=<phiếu> GET /api/v1/sites -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+cả hai cookie = phiếu -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã hết hạn.","en":"Not logged in, or the session has expired."}}}
+phiếu trong bảng sessions? 1 phiên của khach
+
+### 1.5 phiếu từ IP khác (cùng Host 127.0.0.1, kết nối từ <vm>) và Host khác (localhost)
+IP nguồn <vm>, mã đúng -> HTTP 401 {"error":{"code":"mfa_challenge_invalid","message":{"vi":"Phiên chờ nhập mã đã hết hạn hoặc không còn đúng. Đăng nhập lại bằng mật khẩu.","en":"The code prompt has expire
+Host localhost, mã đúng -> HTTP 401 {"error":{"code":"mfa_challenge_invalid","message":{"vi":"Phiên chờ nhập mã đã hết hạn hoặc không còn đúng. Đăng nhập lại bằng mật khẩu.","en":"The code prompt has expire
+phiếu còn trong DB: 1
+POST /api/v1/login/2fa [p] -> HTTP 204 
+(đúng IP, đúng Host, cùng mã — mã chưa bị dùng ở hai lần trên thì 204)
+GET /api/v1/sites [p] -> HTTP 200 [{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T18:22:15.526282213Z","owner":"khach","htaccess":"an-toan","caged":false}] 
+phiếu sau khi vào: 0 (phiếu cũ còn thì là lỗi)
+dùng lại phiếu đã tiêu -> HTTP 401 {"error":{"code":"mfa_challenge_invalid","message":{"vi":"Phiên chờ nhập mã đã hết hạn hoặc không còn đúng. Đăng nhập lại bằng mật k
+
+### 1.6 cookie phiên chép sang Host khác
+Host: 127.0.0.1. -> HTTP 200 {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-113-g5043e04","expires":"2026-11-25T06:23:31.8424
+Host: 127.0.0.1:9999 -> HTTP 200 {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-113-g5043e04","expires":"2026-11-25T06:23:31.8424
+Host: [::1] -> HTTP 200 {"logged_in":false,"demo":false}
+(127.0.0.1. và :9999 chuẩn hoá về cùng tên; [::1] là tên khác)
+Host gốc sau lần [::1] -> HTTP 200 {"logged_in":false,"demo":false}
+
+######## t2.sh
+#!/usr/bin/env bash
+# t2: đua bước hai: nhiều phiếu song song (đếm số lần đoán thật trước khi khoá user),
+# dùng lại mã TOTP / mã dự phòng song song. User vic, vic2 đã bật hai bước.
+. /home/ubuntu/tps/lib.sh
+wrongcode() { # một mã 6 số khác mã của mọi bước -3..+3 của user $1
+  local near="" d x
+  for d in -90 -60 -30 0 30 60 90; do near="$near $(totp "$1" $d)"; done
+  while :; do x=$(printf '%06d' $((RANDOM * 32768 % 1000000 + RANDOM % 1000))); [[ $near != *"$x"* ]] && break; done
+  echo "$x"
+}
+li() { # li <jar> <user> <ip nguồn>: đăng nhập từ IP nguồn
+  : >"$T/$1"
+  printf '{"name":"%s","password":"%s"}' "$2" "$(cat "$T/pw.$2")" >"$T/req.login"
+  curl -sk --interface "$3" -o /dev/null -w '%{http_code}' -b "$T/$1" -c "$T/$1" -H 'Content-Type: application/json' --data-binary @"$T/req.login" "$B/api/v1/login"
+}
+sq "select name from pragma_table_info('audit')" | tr '\n' ' '; echo
+
+say "2.1 vic: 20 phiếu từ 20 IP nguồn (127.0.0.2..21), mỗi phiếu 5 mã sai, 100 request bắn cùng lúc"
+for i in $(seq 2 21); do printf '%s ' "$(li "r$i" vic 127.0.0.$i)"; done; echo "(mã HTTP của 20 lần đăng nhập)"
+echo "phiếu của vic trong DB: $(sq "select count(*) from login_challenges where user_name='vic'")"
+codejson "$(wrongcode vic)"; cp "$T/req.code" "$T/req.wrong"
+: >"$T/race.out"
+for i in $(seq 2 21); do for k in 1 2 3 4 5; do
+  (curl -sk --interface 127.0.0.$i -o "$T/rb.$i.$k" -w '%{http_code} ' -b "$T/r$i" -H 'Content-Type: application/json' --data-binary @"$T/req.wrong" "$B/api/v1/login/2fa"; jq -r '.error.code' "$T/rb.$i.$k" 2>/dev/null) >>"$T/race.out" &
+done; done
+wait
+echo "phân bố câu trả lời (mã HTTP, mã lỗi):"
+sort "$T/race.out" | uniq -c
+echo "audit: lần sai thật (login.2fa/wrong_code) và khoá user:"
+sq "select action, result, count(*) from audit where target='vic' and action like 'login.2fa%' group by 1,2"
+sq "select 'user_totp: failures='||failures||' lock_count='||lock_count||' locked_until='||coalesce(locked_until,'') from user_totp where user_name='vic'" 2>&1 | head -2
+
+say "2.2 vic đang khoá: mã ĐÚNG từ IP mới -> kỳ vọng 423 mfa_locked; mã dự phòng vẫn vào"
+li r30 vic 127.0.0.30 >/dev/null
+wait_fresh; codejson "$(totp vic)"
+curl -sk --interface 127.0.0.30 -o "$T/body" -w '%{http_code}' -b "$T/r30" -c "$T/r30" -H 'Content-Type: application/json' --data-binary @"$T/req.code" "$B/api/v1/login/2fa" >"$T/code"
+echo "mã TOTP đúng -> HTTP $(code) $(head -c 160 "$T/body")"
+printf '{"code":"%s"}' "$(sed -n 1p "$T/rc.vic")" >"$T/req.rc"
+curl -sk --interface 127.0.0.30 -o "$T/body" -w '%{http_code}' -b "$T/r30" -c "$T/r30" -H 'Content-Type: application/json' --data-binary @"$T/req.rc" "$B/api/v1/login/2fa" >"$T/code"
+echo "mã dự phòng #1 -> HTTP $(code) $(head -c 160 "$T/body")" | mask
+
+say "2.3 vic2: cùng một mã TOTP trên hai phiếu (hai IP) bắn song song"
+li a1 vic2 127.0.0.40 >/dev/null; li a2 vic2 127.0.0.41 >/dev/null
+wait_fresh; codejson "$(totp vic2)"
+for i in 1 2; do (curl -sk --interface 127.0.0.4$((i - 1)) -o "$T/rb.a$i" -w "a$i %{http_code} " -b "$T/a$i" -H 'Content-Type: application/json' --data-binary @"$T/req.code" "$B/api/v1/login/2fa"; jq -r '.error.code // "ok"' "$T/rb.a$i" 2>/dev/null || echo ok) & done; wait
+
+say "2.4 vic2: cùng một mã dự phòng trên hai phiếu bắn song song"
+li a1 vic2 127.0.0.40 >/dev/null; li a2 vic2 127.0.0.41 >/dev/null
+printf '{"code":"%s"}' "$(sed -n 1p "$T/rc.vic2")" >"$T/req.rc"
+for i in 1 2; do (curl -sk --interface 127.0.0.4$((i - 1)) -o "$T/rb.a$i" -w "a$i %{http_code} " -b "$T/a$i" -H 'Content-Type: application/json' --data-binary @"$T/req.rc" "$B/api/v1/login/2fa"; head -c 120 "$T/rb.a$i"; echo) & done; wait
+echo "mã dự phòng còn: $(sq "select count(*) from user_recovery_codes where user_name='vic2' and used_at is null")"
+
+say "2.5 vic2: một phiếu, hai mã dự phòng KHÁC nhau bắn song song -> chỉ một phiên mới"
+before=$(sq "select count(*) from sessions where user_name='vic2'")
+li a1 vic2 127.0.0.40 >/dev/null
+for k in 2 3; do printf '{"code":"%s"}' "$(sed -n ${k}p "$T/rc.vic2")" >"$T/req.rc$k"; done
+for k in 2 3; do (curl -sk --interface 127.0.0.40 -o "$T/rb.b$k" -w "rc$k %{http_code} " -b "$T/a1" -H 'Content-Type: application/json' --data-binary @"$T/req.rc$k" "$B/api/v1/login/2fa"; head -c 120 "$T/rb.b$k"; echo) & done; wait
+echo "phiên của vic2: trước $before, sau $(sq "select count(*) from sessions where user_name='vic2'")"
+echo "mã dự phòng còn: $(sq "select count(*) from user_recovery_codes where user_name='vic2' and used_at is null")"
+
+---- output t2
+id time ip action target result job_id actor token_id 
+
+### 2.1 vic: 20 phiếu từ 20 IP nguồn (127.0.0.2..21), mỗi phiếu 5 mã sai, 100 request bắn cùng lúc
+200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 200 (mã HTTP của 20 lần đăng nhập)
+phiếu của vic trong DB: 20
+phân bố câu trả lời (mã HTTP, mã lỗi):
+      2 401 401 401 mfa_code_wrong
+      1 401 401 mfa_code_wrong
+      1 401 mfa_code_wrong
+      1 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 423 mfa_locked
+      1 423 423 423 423 mfa_locked
+      4 423 423 423 mfa_locked
+      7 423 423 mfa_locked
+     20 423 mfa_locked
+      1 login_locked
+      5 mfa_code_wrong
+     57 mfa_locked
+audit: lần sai thật (login.2fa/wrong_code) và khoá user:
+login.2fa|wrong_code|10
+login.2fa_locked|locked|1
+user_totp: failures=0 lock_count=1 locked_until=2026-11-24T18:39:08.735438058Z
+
+### 2.2 vic đang khoá: mã ĐÚNG từ IP mới -> kỳ vọng 423 mfa_locked; mã dự phòng vẫn vào
+mã TOTP đúng -> HTTP 423 {"error":{"code":"mfa_locked","message":{"vi":"Nhập sai mã hai bước quá nhiều lần; mã 6 số bị khoá thêm 15 phút. Mã dự phòng vẫn dùng 
+mã dự phòng #1 -> HTTP 200 {"recovery_left":9,"wrong_codes":10}
+
+### 2.3 vic2: cùng một mã TOTP trên hai phiếu (hai IP) bắn song song
+a2 204 a1 401 mfa_code_used
+
+### 2.4 vic2: cùng một mã dự phòng trên hai phiếu bắn song song
+a1 200 {"recovery_left":9}
+
+a2 401 {"error":{"code":"mfa_code_wrong","message":{"vi":"Sai mã. Nhập mã 6 số đang hiện trong app xác thực, hoặc
+mã dự phòng còn: 9
+
+### 2.5 vic2: một phiếu, hai mã dự phòng KHÁC nhau bắn song song -> chỉ một phiên mới
+rc3 401 {"error":{"code":"mfa_challenge_invalid","message":{"vi":"Phiên chờ nhập mã đã hết hạn hoặc không còn đ
+rc2 200 {"recovery_left":8,"wrong_codes":1}
+
+phiên của vic2: trước 3, sau 4
+mã dự phòng còn: 8
+
+######## t3.sh
+#!/usr/bin/env bash
+# t3: nâng quyền bằng token, header Authorization lạ, CSRF, mật khẩu hiện một lần của job.
+. /home/ubuntu/tps/lib.sh
+mk() { # mk <tên biến> <user> <scope> : tạo token bằng CLI, giữ ở $T/tk.<biến>
+  tpan token create "$2" --name "$1" --scope "$3" --days 30 --yes --json >"$T/tkc.$1" 2>&1
+  local rc=$?
+  jq -r '.token // empty' "$T/tkc.$1" >"$T/tk.$1"
+  keep "$(cat "$T/tk.$1")"
+  echo "token $1 ($2, $3): rc=$rc, khoá JSON: $(jq -c 'keys' "$T/tkc.$1" 2>/dev/null || head -c 200 "$T/tkc.$1" | mask)"
+}
+tc() { # tc <biến token> <METHOD> <path> [curl args]
+  local t=$1 m=$2 p=$3
+  shift 3
+  printf 'Authorization: Bearer %s' "$(cat "$T/tk.$t")" >"$T/h.auth"
+  curl -sk -o "$T/body" -w '%{http_code}' -H @"$T/h.auth" -X "$m" "$@" "$B$p" >"$T/code"
+  printf '[tk %s] %s %s -> HTTP %s %s\n' "$t" "$m" "$p" "$(code)" "$(head -c 200 "$T/body" | tr '\n' ' ')" | mask
+}
+U="user khach (vai user)"
+say "3.0 tạo token bằng CLI"
+mk K khach sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write
+mk K2 khach jobs:read,sites:read
+mk KR khach sites:read
+mk A2 admin2 system:read,sites:write
+mk V2 vic2 sites:read
+tpan token create khach --name KS --scope system:read --days 30 --yes 2>&1 | tail -2 | mask
+echo "(user thường xin nhóm system bằng CLI)"
+tpan token create khach --name KD --scope sites:read --days 5000 --yes 2>&1 | tail -2 | mask
+echo "(quá trần ngày)"
+
+say "3.1 token của $U gọi route admin và route chỉ phiên"
+for p in /api/v1/stack /api/v1/machine /api/v1/security /api/v1/panel /api/v1/self /api/v1/updates /api/v1/cage /api/v1/usage/suggestions \
+  /api/v1/users /api/v1/tokens /api/v1/settings/auth /api/v1/plans /api/v1/ai/brain /api/v1/backups/target \
+  /api/v1/account/tokens /api/v1/account/2fa /api/v1/account/sessions /api/v1/sites/a.example.com /api/v1/sites; do
+  tc K GET "$p"
+done
+tc K POST /api/v1/ssl/settings -H 'Content-Type: application/json' --data '{}'
+tc K POST /api/v1/backups/settings -H 'Content-Type: application/json' --data '{}'
+tc K POST /api/v1/panel/domain -H 'Content-Type: application/json' --data '{"domain":"x.example.com"}'
+tc K POST /api/v1/users/khach/view-as -H 'Content-Type: application/json' --data '{}'
+tc K POST /api/v1/session/view-as/exit -H 'Content-Type: application/json' --data '{}'
+tc K POST /api/v1/account/password -H 'Content-Type: application/json' --data '{}'
+tc K POST /api/v1/account/tokens -H 'Content-Type: application/json' --data '{"name":"x","scopes":["sites:read"],"days":1}'
+tc K POST /api/v1/account/2fa/disable -H 'Content-Type: application/json' --data '{}'
+tc K DELETE /api/v1/sites/a.example.com
+tc K POST /api/v1/sites/a.example.com/backups -H 'Content-Type: application/json' --data '{}'
+tc K GET /api/v1/overview?refresh=1
+
+say "3.2 token thiếu phạm vi"
+tc KR POST /api/v1/sites -H 'Content-Type: application/json' --data '{"domain":"z.example.com"}'
+tc KR GET /api/v1/databases
+tc KR GET /api/v1/jobs
+tc KR HEAD /api/v1/sites
+tc KR OPTIONS /api/v1/sites
+tc K2 POST /api/v1/sites -H 'Content-Type: application/json' --data '{"domain":"z.example.com"}'
+
+say "3.3 header Authorization lạ (route GET /api/v1/sites, token K)"
+TK=$(cat "$T/tk.K")
+v() { curl -sk -o "$T/body" -w '%{http_code}' "$@" "$B/api/v1/sites" >"$T/code"; printf '%s -> HTTP %s %s\n' "$LBL" "$(code)" "$(head -c 90 "$T/body")" | mask; }
+LBL='Bearer <tk>' v -H "Authorization: Bearer $TK"
+LBL='bearer <tk>' v -H "Authorization: bearer $TK"
+LBL='BEARER <tk>' v -H "Authorization: BEARER $TK"
+LBL='Bearer  <tk> (2 dấu cách)' v -H "Authorization: Bearer  $TK"
+LBL='Bearer <tk><TAB>' v -H "Authorization: Bearer $TK	"
+LBL='Bearer<TAB><tk>' v -H "Authorization: Bearer	$TK"
+LBL='authorization (chữ thường) Bearer <tk>' v -H "authorization: Bearer $TK"
+LBL='hai header Bearer <tk>' v -H "Authorization: Bearer $TK" -H "Authorization: Bearer $TK"
+LBL='Bearer <tk>, Bearer <tk> (một header)' v -H "Authorization: Bearer $TK, Bearer $TK"
+LBL='Basic <base64>' v -H "Authorization: Basic $(printf 'khach:%s' "$(cat "$T/pw.khach")" | base64 -w0)"
+LBL='Bearer <tk thiếu 1 ký tự>' v -H "Authorization: Bearer ${TK%?}"
+LBL='Bearer <tk đổi ký tự cuối>' v -H "Authorization: Bearer ${TK%?}A"
+LBL='Bearer <tk> trong query ?access_token=' curl -sk -o "$T/body" -w '%{http_code}' "$B/api/v1/sites?access_token=$TK" >"$T/code"; echo "?access_token=<tk> -> HTTP $(code) $(head -c 90 "$T/body")" | mask
+LBL='X-Authorization: Bearer <tk>' v -H "X-Authorization: Bearer $TK"
+# phiên admin + header
+login adm admin2
+LBL='cookie phiên admin2 + Authorization rỗng -> GET /sites' v -b "$T/adm" -H 'Authorization;'
+curl -sk -o "$T/body" -w '%{http_code}' -b "$T/adm" -H "Authorization: Bearer $TK" "$B/api/v1/stack" >"$T/code"
+echo "cookie phiên admin2 + token khach -> GET /stack: HTTP $(code) $(head -c 90 "$T/body")" | mask
+curl -sk -o "$T/body" -w '%{http_code}' -b "$T/adm" -H "Authorization: Bearer x" "$B/api/v1/stack" >"$T/code"
+echo "cookie phiên admin2 + 'Bearer x' -> GET /stack: HTTP $(code) $(head -c 90 "$T/body")" | mask
+c adm GET /api/v1/stack >/dev/null; echo "phiên admin2 vẫn sống sau các lần trên: GET /stack HTTP $(code)"
+
+say "3.4 CSRF: phiên admin2, POST đổi trạng thái từ origin lạ"
+for h in 'Origin: https://evil.example.com' 'Origin: null' 'Sec-Fetch-Site: cross-site' 'Sec-Fetch-Site: same-site' 'Origin: https://127.0.0.1:8444'; do
+  curl -sk -o "$T/body" -w '%{http_code}' -b "$T/adm" -H "$h" -H 'Content-Type: application/json' --data '{"name":"csrf1","role":"admin"}' "$B/api/v1/users" >"$T/code"
+  echo "POST /users với '$h' -> HTTP $(code) $(head -c 90 "$T/body")" | mask
+done
+curl -sk -o "$T/body" -w '%{http_code}' -b "$T/adm" -H 'Origin: https://evil.example.com' -H 'Content-Type: text/plain' --data '{"name":"khach","password":"x"}' "$B/api/v1/login" >"$T/code"
+echo "POST /login (login CSRF) từ evil, text/plain -> HTTP $(code) $(head -c 90 "$T/body")" | mask
+curl -sk -o "$T/body" -w '%{http_code}' -b "$T/adm" -H 'Sec-Fetch-Site: cross-site' -X GET "$B/api/v1/session/view-as/exit" >"$T/code"
+echo "GET (không phải POST) route ghi view-as/exit cross-site -> HTTP $(code) $(head -c 90 "$T/body")" | mask
+curl -sk -o "$T/body" -w '%{http_code}' -H "Authorization: Bearer $TK" -H 'Origin: https://evil.example.com' -H 'Content-Type: application/json' --data '{}' "$B/api/v1/sites" >"$T/code"
+echo "token + Origin lạ POST /sites -> HTTP $(code) $(head -c 90 "$T/body") (token không gửi tự động nên CSRF không áp; chỉ ghi nhận)" | mask
+
+say "3.5 mật khẩu hiện một lần của job (DB password của k.example.org)"
+tc K POST /api/v1/databases/k.example.org/password -H 'Content-Type: application/json' --data '{}'
+JOB=$(jq -r '.job_id // .id // .job.id // empty' "$T/body"); echo "job: $JOB"
+sleep 8
+tc K2 GET "/api/v1/jobs/$JOB"
+echo "khoá có mật khẩu trong câu trả lời cho token khác (K2): $(jq -c '[paths|join(".")|select(test("secret"))]' "$T/body")"
+curl -sk -N --max-time 4 -o "$T/sse.K2" -H @<(printf 'Authorization: Bearer %s' "$(cat "$T/tk.K2")") "$B/api/v1/jobs/$JOB/events"
+echo "SSE events cho K2: $(wc -c <"$T/sse.K2") byte, có chữ secret: $(grep -c -i secret "$T/sse.K2")"
+login ks khach >/dev/null
+echo "(phiên khach cần bước hai; dùng mã)"; wait_fresh; codejson "$(totp khach)"; c ks POST /api/v1/login/2fa -H 'Content-Type: application/json' --data-binary @"$T/req.code"
+c ks GET "/api/v1/jobs/$JOB" >/dev/null
+echo "phiên khach GET job do token khởi: HTTP $(code), khoá secret: $(jq -c '[paths|join(".")|select(test("secret"))]' "$T/body")"
+tc K GET "/api/v1/jobs/$JOB" >/dev/null
+echo "token K (người khởi) GET job: HTTP $(code), khoá secret: $(jq -c '[paths|join(".")|select(test("secret"))]' "$T/body")"
+jq -r '.. | objects | (.secret?, .db_secret?, (.secrets? // empty | .[]?)) // empty | strings' "$T/body" 2>/dev/null | while read -r x; do keep "$x"; done
+tc K GET "/api/v1/jobs/$JOB" >/dev/null
+echo "token K lần hai: khoá secret: $(jq -c '[paths|join(".")|select(test("secret"))]' "$T/body")"
+cp "$T/body" "$T/job.secondread"
+
+---- output t3
+
+### 3.0 tạo token bằng CLI
+token K (khach, sites:write,databases:write,backups:write,cron:write,jobs:write,health:write,ssl:write): rc=0, khoá JSON: ["row","token"]
+token K2 (khach, jobs:read,sites:read): rc=0, khoá JSON: ["row","token"]
+token KR (khach, sites:read): rc=0, khoá JSON: ["row","token"]
+token A2 (admin2, system:read,sites:write): rc=0, khoá JSON: ["row","token"]
+token V2 (vic2, sites:read): rc=0, khoá JSON: ["row","token"]
+Từ chối: Chỉ quản trị viên tạo được token có phạm vi "system:read".
+(user thường xin nhóm system bằng CLI)
+Từ chối: Thời hạn token phải từ 1 đến 90 ngày (trần do quản trị viên đặt).
+(quá trần ngày)
+
+### 3.1 token của user khach (vai user) gọi route admin và route chỉ phiên
+[tk K] GET /api/v1/stack -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en":"The token lacks the scope system:read."}}} 
+[tk K] GET /api/v1/machine -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en":"The token lacks the scope system:read."}}} 
+[tk K] GET /api/v1/security -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en":"The token lacks the scope system:read."}}} 
+[tk K] GET /api/v1/panel -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en":"The token lacks the scope system:read."}}} 
+[tk K] GET /api/v1/self -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en":"The token lacks the scope system:read."}}} 
+[tk K] GET /api/v1/updates -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en":"The token lacks the scope system:read."}}} 
+[tk K] GET /api/v1/cage -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en":"The token lacks the scope system:read."}}} 
+[tk K] GET /api/v1/usage/suggestions -> HTTP 403 {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}} 
+[tk K] GET /api/v1/users -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/tokens -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/settings/auth -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/plans -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/ai/brain -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/backups/target -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/account/tokens -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/account/2fa -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/account/sessions -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] GET /api/v1/sites/a.example.com -> HTTP 404 {"error":{"code":"site_not_found","message":{"vi":"không có site a.example.com trong tpan; xem danh sách bằng: sudo tpan site list","en":"tpan has no site a.example.com; list sites with: sudo tpa
+[tk K] GET /api/v1/sites -> HTTP 200 [{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T18:22:15.526282213Z","owner":"khach","htaccess":"an-toan","caged":false
+[tk K] POST /api/v1/ssl/settings -> HTTP 403 {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}} 
+[tk K] POST /api/v1/backups/settings -> HTTP 403 {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}} 
+[tk K] POST /api/v1/panel/domain -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:write.","en":"The token lacks the scope system:write."}}} 
+[tk K] POST /api/v1/users/khach/view-as -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] POST /api/v1/session/view-as/exit -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] POST /api/v1/account/password -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] POST /api/v1/account/tokens -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] POST /api/v1/account/2fa/disable -> HTTP 403 {"error":{"code":"token_forbidden","message":{"vi":"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.","en":"This route can only be used when sig
+[tk K] DELETE /api/v1/sites/a.example.com -> HTTP 404 {"error":{"code":"site_not_found","message":{"vi":"không có site a.example.com trong tpan; xem danh sách bằng: sudo tpan site list","en":"tpan has no site a.example.com; list sites with: sudo tpa
+[tk K] POST /api/v1/sites/a.example.com/backups -> HTTP 404 {"error":{"code":"site_not_found","message":{"vi":"không có site a.example.com trong tpan; xem danh sách bằng: sudo tpan site list","en":"tpan has no site a.example.com; list sites with: sudo tpa
+[tk K] GET /api/v1/overview?refresh=1 -> HTTP 200 {"hostname":"tpan-m20","stack":{"installed":true,"web":"nginx","php_version":"8.3"},"sites":[{"site":{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"8.3","ssl"
+
+### 3.2 token thiếu phạm vi
+[tk KR] POST /api/v1/sites -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi sites:write.","en":"The token lacks the scope sites:write."}}} 
+[tk KR] GET /api/v1/databases -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi databases:read.","en":"The token lacks the scope databases:read."}}} 
+[tk KR] GET /api/v1/jobs -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi jobs:read.","en":"The token lacks the scope jobs:read."}}} 
+[tk KR] HEAD /api/v1/sites -> HTTP 200 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi jobs:read.","en":"The token lacks the scope jobs:read."}}} 
+[tk KR] OPTIONS /api/v1/sites -> HTTP 404 {"error":{"code":"not_found","message":{"vi":"Không có đường dẫn API này.","en":"No such API path."}}} 
+[tk K2] POST /api/v1/sites -> HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi sites:write.","en":"The token lacks the scope sites:write."}}} 
+
+### 3.3 header Authorization lạ (route GET /api/v1/sites, token K)
+Bearer <tk> -> HTTP 200 [{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"
+bearer <tk> -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, ch
+BEARER <tk> -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, ch
+Bearer  <tk> (2 dấu cách) -> HTTP 200 [{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"
+Bearer <tk><TAB> -> HTTP 200 [{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"
+Bearer<TAB><tk> -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, ch
+authorization (chữ thường) Bearer <tk> -> HTTP 200 [{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"
+hai header Bearer <tk> -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, ch
+Bearer <tk>, Bearer <tk> (một header) -> HTTP 401 {"error":{"code":"token_malformed","message":{"vi":"Token sai dạng (thiếu hay thừa k
+Basic <base64> -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, ch
+Bearer <tk thiếu 1 ký tự> -> HTTP 401 {"error":{"code":"token_malformed","message":{"vi":"Token sai dạng (thiếu hay thừa k
+Bearer <tk đổi ký tự cuối> -> HTTP 401 {"error":{"code":"token_malformed","message":{"vi":"Token sai dạng (thiếu hay thừa k
+?access_token=<tk> -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã h
+X-Authorization: Bearer <tk> -> HTTP 401 {"error":{"code":"unauthorized","message":{"vi":"Chưa đăng nhập hoặc phiên đã h
+POST /api/v1/login [adm] -> HTTP 204 
+cookie phiên admin2 + Authorization rỗng -> GET /sites -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, ch
+cookie phiên admin2 + token khach -> GET /stack: HTTP 403 {"error":{"code":"token_scope","message":{"vi":"Token thiếu phạm vi system:read.","en"
+cookie phiên admin2 + 'Bearer x' -> GET /stack: HTTP 401 {"error":{"code":"token_malformed","message":{"vi":"Token sai dạng (thiếu hay thừa k
+phiên admin2 vẫn sống sau các lần trên: GET /stack HTTP 200
+
+### 3.4 CSRF: phiên admin2, POST đổi trạng thái từ origin lạ
+POST /users với 'Origin: https://evil.example.com' -> HTTP 403 {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên b
+POST /users với 'Origin: null' -> HTTP 403 {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên b
+POST /users với 'Sec-Fetch-Site: cross-site' -> HTTP 403 {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên b
+POST /users với 'Sec-Fetch-Site: same-site' -> HTTP 403 {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên b
+POST /users với 'Origin: https://127.0.0.1:8444' -> HTTP 403 {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên b
+POST /login (login CSRF) từ evil, text/plain -> HTTP 403 {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên b
+GET (không phải POST) route ghi view-as/exit cross-site -> HTTP 404 {"error":{"code":"not_found","message":{"vi":"Không có đường dẫn API này.","en":"
+token + Origin lạ POST /sites -> HTTP 403 {"error":{"code":"csrf","message":{"vi":"Yêu cầu đến từ một trang khác nên b (token không gửi tự động nên CSRF không áp; chỉ ghi nhận)
+
+### 3.5 mật khẩu hiện một lần của job (DB password của k.example.org)
+[tk K] POST /api/v1/databases/k.example.org/password -> HTTP 202 {"job_id":"de4f795d9054f9b5"} 
+job: de4f795d9054f9b5
+[tk K2] GET /api/v1/jobs/de4f795d9054f9b5 -> HTTP 200 {"job":{"id":"de4f795d9054f9b5","kind":"db.passwd","target":"k.example.org","title":{"vi":"Đổi mật khẩu DB của site k.example.org","en":"Change the database password of k.example.org"},"statu
+khoá có mật khẩu trong câu trả lời cho token khác (K2): []
+SSE events cho K2: 3846 byte, có chữ secret: 0
+(phiên khach cần bước hai; dùng mã)
+POST /api/v1/login/2fa [ks] -> HTTP 204 
+phiên khach GET job do token khởi: HTTP 200, khoá secret: []
+token K (người khởi) GET job: HTTP 200, khoá secret: []
+token K lần hai: khoá secret: []
+
+######## t4.sh
+#!/usr/bin/env bash
+# t4: mật khẩu job (DB rời), vòng đời token (hạ vai, khoá, đặt lại mật khẩu, xoá rồi tạo lại user),
+# view-as, chính sách bắt buộc vượt bằng token hay phiên cũ.
+. /home/ubuntu/tps/lib.sh
+tc() {
+  local t=$1 m=$2 p=$3
+  shift 3
+  printf 'Authorization: Bearer %s' "$(cat "$T/tk.$t")" >"$T/h.auth"
+  curl -sk -o "$T/body" -w '%{http_code}' -H @"$T/h.auth" -X "$m" "$@" "$B$p" >"$T/code"
+  printf '[tk %s] %s %s -> HTTP %s %s\n' "$t" "$m" "$p" "$(code)" "$(head -c 160 "$T/body" | tr '\n' ' ')" | mask
+}
+mk() {
+  tpan token create "$2" --name "$1" --scope "$3" --days 30 --yes --json >"$T/tkc.$1" 2>&1
+  jq -r '.token // empty' "$T/tkc.$1" >"$T/tk.$1"; keep "$(cat "$T/tk.$1")"
+  echo "token $1 ($2, $3) đã tạo"
+}
+sk() { jq -c '[paths|join(".")|select(test("secret"))]' "$T/body"; }
+mk K3 khach databases:write,jobs:read
+
+say "4.1 job tạo DB rời bằng token K (có db_secret): ai lấy được mật khẩu"
+tc K POST /api/v1/dbs -H 'Content-Type: application/json' --data '{"name":"khach_t4"}'
+JOB=$(jq -r '.job_id // empty' "$T/body"); echo "job: $JOB"
+for i in $(seq 1 30); do tc K2 GET "/api/v1/jobs/$JOB" >/dev/null; [ "$(jq -r '.job.status' "$T/body")" != running ] && break; sleep 2; done
+echo "trạng thái job: $(jq -r '.job.status' "$T/body")"
+tc K2 GET "/api/v1/jobs/$JOB" >/dev/null; echo "token khác (K2) của cùng user: khoá secret $(sk)"
+tc K3 GET "/api/v1/jobs/$JOB" >/dev/null; echo "token khác (K3) của cùng user: khoá secret $(sk)"
+login a2 admin2 >/dev/null; c a2 GET "/api/v1/jobs/$JOB" >/dev/null; echo "phiên admin2 (admin): HTTP $(code) khoá secret $(sk)"
+tc K GET "/api/v1/jobs/$JOB" >/dev/null; echo "token K (người khởi): khoá secret $(sk)"
+jq -r '.db_secret | .. | strings' "$T/body" 2>/dev/null | while read -r x; do [ ${#x} -ge 12 ] && keep "$x"; done
+tc K GET "/api/v1/jobs/$JOB" >/dev/null; echo "token K lần hai: khoá secret $(sk)"
+
+say "4.2 token A2 (admin2: system:read, sites:write) qua hạ vai, khoá, mở khoá, nâng lại"
+tc A2 GET /api/v1/stack
+tpan user edit admin2 --role user --yes >/dev/null 2>&1; echo "tpan user edit admin2 --role user: rc=$?"
+tc A2 GET /api/v1/stack
+tc A2 GET /api/v1/sites
+tc A2 POST /api/v1/sites/a.example.com/suspend -H 'Content-Type: application/json' --data '{}'
+tpan user edit admin2 --role admin --yes >/dev/null 2>&1; echo "tpan user edit admin2 --role admin (nâng lại): rc=$?"
+tc A2 GET /api/v1/stack
+echo "(token sống lại sau khi nâng vai lại: theo thiết kế, quyền = vai hiện tại ∩ phạm vi)"
+tpan user suspend admin2 --yes >/dev/null 2>&1; echo "tpan user suspend admin2: rc=$?"
+tc A2 GET /api/v1/stack
+tpan user unsuspend admin2 --yes >/dev/null 2>&1; echo "tpan user unsuspend admin2: rc=$?"
+tc A2 GET /api/v1/stack
+echo "trạng thái token A2: $(tpan token list 2>/dev/null | grep -w A2 | awk '{print $NF}')"
+
+say "4.3 đặt lại mật khẩu khach (admin) -> token của khach bị thu hồi"
+tc KR GET /api/v1/sites >/dev/null; echo "KR trước: HTTP $(code)"
+tpan user passwd khach --yes --json >"$T/up.khach" 2>&1; echo "tpan user passwd khach: rc=$?"
+jq -r '.password // empty' "$T/up.khach" >"$T/pw.khach.new"; [ -s "$T/pw.khach.new" ] && { keep "$(cat "$T/pw.khach.new")"; cp "$T/pw.khach.new" "$T/pw.khach"; }
+for t in K K2 K3 KR; do tc $t GET /api/v1/sites; done
+
+say "4.4 xoá user vic2 rồi tạo lại cùng tên -> token cũ V2"
+tc V2 GET /api/v1/sites
+tpan user rm vic2 --yes >/dev/null 2>&1; echo "tpan user rm vic2: rc=$?"
+tc V2 GET /api/v1/sites
+tpan user add vic2 --role user --yes --json >"$T/ua.vic2b" 2>&1; echo "tpan user add vic2 (lại): rc=$?"; keep "$(jq -r .password "$T/ua.vic2b")"
+tc V2 GET /api/v1/sites
+echo "dòng api_tokens của vic2: $(sq "select count(*) from api_tokens where user_name='vic2'"); user_totp: $(sq "select count(*) from user_totp where user_name='vic2'"); mã dự phòng: $(sq "select count(*) from user_recovery_codes where user_name='vic2'")"
+
+say "4.5 view-as: admin2 xem như khach"
+login a2 admin2 >/dev/null
+c a2 POST /api/v1/users/khach/view-as -H 'Content-Type: application/json' --data '{}'
+echo "(F1/reauth: xem như có cần mật khẩu? ghi nhận mã ở trên)"
+c a2 GET /api/v1/session
+c a2 GET /api/v1/sites
+c a2 GET /api/v1/account/tokens
+c a2 POST /api/v1/account/tokens -H 'Content-Type: application/json' --data '{"name":"va","scopes":["sites:read"],"days":1}'
+c a2 POST /api/v1/account/2fa/setup -H 'Content-Type: application/json' --data '{}'
+c a2 POST /api/v1/account/2fa/disable -H 'Content-Type: application/json' --data '{}'
+c a2 GET /api/v1/account/2fa
+c a2 POST /api/v1/session/view-as/exit -H 'Content-Type: application/json' --data '{}'
+
+say "4.6 chính sách 'all': token và phiên cũ của user chưa bật hai bước"
+tpan user add nopol --role user --yes --json >"$T/ua.nopol" 2>&1; jq -r .password "$T/ua.nopol" >"$T/pw.nopol"; keep "$(cat "$T/pw.nopol")"
+mk NP nopol sites:read
+login np nopol >/dev/null; c np GET /api/v1/sites >/dev/null; echo "phiên nopol trước chính sách: HTTP $(code)"
+login a2s admin2 >/dev/null; c a2s GET /api/v1/stack >/dev/null; echo "phiên admin2 (chưa bật) trước chính sách: HTTP $(code)"
+tpan user 2fa policy all --yes 2>&1 | tail -2 | mask
+tc NP GET /api/v1/sites
+c np GET /api/v1/sites
+c np GET /api/v1/session
+c np POST /api/v1/account/2fa/setup -H 'Content-Type: application/json' --data '{}'
+echo "(setup cho phép: allowEnroll; bí mật mới không in)"
+keep "$(jq -r '.secret // empty' "$T/body")"
+c np POST /api/v1/session/view-as/exit -H 'Content-Type: application/json' --data '{}'
+c a2s GET /api/v1/stack
+c a2s POST /api/v1/users/khach/view-as -H 'Content-Type: application/json' --data '{}'
+tc A2 GET /api/v1/stack
+tpan user 2fa policy off --yes 2>&1 | tail -1 | mask
+
+---- output t4
+token K3 (khach, databases:write,jobs:read) đã tạo
+
+### 4.1 job tạo DB rời bằng token K (có db_secret): ai lấy được mật khẩu
+[tk K] POST /api/v1/dbs -> HTTP 202 {"job_id":"2c445b7f0ff2831d"} 
+job: 2c445b7f0ff2831d
+trạng thái job: succeeded
+token khác (K2) của cùng user: khoá secret []
+token khác (K3) của cùng user: khoá secret []
+phiên admin2 (admin): HTTP 200 khoá secret []
+token K (người khởi): khoá secret ["db_secret","db_secret.db","db_secret.user","db_secret.password"]
+token K lần hai: khoá secret []
+
+### 4.2 token A2 (admin2: system:read, sites:write) qua hạ vai, khoá, mở khoá, nâng lại
+[tk A2] GET /api/v1/stack -> HTTP 200 {"config":{"web":"nginx","web_source":"ubuntu","db_source":"ubuntu","php_source":"ubuntu","php_version":"8.3"},"installed":true,"services":[{"id":"service.activ
+tpan user edit admin2 --role user: rc=0
+[tk A2] GET /api/v1/stack -> HTTP 403 {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}} 
+[tk A2] GET /api/v1/sites -> HTTP 200 [] 
+[tk A2] POST /api/v1/sites/a.example.com/suspend -> HTTP 403 {"error":{"code":"forbidden","message":{"vi":"Chỉ quản trị viên được làm việc này.","en":"Only an administrator can do this."}}} 
+tpan user edit admin2 --role admin (nâng lại): rc=0
+[tk A2] GET /api/v1/stack -> HTTP 200 {"config":{"web":"nginx","web_source":"ubuntu","db_source":"ubuntu","php_source":"ubuntu","php_version":"8.3"},"installed":true,"services":[{"id":"service.activ
+(token sống lại sau khi nâng vai lại: theo thiết kế, quyền = vai hiện tại ∩ phạm vi)
+tpan user suspend admin2: rc=0
+[tk A2] GET /api/v1/stack -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, chủ token không còn hoặc đang bị khoá). Header phải là: Auth
+tpan user unsuspend admin2: rc=0
+[tk A2] GET /api/v1/stack -> HTTP 200 {"config":{"web":"nginx","web_source":"ubuntu","db_source":"ubuntu","php_source":"ubuntu","php_version":"8.3"},"installed":true,"services":[{"id":"service.activ
+trạng thái token A2: dùng
+
+### 4.3 đặt lại mật khẩu khach (admin) -> token của khach bị thu hồi
+KR trước: HTTP 200
+tpan user passwd khach: rc=0
+[tk K] GET /api/v1/sites -> HTTP 401 {"error":{"code":"token_revoked","message":{"vi":"Token đã bị thu hồi.","en":"The token has been revoked."}}} 
+[tk K2] GET /api/v1/sites -> HTTP 401 {"error":{"code":"token_revoked","message":{"vi":"Token đã bị thu hồi.","en":"The token has been revoked."}}} 
+[tk K3] GET /api/v1/sites -> HTTP 401 {"error":{"code":"token_revoked","message":{"vi":"Token đã bị thu hồi.","en":"The token has been revoked."}}} 
+[tk KR] GET /api/v1/sites -> HTTP 401 {"error":{"code":"token_revoked","message":{"vi":"Token đã bị thu hồi.","en":"The token has been revoked."}}} 
+
+### 4.4 xoá user vic2 rồi tạo lại cùng tên -> token cũ V2
+[tk V2] GET /api/v1/sites -> HTTP 200 [] 
+tpan user rm vic2: rc=0
+[tk V2] GET /api/v1/sites -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, chủ token không còn hoặc đang bị khoá). Header phải là: Auth
+tpan user add vic2 (lại): rc=0
+[tk V2] GET /api/v1/sites -> HTTP 401 {"error":{"code":"token_invalid","message":{"vi":"Token không hợp lệ (không có, chủ token không còn hoặc đang bị khoá). Header phải là: Auth
+dòng api_tokens của vic2: 0; user_totp: 0; mã dự phòng: 0
+
+### 4.5 view-as: admin2 xem như khach
+POST /api/v1/users/khach/view-as [a2] -> HTTP 200 {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-113-g5043e04","expires":"2026-11-25T06:26:43.630152934Z","user":{"name":"khach","role":"user","viewed_by":"admin2"}} 
+(F1/reauth: xem như có cần mật khẩu? ghi nhận mã ở trên)
+GET /api/v1/session [a2] -> HTTP 200 {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-113-g5043e04","expires":"2026-11-25T06:26:43.630152934Z","user":{"name":"khach","role":"user","viewed_by":"admin2"}} 
+GET /api/v1/sites [a2] -> HTTP 200 [{"domain":"k.example.org","slug":"k_example_org_e1188c","status":"active","php_version":"8.3","ssl":false,"created":"2026-11-24T18:22:15.526282213Z","owner":"khach","htaccess":"an-toan","caged":false}] 
+GET /api/v1/account/tokens [a2] -> HTTP 200 {"tokens":[{"id":"17c199337701a6a1","user":"admin2","name":"A2","scopes":["sites:write","system:read"],"hint":"tpan_jdb5an…","created":"2026-11-24T18:25:29.239281592Z","expires":"2026-12-24T18:25:29.239281592Z","last_used":"2026-11-24T18:26:43.17494593Z","last_ip":"127.0.0.1","status":"active"}],"max_days":90,"groups":["sites","databases","backups","cron","jobs","health","ssl","system"]} 
+POST /api/v1/account/tokens [a2] -> HTTP 403 {"error":{"code":"read_only_view","message":{"vi":"Đang xem như khach: phiên này chỉ đọc. Thoát chế độ xem như rồi mới đổi được.","en":"Viewing as khach: this session is read-only. Leave view-as mode to make changes."}}} 
+POST /api/v1/account/2fa/setup [a2] -> HTTP 403 {"error":{"code":"read_only_view","message":{"vi":"Đang xem như khach: phiên này chỉ đọc. Thoát chế độ xem như rồi mới đổi được.","en":"Viewing as khach: this session is read-only. Leave view-as mode to make changes."}}} 
+POST /api/v1/account/2fa/disable [a2] -> HTTP 403 {"error":{"code":"read_only_view","message":{"vi":"Đang xem như khach: phiên này chỉ đọc. Thoát chế độ xem như rồi mới đổi được.","en":"Viewing as khach: this session is read-only. Leave view-as mode to make changes."}}} 
+GET /api/v1/account/2fa [a2] -> HTTP 200 {"enabled":false,"pending":false,"recovery_left":0,"required":false,"policy":"off"} 
+POST /api/v1/session/view-as/exit [a2] -> HTTP 200 {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-113-g5043e04","expires":"2026-11-25T06:26:43.630152934Z","user":{"name":"admin2","role":"admin"}} 
+
+### 4.6 chính sách 'all': token và phiên cũ của user chưa bật hai bước
+token NP (nopol, sites:read) đã tạo
+phiên nopol trước chính sách: HTTP 200
+phiên admin2 (chưa bật) trước chính sách: HTTP 200
+Đã đặt chính sách bắt buộc hai bước: all
+User thuộc diện bắt buộc mà chưa bật sẽ bị chuyển sang trang bật hai bước ở request kế tiếp.
+[tk NP] GET /api/v1/sites -> HTTP 403 {"error":{"code":"mfa_enroll_required","message":{"vi":"Quản trị viên yêu cầu bật đăng nhập hai bước. Bật nó ở trang Tài khoản rồi d
+GET /api/v1/sites [np] -> HTTP 403 {"error":{"code":"mfa_enroll_required","message":{"vi":"Quản trị viên yêu cầu bật đăng nhập hai bước. Bật nó ở trang Tài khoản rồi dùng tiếp.","en":"The administrator requires two-step login. Turn it on in the Account page to continue."}}} 
+GET /api/v1/session [np] -> HTTP 200 {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-113-g5043e04","expires":"2026-11-25T06:26:43.863979022Z","user":{"name":"nopol","role":"user"},"mfa_enroll_required":true} 
+POST /api/v1/account/2fa/setup [np] -> HTTP 200 {"secret":"<che>","uri":"otpauth://totp/TPAN:nopol@tpan-m20?algorithm=SHA1\u0026digits=6\u0026issuer=TPAN\u0026period=30\u0026secret=<che>","qr":[<ma trận QR, che>]
+(setup cho phép: allowEnroll; bí mật mới không in)
+POST /api/v1/session/view-as/exit [np] -> HTTP 200 {"logged_in":true,"demo":false,"hostname":"tpan-m20","version":"v0.2.2-113-g5043e04","expires":"2026-11-25T06:26:43.863979022Z","user":{"name":"nopol","role":"user"},"mfa_enroll_required":true} 
+GET /api/v1/stack [a2s] -> HTTP 403 {"error":{"code":"mfa_enroll_required","message":{"vi":"Quản trị viên yêu cầu bật đăng nhập hai bước. Bật nó ở trang Tài khoản rồi dùng tiếp.","en":"The administrator requires two-step login. Turn it on in the Account page to continue."}}} 
+POST /api/v1/users/khach/view-as [a2s] -> HTTP 403 {"error":{"code":"mfa_enroll_required","message":{"vi":"Quản trị viên yêu cầu bật đăng nhập hai bước. Bật nó ở trang Tài khoản rồi dùng tiếp.","en":"The administrator requires two-step login. Turn it on in the Account page to continue."}}} 
+[tk A2] GET /api/v1/stack -> HTTP 403 {"error":{"code":"mfa_enroll_required","message":{"vi":"Quản trị viên yêu cầu bật đăng nhập hai bước. Bật nó ở trang Tài khoản rồi d
+Đã đặt chính sách bắt buộc hai bước: off
+
+######## t5.sh
+#!/usr/bin/env bash
+# t5: lộ bí mật: DB + WAL, journal, /var/log, bản sao backup --all, MCP, câu trả lời API (trừ lần đầu); quyền file.
+. /home/ubuntu/tps/lib.sh
+L=$T/quet.txt
+: >"$L"
+for f in "$T"/pw.*; do [ -s "$f" ] && echo "password:$(cat "$f")" >>"$L"; done
+for f in "$T"/totp.*; do echo "totp:$(cat "$f")" >>"$L"; done
+for f in "$T"/rc.*; do while read -r x; do echo "rc:$x" >>"$L"; done <"$f"; done
+for f in "$T"/tk.*; do [ -s "$f" ] && echo "token:$(cat "$f")" >>"$L"; done
+echo "key-hex:$(xxd -p -c 64 /etc/tpan/secret.key)" >>"$L"
+echo "key-b64:$(base64 -w0 /etc/tpan/secret.key)" >>"$L"
+# cookie phiên, phiếu (giá trị thô; DB chỉ được giữ sha256)
+awk '$6 ~ /^__Host-tpan/ && $7 != "" {print "cookie:" $7}' "$T"/p "$T"/ks "$T"/adm "$T"/a2 "$T"/j.* 2>/dev/null | sort -u >>"$L"
+echo "danh sách quét: $(cut -d: -f1 "$L" | sort | uniq -c | tr '\n' ' ')"
+# đối chứng: phép quét không mù
+printf '%s\n' "$(grep -m1 '^totp:' "$L" | cut -d: -f2-)" >"$T/doichung.txt"
+grep -m1 '^token:' "$L" | cut -d: -f2- >>"$T/doichung.txt"
+say "5.0 đối chứng: file chứa một bí mật TOTP và một token"
+python3 /home/ubuntu/tps/scan.py "$L" "$T/doichung.txt"
+
+say "5.1 quyền file"
+stat -c '%A %U:%G %s %n' /etc/tpan /etc/tpan/secret.key /var/lib/tpan /var/lib/tpan/tpan.db /var/lib/tpan/tpan.db-wal /var/lib/tpan/tpan.db-shm 2>&1
+sudo -u ubuntu cat /etc/tpan/secret.key >/dev/null 2>&1; echo "user ubuntu đọc secret.key: rc=$?"
+sudo -u ubuntu sqlite3 /var/lib/tpan/tpan.db 'select 1' >/dev/null 2>&1; echo "user ubuntu đọc tpan.db: rc=$?"
+SITEU=$(stat -c %U /var/www/k.example.org 2>/dev/null || ls -ld /var/www/* | awk 'NR==1{print $3}')
+echo "user hệ thống của site (chạy PHP): $SITEU"
+sudo -u "$SITEU" cat /etc/tpan/secret.key >/dev/null 2>&1; echo "user site đọc secret.key: rc=$?"
+sudo -u "$SITEU" cat /var/lib/tpan/tpan.db >/dev/null 2>&1; echo "user site đọc tpan.db: rc=$?"
+
+say "5.2 DB và WAL (đang chạy)"
+python3 /home/ubuntu/tps/scan.py "$L" /var/lib/tpan/tpan.db /var/lib/tpan/tpan.db-wal /var/lib/tpan/tpan.db-shm
+echo "secret_enc có phải bản rõ? độ dài blob: $(sq "select user_name||'='||length(secret_enc) from user_totp" | tr '\n' ' ')"
+
+say "5.3 journalctl -u tpan và /var/log"
+journalctl -u tpan --no-pager -o cat >"$T/journal.txt" 2>&1; echo "journal tpan: $(wc -l <"$T/journal.txt") dòng"
+journalctl --no-pager -o cat >"$T/journal-all.txt" 2>&1; echo "journal toàn máy: $(wc -l <"$T/journal-all.txt") dòng"
+python3 /home/ubuntu/tps/scan.py "$L" "$T/journal.txt" "$T/journal-all.txt"
+find /var/log -type f -size -200M >"$T/varlog.list"; echo "/var/log: $(wc -l <"$T/varlog.list") file"
+python3 /home/ubuntu/tps/scan.py "$L" $(cat "$T/varlog.list") | grep -v ', trúng: 0$'
+
+say "5.4 tpan backup create --all, quét bản sao tpan.db và mọi file backup mới"
+touch "$T/mốc"
+tpan backup create --all --yes >"$T/bk.out" 2>&1; echo "tpan backup create --all: rc=$?"; tail -3 "$T/bk.out" | mask
+find / -xdev -newer "$T/mốc" -type f \( -name '*.db' -o -name '*.tar.gz' -o -name '*.sql*' -o -name '*.gz' -o -name '*.zst' \) 2>/dev/null | grep -v "^$T" >"$T/bk.list"
+cat "$T/bk.list"
+mkdir -p "$T/bkx"; for f in $(grep '\.tar\.gz$' "$T/bk.list"); do tar -xzf "$f" -C "$T/bkx" 2>/dev/null; done
+for f in $(grep -E '\.gz$' "$T/bk.list" | grep -v '\.tar\.gz$'); do zcat "$f" >"$T/bkx/$(basename "$f").raw" 2>/dev/null; done
+python3 /home/ubuntu/tps/scan.py "$L" $(grep -E '\.db$' "$T/bk.list") $(find "$T/bkx" -type f) | grep -v ', trúng: 0$'
+
+say "5.5 MCP (tpan mcp qua stdin): initialize, tools/list, list_sites, list_jobs, get_job"
+JOB=$(sq "select id from jobs where kind like 'db.%' order by rowid desc limit 1")
+{
+  echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"thu-pha","version":"0"}}}'
+  echo '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+  echo '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+  echo '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_sites","arguments":{}}}'
+  echo '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_jobs","arguments":{}}}'
+  echo "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"get_job\",\"arguments\":{\"id\":\"$JOB\"}}}"
+  sleep 3
+} | timeout 20 tpan mcp >"$T/mcp.out" 2>"$T/mcp.err"
+echo "mcp: $(wc -l <"$T/mcp.out") dòng; công cụ: $(grep '"id":2' "$T/mcp.out" | jq -r '[.result.tools[].name]|join(",")' 2>/dev/null)"
+grep -o '"isError":[a-z]*' "$T/mcp.out" | sort | uniq -c
+python3 /home/ubuntu/tps/scan.py "$L" "$T/mcp.out" "$T/mcp.err"
+
+say "5.6 câu trả lời API (không phải lần hiện đầu tiên)"
+login s5 admin2 >/dev/null
+for p in /api/v1/account/2fa /api/v1/account/tokens /api/v1/tokens /api/v1/settings/auth /api/v1/users /api/v1/users/khach /api/v1/users/vic \
+  /api/v1/jobs "/api/v1/jobs/$JOB" /api/v1/export /api/v1/overview /api/v1/session /api/v1/account/sessions /api/v1/databases /api/v1/panel; do
+  c s5 GET "$p" >/dev/null; cp "$T/body" "$T/api.$(echo "$p" | tr '/?' '__')"; echo "GET $p -> $(code)"
+done
+curl -sk -N --max-time 4 -b "$T/s5" "$B/api/v1/jobs/$JOB/events" >"$T/api._events" 2>/dev/null
+python3 /home/ubuntu/tps/scan.py "$L" "$T"/api.* "$T/job.secondread" 2>/dev/null | grep -v ', trúng: 0$'
+
+say "5.7 audit: có dòng nào mang mã/bí mật trong target/result? (đếm theo cột)"
+sq "select action, count(*) from audit where action like '%2fa%' or action like 'token%' or action like 'login%' group by 1" | head -20
+sq -separator ' ' "select * from audit" >"$T/audit.txt"; python3 /home/ubuntu/tps/scan.py "$L" "$T/audit.txt"
+
+---- output t5
+danh sách quét:       8 cookie       1 key-b64       1 key-hex       7 password      40 rc       7 token       4 totp 
+
+### 5.0 đối chứng: file chứa một bí mật TOTP và một token
+/root/tp/doichung.txt: 78 byte, trúng: {'totp': 1, 'token': 1}
+TỔNG trúng: 2
+
+### 5.1 quyền file
+drwx------ root:root 4096 /etc/tpan
+-rw------- root:root 32 /etc/tpan/secret.key
+drwxr-xr-x root:root 4096 /var/lib/tpan
+-rw------- root:root 929792 /var/lib/tpan/tpan.db
+-rw------- root:root 4124152 /var/lib/tpan/tpan.db-wal
+-rw------- root:root 32768 /var/lib/tpan/tpan.db-shm
+user ubuntu đọc secret.key: rc=1
+user ubuntu đọc tpan.db: rc=1
+user hệ thống của site (chạy PHP): tp_k_example_org_e1188c
+user site đọc secret.key: rc=1
+user site đọc tpan.db: rc=1
+
+### 5.2 DB và WAL (đang chạy)
+/var/lib/tpan/tpan.db: 929792 byte, trúng: 0
+/var/lib/tpan/tpan.db-wal: 4124152 byte, trúng: 0
+/var/lib/tpan/tpan.db-shm: 32768 byte, trúng: 0
+TỔNG trúng: 0
+secret_enc có phải bản rõ? độ dài blob: admin=48 khach=48 vic=48 nopol=48 
+
+### 5.3 journalctl -u tpan và /var/log
+journal tpan: 117 dòng
+journal toàn máy: 2996 dòng
+/root/tp/journal.txt: 9935 byte, trúng: 0
+/root/tp/journal-all.txt: 196976 byte, trúng: 0
+TỔNG trúng: 0
+/var/log: 34 file
+TỔNG trúng: 0
+
+### 5.4 tpan backup create --all, quét bản sao tpan.db và mọi file backup mới
+tpan backup create --all: rc=0
+Job 4b54724f7724bafe: thành công
+
+Bản sao tpan.db: /var/lib/tpan/backups/_tpan/tpan-20261124-182744.db
+/var/lib/tpan/backups/_tpan/tpan-20261124-182744.db
+/var/lib/tpan/backups/a.example.com/a.example.com-20261124-182736.tar.gz
+/var/lib/tpan/backups/k.example.org/k.example.org-20261124-182740.tar.gz
+TỔNG trúng: 0
+
+### 5.5 MCP (tpan mcp qua stdin): initialize, tools/list, list_sites, list_jobs, get_job
+mcp: 5 dòng; công cụ: apply_plan,current_view,get_job,get_plan,list_backups,list_jobs,list_plans,list_sites,machine,managed_file,propose_backup_create,propose_backup_restore,propose_health_fix,propose_site_add,propose_site_remove,propose_site_repair,propose_ssl_issue,propose_stack_repair,site_health,stack_status,tail_log
+/root/tp/mcp.out: 20232 byte, trúng: 0
+/root/tp/mcp.err: 0 byte, trúng: 0
+TỔNG trúng: 0
+
+### 5.6 câu trả lời API (không phải lần hiện đầu tiên)
+GET /api/v1/account/2fa -> 200
+GET /api/v1/account/tokens -> 200
+GET /api/v1/tokens -> 200
+GET /api/v1/settings/auth -> 200
+GET /api/v1/users -> 200
+GET /api/v1/users/khach -> 200
+GET /api/v1/users/vic -> 200
+GET /api/v1/jobs -> 200
+GET /api/v1/jobs/de4f795d9054f9b5 -> 200
+GET /api/v1/export -> 200
+GET /api/v1/overview -> 200
+GET /api/v1/session -> 200
+GET /api/v1/account/sessions -> 200
+GET /api/v1/databases -> 200
+GET /api/v1/panel -> 200
+TỔNG trúng: 0
+
+### 5.7 audit: có dòng nào mang mã/bí mật trong target/result? (đếm theo cột)
+account.2fa.enable|4
+account.2fa.setup|5
+auth.require_2fa|2
+login|44
+login.2fa|12
+login.2fa.ip|11
+login.2fa_locked|1
+token.create|7
+/root/tp/audit.txt: 8001 byte, trúng: 0
+TỔNG trúng: 0
+
+---- output 5.8 (quét bổ sung, lệnh một dòng)
+
+### 5.8 quét bổ sung: MỌI giá trị trong danh sách che (gồm mật khẩu DB rời của job, bí mật chờ của nopol)
+số giá trị: 109
+job DB rời: dbs.add
+/var/lib/tpan/tpan.db-wal: 4124152 byte, trúng: {'other': 420}
+/var/lib/tpan/backups/_tpan/tpan-20261124-182744.db: 987136 byte, trúng: {'other': 52}
+/root/tp/mcp.out: 20232 byte, trúng: {'other': 6}
+/root/tp/api._api_v1_databases: 643 byte, trúng: {'other': 4}
+/root/tp/api._api_v1_jobs: 2975 byte, trúng: {'other': 6}
+/root/tp/api._api_v1_overview: 44063 byte, trúng: {'other': 6}
+/root/tp/api.jobdb: 2244 byte, trúng: {'other': 26}
+TỔNG trúng: 520
+drwx------ root:root /var/lib/tpan/backups
+drwx------ root:root /var/lib/tpan/backups/_tpan
+-rw------- root:root /var/lib/tpan/backups/_tpan/tpan-20261124-182744.db
+---- nhận diện giá trị trúng ở 5.8 (lệnh: với từng dòng của danh sách che, grep -c -F trong WAL, api.jobdb, mcp.out; in độ dài và dạng ký tự):
+#102 len=14 dạng=aaaaa_aaaaa_a9 /var/lib/tpan/tpan.db-wal:65 api.jobdb:1 mcp.out:1
+#103 len=14 dạng=aaaaa_aaaaa_a9 /var/lib/tpan/tpan.db-wal:65 api.jobdb:1 mcp.out:1
+=> hai giá trị trúng là TÊN DB và TÊN USER của DB rời (db_secret.db, db_secret.user: không phải bí mật, lỡ đưa vào danh sách che). Mật khẩu DB (db_secret.password) 0 lần.
+
+######## t6.sh (pebble; lần chạy này bị ngắt giữa phần 6.5 khi phiên bị tắt, phần còn lại làm ở t7)
+#!/usr/bin/env bash
+# t6: chứng chỉ panel (pebble): tên panel trùng site, site trùng tên panel, đua đặt tên với tạo site,
+# xoá/đổi tên rồi xem SNI còn được phục vụ chứng chỉ cũ không.
+. /home/ubuntu/tps/lib.sh
+issuer() { # issuer <SNI>: issuer và SAN của chứng chỉ cổng 8443 cho SNI
+  echo | timeout 8 openssl s_client -connect 127.0.0.1:8443 -servername "$1" 2>/dev/null |
+    openssl x509 -noout -issuer -ext subjectAltName 2>/dev/null | tr '\n' ' ' | sed 's/X509v3 Subject Alternative Name: *//'
+  echo
+}
+say "6.0 dựng pebble và tên trong /etc/hosts (chỉ máy ảo)"
+bash /home/ubuntu/tps/pebble.sh /etc/tpan-thu-pebble tpan-thu-pebble 2>&1 | tail -3
+for n in panel.m20.test panel2.m20.test race.m20.test k.example.org a.example.com; do grep -q " $n\$" /etc/hosts || echo "127.0.0.1 $n" >>/etc/hosts; done
+tpan ssl settings --email admin@example.com --server https://localhost:14000/dir 2>&1 | tail -1
+echo "SNI panel.m20.test trước khi đặt: $(issuer panel.m20.test)"
+
+say "6.1 đặt tên panel trùng tên site (và biến thể)"
+for d in k.example.org K.EXAMPLE.ORG k.example.org. ; do
+  tpan panel domain set "$d" --yes >"$T/pd.out" 2>&1; echo "tpan panel domain set '$d': rc=$? $(grep -m1 -iE 'từ chối|lỗi|error|refus' "$T/pd.out" | head -c 200)"
+done
+
+say "6.2 đặt panel.m20.test (pebble), rồi tạo site trùng tên panel (API của khach và CLI)"
+tpan panel domain set panel.m20.test --yes >"$T/pd.out" 2>&1; echo "set panel.m20.test: rc=$? $(tail -1 "$T/pd.out")"
+sleep 3
+echo "SNI panel.m20.test: $(issuer panel.m20.test)"
+echo "SNI PANEL.M20.TEST (chữ hoa): $(issuer PANEL.M20.TEST)"
+echo "SNI k.example.org trên 8443: $(issuer k.example.org)"
+echo "không SNI (IP): $(echo | timeout 8 openssl s_client -connect 127.0.0.1:8443 -noservername 2>/dev/null | openssl x509 -noout -issuer)"
+login ks2 khach >/dev/null; echo "(khach có hai bước)"; wait_fresh; codejson "$(totp khach)"; c ks2 POST /api/v1/login/2fa -H 'Content-Type: application/json' --data-binary @"$T/req.code"
+for d in panel.m20.test PANEL.M20.TEST panel.m20.test. ; do
+  c ks2 POST /api/v1/sites -H 'Content-Type: application/json' --data "{\"domain\":\"$d\",\"email\":\"admin@example.com\"}"
+done
+tpan site add panel.m20.test --email admin@example.com --yes 2>&1 | grep -m1 -iE 'từ chối|lỗi' | head -c 200; echo
+
+say "6.3 Host là tên site tới cổng panel (421), cookie phiên bị huỷ"
+login h1 admin2 >/dev/null
+curl -sk -o "$T/body" -w '%{http_code}' -b "$T/h1" --resolve k.example.org:8443:127.0.0.1 https://k.example.org:8443/api/v1/sites >"$T/code"
+echo "Host k.example.org + cookie phiên (đặt ở 127.0.0.1) -> HTTP $(code) $(head -c 120 "$T/body")" | mask
+c h1 GET /api/v1/sites >/dev/null; echo "phiên đó sau lần trên (Host 127.0.0.1): HTTP $(code)"
+for h in 'K.Example.Org' 'k.example.org.' 'k.example.org:443'; do
+  curl -sk -o "$T/body" -w '%{http_code}' -H "Host: $h" "$B/api/v1/session" >"$T/code"; echo "Host '$h' -> HTTP $(code)"
+done
+curl -sk -o "$T/body" -w '%{http_code}' -H 'Host: k.example.org' -H 'Authorization: Bearer x' "$B/api/v1/session" >"$T/code"; echo "Host site + Authorization (miễn 421) GET /session -> HTTP $(code) $(head -c 80 "$T/body")"
+printf '{"name":"admin2","password":"%s"}' "$(cat "$T/pw.admin2")" >"$T/req.login"
+curl -sk -D "$T/hdr" -o "$T/body" -w '%{http_code}' -H 'Host: k.example.org' -H 'Authorization: Bearer x' -H 'Content-Type: application/json' --data-binary @"$T/req.login" "$B/api/v1/login" >"$T/code"
+echo "Host site + Authorization giả, POST /login đúng mật khẩu -> HTTP $(code) $(head -c 100 "$T/body"); set-cookie: $(grep -ci '^set-cookie' "$T/hdr")"
+
+say "6.4 xoá tên panel (--clear) và đổi tên: SNI tên cũ còn chứng chỉ pebble không?"
+tpan panel domain set panel2.m20.test --yes >"$T/pd.out" 2>&1; echo "set panel2.m20.test: rc=$? $(tail -1 "$T/pd.out")"
+sleep 3
+echo "SNI panel2.m20.test: $(issuer panel2.m20.test)"
+echo "SNI panel.m20.test (tên cũ): $(issuer panel.m20.test)"
+echo "lineage trên đĩa: $(ls /etc/letsencrypt/live/ 2>/dev/null | tr '\n' ' ')"
+tpan panel domain set --clear --yes >"$T/pd.out" 2>&1; echo "--clear: rc=$? $(tail -1 "$T/pd.out")"
+sleep 3
+echo "SNI panel2.m20.test sau --clear: $(issuer panel2.m20.test)"
+echo "SNI panel.m20.test sau --clear: $(issuer panel.m20.test)"
+
+say "6.5 đua: tpan panel domain set race.m20.test song song với API tạo site race.m20.test (admin2)"
+login r1 admin2 >/dev/null
+(tpan panel domain set race.m20.test --yes >"$T/race.pd" 2>&1; echo "CLI panel domain set race.m20.test: rc=$?") &
+(c r1 POST /api/v1/sites -H 'Content-Type: application/json' --data '{"domain":"race.m20.test","email":"admin@example.com"}') &
+wait
+sleep 2
+JR=$(jq -r '.job_id // empty' "$T/body")
+for i in $(seq 1 60); do c r1 GET "/api/v1/jobs/$JR" >/dev/null 2>&1; s=$(jq -r '.job.status // empty' "$T/body"); [ -n "$s" ] && [ "$s" != running ] && break; sleep 3; done
+echo "job site race: ${s:-không có job}"
+tail -2 "$T/race.pd" | mask
+echo "panel.domain = $(tpan panel domain show --json 2>/dev/null | jq -r .domain)"
+echo "site race.m20.test có trong DB: $(sq "select count(*) from sites where domain='race.m20.test'")"
+curl -sk -o /dev/null -w 'Host race.m20.test tới panel -> HTTP %{http_code}\n' -H 'Host: race.m20.test' "$B/api/v1/session"
+echo "SNI race.m20.test trên 8443: $(issuer race.m20.test)"
+
+---- output t6
+
+### 6.0 dựng pebble và tên trong /etc/hosts (chỉ máy ảo)
+done.
+Running as unit: tpan-thu-pebble.service; invocation ID: 0ed4e02a4fa64b7782b2ac136f5505c7
+pebble /dir: HTTP 200
+ACME:      https://localhost:14000/dir
+SNI panel.m20.test trước khi đặt: issuer=CN = tpan-m20 DNS:tpan-m20, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:<ipv6 máy ảo> 
+
+### 6.1 đặt tên panel trùng tên site (và biến thể)
+tpan panel domain set 'k.example.org': rc=1 Từ chối: k.example.org đã thuộc về một site (có trong danh sách site của tpan); panel không dùng chung tên với site: mã PHP của site sẽ đọc được cookie của panel. Ch
+tpan panel domain set 'K.EXAMPLE.ORG': rc=1 Từ chối: k.example.org đã thuộc về một site (có trong danh sách site của tpan); panel không dùng chung tên với site: mã PHP của site sẽ đọc được cookie của panel. Ch
+tpan panel domain set 'k.example.org.': rc=1 Từ chối: tên miền không được có dấu chấm ở cuối
+
+### 6.2 đặt panel.m20.test (pebble), rồi tạo site trùng tên panel (API của khach và CLI)
+set panel.m20.test: rc=0   [đạt] Panel phục vụ chứng chỉ Let's Encrypt cho panel.m20.test: Panel phục vụ đúng chứng chỉ của lineage cho panel.m20.test (serial 7FCD2906B6C1329C)
+SNI panel.m20.test: issuer=CN = Pebble Intermediate CA 621180 DNS:panel.m20.test 
+SNI PANEL.M20.TEST (chữ hoa): issuer=CN = Pebble Intermediate CA 621180 DNS:panel.m20.test 
+SNI k.example.org trên 8443: issuer=CN = tpan-m20 DNS:tpan-m20, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:<ipv6 máy ảo> 
+không SNI (IP): issuer=CN = tpan-m20
+(khach có hai bước)
+POST /api/v1/login/2fa [ks2] -> HTTP 204 
+POST /api/v1/sites [ks2] -> HTTP 409 {"error":{"code":"domain_is_panel","message":{"vi":"panel.m20.test đang là tên miền của panel tpan; một site không được dùng chung tên với panel. Chọn tên khác, hoặc bỏ tên của panel trước: sudo tpan panel domain set --clear","en":"panel.m20.test is the tpan panel's domain; a site cannot share its name with the panel. Pick another name, or drop the panel's domain fi
+POST /api/v1/sites [ks2] -> HTTP 409 {"error":{"code":"domain_is_panel","message":{"vi":"panel.m20.test đang là tên miền của panel tpan; một site không được dùng chung tên với panel. Chọn tên khác, hoặc bỏ tên của panel trước: sudo tpan panel domain set --clear","en":"panel.m20.test is the tpan panel's domain; a site cannot share its name with the panel. Pick another name, or drop the panel's domain fi
+POST /api/v1/sites [ks2] -> HTTP 400 {"error":{"code":"domain_invalid","message":{"vi":"tên miền không được có dấu chấm ở cuối","en":"the domain must not end with a dot"}}} 
+Từ chối: panel.m20.test đang là tên miền của panel tpan; một site không được dùng chung tên với panel. Chọn tên khác, hoặc bỏ tên của panel trước: sudo tpan panel d
+
+### 6.3 Host là tên site tới cổng panel (421), cookie phiên bị huỷ
+Host k.example.org + cookie phiên (đặt ở 127.0.0.1) -> HTTP 421 {"error":{"code":"host_is_site","message":{"vi":"Panel tpan không mở ở tên này (mã PHP của một site đọc 
+phiên đó sau lần trên (Host 127.0.0.1): HTTP 200
+Host 'K.Example.Org' -> HTTP 421
+Host 'k.example.org.' -> HTTP 421
+Host 'k.example.org:443' -> HTTP 421
+Host site + Authorization (miễn 421) GET /session -> HTTP 200 {"logged_in":false,"demo":false}
+Host site + Authorization giả, POST /login đúng mật khẩu -> HTTP 204 ; set-cookie: 1
+
+### 6.4 xoá tên panel (--clear) và đổi tên: SNI tên cũ còn chứng chỉ pebble không?
+set panel2.m20.test: rc=0   [đạt] Panel phục vụ chứng chỉ Let's Encrypt cho panel2.m20.test: Panel phục vụ đúng chứng chỉ của lineage cho panel2.m20.test (serial 3F5992BB3F07C67D)
+SNI panel2.m20.test: issuer=CN = Pebble Intermediate CA 621180 DNS:panel2.m20.test 
+SNI panel.m20.test (tên cũ): issuer=CN = tpan-m20 DNS:tpan-m20, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:<ipv6 máy ảo> 
+lineage trên đĩa: README tpan-panel 
+--clear: rc=0 Job 6dfe9a7e2b0201c6: thành công
+SNI panel2.m20.test sau --clear: issuer=CN = tpan-m20 DNS:tpan-m20, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:<ipv6 máy ảo> 
+SNI panel.m20.test sau --clear: issuer=CN = tpan-m20 DNS:tpan-m20, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:<ipv6 máy ảo> 
+
+### 6.5 đua: tpan panel domain set race.m20.test song song với API tạo site race.m20.test (admin2)
+POST /api/v1/sites [r1] -> HTTP 409 {"error":{"code":"job_running","message":{"vi":"Đang có một việc khác đang đổi máy. Chờ nó xong rồi thử lại (xem ở Lịch sử).","en":"Another operation is changing the server. Wait for it to finish, then try again (see History)."}}} 
+CLI panel domain set race.m20.test: rc=0
+
+######## t7.sh
+#!/usr/bin/env bash
+# t7: phần cuối của 6.5 và đua chiều ngược; cookie chép sang Host IP; site có SSL thật (pebble): 421 với SNI,
+# cổng 443 theo IP không lộ cookie.
+. /home/ubuntu/tps/lib.sh
+issuer() {
+  echo | timeout 8 openssl s_client -connect 127.0.0.1:${2:-8443} -servername "$1" 2>/dev/null |
+    openssl x509 -noout -issuer -ext subjectAltName 2>/dev/null | tr '\n' ' ' | sed 's/X509v3 Subject Alternative Name: *//'
+  echo
+}
+say "6.5 (tiếp) sau lần đua CLI trước API"
+echo "panel.domain = $(tpan panel domain show --json 2>/dev/null | jq -r .domain)"
+echo "site race.m20.test trong DB: $(sq "select count(*) from sites where domain='race.m20.test'")"
+echo "SNI race.m20.test: $(issuer race.m20.test)"
+login r1 admin2 >/dev/null
+c r1 POST /api/v1/sites -H 'Content-Type: application/json' --data '{"domain":"race.m20.test","email":"admin@example.com"}'
+tpan panel domain set --clear --yes >/dev/null 2>&1; echo "--clear: rc=$?"
+
+say "6.6 đua chiều ngược: API tạo site race2.m20.test trước, CLI đặt tên panel race2.m20.test ngay sau"
+grep -q ' race2.m20.test$' /etc/hosts || echo '127.0.0.1 race2.m20.test' >>/etc/hosts
+c r1 POST /api/v1/sites -H 'Content-Type: application/json' --data '{"domain":"race2.m20.test","email":"admin@example.com"}'
+JR=$(jq -r '.job_id // empty' "$T/body")
+tpan panel domain set race2.m20.test --yes >"$T/race2.pd" 2>&1; echo "CLI panel domain set race2.m20.test (khi job site đang chạy): rc=$? $(grep -m1 -iE 'từ chối|lỗi|đang' "$T/race2.pd" | head -c 220)"
+for i in $(seq 1 80); do c r1 GET "/api/v1/jobs/$JR" >/dev/null; s=$(jq -r '.job.status // empty' "$T/body"); [ -n "$s" ] && [ "$s" != running ] && break; sleep 3; done
+echo "job site race2: $s"
+tpan panel domain set race2.m20.test --yes >"$T/race2.pd" 2>&1; echo "CLI set race2.m20.test sau khi site xong: rc=$? $(grep -m1 -iE 'từ chối|lỗi' "$T/race2.pd" | head -c 160)"
+echo "panel.domain = $(tpan panel domain show --json 2>/dev/null | jq -r .domain)"
+
+say "6.7 cookie phiên chép sang Host là IP máy ảo"
+login h2 admin2 >/dev/null
+SV=$(awk '$6=="__Host-tpan"{print $7}' "$T/h2"); keep "$SV"
+curl -sk -o "$T/body" -w '%{http_code}' -H "Cookie: __Host-tpan=$SV" "https://$VMIP:8443/api/v1/session" >"$T/code"
+echo "cookie (đặt ở Host 127.0.0.1) gửi tới https://<vm>:8443 -> HTTP $(code) $(head -c 60 "$T/body")"
+c h2 GET /api/v1/session >/dev/null; echo "phiên gốc sau đó: $(head -c 40 "$T/body")"
+echo "audit session.host_mismatch: $(sq "select count(*) from audit where action='session.host_mismatch'")"
+
+say "6.8 site k.example.org có SSL thật (pebble): Host/SNI tên site tới 8443; cổng 443 theo IP"
+tpan ssl issue k.example.org --yes >"$T/ssl.out" 2>&1; echo "tpan ssl issue k.example.org: rc=$? $(tail -1 "$T/ssl.out")"
+echo "SNI k.example.org cổng 443 (nginx site): $(issuer k.example.org 443)"
+echo "SNI k.example.org cổng 8443 (panel): $(issuer k.example.org)"
+login h3 admin2 >/dev/null
+curl -sk -o "$T/body" -w '%{http_code}' -b "$T/h3" --resolve k.example.org:8443:127.0.0.1 https://k.example.org:8443/ >"$T/code"
+echo "https://k.example.org:8443/ (SNI + Host tên site, có cookie) -> HTTP $(code) $(head -c 60 "$T/body")"
+c h3 GET /api/v1/session >/dev/null; echo "phiên đó sau lần trên: $(head -c 40 "$T/body")"
+curl -sk -o /dev/null -w '%{http_code}\n' "https://$VMIP/" >"$T/code" 2>"$T/cerr"; echo "https://<vm>/ (cổng 443, không SNI tên): HTTP $(cat "$T/code") $(head -c 120 "$T/cerr")"
+curl -s -o /dev/null -w 'http://<vm>/ (cổng 80): HTTP %{http_code}\n' "http://$VMIP/"
+echo "(cookie __Host- có Secure nên không đi qua http; 443 theo IP từ chối bắt tay nên không site nào nhận cookie của panel đặt theo IP)"
+
+---- output t7
+
+### 6.5 (tiếp) sau lần đua CLI trước API
+panel.domain = race.m20.test
+site race.m20.test trong DB: 0
+SNI race.m20.test: issuer=CN = Pebble Intermediate CA 621180 DNS:race.m20.test 
+POST /api/v1/sites [r1] -> HTTP 409 {"error":{"code":"domain_is_panel","message":{"vi":"race.m20.test đang là tên miền của panel tpan; một site không được dùng chung tên với panel. Chọn tên khác, hoặc bỏ tên của panel trước: sudo tpan panel domain set --clear","en":"race.m20.test is the tpan panel's domain; a site cannot share its name with the panel. Pick another name, or drop the panel's domain firs
+--clear: rc=0
+
+### 6.6 đua chiều ngược: API tạo site race2.m20.test trước, CLI đặt tên panel race2.m20.test ngay sau
+POST /api/v1/sites [r1] -> HTTP 202 {"job_id":"88dde93477233bc8"} 
+CLI panel domain set race2.m20.test (khi job site đang chạy): rc=1   LỖI: bước panel.namefree:race2.m20.test: kiểm trước khi chạy: panel_domain_is_site: race2.m20.test đã thuộc về một site (có trong danh sách site của tpan); panel không dùng chung tên với si
+job site race2: succeeded
+CLI set race2.m20.test sau khi site xong: rc=1 Từ chối: race2.m20.test đã thuộc về một site (có trong danh sách site của tpan); panel không dùng chung tên với site: mã PHP của site s
+panel.domain = 
+
+### 6.7 cookie phiên chép sang Host là IP máy ảo
+cookie (đặt ở Host 127.0.0.1) gửi tới https://<vm>:8443 -> HTTP 200 {"logged_in":false,"demo":false}
+phiên gốc sau đó: {"logged_in":false,"demo":false}
+audit session.host_mismatch: 2
+
+### 6.8 site k.example.org có SSL thật (pebble): Host/SNI tên site tới 8443; cổng 443 theo IP
+tpan ssl issue k.example.org: rc=1 Lỗi: bước ssl.cert:k.example.org: thực hiện: xin chứng chỉ cho k.example.org: certbot certonly --webroot -w /var/lib/tpan/acme -d k.example.org --cert-name k.example.org --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir: mã thoát 1: Saving debug log to /var/log/letsencrypt/letsencrypt.log?An unexpected error occurred:?Account https://localhost:14000/my-account/4542f269bf4dc5d6 not found.?Ask for help or search for solutions at https://community.letsencrypt.org. See the logfile /var/log/letsencrypt/letsencrypt.log or re-run Certbot with -v for more details.?Requesting a certificate for k.example.org
+SNI k.example.org cổng 443 (nginx site): 
+SNI k.example.org cổng 8443 (panel): issuer=CN = tpan-m20 DNS:tpan-m20, DNS:localhost, IP Address:127.0.0.1, IP Address:<vm>, IP Address:0:0:0:0:0:0:0:1, IP Address:<ipv6 máy ảo> 
+https://k.example.org:8443/ (SNI + Host tên site, có cookie) -> HTTP 421 <!doctype html><meta charset="utf-8"><title>tpan</title><h1>
+phiên đó sau lần trên: {"logged_in":true,"demo":false,"hostname
+https://<vm>/ (cổng 443, không SNI tên): HTTP 000 
+http://<vm>/ (cổng 80): HTTP 000
+(cookie __Host- có Secure nên không đi qua http; 443 theo IP từ chối bắt tay nên không site nào nhận cookie của panel đặt theo IP)
+
+---- 6.9, 6.10 (lệnh một dòng, cookie gửi tường minh bằng -H "Cookie: __Host-tpan=<che>")
+
+### 6.9 (làm lại 6.3/6.8 cho đúng) cookie phiên gửi TƯỜNG MINH với Host/SNI tên site
+Cookie phiên + SNI/Host k.example.org -> HTTP 421 {"error":{"code":"host_is_site","message":{"vi":"Panel tpan không m
+phiên gốc (Host 127.0.0.1) sau đó: {"logged_in":false,"demo":false}
+audit session.host_mismatch: 2
+
+### 6.10 cổng 443/80 theo IP máy ảo
+000
+
+000 (https://127.0.0.1/)
+000 (http://127.0.0.1/)
+000
+ (http://<vm>/)
+20E0301DD1EA0000:error:8000006F:system library:BIO_connect:Connection refused:../crypto/bio/bio_sock2.c:114:calling connect()
+20E0301DD1EA0000:error:10000067:BIO routines:BIO_connect:connect error:../crypto/bio/bio_sock2.c:116:
+### 6.10 (lặp lại sau khi nginx reload xong)
+http://127.0.0.1/ -> HTTP 000
+http://<vm>/ -> HTTP 000
+https://<vm>/ -> HTTP 000
+số socket nghe cổng 443: 0
+(chẩn đoán: curl -sv http://127.0.0.1/ -> "Empty reply from server": server mặc định cổng 80 đóng kết nối với tên lạ; chưa có site SSL nên không có gì nghe 443)
+
+######## 6.11 site có SSL thật (lệnh một dòng; đồ nghề: chuyển /etc/letsencrypt/accounts/localhost:14000 ra chỗ khác vì pebble đã khởi động lại nên tài khoản certbot cũ không còn)
+$ tpan ssl issue k.example.org --yes; openssl s_client -servername k.example.org (443 và 8443); curl -H "Cookie: __Host-tpan=<che>" --resolve k.example.org:8443:127.0.0.1 https://k.example.org:8443/api/v1/sites; GET /api/v1/session bằng phiên gốc; curl https://<vm>/ và http://<vm>/
+
+### 6.11 site có SSL thật (pebble) — đồ nghề: bỏ tài khoản certbot cũ của pebble đã khởi động lại
+tpan ssl issue k.example.org: rc=0   [đạt] Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công: certbot gia hạn thử k.example.org thành công
+SNI k.example.org cổng 443 (nginx của site): issuer=CN = Pebble Intermediate CA 4a94fa DNS:k.example.org 
+SNI k.example.org cổng 8443 (panel): issuer=CN = tpan-m20 DNS:tpan-m20, DNS:l
+cookie phiên + SNI/Host k.example.org:8443 -> HTTP 421 {"error":{"code":"host_is_site","message":{"vi":"Panel tpan 
+phiên gốc sau đó: {"logged_in":false,"demo":false}
+https://<vm>/ (443 theo IP, có site SSL) -> HTTP 000
+2050B72B47FD0000:error:0A000458:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name:../ssl/record/rec_layer_s3.c:1599:SSL alert number 112
+http://<vm>/ (80 theo IP) -> 000 (000 = nginx đóng kết nối, default_server 444)
+
+######## 6.12 site trong thùng rác (lệnh một dòng: tpan site rm a.example.com; tpan panel domain set a.example.com; curl -H "Host: a.example.com" GET /api/v1/session; tpan site restore a.example.com)
+
+### 6.12 site trong thùng rác: tên panel trùng và 421
+tpan site rm a.example.com: rc=0; trạng thái: trashed
+tpan panel domain set a.example.com: rc=1 Từ chối: a.example.com đã thuộc về một site (có trong danh sách site của tpan); panel không dùng chung
+Host a.example.com (site trong thùng rác) -> HTTP 421
+tpan site restore a.example.com: rc=0
+
+
+######## KẾT LUẬN
+
+Không có đường nào khai thác được (không phát hiện NẶNG hay VỪA). Hai phát hiện NHẸ:
+
+V1 (NHẸ) POST /login có header Authorization (bất kỳ, kể cả "Bearer x") được miễn 421 dưới tên site và
+   vẫn tạo phiên: 204 + Set-Cookie, phiên gắn Host là tên site (6.3: "Host site + Authorization giả,
+   POST /login đúng mật khẩu -> HTTP 204 ; set-cookie: 1"). Không khai thác được: phiên đó chỉ dùng được
+   bằng cookie dưới đúng tên site, mà request chỉ có cookie dưới tên site thì bị 421 và xoá phiên; trình
+   duyệt không tự gửi Authorization (cross-origin thì cần preflight, panel không trả CORS). Chỉ để lại
+   phiên rác và dòng audit login ok dưới tên site. Sửa: handleLogin, handleLogin2FA (và route public có
+   đặt cookie) trả 400 khi hasAuthorization(r); hoặc chỉ miễn 421 cho route không public.
+
+V2 (NHẸ, đúng thiết kế hiện tại) Hạ vai và tạm khoá KHÔNG thu hồi token: token system:read của admin2
+   bị 403 khi hạ vai, 401 khi khoá, nhưng nâng vai lại hay mở khoá thì token sống lại (4.2: GET /stack
+   200 -> 403 -> 200 -> 401 -> 200). Nếu quản trị dùng hạ vai/khoá như phản ứng sự cố thì token cũ trở
+   lại cùng tài khoản. Sửa: thu hồi token khi hạ admin -> user và khi suspend (như đặt lại mật khẩu
+   đã làm, store.SetUserPassword), hoặc ghi rõ vào tài liệu và in số token còn sống khi mở khoá/nâng vai.
+
+Đã thử, không lọt:
+- Phiếu chờ: 13 route cần phiên (cả SSE /jobs/x/events, POST /sites, /account/*) đều 401; 14 dạng đường
+  dẫn lạ (.., %2e%2e, //, %2f, chữ hoa, %61pi) 401/404/307 hoặc trang web; giá trị phiếu dưới tên cookie
+  phiên 401; phiếu từ IP nguồn khác hoặc Host khác: mfa_challenge_invalid; phiếu đã tiêu không dùng lại.
+- Đua bước hai: 20 phiếu x 5 mã sai = 100 request song song từ 20 IP: audit đúng 10 lần wrong_code rồi
+  khoá user (lock_count=1); mã TOTP đúng khi đang khoá 423; mã dự phòng vẫn vào (recovery_left 9,
+  wrong_codes 10). Cùng mã TOTP trên hai phiếu song song: một 204, một mfa_code_used. Cùng mã dự phòng
+  song song: một 200, một mfa_code_wrong. Một phiếu, hai mã dự phòng khác nhau: đúng một phiên mới, mã
+  thứ hai không bị tiêu.
+- Cookie phiên sang Host khác (localhost, [::1], IP máy ảo, tên site có và không có SSL thật): phiên bị
+  xoá, audit session.host_mismatch; 127.0.0.1. và :9999 chuẩn hoá về cùng tên (đúng). Tên site chữ hoa,
+  dấu chấm cuối, có cổng: 421; site trong thùng rác: 421.
+- View-as: ghi bị read_only_view (tạo token, setup/disable hai bước); thoát được.
+- Chính sách all: token và phiên cũ của user chưa bật 403 mfa_enroll_required; admin chưa bật không
+  view-as được; setup được (allowEnroll).
+- Token: user thường gọi route admin 403 (token_scope/forbidden); route chỉ phiên 403 token_forbidden
+  (users, tokens, settings/auth, plans, ai, backups/target, account/*, view-as); site của người khác 404;
+  thiếu phạm vi 403; CLI từ chối system cho user thường và quá trần ngày; đặt lại mật khẩu thu hồi mọi
+  token (token_revoked); xoá user rồi tạo lại cùng tên: token cũ token_invalid (bảng cascade);
+  overview?refresh=1 bằng token không chạy health (F3).
+- Header Authorization: bearer/BEARER, Bearer<TAB>, hai header, hai token một header, Basic, token
+  thiếu/sai ký tự, ?access_token=, X-Authorization: đều 401; Authorization rỗng + cookie admin: 401
+  (không rơi về phiên); token user + cookie admin: chạy bằng token user.
+- CSRF: Origin lạ, Origin null, Sec-Fetch-Site cross-site/same-site, cổng khác: 403 csrf (cả /login).
+- Mật khẩu hiện một lần của job (tạo DB rời bằng token K): token khác của cùng user, phiên admin: không
+  có db_secret và không làm mất; token K lấy được đúng một lần.
+- Bí mật: 0 lần trúng (TOTP base32/hex/byte thô, mã dự phòng có/không gạch, token, mật khẩu, cookie, khoá
+  hex/base64) trong tpan.db, -wal, -shm, journal (tpan và toàn máy), 34 file /var/log, bản sao tpan.db và
+  tar.gz của backup --all, output tpan mcp (list_sites, list_jobs, get_job), 16 câu trả lời API sau lần
+  đầu, bảng audit; đối chứng thấy đủ. /etc/tpan 0700, secret.key 0600 root 32 byte; tpan.db, backup
+  0600/0700 root; user ubuntu và user PHP của site không đọc được.
+- Chứng chỉ panel: tên trùng site (cả chữ hoa, site trong thùng rác) bị từ chối; site trùng tên panel
+  (API, CLI, chữ hoa) domain_is_panel; đua CLI đặt tên với API tạo site: hai chiều đều bị chặn (job_running
+  hoặc panel.namefree kiểm trước khi chạy); đổi tên hay --clear: SNI tên cũ về chứng chỉ tự ký ngay; SNI
+  chữ hoa nhận đúng; SNI site trên 8443 nhận tự ký; 443 theo IP từ chối bắt tay (unrecognized name).
+
+Chưa thử: gọi từ Mac qua IP máy ảo (mọi phép đều chạy trong máy ảo; IP nguồn khác lấy bằng 127.0.0.x và IP
+máy ảo); certbot renew sau khi xoá tên (e2e T50 đã làm phần renew).

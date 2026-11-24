@@ -100,6 +100,10 @@ func (s *Server) secure(h http.Handler) http.Handler {
 		hd.Set("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
 		hd.Set("X-Content-Type-Options", "nosniff")
 		hd.Set("Referrer-Policy", "no-referrer")
+		// M20: tên máy là tên một site thì 421 (host_m20.go).
+		if s.hostIsSite(w, r) {
+			return
+		}
 		// GET, HEAD, OPTIONS luôn qua; POST, DELETE từ origin khác thì bị chặn.
 		if err := s.auth.cop.Check(r); err != nil {
 			writeError(w, http.StatusForbidden, "csrf", i18n.T(
@@ -166,7 +170,8 @@ func (s *Server) authResolve(r *http.Request) (store.Session, account.Identity, 
 // thì xoá và coi như không có. Phiên còn sống thì cập nhật last_seen.
 func (s *Server) authCurrent(r *http.Request) (store.Session, bool, error) {
 	st := s.deps.Store
-	if st == nil {
+	// Có header Authorization thì chỉ xác thực bằng token (M20, mục 3.7).
+	if st == nil || hasAuthorization(r) {
 		return store.Session{}, false, nil
 	}
 	c, err := r.Cookie(authCookieName(r))
@@ -179,6 +184,10 @@ func (s *Server) authCurrent(r *http.Request) (store.Session, bool, error) {
 		return store.Session{}, false, nil
 	}
 	if err != nil {
+		return store.Session{}, false, err
+	}
+	// M20: phiên gắn tên máy (auth_m20.go).
+	if ok, err := s.sessionHost(r, &ss); err != nil || !ok {
 		return store.Session{}, false, err
 	}
 	now := s.now()
@@ -379,6 +388,19 @@ func (s *Server) authCheckPassword(w http.ResponseWriter, r *http.Request, name,
 // nhưng vẫn đi qua hash giả như tên không có thật.
 const authMaxName = 64
 
+// rememberPanelHost (M28 đợt 2, B1): tên admin dùng để vào panel thành tên
+// dành riêng (không site mới nào mang được tên đó). Gọi ở cả hai chỗ tạo phiên
+// sau lần đăng nhập đúng: handleLogin, và bước hai (handleLogin2FA) cho người
+// đã bật hai bước. Ghi lỗi thì chỉ ghi nhật ký.
+func rememberPanelHost(r *http.Request, st core.SettingsRW, role account.Role) {
+	if role != account.RoleAdmin {
+		return
+	}
+	if err := core.RecordPanelHost(r.Context(), st, r.Host); err != nil {
+		slog.Error("ghi tên vào panel", "err", err)
+	}
+}
+
 // handleLogin: POST /api/v1/login.
 // Thứ tự: chờ tới lượt của khoá nguồn (các lần thử của một nguồn chạy lần
 // lượt), nguồn đang khoá thì từ chối ngay (không tốn argon2), rồi mới so mật
@@ -388,6 +410,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	st := s.deps.Store
 	if st == nil {
 		authNoStore(w)
+		return
+	}
+	if refuseAuthorizationOnLogin(w, r) {
+		return
+	}
+	host, ok := loginHost(w, r)
+	if !ok {
 		return
 	}
 	var req LoginRequest
@@ -443,6 +472,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			"Account "+name+" is suspended. Contact the administrator."))
 		return
 	}
+	// M20 (điểm ghép 3.4.1): user đã bật hai bước thì sang bước hai, KHÔNG
+	// trừ bộ đếm sai của nguồn (rate.succeeded, names.take ở dưới): bước hai
+	// đúng mới trừ (auth_m20.go, loginSecondOK).
+	if s.loginChallenge(w, r, name, ip, host) {
+		return
+	}
+
 	now := s.now()
 	s.auth.rate.succeeded(name, now)
 	// Chỉ trừ phần lần sai của chính tên này; lần sai của tên khác từ cùng
@@ -465,18 +501,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		IP:          ip,
 		Created:     now,
 		UserName:    name,
+		Host:        host,
 	}
 	if err := st.CreateSession(r.Context(), ss); err != nil {
 		authInternal(w, "tạo phiên", err)
 		return
 	}
-	// M28 đợt 2, B1: tên admin dùng để vào panel thành tên dành riêng (không
-	// site mới nào mang được tên đó). Ghi lỗi thì chỉ ghi nhật ký.
-	if u.Role == account.RoleAdmin {
-		if err := core.RecordPanelHost(r.Context(), st, r.Host); err != nil {
-			slog.Error("ghi tên vào panel", "err", err)
-		}
-	}
+	rememberPanelHost(r, st, u.Role)
 	authSetCookie(w, r, token, 0)
 	s.audit(r, "login", name, "ok", "")
 	w.WriteHeader(http.StatusNoContent)
@@ -496,6 +527,11 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.audit(r.WithContext(engine.WithActor(r.Context(), ss.UserName)), "logout", ss.ID, "ok", "")
+	}
+	// M20: "Quay lại" ở màn bước hai cũng gọi đăng xuất: xoá cả phiếu chờ.
+	if err := s.dropChallenge(w, r); err != nil {
+		authInternal(w, "xoá phiếu bước hai", err)
+		return
 	}
 	authSetCookie(w, r, "", -1)
 	w.WriteHeader(http.StatusNoContent)
@@ -523,6 +559,10 @@ func (s *Server) writeSessionInfo(w http.ResponseWriter, r *http.Request) {
 		info.Expires = ss.LastSeen.Add(authIdle)
 		info.User = &id
 	}
+	if err := s.sessionInfoM20(r, &info, ss, id, ok); err != nil {
+		authInternal(w, "đọc trạng thái hai bước", err)
+		return
+	}
 	writeJSON(w, http.StatusOK, info)
 }
 
@@ -530,7 +570,10 @@ func (s *Server) writeSessionInfo(w http.ResponseWriter, r *http.Request) {
 // (sai thì đếm như đăng nhập sai, để phiên bị chiếm cũng không dò mật khẩu
 // được), rồi đổi và huỷ mọi phiên khác.
 func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	var req PasswordChange
 	if !authDecode(w, r, &req) {
 		return
@@ -539,6 +582,11 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "password_too_short", i18n.T(
 			"Mật khẩu mới phải có ít nhất "+strconv.Itoa(authMinPassword)+" ký tự.",
 			"The new password must be at least "+strconv.Itoa(authMinPassword)+" characters long."))
+		return
+	}
+	// M20: đã bật hai bước thì cần mã (thiếu thì từ chối trước argon2).
+	needCode, codeOK := s.mfaCodeNeeded(w, r, cur.UserName, req.Code)
+	if !codeOK {
 		return
 	}
 	src := sourceKey(r)
@@ -569,6 +617,11 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		s.authFailed(w, r, src, cur.UserName, "account.password")
 		return
 	}
+	if needCode {
+		if _, ok := s.checkSecondFactor(w, r, cur.UserName, req.Code, sfAccount("account.password")); !ok {
+			return
+		}
+	}
 	hash, err := s.auth.hash(req.New)
 	if errors.Is(err, store.ErrPasswordBusy) {
 		authWriteBusy(w)
@@ -583,13 +636,16 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "account.password", "", "ok", "")
-	w.WriteHeader(http.StatusNoContent)
+	s.writePasswordChanged(w, r, cur.UserName)
 }
 
 // handleSessions: GET /api/v1/account/sessions. Chỉ phiên của chính người
 // đăng nhập (M13). Phiên đã hết hạn mà chưa bị dọn thì không hiện.
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	list, err := s.deps.Store.SessionsOf(r.Context(), cur.UserName)
 	if err != nil {
 		authInternal(w, "đọc danh sách phiên", err)
@@ -611,7 +667,10 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 
 // handleSessionDelete: DELETE /api/v1/account/sessions/{id}.
 func (s *Server) handleSessionDelete(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	id := r.PathValue("id")
 	// Chỉ phiên của mình: phiên của người khác ra cùng 404 như id không có.
 	err := s.deps.Store.DeleteSessionOf(r.Context(), cur.UserName, id)

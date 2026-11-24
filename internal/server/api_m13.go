@@ -327,6 +327,11 @@ func (s *Server) handleUserCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// Tài khoản mới (mọi vai) sống qua `tpan admin passwd` của admin: đòi xác
+	// nhận lại (F1), sau phần kiểm rẻ để mã hai bước không bị đốt vì tên sai.
+	if !s.reauth(w, r, body.CurrentPassword, body.Code, action) {
+		return
+	}
 	a := s.apiAccounts()
 	u, generated, err := a.AddUser(r.Context(), core.UserInput{
 		Name: name, FullName: body.FullName, Email: email, Role: body.Role,
@@ -365,6 +370,18 @@ func (s *Server) handleUserEdit(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		ch.Email = &e
+	}
+	// Nâng một tài khoản lên admin: đòi xác nhận lại (F1). Đã là admin thì gửi
+	// lại role admin (giao diện gửi đủ form) không phải nâng quyền.
+	if body.Role != nil && *body.Role == account.RoleAdmin && !apiDryRun(r) {
+		u, found, err := s.deps.Store.User(r.Context(), name)
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		if found && u.Role != account.RoleAdmin && !s.reauth(w, r, body.CurrentPassword, body.Code, action) {
+			return
+		}
 	}
 	// M17: đổi gói làm đổi trần của site trong lồng thì đổi gói và đồng bộ lồng
 	// là một job (mọi thay đổi của thân áp ở móc before, trước job).
@@ -417,6 +434,10 @@ func (s *Server) handleUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	var body PasswordSet
 	if !apiReadOptionalJSON(w, r, &body) {
+		return
+	}
+	// Biết mật khẩu của một tài khoản là có tài khoản đó: đòi xác nhận lại (F1).
+	if !s.reauth(w, r, body.CurrentPassword, body.Code, "user.passwd") {
 		return
 	}
 	generated, err := s.apiAccounts().SetPassword(r.Context(), name, body.Password)
@@ -484,7 +505,10 @@ func (s *Server) handleViewAs(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, userNotFound(name))
 		return
 	}
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	if !s.auditDone(w, r, "session.view_as", name, s.deps.Store.SetViewAs(r.Context(), cur.TokenSHA256, name)) {
 		return
 	}
@@ -494,7 +518,10 @@ func (s *Server) handleViewAs(w http.ResponseWriter, r *http.Request) {
 // handleViewAsExit thoát "xem như" (chạy được trong phiên chỉ đọc, routes.go).
 // Phiên không ở chế độ xem như thì không làm gì.
 func (s *Server) handleViewAsExit(w http.ResponseWriter, r *http.Request) {
-	cur, _ := authSessionOf(r)
+	cur, ok := sessionOnly(w, r)
+	if !ok {
+		return
+	}
 	if cur.ViewAs != "" {
 		if !s.auditDone(w, r, "session.view_as_exit", cur.ViewAs, s.deps.Store.SetViewAs(r.Context(), cur.TokenSHA256, "")) {
 			return

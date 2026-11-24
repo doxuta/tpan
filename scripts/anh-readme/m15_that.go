@@ -9,7 +9,7 @@ package main
 // Vì sao cần: e2e của M15 (scripts/e2e-m15.sh) gọi API bằng curl, nên nó không
 // chạy dòng mã nào của giao diện. Phần khó của giao diện là sống qua lần panel
 // khởi động lại: hỏi lại máy chủ trong lúc mất kết nối, không văng về trang
-// đăng nhập, rồi báo "Đã lên <bản>". Chỉ trình duyệt thật mới kiểm được.
+// đăng nhập, rồi báo "Đã cập nhật lên <bản>". Chỉ trình duyệt thật mới kiểm được.
 //
 // Máy ảo phải được chuẩn bị trước: panel đang chạy bản A, setting
 // update.self_url trỏ tới một nguồn tải có bản B khác A (máy chủ tải trên
@@ -124,11 +124,11 @@ func liveM15(c *cdp, base, out string) error {
 		fmt.Println("(lượt chạy xong trước khi kịp chụp dòng \"Đang cập nhật TPAN…\")")
 	}
 
-	// 3. Panel lên lại: "Đã lên <bản>", trang vẫn ở /settings.
-	if err := c.waitTrue(blockHas("Đã lên "), 120*time.Second); err != nil {
-		return fmt.Errorf("chờ dòng \"Đã lên\": %w (khối đang ghi: %s)", err, text(block+`.innerText`))
+	// 3. Panel lên lại: "Đã cập nhật lên <bản>", trang vẫn ở /settings.
+	if err := c.waitTrue(blockHas("Đã cập nhật lên "), 120*time.Second); err != nil {
+		return fmt.Errorf("chờ dòng \"Đã cập nhật lên\": %w (khối đang ghi: %s)", err, text(block+`.innerText`))
 	}
-	fmt.Printf("từ lúc bấm tới lúc khối báo \"Đã lên\": %.1f giây\n", time.Since(start).Seconds())
+	fmt.Printf("từ lúc bấm tới lúc khối báo \"Đã cập nhật lên\": %.1f giây\n", time.Since(start).Seconds())
 	if err := report("cập nhật"); err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func liveM15(c *cdp, base, out string) error {
 		return fmt.Errorf("sau khi khối báo đã lên, /api/v1/session vẫn trả bản %q (lúc đầu %q)", to, from)
 	}
 	fmt.Println("bản đang chạy sau khi cập nhật:", to, "(phiên đăng nhập cũ còn dùng được: /api/v1/session trả lời có version)")
-	if err := c.waitTrue(blockHas("Đã lên "+to), 5*time.Second); err != nil {
+	if err := c.waitTrue(blockHas("Đã cập nhật lên "+to), 5*time.Second); err != nil {
 		return fmt.Errorf("khối không ghi đúng bản mới %s: %s", to, text(block+`.innerText`))
 	}
 	if err := shot("M15-that-3-da-len.png"); err != nil {

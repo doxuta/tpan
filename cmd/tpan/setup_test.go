@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"math/big"
 	"net"
 	"reflect"
 	"strings"
@@ -121,13 +127,15 @@ func TestSetupLanDauVaChayLai(t *testing.T) {
 		t.Fatalf("file unit:\n%s", unit)
 	}
 
-	// Chứng chỉ: P-256, hạn 10 năm, SAN có hostname và IP (bỏ link-local).
+	// Chứng chỉ: P-256, SAN có hostname và IP (bỏ link-local).
 	block, _ := pem.Decode([]byte(snap["/etc/tpan/tls/cert.pem"].Data))
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cert.PublicKeyAlgorithm != x509.ECDSA || cert.NotAfter.Year() != 2036 {
+	// M20: hạn không quá 825 ngày (trần của Apple cho chứng chỉ máy chủ).
+	if cert.PublicKeyAlgorithm != x509.ECDSA || cert.NotAfter.Sub(cert.NotBefore) > 825*24*time.Hour ||
+		!cert.NotAfter.Equal(cert.NotBefore.Add(825*24*time.Hour)) {
 		t.Fatalf("chứng chỉ: %v, hết hạn %v", cert.PublicKeyAlgorithm, cert.NotAfter)
 	}
 	if !reflect.DeepEqual(cert.DNSNames, []string{"may-thu", "localhost"}) || len(cert.IPAddresses) != 2 {
@@ -307,5 +315,35 @@ func TestServeTuChoiHTTPNgoaiLoopback(t *testing.T) {
 	}
 	if code, _, errb := c.run("serve", "--tls-cert", "/x.pem"); code != 1 || !strings.Contains(errb, "--tls-key") {
 		t.Fatalf("thiếu --tls-key: mã %d %s", code, errb)
+	}
+}
+
+// M20: máy nâng từ bản cũ giữ chứng chỉ tự ký 10 năm đang có (không bắt ai
+// chấp nhận lại cảnh báo); chỉ chứng chỉ mới sinh mới có hạn 825 ngày.
+func TestSetupGiuChungChiCu(t *testing.T) {
+	fakeMachine(t)
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := setupNow()
+	tpl := &x509.Certificate{SerialNumber: big.NewInt(42), Subject: pkix.Name{CommonName: "tpan"},
+		NotBefore: now.AddDate(-1, 0, 0), NotAfter: now.AddDate(9, 0, 0)}
+	der, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyDER, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER})
+	f := system.NewFake()
+	f.SetFile(setupCertPath, certPEM, 0o600, system.Root)
+	f.SetFile(setupKeyPath, keyPEM, 0o600, system.Root)
+	gotCert, gotKey, err := setupCert(f)
+	if err != nil || !bytes.Equal(gotCert, certPEM) || !bytes.Equal(gotKey, keyPEM) {
+		t.Fatalf("chứng chỉ đang có bị thay: %v", err)
 	}
 }

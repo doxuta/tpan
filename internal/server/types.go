@@ -141,6 +141,9 @@ type Deps struct {
 	Brain interface{ Status() bridge.Status }
 	// BrainMode là "off" | "bridge" | "demo" (BrainStatus.Mode); rỗng coi là off.
 	BrainMode string
+	// MFAKeyFile (M20) là file khoá niêm phong bí mật hai bước; rỗng là
+	// mfa.KeyFile (/etc/tpan/secret.key). Đọc, ghi qua Sys.
+	MFAKeyFile string
 }
 
 // ErrorBody là dạng lỗi duy nhất của API (mục 9).
@@ -177,11 +180,18 @@ type SessionInfo struct {
 	// User là người đang đăng nhập (M13): tên, vai, và ViewedBy khi admin
 	// đang "xem như" user này (phiên chỉ đọc). nil khi chưa đăng nhập.
 	User *account.Identity `json:"user,omitempty"`
+	// MFAPending (M20): chưa có phiên nhưng có phiếu chờ bước hai còn hạn.
+	MFAPending bool `json:"mfa_pending,omitempty"`
+	// MFAEnrollRequired (M20): chính sách bắt user thật của phiên bật hai bước
+	// mà họ chưa bật; mọi route trừ trang bật trả 403 mfa_enroll_required.
+	MFAEnrollRequired bool `json:"mfa_enroll_required,omitempty"`
 }
 
 type PasswordChange struct {
 	Current string `json:"current"`
 	New     string `json:"new"`
+	// Code (M20): bắt buộc khi user đã bật hai bước.
+	Code string `json:"code,omitempty"`
 }
 
 // SessionRow là một phiên đăng nhập đang sống. ID là một mã ngắn để xoá

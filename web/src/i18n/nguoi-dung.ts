@@ -106,6 +106,18 @@ const vi = {
   pwDesc: "Mọi phiên đang đăng nhập của user này bị huỷ.",
   pwConfirm: "Đổi mật khẩu",
 
+  // Hỏi lại admin đang thao tác (F1 của M20)
+  reauthPassword: "Mật khẩu của bạn",
+  reauthCode: "Mã hai bước của bạn",
+  reauthCodeHint: "Mã 6 số trong app, hoặc một mã dự phòng.",
+  reauthPasswordMissing: "Gõ mật khẩu của bạn (admin đang đăng nhập) vào ô Mật khẩu của bạn.",
+  reauthCodeMissing: "Gõ mã 6 số trong app hai bước của bạn (hoặc một mã dự phòng) vào ô mã.",
+  reauthWhyCreate: "Để một phiên bị chiếm không tạo được tài khoản cửa sau, tpan hỏi lại mật khẩu của chính bạn trước khi tạo user.",
+  reauthWhyAdmin: "Để một phiên bị chiếm không tự nâng được tài khoản cửa sau lên quản trị, tpan hỏi lại mật khẩu của chính bạn trước khi cấp vai này.",
+  reauthWhyPassword: "Để một phiên bị chiếm không chiếm được tài khoản người khác bằng cách đặt lại mật khẩu, tpan hỏi lại mật khẩu của chính bạn.",
+  errReauthRequired: "Máy chủ cần mật khẩu của chính bạn cho việc này. Gõ vào ô Mật khẩu của bạn rồi lưu lại.",
+  errLoginLocked: (wait: string) => `Gõ sai mật khẩu quá nhiều lần nên địa chỉ IP này bị khoá khoảng ${wait}. Hết lúc đó thì thử lại.`,
+
   // Xoá
   delTitle: (name: string) => `Xoá user ${name}?`,
   delDesc: "Xoá xong không lấy lại được tài khoản. Job và nhật ký cũ của user vẫn giữ, kèm tên.",
@@ -235,6 +247,17 @@ export const strings = defineStrings(vi, {
   pwTitle: (name) => `Change the password of ${name}`,
   pwDesc: "Every open session of this user is ended.",
   pwConfirm: "Change password",
+
+  reauthPassword: "Your password",
+  reauthCode: "Your two-step code",
+  reauthCodeHint: "The 6-digit code in the app, or a recovery code.",
+  reauthPasswordMissing: "Type your own password (the admin who is signed in) in the Your password box.",
+  reauthCodeMissing: "Type the 6-digit code from your two-step app (or a recovery code) in the code box.",
+  reauthWhyCreate: "So a hijacked session cannot plant a back-door account, tpan asks for your own password again before it creates a user.",
+  reauthWhyAdmin: "So a hijacked session cannot promote a back-door account to admin, tpan asks for your own password again before it grants this role.",
+  reauthWhyPassword: "So a hijacked session cannot take over someone else's account by resetting its password, tpan asks for your own password again.",
+  errReauthRequired: "The server needs your own password for this. Type it in the Your password box and save again.",
+  errLoginLocked: (wait) => `Too many wrong passwords, so this IP address is locked for about ${wait}. Try again after that.`,
 
   delTitle: (name) => `Delete user ${name}?`,
   delDesc: "The account cannot be recovered after this. The user's old jobs and log stay, with the name.",

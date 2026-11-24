@@ -21,6 +21,8 @@ export type Tool = {
   count?: "sites" | "dbs" | "incidents";
   /** Đích khi người xem là user thường (Bảng điều khiển của họ nằm ở /dashboard). */
   userPath?: ScreenPath;
+  /** Neo trong màn đích ("#token"). M20: hai ô cùng trỏ /account. ToolTile (cong-cu/index.tsx) nối neo này vào địa chỉ. */
+  hash?: `#${string}`;
 };
 
 export type ToolGroup = { group: keyof S["groups"]; tools: Tool[] };
@@ -80,6 +82,9 @@ export const toolGroups: ToolGroup[] = [
   {
     group: "account",
     tools: [
+      // M20: hai bước và token API của chính mình, cho mọi vai.
+      { path: "/account", icon: "smartphone", key: "twoStep", hash: "#hai-buoc" },
+      { path: "/account", icon: "key", key: "apiToken", hash: "#token" },
       { path: "/settings", icon: "sliders", key: "settings" },
       { path: "/users", icon: "users", key: "users" },
       { path: "/packages", icon: "package", key: "packages" },

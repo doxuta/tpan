@@ -648,6 +648,8 @@ func TestSiteAddPlanOrder(t *testing.T) {
 			}
 			l := site.LayoutOf(mustDomain(t, dom))
 			want := append([]string{
+				// M20: bước chỉ kiểm tên panel dưới khoá, chỉ ở site mới.
+				"site.notpanel:shop.example.com",
 				"site.user:" + l.User,
 				"dir:/var/www/shop.example.com",
 				"dir:/var/www/shop.example.com/public",
@@ -867,7 +869,8 @@ func TestSiteAddExecuteAndRerun(t *testing.T) {
 				t.Error("xem trước ghi Store")
 			}
 			for _, sp := range pv.Steps {
-				if sp.Done {
+				// site.notpanel chỉ kiểm: không trùng tên panel thì luôn Done.
+				if sp.Done && sp.Info.ID != "site.notpanel:shop.example.com" {
 					t.Errorf("máy sạch mà bước %s đã Done", sp.Info.ID)
 				}
 			}
