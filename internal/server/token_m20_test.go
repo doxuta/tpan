@@ -414,6 +414,11 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"POST /api/v1/databases/{domain}/unsuspend", "GET /api/v1/collations", "POST /api/v1/dbs", "POST /api/v1/dbs/{name}",
 		"POST /api/v1/dbs/{name}/password", "POST /api/v1/dbs/{name}/suspend", "POST /api/v1/dbs/{name}/unsuspend",
 		"POST /api/v1/dbs/{name}/restore", "DELETE /api/v1/dbs/{name}", "DELETE /api/v1/trash/dbs/{name}")
+	// M19: tên phụ và luật chuyển hướng là thao tác trên site, cùng nhóm sites.
+	add("sites", "GET /api/v1/sites/{domain}/names", "POST /api/v1/sites/{domain}/names",
+		"POST /api/v1/sites/{domain}/names/{name}/mode", "DELETE /api/v1/sites/{domain}/names/{name}",
+		"GET /api/v1/sites/{domain}/redirects", "POST /api/v1/sites/{domain}/redirects",
+		"DELETE /api/v1/sites/{domain}/redirects/{id}", "GET /api/v1/domains")
 	add("backups", "GET /api/v1/backups", "POST /api/v1/sites/{domain}/backups", "POST /api/v1/backups/{id}/restore",
 		"POST /api/v1/backups/settings", "POST /api/v1/backups/{id}/push", "POST /api/v1/backups/{id}/pull", "GET /api/v1/backups/remote")
 	add("cron", "GET /api/v1/cron")
