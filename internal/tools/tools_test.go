@@ -71,6 +71,9 @@ func TestCatalogRedactsEverything(t *testing.T) {
 	do("site_health", `{"domain":"`+a+`"}`, true)
 	do("site_health", `{"domain":"`+u+`"}`, true)
 	do("site_health", `{"domain":"nothere.example.org"}`, false)
+	do("list_site_names", `{"domain":"`+a+`"}`, true)
+	do("list_site_redirects", `{"domain":"`+a+`"}`, true)
+	do("list_site_names", `{"domain":"nothere.example.org"}`, false)
 	do("stack_status", `{}`, true)
 	do("machine", `{}`, true)
 	for _, l := range []string{"access", "error", "php-error"} {
@@ -154,7 +157,7 @@ func TestCatalogRedactsEverything(t *testing.T) {
 // readOnlyCmd: lệnh chỉ hỏi trạng thái máy.
 func readOnlyCmd(c system.Cmd) bool {
 	switch c.Name {
-	case "tail", "getent", "test", "dpkg-query", "a2query", "ss":
+	case "tail", "getent", "test", "dpkg-query", "a2query", "ss", "ip":
 		return true
 	case "mariadb":
 		return strings.HasPrefix(strings.TrimSpace(string(c.Stdin)), "SELECT")
@@ -221,7 +224,7 @@ func TestPromptInjectionInLog(t *testing.T) {
 // 3. Danh mục đóng.
 func TestCatalogClosed(t *testing.T) {
 	want := []string{
-		"apply_plan", "current_view", "get_job", "get_plan", "list_backups", "list_jobs", "list_plans", "list_sites", "machine", "managed_file",
+		"apply_plan", "current_view", "get_job", "get_plan", "list_backups", "list_jobs", "list_plans", "list_site_names", "list_site_redirects", "list_sites", "machine", "managed_file",
 		"propose_backup_create", "propose_backup_restore", "propose_health_fix", "propose_site_add", "propose_site_remove", "propose_site_repair", "propose_ssl_issue", "propose_stack_repair",
 		"site_health", "stack_status", "tail_log",
 	}

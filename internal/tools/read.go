@@ -157,6 +157,53 @@ func siteHealth(ctx context.Context, c *call, _ domainIn, d validate.Domain) (an
 	return siteHealthOut{Domain: d.String(), Installed: h.Installed, Web: h.Config.Web, Stages: byStage(h.Results)}, nil
 }
 
+// ---------------------------------------------------------------- tên phụ, chuyển hướng (M19)
+
+// list_site_names và list_site_redirects chỉ đọc dữ liệu của core (NameList,
+// RedirectList), cùng phạm vi với site_health: phiên MCP chạy bằng quyền của
+// chủ máy nên thấy mọi site trong store; site không có thì lỗi site_not_found.
+// Dữ liệu là tên miền và đường dẫn đã qua validate (chỉ ký tự cho phép), không
+// phải chữ do người lạ viết, nên không bọc untrusted.
+
+// list_site_names dùng core.NameList, nó tra DNS mỗi tên (tối đa 2 giây, tối đa
+// 25 tên): cột dns là tín hiệu chính để AI chẩn đoán "tên phụ không vào được
+// site", nên chấp nhận chờ lâu hơn một lần đọc store.
+func listSiteNames(ctx context.Context, c *call, _ domainIn, d validate.Domain) (any, error) {
+	views, err := c.s.sites().NameList(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	learn := make([]validate.Domain, 0, len(views))
+	for _, v := range views {
+		// Tên phụ cũng là tên thật của khách: cho bộ che biết để đổi bí danh.
+		if n, err := validate.ParseDomain(v.Name); err == nil {
+			learn = append(learn, n)
+		}
+	}
+	c.s.st.red.Learn(learn, "")
+	return views, nil
+}
+
+type redirectRow struct {
+	ID        int64  `json:"id"`
+	Source    string `json:"source"`
+	Target    string `json:"target"`
+	Code      int    `json:"code"`
+	KeepQuery bool   `json:"keep_query"`
+}
+
+func listSiteRedirects(ctx context.Context, c *call, _ domainIn, d validate.Domain) (any, error) {
+	rules, err := c.s.sites().RedirectList(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]redirectRow, len(rules))
+	for i, r := range rules {
+		out[i] = redirectRow{ID: r.ID, Source: r.Source.String(), Target: r.Target.String(), Code: r.Code, KeepQuery: r.KeepQuery}
+	}
+	return out, nil
+}
+
 // ---------------------------------------------------------------- stack, máy
 
 type stackOut struct {
