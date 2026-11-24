@@ -85,6 +85,21 @@ func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, instal
 		add(st.Domain.String(), cs...)
 	}
 
+	// D10 của soát cuối đợt 2: trần kết nối của user DB rời đang chạy (user của
+	// site đã nằm trong bộ phép kiểm của site). Gắn vào máy (""), như các phép
+	// chỉ admin xem. Stack chưa cài thì chưa có MariaDB để hỏi.
+	if installed {
+		dbs, err := r.Store.StandaloneDBs(ctx, "")
+		if err != nil {
+			return nil, false, fmt.Errorf("đọc danh sách DB rời: %w", err)
+		}
+		for _, d := range dbs {
+			if d.Status == account.DBActive {
+				add("", checks.DBUserLimit(d.Name))
+			}
+		}
+	}
+
 	files, err := r.Store.ManagedFiles(ctx)
 	if err != nil {
 		return nil, false, fmt.Errorf("đọc danh sách file quản lý: %w", err)

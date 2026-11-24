@@ -42,6 +42,7 @@ type siteSim struct {
 	users     map[string]string // tên → home
 	dbs       map[string]bool
 	dbUsers   map[string]bool
+	dbLimit   map[string]int    // MAX_USER_CONNECTIONS của user DB (0: không trần)
 	installed map[string]bool   // WordPress đã cài, theo user của site
 	permalink map[string]string // theo user của site
 	sockets   map[string]bool
@@ -72,6 +73,10 @@ var (
 	sqlDropUsr   = regexp.MustCompile(`DROP USER IF EXISTS '([a-z0-9_]+)'`)
 	sqlLockState = regexp.MustCompile(`FROM mysql\.global_priv WHERE User='([a-z0-9_]+)'`)
 	sqlLock      = regexp.MustCompile(`ALTER USER '([a-z0-9_]+)'@'localhost' ACCOUNT (LOCK|UNLOCK)`)
+	// M28 đợt 2: trần kết nối của user DB.
+	sqlLimitState = regexp.MustCompile(`FROM mysql\.user WHERE User='([a-z0-9_]+)'`)
+	sqlLimit      = regexp.MustCompile(`ALTER USER '([a-z0-9_]+)'@'localhost' WITH MAX_USER_CONNECTIONS ([0-9]+)`)
+	sqlCreateLim  = regexp.MustCompile(`IDENTIFIED BY '[A-Za-z0-9]+' WITH MAX_USER_CONNECTIONS ([0-9]+)`)
 )
 
 func argAfter(args []string, flag string) string {
@@ -97,6 +102,7 @@ func newSiteSim(t *testing.T) *siteSim {
 		users:      map[string]string{},
 		dbs:        map[string]bool{},
 		dbUsers:    map[string]bool{},
+		dbLimit:    map[string]int{},
 		installed:  map[string]bool{},
 		permalink:  map[string]string{},
 		sockets:    map[string]bool{},
@@ -171,40 +177,7 @@ func newSiteSim(t *testing.T) *siteSim {
 		return ok
 	})
 
-	m.Handle([]string{"mariadb", "-N", "-B"}, func(c system.Cmd) system.Result {
-		m.mu.Lock()
-		defer m.mu.Unlock()
-		sql := string(c.Stdin)
-		b := func(v bool) int {
-			if v {
-				return 1
-			}
-			return 0
-		}
-		if g := sqlStateRE.FindStringSubmatch(sql); g != nil {
-			return exit(0, fmt.Sprintf("%d\t%d\n", b(m.dbs[g[1]]), b(m.dbUsers[g[1]])), "")
-		}
-		if g := sqlLockState.FindStringSubmatch(sql); g != nil {
-			return exit(0, fmt.Sprintf("%d\t%d\n", b(m.dbUsers[g[1]]), b(m.dbLocked[g[1]])), "")
-		}
-		for _, g := range sqlLock.FindAllStringSubmatch(sql, -1) {
-			m.dbLocked[g[1]] = g[2] == "LOCK"
-		}
-		for _, g := range sqlCreateDB.FindAllStringSubmatch(sql, -1) {
-			m.dbs[g[1]] = true
-		}
-		for _, g := range sqlCreateUsr.FindAllStringSubmatch(sql, -1) {
-			m.dbUsers[g[1]] = true
-		}
-		for _, g := range sqlDropUsr.FindAllStringSubmatch(sql, -1) {
-			delete(m.dbUsers, g[1])
-			delete(m.dbLocked, g[1])
-		}
-		for _, g := range sqlDropDB.FindAllStringSubmatch(sql, -1) {
-			delete(m.dbs, g[1])
-		}
-		return ok
-	})
+	m.Handle([]string{"mariadb", "-N", "-B"}, func(c system.Cmd) system.Result { return m.sql(string(c.Stdin)) })
 
 	m.Handle([]string{"curl"}, func(c system.Cmd) system.Result {
 		if r := argAfter(c.Args, "--resolve"); r != "" { // checks.HTTPSite, siteGone
@@ -361,6 +334,67 @@ func (m *siteSim) wpConstant(cfg, op, name string, rest []string) system.Result 
 }
 
 // served: domain có link vhost đang bật (Nginx hoặc Apache), hoặc serveAll.
+// sql là MariaDB giả của siteSim: trạng thái DB và user, khoá user (M6, M13),
+// và trần kết nối của user (M28 đợt 2: CREATE USER ... WITH
+// MAX_USER_CONNECTIONS, ALTER USER ... WITH, đọc qua mysql.user).
+func (m *siteSim) sql(sql string) system.Result {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	b := func(v bool) int {
+		if v {
+			return 1
+		}
+		return 0
+	}
+	out := func(s string) system.Result { return system.Result{Stdout: s} }
+	// checks.DBUserLimit: dòng "limit<TAB>n" khi user có, rồi "max<TAB>151".
+	if strings.HasPrefix(sql, "SELECT 'limit'") {
+		g := sqlLimitState.FindStringSubmatch(sql)
+		s := ""
+		if g != nil && m.dbUsers[g[1]] {
+			s = fmt.Sprintf("limit\t%d\n", m.dbLimit[g[1]])
+		}
+		return out(s + "max\t151\n")
+	}
+	if g := sqlLimitState.FindStringSubmatch(sql); g != nil {
+		return out(fmt.Sprintf("%d\t%d\n", b(m.dbUsers[g[1]]), m.dbLimit[g[1]]))
+	}
+	if g := sqlStateRE.FindStringSubmatch(sql); g != nil {
+		return out(fmt.Sprintf("%d\t%d\n", b(m.dbs[g[1]]), b(m.dbUsers[g[1]])))
+	}
+	if g := sqlLockState.FindStringSubmatch(sql); g != nil {
+		return out(fmt.Sprintf("%d\t%d\n", b(m.dbUsers[g[1]]), b(m.dbLocked[g[1]])))
+	}
+	for _, g := range sqlLock.FindAllStringSubmatch(sql, -1) {
+		m.dbLocked[g[1]] = g[2] == "LOCK"
+	}
+	for _, g := range sqlLimit.FindAllStringSubmatch(sql, -1) {
+		if !m.dbUsers[g[1]] {
+			return system.Result{ExitCode: 1, Stderr: "ERROR 1396 (HY000): Operation ALTER USER failed\n"}
+		}
+		m.dbLimit[g[1]], _ = strconv.Atoi(g[2])
+	}
+	for _, g := range sqlCreateDB.FindAllStringSubmatch(sql, -1) {
+		m.dbs[g[1]] = true
+	}
+	for _, g := range sqlCreateUsr.FindAllStringSubmatch(sql, -1) {
+		m.dbUsers[g[1]] = true
+		m.dbLimit[g[1]] = 0
+		if l := sqlCreateLim.FindStringSubmatch(sql); l != nil {
+			m.dbLimit[g[1]], _ = strconv.Atoi(l[1])
+		}
+	}
+	for _, g := range sqlDropUsr.FindAllStringSubmatch(sql, -1) {
+		delete(m.dbUsers, g[1])
+		delete(m.dbLocked, g[1])
+		delete(m.dbLimit, g[1])
+	}
+	for _, g := range sqlDropDB.FindAllStringSubmatch(sql, -1) {
+		delete(m.dbs, g[1])
+	}
+	return system.Result{}
+}
+
 func (m *siteSim) served(dom string) bool {
 	m.mu.Lock()
 	all := m.serveAll

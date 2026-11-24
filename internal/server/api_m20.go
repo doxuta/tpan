@@ -86,16 +86,33 @@ func (s *Server) tokenMaxDays(ctx context.Context) (int, error) {
 // accountPassword kiểm mật khẩu của user cho thao tác đòi mật khẩu:
 // authLocked → authCheckPassword → (sai) authFailed. true nghĩa là đúng.
 func (s *Server) accountPassword(w http.ResponseWriter, r *http.Request, user, pw, action string) bool {
-	ip := clientIP(r)
-	if s.authLocked(w, r, ip) {
+	// Cùng đường của đổi mật khẩu (M28 đợt 2): khoá nguồn, cổng argon2, nhịp
+	// thử theo nguồn, đếm lần sai theo nguồn và tên.
+	src := sourceKey(r)
+	if src == authLookupBusy {
+		authWriteBusy(w)
+		return false
+	}
+	leave, ok := s.auth.gates.enter(r.Context(), src)
+	if !ok {
+		authWriteBusy(w)
+		return false
+	}
+	defer leave()
+	if s.authLocked(w, r, src) {
+		return false
+	}
+	if until, ok := s.auth.rate.allow(src, "", s.now()); !ok {
+		authWriteRate(w, until.Sub(s.now()))
 		return false
 	}
 	ok, done := s.authCheckPassword(w, r, user, pw)
 	if done {
 		return false
 	}
+	s.auth.rate.compared(src, s.now())
 	if !ok {
-		s.authFailed(w, r, ip, action)
+		s.authFailed(w, r, src, user, action)
 		return false
 	}
 	return true

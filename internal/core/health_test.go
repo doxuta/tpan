@@ -138,11 +138,13 @@ func newFixEnv(t *testing.T, web WebServer, doms ...string) *fixEnv {
 				b = 1
 			}
 			return system.Result{Stdout: fmt.Sprintf("%d\t%d\n", 1, b)}
-		case strings.HasPrefix(sql, fixAlter):
+		case strings.HasPrefix(sql, fixAlter) && strings.Contains(sql, " ACCOUNT "):
 			e.locked[name(fixAlter)] = strings.Contains(sql, "ACCOUNT LOCK;")
 			return system.Result{}
 		}
-		return system.Result{ExitCode: 1, Stderr: "fixEnv: câu SQL lạ\n"}
+		// M28 đợt 2: trần kết nối (checks.DBUserLimit, steps.DBUserLimit) do
+		// MariaDB giả của siteSim trả lời.
+		return m.sql(sql)
 	})
 	// wp db query dưới user bị khoá: lỗi 4151 như MariaDB thật.
 	m.Handle([]string{"wp", "db", "query"}, func(c system.Cmd) system.Result {

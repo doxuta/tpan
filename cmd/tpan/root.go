@@ -121,7 +121,7 @@ func serveCmd(e *env) *cobra.Command {
 				// Mật khẩu demo mới mỗi lần chạy, in ra terminal: chế độ demo
 				// vẫn bắt đăng nhập để giao diện đi đúng luồng như máy thật.
 				pw := store.GeneratePassword()
-				hash, err := store.HashPassword(pw)
+				hash, err := store.HashPasswordWait(pw)
 				if err != nil {
 					return err
 				}
@@ -133,7 +133,7 @@ func serveCmd(e *env) *cobra.Command {
 				// chạy, để xem giao diện của khách hosting.
 				for _, u := range demo.Users() {
 					upw := store.GeneratePassword()
-					h, err := store.HashPassword(upw)
+					h, err := store.HashPasswordWait(upw)
 					if err != nil {
 						return err
 					}

@@ -779,7 +779,7 @@ func (c *Cages) PrepareEditPackage(ctx context.Context, p account.Package) (*Pla
 		return nil, err
 	}
 	plan := c.syncPlan(cfg, name, sites, p.Limits(), syncTitle("Áp trần mới của gói "+name, "Apply the new limits of package "+name, len(sites), p))
-	pl := newPlanned(c.Sys, c.Journal, plan, nil)
+	pl := adminOwned(newPlanned(c.Sys, c.Journal, plan, nil)) // P7: Target là tên gói hay tên user
 	pl.before = func(ctx context.Context) error {
 		return (&Accounts{Sys: c.Sys, Store: c.Accounts, Now: c.Now}).EditPackage(ctx, p)
 	}
@@ -836,7 +836,7 @@ func (c *Cages) PrepareUserEdit(ctx context.Context, name string, ch UserChange,
 	}
 	plan := c.syncPlan(cfg, u.Name, sites, next.Limits(),
 		syncTitle("Áp trần của gói "+pkg+" (user "+u.Name+")", "Apply the limits of package "+pkg+" (user "+u.Name+")", len(sites), next))
-	pl := newPlanned(c.Sys, c.Journal, plan, nil)
+	pl := adminOwned(newPlanned(c.Sys, c.Journal, plan, nil)) // P7: Target là tên gói hay tên user
 	pl.before = func(ctx context.Context) error {
 		_, err := (&Accounts{Sys: c.Sys, Store: c.Accounts, Now: c.Now}).EditUser(ctx, name, ch, by)
 		return err

@@ -40,7 +40,9 @@ func TestNoShell(t *testing.T) {
 			// .claude: đồ nghề của agent, không nằm trong git (.git/info/exclude).
 			// Khi chạy nhiều mốc, worktree của mốc khác (hoặc bản chép của nó)
 			// nằm trong .claude/worktrees và mang cả cây mã của mốc đó.
-			case ".git", "node_modules", "vendor", ".claude":
+			// tmp-phien: thư mục file tạm của phiên (cũng ngoài git), có lúc
+			// chứa bản chép cả repo để build sạch.
+			case ".git", "node_modules", "vendor", ".claude", "tmp-phien":
 				return filepath.SkipDir
 			}
 			return nil

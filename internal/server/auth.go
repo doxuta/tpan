@@ -5,6 +5,7 @@ package server
 // truy vấn nằm ở internal/store/auth.go.
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -60,10 +61,23 @@ type authState struct {
 	// cop chặn request có thay đổi đến từ trang khác (CSRF), dựa vào header
 	// Sec-Fetch-Site và Origin mà trình duyệt tự gửi (Go 1.25+).
 	cop *http.CrossOriginProtection
+	// gates: các lần thử của một khoá nguồn chạy lần lượt (auth_m28.go).
+	gates authGates
+	// names: phần lần sai của từng tên trong mỗi khoá nguồn (auth_m28.go).
+	names *authNames
+	// rate: giới hạn số lần so mật khẩu mỗi phút (auth_m28.go, D6).
+	rate authRate
+	// verify và hash là store.VerifyPassword, store.HashPassword; test thay để
+	// đếm số lần so mật khẩu hay giả lúc argon2 bận.
+	verify func(hash, pw string) (bool, error)
+	hash   func(pw string) (string, error)
 }
 
 func newAuthState(*Server) *authState {
-	return &authState{cop: http.NewCrossOriginProtection()}
+	return &authState{
+		cop: http.NewCrossOriginProtection(), names: newAuthNames(),
+		verify: store.VerifyPassword, hash: store.HashPassword,
+	}
 }
 
 // authCtxKey là khoá context giữ phiên của request đã qua guard (routes.go).
@@ -96,6 +110,10 @@ func (s *Server) secure(h http.Handler) http.Handler {
 				"Yêu cầu đến từ một trang khác nên bị chặn (chống CSRF). Làm lại từ chính giao diện tpan.",
 				"The request came from another site and was blocked (CSRF protection). Use the tpan interface itself."))
 			return
+		}
+		// sourceKey (auth_m28.go) cần System để tra UID của kết nối loopback.
+		if s.deps.Sys != nil {
+			r = r.WithContext(context.WithValue(r.Context(), authSysKey{}, s.deps.Sys))
 		}
 		h.ServeHTTP(w, r)
 	})
@@ -253,42 +271,54 @@ func authDecode(w http.ResponseWriter, r *http.Request, v any) bool {
 	return true
 }
 
-// authLocked trả 423 nếu IP đang bị khoá; true nghĩa là đã trả lời.
-func (s *Server) authLocked(w http.ResponseWriter, r *http.Request, ip string) bool {
-	until, locked, err := s.deps.Store.LoginLockedUntil(r.Context(), ip, s.now())
+// authLocked trả 423 nếu khoá nguồn src đang bị khoá; true nghĩa là đã trả
+// lời. Phải gọi trong lượt của src (s.auth.gates): kiểm ngoài lượt thì các
+// lượt đang chờ đã qua kiểm, lọt tới 9 lần so mật khẩu.
+func (s *Server) authLocked(w http.ResponseWriter, r *http.Request, src string) bool {
+	until, locked, err := s.deps.Store.LoginLockedUntil(r.Context(), src, s.now())
 	if err != nil {
 		authInternal(w, "đọc khoá đăng nhập", err)
 		return true
 	}
+	if !locked && !until.IsZero() {
+		// Khoá cũ đã hết hạn: phần theo tên của cửa sổ đó bỏ hết (S9).
+		s.auth.names.dropSource(src)
+	}
 	if locked {
-		authWriteLocked(w, until.Sub(s.now()))
+		authWriteLocked(w, src, until.Sub(s.now()))
 	}
 	return locked
 }
 
-func authWriteLocked(w http.ResponseWriter, left time.Duration) {
+func authWriteLocked(w http.ResponseWriter, src string, left time.Duration) {
 	mins := int(left.Minutes()) + 1
 	w.Header().Set("Retry-After", strconv.Itoa(int(left.Seconds())+1))
 	writeError(w, http.StatusLocked, "login_locked", i18n.T(
-		"Sai mật khẩu quá nhiều lần; địa chỉ IP này bị khoá thêm "+strconv.Itoa(mins)+" phút. Quên mật khẩu thì chạy trên máy chủ: sudo tpan admin passwd",
-		"Too many wrong passwords; this IP address is locked for "+strconv.Itoa(mins)+" more minutes. If you forgot the password, run on the server: sudo tpan admin passwd"))
+		"Sai mật khẩu quá nhiều lần từ nơi gửi này ("+src+"); bị khoá thêm "+strconv.Itoa(mins)+" phút. Gỡ khoá ngay (không đổi mật khẩu), chạy trên máy chủ: sudo tpan admin unlock "+src+". Quên mật khẩu quản trị: sudo tpan admin passwd",
+		"Too many wrong passwords from this source ("+src+"); locked for "+strconv.Itoa(mins)+" more minutes. To unlock now (password unchanged), run on the server: sudo tpan admin unlock "+src+". Forgot the admin password: sudo tpan admin passwd"))
 }
 
-// authFailed đếm một lần sai mật khẩu của ip, ghi nhật ký, rồi trả 401 hoặc
-// 423 (lần sai thứ 5 khoá ngay). action là thao tác ghi vào nhật ký.
-func (s *Server) authFailed(w http.ResponseWriter, r *http.Request, ip, action string) {
-	locked, until, err := s.deps.Store.RecordLoginFailure(r.Context(), ip, s.now(),
+// authFailed đếm một lần sai mật khẩu của tên name từ khoá nguồn src, ghi
+// nhật ký, rồi trả 401 hoặc 423 (lần sai thứ 5 khoá ngay). action là thao tác
+// ghi vào nhật ký.
+func (s *Server) authFailed(w http.ResponseWriter, r *http.Request, src, name, action string) {
+	now := s.now()
+	f, err := s.deps.Store.RecordLoginFailure(r.Context(), src, now,
 		authMaxFailures, authFailWindow, authLockFor)
 	if err != nil {
 		authInternal(w, "đếm đăng nhập sai", err)
 		return
 	}
-	if locked {
-		s.audit(r, action, "", "locked", "")
-		authWriteLocked(w, until.Sub(s.now()))
+	s.auth.names.failed(src, name, f, now)
+	// Target là khoá nguồn (D12): với kết nối từ chính máy nó là uid:<n>, nên
+	// admin đọc nhật ký tra ra được site nào đang dò mật khẩu (cột ip chỉ có
+	// 127.0.x.y). Không bao giờ ghi tên đã gõ.
+	if f.Locked {
+		s.audit(r, action, src, "locked", "")
+		authWriteLocked(w, src, f.Until.Sub(now))
 		return
 	}
-	s.audit(r, action, "", "wrong_password", "")
+	s.audit(r, action, src, "wrong_password", "")
 	writeError(w, http.StatusUnauthorized, "wrong_password", i18n.T(
 		"Sai mật khẩu.", "Wrong password."))
 }
@@ -297,17 +327,27 @@ func (s *Server) authFailed(w http.ResponseWriter, r *http.Request, ip, action s
 // Đăng nhập bằng tên không có thật vẫn chạy argon2 trên hash này, để thời gian
 // trả lời không cho biết tên nào tồn tại. Phải là hash thật: VerifyPassword trả
 // lỗi ngay với hash hỏng, mà trả nhanh chính là lộ.
+//
+// Run tính nó trước khi nghe cổng (S11 của M28 đợt 2), bằng HashPasswordWait
+// nên không bao giờ gặp ErrPasswordBusy. Lỗi không được nhớ: trước đây
+// sync.Once giữ luôn lỗi, một lần bận lúc mới khởi động là mọi tên lạ trả 500
+// mãi, còn tên thật trả 401: lộ tên user. Đường NewHandler (test) tính lười.
 var authDummy struct {
-	once sync.Once
+	mu   sync.Mutex
 	hash string
-	err  error
 }
 
 func authDummyHash() (string, error) {
-	authDummy.once.Do(func() {
-		authDummy.hash, authDummy.err = store.HashPassword(hex.EncodeToString(authRandom(16)))
-	})
-	return authDummy.hash, authDummy.err
+	authDummy.mu.Lock()
+	defer authDummy.mu.Unlock()
+	if authDummy.hash == "" {
+		h, err := store.HashPasswordWait(hex.EncodeToString(authRandom(16)))
+		if err != nil {
+			return "", err
+		}
+		authDummy.hash = h
+	}
+	return authDummy.hash, nil
 }
 
 // authCheckPassword so pw với hash của user name. Không có user đó thì vẫn so
@@ -331,7 +371,12 @@ func (s *Server) authCheckPassword(w http.ResponseWriter, r *http.Request, name,
 			return false, true
 		}
 	}
-	ok, err = store.VerifyPassword(hash, pw)
+	ok, err = s.auth.verify(hash, pw)
+	if errors.Is(err, store.ErrPasswordBusy) {
+		// Chưa so được: không tính là một lần sai.
+		authWriteBusy(w)
+		return false, true
+	}
 	if err != nil {
 		authInternal(w, "kiểm mật khẩu", err)
 		return false, true
@@ -344,7 +389,8 @@ func (s *Server) authCheckPassword(w http.ResponseWriter, r *http.Request, name,
 const authMaxName = 64
 
 // handleLogin: POST /api/v1/login.
-// Thứ tự: IP đang khoá thì từ chối ngay (không tốn argon2), rồi mới so mật
+// Thứ tự: chờ tới lượt của khoá nguồn (các lần thử của một nguồn chạy lần
+// lượt), nguồn đang khoá thì từ chối ngay (không tốn argon2), rồi mới so mật
 // khẩu (tên lạ cũng tốn argon2 như tên thật), rồi mới xem user có bị khoá:
 // chỉ người biết đúng mật khẩu mới biết được tài khoản đang bị khoá.
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -361,8 +407,18 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if !authDecode(w, r, &req) {
 		return
 	}
-	ip := clientIP(r)
-	if s.authLocked(w, r, ip) {
+	ip, src := clientIP(r), sourceKey(r)
+	if src == authLookupBusy {
+		authWriteBusy(w) // chưa biết khoá nguồn: không so, không đếm gì
+		return
+	}
+	leave, ok := s.auth.gates.enter(r.Context(), src)
+	if !ok {
+		authWriteBusy(w)
+		return
+	}
+	defer leave()
+	if s.authLocked(w, r, src) {
 		return
 	}
 	name := req.Name
@@ -372,13 +428,18 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if len(name) > authMaxName {
 		name = "\x00" // không có user nào tên này: đi đường hash giả
 	}
+	if until, ok := s.auth.rate.allow(src, name, s.now()); !ok {
+		authWriteRate(w, until.Sub(s.now()))
+		return
+	}
 	ok, done := s.authCheckPassword(w, r, name, req.Password)
 	if done {
 		return
 	}
+	s.auth.rate.compared(src, s.now())
 	if !ok {
 		// Không ghi tên đã gõ vào nhật ký: người ta hay gõ nhầm mật khẩu vào ô tên.
-		s.authFailed(w, r, ip, "login.fail")
+		s.authFailed(w, r, src, name, "login.fail")
 		return
 	}
 	u, found, err := st.User(r.Context(), name)
@@ -395,17 +456,24 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			"Account "+name+" is suspended. Contact the administrator."))
 		return
 	}
-	// M20 (điểm ghép 3.4.1): user đã bật hai bước thì sang bước hai, KHÔNG xoá
-	// bộ đếm sai của IP.
+	// M20 (điểm ghép 3.4.1): user đã bật hai bước thì sang bước hai, KHÔNG
+	// trừ bộ đếm sai của nguồn (rate.succeeded, names.take ở dưới): bước hai
+	// đúng mới trừ (auth_m20.go, loginSecondOK).
 	if s.loginChallenge(w, r, name, ip, host) {
-		return
-	}
-	if err := st.ClearLoginFailures(r.Context(), ip); err != nil {
-		authInternal(w, "xoá đếm đăng nhập sai", err)
 		return
 	}
 
 	now := s.now()
+	s.auth.rate.succeeded(name, now)
+	// Chỉ trừ phần lần sai của chính tên này; lần sai của tên khác từ cùng
+	// nguồn vẫn còn (trước đây xoá cả dòng: khách xen một lần đăng nhập đúng của
+	// mình sau mỗi 4 lần đoán mật khẩu admin là không bao giờ bị khoá).
+	if n, firstAt, found := s.auth.names.take(src, name, now); found {
+		if err := st.ForgetLoginFailures(r.Context(), src, n, firstAt); err != nil {
+			authInternal(w, "trừ đếm đăng nhập sai", err)
+			return
+		}
+	}
 	// Dọn phiên đã hết hạn lúc có người đăng nhập: rẻ, và bảng không phình.
 	if err := st.DeleteSessionsIdleBefore(r.Context(), now.Add(-authIdle)); err != nil {
 		slog.Error("dọn phiên hết hạn", "err", err)
@@ -500,12 +568,26 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// M20: đã bật hai bước thì cần mã (thiếu thì từ chối trước argon2).
-	needCode, ok := s.mfaCodeNeeded(w, r, cur.UserName, req.Code)
-	if !ok {
+	needCode, codeOK := s.mfaCodeNeeded(w, r, cur.UserName, req.Code)
+	if !codeOK {
 		return
 	}
-	ip := clientIP(r)
-	if s.authLocked(w, r, ip) {
+	src := sourceKey(r)
+	if src == authLookupBusy {
+		authWriteBusy(w)
+		return
+	}
+	leave, ok := s.auth.gates.enter(r.Context(), src)
+	if !ok {
+		authWriteBusy(w)
+		return
+	}
+	defer leave()
+	if s.authLocked(w, r, src) {
+		return
+	}
+	if until, ok := s.auth.rate.allow(src, "", s.now()); !ok {
+		authWriteRate(w, until.Sub(s.now()))
 		return
 	}
 	// Mật khẩu của chính người đăng nhập (phiên "xem như" đã bị guard chặn POST).
@@ -513,8 +595,9 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 	if done {
 		return
 	}
+	s.auth.rate.compared(src, s.now())
 	if !ok {
-		s.authFailed(w, r, ip, "account.password")
+		s.authFailed(w, r, src, cur.UserName, "account.password")
 		return
 	}
 	if needCode {
@@ -522,7 +605,11 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	hash, err := store.HashPassword(req.New)
+	hash, err := s.auth.hash(req.New)
+	if errors.Is(err, store.ErrPasswordBusy) {
+		authWriteBusy(w)
+		return
+	}
 	if err != nil {
 		authInternal(w, "băm mật khẩu mới", err)
 		return

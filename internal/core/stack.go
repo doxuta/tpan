@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
@@ -411,8 +412,10 @@ func webSteps(cfg StackConfig, running bool) ([]engine.Step, error) {
 				// Chưa bật ssl ở M1: bật nó là Apache nghe cổng 443 mà chưa có vhost
 				// nào hứng, nên trang mặc định của Ubuntu lộ ra ở 443 (thấy trên máy
 				// ảo, docs/bang-chung/M1.log). M5 bật ssl cùng một vhost 443 mặc định.
-				Enable:    apacheModules,
-				Disable:   []string{"mpm_prefork"},
+				Enable: apacheModules,
+				// H5 (M28 đợt 2): danh sách tắt dùng chung, có status. Clone vì
+				// newConfig của chuyển web server có thể sửa bước này.
+				Disable:   slices.Clone(steps.ApacheModulesOff),
 				NoRestart: !running,
 			},
 			&steps.Absent{Path: "/etc/apache2/sites-enabled/000-default.conf", Test: test, Reload: reload},

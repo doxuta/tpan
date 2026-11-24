@@ -37,16 +37,64 @@ var argonParams = struct {
 	keyLen  uint32
 }{memory: 64 * 1024, time: 3, threads: 4, keyLen: 32}
 
+// ErrPasswordBusy: đã đủ argonSlots lần argon2id đang chạy và chờ quá
+// argonWait mà chưa tới lượt. Server trả 429 auth_busy (M28 đợt 2, P2).
+var ErrPasswordBusy = errors.New("store: đang có quá nhiều lần kiểm mật khẩu cùng lúc")
+
+// argonSlots là số lần argon2id được chạy cùng lúc trong một tiến trình (P2).
+// Mỗi lần xin 64 MiB, nên bộ nhớ sống cho argon2 không quá 2 × 64 MiB; trước
+// đây người chưa đăng nhập bắn 20 request song song là panel xin hơn 1 GiB.
+// Hai chỗ đủ cho vài lần đăng nhập mỗi giây của một panel quản trị.
+const argonSlots = 2
+
+var (
+	// argonSem là semaphore argonSlots chỗ: gửi vào là lấy chỗ, nhận ra là trả.
+	argonSem = make(chan struct{}, argonSlots)
+	// argonWait là thời gian chờ chỗ tối đa của HashPassword, VerifyPassword.
+	// Biến (không phải hằng) để test đặt ngắn lại.
+	argonWait = 3 * time.Second
+	// argonKey là argon2.IDKey; test thay để đếm số lần chạy cùng lúc (E9).
+	argonKey = argon2.IDKey
+)
+
+// argonRun chạy argon2id khi có chỗ trong argonSem. wait < 0 là chờ không hạn.
+func argonRun(wait time.Duration, pw, salt []byte, t, mem uint32, threads uint8, keyLen uint32) ([]byte, error) {
+	if wait < 0 {
+		argonSem <- struct{}{}
+	} else {
+		timer := time.NewTimer(wait)
+		defer timer.Stop()
+		select {
+		case argonSem <- struct{}{}:
+		case <-timer.C:
+			return nil, ErrPasswordBusy
+		}
+	}
+	defer func() { <-argonSem }()
+	return argonKey(pw, salt, t, mem, threads, keyLen), nil
+}
+
 // HashPassword băm pw bằng argon2id với salt ngẫu nhiên 16 byte, trả chuỗi
 // dạng PHC: $argon2id$v=19$m=65536,t=3,p=4$<salt>$<hash> (base64 không đệm).
 // Salt ngẫu nhiên khiến hai lần băm cùng một mật khẩu cho hai chuỗi khác nhau.
-func HashPassword(pw string) (string, error) {
+// Chờ chỗ argon2 tối đa argonWait, quá thì ErrPasswordBusy (dùng trong server).
+func HashPassword(pw string) (string, error) { return hashPassword(pw, argonWait) }
+
+// HashPasswordWait là HashPassword chờ chỗ không hạn: cho lệnh CLI (tiến trình
+// riêng, không tranh chỗ với ai) và hash giả lúc server khởi động. Không bao
+// giờ trả ErrPasswordBusy.
+func HashPasswordWait(pw string) (string, error) { return hashPassword(pw, -1) }
+
+func hashPassword(pw string, wait time.Duration) (string, error) {
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
 		return "", fmt.Errorf("sinh salt: %w", err)
 	}
 	p := argonParams
-	key := argon2.IDKey([]byte(pw), salt, p.time, p.memory, p.threads, p.keyLen)
+	key, err := argonRun(wait, []byte(pw), salt, p.time, p.memory, p.threads, p.keyLen)
+	if err != nil {
+		return "", err
+	}
 	b64 := base64.RawStdEncoding
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		argon2.Version, p.memory, p.time, p.threads, b64.EncodeToString(salt), b64.EncodeToString(key)), nil
@@ -59,6 +107,8 @@ const maxArgonMemory = 1024 * 1024 // 1 GiB, tính bằng KiB
 // VerifyPassword so pw với hash dạng PHC. Tham số đọc từ chính chuỗi hash.
 // So bằng subtle.ConstantTimeCompare để thời gian trả lời không lộ mấy byte đầu
 // đã khớp. Hash hỏng thì trả lỗi (không phải false) để người gọi ghi log.
+// Chờ chỗ argon2 tối đa argonWait, quá thì ErrPasswordBusy; hash hỏng bị từ
+// chối trước khi xin chỗ.
 func VerifyPassword(hash, pw string) (bool, error) {
 	parts := strings.Split(hash, "$")
 	// "", "argon2id", "v=19", "m=..,t=..,p=..", salt, key
@@ -88,7 +138,10 @@ func VerifyPassword(hash, pw string) (bool, error) {
 	if err != nil || len(want) == 0 || len(want) > 1024 {
 		return false, errors.New("hash mật khẩu: phần hash hỏng")
 	}
-	got := argon2.IDKey([]byte(pw), salt, t, mem, threads, uint32(len(want)))
+	got, err := argonRun(argonWait, []byte(pw), salt, t, mem, threads, uint32(len(want)))
+	if err != nil {
+		return false, err
+	}
 	return subtle.ConstantTimeCompare(got, want) == 1, nil
 }
 
@@ -405,8 +458,23 @@ func (s *Store) DeleteSessionsIdleBefore(ctx context.Context, before time.Time) 
 }
 
 // ---- Đếm lần đăng nhập sai ----
+//
+// Cột ip của login_failures giữ "khoá nguồn" mà server đã chuẩn hoá (M28 đợt
+// 2: địa chỉ IPv4, dải /64 của IPv6, hay uid:<n> cho kết nối loopback; xem
+// sourceKey ở internal/server). Tên cột giữ nguyên để không cần migration.
+
+// LoginFailure là dòng login_failures của một khoá nguồn sau một lần ghi.
+type LoginFailure struct {
+	Failures int
+	// FirstAt là lần sai đầu của cửa sổ hiện tại. Server nhớ nó cạnh phần của
+	// từng tên để chỉ trừ vào đúng cửa sổ đó (ForgetLoginFailures).
+	FirstAt time.Time
+	Locked  bool
+	Until   time.Time // chỉ có nghĩa khi Locked
+}
 
 // LoginLockedUntil trả thời điểm hết khoá của ip nếu ip đang bị khoá lúc now.
+// Khoá đã hết hạn thì until vẫn là thời điểm đó (khác zero) và locked=false.
 func (s *Store) LoginLockedUntil(ctx context.Context, ip string, now time.Time) (until time.Time, locked bool, err error) {
 	var lu sql.NullString
 	err = s.db.QueryRowContext(ctx, "SELECT locked_until FROM login_failures WHERE ip = ?", ip).Scan(&lu)
@@ -423,60 +491,107 @@ func (s *Store) LoginLockedUntil(ctx context.Context, ip string, now time.Time) 
 }
 
 // RecordLoginFailure cộng một lần sai cho ip. Lần sai thứ max trong cửa sổ
-// window (tính từ lần sai đầu) thì khoá ip tới now+lock và trả locked=true.
-// Lần sai đầu đã quá window, hoặc khoá cũ đã hết, thì đếm lại từ 1: người gõ
-// nhầm vài lần mỗi ngày không bị khoá dồn.
-func (s *Store) RecordLoginFailure(ctx context.Context, ip string, now time.Time, maxFailures int, window, lock time.Duration) (locked bool, until time.Time, err error) {
+// window (tính từ lần sai đầu) thì khoá ip tới now+lock và trả Locked=true.
+// Khoá còn hạn thì giữ nguyên, không ghi gì (trước M28 đợt 2, một lần sai lọt
+// vào lúc đang khoá làm đếm lại từ 1 và mất khoá). Khoá đã hết, hoặc lần sai
+// đầu đã quá window, thì đếm lại từ 1: người gõ nhầm vài lần mỗi ngày không
+// bị khoá dồn.
+func (s *Store) RecordLoginFailure(ctx context.Context, ip string, now time.Time, maxFailures int, window, lock time.Duration) (LoginFailure, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return false, time.Time{}, fmt.Errorf("đếm đăng nhập sai: %w", err)
+		return LoginFailure{}, fmt.Errorf("đếm đăng nhập sai: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	var (
-		failures int
-		firstAt  string
-		lu       sql.NullString
+		f       LoginFailure
+		firstAt string
+		lu      sql.NullString
 	)
 	err = tx.QueryRowContext(ctx, "SELECT failures, first_at, locked_until FROM login_failures WHERE ip = ?", ip).
-		Scan(&failures, &firstAt, &lu)
+		Scan(&f.Failures, &firstAt, &lu)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		failures, firstAt = 0, fmtTime(now)
+		f.Failures, f.FirstAt = 0, now.UTC()
 	case err != nil:
-		return false, time.Time{}, fmt.Errorf("đọc đếm đăng nhập sai của %s: %w", ip, err)
+		return LoginFailure{}, fmt.Errorf("đọc đếm đăng nhập sai của %s: %w", ip, err)
 	default:
-		first, perr := parseTime(firstAt)
-		if perr != nil {
-			return false, time.Time{}, perr
+		if f.FirstAt, err = parseTime(firstAt); err != nil {
+			return LoginFailure{}, err
 		}
-		if lu.Valid || now.Sub(first) > window {
-			failures, firstAt = 0, fmtTime(now)
+		if lu.Valid {
+			if f.Until, err = parseTime(lu.String); err != nil {
+				return LoginFailure{}, err
+			}
+			if now.Before(f.Until) {
+				f.Locked = true
+				return f, nil
+			}
+		}
+		if lu.Valid || now.Sub(f.FirstAt) > window {
+			f.Failures, f.FirstAt, f.Until = 0, now.UTC(), time.Time{}
 		}
 	}
-	failures++
+	f.Failures++
 	var lockVal any
-	if failures >= maxFailures {
-		locked, until = true, now.Add(lock)
-		lockVal = fmtTime(until)
+	if f.Failures >= maxFailures {
+		f.Locked, f.Until = true, now.Add(lock)
+		lockVal = fmtTime(f.Until)
 	}
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO login_failures (ip, failures, first_at, locked_until) VALUES (?, ?, ?, ?)
 		 ON CONFLICT (ip) DO UPDATE SET failures = excluded.failures, first_at = excluded.first_at,
 		   locked_until = excluded.locked_until`,
-		ip, failures, firstAt, lockVal); err != nil {
-		return false, time.Time{}, fmt.Errorf("ghi đếm đăng nhập sai của %s: %w", ip, err)
+		ip, f.Failures, fmtTime(f.FirstAt), lockVal); err != nil {
+		return LoginFailure{}, fmt.Errorf("ghi đếm đăng nhập sai của %s: %w", ip, err)
 	}
 	if err := tx.Commit(); err != nil {
-		return false, time.Time{}, fmt.Errorf("ghi đếm đăng nhập sai của %s: %w", ip, err)
+		return LoginFailure{}, fmt.Errorf("ghi đếm đăng nhập sai của %s: %w", ip, err)
 	}
-	return locked, until, nil
+	return f, nil
 }
 
-// ClearLoginFailures xoá bộ đếm của ip (đăng nhập đúng).
-func (s *Store) ClearLoginFailures(ctx context.Context, ip string) error {
-	if _, err := s.db.ExecContext(ctx, "DELETE FROM login_failures WHERE ip = ?", ip); err != nil {
-		return fmt.Errorf("xoá đếm đăng nhập sai của %s: %w", ip, err)
+// ForgetLoginFailures trừ n lần sai khỏi dòng của ip (đăng nhập đúng của một
+// tên chỉ xoá phần của chính tên đó, M28 đợt 2). Chỉ trừ khi first_at của dòng
+// còn đúng là firstAt (vẫn cửa sổ mà server đã đếm cho tên đó) và dòng không
+// mang khoá; không trừ dưới 0; về 0 thì xoá dòng.
+func (s *Store) ForgetLoginFailures(ctx context.Context, ip string, n int, firstAt time.Time) error {
+	const where = " WHERE ip = ? AND first_at = ? AND locked_until IS NULL"
+	fa := fmtTime(firstAt)
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM login_failures"+where+" AND failures <= ?", ip, fa, n); err != nil {
+		return fmt.Errorf("trừ đếm đăng nhập sai của %s: %w", ip, err)
+	}
+	if _, err := s.db.ExecContext(ctx, "UPDATE login_failures SET failures = failures - ?"+where, n, ip, fa); err != nil {
+		return fmt.Errorf("trừ đếm đăng nhập sai của %s: %w", ip, err)
 	}
 	return nil
+}
+
+// ClearLoginFailures xoá dòng của một khoá nguồn (`tpan admin unlock <khoá>`);
+// found=false khi không có dòng đó.
+func (s *Store) ClearLoginFailures(ctx context.Context, ip string) (found bool, err error) {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM login_failures WHERE ip = ?", ip)
+	if err != nil {
+		return false, fmt.Errorf("gỡ khoá đăng nhập của %s: %w", ip, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("gỡ khoá đăng nhập của %s: %w", ip, err)
+	}
+	return n > 0, nil
+}
+
+// ClearAllLoginFailures xoá mọi dòng (`tpan admin unlock` không đối số), trả
+// số dòng đã xoá. Tách khỏi ClearLoginFailures để không có đường nào đưa khoá
+// rỗng vào mà xoá hết.
+func (s *Store) ClearAllLoginFailures(ctx context.Context) (int64, error) {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM login_failures")
+	if err != nil {
+		return 0, fmt.Errorf("gỡ mọi khoá đăng nhập: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("gỡ mọi khoá đăng nhập: %w", err)
+	}
+	return n, nil
 }

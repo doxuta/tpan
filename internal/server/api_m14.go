@@ -202,7 +202,7 @@ func (s *Server) handleSecurityHarden(w http.ResponseWriter, r *http.Request) {
 		for i := range kept {
 			kept[i].Findings = apiNonNil(kept[i].Findings)
 		}
-		writeJSON(w, http.StatusOK, HardenPreview{Preview: pv, Switched: apiNonNil(h.Switched), Kept: kept})
+		writeJSON(w, http.StatusOK, HardenPreview{Preview: pv, Switched: apiNonNil(h.Switched), Kept: kept, Skipped: apiNonNil(h.Skipped)})
 		return
 	}
 	s.planJob(w, r, "security.harden", "isolation", func(ctx context.Context) (apiPlan, error) {

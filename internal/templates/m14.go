@@ -14,7 +14,21 @@ package templates
 // nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích (lỗ
 // L5). Template dùng đúng chuỗi này; checks.VhostHardened tìm đúng dòng này
 // trong các dòng không phải chú thích của vhost.
+//
+// Từ M28 đợt 2 template KHÔNG còn ghi dòng này (xem NginxSymlinkGuardV2). Hằng
+// được giữ để checks.VhostHardened vẫn nhận vhost ghi bởi bản cũ: Plan không
+// ghi lại vhost (khôi phục backup...) không bị hoàn tác trên máy vừa nâng cấp
+// mà chưa chạy `tpan security harden`.
 const NginxSymlinkGuard = "disable_symlinks if_not_owner from=$document_root;"
+
+// NginxSymlinkGuardV2 là dòng chặn symlink từ M28 đợt 2 (lỗ F4): bỏ from=, nên
+// nginx xét MỌI thành phần của đường dẫn, kể cả chính thư mục public. Với
+// from=$document_root nginx không xét các thành phần từ document root trở lên,
+// nên site A đổi public thành symlink sang thư mục của site B là nginx trả file
+// của B dưới tên miền của A. /var, /var/www và neo thuộc root (không phải
+// symlink) nên không bị ảnh hưởng; symlink của site trỏ vào thứ của chính site
+// vẫn chạy. checks.DocrootGuard đòi đúng dòng này.
+const NginxSymlinkGuardV2 = "disable_symlinks if_not_owner;"
 
 // ApacheFCGIGuards là hai dòng gỡ biến của vhost Apache (không kèm thụt lề):
 // PHP-FPM nhận PHP_VALUE và PHP_ADMIN_VALUE từ web server và cho chúng đè cả

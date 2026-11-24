@@ -303,45 +303,127 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		ss = append(ss, reload)
 	}
 
-	// Nhóm 6 (M17): khởi động lại dịch vụ của mọi lồng đang chạy, để hàng rào
-	// che cả những file nhóm 1 vừa ghi (xem cageRestartSteps).
+	// Nhóm 6 (M28 đợt 2, H5): Apache tắt mod_status. Chỉ tắt, không áp lại phần
+	// bật của danh sách stack (admin có thể đã cố ý đổi). Bước tự reload, nên
+	// đặt SAU bước reload chung: đặt trước thì lần reload của nó nạp luôn các
+	// vhost vừa ghi mà hardenReload chưa biết.
+	var modOff *hardenModOff
+	if cfg.Web == Apache {
+		modOff = &hardenModOff{ApacheModOff: &steps.ApacheModOff{Module: "status"}}
+		ss = append(ss, modOff)
+	}
+
+	// Nhóm 7 (M28 đợt 2, M1-DBCONN): trần kết nối cho user DB của mọi site
+	// active (kể cả site hay DB đang tạm khoá: user khoá vẫn đổi trần được) và
+	// mọi DB rời active. User không có (máy lệch) thì không có bước, chỉ nêu
+	// tên trong bản xem trước (S2, S16).
+	h.Skipped = []HardenSkipped{}
+	var dbUsers []string
+	for _, st := range active {
+		dbUsers = append(dbUsers, st.Layout().DB)
+	}
+	if dbs := s.dbStore(); dbs != nil {
+		all, err := dbs.StandaloneDBs(ctx, "")
+		if err != nil {
+			return nil, wrap(fmt.Errorf("đọc danh sách DB rời: %w", err))
+		}
+		for _, d := range all {
+			if d.Status == account.DBActive {
+				dbUsers = append(dbUsers, d.Name)
+			}
+		}
+	}
+	var limited []string
+	for _, u := range dbUsers {
+		// User không có, hay đọc lỗi (MariaDB tắt, output lạ): không có bước,
+		// nêu trong bản xem trước. Giữ bước thì nó lỗi ở lần kiểm trước khi
+		// chạy và engine hoàn tác cả bản vá vhost của mọi site (S2).
+		exists, _, err := steps.DBUserLimitState(ctx, s.Sys, u)
+		if err != nil {
+			h.Skipped = append(h.Skipped, HardenSkipped{Target: u, Kind: HardenSkipDBUser, Message: i18n.T(
+				"không đọc được trần kết nối của user DB "+u+" ("+err.Error()+"): bỏ qua bước đặt trần. Kiểm MariaDB rồi chạy lại tpan security harden.",
+				"could not read the connection limit of database user "+u+" ("+err.Error()+"): the limit step is skipped. Check MariaDB, then run tpan security harden again.")})
+			continue
+		}
+		if !exists {
+			h.Skipped = append(h.Skipped, HardenSkipped{Target: u, Kind: HardenSkipDBUser, Message: i18n.T(
+				"user DB "+u+" không có trong MariaDB: bỏ qua bước đặt trần kết nối. Xem tpan health của site hay DB rời dùng user này.",
+				"database user "+u+" does not exist in MariaDB: the connection limit step is skipped. See tpan health for the site or database that uses it.")})
+			continue
+		}
+		ss = append(ss, &steps.DBUserLimit{User: u, Max: site.DBMaxUserConnections})
+		limited = append(limited, u)
+	}
+
+	// Nhóm 8 (M17), luôn ở cuối: khởi động lại dịch vụ của mọi lồng đang chạy,
+	// để hàng rào che cả những file nhóm 1 vừa ghi (xem cageRestartSteps).
 	restarts, err := cageRestartSteps(ctx, s.Sites)
 	if err != nil {
 		return nil, wrap(err)
 	}
 	ss = append(ss, restarts...)
 
-	// Kiểm chứng: bộ của stack cộng các phép cấp máy của M14 (Stack.Checks đã
-	// gồm cả hai), rồi từng site. Không chạy cả bộ siteChecks: một site hỏng ở
-	// chặng không liên quan (DB, mã nguồn) không được kéo hoàn tác bản vá của
-	// cả máy; health đầy đủ chạy sau job và mở sự cố cho nó.
+	// S2: site trả lời sai TRƯỚC Plan (đo ngay đây, như sitesAnswer của chuyển
+	// web server) được nêu trong bản xem trước, và phép HTTP, cô lập của nó
+	// không chạy sau job (chỉ tốn thời gian chờ retryCheck). Site đó vẫn được
+	// vá đủ mọi bước.
+	healthy, broken := hardenHealthy(ctx, s.Sys, active)
+	h.Skipped = append(h.Skipped, broken...)
+
+	// Kiểm chứng (D2 của soát cuối đợt 2): chỉ những phép do chính các bước
+	// của Plan quyết định mới làm job lỗi và hoàn tác: bộ của stack và các phép
+	// cấp máy của M14 (Stack.Checks), quyền log, dòng chặn và dấu F4 của vhost,
+	// mod_status, trần kết nối. Phép HTTP và cô lập của từng site đo thứ mà mã
+	// của khách điều khiển được (site trả 500 đúng lúc kiểm, chủ site chmod
+	// 2751 thư mục neo của mình): trước đây một khách xấu làm chúng Fail là cả
+	// bản vá của máy bị hoàn tác, mãi mãi. Giờ chúng chạy sau các bước như một
+	// báo cáo (checks.Soft: Fail thành Warn), nằm trong kết quả của job và nêu
+	// đúng site có vấn đề; health chạy sau job mở sự cố cho site đó như thường.
 	verify, _, err := (&Stack{Sys: s.Sys, Settings: s.Settings, Sites: s.Sites, WPCLISHA512: s.WPCLISHA512}).Checks(ctx)
 	if err != nil {
 		return nil, wrap(err)
 	}
+	if modOff != nil {
+		for i, c := range verify {
+			verify[i] = modStatusSoft{c: c, off: modOff}
+		}
+	}
 	for i, st := range active {
 		l := st.Layout()
 		verify = append(verify, checks.LogPerms(l))
-		// Vhost tạm khoá không trỏ vào public nên không có dòng chặn nào.
+		// Vhost tạm khoá không trỏ vào public nên không có dòng chặn nào. M28
+		// đợt 2: dấu của bản vá F4 (web.docroot_guard) chỉ đòi ở đây và ở
+		// health; harden ghi lại vhost của mọi site nên site hỏng HTTP cũng đạt.
 		if st.Suspended == account.NotSuspended {
-			verify = append(verify, checks.VhostHardened(string(cfg.Web), l, st.Htaccess))
+			verify = append(verify, checks.VhostHardened(string(cfg.Web), l, st.Htaccess), checks.DocrootGuard(string(cfg.Web), l))
+		}
+		if !healthy[st.Domain] {
+			continue
 		}
 		// siteHTTP: 403 đúng trang tạm khoá cho site tạm khoá, nil khi DB của
 		// site đang khoá. retryCheck vì reload trả về trước khi cấu hình mới có
 		// hiệu lực.
 		if c := siteHTTP(st); c != nil {
-			verify = append(verify, retryCheck{c: c})
+			verify = append(verify, checks.Soft(retryCheck{c: c}))
 		}
 		// Cùng luật với siteChecks (M17, bất biến 8): Isolated chạy `test` dưới
 		// user của site "from" ở NGOÀI lồng, nên không sinh từ site trong lồng.
 		for _, o := range active[i+1:] {
+			if !healthy[o.Domain] {
+				continue
+			}
 			if !st.Caged {
-				verify = append(verify, checks.Isolated(l, o.Layout()))
+				verify = append(verify, checks.Soft(checks.Isolated(l, o.Layout())))
 			}
 			if !o.Caged {
-				verify = append(verify, checks.Isolated(o.Layout(), l))
+				verify = append(verify, checks.Soft(checks.Isolated(o.Layout(), l)))
 			}
 		}
+	}
+	// db.user_limit chỉ cảnh báo, không làm job lỗi: có mặt để báo cáo của job
+	// ghi trần của từng user (bằng chứng cho E5).
+	for _, u := range limited {
+		verify = append(verify, checks.DBUserLimit(u))
 	}
 
 	plan := engine.Plan{
@@ -367,6 +449,47 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		return nil
 	})
 	return h, nil
+}
+
+// dbStore là bảng DB rời cho PrepareHarden: s.DBs, hoặc s.Sites khi nó cũng là
+// DBStore (server và CLI truyền cùng *store.Store cho cả hai). nil: bỏ qua DB rời.
+func (s *Security) dbStore() DBStore {
+	if s.DBs != nil {
+		return s.DBs
+	}
+	if d, ok := s.Sites.(DBStore); ok {
+		return d
+	}
+	return nil
+}
+
+// hardenHealthy đo phép HTTP của từng site active trước Plan (S2). healthy
+// gồm site đạt và site không có phép HTTP để đo (DB đang tạm khoá: siteHTTP
+// nil); broken là các site Fail, thành mục của Harden.Skipped.
+func hardenHealthy(ctx context.Context, sys system.System, active []site.Site) (map[validate.Domain]bool, []HardenSkipped) {
+	healthy := map[validate.Domain]bool{}
+	var cs []checks.Check
+	var doms []validate.Domain
+	for _, st := range active {
+		c := siteHTTP(st)
+		if c == nil {
+			healthy[st.Domain] = true
+			continue
+		}
+		cs, doms = append(cs, c), append(doms, st.Domain)
+	}
+	var broken []HardenSkipped
+	for i, r := range checks.RunAll(ctx, sys, cs) {
+		if r.Status != checks.Fail {
+			healthy[doms[i]] = true
+			continue
+		}
+		dom := doms[i].String()
+		broken = append(broken, HardenSkipped{Target: dom, Kind: HardenSkipSiteHTTP, Result: &r, Message: i18n.T(
+			"site "+dom+" đang không trả lời đúng ("+r.Summary.Vi+"): vẫn được vá, nhưng báo cáo sau job không gọi thử site này. Sửa hoặc tạm khoá site này; health sẽ báo khi nó trả lời đúng lại.",
+			"site "+dom+" does not answer correctly right now ("+r.Summary.En+"): it is still hardened, but the report after the job does not call it. Fix or suspend this site; health will show when it answers correctly again.")})
+	}
+	return healthy, broken
 }
 
 // hardenReload là bước kiểm cú pháp rồi reload web server MỘT lần cho mọi bước
@@ -456,6 +579,58 @@ func (w *hardenWrite) Apply(ctx context.Context, sys system.System) error {
 	}
 	w.reload.written++
 	return nil
+}
+
+// hardenModOff bọc bước tắt mod_status trong harden (D11 của soát cuối đợt 2).
+// status được nạp bằng một dòng LoadModule ngoài mods-enabled (cấu hình admin
+// tự thêm) thì a2dismod không tắt được; bước gốc trả ErrModuleLoadedElsewhere
+// sau khi đã tự trả mods-enabled về như cũ. Ở đây lỗi đó không làm hoàn tác
+// cả bản vá (vhost, quyền log, trần DB của mọi site): bước coi như xong, và
+// web.mod_status trong kết quả của job thành cảnh báo kèm cách sửa tay.
+// `tpan health --fix` cho web.mod_status dùng bước gốc nên vẫn báo lỗi rõ.
+type hardenModOff struct {
+	*steps.ApacheModOff
+	gaveUp bool // Apply gặp ErrModuleLoadedElsewhere
+}
+
+var _ engine.Step = (*hardenModOff)(nil)
+
+func (m *hardenModOff) Check(ctx context.Context, sys system.System) (bool, error) {
+	if m.gaveUp {
+		return true, nil
+	}
+	return m.ApacheModOff.Check(ctx, sys)
+}
+
+func (m *hardenModOff) Apply(ctx context.Context, sys system.System) error {
+	err := m.ApacheModOff.Apply(ctx, sys)
+	if errors.Is(err, steps.ErrModuleLoadedElsewhere) {
+		m.gaveUp = true
+		return nil
+	}
+	return err
+}
+
+func (m *hardenModOff) Undo(ctx context.Context, sys system.System) error {
+	if m.gaveUp {
+		return nil // bước gốc đã trả mods-enabled về, không có gì để hoàn tác
+	}
+	return m.ApacheModOff.Undo(ctx, sys)
+}
+
+// modStatusSoft hạ web.mod_status Fail xuống Warn khi hardenModOff đã bỏ cuộc
+// (module nạp ngoài mods-enabled); mọi phép khác đi nguyên.
+type modStatusSoft struct {
+	c   checks.Check
+	off *hardenModOff
+}
+
+func (s modStatusSoft) Run(ctx context.Context, sys system.System) checks.Result {
+	r := s.c.Run(ctx, sys)
+	if s.off.gaveUp && r.Status == checks.Fail && strings.HasPrefix(r.ID, "web.mod_status:") {
+		r.Status = checks.Warn
+	}
+	return r
 }
 
 func (w *hardenWrite) Undo(ctx context.Context, sys system.System) error {

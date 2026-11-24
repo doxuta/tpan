@@ -23,6 +23,14 @@
         Require all granted
     </Directory>
 
+    # Cùng khối neo như vhost 443: nếu luật chuyển hướng dưới đây hỏng, cổng 80
+    # cũng không đi theo public là symlink sang site khác. Khối chỉ đổi
+    # Options, không cho thêm quyền truy cập nào.
+    <Directory "/var/www/example.com">
+        Options SymLinksIfOwnerMatch
+        AllowOverride None
+    </Directory>
+
     # Chuyển mọi đường dẫn khác sang https, KHÔNG nuốt thử thách. Dùng
     # mod_rewrite thay cho Redirect/RedirectMatch vì hai lý do: mod_alias xử lý
     # mọi Redirect TRƯỚC mọi Alias, nên một "Redirect /" thường sẽ nuốt luôn
@@ -63,6 +71,16 @@
         Options None
         AllowOverride None
         Require all granted
+    </Directory>
+
+    # Neo của site (thư mục chứa public). apache2.conf của Ubuntu đặt
+    # "Options Indexes FollowSymLinks" cho cả /var/www, và Apache xét chính
+    # thành phần public theo Options của thư mục chứa nó: thiếu khối này, site
+    # đổi public thành symlink sang thư mục của site khác là Apache trả file
+    # của site kia. Khối chỉ đổi Options, không cho thêm quyền truy cập nào.
+    <Directory "/var/www/example.com">
+        Options SymLinksIfOwnerMatch
+        AllowOverride None
     </Directory>
 
     <Directory "/var/www/example.com/public">

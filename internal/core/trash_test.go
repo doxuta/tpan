@@ -186,6 +186,7 @@ func TestSiteTrashAndRestore(t *testing.T) {
 				"wp.constant:" + dom + ":DISABLE_WP_CRON", // M9
 				"file:" + site.CronFile(l),
 				"db.unlock:" + dom,
+				"mariadb.user-limit:" + l.DB, // M28 đợt 2 (S16)
 				"file:" + pool,
 				"file:" + conf,
 				"symlink:" + link,

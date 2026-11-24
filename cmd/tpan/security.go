@@ -72,10 +72,11 @@ func securityHardenCmd(e *env) *cobra.Command {
 			ok, err := f.showOrConfirm(e, func() (any, func(), error) {
 				pv, err := h.Preview(ctx)
 				// Cùng dạng với POST /api/v1/security/harden?dry_run=1.
-				out := server.HardenPreview{Preview: pv, Switched: nonNil(h.Switched), Kept: nonNil(h.Kept)}
+				out := server.HardenPreview{Preview: pv, Switched: nonNil(h.Switched), Kept: nonNil(h.Kept), Skipped: nonNil(h.Skipped)}
 				return out, func() {
 					printPreview(e, pv)
 					printHardenModes(e, h.Switched, h.Kept)
+					printHardenSkipped(e, h.Skipped)
 				}, err
 			})
 			if !ok {
@@ -85,6 +86,7 @@ func securityHardenCmd(e *env) *cobra.Command {
 			// ra: đó là việc còn lại cho người vận hành sau job.
 			if f.yes && !f.asJSON {
 				printHardenModes(e, h.Switched, h.Kept)
+				printHardenSkipped(e, h.Skipped)
 			}
 			rep, err := h.Execute(ctx, f.progress(e, h.Plan).onEvent)
 			cliAudit(ctx, e, audit, "security.harden", h.Plan.Target, rep.Job)
@@ -132,6 +134,19 @@ func printHardenModes(e *env, switched []string, kept []core.HtaccessKept) {
 			"Sites left on day-du can still write Apache configuration and health keeps warning. Fix the lines above, then run: sudo tpan site set <domain> --htaccess an-toan"))
 	}
 	printf(w, "\n")
+}
+
+// printHardenSkipped in những gì harden bỏ qua (M28 đợt 2, S2 và S16): site
+// đang hỏng sẵn (vẫn được vá, kiểm chứng không xét) và user DB không có.
+func printHardenSkipped(e *env, skipped []core.HardenSkipped) {
+	if len(skipped) == 0 {
+		return
+	}
+	printf(e.stdout, "%s\n", e.tr("Bỏ qua:", "Skipped:"))
+	for _, s := range skipped {
+		printf(e.stdout, "  %s\n", e.tr(s.Message.Vi, s.Message.En))
+	}
+	printf(e.stdout, "\n")
 }
 
 func securityStatusCmd(e *env) *cobra.Command {

@@ -280,7 +280,10 @@ func restoreSteps(ctx context.Context, as AccountStore, web WebServer, php strin
 	// M9: cron của site sau khi thư mục về chỗ và user được mở khoá:
 	// WPConstant chạy `wp` dưới user của site trên wp-config.php vừa về.
 	ss = append(ss, cron...)
-	ss = append(ss, &steps.DBUserUnlock{Layout: l})
+	// M28 đợt 2 (S16): site vào thùng rác trước khi máy chạy harden thì user
+	// DB của nó chưa có trần kết nối; khôi phục ra là đặt luôn.
+	ss = append(ss, &steps.DBUserUnlock{Layout: l},
+		&steps.DBUserLimit{User: l.DB, Max: site.DBMaxUserConnections})
 	ss = append(ss, pool...)
 	return append(ss, vhost...), nil
 }

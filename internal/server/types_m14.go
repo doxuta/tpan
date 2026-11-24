@@ -36,9 +36,12 @@ type HtaccessBody struct {
 }
 
 // HardenPreview là câu trả lời của POST /api/v1/security/harden?dry_run=1:
-// bản xem trước như mọi Plan, cộng hai danh sách của core.Harden.
+// bản xem trước như mọi Plan, cộng ba danh sách của core.Harden. Skipped (M28
+// đợt 2, S2 và S16): site đang trả lời sai trước Plan (vẫn được vá, kiểm chứng
+// không xét nó) và user DB không có trong MariaDB (không có bước đặt trần).
 type HardenPreview struct {
 	engine.Preview
-	Switched []string            `json:"switched"`
-	Kept     []core.HtaccessKept `json:"kept"`
+	Switched []string             `json:"switched"`
+	Kept     []core.HtaccessKept  `json:"kept"`
+	Skipped  []core.HardenSkipped `json:"skipped"`
 }

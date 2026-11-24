@@ -303,42 +303,10 @@ func newBktEnv(t *testing.T, domains ...string) *bktEnv {
 	return be
 }
 
-// bktSQL là handler `mariadb -N -B` của siteSim (site_test.go) chép lại: cùng
-// prefix thì handler đăng ký sau thắng, nên handler đo cỡ DB ở trên phải tự
-// làm nốt phần của siteSim.
-func bktSQL(m *siteSim, sql string) system.Result {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	b := func(v bool) int {
-		if v {
-			return 1
-		}
-		return 0
-	}
-	if g := sqlStateRE.FindStringSubmatch(sql); g != nil {
-		return system.Result{Stdout: fmt.Sprintf("%d\t%d\n", b(m.dbs[g[1]]), b(m.dbUsers[g[1]]))}
-	}
-	if g := sqlLockState.FindStringSubmatch(sql); g != nil {
-		return system.Result{Stdout: fmt.Sprintf("%d\t%d\n", b(m.dbUsers[g[1]]), b(m.dbLocked[g[1]]))}
-	}
-	for _, g := range sqlLock.FindAllStringSubmatch(sql, -1) {
-		m.dbLocked[g[1]] = g[2] == "LOCK"
-	}
-	for _, g := range sqlCreateDB.FindAllStringSubmatch(sql, -1) {
-		m.dbs[g[1]] = true
-	}
-	for _, g := range sqlCreateUsr.FindAllStringSubmatch(sql, -1) {
-		m.dbUsers[g[1]] = true
-	}
-	for _, g := range sqlDropUsr.FindAllStringSubmatch(sql, -1) {
-		delete(m.dbUsers, g[1])
-		delete(m.dbLocked, g[1])
-	}
-	for _, g := range sqlDropDB.FindAllStringSubmatch(sql, -1) {
-		delete(m.dbs, g[1])
-	}
-	return system.Result{}
-}
+// bktSQL là handler `mariadb -N -B` của siteSim (site_test.go): cùng prefix
+// thì handler đăng ký sau thắng, nên handler đo cỡ DB ở trên phải tự gọi phần
+// của siteSim.
+func bktSQL(m *siteSim, sql string) system.Result { return m.sql(sql) }
 
 func (be *bktEnv) dbBody(l site.Layout) string {
 	be.mu.Lock()

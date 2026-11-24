@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/doxuta/tpan/internal/engine"
@@ -84,8 +85,11 @@ func dbCreateDBSQL(name string) string {
 	return "CREATE DATABASE `" + name + "` CHARACTER SET utf8mb4;\n"
 }
 
+// M28 đợt 2 (M1-DBCONN): user mới có trần kết nối cùng lúc ngay khi tạo, dùng
+// chung cho user DB của site và của DB rời. Lý do của số ở site.DBMaxUserConnections.
 func dbCreateUserSQL(name, password string) string {
-	return "CREATE USER '" + name + "'@'localhost' IDENTIFIED BY '" + password + "';\n"
+	return "CREATE USER '" + name + "'@'localhost' IDENTIFIED BY '" + password +
+		"' WITH MAX_USER_CONNECTIONS " + strconv.Itoa(site.DBMaxUserConnections) + ";\n"
 }
 
 // dbGrantSQL cấp quyền trên đúng một DB. Trong GRANT ... ON `db`.*, dấu "_"

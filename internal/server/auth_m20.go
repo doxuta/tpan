@@ -276,8 +276,12 @@ func (s *Server) handleLogin2FA(w http.ResponseWriter, r *http.Request) {
 	if !authDecode(w, r, &req) {
 		return
 	}
-	ip := clientIP(r)
-	if s.authLocked(w, r, ip) {
+	ip, src := clientIP(r), sourceKey(r)
+	if src == authLookupBusy {
+		authWriteBusy(w)
+		return
+	}
+	if s.authLocked(w, r, src) {
 		return
 	}
 	ch, ok, err := s.mfaChallenge(r)
@@ -317,9 +321,15 @@ func (s *Server) handleLogin2FA(w http.ResponseWriter, r *http.Request) {
 		challengeInvalid(w, r)
 		return
 	}
-	if err := st.ClearLoginFailures(r.Context(), ip); err != nil {
-		authInternal(w, "xoá đếm đăng nhập sai", err)
-		return
+	// Bước hai đúng mới trừ bộ đếm sai (điểm ghép 3.4.1 với M28): đúng cách
+	// handleLogin làm với user không có hai bước.
+	now := s.now()
+	s.auth.rate.succeeded(ch.User, now)
+	if n, firstAt, found := s.auth.names.take(src, ch.User, now); found {
+		if err := st.ForgetLoginFailures(r.Context(), src, n, firstAt); err != nil {
+			authInternal(w, "trừ đếm đăng nhập sai", err)
+			return
+		}
 	}
 	wrong, err := st.TakeWrongSinceOK(r.Context(), ch.User)
 	if err != nil {
@@ -443,7 +453,10 @@ func (s *Server) checkSecondFactor(w http.ResponseWriter, r *http.Request, user,
 			return "", false
 		}
 	}
-	if s.authLocked(w, r, clientIP(r)) {
+	if src := sourceKey(r); src == authLookupBusy {
+		authWriteBusy(w)
+		return "", false
+	} else if s.authLocked(w, r, src) {
 		return "", false
 	}
 	row, found, err := st.TOTP(ctx, user)
@@ -554,7 +567,7 @@ func (s *Server) mfaWrong(w http.ResponseWriter, r *http.Request, user string, p
 	}
 	s.audit(r, p.action, user, "wrong_code", "")
 	rec := &failRecorder{h: http.Header{}}
-	s.authFailed(rec, r, clientIP(r), p.action+".ip")
+	s.authFailed(rec, r, sourceKey(r), user, p.action+".ip")
 	switch {
 	case rec.code != http.StatusUnauthorized:
 		rec.copyTo(w)

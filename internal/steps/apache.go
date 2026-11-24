@@ -78,8 +78,8 @@ func (s *ApacheModules) Info() engine.StepInfo {
 		ID:    "apache.modules:apache2",
 		Title: apacheModulesTitle(s.Enable, s.Disable),
 		Why: i18n.T(
-			"Thiếu proxy_fcgi thì Apache không chuyển được request sang PHP-FPM và trả mã nguồn PHP hoặc lỗi 500. Còn mpm_prefork thì mỗi kết nối chiếm một tiến trình, máy nhỏ hết RAM khi đông khách; mpm_event và http2 phục vụ nhiều kết nối hơn với cùng RAM. Thiếu rewrite thì đường dẫn đẹp của WordPress trả 404.",
-			"Without proxy_fcgi Apache cannot hand requests to PHP-FPM and serves PHP source or a 500 error. With mpm_prefork every connection holds a whole process and a small machine runs out of RAM under load; mpm_event and http2 serve more connections with the same RAM. Without rewrite WordPress pretty links return 404.",
+			"Thiếu proxy_fcgi thì Apache không chuyển được request sang PHP-FPM và trả mã nguồn PHP hoặc lỗi 500. Còn mpm_prefork thì mỗi kết nối chiếm một tiến trình, máy nhỏ hết RAM khi đông khách; mpm_event và http2 phục vụ nhiều kết nối hơn với cùng RAM. Thiếu rewrite thì đường dẫn đẹp của WordPress trả 404. Còn status thì mở trang /server-status cho PHP của mọi site trên máy, lộ đường dẫn kèm mã bí mật của khách ở site khác.",
+			"Without proxy_fcgi Apache cannot hand requests to PHP-FPM and serves PHP source or a 500 error. With mpm_prefork every connection holds a whole process and a small machine runs out of RAM under load; mpm_event and http2 serve more connections with the same RAM. Without rewrite WordPress pretty links return 404. The status module serves /server-status to PHP on every site of the machine, leaking other sites' visitor URLs with their secret tokens.",
 		),
 		Commands: cmds,
 		Danger:   !s.NoRestart, // không restart thì không cắt kết nối nào
