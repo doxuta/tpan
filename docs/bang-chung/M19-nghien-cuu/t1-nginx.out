@@ -1,0 +1,54 @@
+== phiên bản
+nginx version: nginx/1.24.0 (Ubuntu)
+== nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+mã 0
+== tên chính, tên phụ phục vụ, tên phụ chuyển
+N01 tên chính /                  curl=0 200 loc= body=[<!DOCTYPE html><html lang="en-US"><head>.<meta charset="U]
+N02 tên phụ phục vụ (punycode) / curl=0 200 loc= body=[<!DOCTYPE html><html lang="en-US"><head>.<meta charset="U]
+N03 tên phụ chuyển /          curl=0 301 loc=http://example.com/ body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+N04 tên phụ chuyển /a?b=1     curl=0 301 loc=http://example.com/a?b=1 body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+N05 tên phụ chuyển: thử thách curl=0 200 loc= body=[t1-acme-ok]
+N06 tên chính: thử thách      curl=0 200 loc= body=[t1-acme-ok]
+== luật chuyển hướng theo đường dẫn
+P01 /old-page                      curl=0 301 loc=http://example.com/new-page body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+P02 /old-page?x=1 (giữ query?)   curl=0 301 loc=http://example.com/new-page body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+P03 /old-page/ (không khớp)     curl=0 404 loc= body=[<!DOCTYPE html><html lang="en-US"><head>.<meta charset="U]
+P04 /OLD-PAGE (không khớp)      curl=0 404 loc= body=[<!DOCTYPE html><html lang="en-US"><head>.<meta charset="U]
+P05 //old-page (gộp gạch chéo) curl=0 301 loc=http://example.com/new-page body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+P06 /old%2Dpage (mã hoá %)       curl=0 301 loc=http://example.com/new-page body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+P07 /keepq?a=1&b=2                 curl=0 301 loc=https://example.net/target?a=1&b=2 body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+P08 /keepq (không query)          curl=0 301 loc=https://example.net/target body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+P09 /dropq?a=1                     curl=0 302 loc=https://example.net/target body=[<html>.<head><title>302 Found</title></head>.<body>.<cent]
+P10 /old-page qua tên phụ phục vụ curl=0 301 loc=http://xn--vitnam-jk8b.example.net/new-page body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+P11 /old-page qua tên phụ chuyển curl=0 301 loc=http://example.com/old-page body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+== luật chặn có sẵn vẫn đứng
+S01 uploads/evil.php (chặn)      curl=0 403 loc= body=[<html>.<head><title>403 Forbidden</title></head>.<body>.<]
+S02 uploads/evil2.php (có luật =) curl=0 301 loc=http://example.com/moved body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+S03 /.env (chặn file ẩn)       curl=0 403 loc= body=[<html>.<head><title>403 Forbidden</title></head>.<body>.<]
+S04 tên phụ phục vụ: evil.php curl=0 403 loc= body=[<html>.<head><title>403 Forbidden</title></head>.<body>.<]
+== bộ định tuyến dựng lại R01-R14 (cho tên phụ)
+R01 hoa: WWW.EXAMPLE.COM           curl=0 301 loc=http://example.com/ body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+R02 hoa: XN--VITNAM-JK8B.EXAMPLE.NET curl=0 200 loc= body=[<!DOCTYPE html><html lang="en-US"><head>.<meta charset="U]
+R03 chấm cuối: www.example.com. curl=0 301 loc=http://example.com/ body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+R04 chấm cuối: punycode.       curl=0 200 loc= body=[<!DOCTYPE html><html lang="en-US"><head>.<meta charset="U]
+R05 cổng: www.example.com:80     curl=0 301 loc=http://example.com/ body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+R06 cổng lạ: www.example.com:8080 curl=0 301 loc=http://example.com/ body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+R07 Unicode thô trong Host        curl=52 000 loc= body=[]
+R08 Host lạ: evil.example.org    curl=52 000 loc= body=[]
+R09 Host là IP 127.0.0.1          curl=52 000 loc= body=[]
+R10 Host rỗng                    curl=0 400 loc= body=[<html>.<head><title>400 Bad Request</title></head>.<body>.]
+R11 Host dài 300 ký tự         curl=52 000 loc= body=[]
+R12 tên con chưa khai: x.www.example.com curl=52 000 loc= body=[]
+R13 dòng yêu cầu dạng URI tuyệt đối, Host khác curl=52 000 loc= body=[]
+R14 URI tuyệt đối trỏ tên phụ, Host lạ curl=0 301 loc=http://example.com/x body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+== $host trong khối chuyển https (đo cho bản SSL)
+H01 hostprobe.example.com          curl=0 301 loc=https://hostprobe.example.com/p body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+H02 HOSTPROBE.EXAMPLE.COM.         curl=0 301 loc=https://hostprobe.example.com/p body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+H03 hostprobe.example.com:80       curl=0 301 loc=https://hostprobe.example.com/p body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+H04 URI tuyệt đối khác, Host đúng curl=52 000 loc= body=[]
+H05 URI tuyệt đối đúng, Host lạ curl=0 301 loc=https://hostprobe.example.com/p body=[<html>.<head><title>301 Moved Permanently</title></head>.<]
+== trả vhost cũ
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+xong

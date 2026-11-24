@@ -1,0 +1,31 @@
+== SAN thử:  DNS:example.com, DNS:www.example.com, DNS:xn--vitnam-jk8b.example.net
+(bật mod ssl)
+== apachectl -t
+Syntax OK
+mã 0
+== apache2ctl -S (443)
+*:443                  is a NameVirtualHost
+         port 443 namevhost t5-default.invalid (/etc/apache2/sites-enabled/001-t5-m19.conf:6)
+         port 443 namevhost example.com (/etc/apache2/sites-enabled/001-t5-m19.conf:17)
+                 alias xn--vitnam-jk8b.example.net
+         port 443 namevhost www.example.com (/etc/apache2/sites-enabled/001-t5-m19.conf:32)
+         port 80 namevhost tpan-default.invalid (/etc/apache2/sites-enabled/000-tpan-default.conf:7)
+         port 80 namevhost xn--vitnam-jk8b.example.net (/etc/apache2/sites-enabled/001-t5-m19.conf:47)
+         port 80 namevhost www.example.com (/etc/apache2/sites-enabled/001-t5-m19.conf:66)
+                 alias uncovered.example.net
+         port 80 namevhost example.com (/etc/apache2/sites-enabled/tpan-example.com.conf:5)
+== 443
+T01 https tên chính /readme.html             curl=0 200 loc= subject=CN = example.com body=[<!DOCTYPE html>.<html lang="en]
+T02 https tên phụ serve có phủ           curl=0 200 loc= subject=CN = example.com body=[<!DOCTYPE html>.<html lang="en]
+T03 https tên phụ redirect có phủ /x?y=1 curl=0 301 loc=https://example.com/x?y=1 subject=CN = example.com body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T04 https tên phụ chưa phủ (vhost mặc định) curl=0 403 loc= subject=CN = example.com body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+== 80
+T05 http tên phụ serve có phủ /a?b=1     curl=0 301 loc=https://xn--vitnam-jk8b.example.net/a?b=1  body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T06 http tên phụ chưa phủ /a             curl=0 301 loc=https://example.com/a  body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T07 http tên phụ redirect /a                curl=0 301 loc=https://example.com/a  body=[<!DOCTYPE HTML PUBLIC "-//IETF]
+T08 http thử thách: serve có phủ         curl=0 200 loc=  body=[t5-acme-ok.]
+T09 http thử thách: chưa phủ             curl=0 200 loc=  body=[t5-acme-ok.]
+T10 http thử thách: redirect                curl=0 200 loc=  body=[t5-acme-ok.]
+== dọn
+Syntax OK
+xong

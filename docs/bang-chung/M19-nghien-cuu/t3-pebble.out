@@ -1,0 +1,100 @@
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+gói: certbot 2.9.0-1
+gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
+pebble: {"keyChange":"https://localhost:14000/rollover-account-key","meta":{"externalAcc
+== C1 một tên: certbot certonly --webroot -w /var/lib/tpan/acme --cert-name example.com --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir -d example.com
+Account registered.
+Requesting a certificate for example.com
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/example.com/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/example.com/privkey.pem
+This certificate expires on 2031-11-24.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+mã thoát certbot: 0
+   chứng chỉ đang dùng: serial=4CA06EAE83241C94 |  DNS:example.com
+== C2 thêm www (cùng --cert-name): certbot certonly --webroot -w /var/lib/tpan/acme --cert-name example.com --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir -d example.com -d www.example.com
+Renewing an existing certificate for example.com and www.example.com
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/example.com/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/example.com/privkey.pem
+This certificate expires on 2031-11-24.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+mã thoát certbot: 0
+   chứng chỉ đang dùng: serial=33D187EB2B164C04 |  DNS:example.com, DNS:www.example.com
+== C3 thêm tên chưa trỏ về máy: certbot certonly --webroot -w /var/lib/tpan/acme --cert-name example.com --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir -d example.com -d www.example.com -d nodns.example.invalid
+Renewing an existing certificate for example.com and 2 more domains
+Certbot failed to authenticate some domains (authenticator: webroot). The Certificate Authority reported these problems:
+  Domain: nodns.example.invalid
+  Type:   connection
+  Detail: Get "http://nodns.example.invalid:80/.well-known/acme-challenge/dqQeRhNM7okuGwOZQP5OdFA4rSZbgFeDvAi_U4_wR44": error occurred while resolving URL "http://nodns.example.invalid:80/.well-known/acme-challenge/dqQeRhNM7okuGwOZQP5OdFA4rSZbgFeDvAi_U4_wR44": "lookup nodns.example.invalid on 127.0.0.53:53: no such host"
+Hint: The Certificate Authority failed to download the temporary challenge files created by Certbot. Ensure that the listed domains serve their content from the provided --webroot-path/-w and that files created there can be downloaded from the internet.
+Some challenges have failed.
+Ask for help or search for solutions at https://community.letsencrypt.org. See the logfile /var/log/letsencrypt/letsencrypt.log or re-run Certbot with -v for more details.
+mã thoát certbot: 1
+   chứng chỉ đang dùng: serial=33D187EB2B164C04 |  DNS:example.com, DNS:www.example.com
+== C3b thêm tên trỏ về máy: certbot certonly --webroot -w /var/lib/tpan/acme --cert-name example.com --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir -d example.com -d www.example.com -d alias.example.net
+Renewing an existing certificate for example.com and 2 more domains
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/example.com/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/example.com/privkey.pem
+This certificate expires on 2031-11-24.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+mã thoát certbot: 0
+   chứng chỉ đang dùng: serial=3F66C4F934C57EB0 |  DNS:example.com, DNS:www.example.com, DNS:alias.example.net
+== C4 bớt tên: certbot certonly --webroot -w /var/lib/tpan/acme --cert-name example.com --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir -d example.com -d www.example.com
+Renewing an existing certificate for example.com and www.example.com
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/example.com/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/example.com/privkey.pem
+This certificate expires on 2031-11-24.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+mã thoát certbot: 0
+   chứng chỉ đang dùng: serial=194D51BCAE99C4AC |  DNS:example.com, DNS:www.example.com
+== C4b chạy lại đúng bộ tên (không đổi gì?): certbot certonly --webroot -w /var/lib/tpan/acme --cert-name example.com --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir -d example.com -d www.example.com
+Certificate not yet due for renewal
+Certificate not yet due for renewal; no action taken.
+mã thoát certbot: 0
+   chứng chỉ đang dùng: serial=194D51BCAE99C4AC |  DNS:example.com, DNS:www.example.com
+== C5 trần số tên: 101 tên (pebble)
+== C5 101 tên: certbot certonly --webroot -w /var/lib/tpan/acme --cert-name example.com --non-interactive --agree-tos -m admin@example.com --server https://localhost:14000/dir -d example.com -d n1.example.com -d n2.example.com -d n3.example.com -d n4.example.com -d n5.example.com -d n6.example.com -d n7.example.com -d n8.example.com -d n9.example.com -d n10.example.com -d n11.example.com -d n12.example.com -d n13.example.com -d n14.example.com -d n15.example.com -d n16.example.com -d n17.example.com -d n18.example.com -d n19.example.com -d n20.example.com -d n21.example.com -d n22.example.com -d n23.example.com -d n24.example.com -d n25.example.com -d n26.example.com -d n27.example.com -d n28.example.com -d n29.example.com -d n30.example.com -d n31.example.com -d n32.example.com -d n33.example.com -d n34.example.com -d n35.example.com -d n36.example.com -d n37.example.com -d n38.example.com -d n39.example.com -d n40.example.com -d n41.example.com -d n42.example.com -d n43.example.com -d n44.example.com -d n45.example.com -d n46.example.com -d n47.example.com -d n48.example.com -d n49.example.com -d n50.example.com -d n51.example.com -d n52.example.com -d n53.example.com -d n54.example.com -d n55.example.com -d n56.example.com -d n57.example.com -d n58.example.com -d n59.example.com -d n60.example.com -d n61.example.com -d n62.example.com -d n63.example.com -d n64.example.com -d n65.example.com -d n66.example.com -d n67.example.com -d n68.example.com -d n69.example.com -d n70.example.com -d n71.example.com -d n72.example.com -d n73.example.com -d n74.example.com -d n75.example.com -d n76.example.com -d n77.example.com -d n78.example.com -d n79.example.com -d n80.example.com -d n81.example.com -d n82.example.com -d n83.example.com -d n84.example.com -d n85.example.com -d n86.example.com -d n87.example.com -d n88.example.com -d n89.example.com -d n90.example.com -d n91.example.com -d n92.example.com -d n93.example.com -d n94.example.com -d n95.example.com -d n96.example.com -d n97.example.com -d n98.example.com -d n99.example.com -d n100.example.com
+Renewing an existing certificate for example.com and 100 more domains
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/example.com/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/example.com/privkey.pem
+This certificate expires on 2031-11-24.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+mã thoát certbot: 0
+   chứng chỉ đang dùng: serial=18341ACE20BDFEFE |  DNS:example.com, DNS:n1.example.com, DNS:n2.example.com, DNS:n3.example.com, DNS:n4.example.com, DNS:n5.example.com, DNS:n6.example.com, DNS:n7.example.com, DNS:n8.example.com, DNS:n9.example.com, DNS:n10.example.com, DNS:n11.example.com, DNS:n12.example.com, DNS:n13.example.com, DNS:n14.example.com, DNS:n15.example.com, DNS:n16.example.com, DNS:n17.example.com, DNS:n18.example.com, DNS:n19.example.com, DNS:n20.example.com, DNS:n21.example.com, DNS:n22.example.com, DNS:n23.example.com, DNS:n24.example.com, DNS:n25.example.com, DNS:n26.example.com, DNS:n27.example.com, DNS:n28.example.com, DNS:n29.example.com, DNS:n30.example.com, DNS:n31.example.com, DNS:n32.example.com, DNS:n33.example.com, DNS:n34.example.com, DNS:n35.example.com, DNS:n36.example.com, DNS:n37.example.com, DNS:n38.example.com, DNS:n39.example.com, DNS:n40.example.com, DNS:n41.example.com, DNS:n42.example.com, DNS:n43.example.com, DNS:n44.example.com, DNS:n45.example.com, DNS:n46.example.com, DNS:n47.example.com, DNS:n48.example.com, DNS:n49.example.com, DNS:n50.example.com, DNS:n51.example.com, DNS:n52.example.com, DNS:n53.example.com, DNS:n54.example.com, DNS:n55.example.com, DNS:n56.example.com, DNS:n57.example.com, DNS:n58.example.com, DNS:n59.example.com, DNS:n60.example.com, DNS:n61.example.com, DNS:n62.example.com, DNS:n63.example.com, DNS:n64.example.com, DNS:n65.example.com, DNS:n66.example.com, DNS:n67.example.com, DNS:n68.example.com, DNS:n69.example.com, DNS:n70.example.com, DNS:n71.example.com, DNS:n72.example.com, DNS:n73.example.com, DNS:n74.example.com, DNS:n75.example.com, DNS:n76.example.com, DNS:n77.example.com, DNS:n78.example.com, DNS:n79.example.com, DNS:n80.example.com, DNS:n81.example.com, DNS:n82.example.com, DNS:n83.example.com, DNS:n84.example.com, DNS:n85.example.com, DNS:n86.example.com, DNS:n87.example.com, DNS:n88.example.com, DNS:n89.example.com, DNS:n90.example.com, DNS:n91.example.com, DNS:n92.example.com, DNS:n93.example.com, DNS:n94.example.com, DNS:n95.example.com, DNS:n96.example.com, DNS:n97.example.com, DNS:n98.example.com, DNS:n99.example.com, DNS:n100.example.com
+== dọn
+certbot delete mã 0
+xong
+rc=0
