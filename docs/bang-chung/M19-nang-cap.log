@@ -1,0 +1,185 @@
+
+
+######## [2026-11-25 05:33:40] e2e M19 bước 22 (dòng lệnh và API) — máy ảo tpan-m19 — phần: nang-cap — log docs/bang-chung/M19-nang-cap.log
+E2E_BUILD=1  E2E_BIN_PREFIX=bin/tpan-linux  E2E_OLD_BIN_PREFIX=bin/tpan-truoc-m19-linux  E2E_OLD_COMMIT=f6a68b9
+E10 giao diện: ở e2e-m19-gd (ở đây E10 thay bằng thêm example.net qua API)
+E23 giao diện, E41 giao diện: ở e2e-m19-gd
+E70, E71: hồi quy các e2e cũ, chạy riêng (ngoài script này)
+
+
+######## [2026-11-25 05:33:40] PHẦN NÂNG CẤP: bản ngay trước M19 (f6a68b9) lên bản của cây (apache)
+
+[2026-11-25 05:33:40] đưa máy ảo tpan-m19 về sạch
+[2026-11-25 05:33:55] máy ảo sạch, kiến trúc arm64, IP <vm>
+[2026-11-25 05:33:55] dùng bin/tpan-truoc-m19-linux-arm64 có sẵn
+[2026-11-25 05:33:55] chép bin/tpan-truoc-m19-linux-arm64 vào máy ảo
+[2026-11-25 05:33:56] chép scripts/e2e-m19/ vào máy ảo (/home/ubuntu/e2e-m19)
+
+[2026-11-25 05:33:57] >>> cài bản trước M19, hai site, SSL cho một site, ghi sha256 vhost và health  (bash nang-cap.sh truoc apache)
+
+--- [05:33:58] N0. bản đang chạy (trước M19)
+tpan dev (commit none, build unknown)
+
+--- [05:33:58] tpan version
+tpan dev (commit none, build unknown)
+
+--- [05:33:58] tpan setup
+Job c688ca42a29a256e: thành công
+
+Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
+Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
+    61:C9:70:69:81:89:EF:3B:18:03:B6:16:45:2E:B2:EB:11:9A:7D:BC:F2:55:AD:21:08:75:B8:0A:99:7B:1E:41
+Mở: https://<IP của máy>:8443
+  => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m19-admin.pw, không in)
+  => ĐẠT: tpan.service active
+
+--- [05:33:58] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+  apt rảnh sau khoảng 0 giây
+
+--- [05:33:58] tpan stack install --web apache --yes
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.4%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+  => ĐẠT: stack install --web apache thoát 0
+
+--- [05:34:33] pebble (đồ nghề test) và tpan ssl settings
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
+Running hooks in /etc/ca-certificates/update.d...
+done.
+Running as unit: tpan-e2e-pebble.service; invocation ID: <mật khẩu đã che>
+  => ĐẠT: pebble trả lời, có newOrder
+Email:     admin@example.com
+Staging:   bật (chứng chỉ thử, trình duyệt không tin)
+ACME:      https://localhost:14000/dir
+  => ĐẠT: ssl settings thoát 0
+  /etc/hosts: example.com old2.example.com -> 127.0.0.1
+
+--- [05:34:38] N1. trên bản trước M19: site example.com (SSL bằng pebble) và old2.example.com
+  $ tpan site add example.com  (thoát 0)
+    |   [đạt] Vhost của site có đủ các dòng chặn cô lập
+    |   [đạt] Thư mục public của site là thư mục thật của chính site
+    |   [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+  => ĐẠT: site add example.com thoát 0
+  $ tpan site add old2.example.com  (thoát 0)
+    |   [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+    |   [đạt] Site old2.example.com không chạm được vào file, log và socket của site example.com
+    |   [đạt] Site example.com không chạm được vào file, log và socket của site old2.example.com
+  => ĐẠT: site add old2.example.com thoát 0
+  $ tpan ssl issue example.com --yes (thoát 0)
+    | [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
+    |     Nguyên nhân: Tên miền trỏ về máy khác, hoặc máy này đứng sau NAT (IP public không hiện trên card mạng, thường gặp ở VPS đám mây). Nếu là NAT thì vẫn xin chứng chỉ được; bước thử HTTP sẽ cho câu trả lời thật.
+    |     Sửa tay (gõ trên máy này, thư mục nào cũng được):
+    |       sudo ip -o addr show scope global
+    |       sudo getent ahostsv4 example.com
+    | Bắt đầu job 0d4344409251f336
+    | - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
+    |   xong
+    | - Thử đường HTTP mà Let's Encrypt sẽ kiểm cho example.com ...
+    |   xong
+    | - Xin chứng chỉ Let's Encrypt cho example.com ...
+    |   xong
+    | - Cài gói: ssl-cert ...
+    |   đã đúng, bỏ qua
+    | - Module Apache: bật ssl ...
+    |   xong
+    | - Ghi site mặc định cổng 443 của Apache ...
+    |   xong
+    | - Bật /etc/apache2/sites-enabled/000-tpan-default-ssl.conf → /etc/apache2/sites-available/000-tpan-default-ssl.conf ...
+    |   xong
+    | - Ghi vhost apache có HTTPS cho example.com ...
+    |   xong
+    | - Bật /etc/apache2/sites-enabled/tpan-example.com.conf → /etc/apache2/sites-available/tpan-example.com.conf ...
+    |   đã đúng, bỏ qua
+    | - Đặt địa chỉ WordPress của example.com là https://example.com ...
+    |   xong
+    | - Ghi hook gia hạn chứng chỉ ...
+    |   xong
+    |   [đạt] Chứng chỉ SSL có, khớp tên miền và còn  => ĐẠT: ssl issue example.com thoát 0
+  => ĐẠT: bản trước M19 chưa có bảng site_names (xác nhận đang đo đúng bản cũ)
+
+--- [05:35:06] N2. mốc: sha256 hai vhost và health
+6745502b1107c0381cd8605478e3b4989e3b79753845bcd79d0bfa4ad7bd5eb6  /etc/apache2/sites-available/tpan-example.com.conf
+5e5d6699a6f5670fa1fe40564b2f4e6674ca6516511f825447cf97e96e2b2544  /etc/apache2/sites-available/tpan-old2.example.com.conf
+  => ĐẠT: có sha256 của cả hai vhost
+  số dòng [lỗi] hay [cảnh báo] trên bản trước M19: 4
+  | [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
+  | [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của old2.example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
+  | [cảnh báo] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chưa có chứng chỉ cho old2.example.com
+  | [cảnh báo] tpan.db có bản sao lưu gần đây: chưa có bản sao lưu tpan.db nào
+[2026-11-25 05:35:10] <<< cài bản trước M19, hai site, SSL cho một site, ghi sha256 vhost và health xong trong 73 giây
+
+[2026-11-25 05:35:10] thay file chạy bằng bản của cây rồi restart tpan
+[2026-11-25 05:35:14] chép bin/tpan-linux-arm64 vào máy ảo
+tpan v0.2.3-133-ge961962 (commit e961962, build 2026-11-24T22:35:10Z)
+
+[2026-11-25 05:35:15] >>> E60-E62: sau nâng cấp  (bash nang-cap.sh sau apache)
+
+--- [05:35:15] N3. bản đang chạy (bản của cây)
+tpan v0.2.3-133-ge961962 (commit e961962, build 2026-11-24T22:35:10Z)
+
+--- [05:35:15] E60. sau nâng: site_names chỉ có hai dòng primary; vhost không đổi; health không có dòng mới
+  => ĐẠT: E60: site_names có đúng 2 dòng
+  => ĐẠT: E60: cả hai dòng là primary, active
+  => ĐẠT: E60: tên là example.com và old2.example.com
+  $ tpan site alias list example.com --json (thoát 0)
+    | example.com primary serve active dns=warn in_cert=True
+  => ĐẠT: E60: site alias list example.com: chỉ tên chính
+/etc/apache2/sites-available/tpan-example.com.conf: OK
+/etc/apache2/sites-available/tpan-old2.example.com.conf: OK
+  => ĐẠT: E60: sha256 hai vhost không đổi so với bản trước M19
+  => ĐẠT: E60: tpan health không có dòng [lỗi] hay [cảnh báo] mới so với trước khi nâng
+  GET https://example.com/readme.html: HTTP 200 (curl thoát 0), Location: -
+  => ĐẠT: E60: https://example.com/ trả 200
+  GET http://old2.example.com/readme.html: HTTP 200, Location: -, X-Redirect-By: -
+  => ĐẠT: E60: http://old2.example.com/ trả 200
+
+--- [05:35:19] E61. sửa lệch vhost (bỏ dòng đầu của tpan), tpan health --fix ghi lại, sha256 vẫn bằng bản trước
+  => ĐẠT: E61: sau khi bỏ dòng đầu, sha256 khác bản trước (đã lệch thật)
+  web.vhost:example.com: fail,fail; web.vhost:old2.example.com: fail,fail
+  => ĐẠT: E61: health thấy hai vhost lệch (web.vhost fail)
+  $ tpan health --fix --yes (thoát 0)
+    | 
+    | == Máy và stack ==
+    | [đạt] Dịch vụ apache2 đang chạy và tự bật cùng máy: apache2 đang chạy và tự bật khi khởi động máy
+    | [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+    | [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+    | [đạt] Cấu hình Apache hợp lệ: Cấu hình Apache hợp lệ
+    | [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+    | [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+    | [đạt] Site mặc định của Apache trả 403 cho request lạ: Apache trả 403 cho request lạ như mong đợi
+    | [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+    | [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+    | [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.8%
+    | [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+    | [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+    | [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-f  => ĐẠT: E61: health --fix thoát 0
+6745502b1107c0381cd8605478e3b4989e3b79753845bcd79d0bfa4ad7bd5eb6  /etc/apache2/sites-available/tpan-example.com.conf
+5e5d6699a6f5670fa1fe40564b2f4e6674ca6516511f825447cf97e96e2b2544  /etc/apache2/sites-available/tpan-old2.example.com.conf
+/etc/apache2/sites-available/tpan-example.com.conf: OK
+/etc/apache2/sites-available/tpan-old2.example.com.conf: OK
+  => ĐẠT: E61: sha256 hai vhost sau khi ghi lại bằng bản M19 bằng bản trước M19 (output vàng, B5)
+  GET https://example.com/readme.html: HTTP 200 (curl thoát 0), Location: -
+  => ĐẠT: E61: https://example.com/ vẫn 200
+
+--- [05:35:32] E62. site add chạy lại trên site cũ (tên miền gốc): không có tên phụ mới
+  $ tpan site add example.com  (thoát 0)
+    |   [đạt] .htaccess của site chỉ dùng chỉ thị được phép
+    |   [đạt] Site example.com không chạm được vào file, log và socket của site old2.example.com
+    |   [đạt] Site old2.example.com không chạm được vào file, log và socket của site example.com
+  => ĐẠT: E62: site add example.com chạy lại thoát 0
+  $ tpan site alias list example.com --json (thoát 0)
+    | example.com primary serve active dns=warn in_cert=True
+  => ĐẠT: E62: vẫn chỉ tên chính (không có www.example.com)
+  => ĐẠT: E62: site_names vẫn đúng 2 dòng
+/etc/apache2/sites-available/tpan-example.com.conf: OK
+/etc/apache2/sites-available/tpan-old2.example.com.conf: OK
+  => ĐẠT: E62: sha256 hai vhost vẫn như bản trước M19
+[2026-11-25 05:35:35] <<< E60-E62: sau nâng cấp xong trong 20 giây
+
+==== Phần NÂNG-CẤP: 27 khẳng định đạt, 0 không đạt
+
+
+######## [2026-11-25 05:35:35] TỔNG KẾT: 27 khẳng định đạt, 0 khẳng định không đạt

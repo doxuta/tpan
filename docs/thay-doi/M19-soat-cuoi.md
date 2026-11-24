@@ -324,4 +324,4 @@ Nhánh soát câu 2 chạy nginx thật trong container (`nginx:1.30-alpine`, th
 - **C9 (sửa).** Tên `www.` mặc định qua cùng phép kiểm "vhost khác đã khai" như `alias.add`; `DeclaredFile` hiểu wildcard nginx (`*.x`, `.x`, `x.*`) và Apache. Test `TestSiteAddWWWDeclaredElsewhere`, `TestAliasAddDeclaredWildcard`, `TestDeclaredNamesWildcard`.
 - **Ghi chú quy trình.** Nhánh soát câu 2 chạy nginx trong một container dùng một lần và `httpd` trên máy Mac, không root, không đụng máy thật hay VPS; chỉ để đo cú pháp. Ghi lại để chủ dự án biết.
 
-Sau các bản sửa: `make check` xanh; e2e bước 22 chạy lại trên mã đã gộp `dev`: 373 đạt, 0 không đạt.
+Sau các bản sửa: `make check` xanh; e2e bước 22 chạy lại trên mã cuối đã gộp `dev` (gồm M20): xem `docs/thay-doi/M19.md` mục 17.

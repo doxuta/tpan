@@ -31,14 +31,21 @@ Ba ý chính để nói:
 
 ### 2.1 Số liệu e2e
 
-e2e bước 22 là `scripts/e2e-m19.sh` (`make e2e-m19 P="nginx apache nang-cap"`), chạy trên máy ảo `tpan-m19` ngày 25/11/2026, trên mã đã gộp `dev`. Log: `docs/bang-chung/M19.log`. Dòng cuối:
+e2e bước 22 là `scripts/e2e-m19.sh` (`make e2e-m19`), chạy trên máy ảo `tpan-m19` ngày 25/11/2026, trên mã cuối đã gộp `dev` (gồm M20). Log: `docs/bang-chung/M19.log`. Dòng cuối:
 
 ```
 ==== Phần NGINX: 173 khẳng định đạt, 0 không đạt
 ==== Phần APACHE: 173 khẳng định đạt, 0 không đạt
-==== Phần NÂNG-CẤP: 27 khẳng định đạt, 0 không đạt
-######## [2026-11-25 04:18:34] TỔNG KẾT: 373 khẳng định đạt, 0 khẳng định không đạt
+==== Phần NÂNG-CẤP: 26 khẳng định đạt, 1 không đạt
+==== Phần NÂNG-CẤP-V020: 29 khẳng định đạt, 0 không đạt
+######## [2026-11-25 05:18:41] TỔNG KẾT: 401 khẳng định đạt, 1 khẳng định không đạt
 ```
+
+Chỗ không đạt duy nhất là của script, không phải của M19: sau khi lên bản đã gộp M20, `tpan health` có thêm cảnh báo "Mọi admin đã bật đăng nhập hai bước" (phép kiểm của M20), mà khẳng định E60 coi mọi dòng mới là lỗi. Script sửa để bỏ đúng dòng đó; chạy lại riêng phần nâng cấp: `docs/bang-chung/M19-nang-cap.log`, 27 đạt, 0 không đạt.
+
+Hai đường nâng cấp khác nhau có chủ ý. Phần `nang-cap` cài bản ngay trước M19 rồi lên: vhost phải giống từng byte. Phần `nang-cap-v020` cài gói phát hành v0.2.0 rồi lên: không so từng byte (template đã đổi từ v0.2.0 ở M14, M28), chỉ khẳng định không tên phụ nào tự sinh, site vẫn 200, health không có dòng mới về tên phụ.
+
+Hồi quy: M16 120/0 và M14 270/0 trên mã cuối; M13 293/0, M5 256/0, M3 151/0 trên mã trước khi gộp M20 (`docs/bang-chung/M19-hoi-quy-*.log`).
 
 Phần giao diện bấm thật bằng trình duyệt (`make e2e-m19-gd`: thêm tên phụ, lời từ chối của user B, tên chưa đạt, thêm luật): 94 khẳng định đạt, 0 không đạt, `docs/bang-chung/M19-giao-dien.log`; ảnh ở `docs/bang-chung/M19/`.
 
