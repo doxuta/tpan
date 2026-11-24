@@ -140,7 +140,6 @@ export function CageBlock({ site, admin }: Props) {
               <div className="pt-[12px]">
                 <Button
                   disabled={flow.dry.isPending || flow.run.isPending || noWant || row === undefined}
-                  aria-label={enable ? t.enableFor(d) : t.disableFor(d)}
                   aria-describedby={noWant ? "long-khong-bat" : undefined}
                   title={noWant ? t.noWantLead(pkg).trim() : undefined}
                   onClick={() => flow.ask(cageRequest(d, enable))}

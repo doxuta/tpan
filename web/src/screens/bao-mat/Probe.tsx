@@ -11,7 +11,7 @@
 // usePlanFlow nên cùng lúc chỉ có một bản xem trước.
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { errorMessage } from "../../api/client";
+import { ApiError, errorMessage } from "../../api/client";
 import { usePlanFlow } from "../../api/m13-users";
 import { probeCleanupPath, probeCleanupRequest, probeRequest, useProbe } from "../../api/m17";
 import type { ProbeOnly, ProbeReport, ProbeResult } from "../../api/m17-types";
@@ -50,6 +50,12 @@ export function ProbeBlock() {
   const { lang } = useLang();
   const q = useProbe();
   const flow = usePlanFlow();
+  // Dọn lượt sót mà người khác vừa dọn xong (409 nothing_to_do): đọc lại để câu
+  // báo và nút Dọn biến mất, không để người dùng bấm lại vào cùng lỗi.
+  const dryErr = flow.dry.error;
+  useEffect(() => {
+    if (dryErr instanceof ApiError && dryErr.code === "nothing_to_do") void q.refetch();
+  }, [dryErr]); // eslint-disable-line react-hooks/exhaustive-deps
   const [only, setOnly] = useState<ProbeOnly>("");
   const previewRef = useRef<HTMLDivElement>(null);
 

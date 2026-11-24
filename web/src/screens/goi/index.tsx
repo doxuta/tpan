@@ -60,6 +60,15 @@ export default function Packages() {
   // Bản xem trước đã dựng xong thì hộp sửa gói nhường chỗ cho nó (nó nằm dưới bảng); lỗi dựng thì hộp ở lại để sửa tiếp.
   useEffect(() => {
     if (flow.open) {
+      // Danh sách lồng trong bộ nhớ có thể cũ (site vừa ra khỏi lồng ở chỗ khác):
+      // server không còn gì phải chạy thì lưu luôn, không để bản xem trước 0 bước
+      // khoá nút Chạy (usePlanFlow nhận 200 PackageRow như một lần lưu thường).
+      if (flow.open.preview.steps.every((s) => s.done)) {
+        flow.start();
+        setDlg(null);
+        if (plan) setNotice(t.editedDone(plan.name));
+        return;
+      }
       setDlg(null);
       planRef.current?.scrollIntoView({ block: "start" });
       planRef.current?.focus();
