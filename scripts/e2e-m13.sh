@@ -699,7 +699,8 @@ part_u3() {
   # Fail"; giờ là: chỉ có đúng ba loại lỗi đó, và harden đưa về không còn lỗi.
   section "U3: (M14) tpan security harden trên máy vừa nâng"
   health_json
-  ok "health sau khi nâng: có lỗi, và chỉ thuộc ba loại của M14 (php.opcache, log.perm, web.hardened)" hq '[.groups[].results[] | select(.status == "fail") | .id | split(":")[0]] | (length > 0 and ((. - ["php.opcache", "log.perm", "web.hardened"]) | length == 0))'
+  # M28 đợt 2 (mục 6.27) thêm web.docroot_guard cùng loại: chưa đạt tới khi harden.
+  ok "health sau khi nâng: có lỗi, và chỉ thuộc các loại chờ harden của M14, M28 (php.opcache, log.perm, web.hardened, web.docroot_guard)" hq '[.groups[].results[] | select(.status == "fail") | .id | split(":")[0]] | (length > 0 and ((. - ["php.opcache", "log.perm", "web.hardened", "web.docroot_guard"]) | length == 0))'
   vroot tpan security harden --yes
   ok "tpan security harden thoát 0, job thành công" job_ok
   health_json
