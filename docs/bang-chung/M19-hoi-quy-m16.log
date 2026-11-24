@@ -1,22 +1,26 @@
-e2e M16 (bước 19). Bản cũ: v0.2.0; bản A (của cây): v0.2.3-51-ga799785-dirty; bản B: v0.2.3-51-ga799785-dirty-e2e-b; máy ảo: tpan-m19
+e2e M16 (bước 19). Bản cũ: v0.2.0; bản A (của cây): v0.2.3-132-g45bff31-dirty; bản B: v0.2.3-132-g45bff31-dirty-e2e-b; máy ảo: tpan-m19
 
 
-######## [2026-11-25 04:18:58] PHẦN 0: đóng gói bản A và bản B, dựng thư mục đồ nghề
+######## [2026-11-25 05:20:56] PHẦN 0: đóng gói bản A và bản B, dựng thư mục đồ nghề
 
-[2026-11-25 04:18:58] $ git log --oneline -1
-a799785 bằng chứng M19: e2e bước 22 trên mã đã gộp dev (M17 giao diện), 373 khẳng định đạt, 0 không đạt (nginx 173, Apache 173, nâng từ bản trước M19 27)
-[2026-11-25 04:18:58] (mã thoát 0)
+[2026-11-25 05:20:56] $ git log --oneline -1
+45bff31 gộp M20 vào M19: tám route của M19 vào nhóm token sites (bảng quyết định token của M20); CertbotCert giữ cả Names/Probe (M19) lẫn CertName (M20), Check đọc SAN cho cả hai
+[2026-11-25 05:20:56] (mã thoát 0)
 
-[2026-11-25 04:18:58] $ git status --short
- M docs/KE-HOACH.md
-[2026-11-25 04:18:58] (mã thoát 0)
+[2026-11-25 05:20:56] $ git status --short
+ M docs/bang-chung/M19-giao-dien.log
+ M docs/bang-chung/M19.log
+ M docs/bang-chung/M19/M19-that-1-xem-truoc.png
+ M docs/bang-chung/M19/M19-that-2-da-them.png
+ M docs/bang-chung/M19/M19-that-3-chua-dat-sang.png
+ M docs/bang-chung/M19/M19-that-3-chua-dat-toi.png
+ M docs/bang-chung/M19/M19-that-4-tu-choi.png
+ M docs/bang-chung/M19/M19-that-5-nguon-sai.png
+ M docs/bang-chung/M19/M19-that-6-da-them-luat.png
+[2026-11-25 05:20:56] (mã thoát 0)
 
-[2026-11-25 04:18:58] $ gh release download v0.2.0 --repo doxuta/tpan --dir dist/release/v0.2.0
-[2026-11-25 04:19:31] (mã thoát 0)
-  => ĐẠT: tải gói v0.2.0 từ trang phát hành
-
-[2026-11-25 04:19:31] $ bash -c cd "$1" && ls -l && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.0
-total 93552
+[2026-11-25 05:20:56] $ bash -c cd "$1" && ls -l && shasum -a 256 -c SHA256SUMS _ dist/release/v0.2.0
+total 91832
 -rw-r--r--@ 1 <user>  staff       243 Nov 25 04:19 SHA256SUMS
 -rw-r--r--@ 1 <user>  staff     20194 Nov 25 04:19 install.sh
 -rw-r--r--@ 1 <user>  staff  24035488 Nov 25 04:19 tpan-linux-amd64
@@ -24,21 +28,21 @@ total 93552
 tpan-linux-amd64: OK
 tpan-linux-arm64: OK
 install.sh: OK
-[2026-11-25 04:19:31] (mã thoát 0)
+[2026-11-25 05:20:56] (mã thoát 0)
   => ĐẠT: gói v0.2.0 đã phát hành: đủ file, sha256 khớp SHA256SUMS
 
-[2026-11-25 04:19:31] $ make release VERSION=v0.2.3-51-ga799785-dirty DATE=2026-11-24T21:18:58Z
+[2026-11-25 05:20:56] $ make release VERSION=v0.2.3-132-g45bff31-dirty DATE=2026-11-24T22:20:56Z
 cd web && pnpm install --frozen-lockfile && pnpm build
 ✓ Lockfile passes supply-chain policies (verified 4d ago)
 Lockfile is up to date, resolution step is skipped
-Done in 25ms using pnpm v12.15.0
+Done in 27ms using pnpm v12.15.0
 $ tsc --noEmit && vite build
 vite v8.3.8 building client environment for production...
 transforming...
-✓ 424 modules transformed.
+✓ 446 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                                                   0.95 kB │ gzip:   0.55 kB
+dist/index.html                                                   1.11 kB │ gzip:   0.58 kB
 dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
 dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
 dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
@@ -51,95 +55,105 @@ dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
 dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
 dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
 dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
-dist/assets/index-D6gBR3g-.css                                   39.28 kB │ gzip:   9.03 kB
-dist/assets/useStatusName-CcJShEoo.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/index-DJFMKdRB.css                                   39.66 kB │ gzip:   9.10 kB
+dist/assets/useStatusName-CxUGMPHT.js                             0.20 kB │ gzip:   0.18 kB
 dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
 dist/assets/model-Co_p74TJ.js                                     0.27 kB │ gzip:   0.18 kB
-dist/assets/OriginTag-BWb7RHXG.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/OriginTag-Br1_EzVH.js                                 0.27 kB │ gzip:   0.22 kB
 dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
-dist/assets/DomainText-BuneIvy2.js                                0.30 kB │ gzip:   0.22 kB
-dist/assets/SuspendTag-BrofeWpR.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/DomainText-KBkCG4fH.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-DJaOgP0c.js                                0.37 kB │ gzip:   0.27 kB
 dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
-dist/assets/useCopy-C0G2qb33.js                                   0.51 kB │ gzip:   0.32 kB
-dist/assets/m14-C_3ZzrAI.js                                       0.56 kB │ gzip:   0.34 kB
-dist/assets/m13-dbs-CkpEe-2O.js                                   0.65 kB │ gzip:   0.38 kB
-dist/assets/SegmentButton-BSbwWrRp.js                             0.70 kB │ gzip:   0.45 kB
-dist/assets/RowActions-r9Aq7AjB.js                                0.70 kB │ gzip:   0.42 kB
-dist/assets/m13-chung-BxXE7Tyz.js                                 0.80 kB │ gzip:   0.44 kB
-dist/assets/Rows-3jSbarwr.js                                      0.84 kB │ gzip:   0.35 kB
+dist/assets/useCopy-BJdn0eDz.js                                   0.51 kB │ gzip:   0.32 kB
+dist/assets/m14-DLuaUkTf.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-BBpQSZ9E.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/SegmentButton-CR5MIMgU.js                             0.70 kB │ gzip:   0.45 kB
+dist/assets/RowActions-CoZLx16y.js                                0.70 kB │ gzip:   0.42 kB
+dist/assets/m13-chung-Cpal5VlU.js                                 0.80 kB │ gzip:   0.44 kB
+dist/assets/Rows-Blir0bT6.js                                      0.84 kB │ gzip:   0.36 kB
 dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
-dist/assets/m19-C4JkMBGt.js                                       0.85 kB │ gzip:   0.47 kB
-dist/assets/UsageMeter-Bf12ux2F.js                                0.86 kB │ gzip:   0.46 kB
+dist/assets/m19-CgG8tz4C.js                                       0.85 kB │ gzip:   0.47 kB
+dist/assets/UsageMeter-BDT1YDHR.js                                0.86 kB │ gzip:   0.47 kB
 dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
-dist/assets/m17-DyYX3leo.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/m17-C12L2f47.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/Frame-CqQq1zih.js                                     1.00 kB │ gzip:   0.51 kB
 dist/assets/model-C2VyZL6F.js                                     1.02 kB │ gzip:   0.54 kB
 dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
-dist/assets/Dialog-DJVBoJFK.js                                    1.18 kB │ gzip:   0.65 kB
-dist/assets/model-BGHmcsHS.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/Dialog-DKZvNqU2.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/StatusMark-DcGozgEi.js                                1.28 kB │ gzip:   0.59 kB
+dist/assets/model-CCZ7Tvoj.js                                     1.56 kB │ gzip:   0.61 kB
 dist/assets/model-XbSQ3r3G.js                                     1.78 kB │ gzip:   0.86 kB
-dist/assets/PreviewedOp-EiGMYmAF.js                               1.86 kB │ gzip:   0.98 kB
-dist/assets/TableList-pk_U4jMQ.js                                 2.21 kB │ gzip:   0.95 kB
-dist/assets/RouteMap-BRxbtCoO.js                                  2.35 kB │ gzip:   1.03 kB
-dist/assets/ten-mien-D0z2ROBk.js                                  2.94 kB │ gzip:   1.30 kB
-dist/assets/Bulk-PK726N4t.js                                      3.03 kB │ gzip:   1.39 kB
-dist/assets/plan-cho-duyet-0TxmomqN.js                            5.82 kB │ gzip:   2.03 kB
-dist/assets/StorageFlow-CIvrEU0R.js                               6.41 kB │ gzip:   2.57 kB
-dist/assets/dang-nhap-BkuPrJxz.js                                 6.70 kB │ gzip:   2.90 kB
-dist/assets/Self-DVD1wuIA.js                                      8.48 kB │ gzip:   2.70 kB
-dist/assets/goi-DIx2OSnU.js                                       9.12 kB │ gzip:   3.74 kB
-dist/assets/model-BxIQ-vcC.js                                    10.04 kB │ gzip:   3.95 kB
-dist/assets/tai-nguyen--lak-hg-.js                               10.82 kB │ gzip:   4.00 kB
-dist/assets/backup-1d4w9-SC.js                                   10.94 kB │ gzip:   3.49 kB
-dist/assets/queries-Bq3jdEsn.js                                  10.97 kB │ gzip:   3.33 kB
-dist/assets/cong-cu-CWPSHKll.js                                  11.31 kB │ gzip:   4.35 kB
-dist/assets/ssl-CKXWZ6Ry.js                                      11.45 kB │ gzip:   4.52 kB
-dist/assets/cap-nhat-OYolTPZl.js                                 11.86 kB │ gzip:   4.28 kB
-dist/assets/duyet-plan-DXNxzXr3.js                               11.99 kB │ gzip:   4.35 kB
-dist/assets/cron-DvSK197a.js                                     13.01 kB │ gzip:   4.87 kB
-dist/assets/thung-rac-Dk7j8s_R.js                                13.39 kB │ gzip:   4.74 kB
-dist/assets/tao-site-Bb9lXnRA.js                                 13.44 kB │ gzip:   4.95 kB
-dist/assets/co-so-du-lieu-D9jFcUE2.js                            14.58 kB │ gzip:   4.80 kB
-dist/assets/co-so-du-lieu-CMw1QIma.js                            15.70 kB │ gzip:   4.97 kB
-dist/assets/cai-may-moi-DIMz9fPu.js                              15.73 kB │ gzip:   5.74 kB
-dist/assets/phien-ai-CuWJAlKw.js                                 16.20 kB │ gzip:   5.33 kB
-dist/assets/stack-CpdZ3waX.js                                    17.31 kB │ gzip:   5.50 kB
-dist/assets/CheckRow-BLNmbtpt.js                                 18.07 kB │ gzip:   6.20 kB
-dist/assets/cai-dat-BPRLdcdX.js                                  21.49 kB │ gzip:   7.22 kB
-dist/assets/su-co-DRp6byUz.js                                    21.55 kB │ gzip:   7.18 kB
-dist/assets/backup-DGHXfdTk.js                                   24.62 kB │ gzip:   7.84 kB
-dist/assets/bao-mat-BSLJ28-2.js                                  25.24 kB │ gzip:   7.07 kB
-dist/assets/trang-chu-19kbIg2z.js                                26.43 kB │ gzip:   8.46 kB
-dist/assets/nguoi-dung-D1TUZRcW.js                               27.34 kB │ gzip:   9.30 kB
-dist/assets/lich-su-DgbaJ12s.js                                  28.65 kB │ gzip:   9.24 kB
-dist/assets/ErrorNote-BGkxdCst.js                                31.30 kB │ gzip:  10.19 kB
-dist/assets/site-C3armhOk.js                                     57.73 kB │ gzip:  16.33 kB
-dist/assets/ScreenHeader-CvptjUBe.js                            146.36 kB │ gzip:  48.68 kB
-dist/assets/index-DZgL64De.js                                   391.19 kB │ gzip: 125.53 kB
+dist/assets/PreviewedOp-D_krDMDj.js                               1.90 kB │ gzip:   1.00 kB
+dist/assets/TokenTable-BnMH5Wvw.js                                1.94 kB │ gzip:   0.95 kB
+dist/assets/TableList-Cf5MeTVX.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/useMutation-BxqPcAjK.js                               2.33 kB │ gzip:   0.97 kB
+dist/assets/RouteMap-Cq0baGOk.js                                  2.35 kB │ gzip:   1.04 kB
+dist/assets/ten-mien-BFiJlW6l.js                                  2.94 kB │ gzip:   1.31 kB
+dist/assets/Bulk-BWaX2dgf.js                                      3.03 kB │ gzip:   1.39 kB
+dist/assets/model-BgBSUzih.js                                     3.74 kB │ gzip:   1.52 kB
+dist/assets/bat-hai-buoc-9k2tz2ES.js                              3.93 kB │ gzip:   1.89 kB
+dist/assets/plan-cho-duyet-CGzHFaDZ.js                            5.86 kB │ gzip:   2.05 kB
+dist/assets/RecoveryCodes-CtrDhJno.js                             6.03 kB │ gzip:   2.25 kB
+dist/assets/StorageFlow-6oeERL1A.js                               6.45 kB │ gzip:   2.58 kB
+dist/assets/Self-B5wBhRp7.js                                      8.52 kB │ gzip:   2.71 kB
+dist/assets/goi-DBoBN4Z4.js                                       9.16 kB │ gzip:   3.76 kB
+dist/assets/tai-khoan-EDdMuM-x.js                                 9.62 kB │ gzip:   3.15 kB
+dist/assets/model-D8ltVq9g.js                                    10.06 kB │ gzip:   3.97 kB
+dist/assets/tai-nguyen-CRLocSQ9.js                               10.83 kB │ gzip:   4.02 kB
+dist/assets/backup-BBFPQK9r.js                                   10.94 kB │ gzip:   3.50 kB
+dist/assets/queries-D11619pF.js                                  10.97 kB │ gzip:   3.33 kB
+dist/assets/ssl-BYHU7BVe.js                                      11.53 kB │ gzip:   4.55 kB
+dist/assets/cong-cu-BChJwjW0.js                                  11.82 kB │ gzip:   4.56 kB
+dist/assets/cap-nhat-Bb8k8G6t.js                                 11.90 kB │ gzip:   4.29 kB
+dist/assets/duyet-plan-VYS6KKdu.js                               11.99 kB │ gzip:   4.35 kB
+dist/assets/cron-ChJUF-Ru.js                                     13.06 kB │ gzip:   4.89 kB
+dist/assets/thung-rac-CPOrYuUn.js                                13.43 kB │ gzip:   4.76 kB
+dist/assets/tao-site-CJP3Yh9G.js                                 13.52 kB │ gzip:   4.95 kB
+dist/assets/Reauth-HwF2I5cb.js                                   14.11 kB │ gzip:   5.28 kB
+dist/assets/co-so-du-lieu-584xAviW.js                            14.62 kB │ gzip:   4.81 kB
+dist/assets/dang-nhap-DRZIITmd.js                                14.81 kB │ gzip:   5.26 kB
+dist/assets/MfaError-Bjf4cdlc.js                                 15.22 kB │ gzip:   5.62 kB
+dist/assets/co-so-du-lieu-KIlRDTzY.js                            15.70 kB │ gzip:   4.97 kB
+dist/assets/cai-may-moi-BQ1ukbMV.js                              15.78 kB │ gzip:   5.76 kB
+dist/assets/phien-ai-C7iV49hd.js                                 16.23 kB │ gzip:   5.35 kB
+dist/assets/stack-BgaAf12i.js                                    17.34 kB │ gzip:   5.51 kB
+dist/assets/nguoi-dung-CawwrLbZ.js                               17.97 kB │ gzip:   5.98 kB
+dist/assets/CheckRow-BDDVd9pv.js                                 18.11 kB │ gzip:   6.21 kB
+dist/assets/su-co-CBVCuj_J.js                                    21.63 kB │ gzip:   7.20 kB
+dist/assets/backup-DhPIm-r6.js                                   24.66 kB │ gzip:   7.85 kB
+dist/assets/bao-mat-BUXA8xrE.js                                  25.31 kB │ gzip:   7.10 kB
+dist/assets/trang-chu-BYDYjD91.js                                26.50 kB │ gzip:   8.49 kB
+dist/assets/lich-su-BcGdoxhb.js                                  28.69 kB │ gzip:   9.25 kB
+dist/assets/ErrorNote-DA2YW-_N.js                                31.34 kB │ gzip:  10.21 kB
+dist/assets/cai-dat-C9bpYEOT.js                                  38.70 kB │ gzip:  12.21 kB
+dist/assets/site-Bsszv1lT.js                                     57.82 kB │ gzip:  16.36 kB
+dist/assets/ScreenHeader-CBB9GnFz.js                            146.71 kB │ gzip:  48.76 kB
+dist/assets/index-De9vSrlK.js                                   388.70 kB │ gzip: 124.75 kB
 
-✓ built in 193ms
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-51-ga799785-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=a799785 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:18:58Z' -o bin/tpan-linux-amd64 ./cmd/tpan
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-51-ga799785-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=a799785 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:18:58Z' -o bin/tpan-linux-arm64 ./cmd/tpan
-rm -rf dist/release/v0.2.3-51-ga799785-dirty
-mkdir -p dist/release/v0.2.3-51-ga799785-dirty
-cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.3-51-ga799785-dirty/
-chmod 0755 dist/release/v0.2.3-51-ga799785-dirty/tpan-linux-amd64 dist/release/v0.2.3-51-ga799785-dirty/tpan-linux-arm64 dist/release/v0.2.3-51-ga799785-dirty/install.sh
-cd dist/release/v0.2.3-51-ga799785-dirty && if command -v sha256sum >/dev/null 2>&1; then \
+✓ built in 201ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:20:56Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:20:56Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/v0.2.3-132-g45bff31-dirty
+mkdir -p dist/release/v0.2.3-132-g45bff31-dirty
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.3-132-g45bff31-dirty/
+chmod 0755 dist/release/v0.2.3-132-g45bff31-dirty/tpan-linux-amd64 dist/release/v0.2.3-132-g45bff31-dirty/tpan-linux-arm64 dist/release/v0.2.3-132-g45bff31-dirty/install.sh
+cd dist/release/v0.2.3-132-g45bff31-dirty && if command -v sha256sum >/dev/null 2>&1; then \
 	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	else \
 	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	fi > SHA256SUMS
-printf '%s\n' 'v0.2.3-51-ga799785-dirty' > dist/release/v0.2.3-51-ga799785-dirty/VERSION
-Gói phát hành: dist/release/v0.2.3-51-ga799785-dirty/
-total 102584
--rw-r--r--@ 1 <user>  staff       243 Nov 25 04:19 SHA256SUMS
--rw-r--r--@ 1 <user>  staff        25 Nov 25 04:19 VERSION
--rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 04:19 install.sh
--rwxr-xr-x@ 1 <user>  staff  27517088 Nov 25 04:19 tpan-linux-amd64
--rwxr-xr-x@ 1 <user>  staff  24969376 Nov 25 04:19 tpan-linux-arm64
-[2026-11-25 04:19:34] (mã thoát 0)
-  => ĐẠT: make release (bản A, v0.2.3-51-ga799785-dirty)
+printf '%s\n' 'v0.2.3-132-g45bff31-dirty' > dist/release/v0.2.3-132-g45bff31-dirty/VERSION
+Gói phát hành: dist/release/v0.2.3-132-g45bff31-dirty/
+total 105008
+-rw-r--r--@ 1 <user>  staff       243 Nov 25 05:20 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff        26 Nov 25 05:20 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 05:20 install.sh
+-rwxr-xr-x@ 1 <user>  staff  28168352 Nov 25 05:20 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  25559200 Nov 25 05:20 tpan-linux-arm64
+[2026-11-25 05:20:59] (mã thoát 0)
+  => ĐẠT: make release (bản A, v0.2.3-132-g45bff31-dirty)
 
-[2026-11-25 04:19:34] $ make release VERSION=v0.2.3-51-ga799785-dirty-e2e-b DATE=2026-11-24T21:18:58Z
+[2026-11-25 05:20:59] $ make release VERSION=v0.2.3-132-g45bff31-dirty-e2e-b DATE=2026-11-24T22:20:56Z
 cd web && pnpm install --frozen-lockfile && pnpm build
 ✓ Lockfile passes supply-chain policies (verified 4d ago)
 Lockfile is up to date, resolution step is skipped
@@ -147,10 +161,10 @@ Done in 11ms using pnpm v12.15.0
 $ tsc --noEmit && vite build
 vite v8.3.8 building client environment for production...
 transforming...
-✓ 424 modules transformed.
+✓ 446 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                                                   0.95 kB │ gzip:   0.55 kB
+dist/index.html                                                   1.11 kB │ gzip:   0.58 kB
 dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
 dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
 dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
@@ -163,99 +177,109 @@ dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
 dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
 dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
 dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
-dist/assets/index-D6gBR3g-.css                                   39.28 kB │ gzip:   9.03 kB
-dist/assets/useStatusName-CcJShEoo.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/index-DJFMKdRB.css                                   39.66 kB │ gzip:   9.10 kB
+dist/assets/useStatusName-CxUGMPHT.js                             0.20 kB │ gzip:   0.18 kB
 dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
 dist/assets/model-Co_p74TJ.js                                     0.27 kB │ gzip:   0.18 kB
-dist/assets/OriginTag-BWb7RHXG.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/OriginTag-Br1_EzVH.js                                 0.27 kB │ gzip:   0.22 kB
 dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
-dist/assets/DomainText-BuneIvy2.js                                0.30 kB │ gzip:   0.22 kB
-dist/assets/SuspendTag-BrofeWpR.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/DomainText-KBkCG4fH.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-DJaOgP0c.js                                0.37 kB │ gzip:   0.27 kB
 dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
-dist/assets/useCopy-C0G2qb33.js                                   0.51 kB │ gzip:   0.32 kB
-dist/assets/m14-C_3ZzrAI.js                                       0.56 kB │ gzip:   0.34 kB
-dist/assets/m13-dbs-CkpEe-2O.js                                   0.65 kB │ gzip:   0.38 kB
-dist/assets/SegmentButton-BSbwWrRp.js                             0.70 kB │ gzip:   0.45 kB
-dist/assets/RowActions-r9Aq7AjB.js                                0.70 kB │ gzip:   0.42 kB
-dist/assets/m13-chung-BxXE7Tyz.js                                 0.80 kB │ gzip:   0.44 kB
-dist/assets/Rows-3jSbarwr.js                                      0.84 kB │ gzip:   0.35 kB
+dist/assets/useCopy-BJdn0eDz.js                                   0.51 kB │ gzip:   0.32 kB
+dist/assets/m14-DLuaUkTf.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-BBpQSZ9E.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/SegmentButton-CR5MIMgU.js                             0.70 kB │ gzip:   0.45 kB
+dist/assets/RowActions-CoZLx16y.js                                0.70 kB │ gzip:   0.42 kB
+dist/assets/m13-chung-Cpal5VlU.js                                 0.80 kB │ gzip:   0.44 kB
+dist/assets/Rows-Blir0bT6.js                                      0.84 kB │ gzip:   0.36 kB
 dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
-dist/assets/m19-C4JkMBGt.js                                       0.85 kB │ gzip:   0.47 kB
-dist/assets/UsageMeter-Bf12ux2F.js                                0.86 kB │ gzip:   0.46 kB
+dist/assets/m19-CgG8tz4C.js                                       0.85 kB │ gzip:   0.47 kB
+dist/assets/UsageMeter-BDT1YDHR.js                                0.86 kB │ gzip:   0.47 kB
 dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
-dist/assets/m17-DyYX3leo.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/m17-C12L2f47.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/Frame-CqQq1zih.js                                     1.00 kB │ gzip:   0.51 kB
 dist/assets/model-C2VyZL6F.js                                     1.02 kB │ gzip:   0.54 kB
 dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
-dist/assets/Dialog-DJVBoJFK.js                                    1.18 kB │ gzip:   0.65 kB
-dist/assets/model-BGHmcsHS.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/Dialog-DKZvNqU2.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/StatusMark-DcGozgEi.js                                1.28 kB │ gzip:   0.59 kB
+dist/assets/model-CCZ7Tvoj.js                                     1.56 kB │ gzip:   0.61 kB
 dist/assets/model-XbSQ3r3G.js                                     1.78 kB │ gzip:   0.86 kB
-dist/assets/PreviewedOp-EiGMYmAF.js                               1.86 kB │ gzip:   0.98 kB
-dist/assets/TableList-pk_U4jMQ.js                                 2.21 kB │ gzip:   0.95 kB
-dist/assets/RouteMap-BRxbtCoO.js                                  2.35 kB │ gzip:   1.03 kB
-dist/assets/ten-mien-D0z2ROBk.js                                  2.94 kB │ gzip:   1.30 kB
-dist/assets/Bulk-PK726N4t.js                                      3.03 kB │ gzip:   1.39 kB
-dist/assets/plan-cho-duyet-0TxmomqN.js                            5.82 kB │ gzip:   2.03 kB
-dist/assets/StorageFlow-CIvrEU0R.js                               6.41 kB │ gzip:   2.57 kB
-dist/assets/dang-nhap-BkuPrJxz.js                                 6.70 kB │ gzip:   2.90 kB
-dist/assets/Self-DVD1wuIA.js                                      8.48 kB │ gzip:   2.70 kB
-dist/assets/goi-DIx2OSnU.js                                       9.12 kB │ gzip:   3.74 kB
-dist/assets/model-BxIQ-vcC.js                                    10.04 kB │ gzip:   3.95 kB
-dist/assets/tai-nguyen--lak-hg-.js                               10.82 kB │ gzip:   4.00 kB
-dist/assets/backup-1d4w9-SC.js                                   10.94 kB │ gzip:   3.49 kB
-dist/assets/queries-Bq3jdEsn.js                                  10.97 kB │ gzip:   3.33 kB
-dist/assets/cong-cu-CWPSHKll.js                                  11.31 kB │ gzip:   4.35 kB
-dist/assets/ssl-CKXWZ6Ry.js                                      11.45 kB │ gzip:   4.52 kB
-dist/assets/cap-nhat-OYolTPZl.js                                 11.86 kB │ gzip:   4.28 kB
-dist/assets/duyet-plan-DXNxzXr3.js                               11.99 kB │ gzip:   4.35 kB
-dist/assets/cron-DvSK197a.js                                     13.01 kB │ gzip:   4.87 kB
-dist/assets/thung-rac-Dk7j8s_R.js                                13.39 kB │ gzip:   4.74 kB
-dist/assets/tao-site-Bb9lXnRA.js                                 13.44 kB │ gzip:   4.95 kB
-dist/assets/co-so-du-lieu-D9jFcUE2.js                            14.58 kB │ gzip:   4.80 kB
-dist/assets/co-so-du-lieu-CMw1QIma.js                            15.70 kB │ gzip:   4.97 kB
-dist/assets/cai-may-moi-DIMz9fPu.js                              15.73 kB │ gzip:   5.74 kB
-dist/assets/phien-ai-CuWJAlKw.js                                 16.20 kB │ gzip:   5.33 kB
-dist/assets/stack-CpdZ3waX.js                                    17.31 kB │ gzip:   5.50 kB
-dist/assets/CheckRow-BLNmbtpt.js                                 18.07 kB │ gzip:   6.20 kB
-dist/assets/cai-dat-BPRLdcdX.js                                  21.49 kB │ gzip:   7.22 kB
-dist/assets/su-co-DRp6byUz.js                                    21.55 kB │ gzip:   7.18 kB
-dist/assets/backup-DGHXfdTk.js                                   24.62 kB │ gzip:   7.84 kB
-dist/assets/bao-mat-BSLJ28-2.js                                  25.24 kB │ gzip:   7.07 kB
-dist/assets/trang-chu-19kbIg2z.js                                26.43 kB │ gzip:   8.46 kB
-dist/assets/nguoi-dung-D1TUZRcW.js                               27.34 kB │ gzip:   9.30 kB
-dist/assets/lich-su-DgbaJ12s.js                                  28.65 kB │ gzip:   9.24 kB
-dist/assets/ErrorNote-BGkxdCst.js                                31.30 kB │ gzip:  10.19 kB
-dist/assets/site-C3armhOk.js                                     57.73 kB │ gzip:  16.33 kB
-dist/assets/ScreenHeader-CvptjUBe.js                            146.36 kB │ gzip:  48.68 kB
-dist/assets/index-DZgL64De.js                                   391.19 kB │ gzip: 125.53 kB
+dist/assets/PreviewedOp-D_krDMDj.js                               1.90 kB │ gzip:   1.00 kB
+dist/assets/TokenTable-BnMH5Wvw.js                                1.94 kB │ gzip:   0.95 kB
+dist/assets/TableList-Cf5MeTVX.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/useMutation-BxqPcAjK.js                               2.33 kB │ gzip:   0.97 kB
+dist/assets/RouteMap-Cq0baGOk.js                                  2.35 kB │ gzip:   1.04 kB
+dist/assets/ten-mien-BFiJlW6l.js                                  2.94 kB │ gzip:   1.31 kB
+dist/assets/Bulk-BWaX2dgf.js                                      3.03 kB │ gzip:   1.39 kB
+dist/assets/model-BgBSUzih.js                                     3.74 kB │ gzip:   1.52 kB
+dist/assets/bat-hai-buoc-9k2tz2ES.js                              3.93 kB │ gzip:   1.89 kB
+dist/assets/plan-cho-duyet-CGzHFaDZ.js                            5.86 kB │ gzip:   2.05 kB
+dist/assets/RecoveryCodes-CtrDhJno.js                             6.03 kB │ gzip:   2.25 kB
+dist/assets/StorageFlow-6oeERL1A.js                               6.45 kB │ gzip:   2.58 kB
+dist/assets/Self-B5wBhRp7.js                                      8.52 kB │ gzip:   2.71 kB
+dist/assets/goi-DBoBN4Z4.js                                       9.16 kB │ gzip:   3.76 kB
+dist/assets/tai-khoan-EDdMuM-x.js                                 9.62 kB │ gzip:   3.15 kB
+dist/assets/model-D8ltVq9g.js                                    10.06 kB │ gzip:   3.97 kB
+dist/assets/tai-nguyen-CRLocSQ9.js                               10.83 kB │ gzip:   4.02 kB
+dist/assets/backup-BBFPQK9r.js                                   10.94 kB │ gzip:   3.50 kB
+dist/assets/queries-D11619pF.js                                  10.97 kB │ gzip:   3.33 kB
+dist/assets/ssl-BYHU7BVe.js                                      11.53 kB │ gzip:   4.55 kB
+dist/assets/cong-cu-BChJwjW0.js                                  11.82 kB │ gzip:   4.56 kB
+dist/assets/cap-nhat-Bb8k8G6t.js                                 11.90 kB │ gzip:   4.29 kB
+dist/assets/duyet-plan-VYS6KKdu.js                               11.99 kB │ gzip:   4.35 kB
+dist/assets/cron-ChJUF-Ru.js                                     13.06 kB │ gzip:   4.89 kB
+dist/assets/thung-rac-CPOrYuUn.js                                13.43 kB │ gzip:   4.76 kB
+dist/assets/tao-site-CJP3Yh9G.js                                 13.52 kB │ gzip:   4.95 kB
+dist/assets/Reauth-HwF2I5cb.js                                   14.11 kB │ gzip:   5.28 kB
+dist/assets/co-so-du-lieu-584xAviW.js                            14.62 kB │ gzip:   4.81 kB
+dist/assets/dang-nhap-DRZIITmd.js                                14.81 kB │ gzip:   5.26 kB
+dist/assets/MfaError-Bjf4cdlc.js                                 15.22 kB │ gzip:   5.62 kB
+dist/assets/co-so-du-lieu-KIlRDTzY.js                            15.70 kB │ gzip:   4.97 kB
+dist/assets/cai-may-moi-BQ1ukbMV.js                              15.78 kB │ gzip:   5.76 kB
+dist/assets/phien-ai-C7iV49hd.js                                 16.23 kB │ gzip:   5.35 kB
+dist/assets/stack-BgaAf12i.js                                    17.34 kB │ gzip:   5.51 kB
+dist/assets/nguoi-dung-CawwrLbZ.js                               17.97 kB │ gzip:   5.98 kB
+dist/assets/CheckRow-BDDVd9pv.js                                 18.11 kB │ gzip:   6.21 kB
+dist/assets/su-co-CBVCuj_J.js                                    21.63 kB │ gzip:   7.20 kB
+dist/assets/backup-DhPIm-r6.js                                   24.66 kB │ gzip:   7.85 kB
+dist/assets/bao-mat-BUXA8xrE.js                                  25.31 kB │ gzip:   7.10 kB
+dist/assets/trang-chu-BYDYjD91.js                                26.50 kB │ gzip:   8.49 kB
+dist/assets/lich-su-BcGdoxhb.js                                  28.69 kB │ gzip:   9.25 kB
+dist/assets/ErrorNote-DA2YW-_N.js                                31.34 kB │ gzip:  10.21 kB
+dist/assets/cai-dat-C9bpYEOT.js                                  38.70 kB │ gzip:  12.21 kB
+dist/assets/site-Bsszv1lT.js                                     57.82 kB │ gzip:  16.36 kB
+dist/assets/ScreenHeader-CBB9GnFz.js                            146.71 kB │ gzip:  48.76 kB
+dist/assets/index-De9vSrlK.js                                   388.70 kB │ gzip: 124.75 kB
 
-✓ built in 172ms
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-51-ga799785-dirty-e2e-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=a799785 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:18:58Z' -o bin/tpan-linux-amd64 ./cmd/tpan
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-51-ga799785-dirty-e2e-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=a799785 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T21:18:58Z' -o bin/tpan-linux-arm64 ./cmd/tpan
-rm -rf dist/release/v0.2.3-51-ga799785-dirty-e2e-b
-mkdir -p dist/release/v0.2.3-51-ga799785-dirty-e2e-b
-cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.3-51-ga799785-dirty-e2e-b/
-chmod 0755 dist/release/v0.2.3-51-ga799785-dirty-e2e-b/tpan-linux-amd64 dist/release/v0.2.3-51-ga799785-dirty-e2e-b/tpan-linux-arm64 dist/release/v0.2.3-51-ga799785-dirty-e2e-b/install.sh
-cd dist/release/v0.2.3-51-ga799785-dirty-e2e-b && if command -v sha256sum >/dev/null 2>&1; then \
+✓ built in 188ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty-e2e-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:20:56Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty-e2e-b -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:20:56Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+rm -rf dist/release/v0.2.3-132-g45bff31-dirty-e2e-b
+mkdir -p dist/release/v0.2.3-132-g45bff31-dirty-e2e-b
+cp bin/tpan-linux-amd64 bin/tpan-linux-arm64 scripts/install.sh dist/release/v0.2.3-132-g45bff31-dirty-e2e-b/
+chmod 0755 dist/release/v0.2.3-132-g45bff31-dirty-e2e-b/tpan-linux-amd64 dist/release/v0.2.3-132-g45bff31-dirty-e2e-b/tpan-linux-arm64 dist/release/v0.2.3-132-g45bff31-dirty-e2e-b/install.sh
+cd dist/release/v0.2.3-132-g45bff31-dirty-e2e-b && if command -v sha256sum >/dev/null 2>&1; then \
 	  sha256sum tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	else \
 	  shasum -a 256 tpan-linux-amd64 tpan-linux-arm64 install.sh; \
 	fi > SHA256SUMS
-printf '%s\n' 'v0.2.3-51-ga799785-dirty-e2e-b' > dist/release/v0.2.3-51-ga799785-dirty-e2e-b/VERSION
-Gói phát hành: dist/release/v0.2.3-51-ga799785-dirty-e2e-b/
-total 102584
--rw-r--r--@ 1 <user>  staff       243 Nov 25 04:19 SHA256SUMS
--rw-r--r--@ 1 <user>  staff        31 Nov 25 04:19 VERSION
--rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 04:19 install.sh
--rwxr-xr-x@ 1 <user>  staff  27517088 Nov 25 04:19 tpan-linux-amd64
--rwxr-xr-x@ 1 <user>  staff  24969376 Nov 25 04:19 tpan-linux-arm64
-[2026-11-25 04:19:36] (mã thoát 0)
-  => ĐẠT: make release VERSION=v0.2.3-51-ga799785-dirty-e2e-b (bản B, cùng mã, khác tên bản)
+printf '%s\n' 'v0.2.3-132-g45bff31-dirty-e2e-b' > dist/release/v0.2.3-132-g45bff31-dirty-e2e-b/VERSION
+Gói phát hành: dist/release/v0.2.3-132-g45bff31-dirty-e2e-b/
+total 105008
+-rw-r--r--@ 1 <user>  staff       243 Nov 25 05:21 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff        32 Nov 25 05:21 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 05:21 install.sh
+-rwxr-xr-x@ 1 <user>  staff  28168352 Nov 25 05:21 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  25559200 Nov 25 05:21 tpan-linux-arm64
+[2026-11-25 05:21:01] (mã thoát 0)
+  => ĐẠT: make release VERSION=v0.2.3-132-g45bff31-dirty-e2e-b (bản B, cùng mã, khác tên bản)
 
-[2026-11-25 04:19:36] $ go build -o <tmp>/anh ./scripts/anh-readme
-[2026-11-25 04:19:36] (mã thoát 0)
+[2026-11-25 05:21:01] $ go build -o <tmp>/anh ./scripts/anh-readme
+[2026-11-25 05:21:02] (mã thoát 0)
   => ĐẠT: build chương trình trình duyệt (scripts/anh-readme)
 
-[2026-11-25 04:19:36] $ bash -c 
+[2026-11-25 05:21:02] $ bash -c 
     set -e
     st=$1; a=$2; b=$3
     rm -rf dist/e2e-m16
@@ -264,79 +288,79 @@ total 102584
     cp "dist/release/$b/"* "$st/rel/b/"
     cp scripts/e2e-m15/db.py "$st/"
     ls -lR "$st"
-   _ dist/e2e-m16 v0.2.3-51-ga799785-dirty v0.2.3-51-ga799785-dirty-e2e-b
+   _ dist/e2e-m16 v0.2.3-132-g45bff31-dirty v0.2.3-132-g45bff31-dirty-e2e-b
 total 8
--rw-r--r--@ 1 <user>  staff  2969 Nov 25 04:19 db.py
-drwxr-xr-x@ 4 <user>  staff   128 Nov 25 04:19 rel
+-rw-r--r--@ 1 <user>  staff  2969 Nov 25 05:21 db.py
+drwxr-xr-x@ 4 <user>  staff   128 Nov 25 05:21 rel
 
 dist/e2e-m16/rel:
 total 0
-drwxr-xr-x@ 7 <user>  staff  224 Nov 25 04:19 a
-drwxr-xr-x@ 7 <user>  staff  224 Nov 25 04:19 b
+drwxr-xr-x@ 7 <user>  staff  224 Nov 25 05:21 a
+drwxr-xr-x@ 7 <user>  staff  224 Nov 25 05:21 b
 
 dist/e2e-m16/rel/a:
-total 102584
--rw-r--r--@ 1 <user>  staff       243 Nov 25 04:19 SHA256SUMS
--rw-r--r--@ 1 <user>  staff        25 Nov 25 04:19 VERSION
--rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 04:19 install.sh
--rwxr-xr-x@ 1 <user>  staff  27517088 Nov 25 04:19 tpan-linux-amd64
--rwxr-xr-x@ 1 <user>  staff  24969376 Nov 25 04:19 tpan-linux-arm64
+total 105008
+-rw-r--r--@ 1 <user>  staff       243 Nov 25 05:21 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff        26 Nov 25 05:21 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 05:21 install.sh
+-rwxr-xr-x@ 1 <user>  staff  28168352 Nov 25 05:21 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  25559200 Nov 25 05:21 tpan-linux-arm64
 
 dist/e2e-m16/rel/b:
-total 102584
--rw-r--r--@ 1 <user>  staff       243 Nov 25 04:19 SHA256SUMS
--rw-r--r--@ 1 <user>  staff        31 Nov 25 04:19 VERSION
--rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 04:19 install.sh
--rwxr-xr-x@ 1 <user>  staff  27517088 Nov 25 04:19 tpan-linux-amd64
--rwxr-xr-x@ 1 <user>  staff  24969376 Nov 25 04:19 tpan-linux-arm64
-[2026-11-25 04:19:36] (mã thoát 0)
+total 105008
+-rw-r--r--@ 1 <user>  staff       243 Nov 25 05:21 SHA256SUMS
+-rw-r--r--@ 1 <user>  staff        32 Nov 25 05:21 VERSION
+-rwxr-xr-x@ 1 <user>  staff     20194 Nov 25 05:21 install.sh
+-rwxr-xr-x@ 1 <user>  staff  28168352 Nov 25 05:21 tpan-linux-amd64
+-rwxr-xr-x@ 1 <user>  staff  25559200 Nov 25 05:21 tpan-linux-arm64
+[2026-11-25 05:21:02] (mã thoát 0)
   => ĐẠT: dựng thư mục đồ nghề dist/e2e-m16 (gói a, b, db.py)
 
-==== Phần 0: 6 đạt, 0 không đạt
+==== Phần 0: 5 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:19:36] PHẦN A: máy sạch, cài bản A bằng install.sh của chính gói A
+######## [2026-11-25 05:21:02] PHẦN A: máy sạch, cài bản A bằng install.sh của chính gói A
 Máy ảo: tpan-m19
 
-[2026-11-25 04:19:36] $ make vm-reset
+[2026-11-25 05:21:02] $ make vm-reset
 scripts/vm.sh reset
 [2K[0A[0EStopping tpan-m19  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m19.clean
-[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
-[2026-11-25 04:19:51] (mã thoát 0)
+[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\ [2K[0A[0E
+[2026-11-25 05:21:16] (mã thoát 0)
   => ĐẠT: máy ảo về snapshot clean
 
-[2026-11-25 04:19:51] $ scripts/vm.sh exec cloud-init status --wait
+[2026-11-25 05:21:16] $ scripts/vm.sh exec cloud-init status --wait
 status: done
-[2026-11-25 04:19:51] (mã thoát 0)
+[2026-11-25 05:21:16] (mã thoát 0)
   => ĐẠT: cloud-init xong
 IP máy ảo: <vm>; IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
 
-[2026-11-25 04:19:51] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+[2026-11-25 05:21:16] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
 ls: cannot access '/etc/tpan': No such file or directory
 ls: cannot access '/var/lib/tpan': No such file or directory
-[2026-11-25 04:19:51] (mã thoát 2)
+[2026-11-25 05:21:16] (mã thoát 2)
   => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
 Kiến trúc máy ảo: arm64
 
-[2026-11-25 04:19:51] $ multipass transfer -r dist/e2e-m16 tpan-m19:/home/ubuntu/
-[2026-11-25 04:19:52] (mã thoát 0)
+[2026-11-25 05:21:17] $ multipass transfer -r dist/e2e-m16 tpan-m19:/home/ubuntu/
+[2026-11-25 05:21:17] (mã thoát 0)
   => ĐẠT: chép thư mục đồ nghề sang máy ảo (/home/ubuntu/e2e-m16)
 
-[2026-11-25 04:19:52] $ multipass transfer -r dist/release/v0.2.0 tpan-m19:/home/ubuntu/
-[2026-11-25 04:19:52] (mã thoát 0)
+[2026-11-25 05:21:17] $ multipass transfer -r dist/release/v0.2.0 tpan-m19:/home/ubuntu/
+[2026-11-25 05:21:17] (mã thoát 0)
   => ĐẠT: chép gói v0.2.0 sang máy ảo
 
-[2026-11-25 04:19:52] $ scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8016 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m16/rel
-Running as unit: tpan-e2e-http.service; invocation ID: 20a0203b198f4cd5807aa53d470d236a
-[2026-11-25 04:19:52] (mã thoát 0)
+[2026-11-25 05:21:17] $ scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8016 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m16/rel
+Running as unit: tpan-e2e-http.service; invocation ID: 9bb07bf70ecc403ba43da38beb91a9c1
+[2026-11-25 05:21:18] (mã thoát 0)
 
-[2026-11-25 04:19:54] $ scripts/vm.sh exec bash -c for d in a b; do printf "%s: SHA256SUMS %s, VERSION %s\n" "$d" "$(curl -s -o /dev/null -w "%{http_code}" "$1/$d/SHA256SUMS")" "$(curl -s "$1/$d/VERSION")"; done _ http://127.0.0.1:8016
-a: SHA256SUMS 200, VERSION v0.2.3-51-ga799785-dirty
-b: SHA256SUMS 200, VERSION v0.2.3-51-ga799785-dirty-e2e-b
-[2026-11-25 04:19:55] (mã thoát 0)
+[2026-11-25 05:21:20] $ scripts/vm.sh exec bash -c for d in a b; do printf "%s: SHA256SUMS %s, VERSION %s\n" "$d" "$(curl -s -o /dev/null -w "%{http_code}" "$1/$d/SHA256SUMS")" "$(curl -s "$1/$d/VERSION")"; done _ http://127.0.0.1:8016
+a: SHA256SUMS 200, VERSION v0.2.3-132-g45bff31-dirty
+b: SHA256SUMS 200, VERSION v0.2.3-132-g45bff31-dirty-e2e-b
+[2026-11-25 05:21:20] (mã thoát 0)
   => ĐẠT: (đồ nghề) nguồn tải loopback trả gói a và b
 
-[2026-11-25 04:19:55] $ scripts/vm.sh exec bash -c cd /home/ubuntu/e2e-m16/rel/a && sudo bash ./install.sh --web nginx
+[2026-11-25 05:21:20] $ scripts/vm.sh exec bash -c cd /home/ubuntu/e2e-m16/rel/a && sudo bash ./install.sh --web nginx
 
 ==> Kiểm máy
 Ubuntu 24.04
@@ -348,11 +372,11 @@ Kiến trúc: arm64
 sha256 khớp: tpan-linux-arm64
 
 ==> Đặt /usr/local/bin/tpan
-tpan v0.2.3-51-ga799785-dirty (commit a799785, build 2026-11-24T21:18:58Z)
+tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:20:56Z)
 Đã đặt /usr/local/bin/tpan
 
 ==> Khởi tạo panel: tpan setup
-Bắt đầu job c6387235913a955e
+Bắt đầu job 8594360b0c4cdbb1
 - Tạo thư mục /etc/tpan ...
   xong
 - Tạo thư mục /etc/tpan/tls ...
@@ -368,16 +392,16 @@ Bắt đầu job c6387235913a955e
 - Chạy và bật tpan.service khi khởi động ...
   xong
 
-Job c6387235913a955e: thành công
+Job 8594360b0c4cdbb1: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
     <bí mật, đã che>
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    04:59:D2:49:92:20:6A:95:0E:BA:A8:16:D5:5F:EE:05:FF:1F:4D:80:7B:0A:6B:38:0C:EA:42:1D:2C:AD:39:52
+    E2:58:42:EE:22:84:39:D0:9F:A4:BF:1D:58:8F:87:A9:B4:5C:AB:BA:4D:4C:96:63:36:39:92:33:C5:3B:A9:08
 Mở: https://<IP của máy>:8443
 
 ==> Cài stack: tpan stack install --web nginx
-Bắt đầu job a9b3322c655128ab
+Bắt đầu job 185766942f0db572
 - Làm mới danh sách gói (apt-get update) ...
   xong
 - Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
@@ -428,7 +452,7 @@ Bắt đầu job a9b3322c655128ab
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
 
-Job a9b3322c655128ab: thành công
+Job 185766942f0db572: thành công
 Kiểm chứng:
   [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
   [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
@@ -439,7 +463,7 @@ Kiểm chứng:
   [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
   [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
   [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
-  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.8%
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.9%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
@@ -447,27 +471,29 @@ Kiểm chứng:
 Xong. Bước tiếp:
   sudo tpan site add example.com --email admin@example.com
   sudo tpan health
-[2026-11-25 04:20:40] (mã thoát 0)
+[2026-11-25 05:22:01] (mã thoát 0)
 Mật khẩu quản trị panel trong output: 1 lần
   => ĐẠT: install.sh của bản A thoát 0
   => ĐẠT: mật khẩu quản trị in đúng một lần (giữ ngoài log)
 
-[2026-11-25 04:20:40] $ scripts/vm.sh exec tpan version
-tpan v0.2.3-51-ga799785-dirty (commit a799785, build 2026-11-24T21:18:58Z)
-[2026-11-25 04:20:40] (mã thoát 0)
-  => ĐẠT: tpan version là bản A (v0.2.3-51-ga799785-dirty)
+[2026-11-25 05:22:01] $ scripts/vm.sh exec tpan version
+tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:20:56Z)
+[2026-11-25 05:22:01] (mã thoát 0)
+  => ĐẠT: tpan version là bản A (v0.2.3-132-g45bff31-dirty)
 
-[2026-11-25 04:20:40] $ scripts/vm.sh exec systemctl is-active tpan nginx php8.3-fpm mariadb
+[2026-11-25 05:22:01] $ scripts/vm.sh exec systemctl is-active tpan nginx php8.3-fpm mariadb
 active
 active
 active
 active
-[2026-11-25 04:20:40] (mã thoát 0)
+[2026-11-25 05:22:02] (mã thoát 0)
   => ĐẠT: tpan.service và ba dịch vụ của stack đều active
   => ĐẠT: panel trả lời ở cổng 8443
 
-[2026-11-25 04:20:40] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
-Bắt đầu job fe86d1c54e23e100
+[2026-11-25 05:22:02] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job f6b508b17d9da378
+- Kiểm a.example.com không phải tên miền của panel ...
+  đã đúng, bỏ qua
 - Tạo user Linux tp_a_example_com_7653e4 cho site ...
   xong
 - Tạo thư mục /var/www/a.example.com ...
@@ -514,7 +540,7 @@ Bắt đầu job fe86d1c54e23e100
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Thư mục public của site là thư mục thật của chính site
 
-Job fe86d1c54e23e100: thành công
+Job f6b508b17d9da378: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -531,20 +557,20 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-25 04:20:56] (mã thoát 0)
+[2026-11-25 05:22:18] (mã thoát 0)
   => ĐẠT: site add a.example.com: thoát 0, job thành công
 
-[2026-11-25 04:20:56] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+[2026-11-25 05:22:18] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
 200
-[2026-11-25 04:20:56] (mã thoát 0)
+[2026-11-25 05:22:18] (mã thoát 0)
   => ĐẠT: a.example.com trả 200
 
 ==== Phần A: 13 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:20:56] PHẦN B: admin đăng nhập qua form, mở mọi màn admin
+######## [2026-11-25 05:22:18] PHẦN B: admin đăng nhập qua form, mở mọi màn admin
 
-[2026-11-25 04:20:56] $ anh-readme -bo m16-that -buoc admin   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 05:22:18] $ anh-readme -bo m16-that -buoc admin   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: admin đăng nhập qua form: tới / và thấy Bảng điều khiển
   => ĐẠT: mở /: tiêu đề «Bảng điều khiển», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /tools: tiêu đề «Công cụ», 0 lỗi console, cuộn ngang: false
@@ -564,7 +590,7 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
   => ĐẠT: mở /usage: tiêu đề «Tài nguyên đang dùng», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /incidents: tiêu đề «Sự cố», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /jobs: tiêu đề «Lịch sử», 0 lỗi console, cuộn ngang: false
-  => ĐẠT: mở /jobs/fe86d1c54e23e100: tiêu đề «Tạo site WordPress a.example.com», 0 lỗi console, cuộn ngang: false
+  => ĐẠT: mở /jobs/f6b508b17d9da378: tiêu đề «Tạo site WordPress a.example.com», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /plans: tiêu đề «Plan chờ duyệt», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /stack: tiêu đề «Stack», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /updates: tiêu đề «Cập nhật», 0 lỗi console, cuộn ngang: false
@@ -576,43 +602,43 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
   => ĐẠT: menu tài khoản: mở được, Escape đóng được, 0 lỗi console; các mục: Tiếng Việt | English | Sáng | Tối | Theo hệ điều hành | Gợi ý | Đăng xuất
   => ĐẠT: menu ba chấm của hàng đầu ở màn Cơ sở dữ liệu: mở được, Escape đóng được, 0 lỗi console; các mục: Nhập từ bản đã xuất | Đổi charset | Tạm khoá
   => ĐẠT: số ở mục Cơ sở dữ liệu của menu (1) bằng số DB đang chạy của /api/v1/databases (1)
-  => ĐẠT: dòng phiên bản cuối menu ghi v0.2.3-51-ga799785-dirty, không còn chân trang
-[2026-11-25 04:21:48] (mã thoát 0)
+  => ĐẠT: dòng phiên bản cuối menu ghi v0.2.3-132-g45bff31-dirty, không còn chân trang
+[2026-11-25 05:23:09] (mã thoát 0)
 
 ==== Phần B: 32 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:21:48] PHẦN C: tạo site tên 36 ký tự từ giao diện
+######## [2026-11-25 05:23:09] PHẦN C: tạo site tên 36 ký tự từ giao diện
 
-[2026-11-25 04:21:48] $ anh-readme -bo m16-that -buoc tao-site -site hoc-truc-tuyen.lop-hoc-a.example.net   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 05:23:09] $ anh-readme -bo m16-that -buoc tao-site -site hoc-truc-tuyen.lop-hoc-a.example.net   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: form Tạo site (hoc-truc-tuyen.lop-hoc-a.example.net): bản xem trước hiện ra, nút chạy ghi «Chạy 17 bước»
-  => ĐẠT: job tạo site 6a3012a5e0d70439 kết thúc: succeeded
+  => ĐẠT: job tạo site 5a46cac75741ac73 kết thúc: succeeded
   => ĐẠT: trang job nhắc tới hoc-truc-tuyen.lop-hoc-a.example.net
   => ĐẠT: cả lượt tạo site: 0 lỗi console (không tính dòng CSP đã biết của hộp hỏi lại)
   => ĐẠT: mở /sites: tiêu đề «Site», 0 lỗi console, cuộn ngang: false
   => ĐẠT: site hoc-truc-tuyen.lop-hoc-a.example.net có trong danh sách Site
   => ĐẠT: mở /: tiêu đề «Bảng điều khiển», 0 lỗi console, cuộn ngang: false
   => ĐẠT: tên hoc-truc-tuyen.lop-hoc-a.example.net (36 ký tự) trên bản đồ tuyến: một dòng
-[2026-11-25 04:22:03] (mã thoát 0)
+[2026-11-25 05:23:19] (mã thoát 0)
 
-[2026-11-25 04:22:03] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve hoc-truc-tuyen.lop-hoc-a.example.net:80:127.0.0.1 http://hoc-truc-tuyen.lop-hoc-a.example.net/
+[2026-11-25 05:23:20] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve hoc-truc-tuyen.lop-hoc-a.example.net:80:127.0.0.1 http://hoc-truc-tuyen.lop-hoc-a.example.net/
 200
-[2026-11-25 04:22:03] (mã thoát 0)
+[2026-11-25 05:23:20] (mã thoát 0)
   => ĐẠT: hoc-truc-tuyen.lop-hoc-a.example.net (tạo từ giao diện) trả 200 khi gọi trong máy ảo
 
-[2026-11-25 04:22:03] $ scripts/vm.sh root tpan site list
+[2026-11-25 05:23:20] $ scripts/vm.sh root tpan site list
 DOMAIN                                   TRẠNG THÁI PHP   SSL  TẠO LÚC          CHỦ            TẠM KHOÁ
-a.example.com                            active   8.3   không 2026-11-25 04:20 admin          -
-hoc-truc-tuyen.lop-hoc-a.example.net     active   8.3   không 2026-11-25 04:21 admin          -
-[2026-11-25 04:22:03] (mã thoát 0)
+a.example.com                            active   8.3   không 2026-11-25 05:22 admin          -
+hoc-truc-tuyen.lop-hoc-a.example.net     active   8.3   không 2026-11-25 05:23 admin          -
+[2026-11-25 05:23:20] (mã thoát 0)
   => ĐẠT: tpan site list có hoc-truc-tuyen.lop-hoc-a.example.net
 
 ==== Phần C: 10 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:22:03] PHẦN D: user thường
+######## [2026-11-25 05:23:20] PHẦN D: user thường
 
-[2026-11-25 04:22:03] $ scripts/vm.sh root tpan user add khach_m16 --full-name Khach M16 --email khach@example.com --yes --json
+[2026-11-25 05:23:20] $ scripts/vm.sh root tpan user add khach_m16 --full-name Khach M16 --email khach@example.com --yes --json
 {
   "user": {
     "user": {
@@ -622,7 +648,7 @@ hoc-truc-tuyen.lop-hoc-a.example.net     active   8.3   không 2026-11-25 04:21 
       "role": "user",
       "package": "default",
       "status": "active",
-      "created": "2026-11-24T21:22:03.850736973Z"
+      "created": "2026-11-24T22:23:20.539517517Z"
     },
     "limits": {
       "name": "default",
@@ -637,7 +663,7 @@ hoc-truc-tuyen.lop-hoc-a.example.net     active   8.3   không 2026-11-25 04:21 
       "io_read_mb": 0,
       "io_write_mb": 0,
       "php_workers": 0,
-      "created": "2026-11-24T21:19:54Z"
+      "created": "2026-11-24T22:21:19Z"
     },
     "usage": {
       "sites": 0,
@@ -648,11 +674,13 @@ hoc-truc-tuyen.lop-hoc-a.example.net     active   8.3   không 2026-11-25 04:21 
   },
   "password": "<bí mật, đã che>"
 }
-[2026-11-25 04:22:03] (mã thoát 0)
+[2026-11-25 05:23:20] (mã thoát 0)
   => ĐẠT: user add khach_m16: thoát 0, mật khẩu sinh một lần (đã che)
 
-[2026-11-25 04:22:03] $ scripts/vm.sh root tpan site add cua-user.example.org --email admin@example.com --yes --owner khach_m16
-Bắt đầu job 183a612ae7161d74
+[2026-11-25 05:23:20] $ scripts/vm.sh root tpan site add cua-user.example.org --email admin@example.com --yes --owner khach_m16
+Bắt đầu job df972a9c3cfeddd6
+- Kiểm cua-user.example.org không phải tên miền của panel ...
+  đã đúng, bỏ qua
 - Tạo user Linux tp_cua_user_example_0c6158 cho site ...
   xong
 - Tạo thư mục /var/www/cua-user.example.org ...
@@ -703,7 +731,7 @@ Bắt đầu job 183a612ae7161d74
   [đạt] Site cua-user.example.org không chạm được vào file, log và socket của site hoc-truc-tuyen.lop-hoc-a.example.net
   [đạt] Site hoc-truc-tuyen.lop-hoc-a.example.net không chạm được vào file, log và socket của site cua-user.example.org
 
-Job 183a612ae7161d74: thành công
+Job df972a9c3cfeddd6: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -724,10 +752,10 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-25 04:22:10] (mã thoát 0)
+[2026-11-25 05:23:26] (mã thoát 0)
   => ĐẠT: site add cua-user.example.org: thoát 0, job thành công
 
-[2026-11-25 04:22:10] $ anh-readme -bo m16-that -buoc user -ten khach_m16 -site cua-user.example.org   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 05:23:26] $ anh-readme -bo m16-that -buoc user -ten khach_m16 -site cua-user.example.org   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: user thường khach_m16 đăng nhập qua form: tới /tools (trang chủ là Công cụ)
   => ĐẠT: menu và trang Công cụ của user thường không có mục admin (lọt: [])
   => ĐẠT: mở /tools: tiêu đề «Công cụ», 0 lỗi console, cuộn ngang: false
@@ -745,60 +773,60 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
   => ĐẠT: mở /backups: tiêu đề «Backup», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /cron: tiêu đề «Cron», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /trash: tiêu đề «Thùng rác», 0 lỗi console, cuộn ngang: false
-  => ĐẠT: mở /usage: tiêu đề «Đăng nhập», 0 lỗi console, cuộn ngang: false
+  => ĐẠT: mở /usage: tiêu đề «Tài nguyên đang dùng», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /incidents: tiêu đề «Sự cố», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /jobs: tiêu đề «Lịch sử», 0 lỗi console, cuộn ngang: false
   => ĐẠT: mở /settings: tiêu đề «Cài đặt», 0 lỗi console, cuộn ngang: false
   => ĐẠT: màn cuối cùng user mở là Cài đặt
   => ĐẠT: user thường gõ /users: thấy «Không có quyền vào màn này», 0 lỗi console (không gọi API admin)
   => ĐẠT: user thường mở / thì được đưa tới /tools (đang ở /tools)
-[2026-11-25 04:22:50] (mã thoát 0)
+[2026-11-25 05:24:04] (mã thoát 0)
 
 ==== Phần D: 26 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:22:50] PHẦN E: máy sạch, cài v0.2.0, đăng nhập bằng giao diện cũ, v0.2.0 tự lên bản A
+######## [2026-11-25 05:24:04] PHẦN E: máy sạch, cài v0.2.0, đăng nhập bằng giao diện cũ, v0.2.0 tự lên bản A
 Máy ảo: tpan-m19
 
-[2026-11-25 04:22:50] $ make vm-reset
+[2026-11-25 05:24:04] $ make vm-reset
 scripts/vm.sh reset
-[2K[0A[0EStopping tpan-m19  /-\|/-\| [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m19.clean
-[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ [2K[0A[0E
-[2026-11-25 04:23:03] (mã thoát 0)
+[2K[0A[0EStopping tpan-m19  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m19.clean
+[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
+[2026-11-25 05:24:17] (mã thoát 0)
   => ĐẠT: máy ảo về snapshot clean
 
-[2026-11-25 04:23:03] $ scripts/vm.sh exec cloud-init status --wait
+[2026-11-25 05:24:17] $ scripts/vm.sh exec cloud-init status --wait
 status: done
-[2026-11-25 04:23:03] (mã thoát 0)
+[2026-11-25 05:24:18] (mã thoát 0)
   => ĐẠT: cloud-init xong
 IP máy ảo: <vm>; IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
 
-[2026-11-25 04:23:03] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+[2026-11-25 05:24:18] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
 ls: cannot access '/etc/tpan': No such file or directory
 ls: cannot access '/var/lib/tpan': No such file or directory
-[2026-11-25 04:23:04] (mã thoát 2)
+[2026-11-25 05:24:18] (mã thoát 2)
   => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
 Kiến trúc máy ảo: arm64
 
-[2026-11-25 04:23:04] $ multipass transfer -r dist/e2e-m16 tpan-m19:/home/ubuntu/
-[2026-11-25 04:23:04] (mã thoát 0)
+[2026-11-25 05:24:18] $ multipass transfer -r dist/e2e-m16 tpan-m19:/home/ubuntu/
+[2026-11-25 05:24:19] (mã thoát 0)
   => ĐẠT: chép thư mục đồ nghề sang máy ảo (/home/ubuntu/e2e-m16)
 
-[2026-11-25 04:23:04] $ multipass transfer -r dist/release/v0.2.0 tpan-m19:/home/ubuntu/
-[2026-11-25 04:23:05] (mã thoát 0)
+[2026-11-25 05:24:19] $ multipass transfer -r dist/release/v0.2.0 tpan-m19:/home/ubuntu/
+[2026-11-25 05:24:19] (mã thoát 0)
   => ĐẠT: chép gói v0.2.0 sang máy ảo
 
-[2026-11-25 04:23:05] $ scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8016 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m16/rel
-Running as unit: tpan-e2e-http.service; invocation ID: 178ae36e8e414a7da627e164221edbc0
-[2026-11-25 04:23:05] (mã thoát 0)
+[2026-11-25 05:24:19] $ scripts/vm.sh root systemd-run --unit tpan-e2e-http --collect python3 -m http.server 8016 --bind 127.0.0.1 --directory /home/ubuntu/e2e-m16/rel
+Running as unit: tpan-e2e-http.service; invocation ID: 991cd1f40b7d402c87b2748c1d4a5fba
+[2026-11-25 05:24:19] (mã thoát 0)
 
-[2026-11-25 04:23:07] $ scripts/vm.sh exec bash -c for d in a b; do printf "%s: SHA256SUMS %s, VERSION %s\n" "$d" "$(curl -s -o /dev/null -w "%{http_code}" "$1/$d/SHA256SUMS")" "$(curl -s "$1/$d/VERSION")"; done _ http://127.0.0.1:8016
-a: SHA256SUMS 200, VERSION v0.2.3-51-ga799785-dirty
-b: SHA256SUMS 200, VERSION v0.2.3-51-ga799785-dirty-e2e-b
-[2026-11-25 04:23:07] (mã thoát 0)
+[2026-11-25 05:24:21] $ scripts/vm.sh exec bash -c for d in a b; do printf "%s: SHA256SUMS %s, VERSION %s\n" "$d" "$(curl -s -o /dev/null -w "%{http_code}" "$1/$d/SHA256SUMS")" "$(curl -s "$1/$d/VERSION")"; done _ http://127.0.0.1:8016
+a: SHA256SUMS 200, VERSION v0.2.3-132-g45bff31-dirty
+b: SHA256SUMS 200, VERSION v0.2.3-132-g45bff31-dirty-e2e-b
+[2026-11-25 05:24:21] (mã thoát 0)
   => ĐẠT: (đồ nghề) nguồn tải loopback trả gói a và b
 
-[2026-11-25 04:23:07] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.2.0 && sudo bash ./install.sh --web nginx
+[2026-11-25 05:24:21] $ scripts/vm.sh exec bash -c cd /home/ubuntu/v0.2.0 && sudo bash ./install.sh --web nginx
 
 ==> Kiểm máy
 Ubuntu 24.04
@@ -814,7 +842,7 @@ tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
 Đã đặt /usr/local/bin/tpan
 
 ==> Khởi tạo panel: tpan setup
-Bắt đầu job 6a5bb9fb4d3ef754
+Bắt đầu job 4b71e5172d36b0a3
 - Tạo thư mục /etc/tpan ...
   xong
 - Tạo thư mục /etc/tpan/tls ...
@@ -830,16 +858,16 @@ Bắt đầu job 6a5bb9fb4d3ef754
 - Chạy và bật tpan.service khi khởi động ...
   xong
 
-Job 6a5bb9fb4d3ef754: thành công
+Job 4b71e5172d36b0a3: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
     <bí mật, đã che>
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    89:97:98:1A:07:0F:E0:7D:BE:87:A6:71:87:07:02:08:9A:6B:F7:30:27:40:DF:EF:6D:A1:17:52:FE:17:08:80
+    8D:10:B4:27:75:FA:BF:92:B7:0B:6D:70:2D:7C:BE:B3:F2:27:F3:2E:FA:99:A3:65:A1:2F:08:C3:97:C0:AF:1A
 Mở: https://<IP của máy>:8443
 
 ==> Cài stack: tpan stack install --web nginx
-Bắt đầu job 1f4203aae582d355
+Bắt đầu job 07bcd6c49237deb0
 - Làm mới danh sách gói (apt-get update) ...
   xong
 - Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
@@ -890,7 +918,7 @@ Bắt đầu job 1f4203aae582d355
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
 
-Job 1f4203aae582d355: thành công
+Job 07bcd6c49237deb0: thành công
 Kiểm chứng:
   [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
   [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
@@ -901,7 +929,7 @@ Kiểm chứng:
   [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
   [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
   [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
-  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 14.0%
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.8%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
@@ -909,17 +937,17 @@ Kiểm chứng:
 Xong. Bước tiếp:
   sudo tpan site add example.com --email admin@example.com
   sudo tpan health
-[2026-11-25 04:23:43] (mã thoát 0)
+[2026-11-25 05:24:54] (mã thoát 0)
 Mật khẩu quản trị panel trong output: 1 lần
   => ĐẠT: install.sh v0.2.0 thoát 0
 
-[2026-11-25 04:23:43] $ scripts/vm.sh exec tpan version
+[2026-11-25 05:24:54] $ scripts/vm.sh exec tpan version
 tpan v0.2.0 (commit 4609c81, build 2026-11-20T17:49:00Z)
-[2026-11-25 04:23:43] (mã thoát 0)
+[2026-11-25 05:24:54] (mã thoát 0)
   => ĐẠT: tpan version là v0.2.0
 
-[2026-11-25 04:23:43] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
-Bắt đầu job 1c857e7649796675
+[2026-11-25 05:24:54] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --yes
+Bắt đầu job dffa92fb7212c27e
 - Tạo user Linux tp_a_example_com_7653e4 cho site ...
   xong
 - Tạo thư mục /var/www/a.example.com ...
@@ -965,7 +993,7 @@ Bắt đầu job 1c857e7649796675
   [đạt] Log của site không đọc được bởi site khác
   [đạt] Vhost của site có đủ các dòng chặn cô lập
 
-Job 1c857e7649796675: thành công
+Job dffa92fb7212c27e: thành công
 Kiểm chứng:
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
@@ -981,15 +1009,15 @@ Tài khoản quản trị WordPress:
   Tên:           admin
   Mật khẩu:      <bí mật, đã che>
 Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
-[2026-11-25 04:24:06] (mã thoát 0)
+[2026-11-25 05:25:14] (mã thoát 0)
   => ĐẠT: site add a.example.com: thoát 0, job thành công
 
-[2026-11-25 04:24:06] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+[2026-11-25 05:25:14] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
 200
-[2026-11-25 04:24:06] (mã thoát 0)
+[2026-11-25 05:25:14] (mã thoát 0)
   => ĐẠT: a.example.com trả 200 trên v0.2.0
 
-[2026-11-25 04:24:06] $ scripts/vm.sh root tpan health
+[2026-11-25 05:25:14] $ scripts/vm.sh root tpan health
 
 == Máy và stack ==
 [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
@@ -1007,7 +1035,7 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
 [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
 [đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó
 [đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
-[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 84.8% (3.2 GiB trên 3.8 GiB); máy không có swap
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 82.9% (3.2 GiB trên 3.8 GiB); máy không có swap
 [đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
 [đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
 [đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
@@ -1059,14 +1087,14 @@ Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
       sudo ls /var/lib/tpan/backups/_tpan
 
 8 đạt, 1 cảnh báo
-[2026-11-25 04:24:08] (mã thoát 0)
+[2026-11-25 05:25:16] (mã thoát 0)
 Số dòng [lỗi] của tpan health: 0
 
-[2026-11-25 04:24:08] $ anh-readme -bo m16-that -buoc nang-cap   (chạy nền, panel <panel>)
-  => KHÔNG ĐẠT: trình duyệt đã đăng nhập bằng giao diện v0.2.0 và đang chờ
+[2026-11-25 05:25:16] $ anh-readme -bo m16-that -buoc nang-cap   (chạy nền, panel <panel>)
+  => ĐẠT: trình duyệt đã đăng nhập bằng giao diện v0.2.0 và đang chờ
 
-[2026-11-25 04:24:25] $ scripts/vm.sh root tpan self-update --yes --url http://127.0.0.1:8016/a
-Bắt đầu job 9c0397485afc6163
+[2026-11-25 05:25:18] $ scripts/vm.sh root tpan self-update --yes --url http://127.0.0.1:8016/a
+Bắt đầu job ce76010417035a07
 - Tải bản tpan mới vào /usr/local/bin/tpan.new ...
   xong
 - Thay /usr/local/bin/tpan bằng /usr/local/bin/tpan.new, giữ bản cũ ở /usr/local/bin/tpan.old ...
@@ -1075,29 +1103,35 @@ Bắt đầu job 9c0397485afc6163
   xong
   [đạt] File chạy /usr/local/bin/tpan chạy được
 
-Job 9c0397485afc6163: thành công
+Job ce76010417035a07: thành công
 Kiểm chứng:
-  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.3-51-ga799785-dirty (commit a799785, build 2026-11-24T21:18:58Z)
-tpan đã đổi: v0.2.0 -> v0.2.3-51-ga799785-dirty
+  [đạt] File chạy /usr/local/bin/tpan chạy được: tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:20:56Z)
+tpan đã đổi: v0.2.0 -> v0.2.3-132-g45bff31-dirty
 Việc tiếp theo: chạy `sudo tpan security harden`. Bản mới siết cô lập giữa các site; site có từ trước cần áp bản vá (xem trước bằng --dry-run).
-[2026-11-25 04:24:25] (mã thoát 0)
+[2026-11-25 05:25:19] (mã thoát 0)
   => ĐẠT: tpan self-update của v0.2.0 lên bản A: thoát 0, job thành công
-  => ĐẠT: in v0.2.0 -> v0.2.3-51-ga799785-dirty
-lỗi: mở <panel>/ (đang ở <nil>): hết giờ, lỗi cuối: write tcp 127.0.0.1:62468->127.0.0.1:18172: write: broken pipe
-[2026-11-25 04:24:25] (mã thoát 1)
-  => KHÔNG ĐẠT: nâng cấp: chương trình trình duyệt chạy hết
+  => ĐẠT: in v0.2.0 -> v0.2.3-132-g45bff31-dirty
+  => ĐẠT: bản cũ v0.2.0: đăng nhập qua form của giao diện cũ, phiên đang dùng được
+  => ĐẠT: giao diện bản cũ chưa có mục Công cụ
+CHỜ NÂNG CẤP
+  => ĐẠT: sau khi nâng: cùng cookie, /api/v1/session vẫn logged_in, bản v0.2.0 -> v0.2.3-132-g45bff31-dirty
+  => ĐẠT: tải lại trang: thấy giao diện bản 2 (menu có Công cụ) bằng phiên cũ, 0 lỗi console
+  => ĐẠT: mở /tools: tiêu đề «Công cụ», 0 lỗi console, cuộn ngang: false
+  => ĐẠT: mở /settings: tiêu đề «Cài đặt», 0 lỗi console, cuộn ngang: false
+  => ĐẠT: đăng xuất rồi đăng nhập lại bằng mật khẩu cũ trên bản mới
+[2026-11-25 05:25:23] (mã thoát 0)
 
-[2026-11-25 04:24:25] $ scripts/vm.sh exec tpan version
-tpan v0.2.3-51-ga799785-dirty (commit a799785, build 2026-11-24T21:18:58Z)
-[2026-11-25 04:24:25] (mã thoát 0)
-  => ĐẠT: sau khi nâng: tpan version là bản A (v0.2.3-51-ga799785-dirty)
+[2026-11-25 05:25:23] $ scripts/vm.sh exec tpan version
+tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:20:56Z)
+[2026-11-25 05:25:23] (mã thoát 0)
+  => ĐẠT: sau khi nâng: tpan version là bản A (v0.2.3-132-g45bff31-dirty)
 
-[2026-11-25 04:24:25] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+[2026-11-25 05:25:23] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
 200
-[2026-11-25 04:24:25] (mã thoát 0)
+[2026-11-25 05:25:23] (mã thoát 0)
   => ĐẠT: a.example.com vẫn 200 sau khi nâng
 
-[2026-11-25 04:24:25] $ scripts/vm.sh root tpan health
+[2026-11-25 05:25:23] $ scripts/vm.sh root tpan health
 
 == Máy và stack ==
 [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
@@ -1116,7 +1150,7 @@ tpan v0.2.3-51-ga799785-dirty (commit a799785, build 2026-11-24T21:18:58Z)
 [đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó
 [đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
 [đạt] Không tên miền gốc nào có tên của hai chủ khác nhau: Mỗi tên miền gốc chỉ có tên của một chủ
-[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 84.7% (3.2 GiB trên 3.8 GiB); máy không có swap
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 84.1% (3.2 GiB trên 3.8 GiB); máy không có swap
 [đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
 [đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
 [đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
@@ -1179,44 +1213,59 @@ tpan v0.2.3-51-ga799785-dirty (commit a799785, build 2026-11-24T21:18:58Z)
       sudo tpan backup settings --at 03:30
       sudo ls /var/lib/tpan/backups/_tpan
 [đạt] Không còn site thử và user thử của phép thử tấn công: Không còn gì sót lại của phép thử tấn công
+[cảnh báo] Mọi admin đã bật đăng nhập hai bước: Admin chưa bật đăng nhập hai bước: admin
+    Nguyên nhân: Admin chỉ có mật khẩu thì lộ mật khẩu (đoán, dùng lại ở trang khác, bị lừa) là đủ để người khác điều khiển cả máy. Mỗi admin tự bật: đăng nhập panel, mở trang Tài khoản, mục Đăng nhập hai bước, quét mã QR bằng app xác thực trên điện thoại.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan user 2fa status
+[đạt] Không ai đang dò mã hai bước: Không có user nào bị nhập sai mã hai bước nhiều lần
+[đạt] Đồng hồ của máy được đồng bộ (NTP): Chưa ai bật đăng nhập hai bước nên chưa cần kiểm đồng hồ
+[đạt] File khoá của đăng nhập hai bước còn nguyên: Chưa ai bật đăng nhập hai bước nên chưa cần file khoá
 
-9 đạt, 1 cảnh báo
-[2026-11-25 04:24:27] (mã thoát 1)
+12 đạt, 2 cảnh báo
+[2026-11-25 05:25:26] (mã thoát 1)
 Số dòng [lỗi] của tpan health: 1
 [lỗi] mới so với trước khi nâng:
 [lỗi] Vhost không đi theo public khi nó là symlink sang chủ khác: Vhost chưa có bản vá F4: dòng 17: "disable_symlinks if_not_owner from=$document_root;" khác "disable_symlinks if_not_owner;"; thiếu dòng "disable_symlinks if_not_owner;"
-  => KHÔNG ĐẠT: tpan health sau khi nâng không có [lỗi] mới
+  => ĐẠT: tpan health sau khi nâng không có [lỗi] mới (trừ phép kiểm chờ harden của M28)
 
-==== Phần E: 14 đạt, 3 không đạt
+==== Phần E: 23 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:24:27] PHẦN F: hồi quy M15 trên giao diện mới: bấm thật nút cập nhật A lên B rồi quay về
+######## [2026-11-25 05:25:26] PHẦN F: hồi quy M15 trên giao diện mới: bấm thật nút cập nhật A lên B rồi quay về
 
-[2026-11-25 04:24:27] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m16/db.py seturl http://127.0.0.1:8016/b
+[2026-11-25 05:25:26] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m16/db.py seturl http://127.0.0.1:8016/b
 update.self_url=http://127.0.0.1:8016/b
-[2026-11-25 04:24:27] (mã thoát 0)
+[2026-11-25 05:25:26] (mã thoát 0)
   => ĐẠT: (đồ nghề) setting update.self_url là http://127.0.0.1:8016/b
 
-[2026-11-25 04:24:27] $ anh-readme -bo m15-that   (Chrome không giao diện trên Mac, panel <panel>)
-bản đang chạy lúc đầu: v0.2.3-51-ga799785-dirty
-<tmp>/anh-out/M15-that-1-xem-truoc.png  140 KB
+[2026-11-25 05:25:26] $ anh-readme -bo m15-that   (Chrome không giao diện trên Mac, panel <panel>)
+bản đang chạy lúc đầu: v0.2.3-132-g45bff31-dirty
+<tmp>/anh-out/M15-that-1-xem-truoc.png  139 KB
 <tmp>/anh-out/M15-that-2-dang-cap-nhat.png  121 KB
-lỗi: chờ dòng "Đã lên": hết giờ, điều kiện chưa đúng (khối đang ghi: )
-[2026-11-25 04:26:30] (mã thoát 1)
-  => KHÔNG ĐẠT: nút cập nhật (M15): chương trình trình duyệt chạy hết
-  => KHÔNG ĐẠT: kịch bản bấm thật của M15 chạy hết, thoát 0
+từ lúc bấm tới lúc khối báo "Đã cập nhật lên": 3.1 giây
+cập nhật: trong lúc chờ, trang đã thấy {"paths":["/settings"],"restarting":false,"updating":true,"loginSeen":false}
+bản đang chạy sau khi cập nhật: v0.2.3-132-g45bff31-dirty-e2e-b (phiên đăng nhập cũ còn dùng được: /api/v1/session trả lời có version)
+<tmp>/anh-out/M15-that-3-da-len.png  122 KB
+dòng phiên bản sau khi lên: "TPAN v0.2.3-132-g45bff31-dirty-e2e-b"
+<tmp>/anh-out/M15-that-4-hoi-quay-ve.png  142 KB
+từ lúc bấm tới lúc khối báo "Đã quay về": 3.2 giây
+quay về: trong lúc chờ, trang đã thấy {"paths":["/settings"],"restarting":false,"updating":true,"loginSeen":false}
+bản đang chạy sau khi quay về: v0.2.3-132-g45bff31-dirty
+<tmp>/anh-out/M15-that-5-da-quay-ve.png  126 KB
+[2026-11-25 05:25:36] (mã thoát 0)
+  => ĐẠT: kịch bản bấm thật của M15 chạy hết, thoát 0
 
-[2026-11-25 04:26:30] $ scripts/vm.sh exec tpan version
-tpan v0.2.3-51-ga799785-dirty-e2e-b (commit a799785, build 2026-11-24T21:18:58Z)
-[2026-11-25 04:26:30] (mã thoát 0)
-  => KHÔNG ĐẠT: sau khi cập nhật rồi quay về: tpan version là bản A (v0.2.3-51-ga799785-dirty)
+[2026-11-25 05:25:36] $ scripts/vm.sh exec tpan version
+tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:20:56Z)
+[2026-11-25 05:25:36] (mã thoát 0)
+  => ĐẠT: sau khi cập nhật rồi quay về: tpan version là bản A (v0.2.3-132-g45bff31-dirty)
 
-==== Phần F: 1 đạt, 3 không đạt
+==== Phần F: 3 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:26:30] PHẦN CUỐI: health, site, tắt đồ nghề
+######## [2026-11-25 05:25:36] PHẦN CUỐI: health, site, tắt đồ nghề
 
-[2026-11-25 04:26:30] $ scripts/vm.sh root tpan health
+[2026-11-25 05:25:36] $ scripts/vm.sh root tpan health
 
 == Máy và stack ==
 [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
@@ -1235,7 +1284,7 @@ tpan v0.2.3-51-ga799785-dirty-e2e-b (commit a799785, build 2026-11-24T21:18:58Z)
 [đạt] Mỗi tên miền chỉ được khai ở đúng vhost của site đó: Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó
 [đạt] Request mang tên miền lạ bị vhost mặc định từ chối: Tên miền lạ bị từ chối ở cổng 80
 [đạt] Không tên miền gốc nào có tên của hai chủ khác nhau: Mỗi tên miền gốc chỉ có tên của một chủ
-[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 84.7% (3.2 GiB trên 3.8 GiB); máy không có swap
+[đạt] RAM và swap còn đủ dùng: RAM còn dùng được 84.9% (3.2 GiB trên 3.8 GiB); máy không có swap
 [đạt] File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi: File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi
 [đạt] File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi: File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi
 [đạt] File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi: File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi
@@ -1298,27 +1347,34 @@ tpan v0.2.3-51-ga799785-dirty-e2e-b (commit a799785, build 2026-11-24T21:18:58Z)
       sudo tpan backup settings --at 03:30
       sudo ls /var/lib/tpan/backups/_tpan
 [đạt] Không còn site thử và user thử của phép thử tấn công: Không còn gì sót lại của phép thử tấn công
+[cảnh báo] Mọi admin đã bật đăng nhập hai bước: Admin chưa bật đăng nhập hai bước: admin
+    Nguyên nhân: Admin chỉ có mật khẩu thì lộ mật khẩu (đoán, dùng lại ở trang khác, bị lừa) là đủ để người khác điều khiển cả máy. Mỗi admin tự bật: đăng nhập panel, mở trang Tài khoản, mục Đăng nhập hai bước, quét mã QR bằng app xác thực trên điện thoại.
+    Sửa tay (gõ trên máy này, thư mục nào cũng được):
+      sudo tpan user 2fa status
+[đạt] Không ai đang dò mã hai bước: Không có user nào bị nhập sai mã hai bước nhiều lần
+[đạt] Đồng hồ của máy được đồng bộ (NTP): Chưa ai bật đăng nhập hai bước nên chưa cần kiểm đồng hồ
+[đạt] File khoá của đăng nhập hai bước còn nguyên: Chưa ai bật đăng nhập hai bước nên chưa cần file khoá
 
-9 đạt, 1 cảnh báo
-[2026-11-25 04:26:32] (mã thoát 1)
+12 đạt, 2 cảnh báo
+[2026-11-25 05:25:38] (mã thoát 1)
 Số dòng [lỗi] của tpan health: 1
 [lỗi] mới so với lúc mới cài v0.2.0:
 [lỗi] Vhost không đi theo public khi nó là symlink sang chủ khác: Vhost chưa có bản vá F4: dòng 17: "disable_symlinks if_not_owner from=$document_root;" khác "disable_symlinks if_not_owner;"; thiếu dòng "disable_symlinks if_not_owner;"
-  => KHÔNG ĐẠT: cuối kịch bản tpan health không có [lỗi] mới so với lúc mới cài v0.2.0
+  => ĐẠT: cuối kịch bản tpan health không có [lỗi] mới so với lúc mới cài v0.2.0 (trừ phép kiểm chờ harden của M28)
 
-[2026-11-25 04:26:32] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
+[2026-11-25 05:25:38] $ scripts/vm.sh exec curl -s -o /dev/null -m 20 -w %{http_code}\n --resolve a.example.com:80:127.0.0.1 http://a.example.com/
 200
-[2026-11-25 04:26:32] (mã thoát 0)
+[2026-11-25 05:25:38] (mã thoát 0)
   => ĐẠT: a.example.com vẫn 200
 
-[2026-11-25 04:26:32] $ scripts/vm.sh root systemctl stop tpan-e2e-http
-[2026-11-25 04:26:32] (mã thoát 0)
+[2026-11-25 05:25:38] $ scripts/vm.sh root systemctl stop tpan-e2e-http
+[2026-11-25 05:25:38] (mã thoát 0)
   => ĐẠT: (đồ nghề) tắt máy chủ tải tpan-e2e-http
 
-==== Phần CUỐI: 2 đạt, 1 không đạt
+==== Phần CUỐI: 3 đạt, 0 không đạt
 
 
-######## [2026-11-25 04:26:32] bí mật, IP, tên user Mac có lọt vào chính file log không
+######## [2026-11-25 05:25:38] bí mật, IP, tên user Mac có lọt vào chính file log không
 Số bí mật đã gặp: 10; số dòng của log chứa một trong số đó: 0
   => ĐẠT: log không chứa mật khẩu nào
   => ĐẠT: log không chứa IP máy ảo
@@ -1327,4 +1383,4 @@ Số bí mật đã gặp: 10; số dòng của log chứa một trong số đó
   => ĐẠT: log không chứa thư mục nhà hay tên user Mac
 
 
-######## [2026-11-25 04:26:32] TỔNG KẾT: 109 khẳng định đạt, 7 khẳng định không đạt
+######## [2026-11-25 05:25:38] TỔNG KẾT: 120 khẳng định đạt, 0 khẳng định không đạt

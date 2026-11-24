@@ -1,52 +1,52 @@
-e2e giao diện M19. tpan của cây: v0.2.3-27-g431b3f4; máy ảo: tpan-m19; các phần: a b c d e
+e2e giao diện M19. tpan của cây: v0.2.3-132-g45bff31-dirty; máy ảo: tpan-m19; các phần: a b c d e
 
 
-######## [2026-11-25 03:41:57] PHẦN A: máy sạch, tpan của cây, dựng máy (stack nginx, pebble, hai user), hai site
+######## [2026-11-25 05:18:41] PHẦN A: máy sạch, tpan của cây, dựng máy (stack nginx, pebble, hai user), hai site
 
-[2026-11-25 03:41:57] $ git log --oneline -1
-431b3f4 soát cuối M19: 1 nặng, 5 vừa, 4 nhẹ; sửa C1 (POST /apply của user thường được miễn luật tên miền gốc): apiSites mặc định NotAdmin, apply đặt theo vai; e2e nâng cấp: hai khẳng định sai của script; bản nháp giải thích
-[2026-11-25 03:41:58] (mã thoát 0)
+[2026-11-25 05:18:41] $ git log --oneline -1
+45bff31 gộp M20 vào M19: tám route của M19 vào nhóm token sites (bảng quyết định token của M20); CertbotCert giữ cả Names/Probe (M19) lẫn CertName (M20), Check đọc SAN cho cả hai
+[2026-11-25 05:18:41] (mã thoát 0)
 
-[2026-11-25 03:41:58] $ git status --short
-?? docs/bang-chung/M19/
-[2026-11-25 03:41:58] (mã thoát 0)
+[2026-11-25 05:18:41] $ git status --short
+ M docs/bang-chung/M19.log
+[2026-11-25 05:18:41] (mã thoát 0)
 
-[2026-11-25 03:41:58] $ go build -o <tmp>/anh ./scripts/anh-readme
-[2026-11-25 03:41:59] (mã thoát 0)
+[2026-11-25 05:18:41] $ go build -o <tmp>/anh ./scripts/anh-readme
+[2026-11-25 05:18:42] (mã thoát 0)
   => ĐẠT: build chương trình trình duyệt (scripts/anh-readme)
 Máy ảo: tpan-m19
 
-[2026-11-25 03:41:59] $ make vm-reset
+[2026-11-25 05:18:42] $ make vm-reset
 scripts/vm.sh reset
-[2K[0A[0EStopping tpan-m19  /-\|/-\|/ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m19.clean
-[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/- [2K[0A[0E
-[2026-11-25 03:42:11] (mã thoát 0)
+[2K[0A[0EStopping tpan-m19  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  / [2K[0A[0ESnapshot restored: tpan-m19.clean
+[2K[0A[0EStarting tpan-m19  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ [2K[0A[0E
+[2026-11-25 05:18:55] (mã thoát 0)
   => ĐẠT: máy ảo về snapshot clean
 
-[2026-11-25 03:42:11] $ scripts/vm.sh exec cloud-init status --wait
+[2026-11-25 05:18:55] $ scripts/vm.sh exec cloud-init status --wait
 status: done
-[2026-11-25 03:42:12] (mã thoát 0)
+[2026-11-25 05:18:56] (mã thoát 0)
   => ĐẠT: cloud-init xong
 IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
 
-[2026-11-25 03:42:14] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+[2026-11-25 05:18:56] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
 ls: cannot access '/etc/tpan': No such file or directory
 ls: cannot access '/var/lib/tpan': No such file or directory
-[2026-11-25 03:42:14] (mã thoát 2)
+[2026-11-25 05:18:56] (mã thoát 2)
   => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
 
-[2026-11-25 03:42:14] $ make vm-deploy DATE=2026-11-24T20:41:57Z
+[2026-11-25 05:18:56] $ make vm-deploy DATE=2026-11-24T22:18:41Z
 cd web && pnpm install --frozen-lockfile && pnpm build
 ✓ Lockfile passes supply-chain policies (verified 4d ago)
 Lockfile is up to date, resolution step is skipped
-Done in 27ms using pnpm v12.15.0
+Done in 29ms using pnpm v12.15.0
 $ tsc --noEmit && vite build
 vite v8.3.8 building client environment for production...
 transforming...
-✓ 414 modules transformed.
+✓ 446 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                                                   0.95 kB │ gzip:   0.55 kB
+dist/index.html                                                   1.11 kB │ gzip:   0.58 kB
 dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
 dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
 dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
@@ -59,119 +59,135 @@ dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
 dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
 dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
 dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
-dist/assets/index-EqBpctA5.css                                   38.96 kB │ gzip:   8.97 kB
-dist/assets/useStatusName-i2MMdWlG.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/index-DJFMKdRB.css                                   39.66 kB │ gzip:   9.10 kB
+dist/assets/useStatusName-CxUGMPHT.js                             0.20 kB │ gzip:   0.18 kB
 dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
-dist/assets/OriginTag-DJ8nKikB.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/model-Co_p74TJ.js                                     0.27 kB │ gzip:   0.18 kB
+dist/assets/OriginTag-Br1_EzVH.js                                 0.27 kB │ gzip:   0.22 kB
 dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
-dist/assets/DomainText-J2JYFBIG.js                                0.30 kB │ gzip:   0.22 kB
-dist/assets/SuspendTag-D2S5lp8T.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/DomainText-KBkCG4fH.js                                0.30 kB │ gzip:   0.22 kB
+dist/assets/SuspendTag-DJaOgP0c.js                                0.37 kB │ gzip:   0.27 kB
 dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
-dist/assets/m14-De4nGYto.js                                       0.56 kB │ gzip:   0.34 kB
-dist/assets/m13-dbs-CHKgZTGd.js                                   0.65 kB │ gzip:   0.38 kB
-dist/assets/SegmentButton-pcF6y8cr.js                             0.70 kB │ gzip:   0.45 kB
-dist/assets/RowActions-BkzQHacp.js                                0.70 kB │ gzip:   0.42 kB
-dist/assets/m13-chung-BWeTvEm_.js                                 0.80 kB │ gzip:   0.45 kB
-dist/assets/Rows-BD71Me6b.js                                      0.84 kB │ gzip:   0.35 kB
+dist/assets/useCopy-BJdn0eDz.js                                   0.51 kB │ gzip:   0.32 kB
+dist/assets/m14-DLuaUkTf.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-BBpQSZ9E.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/SegmentButton-CR5MIMgU.js                             0.70 kB │ gzip:   0.45 kB
+dist/assets/RowActions-CoZLx16y.js                                0.70 kB │ gzip:   0.42 kB
+dist/assets/m13-chung-Cpal5VlU.js                                 0.80 kB │ gzip:   0.44 kB
+dist/assets/Rows-Blir0bT6.js                                      0.84 kB │ gzip:   0.36 kB
 dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
-dist/assets/m19-D_Ag1LLH.js                                       0.85 kB │ gzip:   0.47 kB
-dist/assets/UsageMeter-C3pGu4DU.js                                0.86 kB │ gzip:   0.46 kB
+dist/assets/m19-CgG8tz4C.js                                       0.85 kB │ gzip:   0.47 kB
+dist/assets/UsageMeter-BDT1YDHR.js                                0.86 kB │ gzip:   0.47 kB
 dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
+dist/assets/m17-C12L2f47.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/Frame-CqQq1zih.js                                     1.00 kB │ gzip:   0.51 kB
+dist/assets/model-C2VyZL6F.js                                     1.02 kB │ gzip:   0.54 kB
 dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
-dist/assets/Dialog-CFuFlw9v.js                                    1.18 kB │ gzip:   0.65 kB
-dist/assets/model-B0M7ZiFS.js                                     1.56 kB │ gzip:   0.61 kB
-dist/assets/useCopy-B1MJcGPP.js                                   1.75 kB │ gzip:   0.82 kB
-dist/assets/PreviewedOp-BuGfMotv.js                               1.86 kB │ gzip:   0.98 kB
-dist/assets/model-sW5idu4U.js                                     2.01 kB │ gzip:   0.95 kB
-dist/assets/TableList-DjOQZfZC.js                                 2.21 kB │ gzip:   0.95 kB
-dist/assets/RouteMap-B1VZRSJL.js                                  2.35 kB │ gzip:   1.04 kB
-dist/assets/ten-mien-vYv75rIa.js                                  2.94 kB │ gzip:   1.31 kB
-dist/assets/Bulk-C2wsdCCD.js                                      3.03 kB │ gzip:   1.39 kB
-dist/assets/plan-cho-duyet-CSNjGj8f.js                            5.82 kB │ gzip:   2.03 kB
-dist/assets/StorageFlow-ueuw5Cce.js                               6.41 kB │ gzip:   2.57 kB
-dist/assets/dang-nhap-DeyqQIww.js                                 6.70 kB │ gzip:   2.90 kB
-dist/assets/goi-D_nC1zn0.js                                       8.45 kB │ gzip:   3.67 kB
-dist/assets/Self-Dgeh8ZWd.js                                      8.52 kB │ gzip:   2.72 kB
-dist/assets/backup-C24h6czn.js                                   10.94 kB │ gzip:   3.50 kB
-dist/assets/queries-CzxwT7yq.js                                  10.97 kB │ gzip:   3.33 kB
-dist/assets/cong-cu-C-_AsGBB.js                                  11.09 kB │ gzip:   4.27 kB
-dist/assets/ssl-DazwnNg9.js                                      11.49 kB │ gzip:   4.54 kB
-dist/assets/cap-nhat-DEPAPKNQ.js                                 11.86 kB │ gzip:   4.27 kB
-dist/assets/duyet-plan-zjMeO_Rz.js                               11.99 kB │ gzip:   4.35 kB
-dist/assets/CheckRow-ORhjnVk1.js                                 12.38 kB │ gzip:   4.53 kB
-dist/assets/cron-DFA5DM-M.js                                     13.05 kB │ gzip:   4.89 kB
-dist/assets/thung-rac-BO7kL72N.js                                13.39 kB │ gzip:   4.74 kB
-dist/assets/tao-site-CM76Ha-H.js                                 13.47 kB │ gzip:   4.96 kB
-dist/assets/co-so-du-lieu-CWXBlX3v.js                            14.58 kB │ gzip:   4.80 kB
-dist/assets/bao-mat-5Pif-tQn.js                                  14.89 kB │ gzip:   4.72 kB
-dist/assets/co-so-du-lieu-WubPbHPk.js                            15.70 kB │ gzip:   4.97 kB
-dist/assets/cai-may-moi-6suXHEjd.js                              15.73 kB │ gzip:   5.74 kB
-dist/assets/phien-ai-BOLFdhTj.js                                 16.23 kB │ gzip:   5.35 kB
-dist/assets/stack-Dc8pIFLv.js                                    17.31 kB │ gzip:   5.50 kB
-dist/assets/cai-dat-DAKheg8e.js                                  21.52 kB │ gzip:   7.22 kB
-dist/assets/su-co-Duc5h1Ug.js                                    21.59 kB │ gzip:   7.19 kB
-dist/assets/backup-D-8NBJ5w.js                                   24.62 kB │ gzip:   7.84 kB
-dist/assets/nguoi-dung-CQLGb_Ty.js                               26.29 kB │ gzip:   8.88 kB
-dist/assets/trang-chu-DJlNmHOg.js                                26.43 kB │ gzip:   8.47 kB
-dist/assets/ErrorNote-Bh0923AJ.js                                28.23 kB │ gzip:   9.34 kB
-dist/assets/lich-su-CJq9GX8g.js                                  28.65 kB │ gzip:   9.24 kB
-dist/assets/site-BrzozRZm.js                                     53.43 kB │ gzip:  15.37 kB
-dist/assets/ScreenHeader-C4S5rQ2i.js                            146.32 kB │ gzip:  48.65 kB
-dist/assets/index-ZFsV0HE3.js                                   389.56 kB │ gzip: 125.00 kB
+dist/assets/Dialog-DKZvNqU2.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/StatusMark-DcGozgEi.js                                1.28 kB │ gzip:   0.59 kB
+dist/assets/model-CCZ7Tvoj.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/model-XbSQ3r3G.js                                     1.78 kB │ gzip:   0.86 kB
+dist/assets/PreviewedOp-D_krDMDj.js                               1.90 kB │ gzip:   1.00 kB
+dist/assets/TokenTable-BnMH5Wvw.js                                1.94 kB │ gzip:   0.95 kB
+dist/assets/TableList-Cf5MeTVX.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/useMutation-BxqPcAjK.js                               2.33 kB │ gzip:   0.97 kB
+dist/assets/RouteMap-Cq0baGOk.js                                  2.35 kB │ gzip:   1.04 kB
+dist/assets/ten-mien-BFiJlW6l.js                                  2.94 kB │ gzip:   1.31 kB
+dist/assets/Bulk-BWaX2dgf.js                                      3.03 kB │ gzip:   1.39 kB
+dist/assets/model-BgBSUzih.js                                     3.74 kB │ gzip:   1.52 kB
+dist/assets/bat-hai-buoc-9k2tz2ES.js                              3.93 kB │ gzip:   1.89 kB
+dist/assets/plan-cho-duyet-CGzHFaDZ.js                            5.86 kB │ gzip:   2.05 kB
+dist/assets/RecoveryCodes-CtrDhJno.js                             6.03 kB │ gzip:   2.25 kB
+dist/assets/StorageFlow-6oeERL1A.js                               6.45 kB │ gzip:   2.58 kB
+dist/assets/Self-B5wBhRp7.js                                      8.52 kB │ gzip:   2.71 kB
+dist/assets/goi-DBoBN4Z4.js                                       9.16 kB │ gzip:   3.76 kB
+dist/assets/tai-khoan-EDdMuM-x.js                                 9.62 kB │ gzip:   3.15 kB
+dist/assets/model-D8ltVq9g.js                                    10.06 kB │ gzip:   3.97 kB
+dist/assets/tai-nguyen-CRLocSQ9.js                               10.83 kB │ gzip:   4.02 kB
+dist/assets/backup-BBFPQK9r.js                                   10.94 kB │ gzip:   3.50 kB
+dist/assets/queries-D11619pF.js                                  10.97 kB │ gzip:   3.33 kB
+dist/assets/ssl-BYHU7BVe.js                                      11.53 kB │ gzip:   4.55 kB
+dist/assets/cong-cu-BChJwjW0.js                                  11.82 kB │ gzip:   4.56 kB
+dist/assets/cap-nhat-Bb8k8G6t.js                                 11.90 kB │ gzip:   4.29 kB
+dist/assets/duyet-plan-VYS6KKdu.js                               11.99 kB │ gzip:   4.35 kB
+dist/assets/cron-ChJUF-Ru.js                                     13.06 kB │ gzip:   4.89 kB
+dist/assets/thung-rac-CPOrYuUn.js                                13.43 kB │ gzip:   4.76 kB
+dist/assets/tao-site-CJP3Yh9G.js                                 13.52 kB │ gzip:   4.95 kB
+dist/assets/Reauth-HwF2I5cb.js                                   14.11 kB │ gzip:   5.28 kB
+dist/assets/co-so-du-lieu-584xAviW.js                            14.62 kB │ gzip:   4.81 kB
+dist/assets/dang-nhap-DRZIITmd.js                                14.81 kB │ gzip:   5.26 kB
+dist/assets/MfaError-Bjf4cdlc.js                                 15.22 kB │ gzip:   5.62 kB
+dist/assets/co-so-du-lieu-KIlRDTzY.js                            15.70 kB │ gzip:   4.97 kB
+dist/assets/cai-may-moi-BQ1ukbMV.js                              15.78 kB │ gzip:   5.76 kB
+dist/assets/phien-ai-C7iV49hd.js                                 16.23 kB │ gzip:   5.35 kB
+dist/assets/stack-BgaAf12i.js                                    17.34 kB │ gzip:   5.51 kB
+dist/assets/nguoi-dung-CawwrLbZ.js                               17.97 kB │ gzip:   5.98 kB
+dist/assets/CheckRow-BDDVd9pv.js                                 18.11 kB │ gzip:   6.21 kB
+dist/assets/su-co-CBVCuj_J.js                                    21.63 kB │ gzip:   7.20 kB
+dist/assets/backup-DhPIm-r6.js                                   24.66 kB │ gzip:   7.85 kB
+dist/assets/bao-mat-BUXA8xrE.js                                  25.31 kB │ gzip:   7.10 kB
+dist/assets/trang-chu-BYDYjD91.js                                26.50 kB │ gzip:   8.49 kB
+dist/assets/lich-su-BcGdoxhb.js                                  28.69 kB │ gzip:   9.25 kB
+dist/assets/ErrorNote-DA2YW-_N.js                                31.34 kB │ gzip:  10.21 kB
+dist/assets/cai-dat-C9bpYEOT.js                                  38.70 kB │ gzip:  12.21 kB
+dist/assets/site-Bsszv1lT.js                                     57.82 kB │ gzip:  16.36 kB
+dist/assets/ScreenHeader-CBB9GnFz.js                            146.71 kB │ gzip:  48.76 kB
+dist/assets/index-De9vSrlK.js                                   388.70 kB │ gzip: 124.75 kB
 
-✓ built in 193ms
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-27-g431b3f4 -X github.com/doxuta/tpan/internal/buildinfo.Commit=431b3f4 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T20:41:57Z' -o bin/tpan-linux-amd64 ./cmd/tpan
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-27-g431b3f4 -X github.com/doxuta/tpan/internal/buildinfo.Commit=431b3f4 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T20:41:57Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+✓ built in 204ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:18:41Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.3-132-g45bff31-dirty -X github.com/doxuta/tpan/internal/buildinfo.Commit=45bff31 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T22:18:41Z' -o bin/tpan-linux-arm64 ./cmd/tpan
 scripts/vm.sh deploy
-tpan v0.2.3-27-g431b3f4 (commit 431b3f4, build 2026-11-24T20:41:57Z)
-[2026-11-25 03:42:18] (mã thoát 0)
-  => ĐẠT: make vm-deploy: build và chép tpan v0.2.3-27-g431b3f4 vào máy ảo
+tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:41Z)
+[2026-11-25 05:18:59] (mã thoát 0)
+  => ĐẠT: make vm-deploy: build và chép tpan v0.2.3-132-g45bff31-dirty vào máy ảo
 
-[2026-11-25 03:42:18] $ scripts/vm.sh exec tpan version
-tpan v0.2.3-27-g431b3f4 (commit 431b3f4, build 2026-11-24T20:41:57Z)
-[2026-11-25 03:42:18] (mã thoát 0)
-  => ĐẠT: tpan version là v0.2.3-27-g431b3f4
+[2026-11-25 05:18:59] $ scripts/vm.sh exec tpan version
+tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:41Z)
+[2026-11-25 05:18:59] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.3-132-g45bff31-dirty
 
-[2026-11-25 03:42:19] $ scripts/vm.sh root bash -c ls "$1" _ /home/ubuntu/e2e-m19
+[2026-11-25 05:19:01] $ scripts/vm.sh root bash -c ls "$1" _ /home/ubuntu/e2e-m19
 chung.sh
 dinh-tuyen.sh
 dung-may.sh
 http-raw.py
 jobs.py
+nang-cap-v020.sh
 nang-cap.sh
 pebble.sh
 redirect.sh
 ssl.sh
 ten.sh
-[2026-11-25 03:42:20] (mã thoát 0)
-  => ĐẠT: (đồ nghề) 10 file đã chép vào /home/ubuntu/e2e-m19, có dung-may.sh, chung.sh, pebble.sh, jobs.py
+[2026-11-25 05:19:01] (mã thoát 0)
+  => ĐẠT: (đồ nghề) 11 file đã chép vào /home/ubuntu/e2e-m19, có dung-may.sh, chung.sh, pebble.sh, jobs.py
 
-[2026-11-25 03:42:20] $ scripts/vm.sh root bash /home/ubuntu/e2e-m19/dung-may.sh nginx
+[2026-11-25 05:19:01] $ scripts/vm.sh root bash /home/ubuntu/e2e-m19/dung-may.sh nginx
 
---- [03:42:19] tpan version
-tpan v0.2.3-27-g431b3f4 (commit 431b3f4, build 2026-11-24T20:41:57Z)
+--- [05:19:01] tpan version
+tpan v0.2.3-132-g45bff31-dirty (commit 45bff31, build 2026-11-24T22:18:41Z)
 
---- [03:42:19] tpan setup
-Job 5701101788d51ceb: thành công
+--- [05:19:01] tpan setup
+Job 3d4bd0ac0b00fe21: thành công
 
 Mật khẩu quản trị (chỉ hiện MỘT lần, hãy lưu lại ngay):
 Dấu vân tay SHA-256 của chứng chỉ (đối chiếu với trình duyệt khi nó cảnh báo chứng chỉ tự ký):
-    1C:3D:B6:F5:A2:15:9A:50:D8:9A:86:02:C9:D1:2F:3E:0F:D3:B9:EA:89:9E:12:94:D2:2D:F6:71:12:91:86:A7
+    00:F3:07:5E:63:EB:B2:BB:B4:9A:F8:AE:A2:2B:F5:75:46:BB:E0:59:BB:A4:9A:E6:A6:65:BD:9E:E8:80:5C:B4
 Mở: https://<IP của máy>:8443
   => ĐẠT: tpan setup thoát 0, có mật khẩu quản trị (giữ ở /root/m19-admin.pw, không in)
   => ĐẠT: tpan.service active
 
---- [03:42:20] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
+--- [05:19:01] chờ apt và dpkg của máy rảnh (unattended-upgrades sau khi khởi động)
   apt rảnh sau khoảng 0 giây
 
---- [03:42:20] tpan stack install --web nginx --yes
+--- [05:19:01] tpan stack install --web nginx --yes
   [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.2%
   [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
   [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
   [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
   => ĐẠT: stack install --web nginx thoát 0
 
---- [03:42:53] pebble (đồ nghề test) và tpan ssl settings
+--- [05:19:32] pebble (đồ nghề test) và tpan ssl settings
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 gói: pebble 2.4.0+ds1-2ubuntu0.24.04.3
@@ -184,55 +200,55 @@ Staging:   bật (chứng chỉ thử, trình duyệt không tin)
 ACME:      https://localhost:14000/dir
   => ĐẠT: ssl settings thoát 0
 
---- [03:42:58] hai user thường (vai user) và /etc/hosts
+--- [05:19:37] hai user thường (vai user) và /etc/hosts
   => ĐẠT: user add khach_a thoát 0, có mật khẩu (không in)
   => ĐẠT: user add khach_b thoát 0, có mật khẩu (không in)
   /etc/hosts: example.com www.example.com blog.example.com example.net xn--vitnam-jk8b.example.net www.example.org example.org shop.khach-b.test www.e24.test -> 127.0.0.1
   => ĐẠT: nodns.example.invalid không phân giải được (cố ý)
 
---- [03:42:58] phiên API: admin, khach_a, khach_b
+--- [05:19:37] phiên API: admin, khach_a, khach_b
   đăng nhập admin: HTTP 204
   => ĐẠT: admin đăng nhập
   đăng nhập khach_a: HTTP 204
   => ĐẠT: khach_a đăng nhập
   đăng nhập khach_b: HTTP 204
   => ĐẠT: khach_b đăng nhập
-  khach_a GET /session: HTTP 200, 0.002095s (curl thoát 0), 168 byte; lỗi: 
+  khach_a GET /session: HTTP 200, 0.002022s (curl thoát 0), 175 byte; lỗi: 
   => ĐẠT: phiên của khach_a có vai user
   stack: nginx
-[2026-11-25 03:47:39] (mã thoát 0)
+[2026-11-25 05:19:38] (mã thoát 0)
 
-[2026-11-25 03:47:39] (đọc /root/m19-admin.pw vào danh sách che; không in giá trị; có mật khẩu: có)
+[2026-11-25 05:19:38] (đọc /root/m19-admin.pw vào danh sách che; không in giá trị; có mật khẩu: có)
 
-[2026-11-25 03:47:40] (đọc /root/m19-khach_b.pw vào danh sách che; không in giá trị; có mật khẩu: có)
+[2026-11-25 05:19:38] (đọc /root/m19-khach_b.pw vào danh sách che; không in giá trị; có mật khẩu: có)
 
-[2026-11-25 03:47:40] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ example.com admin@example.com
+[2026-11-25 05:19:38] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ example.com admin@example.com
 tpan site add example.com: thoát 0
   [đạt] Log của site không đọc được bởi site khác
   [đạt] Vhost của site có đủ các dòng chặn cô lập
   [đạt] Thư mục public của site là thư mục thật của chính site
-[2026-11-25 03:47:58] (mã thoát 0)
+[2026-11-25 05:19:53] (mã thoát 0)
   => ĐẠT: site add example.com (admin): thoát 0
 
-[2026-11-25 03:47:58] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ shop.khach-b.test admin@example.com --owner khach_b
+[2026-11-25 05:19:53] $ scripts/vm.sh root bash -c d=$1; e=$2; shift 2; tpan site add "$d" --email "$e" --yes --json "$@" >"/root/gd-site-$d.json" 2>"/root/gd-site-$d.err" </dev/null; rc=$?; echo "tpan site add $d: thoát $rc"; tail -3 "/root/gd-site-$d.err"; exit $rc _ shop.khach-b.test admin@example.com --owner khach_b
 tpan site add shop.khach-b.test: thoát 0
   [đạt] Thư mục public của site là thư mục thật của chính site
   [đạt] Site shop.khach-b.test không chạm được vào file, log và socket của site example.com
   [đạt] Site example.com không chạm được vào file, log và socket của site shop.khach-b.test
-[2026-11-25 03:48:04] (mã thoát 0)
+[2026-11-25 05:19:58] (mã thoát 0)
   => ĐẠT: site add shop.khach-b.test --owner khach_b: thoát 0
 
-[2026-11-25 03:48:04] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.com http://127.0.0.1/
+[2026-11-25 05:19:58] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.com http://127.0.0.1/
 200
-[2026-11-25 03:48:04] (mã thoát 0)
+[2026-11-25 05:19:59] (mã thoát 0)
   => ĐẠT: site example.com trả 200
 
-[2026-11-25 03:48:04] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: shop.khach-b.test http://127.0.0.1/
+[2026-11-25 05:19:59] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: shop.khach-b.test http://127.0.0.1/
 200
-[2026-11-25 03:48:04] (mã thoát 0)
+[2026-11-25 05:19:59] (mã thoát 0)
   => ĐẠT: site shop.khach-b.test trả 200
 
-[2026-11-25 03:48:04] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 05:19:59] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -251,17 +267,17 @@ tpan site add shop.khach-b.test: thoát 0
     "in_cert": false
   }
 ]
-[2026-11-25 03:48:05] (mã thoát 0)
+[2026-11-25 05:19:59] (mã thoát 0)
   => ĐẠT: example.com có tên phụ mặc định www.example.com (redirect, active) và chưa có example.net
   => ĐẠT: panel trả lời ở https://<vm>:8443 (gọi từ Mac)
 
 ==== Phần A: 25 đạt, 0 không đạt
 
 
-######## [2026-11-25 03:48:05] PHẦN B: E10 thêm tên phụ example.net bằng giao diện (bấm thật), thấy dòng trong bảng
+######## [2026-11-25 05:19:59] PHẦN B: E10 thêm tên phụ example.net bằng giao diện (bấm thật), thấy dòng trong bảng
 Mốc job trước khi bấm: 4
 
-[2026-11-25 03:48:05] $ anh-readme -bo m19-that -buoc them-ten -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 05:20:00] $ anh-readme -bo m19-that -buoc them-ten -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: mở /sites/example.com?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: tab Tên miền có thẻ «Tên của site»
   => ĐẠT: bảng có tên chính example.com
@@ -269,18 +285,18 @@ Mốc job trước khi bấm: 4
   => ĐẠT: gõ example.net vào ô «Tên phụ», chọn kiểu «Phục vụ cùng nội dung»
   => ĐẠT: bấm «Xem trước»: bản xem trước hiện ra, nút chạy ghi «Chạy 2 bước»
   => ĐẠT: bản xem trước nhắc tên example.net
-  => ĐẠT: job site.alias.add 16d0091fabaef02a kết thúc: succeeded
+  => ĐẠT: job site.alias.add f70f3766dbe18b19 kết thúc: succeeded
   => ĐẠT: thẻ theo dõi job báo «Xong»
   => ĐẠT: bảng tên có dòng example.net sau khi job xong
   => ĐẠT: dòng example.net ở cột Kiểu ghi «phục vụ» (đang là "phục vụ | chưa kiểm được | chưa")
   => ĐẠT: GET /api/v1/sites/example.com/names: example.net serve và active (đang là "serve|active")
   => ĐẠT: lượt thêm tên: 0 lỗi console
-[2026-11-25 03:48:17] (mã thoát 0)
+[2026-11-25 05:20:12] (mã thoát 0)
 
 
-######## [2026-11-25 03:48:17] B: kiểm trong máy ảo
+######## [2026-11-25 05:20:12] B: kiểm trong máy ảo
 
-[2026-11-25 03:48:17] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 05:20:12] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -307,33 +323,33 @@ Mốc job trước khi bấm: 4
     "in_cert": false
   }
 ]
-[2026-11-25 03:48:17] (mã thoát 0)
+[2026-11-25 05:20:12] (mã thoát 0)
   => ĐẠT: E10: site alias list có example.net kiểu serve, active (do cú bấm của trình duyệt)
   => ĐẠT: E10: www.example.com vẫn là tên phụ redirect (cú bấm không đụng tên khác)
 
-[2026-11-25 03:48:17] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m19/jobs.py since 4
-job 16d0091fabaef02a succeeded site.alias.add example.com loi=
-[2026-11-25 03:48:17] (mã thoát 0)
+[2026-11-25 05:20:12] $ scripts/vm.sh root python3 /home/ubuntu/e2e-m19/jobs.py since 4
+job f70f3766dbe18b19 succeeded site.alias.add example.com loi=
+[2026-11-25 05:20:13] (mã thoát 0)
   => ĐẠT: E10: Lịch sử có job site.alias.add của example.com, mọi job sau mốc đều succeeded
   => ĐẠT: E10: không job nào sau mốc thất bại
 
-[2026-11-25 03:48:17] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.net http://127.0.0.1/readme.html
+[2026-11-25 05:20:13] $ scripts/vm.sh root curl -s -m 30 -o /dev/null -w %{http_code} -H Host: example.net http://127.0.0.1/readme.html
 200
-[2026-11-25 03:48:17] (mã thoát 0)
+[2026-11-25 05:20:13] (mã thoát 0)
   => ĐẠT: E10: Host example.net (serve) trả 200 cho /readme.html
 
 ==== Phần B: 18 đạt, 0 không đạt
 
 
-######## [2026-11-25 03:48:17] PHẦN C: E41 tab Tên miền hiện tên chưa đạt (nodns.example.invalid), site có SSL
+######## [2026-11-25 05:20:13] PHẦN C: E41 tab Tên miền hiện tên chưa đạt (nodns.example.invalid), site có SSL
 
-[2026-11-25 03:48:18] $ scripts/vm.sh root tpan ssl issue example.com --yes
+[2026-11-25 05:20:13] $ scripts/vm.sh root tpan ssl issue example.com --yes
 [cảnh báo] Bản ghi DNS của tên miền trỏ về máy này: Bản ghi A của example.com là 127.0.0.1, không địa chỉ nào nằm trên máy này
     Nguyên nhân: Tên miền trỏ về máy khác, hoặc máy này đứng sau NAT (IP public không hiện trên card mạng, thường gặp ở VPS đám mây). Nếu là NAT thì vẫn xin chứng chỉ được; bước thử HTTP sẽ cho câu trả lời thật.
     Sửa tay (gõ trên máy này, thư mục nào cũng được):
       sudo ip -o addr show scope global
       sudo getent ahostsv4 example.com
-Bắt đầu job 896e0763f709aa7f
+Bắt đầu job dea28dc8ea1884fb
 - Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...
   xong
 - Thử đường HTTP mà Let's Encrypt sẽ kiểm cho từng tên của example.com ...
@@ -362,7 +378,7 @@ Bắt đầu job 896e0763f709aa7f
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site
   [đạt] Dịch vụ certbot.timer đang chạy và tự bật cùng máy
   [đạt] Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công
-Bắt đầu job e91de57ea689122e
+Bắt đầu job c269dcae3e8c2b54
 - Ghi vhost nginx có HTTPS cho example.com ...
   xong
 - Bật /etc/nginx/sites-enabled/tpan-example.com.conf → /etc/nginx/sites-available/tpan-example.com.conf ...
@@ -372,9 +388,9 @@ Bắt đầu job e91de57ea689122e
 - name.probe:www.example.com ...
   xong
 
-Job 896e0763f709aa7f: thành công
+Job dea28dc8ea1884fb: thành công
 Kiểm chứng:
-  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 62525f cấp
+  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 31e954 cấp
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
   [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
@@ -384,18 +400,18 @@ Kiểm chứng:
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site: Site trả 200 qua https, đúng là WordPress của example.com
   [đạt] Dịch vụ certbot.timer đang chạy và tự bật cùng máy: certbot.timer đang chạy và tự bật khi khởi động máy
   [đạt] Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công: certbot gia hạn thử example.com thành công
-[2026-11-25 03:48:27] (mã thoát 0)
+[2026-11-25 05:20:22] (mã thoát 0)
   => ĐẠT: E41 (dựng): ssl issue example.com (pebble) thoát 0
   => ĐẠT: E41 (dựng): mọi job SSL đã xong
 
-[2026-11-25 03:48:27] $ scripts/vm.sh root bash -c openssl x509 -in "/etc/letsencrypt/live/$1/cert.pem" -noout -ext subjectAltName _ example.com
+[2026-11-25 05:20:22] $ scripts/vm.sh root bash -c openssl x509 -in "/etc/letsencrypt/live/$1/cert.pem" -noout -ext subjectAltName _ example.com
 X509v3 Subject Alternative Name: 
     DNS:example.com, DNS:example.net, DNS:www.example.com
-[2026-11-25 03:48:27] (mã thoát 0)
+[2026-11-25 05:20:22] (mã thoát 0)
   => ĐẠT: E41 (dựng): chứng chỉ có example.com và example.net (tên thêm bằng giao diện ở phần B)
 
-[2026-11-25 03:48:28] $ scripts/vm.sh root tpan site alias add example.com nodns.example.invalid --mode serve --yes
-Bắt đầu job 567c3a13a1e48f39
+[2026-11-25 05:20:23] $ scripts/vm.sh root tpan site alias add example.com nodns.example.invalid --mode serve --yes
+Bắt đầu job f4f4054524c6d265
 - Kiểm tên nodns.example.invalid chưa được vhost khác khai ...
   đã đúng, bỏ qua
 - Ghi vhost nginx có HTTPS cho example.com ...
@@ -412,7 +428,7 @@ Bắt đầu job 567c3a13a1e48f39
   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
   [đạt] Cổng 80 chuyển hướng 301 sang https
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site
-Bắt đầu job d7ac3645753f8279
+Bắt đầu job 0bcb1d67662ce00c
 - dir:/var/lib/tpan/acme/.well-known/acme-challenge ...
   đã đúng, bỏ qua
 - ssl.probe:example.com ...
@@ -442,9 +458,9 @@ Bắt đầu job d7ac3645753f8279
   [đạt] Dịch vụ certbot.timer đang chạy và tự bật cùng máy
   [đạt] Gia hạn thử chứng chỉ (certbot renew --dry-run) thành công
 
-Job 567c3a13a1e48f39: thành công
+Job f4f4054524c6d265: thành công
 Kiểm chứng:
-  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 62525f cấp
+  [đạt] Chứng chỉ SSL có, khớp tên miền và còn hạn: Chứng chỉ khớp example.com, còn 1825 ngày, do Pebble Intermediate CA 31e954 cấp
   [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
   [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
   [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
@@ -452,13 +468,13 @@ Kiểm chứng:
   [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_example_com_a379a6
   [đạt] Cổng 80 chuyển hướng 301 sang https: Cổng 80 chuyển hướng 301 tới https://example.com/
   [đạt] Gọi HTTPS vào site trả 200 và đúng là WordPress của site: Site trả 200 qua https, đúng là WordPress của example.com
-Tên nodns.example.invalid chưa vào chứng chỉ: thử http://nodns.example.invalid/.well-known/acme-challenge/ không tới được máy này (Let's Encrypt cũng sẽ thất bại): curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/s2mi3qjflwezbfs2akkfegsajs: mã thoát 6: curl: (6) Could not resolve host: nodns.example.invalid; nodns.example.invalid không phân giải được (getent ahosts nodns.example.invalid: mã thoát 2) theo DNS của máy; lệnh đã chạy: curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/s2mi3qjflwezbfs2akkfegsajs
-Job SSL chạy tiếp: d7ac3645753f8279
-[2026-11-25 03:48:38] (mã thoát 0)
+Tên nodns.example.invalid chưa vào chứng chỉ: thử http://nodns.example.invalid/.well-known/acme-challenge/ không tới được máy này (Let's Encrypt cũng sẽ thất bại): curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/gjqlaiyt3usfufdctn5unw3fuy: mã thoát 6: curl: (6) Could not resolve host: nodns.example.invalid; nodns.example.invalid không phân giải được (getent ahosts nodns.example.invalid: mã thoát 2) theo DNS của máy; lệnh đã chạy: curl -sS -m 10 http://nodns.example.invalid/.well-known/acme-challenge/gjqlaiyt3usfufdctn5unw3fuy
+Job SSL chạy tiếp: 0bcb1d67662ce00c
+[2026-11-25 05:20:32] (mã thoát 0)
   => ĐẠT: E41 (dựng): site alias add nodns.example.invalid thoát 0 (thêm được dù không có DNS)
   => ĐẠT: E41 (dựng): job SSL tự chạy tiếp sau khi thêm tên đã xong
 
-[2026-11-25 03:48:38] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 05:20:32] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -493,10 +509,10 @@ Job SSL chạy tiếp: d7ac3645753f8279
     "in_cert": false
   }
 ]
-[2026-11-25 03:48:38] (mã thoát 0)
+[2026-11-25 05:20:32] (mã thoát 0)
   => ĐẠT: E41 (dựng): nodns.example.invalid active, in_cert false; example.net in_cert true
 
-[2026-11-25 03:48:38] $ anh-readme -bo m19-that -buoc chua-dat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 05:20:32] $ anh-readme -bo m19-that -buoc chua-dat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: mở /sites/example.com?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: bảng tên có dòng nodns.example.invalid
   => ĐẠT: cột DNS của nodns.example.invalid không ghi «đã trỏ về máy» (đang là "chưa trỏ về máy")
@@ -504,14 +520,14 @@ Job SSL chạy tiếp: d7ac3645753f8279
   => ĐẠT: API: nodns.example.invalid in_cert=false, dns=missing (không phải ok)
   => ĐẠT: mở /sites/example.com?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: tab Tên miền của site có tên chưa đạt: 0 lỗi console
-[2026-11-25 03:48:50] (mã thoát 0)
+[2026-11-25 05:20:41] (mã thoát 0)
 
 ==== Phần C: 13 đạt, 0 không đạt
 
 
-######## [2026-11-25 03:48:50] PHẦN D: E23 khach_b thêm www.example.com (tên của site admin) bằng giao diện: câu từ chối chung
+######## [2026-11-25 05:20:41] PHẦN D: E23 khach_b thêm www.example.com (tên của site admin) bằng giao diện: câu từ chối chung
 
-[2026-11-25 03:48:50] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
+[2026-11-25 05:20:42] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
 [
   {
     "name": "shop.khach-b.test",
@@ -522,9 +538,9 @@ Job SSL chạy tiếp: d7ac3645753f8279
     "in_cert": false
   }
 ]
-[2026-11-25 03:48:51] (mã thoát 0)
+[2026-11-25 05:20:42] (mã thoát 0)
 
-[2026-11-25 03:48:51] $ anh-readme -bo m19-that -buoc tu-choi -ten khach_b -site shop.khach-b.test   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 05:20:42] $ anh-readme -bo m19-that -buoc tu-choi -ten khach_b -site shop.khach-b.test   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: user thường khach_b đăng nhập qua form
   => ĐẠT: mở /sites/shop.khach-b.test?tab=ten-mien: tab «Tên miền» đang được chọn, thẻ bảng có mặt
   => ĐẠT: không có bản xem trước cho tên www.example.com của người khác
@@ -535,12 +551,12 @@ Job SSL chạy tiếp: d7ac3645753f8279
   => ĐẠT: GET /api/v1/domains của B chỉ có site của B (đang là "shop.khach-b.test")
   => ĐẠT: bảng tên của shop.khach-b.test vẫn 1 dòng
   => ĐẠT: lượt thử tên bị từ chối: 0 lỗi console ngoài dòng 409 chờ trước
-[2026-11-25 03:48:55] (mã thoát 0)
+[2026-11-25 05:20:46] (mã thoát 0)
 
 
-######## [2026-11-25 03:48:55] D: kiểm trong máy ảo
+######## [2026-11-25 05:20:46] D: kiểm trong máy ảo
 
-[2026-11-25 03:48:55] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
+[2026-11-25 05:20:46] $ scripts/vm.sh root tpan site alias list shop.khach-b.test --json
 [
   {
     "name": "shop.khach-b.test",
@@ -551,10 +567,10 @@ Job SSL chạy tiếp: d7ac3645753f8279
     "in_cert": false
   }
 ]
-[2026-11-25 03:48:55] (mã thoát 0)
+[2026-11-25 05:20:46] (mã thoát 0)
   => ĐẠT: E23: site shop.khach-b.test vẫn 1 tên, không có www.example.com
 
-[2026-11-25 03:48:55] $ scripts/vm.sh root tpan site alias list example.com --json
+[2026-11-25 05:20:46] $ scripts/vm.sh root tpan site alias list example.com --json
 [
   {
     "name": "example.com",
@@ -589,15 +605,15 @@ Job SSL chạy tiếp: d7ac3645753f8279
     "in_cert": false
   }
 ]
-[2026-11-25 03:48:55] (mã thoát 0)
+[2026-11-25 05:20:47] (mã thoát 0)
   => ĐẠT: E23: www.example.com vẫn là tên phụ của example.com (không bị cướp)
 
 ==== Phần D: 12 đạt, 0 không đạt
 
 
-######## [2026-11-25 03:48:55] PHẦN E: luật chuyển hướng bằng giao diện (nguồn sai báo dưới ô nguồn, rồi /cu → /moi)
+######## [2026-11-25 05:20:47] PHẦN E: luật chuyển hướng bằng giao diện (nguồn sai báo dưới ô nguồn, rồi /cu → /moi)
 
-[2026-11-25 03:48:55] $ anh-readme -bo m19-that -buoc them-luat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
+[2026-11-25 05:20:47] $ anh-readme -bo m19-that -buoc them-luat -site example.com   (Chrome không giao diện trên Mac, panel <panel>)
   => ĐẠT: mở /sites/example.com?tab=chuyen-huong: tab «Chuyển hướng» đang được chọn, thẻ bảng có mặt
   => ĐẠT: tab Chuyển hướng có thẻ «Luật chuyển hướng»
   => ĐẠT: trước khi thêm: bảng chưa có luật /cu
@@ -609,17 +625,17 @@ Job SSL chạy tiếp: d7ac3645753f8279
   => ĐẠT: lượt nguồn sai: 0 lỗi console ngoài dòng 400 chờ trước
   => ĐẠT: sửa thành /cu: dấu lỗi ở ô nguồn đã mất
   => ĐẠT: bản xem trước hiện ra, nút chạy ghi «Chạy 2 bước»
-  => ĐẠT: job site.redirect.add 9eb14382cfcaa139 kết thúc: succeeded
+  => ĐẠT: job site.redirect.add c268bded14577f05 kết thúc: succeeded
   => ĐẠT: thẻ theo dõi job báo «Xong»
   => ĐẠT: bảng luật có dòng /cu sau khi job xong
   => ĐẠT: dòng /cu: đích /moi, mã 301 (đang là "/moi | 301")
   => ĐẠT: lượt thêm luật: 0 lỗi console
-[2026-11-25 03:49:05] (mã thoát 0)
+[2026-11-25 05:20:55] (mã thoát 0)
 
 
-######## [2026-11-25 03:49:05] E: kiểm trong máy ảo
+######## [2026-11-25 05:20:55] E: kiểm trong máy ảo
 
-[2026-11-25 03:49:05] $ scripts/vm.sh root tpan site redirect list example.com --json
+[2026-11-25 05:20:55] $ scripts/vm.sh root tpan site redirect list example.com --json
 [
   {
     "id": 1,
@@ -630,19 +646,19 @@ Job SSL chạy tiếp: d7ac3645753f8279
     "state": "active"
   }
 ]
-[2026-11-25 03:49:05] (mã thoát 0)
+[2026-11-25 05:20:55] (mã thoát 0)
   => ĐẠT: site redirect list có luật /cu → /moi mã 301 (do cú bấm của trình duyệt)
   => ĐẠT: nguồn sai "/a b" không vào danh sách
 
-[2026-11-25 03:49:05] $ scripts/vm.sh root bash -c curl -sk -m 30 -o /dev/null -D - --resolve "$1:443:127.0.0.1" "https://$1/cu" _ example.com
+[2026-11-25 05:20:55] $ scripts/vm.sh root bash -c curl -sk -m 30 -o /dev/null -D - --resolve "$1:443:127.0.0.1" "https://$1/cu" _ example.com
 HTTP/1.1 301 Moved Permanently
 Server: nginx/1.24.0 (Ubuntu)
-Date: Tue, 24 Nov 2026 20:49:05 GMT
+Date: Tue, 24 Nov 2026 22:20:55 GMT
 Content-Type: text/html
 Content-Length: 178
 Connection: keep-alive
 Location: https://example.com/moi
-[2026-11-25 03:49:05] (mã thoát 0)
+[2026-11-25 05:20:55] (mã thoát 0)
   => ĐẠT: https://example.com/cu trả 301
   => ĐẠT: Location của /cu trỏ tới /moi
 
@@ -651,7 +667,7 @@ Location: https://example.com/moi
 Ảnh của trình duyệt (7 file) đã chép vào docs/bang-chung/M19
 
 
-######## [2026-11-25 03:49:06] PHẦN F: mật khẩu, IP, thư mục nhà có lọt vào chính file log không
+######## [2026-11-25 05:20:55] PHẦN F: mật khẩu, IP, thư mục nhà có lọt vào chính file log không
 Số mật khẩu đã gặp: 2; số dòng của log chứa một trong số đó: 0
   => ĐẠT: log không chứa mật khẩu nào
   => ĐẠT: log không chứa IP máy ảo (IPv4)
@@ -661,4 +677,4 @@ Số mật khẩu đã gặp: 2; số dòng của log chứa một trong số đ
   => ĐẠT: log không chứa thư mục nhà hay tên user Mac
 
 
-######## [2026-11-25 03:49:06] TỔNG KẾT: 94 khẳng định đạt, 0 khẳng định không đạt
+######## [2026-11-25 05:20:55] TỔNG KẾT: 94 khẳng định đạt, 0 khẳng định không đạt

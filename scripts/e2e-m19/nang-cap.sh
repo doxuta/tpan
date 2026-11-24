@@ -63,7 +63,10 @@ sau)
   ok "E60: sha256 hai vhost không đổi so với bản trước M19" sha256sum -c "$W/nc.sha"
   tpan health </dev/null >"$W/nc.health.full" 2>&1
   loi_health "$W/nc.health.full" >"$W/nc.health.sau"
-  moi="$(comm -13 "$W/nc.health.truoc" "$W/nc.health.sau")"
+  # Bỏ đúng một dòng không thuộc M19: cảnh báo "Mọi admin đã bật đăng nhập hai
+  # bước" của M20 (mục 6.18). Bản trước M19 (f6a68b9) chưa có M20, bản của cây
+  # đã gộp M20, nên máy nâng nào cũng thấy dòng này cho tới khi admin bật hai bước.
+  moi="$(comm -13 "$W/nc.health.truoc" "$W/nc.health.sau" | grep -v 'Mọi admin đã bật đăng nhập hai bước' || true)"
   [ -n "$moi" ] && printf '  dòng mới:\n%s\n' "$moi" | cut -c1-300
   ok "E60: tpan health không có dòng [lỗi] hay [cảnh báo] mới so với trước khi nâng" test -z "$moi"
   hsreq "$S1" /readme.html
