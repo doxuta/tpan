@@ -72,7 +72,10 @@ E=/home/ubuntu/e2e-m16 # thư mục đồ nghề trong máy ảo
 PORT=8016
 SRC="http://127.0.0.1:$PORT"
 HTTP_UNIT=tpan-e2e-http
-DEBUG_PORT=18172 # cổng DevTools riêng, không đụng script chụp của phiên khác
+# Cổng DevTools riêng, không đụng script chụp của phiên khác. Hai worktree cùng
+# chạy e2e-m16 trên một Mac thì đặt E2E_DEBUG_PORT khác nhau (cùng cổng là hai
+# Chrome giẫm nhau: "broken pipe", hết giờ ở bước bấm thật).
+DEBUG_PORT="${E2E_DEBUG_PORT:-18172}"
 ARCH=""
 
 TMPD="$(mktemp -d)"
