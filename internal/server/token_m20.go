@@ -117,7 +117,7 @@ func (s *Server) guardToken(w http.ResponseWriter, r *http.Request, rt route) {
 	}
 	if rt.tok == "" {
 		writeError(w, http.StatusForbidden, "token_forbidden", i18n.T(
-			"Route này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.",
+			"Việc này chỉ dùng được khi đăng nhập trên giao diện, không dùng được bằng token.",
 			"This route can only be used when signed in to the interface, not with a token."))
 		return
 	}
