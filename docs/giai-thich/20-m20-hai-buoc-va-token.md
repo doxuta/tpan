@@ -6,7 +6,7 @@ Cách đọc file này: "Nói trong một phút" là thứ bạn nói được k
 
 Quy ước: **phiếu** là "phiếu chờ bước hai", thứ panel đưa cho người vừa gõ đúng mật khẩu mà chưa nhập mã. **App xác thực** là ứng dụng trên điện thoại hiện mã 6 số đổi mỗi 30 giây (Google Authenticator, Aegis, 1Password...). Khi ví dụ cần tên: `khach_a` là user demo đã bật hai bước, `admin` là quản trị viên.
 
-**Trạng thái trung thực của mốc này.** Mã và test đơn vị đã xong và xanh trên Mac. Bộ ảnh giao diện đã chụp (39 ảnh, 0 không đạt). **Bộ e2e bước 23 trên máy ảo chưa chạy được** (phiên nền bị macOS chặn mạng nội bộ tới máy ảo). Mọi chỗ cần bằng chứng từ máy ảo trong file này ghi "chưa chạy trên máy ảo" kèm lệnh để chạy. Mục 6 liệt kê đủ.
+**Trạng thái trung thực của mốc này (cập nhật 25/11/2026).** Mã và test đơn vị đã xong và xanh trên Mac. Bộ ảnh giao diện đã chụp (39 ảnh, 0 không đạt). **E2E bước 23 đã chạy trên máy ảo `tpan-m20`: 222 khẳng định đạt, 0 không đạt** (`docs/bang-chung/M20.log`, bản `v0.2.2-109-g82eeb72`, cây sạch, mỗi lần từ máy sạch). Hồi quy năm kịch bản cũng xanh (mục 2.6). Còn thiếu: phần "thử phá trên máy ảo" của soát cuối, đang chạy lúc viết, xem `docs/thay-doi/M20.md`; và vài chỗ nhỏ mà log không có (mục 6). Chỗ nào log không có thì file này vẫn ghi "chưa chạy" kèm lệnh.
 
 ## Nói trong một phút
 
@@ -37,7 +37,9 @@ Mọi output dưới đây là output thật. Nguồn:
 - Lệnh mình vừa chạy trên Mac trong phiên viết (23/11/2026, nhánh `moc/M20`): mục 2.1, 2.2, 2.3.
 - `docs/bang-chung/M20-nghien-cuu/thu-vm.log`: thử nghiệm đợt 0 trên máy ảo `tpan-m20` (Ubuntu 24.04), mục 2.4.
 - `docs/bang-chung/M20-anh.log` và 39 ảnh trong `docs/bang-chung/M20/`: mục 2.5.
-- **Chưa có**: `docs/bang-chung/M20.log` (e2e bước 23) và các log hồi quy M6, M13, M15, M16. Chưa chạy trên máy ảo.
+- `docs/bang-chung/M20.log`: e2e bước 23 trên máy ảo `tpan-m20` (25/11/2026), 222 đạt, 0 không đạt. Trích ở mục 2.6 và rải trong mục 3, 4, 7, 8 kèm số dòng hoặc tên phần. Log đã che mật khẩu, bí mật, token; phần cuối của log tự quét xem có lọt không.
+- `docs/bang-chung/M20-hoi-quy-m6.log`, `-m13.log`, `-m13-nang-cap.log`, `-m15.log`, `-m16.log`: hồi quy, mục 2.6.
+- **Chưa có**: `docs/bang-chung/M20-thu-pha.log` (thử phá trên máy ảo của soát cuối). File này chưa tồn tại lúc viết; đang chạy, xem `docs/thay-doi/M20.md`.
 
 ### 2.1 Bảng lệch đồng hồ (Mac)
 
@@ -183,6 +185,75 @@ CSP của panel (dòng 390) là `default-src 'self'; frame-ancestors 'none'`: �
 ### 2.5 Ảnh giao diện (M20-anh.log)
 
 Dòng cuối của `docs/bang-chung/M20-anh.log`: `Đã chụp 39 ảnh vào docs/bang-chung/M20. Không đạt: 0`. Các màn: đăng nhập chặng hai, mã sai, bật hai bước bắt buộc, Tài khoản (bật có QR, mã dự phòng, token, hộp tạo token), Cài đặt, Công cụ; sáng, tối, 390 px; kiểm bàn phím và tiếng Anh. Ví dụ ảnh để mở xem: `docs/bang-chung/M20/dang-nhap-buoc-hai-sang.png`, `tai-khoan-bat-sang.png`, `tai-khoan-token-moi-sang.png`.
+
+### 2.6 E2E trên máy ảo và hồi quy (25/11/2026)
+
+Cách chạy: `make e2e-m20` từ Mac, script `scripts/e2e-m20.sh`, máy ảo `tpan-m20` (Ubuntu 24.04, arm64) dựng lại từ máy sạch. Script cài v0.2.0, nâng lên bản mới bằng chính `tpan self-update` của v0.2.0, rồi chạy tiếp các phần. Dòng cuối của `M20.log`:
+
+```
+######## [2026-11-25 00:26:45] TỔNG KẾT: 222 khẳng định đạt, 0 khẳng định không đạt
+```
+
+Số đạt từng phần, lấy từ các dòng `==== Phần ...` của log:
+
+| Phần | Nội dung (mã T trong thiết kế) | Đạt | Dòng log |
+|---|---|---|---|
+| 0 | đóng gói bản mới, build đồ nghề | 6 | 190 |
+| U | nâng từ v0.2.0 (T80 đến T85) | 28 | 700 |
+| A | đăng nhập khi chưa ai bật hai bước, site (T1, T2) | 21 | 1671 |
+| B | chính sách khi chưa bật, QR, `oathtool`, lệch đồng hồ (T21, T4, T3) | 25 | 1816 |
+| C | mã sai, mã cũ, mã đã dùng, mã dự phòng, cookie phiếu (T10 đến T15) | 18 | 1951 |
+| D | trình duyệt thật bật hai bước rồi đăng nhập lại (T5) | 14 | 2002 |
+| E | chính sách bắt buộc (T20) | 15 | 2051 |
+| F | lối thoát bằng CLI (T30) | 8 | 2109 |
+| G | token API, bảng mọi route (T40 đến T42) | 30 | 2704 |
+| H | chứng chỉ panel với pebble, gia hạn, 421 (T50) | 26 | 2974 |
+| I | khoá IP, phiếu quá 5 lần sai (T16, T17) | 10 | 3045 |
+| J | quét bí mật (T60 đến T66) | 14 | 3156 |
+| CUỐI | health, site | 2 | 3271 |
+
+Cộng 13 dòng này ra 217, còn dòng tổng kết ghi 222. Năm khẳng định còn lại nằm sau "Phần CUỐI" (dòng 3276 đến 3280): script tự quét chính file log của nó và khẳng định log không chứa mật khẩu, bí mật, token, cookie, IP máy ảo, mạng Multipass, IP của Mac hay thư mục nhà. Năm dòng đó không thuộc phần nào nên không có dòng `====` riêng. Tổng: 222 đạt, 0 không đạt.
+
+Lần chạy trước đó là 220 đạt, 2 không đạt; hai chỗ đỏ là điều kiện sai của chính script (biểu thức `jq` dùng `.qr` bên trong `all()`; dòng tóm tắt MCP tự chứa chữ `isError`), dữ liệu thật đúng. Sửa script rồi chạy lại từ máy sạch (nguồn: `docs/thay-doi/M20.md`, mục "E2E trên máy ảo").
+
+Hồi quy: mỗi kịch bản chạy từ máy sạch trên bản M20 đã gộp `dev`. Dòng "TỔNG KẾT" của từng log:
+
+| Kịch bản | Đạt | Không đạt | Log |
+|---|---|---|---|
+| M6 | 167 | 0 | `M20-hoi-quy-m6.log` |
+| M13 | 293 | 0 | `M20-hoi-quy-m13.log` |
+| M13 nâng cấp | 69 | 0 | `M20-hoi-quy-m13-nang-cap.log` |
+| M15 | 200 | 0 | `M20-hoi-quy-m15.log` |
+| M16 | 118 | 0 | `M20-hoi-quy-m16.log` |
+
+Ở lượt đầu có ba chỗ đỏ, không chỗ nào do mã M20 (`docs/thay-doi/M20.md`): worktree thiếu gói phát hành `v0.1.2` mà e2e M15 cần; script bấm thật của M15 chờ chữ "Đã lên" trong khi `dev` đã đổi thành "Đã cập nhật lên"; e2e M15 khẳng định "Kiểm bản mới" trả `latest` rỗng, nhưng từ v0.2.1 bản phát hành có file `VERSION` nên `latest` là tên bản. Hai script được sửa cho đúng hành vi hiện tại. Ghi chú vì sao lại có hồi quy: M20 đụng đường đăng nhập, cookie và chứng chỉ, nên mọi kịch bản đăng nhập bằng cookie hay bấm giao diện của các mốc trước đều phải chạy lại.
+
+Vài đoạn log đáng chép, để bạn thấy dữ liệu thật:
+
+Lệch đồng hồ ở bước hai (log dòng 1755 đến 1818, tiêu đề "T3"). Mã của giờ máy lệch 90 giây bị từ chối cả hai chiều, lệch 15 giây thì được nhận:
+
+```
+=> ĐẠT: T3: mã của giờ máy −90 giây (bước 59851364): 401 mfa_code_wrong
+=> ĐẠT: T3: mã của giờ máy +90 giây (bước 59851370): 401 mfa_code_wrong
+=> ĐẠT: T3: mã của giờ máy −15 giây (bước 59851368): được nhận
+=> ĐẠT: T3: mã của giờ máy +15 giây (bước 59851369): 204 (không còn lần sai nào để báo)
+```
+
+Điểm cần chú ý: máy ảo chạy mã `oathtool` (một công cụ độc lập, không phải mã của TPAN) để tính mã, nên đây là đối chiếu chéo với bên thứ ba. Log chỉ thử ±15 và ±90, không thử 45 giây; bảng 45 giây ở mục 2.1 vẫn chỉ có từ test trên Mac.
+
+Khoá IP và phiếu (phần I, dòng 2977 đến 3045):
+
+```
+mã sai lần 1: HTTP 401 mfa_code_wrong
+...
+mã sai lần 4: HTTP 401 mfa_code_wrong
+mã sai lần 5: HTTP 423 login_locked (Retry-After 900)
+đăng nhập lại bằng ĐÚNG mật khẩu từ IP đang khoá: HTTP 423 login_locked (Retry-After 900)
+```
+
+Sau lần sai thứ 5, phiếu bị xoá khỏi `tpan.db` (`SELECT COUNT(*) FROM login_challenges WHERE user_name = ?` ra `0`), và từ Mac (IP khác) cùng user vẫn qua bước một (`200 mfa_required`). Nghĩa là khoá IP không khoá đường chính của user.
+
+Quét bí mật (phần J, dòng 3048 đến 3156). Phép quét có đối chứng: trước hết quét các câu trả lời lần đầu (nơi bí mật được phép hiện) và phải thấy chúng, để chắc phép quét không mù: `totp=4 ... ma=20 ... token=1 ... tong=25`. Rồi quét `tpan.db` và `-wal`, `journalctl`, `/var/log`, sự kiện job qua API, mọi câu trả lời API đã lưu, output công cụ MCP, bản sao `tpan.db` của backup, và chính file log e2e. Cả tám chỗ ra `tong=0`. Danh sách quét gồm 4 bí mật TOTP, 40 mã dự phòng, 8 token.
 
 ## 3. Đi qua mã theo thứ tự chạy
 
@@ -401,6 +472,18 @@ Phần xin chứng chỉ là một Plan như các mốc trước. `Panel.Prepare
 	ss = append(ss, cert, set)                                                 // xin chứng chỉ, rồi ghi setting panel.domain
 ```
 
+Output thật của Plan này trên máy ảo (`M20.log` dòng 2750 đến 2772, chạy `tpan panel domain set panel.m20.test --yes`; máy chủ ACME là pebble, một CA thử chạy cục bộ, không phải Let's Encrypt thật). Mỗi dòng "- ..." là một bước ở trên, theo đúng thứ tự:
+
+```
+- Kiểm panel.m20.test không thuộc site nào ...   (panelNameFree)
+- Tạo thư mục /var/lib/tpan/acme/.well-known/acme-challenge ...   (Dir)
+- Thử đường HTTP mà Let's Encrypt sẽ kiểm cho panel.m20.test ...   (ACMEProbe)
+- Xin chứng chỉ Let's Encrypt cho panel ở panel.m20.test ...   (CertbotCert)
+- Ghi tên miền của panel: panel.m20.test ...   (setting panel.domain)
+```
+
+Chú thích trong ngoặc là mình thêm để nối với mã; log không có phần này. Bước kiểm chứng sau đó báo `Panel phục vụ chứng chỉ Let's Encrypt cho panel.m20.test`. Từ chối trùng tên có bằng chứng ở T50 (dòng 2873 đến 2900): `409 panel_domain_is_site` khi đặt tên panel trùng site `a.example.com`, và `domain_is_panel` khi tạo site tên `panel.m20.test` bằng cả CLI (`--dry-run`, thoát 1) lẫn API.
+
 - **HTTP-01 qua vhost mặc định.** Cổng 80 do web server của site giữ. Tên panel không thuộc site nào nên rơi vào vhost mặc định của tpan, vhost này phục vụ `/.well-known/acme-challenge/` từ webroot chung `/var/lib/tpan/acme` (đã đo ở 2.4). Không sửa cấu hình web server, không đụng vhost của site nào.
 - **Lineage cố định `tpan-panel`** (`CertName`). Nếu panel dùng `--cert-name <tên miền>` như site thì hai bên chung thư mục `/etc/letsencrypt/live/<tên>`, và xoá hẳn site (`certbot delete`) xoá luôn chứng chỉ panel. Tên `tpan-panel` không có dấu chấm nên không bao giờ trùng một tên miền hợp lệ.
 - **Bước `ACMEProbe` đứng trước `CertbotDelete`**: tên mới sai DNS thì dừng ở bước thử, panel không mất chứng chỉ cũ.
@@ -424,7 +507,7 @@ Phần phục vụ là `panelCerts.GetCertificate` (tls_m20.go dòng 153). Go g�
 Các quyết định ở đây:
 
 - **Chọn theo setting, không theo file.** Bỏ tên hay job hỏng (Undo trả setting cũ) thì chứng chỉ còn trên đĩa không được phục vụ. Panel không đặt tên thì phục vụ đúng chứng chỉ tự ký như v0.2.0 với mọi SNI (B9; test `TestChungChiTheoSNI`).
-- **Gia hạn không restart.** `certSlot.load` so (mtime, cỡ) của hai file mỗi lần bắt tay; certbot đổi file lúc gia hạn thì lần bắt tay kế tiếp nạp bản mới. Nạp hỏng thì giữ bản đang chạy, nhớ dấu của lần hỏng và ghi log một lần (không nạp lại cho tới khi file đổi). Mình **chưa** chứng minh "serial mới được phục vụ mà `MainPID` của `tpan.service` không đổi" trên máy ảo: đó là khẳng định T50 của e2e, chưa chạy.
+- **Gia hạn không restart.** `certSlot.load` so (mtime, cỡ) của hai file mỗi lần bắt tay; certbot đổi file lúc gia hạn thì lần bắt tay kế tiếp nạp bản mới. Nạp hỏng thì giữ bản đang chạy, nhớ dấu của lần hỏng và ghi log một lần (không nạp lại cho tới khi file đổi). Khẳng định "serial mới được phục vụ mà `MainPID` của `tpan.service` không đổi" đã có bằng chứng trên máy ảo (T50, `M20.log` dòng 2843 đến 2870, với pebble làm máy chủ ACME thử): `MainPID` là 1680 trước khi đặt tên panel (dòng 2746) và vẫn 1680 sau `certbot renew --cert-name tpan-panel --force-renewal`; serial phục vụ đổi từ `0BEE040B1F06CAD4` sang `0C2365875FC4564D`, trùng serial của lineage `tpan-panel` trên đĩa (`serial mới của lineage khác serial cũ và được panel phục vụ`; `MainPID của tpan.service không đổi (1680)`).
 - Hai file đọc bằng `os.Stat`, không qua `system.System`, nên `internal/system/noos_test.go` có một ngoại lệ ghi rõ cho đúng file này (M20.md).
 - **Không nhận staging**: chứng chỉ staging của Let's Encrypt không được trình duyệt tin, nên người dùng vẫn phải bấm "vẫn tiếp tục", đúng điều M20 muốn bỏ. Cài mặc định có `ssl.staging` bật, nên `PrepareDomain` từ chối và chỉ lệnh tắt staging; `ssl.server` có giá trị (máy chủ ACME thử của e2e) thì cho qua.
 - **Tên panel bị công khai.** Mọi tên được cấp chứng chỉ đều xuất hiện trong nhật ký Certificate Transparency, ai cũng đọc được. Giao diện nói rõ điều này, và `--private` bị từ chối vì tên miền không dùng được qua `ssh -L`.
@@ -475,11 +558,19 @@ CSRF là trang lạ bắt trình duyệt của bạn gửi request kèm cookie c
 
 ### 4.8 SNI và `GetCertificate`
 
-Trước khi TLS mã hoá, trình duyệt nói tên máy nó muốn vào (SNI). Một cổng, một địa chỉ IP vẫn phục vụ được nhiều chứng chỉ theo tên đó. Vào bằng IP thì không có SNI, nên rơi về chứng chỉ tự ký. Trong mã: `GetCertificate` ở tls_m20.go. Tự thấy trên máy ảo (chưa chạy): `openssl s_client -connect 127.0.0.1:8443 -servername panel.m20.test </dev/null 2>/dev/null | openssl x509 -noout -issuer -subject`, rồi đổi `-servername` sang tên khác để thấy nhà phát hành đổi.
+Trước khi TLS mã hoá, trình duyệt nói tên máy nó muốn vào (SNI). Một cổng, một địa chỉ IP vẫn phục vụ được nhiều chứng chỉ theo tên đó. Vào bằng IP thì không có SNI, nên rơi về chứng chỉ tự ký. Trong mã: `GetCertificate` ở tls_m20.go. Tự thấy trên máy ảo: `openssl s_client -connect 127.0.0.1:8443 -servername panel.m20.test </dev/null 2>/dev/null | openssl x509 -noout -issuer -subject`, rồi đổi `-servername` sang tên khác (hoặc `-noservername`) để thấy nhà phát hành đổi. Lệnh y nguyên này mình chưa chạy; e2e đã chạy cùng cách đó qua `scripts/e2e-m20/chung-chi.sh` (`openssl s_client` rồi `openssl x509`) và log ghi ba trường hợp (`M20.log`, phần H):
+
+```
+dòng 2740  (chưa đặt tên, SNI panel.m20.test): tu-ky=co    issuer=CN=tpan-m20
+dòng 2804  (đã đặt tên, SNI panel.m20.test):   tu-ky=khong issuer=CN=Pebble Intermediate CA 0fa61e
+dòng 2812  (vào bằng IP, không SNI):           tu-ky=co    issuer=CN=tpan-m20
+```
+
+Ba dòng này mình rút gọn từ các dòng `phuc-vu: ...` của log (bỏ serial và danh sách SAN). Đúng B9: có SNI khớp tên panel thì chứng chỉ do CA ký; vào bằng IP thì vẫn là chứng chỉ tự ký cũ.
 
 ### 4.9 ACME HTTP-01, certbot lineage, Certificate Transparency
 
-ACME là giao thức xin chứng chỉ tự động. HTTP-01: CA bảo bạn đặt một file ở `http://<tên>/.well-known/acme-challenge/...` rồi CA tải về để chứng minh bạn giữ tên đó. `certbot` làm việc này; một "lineage" là một thư mục trong `/etc/letsencrypt/live/<tên>` kèm cấu hình gia hạn trong `/etc/letsencrypt/renewal/<tên>.conf`. Certificate Transparency là sổ công khai ghi mọi chứng chỉ được cấp, nên tên panel công khai. Trong mã: `steps.CertbotCert`, `PanelLineage = "tpan-panel"`. Tự thấy trên máy ảo (chưa chạy): `sudo certbot certificates`.
+ACME là giao thức xin chứng chỉ tự động. HTTP-01: CA bảo bạn đặt một file ở `http://<tên>/.well-known/acme-challenge/...` rồi CA tải về để chứng minh bạn giữ tên đó. `certbot` làm việc này; một "lineage" là một thư mục trong `/etc/letsencrypt/live/<tên>` kèm cấu hình gia hạn trong `/etc/letsencrypt/renewal/<tên>.conf`. Certificate Transparency là sổ công khai ghi mọi chứng chỉ được cấp, nên tên panel công khai. Trong mã: `steps.CertbotCert`, `PanelLineage = "tpan-panel"`. Tự thấy trên máy ảo: `sudo certbot certificates`. Lệnh này mình chưa chạy. Log e2e có thứ gần với nó: dòng `lineage-tpan-panel: serial=0BEE040B1F06CAD4 san=DNS:panel.m20.test` (dòng 2806) đọc thẳng từ `/etc/letsencrypt/live/tpan-panel/fullchain.pem`, và sau `tpan panel domain set --clear --yes` thì `lineage tpan-panel đã bị xoá (certbot delete)` (phần H). `sudo ls /etc/letsencrypt/live/` cũng cho thấy thư mục `tpan-panel` (chưa chạy).
 
 ### 4.10 Kênh Go làm ổ khoá
 
@@ -526,21 +617,32 @@ Chỗ khác nhận ra khi viết mã (M20.md): `RecordTOTPFailure` không thể 
 - **F2 (vừa):** token `backups:write` đổi được đích sao lưu ngoài máy (M18) sang kho của kẻ khác, tức rút được dữ liệu mọi site. Sửa: đổi đích và cloud-init chỉ dùng được bằng phiên.
 - **F3, F4, F5 (nhẹ):** token `health:read` chạy được lượt health đầy đủ qua `?refresh=1`; trần 5 lần mỗi phiếu và mỗi IP còn "kiểm trước, ghi sau" (trần 10 lần theo user vẫn đúng); trang 421 in tên miền panel cho người lạ.
 
-**Phát hiện bằng cách nào:** đọc thiết kế rồi đọc mã khung và đi theo từng kịch bản tấn công trên giấy, chưa chạy gì. Không bước nào trong số đó được xác nhận bằng cuộc tấn công thật trên máy ảo; bằng chứng hiện có là test đơn vị cho từng bản sửa (xanh trên Mac) và e2e chưa chạy.
+**Phát hiện bằng cách nào:** đọc thiết kế rồi đọc mã khung và đi theo từng kịch bản tấn công trên giấy, chưa chạy gì. Mỗi bản sửa có test đơn vị (xanh trên Mac). Sau đó e2e trên máy ảo (25/11/2026, `M20.log`, 222 đạt, 0 không đạt) xác nhận một số bản sửa bằng máy thật, nhưng không phải tất cả:
+
+- **S2 (cookie lộ cho chủ site): có bằng chứng máy ảo.** Phần H, dòng 2901 đến 2931: Host là tên của site `a.example.com` ở đường `/api/v1/session` trả `421 host_is_site` (JSON); Host `khach.example.org` (site của user thường, đường giao diện) trả 421 và trang HTML; cùng Host mà có `Authorization` (token) thì được miễn, 200; Host là `panel.m20.test` thì 200. Chặn đặt tên panel trùng site: `409 panel_domain_is_site`; tạo site tên panel: `domain_is_panel` cả CLI lẫn API (dòng 2873 đến 2900). Chưa thấy trong log: cookie thật bị xoá khi đổi tên panel, và cuộc đua CLI với job tạo site (chỉ có test đơn vị).
+- **S3 và F2 (token lấy quá quyền): chỉ có gián tiếp.** T40 (dòng 2482 đến 2653) dựng bảng từ `RouteTable()` rồi thử mọi route với từng kiểu token: `T40: mọi route × {hết hạn 401 token_expired, thu hồi 401 token_revoked, chỉ phiên 403 token_forbidden, thiếu phạm vi 403 token_scope, chỉ đọc trên route ghi 403 token_scope}, đủ phạm vi không 401/403` và `không có dòng SAI`, trên máy thật với 110 route API không công khai trở lên. Việc "token chỉ đọc không lấy được mật khẩu job" không có phép thử riêng trong log; phần J chỉ cho thấy 9 job được đọc qua API và 11 lời gọi MCP bằng một token đủ phạm vi, và không bí mật nào lọt ra ngoài các câu trả lời lần đầu.
+- **S1 (đoán mã song song), F1 đến F5 (soát cuối): chưa có bằng chứng máy ảo.** Log e2e không bắn mã song song và không thử cửa sau của F1. Bằng chứng vẫn là test đơn vị trên Mac (`TestBuocHaiSongSongKhongVuotTran`, `TestPhieuSongSongKhongVuotTran5`, `TestTaoUserCanXacNhan` và các test khác). Phần "thử phá trên máy ảo" của soát cuối đang chạy lúc viết; `docs/bang-chung/M20-thu-pha.log` chưa có, xem `docs/thay-doi/M20.md` khi nó xong.
+- **Bản sửa nâng cấp: có bằng chứng.** Phần U (T80 đến T85): cookie của v0.2.0 vẫn là phiên sau khi nâng (`T81: ... 200`), đăng nhập cũ vẫn 204 không có chặng hai (`T82`), hai bước mặc định tắt, `/etc/tpan/secret.key` chưa tồn tại (`T85`), health có cảnh báo vàng `tpan.2fa:admins`.
+
+Ba chỗ đỏ của hồi quy lượt đầu (mục 2.6) cũng là "agent làm sai" nhưng ở đồ nghề, không ở mã M20: thiếu gói `v0.1.2` trong worktree, hai kịch bản cũ (M15) khẳng định theo chữ và hành vi đã đổi ở `dev`. Phát hiện bằng cách chạy hồi quy trên máy ảo và đọc chỗ đỏ. Bài học cho người review: kịch bản e2e cũ là mã, và mã cũ hỏng khi `dev` đổi chữ trên giao diện.
 
 ## 6. Chưa có trong tay
 
-Những thứ mục này **không** có bằng chứng từ máy ảo ở thời điểm viết:
+Từ 25/11/2026 phần lớn đã có (mục 2.6): e2e bước 23 đạt 222, không đạt 0, và năm hồi quy xanh. Những thứ dưới đây **vẫn không** có bằng chứng từ máy ảo:
 
-- Toàn bộ `scripts/e2e-m20.sh` (T1 đến T85 trong thiết kế): đối chiếu `oathtool` (T3), giải mã QR bằng `zbarimg` (T4), trình duyệt thật (T5), mã sai, bước -2, mã dùng lại, mã dự phòng (T10 đến T14), khoá IP 423 (T17), chính sách bắt buộc (T20, T21), `tpan user 2fa reset` (T30), bảng route × trạng thái token trên máy thật (T40 đến T42), chứng chỉ panel với pebble và gia hạn không đổi `MainPID` (T50), quét bí mật trong `tpan.db`, log, bản sao lưu (T60 đến T66), nâng từ v0.2.0 (T80 đến T85). Chạy bằng `make e2e-m20` (từ Mac, cần máy ảo trong `.tpan-vm`); log sẽ vào `docs/bang-chung/M20.log`.
-- Hồi quy M6, M13, M15, M16 trên bản cuối (`docs/bang-chung/M20-hoi-quy-m<n>.log`).
-- Soát cuối kiểu "thử phá trên máy ảo" bởi một thợ chưa đọc mã mốc này (mục 8, đợt 4 của thiết kế).
-- Phần "nâng từ v0.2.0": mới có test `TestNangCapM20GiuDangNhap` (DB bản 1400 có phiên và admin, sau migration phiên dùng được), chưa có chạy với gói v0.2.0 thật.
-- Demo `--demo` chưa chạy được "đặt tên miền panel" thật (certbot giả chưa hiểu lineage `tpan-panel`), chỉ hiện bản xem trước và trạng thái có sẵn.
+- Soát cuối kiểu "thử phá trên máy ảo" bởi một thợ chưa đọc mã mốc này (mục 8, đợt 4 của thiết kế). Đang chạy lúc viết; `docs/bang-chung/M20-thu-pha.log` chưa có. Xem `docs/thay-doi/M20.md`.
+- Đoán mã song song (S1) và cửa sau F1 đến F5 trên máy thật: log e2e không bắn mã song song, không tạo admin bằng cookie bị chiếm. Chỉ có test đơn vị trên Mac.
+- Bảng lệch đồng hồ ở 45 giây trên máy ảo: e2e chỉ thử ±15 và ±90 giây (T3). Con số 50% chỉ từ test Mac.
+- Tên cookie `__Host-tpan` và `__Host-tpan-2fa` trên panel có TLS: log không in tên cookie. Mở trình duyệt xem mới chắc (mục 4.6).
+- Độ dài 48 byte của `user_totp.secret_enc` (lệnh 6 mục 7): log không có truy vấn này. Có bằng chứng gián tiếp: `tpan.db`, `-wal` và bản sao backup không chứa bí mật TOTP nào của bốn user (T60 và T66, tổng bằng 0 sau phép quét đối chứng thấy 4 bí mật ở câu trả lời lần đầu).
+- Gia hạn chứng chỉ bằng timer thật của certbot (không ép): e2e dùng `--force-renewal` và `renew --dry-run` do bước kiểm chứng gọi, với pebble. Chưa thử với Let's Encrypt thật, và chưa thử trên VPS.
+- Demo `--demo` chưa chạy được "đặt tên miền panel" thật (certbot giả chưa hiểu lineage `tpan-panel`), chỉ hiện bản xem trước và trạng thái có sẵn. (Trên máy ảo thì đã chạy thật với pebble, `M20.log` phần H.)
+
+Đã có từ e2e, để bạn khỏi tưởng còn thiếu: `oathtool` đối chiếu mã (T3, dòng 1740 `mã oathtool tính trong máy ảo (bước 59851367) được máy chủ nhận khi bật: 200`), `zbarimg` đọc QR (T4, dòng 1730 `zbarimg đọc PNG ra đúng URI otpauth:// mà setup trả`), trình duyệt thật (phần D), mã sai, bước -2, mã dùng lại, mã dự phòng (T10 đến T14), khoá IP 423 (T17), chính sách bắt buộc (T20, T21), `tpan user 2fa reset` (T30), bảng route × token (T40 đến T42), chứng chỉ panel với pebble và `MainPID` không đổi (T50), quét bí mật (T60 đến T66), nâng từ v0.2.0 thật bằng `tpan self-update` của v0.2.0 (T80 đến T85).
 
 ## 7. Tự thử lại
 
-Tối đa 6 lệnh. Lệnh 1 đến 4 chạy ở **Mac**, trong thư mục repo `tpan-M20`, và mình đã chạy thật trong phiên viết (mục 2). Lệnh 5 và 6 chạy ở **máy ảo** và **chưa chạy**; máy ảo là tên trong `.tpan-vm` (hôm viết là `tpan-m20`) và phải có bản mới (`make vm-deploy`) cùng stack, một site, và đã có người bật hai bước.
+Tối đa 6 lệnh. Lệnh 1 đến 4 chạy ở **Mac**, trong thư mục repo `tpan-M20`, và mình đã chạy thật trong phiên viết (mục 2). Lệnh 5 và 6 chạy ở **máy ảo**; máy ảo là tên trong `.tpan-vm` (hôm viết là `tpan-m20`) và phải có bản mới (`make vm-deploy`) cùng stack, một site, và đã có người bật hai bước. Lệnh 5 đã có output thật từ e2e (mục dưới); lệnh 6 mình chưa chạy.
 
 1. **Mac**: bảng lệch đồng hồ.
 
@@ -574,27 +676,33 @@ Tối đa 6 lệnh. Lệnh 1 đến 4 chạy ở **Mac**, trong thư mục repo 
 
    Nó in mật khẩu của admin, của `khach_a`, và bí mật hai bước của `khach_a`. Ở cửa sổ khác, đăng nhập `khach_a` bằng `curl -s -i -c cj.txt -X POST http://127.0.0.1:18200/api/v1/login -d '{"name":"khach_a","password":"<mật khẩu in ra>"}'`. Sẽ thấy `200` với `{"mfa_required":true}` và cookie `tpan-2fa` (như mục 2.3). Tính mã cần một app xác thực hoặc `oathtool` (mình chưa chạy `oathtool` trong phiên này; mình đã tính mã bằng `internal/mfa` trong một chương trình Go tạm).
 
-5. **Máy ảo, quyền root** (từ Mac: `scripts/vm.sh root bash`): xem khoá niêm phong. **Chưa chạy.**
+5. **Máy ảo, quyền root** (từ Mac: `scripts/vm.sh root bash`): xem khoá niêm phong. **Đã chạy bởi e2e** (`M20.log` dòng 1749 đến 1752, sau khi admin bật hai bước lần đầu).
 
    ```bash
-   stat -c '%U:%G %a %s' /etc/tpan/secret.key
+   stat -c '%a %U %s %F %n' /etc/tpan/secret.key
    ```
 
-   Sau khi có người bật hai bước lần đầu, sẽ thấy `root:root 600 32` (file thường, 32 byte). Trước đó, file chưa tồn tại vì nó chỉ được tạo ở lần `setup` đầu tiên.
+   Output thật trong log:
 
-6. **Máy ảo, quyền root**: xem bí mật trong DB là dữ liệu nhị phân, không phải chuỗi đọc được. **Chưa chạy.**
+   ```
+   600 root 32 regular file /etc/tpan/secret.key
+   ```
+
+   Nghĩa là file thường, 32 byte, quyền 0600, chủ root. Trước khi có ai bật hai bước, file chưa tồn tại vì nó chỉ được tạo ở lần `setup` đầu tiên. Log cũng có phía "trước": sau khi nâng từ v0.2.0, T85 ở dòng 570 đến 577 chạy `ls -la /etc/tpan/` và in `không có /etc/tpan/secret.key`. Phép kiểm sức khoẻ cũng báo: `pass tpan.secretkey: File khoá /etc/tpan/secret.key đúng: file thường 32 byte, 0600, root` (dòng 1997).
+
+6. **Máy ảo, quyền root**: xem bí mật trong DB là dữ liệu nhị phân, không phải chuỗi đọc được. **Chưa chạy** (log e2e không có truy vấn này).
 
    ```bash
    python3 -c "import sqlite3; c=sqlite3.connect('file:/var/lib/tpan/tpan.db?mode=ro', uri=True); print([(r[0], len(r[1]), r[1][:6]) for r in c.execute('SELECT user_name, secret_enc, 1 FROM user_totp')])"
    ```
 
-   Sẽ thấy tên user, độ dài 48, và vài byte đầu dạng `b'...'` lộn xộn (nonce ngẫu nhiên), không có chuỗi base32 32 ký tự của bí mật. (Cách gọi `python3` với `sqlite3` theo đúng mẫu `scripts/e2e-m11.sh` dòng 267.)
+   Sẽ thấy tên user, độ dài 48, và vài byte đầu dạng `b'...'` lộn xộn (nonce ngẫu nhiên), không có chuỗi base32 32 ký tự của bí mật. (Cách gọi `python3` với `sqlite3` theo đúng mẫu `scripts/e2e-m11.sh` dòng 267.) Độ 48 byte lấy từ phép đo trên Mac (mục 3.6), chưa đo trên máy ảo. Bằng chứng gián tiếp đã có: phép quét T60 (`tpan.db` và `-wal`) ra `totp=0 ... tong=0` trong khi phép quét đối chứng thấy bí mật ở câu trả lời lần đầu (mục 2.6).
 
 Dọn dẹp: `make vm-reset` đưa máy ảo về sạch. Lệnh 4 để lại hai file `cj.txt` trong thư mục hiện tại; xoá tay.
 
 ## 8. Câu hay bị hỏi
 
-Đáp án ở cuối file. Câu 2 và 9 cần chạy lệnh trên máy ảo mới trả lời chắc được.
+Đáp án ở cuối file. Câu 2, 9 và 10 cần chạy lệnh trên máy ảo mới trả lời chắc được.
 
 1. Đồng hồ điện thoại lệch 45 giây thì có đăng nhập được không? Lệch 2 phút thì sao? Vì sao con số 60 giây?
 2. Kẻ lấy được file `tpan.db` (hoặc bản sao lưu) thì có lấy được bí mật hai bước không? Làm sao tự kiểm?
@@ -611,7 +719,7 @@ Dọn dẹp: `make vm-reset` đưa máy ảo về sạch. Lệnh 4 để lại h
 
 1. Lệch 45 giây thì có lúc được, có lúc không: bảng ở mục 2.1 cho 50% trên 3000 mốc. Lệch 30 giây trở xuống thì luôn được. Lệch 2 phút thì không bao giờ. Máy chủ chấp nhận bước hiện tại và một bước mỗi bên (`Skew = 1`), mỗi bước 30 giây. Lệch từ 60 giây thì luôn lệch ít nhất 2 bước, nằm ngoài cửa sổ. Con số 60 suy ra từ hai hằng đó, không phải chọn riêng. Cách chữa: bật đồng bộ giờ trên điện thoại. Phía máy chủ có phép kiểm `tpan.clock` (chạy `timedatectl show -p NTPSynchronized --value`, cảnh báo khi `no` và có user đã bật hai bước).
 
-2. Không. Trong DB, `user_totp.secret_enc` là bản đã niêm phong bằng AES-256-GCM, còn khoá nằm ở `/etc/tpan/secret.key`, một file riêng 0600 root, ngoài `tpan.db` và ngoài bản sao lưu của nó. Phải lấy được cả hai. AAD gắn tên user, nên chép bản mã của user này sang dòng của user khác cũng không mở được. Tự kiểm trên máy ảo (chưa chạy): lệnh 6 mục 7 cho thấy cột là 48 byte nhị phân, rồi lệnh 5 cho thấy khoá ở file riêng. Mất file khoá thì mã dự phòng vẫn dùng được (chỉ cần sha256) và root dùng `tpan user 2fa reset`; panel không sinh khoá mới đè lên.
+2. Không. Trong DB, `user_totp.secret_enc` là bản đã niêm phong bằng AES-256-GCM, còn khoá nằm ở `/etc/tpan/secret.key`, một file riêng 0600 root, ngoài `tpan.db` và ngoài bản sao lưu của nó. Phải lấy được cả hai. AAD gắn tên user, nên chép bản mã của user này sang dòng của user khác cũng không mở được. Tự kiểm trên máy ảo: lệnh 5 mục 7 cho thấy khoá ở file riêng (`600 root 32 regular file /etc/tpan/secret.key`, đã có trong `M20.log` dòng 1750); lệnh 6 cho thấy cột là 48 byte nhị phân (lệnh 6 chưa chạy). Phép quét T60 đến T66 của e2e (phần J) tìm bí mật TOTP của bốn user trong `tpan.db`, `-wal`, nhật ký, job, MCP, bản sao backup và ra 0 chỗ, sau khi phép quét đối chứng thấy 4 bí mật trong câu trả lời lần đầu. Mất file khoá thì mã dự phòng vẫn dùng được (chỉ cần sha256) và root dùng `tpan user 2fa reset`; panel không sinh khoá mới đè lên.
 
 3. Không vượt được trần. Mọi lần kiểm mã của một user đi qua một ổ khoá trong tiến trình (`mfaLocks`) và ghi lần sai ngay trong ổ khoá đó, nên 10 lần sai là khoá, dù có bao nhiêu phiếu song song. Test `TestBuocHaiSongSongKhongVuotTran` dựng đúng cảnh này (400 phiếu, 2000 request) và đòi `Match` chạy không quá 10 lần. Sau khoá lần đầu, mã 6 số bị từ chối mà không chạy `Match`; khoá lần sau gấp đôi (15 phút, 30 phút, ... trần 24 giờ); mỗi lần khoá ghi một dòng `login.2fa_locked` và phép kiểm `tpan.2fa:attempts` cảnh báo "mật khẩu có thể đã lộ". Thiết kế đầu thì không chặn được cảnh này (S1, mục 5.4), và đó là điểm nặng nhất của bản soát.
 
@@ -625,6 +733,6 @@ Dọn dẹp: `make vm-reset` đưa máy ảo về sạch. Lệnh 4 để lại h
 
 8. `/users` đặt lại được mật khẩu và đổi vai người khác: một token admin lộ có thể tạo admin mới, biến token sống 7 ngày thành tài khoản sống mãi. `/plans` và `/ai`: Plan do AI đề xuất phải có người duyệt; token là thứ máy dùng, cho nó duyệt là agent tự duyệt Plan của mình. Mọi `/account/...` là mật khẩu, hai bước, token: đặc tả cấm. Cách bảo đảm: trường `tok` của route rỗng nghĩa là chỉ phiên, mặc định đóng. `TestNhomTokenCuaRoute` so bảng thật với bảng viết tay, nên route mới mà quên khai nhóm thì test đỏ chứ không âm thầm mở cho token.
 
-9. Đặt tên panel trùng tên một site thì `panel_domain_is_site` (bước `panelNameFree` và điều kiện đầu), và tạo site trùng `panel.domain` thì `domain_is_panel`. Lý do không chỉ là lineage: cookie phiên không tách theo cổng, nên PHP của site cùng tên đọc được cookie phiên panel. Vào panel bằng tên của một site thì nhận 421 `host_is_site` với bất kỳ site nào và bất kỳ chủ nào, kèm cách vào bằng IP hoặc tên miền của panel. Tự kiểm trên máy ảo (chưa chạy), với site `e.example.com`: `curl -sk -o /dev/null -w '%{http_code}\n' --resolve e.example.com:8443:127.0.0.1 https://e.example.com:8443/` phải ra `421`. Test trên Mac: `TestHostLaSite421`.
+9. Đặt tên panel trùng tên một site thì `panel_domain_is_site` (bước `panelNameFree` và điều kiện đầu), và tạo site trùng `panel.domain` thì `domain_is_panel`. Lý do không chỉ là lineage: cookie phiên không tách theo cổng, nên PHP của site cùng tên đọc được cookie phiên panel. Vào panel bằng tên của một site thì nhận 421 `host_is_site` với bất kỳ site nào và bất kỳ chủ nào, kèm cách vào bằng IP hoặc tên miền của panel. Tự kiểm trên máy ảo, với site `e.example.com` (e2e đã chạy cùng cách với `a.example.com`, `M20.log` dòng 2901 đến 2905: `https://a.example.com:8443/api/v1/session -> HTTP 421 ... error.code=host_is_site`; lệnh dưới đây là lệnh gọn hơn của mình, chưa chạy): `curl -sk -o /dev/null -w '%{http_code}\n' --resolve e.example.com:8443:127.0.0.1 https://e.example.com:8443/` phải ra `421`. Cùng phần H: đặt tên panel trùng site thì `409 panel_domain_is_site`, tạo site tên panel thì `domain_is_panel`; Host của một site mà có `Authorization` thì 200 (miễn 421). Test trên Mac: `TestHostLaSite421`.
 
-10. Không. `GetCertificate` đọc `mtime` và cỡ của hai file chứng chỉ mỗi lần bắt tay và nạp lại khi chúng đổi, nên certbot gia hạn xong là bắt tay kế tiếp có chứng chỉ mới, và `tpan.service` không phải khởi động lại (không cắt job đang chạy). Tự kiểm trên máy ảo (chưa chạy; đây là khẳng định T50 của e2e): `systemctl show -p MainPID --value tpan`; `openssl s_client -connect 127.0.0.1:8443 -servername <tên panel> </dev/null 2>/dev/null | openssl x509 -noout -serial`; `sudo certbot renew --cert-name tpan-panel --force-renewal`; chạy lại hai lệnh đầu. Sẽ thấy serial đổi và `MainPID` giữ nguyên. Phần certbot đổi serial đã thấy ở `thu-vm.log` (mục 2.4); phần panel nạp lại mà không đổi PID thì chưa có bằng chứng máy ảo, chỉ có test `TestChungChiTheoSNI` trên Mac.
+10. Không. `GetCertificate` đọc `mtime` và cỡ của hai file chứng chỉ mỗi lần bắt tay và nạp lại khi chúng đổi, nên certbot gia hạn xong là bắt tay kế tiếp có chứng chỉ mới, và `tpan.service` không phải khởi động lại (không cắt job đang chạy). Tự kiểm trên máy ảo (đây là khẳng định T50 của e2e, đã chạy, `M20.log` dòng 2843 đến 2870): `systemctl show -p MainPID --value tpan`; `openssl s_client -connect 127.0.0.1:8443 -servername <tên panel> </dev/null 2>/dev/null | openssl x509 -noout -serial`; `sudo certbot renew --cert-name tpan-panel --force-renewal`; chạy lại hai lệnh đầu. Sẽ thấy serial đổi và `MainPID` giữ nguyên. Output thật của e2e: `MainPID` 1680 trước và sau; serial phục vụ đổi từ `0BEE040B1F06CAD4` sang `0C2365875FC4564D`, bằng serial của lineage `tpan-panel` trên đĩa; log kết luận `T50: MainPID của tpan.service không đổi (1680)`. Chạy lại lệnh của bạn sẽ ra PID và serial khác (máy dựng lại), nhưng quan hệ giống nhau. Phần certbot đổi serial cũng đã thấy ở `thu-vm.log` (mục 2.4); test `TestChungChiTheoSNI` chạy trên Mac. Lưu ý: e2e dùng pebble và `--force-renewal`, chưa phải Let's Encrypt thật và chưa phải timer tự gia hạn.
