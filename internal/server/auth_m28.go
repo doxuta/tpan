@@ -93,9 +93,8 @@ func sourceKey(r *http.Request) string {
 // cuối đợt 2). Tính theo địa chỉ thì PHP của site có thêm một khoá ngoài
 // uid:<n>; tra UID như loopback thì không.
 //
-// ponytail: chỉ bắt ca nguồn bằng đích (kernel chọn nguồn như vậy khi đích là
-// địa chỉ của máy). Tiến trình tự bind nguồn là một địa chỉ khác của máy vẫn
-// được khoá theo địa chỉ đó; muốn bắt hết thì so với net.InterfaceAddrs().
+// ponytail: chỉ so với đúng địa chỉ panel nhận kết nối (phần còn lại của D8
+// ghi ở docs/thay-doi/M28-dot-2-soat-cuoi.md).
 func selfConn(r *http.Request, a netip.Addr) bool {
 	local, _ := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
 	if local == nil {
@@ -127,8 +126,7 @@ const (
 	// authLookupBusy là "khoá nguồn" khi hết chỗ tra UID: không phải khoá thật,
 	// handleLogin và handlePasswordChange trả 429 auth_busy ngay.
 	authLookupBusy = "busy:lookup"
-	// procMaxBytes: cỡ 100 000 socket (dòng tcp6 khoảng 150 byte). Socket nằm
-	// sau trần thì tra hụt: khoá chung "loopback", an toàn hơn là cho qua.
+	// procMaxBytes: cỡ 100 000 socket (dòng tcp6 khoảng 150 byte).
 	procMaxBytes = 16 << 20
 	// procLineMax: một dòng /proc/net/tcp6 khoảng 150 byte; dòng dài hơn bộ đệm
 	// (không có trên kernel nào) thì bỏ qua.
