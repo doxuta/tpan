@@ -132,7 +132,21 @@ func liveCagePackage(c *cdp, l *liveCheck, base, name string) error {
 	if err := c.press("#g-long"); err != nil {
 		return err
 	}
-	l.ok(c.str(`document.querySelector('#g-ram_mb')?.disabled?'khoá':'mở'`) == "mở", "chọn «Đưa site của gói vào lồng» thì các ô mở")
+	// React vẽ lại sau cú bấm: chờ ô mở thay vì đọc ngay. Cú bấm chuột theo
+	// toạ độ có lúc rơi lệch khi hộp thoại còn đang cuộn: thì bấm lại bằng
+	// click() của chính ô (vẫn là sự kiện bấm mà React nhận).
+	const openJS = `document.querySelector('#g-long')?.checked===true && document.querySelector('#g-ram_mb')?.disabled===false`
+	opened := c.waitTrue(openJS, 3*time.Second) == nil
+	if !opened {
+		if _, err := c.eval(`document.querySelector('#g-long').click()`); err != nil {
+			return err
+		}
+		opened = c.waitTrue(openJS, 3*time.Second) == nil
+	}
+	l.ok(opened, "chọn «Đưa site của gói vào lồng» thì các ô mở")
+	if !opened {
+		return errors.New("ô chọn lồng không nhận cú bấm")
+	}
 	for _, f := range []struct{ sel, v string }{{"#g-cpu_percent", "50"}, {"#g-ram_mb", "200"}, {"#g-tasks", "40"}, {"#g-php_workers", "3"}} {
 		if err := fillID(c, f.sel, f.v); err != nil {
 			return err
