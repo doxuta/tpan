@@ -1,0 +1,1969 @@
+e2e giao diện M17. tpan của cây: v0.2.2-94-g82a38d5; máy ảo: tpan-m17; các phần: a b c d e f
+
+
+######## [2026-11-25 01:18:50] PHẦN A: máy sạch, tpan của cây, setup, stack nginx; gói long chưa bật lồng, user khach, site a.example.com
+
+[2026-11-25 01:18:50] $ git log --oneline -1
+82a38d5 e2e giao diện M17: chờ ô chọn lồng nhận cú bấm (React vẽ lại) và bấm lại bằng click() khi cú bấm theo toạ độ lệch; giải thích M17: mục 3.15 giao diện, 5.12 lỗi sửa gói 400, 5.13 màn Bảo mật, câu tự kiểm 11, số đo e2e trong hai đáp án
+[2026-11-25 01:18:50] (mã thoát 0)
+
+[2026-11-25 01:18:50] $ git status --short
+?? docs/bang-chung/M17-giao-dien.log
+[2026-11-25 01:18:50] (mã thoát 0)
+
+[2026-11-25 01:18:50] $ go build -o <tmp>/anh ./scripts/anh-readme
+[2026-11-25 01:18:51] (mã thoát 0)
+  => ĐẠT: build chương trình trình duyệt (scripts/anh-readme)
+Máy ảo: tpan-m17
+
+[2026-11-25 01:18:51] $ make vm-reset
+scripts/vm.sh reset
+[2K[0A[0EStopping tpan-m17  /-\|/-\ [2K[0A[0E[2K[0A[0ERestoring snapshot  /- [2K[0A[0ESnapshot restored: tpan-m17.clean
+[2K[0A[0EStarting tpan-m17  /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\| [2K[0A[0E
+[2026-11-25 01:19:04] (mã thoát 0)
+  => ĐẠT: máy ảo về snapshot clean
+
+[2026-11-25 01:19:04] $ scripts/vm.sh exec cloud-init status --wait
+status: done
+[2026-11-25 01:19:05] (mã thoát 0)
+  => ĐẠT: cloud-init xong
+IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)
+
+[2026-11-25 01:19:05] $ scripts/vm.sh exec bash -c command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1
+ls: cannot access '/etc/tpan': No such file or directory
+ls: cannot access '/var/lib/tpan': No such file or directory
+[2026-11-25 01:19:05] (mã thoát 2)
+  => ĐẠT: máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan
+
+[2026-11-25 01:19:06] $ make vm-deploy DATE=2026-11-24T18:18:50Z
+cd web && pnpm install --frozen-lockfile && pnpm build
+✓ Lockfile passes supply-chain policies (verified 3d ago)
+Lockfile is up to date, resolution step is skipped
+Done in 26ms using pnpm v12.15.0
+$ tsc --noEmit && vite build
+vite v8.3.8 building client environment for production...
+transforming...
+✓ 417 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                   0.95 kB │ gzip:   0.55 kB
+dist/assets/ibm-plex-mono-vietnamese-400-normal-BulugwFq.woff2    5.86 kB
+dist/assets/ibm-plex-mono-vietnamese-500-normal-DZ4AoWbu.woff2    6.04 kB
+dist/assets/ibm-plex-mono-vietnamese-600-normal-D2EvbN8M.woff2    6.93 kB
+dist/assets/ibm-plex-sans-vietnamese-400-normal-DG4YqDda.woff2    8.20 kB
+dist/assets/ibm-plex-sans-vietnamese-500-normal-e4dixQRQ.woff2    8.41 kB
+dist/assets/ibm-plex-sans-vietnamese-600-normal-DpPYBSTl.woff2    8.46 kB
+dist/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2        14.70 kB
+dist/assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2        14.88 kB
+dist/assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2        15.62 kB
+dist/assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2        22.58 kB
+dist/assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2        24.18 kB
+dist/assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2        24.25 kB
+dist/assets/index-D8H1GatV.css                                   39.18 kB │ gzip:   9.02 kB
+dist/assets/useStatusName-DFJEIzhQ.js                             0.20 kB │ gzip:   0.18 kB
+dist/assets/m18-types-DSZZrozW.js                                 0.23 kB │ gzip:   0.15 kB
+dist/assets/model-Co_p74TJ.js                                     0.27 kB │ gzip:   0.18 kB
+dist/assets/OriginTag-cT9_BxxJ.js                                 0.27 kB │ gzip:   0.22 kB
+dist/assets/model-De5PuTB1.js                                     0.29 kB │ gzip:   0.19 kB
+dist/assets/DomainText-B12hwkX-.js                                0.30 kB │ gzip:   0.23 kB
+dist/assets/SuspendTag-BPA8tE0E.js                                0.37 kB │ gzip:   0.27 kB
+dist/assets/route-CeI0wFlm.js                                     0.48 kB │ gzip:   0.30 kB
+dist/assets/useCopy-CksDJ_9Z.js                                   0.51 kB │ gzip:   0.32 kB
+dist/assets/m14-B-7zFKIG.js                                       0.56 kB │ gzip:   0.34 kB
+dist/assets/m13-dbs-B39evB9k.js                                   0.65 kB │ gzip:   0.38 kB
+dist/assets/SegmentButton-FZgZmyWp.js                             0.70 kB │ gzip:   0.46 kB
+dist/assets/RowActions-BgPi0KhZ.js                                0.70 kB │ gzip:   0.43 kB
+dist/assets/m13-chung-BeUoTsFz.js                                 0.80 kB │ gzip:   0.44 kB
+dist/assets/Rows-00bDXNCo.js                                      0.84 kB │ gzip:   0.36 kB
+dist/assets/format-BjDb3RKe.js                                    0.85 kB │ gzip:   0.44 kB
+dist/assets/UsageMeter-CA7SlHeB.js                                0.86 kB │ gzip:   0.47 kB
+dist/assets/model-DUbSC1ju.js                                     0.98 kB │ gzip:   0.56 kB
+dist/assets/m17-D6vSTqUx.js                                       0.99 kB │ gzip:   0.45 kB
+dist/assets/model-C2VyZL6F.js                                     1.02 kB │ gzip:   0.54 kB
+dist/assets/model-Bpcuifsc.js                                     1.07 kB │ gzip:   0.57 kB
+dist/assets/Dialog-vfBWj0Z4.js                                    1.18 kB │ gzip:   0.65 kB
+dist/assets/model-Dt0mLiBw.js                                     1.56 kB │ gzip:   0.61 kB
+dist/assets/model-XbSQ3r3G.js                                     1.78 kB │ gzip:   0.86 kB
+dist/assets/PreviewedOp-3QbbsHrF.js                               1.86 kB │ gzip:   0.98 kB
+dist/assets/TableList-BAJOqJ_N.js                                 2.21 kB │ gzip:   0.95 kB
+dist/assets/RouteMap-BQNYW0x7.js                                  2.32 kB │ gzip:   1.02 kB
+dist/assets/Bulk-CtzI9MGz.js                                      3.03 kB │ gzip:   1.39 kB
+dist/assets/plan-cho-duyet-VNz8E1rL.js                            5.82 kB │ gzip:   2.04 kB
+dist/assets/StorageFlow-TOul4SqC.js                               6.41 kB │ gzip:   2.57 kB
+dist/assets/dang-nhap-vDk6eCqB.js                                 6.70 kB │ gzip:   2.90 kB
+dist/assets/Self-Vx23kDK1.js                                      8.49 kB │ gzip:   2.71 kB
+dist/assets/goi-Dnmw9F-e.js                                       9.03 kB │ gzip:   3.71 kB
+dist/assets/model-CykV0ppL.js                                    10.04 kB │ gzip:   3.96 kB
+dist/assets/cong-cu-CqzQj3Fj.js                                  10.74 kB │ gzip:   4.14 kB
+dist/assets/tai-nguyen-DzwyiaEs.js                               10.82 kB │ gzip:   4.02 kB
+dist/assets/backup-CimMQrtY.js                                   10.94 kB │ gzip:   3.50 kB
+dist/assets/queries-CCSlzjTI.js                                  10.97 kB │ gzip:   3.32 kB
+dist/assets/ssl-CXuIyXJa.js                                      11.45 kB │ gzip:   4.53 kB
+dist/assets/cap-nhat-CSSwVbTl.js                                 11.86 kB │ gzip:   4.27 kB
+dist/assets/duyet-plan-rOFc-wDE.js                               11.99 kB │ gzip:   4.35 kB
+dist/assets/cron-CUyGtNlW.js                                     13.01 kB │ gzip:   4.88 kB
+dist/assets/thung-rac-CD91X9sW.js                                13.38 kB │ gzip:   4.72 kB
+dist/assets/tao-site-CCcPfI4v.js                                 13.44 kB │ gzip:   4.94 kB
+dist/assets/co-so-du-lieu-DndWJqoJ.js                            14.58 kB │ gzip:   4.80 kB
+dist/assets/co-so-du-lieu-bOO6RVE9.js                            15.70 kB │ gzip:   4.97 kB
+dist/assets/cai-may-moi-B_caPywh.js                              15.73 kB │ gzip:   5.74 kB
+dist/assets/phien-ai-qDBHjSzN.js                                 16.19 kB │ gzip:   5.32 kB
+dist/assets/stack-DNn_UGDH.js                                    17.30 kB │ gzip:   5.50 kB
+dist/assets/CheckRow-DVvBEU_w.js                                 18.07 kB │ gzip:   6.20 kB
+dist/assets/cai-dat-BUgoQbMt.js                                  21.48 kB │ gzip:   7.22 kB
+dist/assets/su-co-DPQaLvPL.js                                    21.55 kB │ gzip:   7.18 kB
+dist/assets/backup-w8wMdH2d.js                                   24.62 kB │ gzip:   7.84 kB
+dist/assets/bao-mat-CgkLFPok.js                                  25.13 kB │ gzip:   7.02 kB
+dist/assets/nguoi-dung-Ydy6Dz-T.js                               26.29 kB │ gzip:   8.92 kB
+dist/assets/trang-chu-DJCbxB5d.js                                26.42 kB │ gzip:   8.47 kB
+dist/assets/lich-su-CT9646fv.js                                  28.65 kB │ gzip:   9.26 kB
+dist/assets/ErrorNote-C2yUiZfy.js                                31.34 kB │ gzip:  10.17 kB
+dist/assets/site-BxP7evTF.js                                     43.09 kB │ gzip:  12.40 kB
+dist/assets/ScreenHeader-Bqb8OHjJ.js                            147.59 kB │ gzip:  48.94 kB
+dist/assets/index-BXCTB9OC.js                                   389.73 kB │ gzip: 125.05 kB
+
+✓ built in 223ms
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-94-g82a38d5 -X github.com/doxuta/tpan/internal/buildinfo.Commit=82a38d5 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T18:18:50Z' -o bin/tpan-linux-amd64 ./cmd/tpan
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w -X github.com/doxuta/tpan/internal/buildinfo.Version=v0.2.2-94-g82a38d5 -X github.com/doxuta/tpan/internal/buildinfo.Commit=82a38d5 -X github.com/doxuta/tpan/internal/buildinfo.Date=2026-11-24T18:18:50Z' -o bin/tpan-linux-arm64 ./cmd/tpan
+scripts/vm.sh deploy
+tpan v0.2.2-94-g82a38d5 (commit 82a38d5, build 2026-11-24T18:18:50Z)
+[2026-11-25 01:19:09] (mã thoát 0)
+  => ĐẠT: make vm-deploy: build và chép tpan v0.2.2-94-g82a38d5 vào máy ảo
+
+[2026-11-25 01:19:09] $ scripts/vm.sh exec tpan version
+tpan v0.2.2-94-g82a38d5 (commit 82a38d5, build 2026-11-24T18:18:50Z)
+[2026-11-25 01:19:10] (mã thoát 0)
+  => ĐẠT: tpan version là v0.2.2-94-g82a38d5
+
+[2026-11-25 01:19:11] $ scripts/vm.sh root bash -c install -d -m 0700 "$1" && for f in /tmp/e2e-m18-*; do install -m 0700 "$f" "$1/${f#/tmp/e2e-m18-}"; rm -f "$f"; done; ls "$1" _ /root/e2e-m18
+api-get-het.sh
+api.sh
+doi-byte.py
+garage.sh
+giai-user-data.py
+jobs.py
+mo-goi-panel.sh
+quet.sh
+site.sh
+versitygw.sh
+[2026-11-25 01:19:11] (mã thoát 0)
+  => ĐẠT: (đồ nghề) 10 script của scripts/e2e-m18 đã chép vào /root/e2e-m18
+
+[2026-11-25 01:19:11] $ scripts/vm.sh root tpan setup --yes --json
+Bắt đầu job 649fb279b2d12b59
+- Tạo thư mục /etc/tpan ...
+  xong
+- Tạo thư mục /etc/tpan/tls ...
+  xong
+- Ghi chứng chỉ tự ký của panel ...
+  xong
+- Ghi khoá riêng của chứng chỉ (chỉ root đọc) ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  xong
+- Ghi file dịch vụ systemd của tpan ...
+  xong
+- Chạy và bật tpan.service khi khởi động ...
+  xong
+{
+  "report": {
+    "job": {
+      "id": "649fb279b2d12b59",
+      "kind": "panel.setup",
+      "target": "0.0.0.0:8443",
+      "title": {
+        "vi": "Khởi tạo panel tpan",
+        "en": "Set up the tpan panel"
+      },
+      "status": "succeeded",
+      "started": "2026-11-25T01:19:11.764747589+07:00",
+      "finished": "2026-11-25T01:19:12.101239131+07:00"
+    },
+    "steps": [
+      {
+        "id": "dir:/etc/tpan",
+        "outcome": "applied"
+      },
+      {
+        "id": "dir:/etc/tpan/tls",
+        "outcome": "applied"
+      },
+      {
+        "id": "file:/etc/tpan/tls/cert.pem",
+        "outcome": "applied"
+      },
+      {
+        "id": "file:/etc/tpan/tls/key.pem",
+        "outcome": "applied"
+      },
+      {
+        "id": "dir:/var/lib/tpan",
+        "outcome": "applied"
+      },
+      {
+        "id": "file:/etc/systemd/system/tpan.service",
+        "outcome": "applied"
+      },
+      {
+        "id": "service:tpan.service",
+        "outcome": "applied"
+      }
+    ],
+    "checks": null
+  },
+  "listen": "0.0.0.0:8443",
+  "cert_sha256": "CD:65:DB:70:AA:46:CC:8F:31:E2:49:B7:A4:67:5B:19:44:9F:36:C5:7D:B2:5A:2D:64:53:F0:C1:41:6D:E0:3F",
+  "admin_password_created": true,
+  "admin_password": "<bí mật, đã che>"
+}
+[2026-11-25 01:19:12] (mã thoát 0)
+  => ĐẠT: tpan setup: thoát 0, job thành công
+
+[2026-11-25 01:19:12] $ scripts/vm.sh root tpan stack install --web nginx --yes
+Bắt đầu job 815eeacbfd1a6661
+- Làm mới danh sách gói (apt-get update) ...
+  xong
+- Cài gói: mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl certbot curl nginx ...
+  xong
+- Chạy và bật mariadb khi khởi động ...
+  đã đúng, bỏ qua
+- Ghi /etc/mysql/mariadb.conf.d/99-tpan.cnf ...
+  xong
+- Siết MariaDB: root qua unix_socket, bỏ user ẩn danh và DB test ...
+  đã đúng, bỏ qua
+- Dò bản PHP-FPM đã cài ...
+  đã đúng, bỏ qua
+- Thay pool www của php<bản>-fpm bằng pool tpan-idle ...
+  xong
+- Bật kiểm quyền file và khoá API của OPcache cho php<bản>-fpm ...
+  xong
+- Ẩn tiến trình của user khác với PHP của php<bản>-fpm ...
+  xong
+- Tạo thư mục /var/lib/tpan ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/lib/tpan/acme ...
+  xong
+- Gỡ /etc/nginx/sites-enabled/default ...
+  xong
+- Ghi /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-default.conf → /etc/nginx/sites-available/tpan-default.conf ...
+  xong
+- Chạy và bật nginx khi khởi động ...
+  đã đúng, bỏ qua
+- Tạo thư mục /var/cache/tpan ...
+  xong
+- Cài WP-CLI 2.12.0 vào /usr/local/bin/wp ...
+  xong
+- Ghi /etc/logrotate.d/tpan-sites ...
+  xong
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy
+  [đạt] Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512
+  [đạt] Ổ đĩa chứa / còn chỗ trống
+  [đạt] PHP-FPM 8.3 không còn pool www thừa
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác
+
+Job 815eeacbfd1a6661: thành công
+Kiểm chứng:
+  [đạt] Dịch vụ nginx đang chạy và tự bật cùng máy: nginx đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy: php8.3-fpm đang chạy và tự bật khi khởi động máy
+  [đạt] Dịch vụ mariadb đang chạy và tự bật cùng máy: mariadb đang chạy và tự bật khi khởi động máy
+  [đạt] Cấu hình nginx hợp lệ: Cấu hình nginx hợp lệ
+  [đạt] Cấu hình PHP-FPM 8.3 hợp lệ: Cấu hình PHP-FPM 8.3 hợp lệ
+  [đạt] Cổng 3306 chỉ nghe ở 127.0.0.1: Cổng 3306 chỉ nghe ở 127.0.0.1
+  [đạt] Site mặc định của nginx đóng kết nối request lạ: nginx đóng kết nối request lạ như mong đợi (mã 444)
+  [đạt] MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test: MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test
+  [đạt] WP-CLI có sẵn, đúng quyền và đúng mã sha512: WP-CLI có sẵn, quyền 0755, sha512 khớp
+  [đạt] Ổ đĩa chứa / còn chỗ trống: Ổ đĩa chứa / đã dùng 13.3%
+  [đạt] PHP-FPM 8.3 không còn pool www thừa: Không có pool www; pool giữ chỗ tpan-idle có mặt
+  [đạt] OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API: OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*
+  [đạt] PHP-FPM 8.3 không thấy tiến trình của user khác: Dịch vụ php8.3-fpm chạy với ProtectProc=invisible
+[2026-11-25 01:21:00] (mã thoát 0)
+  => ĐẠT: stack install --web nginx: job thành công
+
+[2026-11-25 01:21:00] $ scripts/vm.sh root tpan package add long --max-sites 3 --max-dbs 3 --yes
+Đã thêm gói long: site 3, DB 3, disk ∞ MiB, backup ∞.
+[2026-11-25 01:21:00] (mã thoát 0)
+  => ĐẠT: package add long (chưa bật lồng, chưa có mức tối đa)
+
+[2026-11-25 01:21:00] $ scripts/vm.sh root tpan user add khach --full-name Khach --email k@example.com --package long --yes --json
+{
+  "user": {
+    "user": {
+      "name": "khach",
+      "full_name": "Khach",
+      "email": "k@example.com",
+      "role": "user",
+      "package": "long",
+      "status": "active",
+      "created": "2026-11-24T18:21:01.047534101Z"
+    },
+    "limits": {
+      "name": "long",
+      "max_sites": 3,
+      "max_dbs": 3,
+      "disk_mb": 0,
+      "max_backups": 0,
+      "cage": false,
+      "cpu_percent": 0,
+      "ram_mb": 0,
+      "tasks": 0,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 0,
+      "created": "2026-11-24T18:21:00.876618072Z"
+    },
+    "usage": {
+      "sites": 0,
+      "dbs": 0,
+      "disk_bytes": -1
+    },
+    "over_quota": false
+  },
+  "password": "<bí mật, đã che>"
+}
+[2026-11-25 01:21:01] (mã thoát 0)
+  => ĐẠT: user add khach (gói long): thoát 0, mật khẩu sinh một lần (đã che)
+
+[2026-11-25 01:21:01] $ scripts/vm.sh root tpan site add a.example.com --email admin@example.com --owner khach --yes
+Bắt đầu job 63badcbea3e90de8
+- Tạo user Linux tp_a_example_com_7653e4 cho site ...
+  xong
+- Tạo thư mục /var/www/a.example.com ...
+  xong
+- Tạo thư mục /var/www/a.example.com/public ...
+  xong
+- Tạo thư mục /var/www/a.example.com/tmp ...
+  xong
+- Tạo thư mục /var/log/tpan/sites/a.example.com ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/access.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/error.log với đúng quyền và chủ ...
+  xong
+- Tạo /var/log/tpan/sites/a.example.com/php-error.log với đúng quyền và chủ ...
+  xong
+- Tạo DB tp_a_example_com_7653e4 và user DB riêng của site a.example.com ...
+  xong
+- Ghi pool PHP-FPM tpan-a_example_com_7653e4 cho a.example.com ...
+  xong
+- Tải WordPress 7.1.5 vào /var/cache/tpan ...
+  xong
+- Giải nén WordPress vào /var/www/a.example.com/public ...
+  xong
+- Tạo /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt DISABLE_WP_CRON = true trong /var/www/a.example.com/public/wp-config.php ...
+  xong
+- Đặt lịch cron WordPress của a.example.com (5 phút một lần) ...
+  xong
+- Ghi vhost nginx cho a.example.com ...
+  xong
+- Bật /etc/nginx/sites-enabled/tpan-a.example.com.conf → /etc/nginx/sites-available/tpan-a.example.com.conf ...
+  xong
+- Cài WordPress cho a.example.com ...
+  xong
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum)
+  [đạt] wp-config.php có quyền 0600 và đúng chủ
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site
+  [đạt] Log của site không đọc được bởi site khác
+  [đạt] Vhost của site có đủ các dòng chặn cô lập
+
+Job 63badcbea3e90de8: thành công
+Kiểm chứng:
+  [đạt] Vhost của site có, do tpan quản lý và đang được bật: Vhost của site có, đúng dòng đầu của tpan, và đã được bật
+  [đạt] Socket của pool PHP có, đúng chủ và đúng quyền: Socket của pool có, chủ www-data:www-data, quyền 0660
+  [đạt] Mã nguồn WordPress nguyên vẹn (khớp checksum): Mã nguồn WordPress khớp checksum
+  [đạt] wp-config.php có quyền 0600 và đúng chủ: wp-config.php quyền 0600, chủ tp_a_example_com_7653e4
+  [đạt] User DB của site đăng nhập được, chỉ thấy DB của site: User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4
+  [đạt] Gọi HTTP vào site trả 200 và đúng là WordPress của site: Site trả 200, đúng là WordPress của a.example.com
+  [đạt] Log của site không đọc được bởi site khác: Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640
+  [đạt] Vhost của site có đủ các dòng chặn cô lập: Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích
+
+Tài khoản quản trị WordPress:
+  Đăng nhập:     http://a.example.com/wp-admin/
+  Tên:           admin
+  Mật khẩu:      <bí mật, đã che>
+Lưu lại ngay: tpan không giữ mật khẩu này và sẽ không in lại.
+[2026-11-25 01:23:21] (mã thoát 0)
+  => ĐẠT: site add a.example.com --owner khach: thoát 0, job thành công
+
+[2026-11-25 01:23:21] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=404 <!DOCTYPE html><html lang="en-US"><head>	<meta charset="UTF-8" />	<meta name="viewport" content=
+[2026-11-25 01:23:21] (mã thoát 0)
+  => ĐẠT: site a.example.com trả 200
+
+[2026-11-25 01:23:21] $ scripts/vm.sh root tpan cage status a.example.com --json
+[
+  {
+    "domain": "a.example.com",
+    "owner": "khach",
+    "package": "long",
+    "caged": false,
+    "want": false,
+    "files": false,
+    "state": "ngoai",
+    "suspended": false,
+    "limits": {
+      "cpu_percent": 0,
+      "ram_mb": 0,
+      "tasks": 0,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 0
+    }
+  }
+]
+[2026-11-25 01:23:22] (mã thoát 0)
+  => ĐẠT: cage status --json: a.example.com ngoài lồng, gói long chưa muốn lồng (state ngoai)
+  => ĐẠT: panel trả lời ở https://<vm>:8443 (gọi từ Mac)
+
+==== Phần A: 15 đạt, 0 không đạt
+
+
+######## [2026-11-25 01:23:22] PHẦN B: bật lồng và đặt mức tối đa cho gói long qua màn Gói
+
+[2026-11-25 01:23:22] $ anh-readme -bo m17-that -buoc bat-long -goi long   (Chrome không giao diện trên Mac, panel <panel>)
+  => ĐẠT: hộp Sửa gói long: sáu ô mức tối đa khoá khi chưa chọn lồng
+  => ĐẠT: chọn «Đưa site của gói vào lồng» thì các ô mở
+  => ĐẠT: gói chưa có site trong lồng: nút của hộp là «Lưu» (lưu thẳng)
+  => ĐẠT: GET /api/v1/packages: gói long có cage true, RAM 200, CPU 50, 40 tiến trình, 3 worker (đọc được: true 200 50 40 3)
+  => ĐẠT: bảng gói: hàng long ghi «có» ở cột Lồng
+  => ĐẠT: bước bat-long: không lỗi console
+[2026-11-25 01:23:26] (mã thoát 0)
+
+
+######## [2026-11-25 01:23:26] B: kiểm trong máy ảo
+
+[2026-11-25 01:23:26] $ scripts/vm.sh root tpan package list --json
+[
+  {
+    "package": {
+      "name": "default",
+      "max_sites": 0,
+      "max_dbs": 0,
+      "disk_mb": 0,
+      "max_backups": 0,
+      "cage": false,
+      "cpu_percent": 0,
+      "ram_mb": 0,
+      "tasks": 0,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 0,
+      "created": "2026-11-24T18:19:11Z"
+    },
+    "users": 1
+  },
+  {
+    "package": {
+      "name": "long",
+      "max_sites": 3,
+      "max_dbs": 3,
+      "disk_mb": 0,
+      "max_backups": 0,
+      "cage": true,
+      "cpu_percent": 50,
+      "ram_mb": 200,
+      "tasks": 40,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 3,
+      "created": "2026-11-24T18:21:00.876618072Z"
+    },
+    "users": 1
+  }
+]
+[2026-11-25 01:23:27] (mã thoát 0)
+  => ĐẠT: package list --json: long có cage true, CPU 50, RAM 200, 40 tiến trình, 3 worker
+
+[2026-11-25 01:23:27] $ scripts/vm.sh root tpan cage status a.example.com --json
+[
+  {
+    "domain": "a.example.com",
+    "owner": "khach",
+    "package": "long",
+    "caged": false,
+    "want": true,
+    "files": false,
+    "state": "can-vao",
+    "suspended": false,
+    "limits": {
+      "cpu_percent": 50,
+      "ram_mb": 200,
+      "tasks": 40,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 3
+    }
+  }
+]
+[2026-11-25 01:23:27] (mã thoát 0)
+  => ĐẠT: cage status --json: a.example.com chờ vào lồng (want true, caged false, state can-vao)
+
+==== Phần B: 8 đạt, 0 không đạt
+
+
+######## [2026-11-25 01:23:27] PHẦN C: đưa a.example.com vào lồng từ trang của site
+
+[2026-11-25 01:23:27] $ anh-readme -bo m17-that -buoc vao-long -site a.example.com   (Chrome không giao diện trên Mac, panel <panel>)
+  => ĐẠT: trước khi bấm: GET /api/v1/cage ghi a.example.com ở trạng thái can-vao
+  => ĐẠT: bấm «Vào lồng»: có bản xem trước
+  => ĐẠT: job cage.enable 94a0bf6dcc1845b0: succeeded
+  => ĐẠT: thẻ theo dõi job báo Xong
+  => ĐẠT: sau job: GET /api/v1/cage ghi a.example.com ở trạng thái trong
+  => ĐẠT: thẻ Lồng đổi sang nút «Ra khỏi lồng»
+  => ĐẠT: màn Tài nguyên đang dùng có hàng của a.example.com
+  => ĐẠT: bước vao-long: không lỗi console
+[2026-11-25 01:23:43] (mã thoát 0)
+
+
+######## [2026-11-25 01:23:43] C: kiểm trong máy ảo
+
+[2026-11-25 01:23:43] $ scripts/vm.sh root tpan cage status a.example.com --json
+[
+  {
+    "domain": "a.example.com",
+    "owner": "khach",
+    "package": "long",
+    "caged": true,
+    "want": true,
+    "files": true,
+    "state": "trong",
+    "suspended": false,
+    "limits": {
+      "cpu_percent": 50,
+      "ram_mb": 200,
+      "tasks": 40,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 3
+    },
+    "usage": {
+      "running": true,
+      "at": "2026-11-25T01:23:43.150694928+07:00",
+      "mem_current": 39714816,
+      "mem_peak": 66392064,
+      "oom_kills": 0,
+      "mem_max_hits": 0,
+      "cpu_usec": 1708208,
+      "throttled_usec": 2076643,
+      "nr_throttled": 28,
+      "tasks": 2,
+      "tasks_peak": 5,
+      "tasks_hits": 0,
+      "io_rbytes": 0,
+      "io_wbytes": 0,
+      "mem_max": 209715200,
+      "swap_max": 0,
+      "cpu_quota_us": 50000,
+      "cpu_period_us": 100000,
+      "tasks_max": 40,
+      "io_rbps_max": 0,
+      "io_wbps_max": 0
+    }
+  }
+]
+[2026-11-25 01:23:43] (mã thoát 0)
+  => ĐẠT: cage status --json: a.example.com trong lồng, đủ file hàng rào (state trong, files true)
+
+[2026-11-25 01:23:43] $ scripts/vm.sh root systemctl show tpan-a_example_com_7653e4.slice -p MemoryMax -p CPUQuotaPerSecUSec -p TasksMax -p MemorySwapMax
+CPUQuotaPerSecUSec=500ms
+MemoryMax=209715200
+MemorySwapMax=0
+TasksMax=40
+[2026-11-25 01:23:43] (mã thoát 0)
+  => ĐẠT: slice của a.example.com: MemoryMax 200 MiB, swap 0, CPU 50% (500ms mỗi giây), TasksMax 40
+
+[2026-11-25 01:23:43] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=404 <!DOCTYPE html><html lang="en-US"><head>	<meta charset="UTF-8" />	<meta name="viewport" content=
+[2026-11-25 01:23:43] (mã thoát 0)
+  => ĐẠT: site a.example.com trả 200 (qua socket của lồng)
+
+[2026-11-25 01:23:43] $ scripts/vm.sh root systemctl show tpan-cage-a_example_com_7653e4-php.service -p User -p ActiveState
+User=tp_a_example_com_7653e4
+ActiveState=active
+[2026-11-25 01:23:43] (mã thoát 0)
+  => ĐẠT: dịch vụ PHP của lồng chạy bằng user của a.example.com (tp_a_example_com_7653e4)
+
+==== Phần C: 12 đạt, 0 không đạt
+
+
+######## [2026-11-25 01:23:43] PHẦN D: sửa mức RAM của gói long khi có site trong lồng (bản xem trước, job cage.sync)
+
+[2026-11-25 01:23:43] $ anh-readme -bo m17-that -buoc sua-goi -goi long   (Chrome không giao diện trên Mac, panel <panel>)
+  => ĐẠT: gói có site trong lồng, RAM đổi: nút của hộp là «Xem trước»
+  => ĐẠT: sửa gói có site trong lồng: có bản xem trước
+  => ĐẠT: job cage.sync b61d37a1309e1189: succeeded
+  => ĐẠT: thẻ theo dõi job báo Xong
+  => ĐẠT: GET /api/v1/packages: gói long có RAM 256 (đọc được: true 256 50 40 3)
+  => ĐẠT: bước sua-goi: không lỗi console
+[2026-11-25 01:23:47] (mã thoát 0)
+
+
+######## [2026-11-25 01:23:47] D: kiểm trong máy ảo
+
+[2026-11-25 01:23:47] $ scripts/vm.sh root systemctl show tpan-a_example_com_7653e4.slice -p MemoryMax -p CPUQuotaPerSecUSec -p TasksMax -p MemorySwapMax
+CPUQuotaPerSecUSec=500ms
+MemoryMax=268435456
+MemorySwapMax=0
+TasksMax=40
+[2026-11-25 01:23:47] (mã thoát 0)
+  => ĐẠT: slice của a.example.com: MemoryMax 256 MiB (mức mới của gói đã áp)
+
+[2026-11-25 01:23:47] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=404 <!DOCTYPE html><html lang="en-US"><head>	<meta charset="UTF-8" />	<meta name="viewport" content=
+[2026-11-25 01:23:48] (mã thoát 0)
+  => ĐẠT: site a.example.com vẫn trả 200
+
+==== Phần D: 8 đạt, 0 không đạt
+
+
+######## [2026-11-25 01:23:48] PHẦN E: thử tấn công từ màn Bảo mật (hai site thử, ngoài lồng rồi trong lồng)
+
+[2026-11-25 01:23:48] $ anh-readme -bo m17-that -buoc tan-cong   (Chrome không giao diện trên Mac, panel <panel>)
+  => ĐẠT: dòng Thử tấn công đóng sẵn lúc mới mở
+  => ĐẠT: bản xem trước nói tên site thử (tpan-probe-a-….test)
+  => ĐẠT: job isolation.probe cbc80044f3534a37: succeeded
+  => ĐẠT: GET /api/v1/security/probe: lượt gần nhất 0 ô lộ, đã dọn, không còn lượt chưa dọn (đọc được: 49577b1113edf718 0 true 14 0)
+  => ĐẠT: dòng Thử tấn công ghi «không ô nào lộ»
+  => ĐẠT: bước tan-cong: không lỗi console
+[2026-11-25 01:24:11] (mã thoát 0)
+
+
+######## [2026-11-25 01:24:11] E: kiểm trong máy ảo: không còn gì của site thử
+
+[2026-11-25 01:24:11] $ scripts/vm.sh root bash -c getent passwd | grep -c "^tp_tpan_probe" ; ls /var/www | grep -c "^tpan-probe-" ; systemctl list-units --all --no-legend "tpan-cage-tpan_probe*" | wc -l
+0
+0
+0
+[2026-11-25 01:24:11] (mã thoát 0)
+  => ĐẠT: không còn user, thư mục, unit nào của site thử (0 0 0)
+
+[2026-11-25 01:24:11] $ scripts/vm.sh root tpan health --json
+{
+  "started": "2026-11-25T01:24:11.461678487+07:00",
+  "finished": "2026-11-25T01:24:14.573746859+07:00",
+  "installed": true,
+  "groups": [
+    {
+      "target": "",
+      "results": [
+        {
+          "id": "service.active:nginx",
+          "stage": "web",
+          "title": {
+            "vi": "Dịch vụ nginx đang chạy và tự bật cùng máy",
+            "en": "Service nginx is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "nginx đang chạy và tự bật khi khởi động máy",
+            "en": "nginx is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active nginx",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled nginx",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "service.active:php8.3-fpm",
+          "stage": "php",
+          "title": {
+            "vi": "Dịch vụ php8.3-fpm đang chạy và tự bật cùng máy",
+            "en": "Service php8.3-fpm is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "php8.3-fpm đang chạy và tự bật khi khởi động máy",
+            "en": "php8.3-fpm is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active php8.3-fpm",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled php8.3-fpm",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "service.active:mariadb",
+          "stage": "db",
+          "title": {
+            "vi": "Dịch vụ mariadb đang chạy và tự bật cùng máy",
+            "en": "Service mariadb is running and starts at boot"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "mariadb đang chạy và tự bật khi khởi động máy",
+            "en": "mariadb is running and starts at boot"
+          },
+          "evidence": [
+            {
+              "command": "systemctl is-active mariadb",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-enabled mariadb",
+              "exit_code": 0,
+              "output": "enabled"
+            }
+          ]
+        },
+        {
+          "id": "config.nginx:nginx",
+          "stage": "web",
+          "title": {
+            "vi": "Cấu hình nginx hợp lệ",
+            "en": "nginx configuration is valid"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cấu hình nginx hợp lệ",
+            "en": "nginx configuration is valid"
+          },
+          "evidence": [
+            {
+              "command": "nginx -t",
+              "exit_code": 0,
+              "output": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful"
+            }
+          ]
+        },
+        {
+          "id": "config.phpfpm:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "Cấu hình PHP-FPM 8.3 hợp lệ",
+            "en": "PHP-FPM 8.3 configuration is valid"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cấu hình PHP-FPM 8.3 hợp lệ",
+            "en": "PHP-FPM 8.3 configuration is valid"
+          },
+          "evidence": [
+            {
+              "command": "php-fpm8.3 -t",
+              "exit_code": 0,
+              "output": "[25-Nov-2026 01:24:11] NOTICE: configuration file /etc/php/8.3/fpm/php-fpm.conf test is successful"
+            }
+          ]
+        },
+        {
+          "id": "port.localonly:3306",
+          "stage": "db",
+          "title": {
+            "vi": "Cổng 3306 chỉ nghe ở 127.0.0.1",
+            "en": "Port 3306 listens on 127.0.0.1 only"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Cổng 3306 chỉ nghe ở 127.0.0.1",
+            "en": "Port 3306 listens only on 127.0.0.1"
+          },
+          "evidence": [
+            {
+              "command": "ss -tlnH",
+              "exit_code": 0,
+              "output": "LISTEN 0      4096         0.0.0.0:22   0.0.0.0:*\nLISTEN 0      511          0.0.0.0:80   0.0.0.0:*\nLISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*\nLISTEN 0      4096      127.0.0.54:53   0.0.0.0:*\nLISTEN 0      80         127.0.0.1:3306 0.0.0.0:*\nLISTEN 0      4096               *:8443       *:*\nLISTEN 0      4096            [::]:22      [::]:*\nLISTEN 0      511             [::]:80      [::]:*"
+            }
+          ]
+        },
+        {
+          "id": "http.default:nginx",
+          "stage": "web",
+          "title": {
+            "vi": "Site mặc định của nginx đóng kết nối request lạ",
+            "en": "The nginx default site drops unknown requests"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "nginx đóng kết nối request lạ như mong đợi (mã 444)",
+            "en": "nginx drops unknown requests as expected (code 444)"
+          },
+          "evidence": [
+            {
+              "command": "curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1/",
+              "exit_code": 52,
+              "output": "000\ncurl: (52) Empty reply from server"
+            }
+          ]
+        },
+        {
+          "id": "db.secure:mariadb",
+          "stage": "db",
+          "title": {
+            "vi": "MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test",
+            "en": "MariaDB is safe: root uses unix_socket, no anonymous users, no test database"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "MariaDB an toàn: root dùng unix_socket, không user ẩn danh, không DB test",
+            "en": "MariaDB is safe: root uses unix_socket, no anonymous users, no test database"
+          },
+          "evidence": [
+            {
+              "command": "mariadb -N -B",
+              "exit_code": 0,
+              "output": "root_socket\t1\nanonymous\t0\ntest_db\t0"
+            }
+          ]
+        },
+        {
+          "id": "wpcli.binary:wp",
+          "stage": "machine",
+          "title": {
+            "vi": "WP-CLI có sẵn, đúng quyền và đúng mã sha512",
+            "en": "WP-CLI is present, with the right mode and sha512"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "WP-CLI có sẵn, quyền 0755, sha512 khớp",
+            "en": "WP-CLI is present, mode 0755, sha512 matches"
+          },
+          "evidence": [
+            {
+              "command": "stat /usr/local/bin/wp (tpan)",
+              "exit_code": 0,
+              "output": "mode 0755, 7142777 bytes, owner root:root"
+            },
+            {
+              "command": "sha512sum /usr/local/bin/wp (tpan)",
+              "exit_code": 0,
+              "output": "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  /usr/local/bin/wp\nexpected: be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832"
+            }
+          ]
+        },
+        {
+          "id": "disk.usage:/",
+          "stage": "machine",
+          "title": {
+            "vi": "Ổ đĩa chứa / còn chỗ trống",
+            "en": "The disk holding / has free space"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Ổ đĩa chứa / đã dùng 14.2%",
+            "en": "The disk holding / is 14.2% used"
+          },
+          "evidence": [
+            {
+              "command": "statfs / (tpan)",
+              "exit_code": 0,
+              "output": "total=19682557952 free=16893222912 used=14.2%"
+            }
+          ]
+        },
+        {
+          "id": "php.www_pool:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "PHP-FPM 8.3 không còn pool www thừa",
+            "en": "PHP-FPM 8.3 has no leftover www pool"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Không có pool www; pool giữ chỗ tpan-idle có mặt",
+            "en": "No www pool; the tpan-idle placeholder pool is present"
+          },
+          "evidence": [
+            {
+              "command": "ls /etc/php/8.3/fpm/pool.d (tpan)",
+              "exit_code": 0,
+              "output": "tpan-idle.conf"
+            }
+          ]
+        },
+        {
+          "id": "php.opcache:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "OPcache của PHP-FPM 8.3 kiểm quyền file và khoá API",
+            "en": "OPcache of PHP-FPM 8.3 validates file permissions and locks its API"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "OPcache của PHP-FPM 8.3 kiểm quyền file trước khi dùng cache và khoá các hàm opcache_*",
+            "en": "OPcache of PHP-FPM 8.3 checks file permissions before using the cache and locks the opcache_* functions"
+          },
+          "evidence": [
+            {
+              "command": "cat /etc/php/8.3/fpm/conf.d/99-tpan.ini (tpan)",
+              "exit_code": 0,
+              "output": "content is what tpan writes; active lines:\nopcache.validate_permission=1\nopcache.restrict_api=/usr/local/lib/tpan/opcache-api/"
+            },
+            {
+              "command": "php-fpm8.3 -i",
+              "exit_code": 0,
+              "output": "opcache.validate_permission =\u003e On =\u003e On\nopcache.restrict_api =\u003e /usr/local/lib/tpan/opcache-api/ =\u003e /usr/local/lib/tpan/opcache-api/"
+            }
+          ]
+        },
+        {
+          "id": "php.protectproc:8.3",
+          "stage": "php",
+          "title": {
+            "vi": "PHP-FPM 8.3 không thấy tiến trình của user khác",
+            "en": "PHP-FPM 8.3 cannot see other users' processes"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Dịch vụ php8.3-fpm chạy với ProtectProc=invisible",
+            "en": "The php8.3-fpm service runs with ProtectProc=invisible"
+          },
+          "evidence": [
+            {
+              "command": "systemctl show php8.3-fpm -p ProtectProc --value",
+              "exit_code": 0,
+              "output": "invisible"
+            },
+            {
+              "command": "grep ' /proc ' /proc/15142/mountinfo (tpan)",
+              "exit_code": 0,
+              "output": "461 437 0:49 / /proc rw,nosuid,nodev,noexec,relatime shared:392 - proc proc rw,hidepid=invisible"
+            }
+          ]
+        },
+        {
+          "id": "web.server_name.unique",
+          "stage": "web",
+          "title": {
+            "vi": "Mỗi tên miền chỉ được khai ở đúng vhost của site đó",
+            "en": "Each domain is declared only in its own site's vhost"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Tên miền của 1 site đều chỉ được khai ở vhost của chính site đó",
+            "en": "The domains of 1 sites are each declared only in their own site's vhost"
+          },
+          "evidence": [
+            {
+              "command": "nginx -T",
+              "exit_code": 0,
+              "output": "/etc/nginx/sites-enabled/tpan-a.example.com.conf:8: a.example.com (port 80)"
+            }
+          ]
+        },
+        {
+          "id": "web.default.rejects",
+          "stage": "web",
+          "title": {
+            "vi": "Request mang tên miền lạ bị vhost mặc định từ chối",
+            "en": "A request for an unknown domain is rejected by the default vhost"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Tên miền lạ bị từ chối ở cổng 80",
+            "en": "An unknown domain is rejected on port 80"
+          },
+          "evidence": [
+            {
+              "command": "curl -sS --max-time 5 -o /dev/null -w '%{http_code}' -H 'Host: tpan-0e9b55e5.invalid' http://127.0.0.1/",
+              "exit_code": 52,
+              "output": "000\ncurl: (52) Empty reply from server"
+            }
+          ]
+        },
+        {
+          "id": "memory:ram",
+          "stage": "machine",
+          "title": {
+            "vi": "RAM và swap còn đủ dùng",
+            "en": "RAM and swap are not running out"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "RAM còn dùng được 85.7% (3.3 GiB trên 3.8 GiB); máy không có swap",
+            "en": "RAM available is 85.7% (3.3 GiB of 3.8 GiB); the machine has no swap"
+          },
+          "evidence": [
+            {
+              "command": "cat /proc/meminfo (tpan)",
+              "exit_code": 0,
+              "output": "MemTotal: 3995156 kB\nMemAvailable: 3423820 kB\nSwapTotal: 0 kB\nSwapFree: 0 kB"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/cron.d/tpan-a_example_com_7653e4",
+          "stage": "machine",
+          "title": {
+            "vi": "File /etc/cron.d/tpan-a_example_com_7653e4 còn đúng như tpan đã ghi",
+            "en": "File /etc/cron.d/tpan-a_example_com_7653e4 is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/cron.d/tpan-a_example_com_7653e4 đúng như tpan đã ghi",
+            "en": "File /etc/cron.d/tpan-a_example_com_7653e4 is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/cron.d/tpan-a_example_com_7653e4 (tpan)",
+              "exit_code": 0,
+              "output": "46f92e43868e7fcb6cf38151c87de6e30e1c454346278b9376bd935114e52b47  /etc/cron.d/tpan-a_example_com_7653e4\nexpected: 46f92e43868e7fcb6cf38151c87de6e30e1c454346278b9376bd935114e52b47"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/logrotate.d/tpan-sites",
+          "stage": "machine",
+          "title": {
+            "vi": "File /etc/logrotate.d/tpan-sites còn đúng như tpan đã ghi",
+            "en": "File /etc/logrotate.d/tpan-sites is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/logrotate.d/tpan-sites đúng như tpan đã ghi",
+            "en": "File /etc/logrotate.d/tpan-sites is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/logrotate.d/tpan-sites (tpan)",
+              "exit_code": 0,
+              "output": "d8d05c29edeba39d4223eabcebb4415c436a592ad9d522b53add35b1bb5ab137  /etc/logrotate.d/tpan-sites\nexpected: d8d05c29edeba39d4223eabcebb4415c436a592ad9d522b53add35b1bb5ab137"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/mysql/mariadb.conf.d/99-tpan.cnf",
+          "stage": "machine",
+          "title": {
+            "vi": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf còn đúng như tpan đã ghi",
+            "en": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf đúng như tpan đã ghi",
+            "en": "File /etc/mysql/mariadb.conf.d/99-tpan.cnf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/mysql/mariadb.conf.d/99-tpan.cnf (tpan)",
+              "exit_code": 0,
+              "output": "942439bd7a72e7f65d6c230d556557b7b97db1d64160379d2956ed3a4b0956b1  /etc/mysql/mariadb.conf.d/99-tpan.cnf\nexpected: 942439bd7a72e7f65d6c230d556557b7b97db1d64160379d2956ed3a4b0956b1"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/nginx/sites-available/tpan-default.conf",
+          "stage": "web",
+          "title": {
+            "vi": "File /etc/nginx/sites-available/tpan-default.conf còn đúng như tpan đã ghi",
+            "en": "File /etc/nginx/sites-available/tpan-default.conf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/nginx/sites-available/tpan-default.conf đúng như tpan đã ghi",
+            "en": "File /etc/nginx/sites-available/tpan-default.conf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/nginx/sites-available/tpan-default.conf (tpan)",
+              "exit_code": 0,
+              "output": "bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23  /etc/nginx/sites-available/tpan-default.conf\nexpected: bd6958ca80edc144c117806c8a53111549c6c243c375964c88f6d80d9cbbab23"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/systemd/system/tpan.service",
+          "stage": "tpan",
+          "title": {
+            "vi": "File /etc/systemd/system/tpan.service còn đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan.service is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/systemd/system/tpan.service đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan.service is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/systemd/system/tpan.service (tpan)",
+              "exit_code": 0,
+              "output": "df72e9179b370f6d3a87a6f6f0471ff5a8b21e47adffaab8d2a494cca4d1e30f  /etc/systemd/system/tpan.service\nexpected: df72e9179b370f6d3a87a6f6f0471ff5a8b21e47adffaab8d2a494cca4d1e30f"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/tpan/tls/cert.pem",
+          "stage": "tpan",
+          "title": {
+            "vi": "File /etc/tpan/tls/cert.pem còn đúng như tpan đã ghi",
+            "en": "File /etc/tpan/tls/cert.pem is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/tpan/tls/cert.pem đúng như tpan đã ghi",
+            "en": "File /etc/tpan/tls/cert.pem is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/tpan/tls/cert.pem (tpan)",
+              "exit_code": 0,
+              "output": "3050bb668181408fdc7019aa0a81c4e369acb819e3bd1239fd32782c79221ca8  /etc/tpan/tls/cert.pem\nexpected: 3050bb668181408fdc7019aa0a81c4e369acb819e3bd1239fd32782c79221ca8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "a.example.com",
+      "results": [
+        {
+          "id": "dns.a:a.example.com",
+          "stage": "dns",
+          "title": {
+            "vi": "Bản ghi DNS của tên miền trỏ về máy này",
+            "en": "The domain's DNS records point to this machine"
+          },
+          "status": "warn",
+          "summary": {
+            "vi": "a.example.com chưa có bản ghi A",
+            "en": "a.example.com has no A record"
+          },
+          "evidence": [
+            {
+              "command": "getent ahostsv4 a.example.com",
+              "exit_code": 2,
+              "output": ""
+            },
+            {
+              "command": "getent ahostsv6 a.example.com",
+              "exit_code": 2,
+              "output": ""
+            },
+            {
+              "command": "ip -o addr show scope global",
+              "exit_code": 0,
+              "output": "2: eth0    inet <vm>/24 metric 100 brd <mạng máy ảo>.255 scope global dynamic eth0\\       valid_lft 3290sec preferred_lft 3290sec\n2: eth0    inet6 <vm-v6>/64 scope global dynamic mngtmpaddr noprefixroute \\       valid_lft 2591982sec preferred_lft 604782sec"
+            }
+          ],
+          "cause": {
+            "vi": "Tên miền chưa trỏ về đâu cả, hoặc bản ghi chưa lan tới máy này. tpan không tự sửa được: bản ghi nằm ở nơi quản lý DNS của tên miền. Vào đó tạo bản ghi A cho a.example.com trỏ về IP public của máy (card mạng có: <vm>; VPS sau NAT thì lấy IP public ở trang quản lý VPS), rồi chờ vài phút và bấm kiểm lại.",
+            "en": "The domain does not point anywhere yet, or the record has not reached this machine. tpan cannot fix this itself: the record lives in the domain's DNS panel. Create an A record for a.example.com pointing to the machine's public IP (network cards have: <vm>; behind NAT use the public IP from the VPS control panel), then wait a few minutes and check again."
+          },
+          "manual_fix": [
+            "ip -o addr show scope global",
+            "getent ahostsv4 a.example.com"
+          ]
+        },
+        {
+          "id": "tls.cert:a.example.com",
+          "stage": "tls",
+          "title": {
+            "vi": "Chứng chỉ SSL có, khớp tên miền và còn hạn",
+            "en": "The SSL certificate exists, matches the domain and is not about to expire"
+          },
+          "status": "warn",
+          "summary": {
+            "vi": "Chưa có chứng chỉ cho a.example.com",
+            "en": "There is no certificate for a.example.com"
+          },
+          "evidence": [
+            {
+              "command": "read /etc/letsencrypt/live/a.example.com/fullchain.pem (tpan)",
+              "exit_code": 1,
+              "output": "No such file or directory"
+            }
+          ],
+          "cause": {
+            "vi": "Chưa xin chứng chỉ cho tên miền này, hoặc file bị xoá. Trình duyệt sẽ báo không an toàn (hoặc không vào được cổng 443).",
+            "en": "No certificate has been issued for this domain, or the file was deleted. Browsers will warn it is not secure (or cannot reach port 443)."
+          },
+          "manual_fix": [
+            "ls -l /etc/letsencrypt/live/a.example.com",
+            "tpan ssl issue a.example.com",
+            "certbot certificates --cert-name a.example.com"
+          ]
+        },
+        {
+          "id": "web.vhost:a.example.com",
+          "stage": "web",
+          "title": {
+            "vi": "Vhost của site có, do tpan quản lý và đang được bật",
+            "en": "The site vhost exists, is managed by tpan and is enabled"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Vhost của site có, đúng dòng đầu của tpan, và đã được bật",
+            "en": "The site vhost exists, has the tpan header and is enabled"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/nginx/sites-available/tpan-a.example.com.conf (tpan)",
+              "exit_code": 0,
+              "output": "regular file, mode 0644, owner root:root"
+            },
+            {
+              "command": "head -n 1 /etc/nginx/sites-available/tpan-a.example.com.conf (tpan)",
+              "exit_code": 0,
+              "output": "# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch."
+            },
+            {
+              "command": "readlink /etc/nginx/sites-enabled/tpan-a.example.com.conf (tpan)",
+              "exit_code": 0,
+              "output": "/etc/nginx/sites-available/tpan-a.example.com.conf"
+            }
+          ]
+        },
+        {
+          "id": "cage.socket:a.example.com",
+          "stage": "php",
+          "title": {
+            "vi": "Socket của lồng có, unit socket đang chạy và dịch vụ PHP không hỏng",
+            "en": "The cage socket exists, its socket unit is running and the PHP service is not failed"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Socket của lồng có (www-data:www-data, 0660), unit socket active, dịch vụ PHP active",
+            "en": "The cage socket exists (www-data:www-data, 0660), the socket unit is active, the PHP service is active"
+          },
+          "evidence": [
+            {
+              "command": "stat /run/tpan-cage/7653e4959f8eac25/php.sock (tpan)",
+              "exit_code": 0,
+              "output": "socket, mode 0660, owner www-data:www-data"
+            },
+            {
+              "command": "systemctl is-active tpan-cage-a_example_com_7653e4-php.socket",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "systemctl is-active tpan-cage-a_example_com_7653e4-php.service",
+              "exit_code": 0,
+              "output": "active"
+            }
+          ]
+        },
+        {
+          "id": "cage.runtime:a.example.com",
+          "stage": "php",
+          "title": {
+            "vi": "Lồng đang chạy đúng hàng rào: không tiến trình lạc ngoài lồng, đủ quyền bị cắt, đủ thư mục riêng",
+            "en": "The cage runs inside its fence: no stray process outside the cage, privileges dropped, private directories in place"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Lồng chạy đúng hàng rào: không có tiến trình lạ ngoài lồng, đủ quyền đã bị cắt, đủ thư mục riêng, bản PHP và hàng rào còn mới",
+            "en": "The cage runs inside its fence: no stray process outside the cage, privileges dropped, private directories in place, PHP binary and fence up to date"
+          },
+          "evidence": [
+            {
+              "command": "id -u tp_a_example_com_7653e4",
+              "exit_code": 0,
+              "output": "999"
+            },
+            {
+              "command": "scan /proc for uid 999 outside tpan-a_example_com_7653e4.slice (tpan)",
+              "exit_code": 0,
+              "output": "121 processes read, 0 with uid 999 outside tpan-a_example_com_7653e4.slice"
+            },
+            {
+              "command": "stat /var/spool/cron/crontabs/tp_a_example_com_7653e4 (tpan)",
+              "exit_code": 1,
+              "output": "No such file or directory"
+            },
+            {
+              "command": "systemctl show --timestamp=unix -p MainPID -p ActiveEnterTimestamp tpan-cage-a_example_com_7653e4-php.service",
+              "exit_code": 0,
+              "output": "MainPID=16336\nActiveEnterTimestamp=@1795544616"
+            },
+            {
+              "command": "cat /proc/16336/status (tpan)",
+              "exit_code": 0,
+              "output": "NoNewPrivs: 1\nCapEff: 0000000000000000"
+            },
+            {
+              "command": "cat /proc/16336/cgroup (tpan)",
+              "exit_code": 0,
+              "output": "0::/tpan.slice/tpan-a_example_com_7653e4.slice/tpan-cage-a_example_com_7653e4-php.service"
+            },
+            {
+              "command": "systemctl is-active mariadb",
+              "exit_code": 0,
+              "output": "active"
+            },
+            {
+              "command": "cat /proc/16336/mountinfo (tpan)",
+              "exit_code": 0,
+              "output": "/var tmpfs root=/\n/run tmpfs root=/\n/etc/tpan tmpfs root=/\n/run/mysqld tmpfs root=/mysqld\n/run/systemd/resolve tmpfs root=/systemd/resolve\n/etc/passwd ext4 root=/etc/tpan/cage/a_example_com_7653e4/passwd\n/etc/group ext4 root=/etc/tpan/cage/a_example_com_7653e4/group"
+            },
+            {
+              "command": "readlink /proc/16336/exe (tpan)",
+              "exit_code": 0,
+              "output": "/usr/sbin/php-fpm8.3"
+            },
+            {
+              "command": "stat -c %Y /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf",
+              "exit_code": 0,
+              "output": "1795544612"
+            }
+          ]
+        },
+        {
+          "id": "cage.fence:a.example.com",
+          "stage": "php",
+          "title": {
+            "vi": "Hàng rào của lồng giữ: lệnh chạy dưới user của site chỉ thấy đồ của mình",
+            "en": "The cage fence holds: a command run as the site user sees only its own things"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Hàng rào giữ: cả bảy lệnh thử dưới tp_a_example_com_7653e4 chỉ thấy đồ của a.example.com",
+            "en": "The fence holds: all seven probe commands as tp_a_example_com_7653e4 see only the things of a.example.com"
+          },
+          "evidence": [
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- id -un",
+              "exit_code": 0,
+              "output": "tp_a_example_com_7653e4"
+            },
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- ls -A /var/www",
+              "exit_code": 0,
+              "output": "a.example.com"
+            },
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- ls -A /tmp",
+              "exit_code": 0,
+              "output": ""
+            },
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- ls -A /run",
+              "exit_code": 0,
+              "output": "mysqld\nsystemd"
+            },
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- find /proc -maxdepth 1 -type d -regex '/proc/[0-9]+' '!' -user tp_a_example_com_7653e4",
+              "exit_code": 0,
+              "output": ""
+            },
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- getent passwd",
+              "exit_code": 0,
+              "output": "root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\ntp_a_example_com_7653e4:x:999:988::/var/www/a.example.com:/usr/sbin/nologin\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin"
+            },
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- test -w /etc",
+              "exit_code": 1,
+              "output": ""
+            }
+          ]
+        },
+        {
+          "id": "cage.limits:a.example.com",
+          "stage": "php",
+          "title": {
+            "vi": "Trần tài nguyên của lồng (RAM, swap, CPU, tiến trình, đĩa) đúng như gói",
+            "en": "The cage resource limits (RAM, swap, CPU, tasks, disk) match the package"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Trần của lồng đúng gói (RAM, swap, CPU, tiến trình, đĩa)",
+            "en": "The cage limits match the package (RAM, swap, CPU, tasks, disk)"
+          },
+          "evidence": [
+            {
+              "command": "read /sys/fs/cgroup/tpan.slice/tpan-a_example_com_7653e4.slice (tpan)",
+              "exit_code": 0,
+              "output": "memory.max: want 268435456 byte, applied 268435456 byte\nmemory.swap.max: want 0 byte, applied 0 byte\ncpu.max: want 50 %, applied 50 %\npids.max: want 40 task, applied 40 task\nio.max rbps: want unlimited, applied unlimited\nio.max wbps: want unlimited, applied unlimited"
+            }
+          ]
+        },
+        {
+          "id": "wp.checksums:a.example.com",
+          "stage": "wordpress",
+          "title": {
+            "vi": "Mã nguồn WordPress nguyên vẹn (khớp checksum)",
+            "en": "The WordPress source is intact (checksums match)"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Mã nguồn WordPress khớp checksum",
+            "en": "The WordPress source matches the checksums"
+          },
+          "evidence": [
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- wp core verify-checksums --path=/var/www/a.example.com/public",
+              "exit_code": 0,
+              "output": "Success: WordPress installation verifies against checksums."
+            }
+          ]
+        },
+        {
+          "id": "wp.config:a.example.com",
+          "stage": "wordpress",
+          "title": {
+            "vi": "wp-config.php có quyền 0600 và đúng chủ",
+            "en": "wp-config.php has mode 0600 and the right owner"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "wp-config.php quyền 0600, chủ tp_a_example_com_7653e4",
+            "en": "wp-config.php has mode 0600, owner tp_a_example_com_7653e4"
+          },
+          "evidence": [
+            {
+              "command": "stat /var/www/a.example.com/public/wp-config.php (tpan)",
+              "exit_code": 0,
+              "output": "regular file, mode 0600, owner tp_a_example_com_7653e4:www-data"
+            }
+          ]
+        },
+        {
+          "id": "db.access:a.example.com",
+          "stage": "db",
+          "title": {
+            "vi": "User DB của site đăng nhập được, chỉ thấy DB của site",
+            "en": "The site's DB user can log in and sees only the site's database"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "User DB đăng nhập được và chỉ thấy DB tp_a_example_com_7653e4",
+            "en": "The DB user logs in and sees only the database tp_a_example_com_7653e4"
+          },
+          "evidence": [
+            {
+              "command": "systemd-run --quiet --wait --pipe --expand-environment=no --service-type=oneshot --unit=tpan-cage-a_example_com_7653e4-run-xem -p User=tp_a_example_com_7653e4 -p Group=tp_a_example_com_7653e4 -p NoNewPrivileges=yes -p TimeoutStartSec=3600 -E LC_ALL=C -- wp db query 'SHOW DATABASES' --skip-column-names --path=/var/www/a.example.com/public",
+              "exit_code": 0,
+              "output": "information_schema\ntp_a_example_com_7653e4"
+            }
+          ]
+        },
+        {
+          "id": "http.site:a.example.com",
+          "stage": "e2e",
+          "title": {
+            "vi": "Gọi HTTP vào site trả 200 và đúng là WordPress của site",
+            "en": "An HTTP request to the site returns 200 and is the site's WordPress"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Site trả 200, đúng là WordPress của a.example.com",
+            "en": "The site answers 200 and is the WordPress of a.example.com"
+          },
+          "evidence": [
+            {
+              "command": "curl -sS --max-time 15 --resolve a.example.com:80:127.0.0.1 -w 'TPAN_HTTP_CODE=%{http_code}' http://a.example.com/",
+              "exit_code": 0,
+              "output": "HTTP 200, 69638 byte\n\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en-US\"\u003e\n\u003chead\u003e\n\t\u003cmeta charset=\"UTF-8\" /\u003e\n\t\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /\u003e\n\u003cmeta name='robots' content='max-image-preview:large' /\u003e\n\u003ctitle\u003ea.example.com\u003c/title\u003e\n\u003clink rel=\"alternate\" type=\"application/rss+xml\" title=\"a.example.com \u0026raquo; Feed\" href=\"http://a.example.com/feed/\" /\u003e\n\u003clink rel=\"alternate\" type=\"application/rss+xml\" title=\"a.example.com \u0026raquo; Comments Feed\" href=\"http://a.example.com/comments/feed/\" /\u003e\n\u003cstyle id=\"wp-img-auto-sizes-contain-inline-css\"\u003e\nimg:is([sizes=auto i],[sizes^=\"auto,\" i]){contain-intrinsic-size:3000px 1500px}\n/*# sourceURL=wp-img-auto-sizes-contain-inline-css */\n\u003c/style\u003e\n\u003cstyle id=\"wp-block-site-title-inline-css\"\u003e\n.wp-block-site-title{box-sizing:border-box}.wp-block-site-title :where(a){color:inherit;font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;text-decoration:inherit}\n/*# sourceURL=http://a.example.com/wp-includes/blocks/site-title/st\n[... đã cắt phần sau / rest cut ...]"
+            }
+          ]
+        },
+        {
+          "id": "log.perm:a.example.com",
+          "stage": "web",
+          "title": {
+            "vi": "Log của site không đọc được bởi site khác",
+            "en": "The site logs cannot be read by other sites"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Thư mục log là root:tp_a_example_com_7653e4 0750, access.log và error.log là root:tp_a_example_com_7653e4 0640",
+            "en": "The log directory is root:tp_a_example_com_7653e4 0750, access.log and error.log are root:tp_a_example_com_7653e4 0640"
+          },
+          "evidence": [
+            {
+              "command": "stat /var/log/tpan/sites/a.example.com (tpan)",
+              "exit_code": 0,
+              "output": "directory, mode 0750, owner root:tp_a_example_com_7653e4"
+            },
+            {
+              "command": "stat /var/log/tpan/sites/a.example.com/access.log (tpan)",
+              "exit_code": 0,
+              "output": "regular file, mode 0640, owner root:tp_a_example_com_7653e4"
+            },
+            {
+              "command": "stat /var/log/tpan/sites/a.example.com/error.log (tpan)",
+              "exit_code": 0,
+              "output": "regular file, mode 0640, owner root:tp_a_example_com_7653e4"
+            }
+          ]
+        },
+        {
+          "id": "web.hardened:a.example.com",
+          "stage": "web",
+          "title": {
+            "vi": "Vhost của site có đủ các dòng chặn cô lập",
+            "en": "The site vhost carries all the isolation guard lines"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Vhost nginx chỉ đi theo symlink khi chủ của symlink cũng là chủ của file đích",
+            "en": "The nginx vhost follows a symlink only when its owner also owns the target file"
+          },
+          "evidence": [
+            {
+              "command": "grep -nE disable_symlinks /etc/nginx/sites-available/tpan-a.example.com.conf (tpan)",
+              "exit_code": 0,
+              "output": "17:    disable_symlinks if_not_owner from=$document_root;"
+            }
+          ]
+        },
+        {
+          "id": "cage.state:a.example.com",
+          "stage": "php",
+          "title": {
+            "vi": "Trạng thái lồng của site khớp bảng và gói",
+            "en": "The site's cage state matches the database and the package"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Site ở trong lồng, đủ file hàng rào, không còn pool chung, khớp gói",
+            "en": "The site is caged, the fence file is there, no shared pool is left, and it matches the package"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf (tpan)",
+              "exit_code": 0,
+              "output": "regular file, mode 0644, owner root:root"
+            },
+            {
+              "command": "ls /etc/php/*/fpm/pool.d/tpan-a_example_com_7653e4.conf (tpan)",
+              "exit_code": 0,
+              "output": "no shared pool file"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/nginx/sites-available/tpan-a.example.com.conf",
+          "stage": "web",
+          "title": {
+            "vi": "File /etc/nginx/sites-available/tpan-a.example.com.conf còn đúng như tpan đã ghi",
+            "en": "File /etc/nginx/sites-available/tpan-a.example.com.conf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/nginx/sites-available/tpan-a.example.com.conf đúng như tpan đã ghi",
+            "en": "File /etc/nginx/sites-available/tpan-a.example.com.conf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/nginx/sites-available/tpan-a.example.com.conf (tpan)",
+              "exit_code": 0,
+              "output": "4270d16bf0e0198b99797f343100fe57d249254ad02b56f8c8d9921c327086a4  /etc/nginx/sites-available/tpan-a.example.com.conf\nexpected: 4270d16bf0e0198b99797f343100fe57d249254ad02b56f8c8d9921c327086a4"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/systemd/system/tpan-a_example_com_7653e4.slice",
+          "stage": "php",
+          "title": {
+            "vi": "File /etc/systemd/system/tpan-a_example_com_7653e4.slice còn đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-a_example_com_7653e4.slice is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/systemd/system/tpan-a_example_com_7653e4.slice đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-a_example_com_7653e4.slice is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/systemd/system/tpan-a_example_com_7653e4.slice (tpan)",
+              "exit_code": 0,
+              "output": "83e482a6a54fbb2388f801bf28e7c55209498e872d9806788015a083907eb957  /etc/systemd/system/tpan-a_example_com_7653e4.slice\nexpected: 83e482a6a54fbb2388f801bf28e7c55209498e872d9806788015a083907eb957"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf",
+          "stage": "php",
+          "title": {
+            "vi": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf còn đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf (tpan)",
+              "exit_code": 0,
+              "output": "a516f7a57f591893e1bbacf93b9b06bb9ddee06c3cffb7b72e9e614e19ad767c  /etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/fence.conf\nexpected: a516f7a57f591893e1bbacf93b9b06bb9ddee06c3cffb7b72e9e614e19ad767c"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/systemd/system/tpan-cage-a_example_com_7653e4-php.service",
+          "stage": "php",
+          "title": {
+            "vi": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.service còn đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.service is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.service đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.service is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.service (tpan)",
+              "exit_code": 0,
+              "output": "e072225833f9516437ebc5e5d517f930801f85852b6a8dbdb87bebda883fb431  /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.service\nexpected: e072225833f9516437ebc5e5d517f930801f85852b6a8dbdb87bebda883fb431"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/systemd/system/tpan-cage-a_example_com_7653e4-php.socket",
+          "stage": "php",
+          "title": {
+            "vi": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.socket còn đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.socket is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.socket đúng như tpan đã ghi",
+            "en": "File /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.socket is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.socket (tpan)",
+              "exit_code": 0,
+              "output": "8b95e7eae7c7fb5aab3395028f67187f2632bedcc2dad726ba9513c463391162  /etc/systemd/system/tpan-cage-a_example_com_7653e4-php.socket\nexpected: 8b95e7eae7c7fb5aab3395028f67187f2632bedcc2dad726ba9513c463391162"
+            }
+          ]
+        },
+        {
+          "id": "drift:/etc/tpan/cage/a_example_com_7653e4/php-fpm.conf",
+          "stage": "php",
+          "title": {
+            "vi": "File /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf còn đúng như tpan đã ghi",
+            "en": "File /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf is still as tpan wrote it"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "File /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf đúng như tpan đã ghi",
+            "en": "File /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf is as tpan wrote it"
+          },
+          "evidence": [
+            {
+              "command": "sha256sum /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf (tpan)",
+              "exit_code": 0,
+              "output": "f3a5f7384fac801cf75da6e94df7a54c4416994bf405dbf233e5c70661ad4cea  /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf\nexpected: f3a5f7384fac801cf75da6e94df7a54c4416994bf405dbf233e5c70661ad4cea"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "tpan",
+      "results": [
+        {
+          "id": "tpan.db:integrity",
+          "stage": "tpan",
+          "title": {
+            "vi": "Cơ sở dữ liệu của tpan toàn vẹn",
+            "en": "tpan's own database is intact"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "PRAGMA integrity_check trả ok",
+            "en": "PRAGMA integrity_check returned ok"
+          },
+          "evidence": [
+            {
+              "command": "PRAGMA integrity_check (tpan)",
+              "exit_code": 0,
+              "output": "ok"
+            }
+          ]
+        },
+        {
+          "id": "disk.free:/var/lib/tpan",
+          "stage": "tpan",
+          "title": {
+            "vi": "Ổ đĩa chứa /var/lib/tpan còn ít nhất 200 MiB trống",
+            "en": "The disk holding /var/lib/tpan has at least 200 MiB free"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Ổ đĩa chứa /var/lib/tpan còn trống 15.7 GiB",
+            "en": "The disk holding /var/lib/tpan has 15.7 GiB free"
+          },
+          "evidence": [
+            {
+              "command": "statfs /var/lib/tpan (tpan)",
+              "exit_code": 0,
+              "output": "total=19682557952 free=16893214720 min=209715200"
+            }
+          ]
+        },
+        {
+          "id": "tpan.cert:/etc/tpan/tls/cert.pem",
+          "stage": "tpan",
+          "title": {
+            "vi": "Chứng chỉ HTTPS của panel còn hạn",
+            "en": "The panel's HTTPS certificate is not expiring"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Chứng chỉ của panel còn 3652 ngày",
+            "en": "The panel's certificate has 3652 days left"
+          },
+          "evidence": [
+            {
+              "command": "parse /etc/tpan/tls/cert.pem (tpan)",
+              "exit_code": 0,
+              "output": "subject=CN=tpan-m17 notAfter=2036-11-24T18:19:11Z, 3652 days left"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/var/lib/tpan/tpan.db",
+          "stage": "tpan",
+          "title": {
+            "vi": "/var/lib/tpan/tpan.db có quyền 0600, chủ root:root",
+            "en": "/var/lib/tpan/tpan.db has mode 0600, owner root:root"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "/var/lib/tpan/tpan.db: quyền 0600, chủ root:root đúng",
+            "en": "/var/lib/tpan/tpan.db: mode 0600, owner root:root are correct"
+          },
+          "evidence": [
+            {
+              "command": "stat /var/lib/tpan/tpan.db (tpan)",
+              "exit_code": 0,
+              "output": "mode 0600, owner root:root"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/etc/tpan/tls/key.pem",
+          "stage": "tpan",
+          "title": {
+            "vi": "/etc/tpan/tls/key.pem có quyền 0600, chủ root:root",
+            "en": "/etc/tpan/tls/key.pem has mode 0600, owner root:root"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "/etc/tpan/tls/key.pem: quyền 0600, chủ root:root đúng",
+            "en": "/etc/tpan/tls/key.pem: mode 0600, owner root:root are correct"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/tpan/tls/key.pem (tpan)",
+              "exit_code": 0,
+              "output": "mode 0600, owner root:root"
+            }
+          ]
+        },
+        {
+          "id": "tpan.perm:/etc/tpan",
+          "stage": "tpan",
+          "title": {
+            "vi": "/etc/tpan có quyền 0700, chủ root:root",
+            "en": "/etc/tpan has mode 0700, owner root:root"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "/etc/tpan: quyền 0700, chủ root:root đúng",
+            "en": "/etc/tpan: mode 0700, owner root:root are correct"
+          },
+          "evidence": [
+            {
+              "command": "stat /etc/tpan (tpan)",
+              "exit_code": 0,
+              "output": "mode 0700, owner root:root"
+            }
+          ]
+        },
+        {
+          "id": "tpan.jobs:stuck",
+          "stage": "tpan",
+          "title": {
+            "vi": "Không có job nào bị treo",
+            "en": "No job is stuck"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Không có job nào chạy quá lâu",
+            "en": "No job has been running for too long"
+          },
+          "evidence": [
+            {
+              "command": "jobs still running (tpan)",
+              "exit_code": 0,
+              "output": "none"
+            }
+          ]
+        },
+        {
+          "id": "tpan.scheduler:health",
+          "stage": "tpan",
+          "title": {
+            "vi": "Bộ hẹn giờ health của tpan còn chạy",
+            "en": "tpan's health scheduler is still running"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Bộ hẹn giờ health vẫn chạy",
+            "en": "The health scheduler is running"
+          },
+          "evidence": [
+            {
+              "command": "last health run (tpan)",
+              "exit_code": 0,
+              "output": "last: 2026-11-24T18:24:12Z, ago: 3s"
+            }
+          ]
+        },
+        {
+          "id": "tpan.backup:db",
+          "stage": "tpan",
+          "title": {
+            "vi": "tpan.db có bản sao lưu gần đây",
+            "en": "tpan.db has a recent backup"
+          },
+          "status": "warn",
+          "summary": {
+            "vi": "chưa có bản sao lưu tpan.db nào",
+            "en": "there is no backup of tpan.db yet"
+          },
+          "evidence": [
+            {
+              "command": "ls /var/lib/tpan/backups/_tpan (tpan)",
+              "exit_code": 1,
+              "output": ""
+            }
+          ],
+          "cause": {
+            "vi": "Chưa ai chép tpan.db. Nếu file này hỏng hoặc mất, tpan quên mọi site, lịch sử và bản backup đang có. Tạo một bản ngay và bật lịch hằng ngày để lần sau không phải nhớ.",
+            "en": "Nobody has copied tpan.db yet. If this file is damaged or lost, tpan forgets every site, the history and the backups it has. Make one now and turn on the daily schedule so nobody has to remember."
+          },
+          "manual_fix": [
+            "sudo tpan backup create --all --yes",
+            "sudo tpan backup settings --at 03:30",
+            "ls /var/lib/tpan/backups/_tpan"
+          ]
+        },
+        {
+          "id": "probe.leftover:tpan",
+          "stage": "tpan",
+          "title": {
+            "vi": "Không còn site thử và user thử của phép thử tấn công",
+            "en": "No test sites or users of the attack probe are left behind"
+          },
+          "status": "pass",
+          "summary": {
+            "vi": "Không còn gì sót lại của phép thử tấn công",
+            "en": "Nothing is left behind by the attack probe"
+          },
+          "evidence": null
+        }
+      ]
+    }
+  ],
+  "changes": {
+    "opened": null,
+    "closed": null
+  }
+}
+[2026-11-25 01:26:02] (mã thoát 0)
+  => ĐẠT: tpan health --json: không có phép probe.leftover lỗi
+
+[2026-11-25 01:26:02] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=404 <!DOCTYPE html><html lang="en-US"><head>	<meta charset="UTF-8" />	<meta name="viewport" content=
+[2026-11-25 01:26:02] (mã thoát 0)
+  => ĐẠT: site thật a.example.com vẫn trả 200
+
+==== Phần E: 9 đạt, 0 không đạt
+
+
+######## [2026-11-25 01:26:02] PHẦN F: đưa a.example.com ra khỏi lồng từ trang của site
+
+[2026-11-25 01:26:02] $ anh-readme -bo m17-that -buoc ra-long -site a.example.com   (Chrome không giao diện trên Mac, panel <panel>)
+  => ĐẠT: trước khi bấm: GET /api/v1/cage ghi a.example.com ở trạng thái trong
+  => ĐẠT: bấm «Ra khỏi lồng»: có bản xem trước
+  => ĐẠT: job cage.disable 46f2e28409b39f89: succeeded
+  => ĐẠT: thẻ theo dõi job báo Xong
+  => ĐẠT: sau job: GET /api/v1/cage ghi a.example.com ở trạng thái can-vao
+  => ĐẠT: thẻ Lồng đổi sang nút «Vào lồng»
+  => ĐẠT: bước ra-long: không lỗi console
+[2026-11-25 01:26:15] (mã thoát 0)
+
+
+######## [2026-11-25 01:26:15] F: kiểm trong máy ảo
+
+[2026-11-25 01:26:15] $ scripts/vm.sh root tpan cage status a.example.com --json
+[
+  {
+    "domain": "a.example.com",
+    "owner": "khach",
+    "package": "long",
+    "caged": false,
+    "want": true,
+    "files": false,
+    "state": "can-vao",
+    "suspended": false,
+    "limits": {
+      "cpu_percent": 50,
+      "ram_mb": 256,
+      "tasks": 40,
+      "io_read_mb": 0,
+      "io_write_mb": 0,
+      "php_workers": 3
+    }
+  }
+]
+[2026-11-25 01:26:15] (mã thoát 0)
+  => ĐẠT: cage status --json: a.example.com ngoài lồng, không còn file hàng rào (caged false, files false)
+
+[2026-11-25 01:26:15] $ scripts/vm.sh root bash -c ls /etc/systemd/system | grep -c "^tpan-cage-" || true
+0
+[2026-11-25 01:26:16] (mã thoát 0)
+  => ĐẠT: không còn file tpan-cage-* trong /etc/systemd/system
+
+[2026-11-25 01:26:16] $ scripts/vm.sh root bash /root/e2e-m18/site.sh xem a.example.com
+trang-chu=200 title=<title>a.example.com</title>
+moc=404 <!DOCTYPE html><html lang="en-US"><head>	<meta charset="UTF-8" />	<meta name="viewport" content=
+[2026-11-25 01:26:16] (mã thoát 0)
+  => ĐẠT: site a.example.com trả 200 (về pool chung)
+
+==== Phần F: 10 đạt, 0 không đạt
+
+
+######## [2026-11-25 01:26:16] PHẦN G: mật khẩu, IP, thư mục nhà có lọt vào chính file log không
+Số bí mật đã gặp: 4; số dòng của log chứa một trong số đó: 0
+  => ĐẠT: log không chứa mật khẩu nào
+  => ĐẠT: log không chứa IP máy ảo (IPv4)
+  => ĐẠT: log không chứa mạng Multipass
+  => ĐẠT: log không chứa IPv6 của máy ảo
+  => ĐẠT: log không chứa IP của Mac
+  => ĐẠT: log không chứa thư mục nhà hay tên user Mac
+
+
+######## [2026-11-25 01:26:16] TỔNG KẾT: 68 khẳng định đạt, 0 khẳng định không đạt
