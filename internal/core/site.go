@@ -511,6 +511,11 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 			in.Email, emailGuessed = em, true
 		}
 	} else {
+		// M28 đợt 2, B1: site mới không được mang tên dùng để vào panel
+		// (m28_b1.go). Site đã có thì chạy lại vẫn được, nên kiểm ở nhánh này.
+		if err := s.checkPanelReserved(ctx, d); err != nil {
+			return nil, err
+		}
 		if in.Email.IsZero() {
 			return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị (--email): site mới cần email cho tài khoản quản trị WordPress", "the admin email is missing (--email): a new site needs an email for its WordPress admin account"))
 		}

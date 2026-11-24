@@ -470,6 +470,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		authInternal(w, "tạo phiên", err)
 		return
 	}
+	// M28 đợt 2, B1: tên admin dùng để vào panel thành tên dành riêng (không
+	// site mới nào mang được tên đó). Ghi lỗi thì chỉ ghi nhật ký.
+	if u.Role == account.RoleAdmin {
+		if err := core.RecordPanelHost(r.Context(), st, r.Host); err != nil {
+			slog.Error("ghi tên vào panel", "err", err)
+		}
+	}
 	authSetCookie(w, r, token, 0)
 	s.audit(r, "login", name, "ok", "")
 	w.WriteHeader(http.StatusNoContent)
