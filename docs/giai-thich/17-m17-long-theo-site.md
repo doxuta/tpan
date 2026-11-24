@@ -267,6 +267,20 @@ Số đo đáng nhớ (nginx / Apache khi hai bên khác nhau):
 | Thử tấn công `tpan isolation probe` | 14 đường (L1 đến L9 của M14, C1 đến C5 của lồng); ngoài lồng: các đường L bị chặn, C1 đến C5 là `needs_cage` (chỉ lồng chặn được); trong lồng: mọi đường bị chặn; hai site thử bị xoá sạch, kể cả khi `kill -9` tpan giữa lượt rồi chạy `--cleanup` |
 | Khởi động lại máy ảo | A, B trả 200; site tạm khoá vẫn 403 và socket vẫn tắt |
 
+### 2.8 Bấm thật trên giao diện (25/11/2026)
+
+Trên Mac, trong thư mục repo: `make e2e-m17-gd`. Lệnh đưa máy ảo về sạch, cài tpan của cây, tạo gói `long` chưa bật lồng, user `khach` và site `a.example.com` của khach, rồi cho Chrome không giao diện (chạy trên Mac, `scripts/anh-readme`, bộ `m17-that`) mở panel thật của máy ảo và bấm như người dùng. Sau mỗi bước, script hỏi lại máy ảo bằng lệnh không đi qua giao diện. Log: `docs/bang-chung/M17-giao-dien.log`, **68 khẳng định đạt, 0 không đạt** trên mã cuối.
+
+| Bước trên giao diện | Máy ảo xác nhận |
+|---|---|
+| Màn Gói: Sửa gói `long`, chọn lồng, CPU 50, RAM 200, 40 tiến trình, 3 worker, Lưu | `tpan package list --json` đúng các số; site A chuyển sang "chờ vào lồng" |
+| Trang của A: "Vào lồng", xem trước, chạy | `tpan cage status`: A trong lồng; `systemctl show` slice: `MemoryMax=209715200`, `MemorySwapMax=0`, `CPUQuotaPerSecUSec=500ms`, `TasksMax=40`; dịch vụ PHP của lồng chạy bằng user của A; A trả 200 |
+| Màn Gói: RAM 256, nút của hộp là "Xem trước", chạy (job `cage.sync`) | slice có `MemoryMax=268435456`; A vẫn 200 |
+| Màn Bảo mật: mở dòng "Thử tấn công", chạy cả hai lượt | lượt có 14 đường, 0 ô lộ, đã dọn; không còn user, thư mục, unit nào của site thử; health không có `probe.leftover` lỗi |
+| Trang của A: "Ra khỏi lồng" | A ngoài lồng, không còn file `tpan-cage-*`, A trả 200 |
+
+Lần chạy đầu của e2e này tìm ra một lỗi thật: bấm Lưu trong hộp sửa gói bị 400 (mục 5.12).
+
 ## 3. Đi qua mã theo thứ tự chạy
 
 Thứ tự đi: bạn gõ `tpan cage enable a.example.com`, lệnh dựng một Plan (danh sách bước, có xem trước, hoàn tác được: quy ước từ M1), engine chạy từng bước, và cuối cùng nginx trỏ vào socket của lồng. Sau đó đi theo một request, một lệnh `wp`, một số liệu, và một lượt thử tấn công.
