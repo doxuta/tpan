@@ -46,9 +46,45 @@ func RegistrableTaken(all []site.Site, d validate.Domain, caller string) (bool, 
 		if ownerOf(st) == caller {
 			continue
 		}
-		if r, ok := registrable(st.Domain.String()); ok && r == want {
+		r, ok := registrable(st.Domain.String())
+		if ok && r == want {
+			return true, nil
+		}
+		// M28 đợt 2, B7: site có sẵn mà tên chính là một đuôi công cộng (chỉ
+		// admin tạo được, ví dụ tên của một tổ chức nằm trong phần private của
+		// PSL) không ra eTLD+1 để so. Theo PSL thì www.<tên đó> là một tên
+		// đăng ký riêng, nhưng thực tế nó thuộc chủ của site gốc: coi mọi tên
+		// con của site đó là đã có người dùng. (d bằng đúng tên đó thì d cũng
+		// không ra eTLD+1, đã bị từ chối ở trên.)
+		if !ok && strings.HasSuffix(d.String(), "."+st.Domain.String()) {
 			return true, nil
 		}
 	}
 	return false, nil
+}
+
+// CodeSlugTaken: domain mới có slug trùng slug của một site đang có (B11).
+const CodeSlugTaken = "slug_taken"
+
+// refuseSlugTaken (M28 đợt 2, B11): slug (validate.SlugOf) chỉ có 24 bit băm,
+// dò được một domain khác cùng slug trong vài giây. Hai site cùng slug dùng
+// chung tên user Linux, DB, pool PHP. Từ chối site MỚI nếu slug của nó trùng
+// slug của một site đang có trong bảng sites (mọi trạng thái, kể cả thùng
+// rác) mà domain khác, cho mọi chủ. Câu trả lời không nêu tên site kia.
+//
+// Không đổi độ dài băm: đổi thì tên user, DB của site sẵn có đổi theo.
+// ponytail: kẻ tạo trước domain trùng slug vẫn làm chủ thật không tạo được
+// site (như trước, khi đó unmanaged() từ chối); nay lời từ chối nói rõ vì sao
+// và admin xem được site nào giữ slug đó. Muốn hết hẳn thì cấp slug dài hơn
+// cho site mới và lưu slug thành nguồn sự thật trong bảng sites.
+func refuseSlugTaken(all []site.Site, d validate.Domain) error {
+	want := site.LayoutOf(d).Slug
+	for _, st := range all {
+		if st.Domain != d && st.Slug == want {
+			return refuse(CodeSlugTaken, i18n.T(
+				"không tạo được site "+d.String()+": tên rút gọn (slug) "+want.String()+" của nó, dùng đặt tên user Linux, DB và pool PHP, trùng với một site đã có trên máy; chọn domain khác hoặc nhờ admin xem",
+				"cannot create site "+d.String()+": its short name (slug) "+want.String()+", used for the Linux user, database and PHP pool, is already used by another site on this server; choose another domain or ask the admin"))
+		}
+	}
+	return nil
 }

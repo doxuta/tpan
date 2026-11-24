@@ -229,9 +229,14 @@ func (s *Server) siteCreateOwner(w http.ResponseWriter, r *http.Request, d valid
 	}
 	if taken {
 		// Cùng lời với site không tồn tại: không lộ là tên đó thuộc người khác.
-		if !apiDryRun(r) {
-			s.audit(r, "site.add", d.String(), "site_not_found", "")
+		// M28 đợt 2, B4: bản xem trước cũng ghi nhật ký (kết quả riêng), vì từ
+		// P4 một lần dò phủ cả domain gốc. ponytail: chưa giới hạn tần suất,
+		// xem handleApply.
+		result := "site_not_found"
+		if apiDryRun(r) {
+			result += "_dry_run"
 		}
+		s.audit(r, "site.add", d.String(), result, "")
 		apiFail(w, r, siteNotFound(d))
 		return "", false
 	}
