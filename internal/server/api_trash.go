@@ -14,6 +14,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -39,11 +40,43 @@ func (s *Server) handleSiteRestore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sites := s.apiSites()
+	scope := scopeOf(r)
 	// Kick đúng domain: site vừa sống lại, health kiểm nó ngay thay vì chờ
 	// vòng 5 phút.
 	s.planJobKick(w, r, jobOpts{action: "site.restore", target: d.String(), kick: d.String()}, func(ctx context.Context) (apiPlan, error) {
+		if err := s.restoreP4(ctx, d, scope); err != nil {
+			return nil, err
+		}
 		return sites.PrepareRestore(ctx, d)
 	})
+}
+
+// restoreP4 (M28 đợt 2, B5): khôi phục cũng xét luật P4 như tạo mới. Không
+// thì khách đưa www.X vào thùng rác, chủ thật của X nhờ admin tạo X, rồi khách
+// khôi phục www.X và xin lại chứng chỉ cho tên đó. Trùng thì 404 như site
+// không tồn tại (cùng lời với P4). Admin (scope rỗng) không qua luật này.
+// Tên là chính một đuôi công cộng thì chỉ admin tạo được và đã giao cho người
+// gọi: không có eTLD+1 để so, khôi phục như trước.
+func (s *Server) restoreP4(ctx context.Context, d validate.Domain, scope string) error {
+	if scope == "" {
+		return nil
+	}
+	all, err := s.deps.Store.Sites(ctx)
+	if err != nil {
+		return err
+	}
+	taken, err := core.RegistrableTaken(all, d, scope)
+	var re *core.RefusedError
+	if errors.As(err, &re) && re.Code == validate.CodeDomainInvalid {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if taken {
+		return siteNotFound(d)
+	}
+	return nil
 }
 
 // handleTrashPurge xoá hẳn một site đang ở thùng rác (không hoàn tác được).
@@ -162,6 +195,21 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			apiFail(w, r, err)
 			return
+		}
+		// M28 đợt 2, B4: dòng bị từ chối site_not_found cho biết có người
+		// khác đang có tên đó hay tên cùng domain gốc (P4), nên bản xem trước
+		// dò được domain của khách khác. Ghi một dòng nhật ký tóm tắt (số dòng,
+		// không ghi tên) để admin thấy ai đang dò.
+		// ponytail: chỉ ghi nhật ký, chưa giới hạn tần suất dry_run; dò nhiều
+		// thì thêm giới hạn theo người gọi như khoá đăng nhập.
+		n := 0
+		for _, it := range ap.Items {
+			if it.Action == core.ApplyRefused && it.Code == "site_not_found" {
+				n++
+			}
+		}
+		if n > 0 {
+			s.audit(r, action, fmt.Sprintf("%s, %d site_not_found", target, n), "site_not_found_dry_run", "")
 		}
 		p, err := ap.Preview(r.Context())
 		if err != nil {

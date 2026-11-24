@@ -314,7 +314,7 @@ func TestProbeLuotTronNginx(t *testing.T) {
 	e.noProbeUsers(t)
 	after := e.m.Snapshot()
 	for p := range after {
-		if _, ok := before[p]; !ok && !strings.HasPrefix(p, "/var/cache/tpan/") {
+		if _, ok := before[p]; !ok && !strings.HasPrefix(p, "/var/cache/tpan/") && p != "/var/lib/tpan/site-uid-max" { // F1, B10: bộ đếm UID cố ý còn lại
 			t.Errorf("file mới sau lượt thử: %s", p)
 		}
 	}
@@ -452,7 +452,7 @@ func TestProbeHongGiuaChungVanDon(t *testing.T) {
 	}
 	e.noProbeUsers(t)
 	for p := range e.m.Snapshot() {
-		if _, ok := before[p]; !ok && !strings.HasPrefix(p, "/var/cache/tpan/") {
+		if _, ok := before[p]; !ok && !strings.HasPrefix(p, "/var/cache/tpan/") && p != "/var/lib/tpan/site-uid-max" { // F1, B10: bộ đếm UID cố ý còn lại
 			t.Errorf("file mới sau lượt hỏng: %s", p)
 		}
 	}

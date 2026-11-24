@@ -202,7 +202,8 @@ func (s *SiteUser) Info() engine.StepInfo {
 
 // pickUID cấp số cho user mới: lớn hơn mọi UID, GID đang có trong
 // /etc/passwd, /etc/group nằm trong dải (máy đã có user lạ ở đó, hay
-// tpan.db mới trên máy cũ), lớn hơn mọi số tpan từng cấp, và chưa có user
+// tpan.db mới trên máy cũ), lớn hơn mọi số tpan từng cấp (theo tpan.db và
+// theo siteUIDFile, phòng khi tpan.db bị khôi phục bản cũ), và chưa có user
 // hay nhóm nào mang số đó theo getent (nguồn NSS khác file).
 func (s *SiteUser) pickUID(ctx context.Context, sys system.System) (int, error) {
 	if s.UIDs == nil {
@@ -228,6 +229,9 @@ func (s *SiteUser) pickUID(ctx context.Context, sys system.System) (int, error) 
 			}
 		}
 	}
+	if v, ok := siteUIDFileMax(sys); ok {
+		floor = max(floor, v+1)
+	}
 	for range siteUIDTries {
 		n, err := s.UIDs.ReserveSiteUID(ctx, floor)
 		if err != nil {
@@ -241,11 +245,59 @@ func (s *SiteUser) pickUID(ctx context.Context, sys system.System) (int, error) 
 			return 0, err
 		}
 		if !taken {
+			// Ghi trước useradd, cùng luật với tpan.db: số ghi rồi mà useradd
+			// lỗi thì bỏ phí, không sao.
+			if err := siteUIDFileWrite(sys, n); err != nil {
+				return 0, err
+			}
 			return n, nil
 		}
 		floor = n + 1
 	}
 	return 0, fmt.Errorf("thử %d số UID liền nhau từ %d mà số nào cũng đã có user hay nhóm dùng", siteUIDTries, floor-siteUIDTries)
+}
+
+// siteUIDFile giữ bản thứ hai của "UID lớn nhất từng cấp", ngoài tpan.db (B10
+// của soát cuối nhóm B): admin khôi phục một bản sao tpan.db cũ thì
+// site_uid_max lùi lại, và số đã cấp cho site đã xoá hẳn sau thời điểm bản sao
+// (lớn hơn mọi user còn sống, nên /etc/passwd không chặn) sẽ được cấp lại.
+// pickUID lấy max của cả hai nguồn. File của root, 0600, một số thập phân;
+// nằm ngoài vùng site (/var/www) nên không đi qua cửa sitefs.
+//
+// Không khai trong Info().Files: engine ghi sha256 của file đã khai vào nhật
+// ký, health sẽ báo "lệch" ngay lần tạo site kế tiếp. Undo của SiteUser không
+// trả file về số cũ, có chủ ý: trả về là đúng lỗi dùng lại UID.
+//
+// ponytail: khôi phục cả /var/lib/tpan từ một bản chụp thì cả hai nguồn cùng
+// lùi; khi đó chỉ còn mức sàn từ /etc/passwd, /etc/group. Nâng cấp nếu cần:
+// thêm một nhóm đánh dấu có GID bằng số lớn nhất.
+const siteUIDFile = "/var/lib/tpan/site-uid-max"
+
+// siteUIDFileMax đọc siteUIDFile. Không có file, không đọc được, không phải
+// số, hay số ngoài dải: bỏ qua (ok false). Ngoài dải phải bỏ qua, vì một giá
+// trị hỏng như 999999999 sẽ làm mọi lần tạo site sau đó lỗi "hết dải".
+func siteUIDFileMax(sys system.System) (int, bool) {
+	b, err := sys.ReadFile(siteUIDFile)
+	if err != nil {
+		return 0, false
+	}
+	v, err := strconv.Atoi(strings.TrimSpace(string(b)))
+	if err != nil || v < siteUIDMin || v > siteUIDMax {
+		return 0, false
+	}
+	return v, true
+}
+
+// siteUIDFileWrite ghi n vào siteUIDFile. Thiếu thư mục /var/lib/tpan chỉ có
+// ở máy giả (test, demo): bỏ qua. Lỗi khác thì báo, để không tạo user mà bản
+// thứ hai không giữ được số. Chạy trong khoá của engine nên không có hai lần
+// cấp chen nhau ghi lùi file.
+func siteUIDFileWrite(sys system.System, n int) error {
+	err := sys.WriteFileAtomic(siteUIDFile, []byte(strconv.Itoa(n)+"\n"), 0o600, system.Root)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("ghi UID đã cấp vào %s: %w", siteUIDFile, err)
+	}
+	return nil
 }
 
 // idTaken: đã có user hay nhóm mang số n chưa (getent passwd n, getent group
@@ -398,9 +450,11 @@ func userDel(ctx context.Context, sys system.System, name string) error {
 		// 6: user không có. Đích "không còn user" đã đạt.
 		return nil
 	case isEE && ee.Code == 8:
-		// 8: userdel từ chối vì còn tiến trình chạy dưới user (thường là worker
-		// PHP-FPM của pool chưa thoát sau khi gỡ pool).
-		return withStdout(fmt.Errorf("xoá user %s: còn tiến trình đang chạy dưới user này (thường là worker PHP-FPM chưa thoát); chờ vài giây rồi chạy lại: %w", name, err), res)
+		// 8: userdel từ chối vì còn tiến trình mang UID của user ở uid thật,
+		// hiệu lực hay saved-UID (thường là worker PHP-FPM của pool chưa thoát
+		// sau khi gỡ pool; cũng có thể là tiến trình của user khác chỉ còn giữ
+		// UID này, pgrep không thấy, B8 của soát cuối nhóm B).
+		return withStdout(fmt.Errorf("xoá user %s: còn tiến trình đang chạy dưới user này hay còn giữ UID của user (thường là worker PHP-FPM chưa thoát; cũng có thể là tiến trình của user khác đã chạy một chương trình setuid của site và còn giữ UID đó, xem cột suid của: ps -eo pid,ruid,euid,suid,comm); chờ vài giây rồi chạy lại: %w", name, err), res)
 	}
 	return withStdout(fmt.Errorf("xoá user %s: %w", name, err), res)
 }
@@ -419,7 +473,9 @@ func userDelCmd(name string) system.Cmd {
 //     file spool có, rồi kiểm file đã mất). Crontab gắn với TÊN user, mà tên
 //     tp_<slug> sinh từ domain: tạo lại site cùng domain là crontab cũ sống
 //     lại dưới user mới. Gỡ trước khi giết để cron không sinh tiến trình mới.
-//  2. mọi tiến trình mang UID đó, theo uid thật (-U) hay uid hiệu lực (-u,
+//  2. mọi tiến trình mang UID đó: một lượt `kill -KILL -1` dưới user trước
+//     tiên (giết cả tiến trình chỉ còn giữ UID ở saved-UID, pgrep không thấy;
+//     B8 của soát cuối nhóm B), rồi theo uid thật (-U) hay uid hiệu lực (-u,
 //     người khác chạy một file setuid của site): `pkill -KILL` theo vòng tới
 //     khi `pgrep` không còn thấy, có hạn userKillWait.
 //  3. file (mọi loại trừ thư mục, kể cả symlink, không đi theo symlink) mang
@@ -486,8 +542,8 @@ func (s *SiteUserAbsent) Info() engine.StepInfo {
 	cron := cageCrontabRemove(l)
 	cmds := []string{cron.String()}
 	for _, c := range []system.Cmd{
-		userPgrep("-U", id), userPgrep("-u", id),
 		userKillAll(u),
+		userPgrep("-U", id), userPgrep("-u", id),
 		userPkill("-U", id), userPkill("-u", id),
 	} {
 		cmds = append(cmds, c.String())
@@ -590,6 +646,13 @@ func userPurge(ctx context.Context, sys system.System, l site.Layout, uid string
 // userKill giết mọi tiến trình mang uid tới khi pgrep không còn thấy cái nào.
 func userKill(ctx context.Context, sys system.System, name, uid string) error {
 	deadline := time.Now().Add(userKillWait)
+	// Luôn giết một lượt dưới user trước khi hỏi pgrep (B8 của soát cuối nhóm
+	// B): tiến trình của user khác chạy chương trình setuid của site rồi
+	// setresuid(b, b, a) chỉ còn giữ UID ở saved-UID, pgrep -U/-u không thấy,
+	// nhưng kernel vẫn cho `kill -1` dưới user này giết nó (kill(2) xét cả
+	// saved-UID của đích) và userdel vẫn từ chối vì nó. Không có tiến trình nào
+	// thì kill thoát khác 0: bỏ qua như lượt trong vòng.
+	_, _ = sys.Run(ctx, userKillAll(name))
 	for {
 		pids, err := userPids(ctx, sys, uid)
 		if err != nil || len(pids) == 0 {

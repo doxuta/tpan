@@ -6,6 +6,7 @@ package site
 
 import (
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/doxuta/tpan/internal/validate"
@@ -186,7 +187,16 @@ func RootForeign(existing []Name, d validate.Domain, owner string) (bool, error)
 		if n.Owner == owner {
 			continue
 		}
-		if r, err := validate.RegisteredDomain(n.Name); err == nil && r == want {
+		r, err := validate.RegisteredDomain(n.Name)
+		if err == nil && r == want {
+			return true, nil
+		}
+		// M28 đợt 2, B7: tên có sẵn mà chính nó là một đuôi công cộng (chỉ admin
+		// tạo được, ví dụ tên của một tổ chức nằm trong phần private của PSL)
+		// không ra tên miền gốc để so. Theo PSL thì www.<tên đó> là một tên đăng
+		// ký riêng, nhưng thực tế nó thuộc chủ của tên gốc: coi mọi tên con của
+		// nó là đã có người dùng.
+		if err != nil && strings.HasSuffix(d.String(), "."+n.Name.String()) {
 			return true, nil
 		}
 	}

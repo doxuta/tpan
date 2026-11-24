@@ -185,17 +185,70 @@ func (b *Backups) fullCount(ctx context.Context, domain string) (int, error) {
 	if b.Store == nil {
 		return 0, nil
 	}
+	cur, hasSite, err := b.currentOwner(ctx, domain)
+	if err != nil {
+		return 0, fmt.Errorf("đếm backup của %s: %w", domain, err)
+	}
 	rows, err := b.Store.Backups(ctx, domain)
 	if err != nil {
 		return 0, fmt.Errorf("đếm backup của %s: %w", domain, err)
 	}
 	n := 0
 	for _, r := range rows {
-		if r.Domain == domain && r.Local && r.Kind == BackupFull && r.Reason != ReasonBeforePurge {
-			n++
+		if r.Domain != domain || !r.Local || r.Kind != BackupFull || r.Reason == ReasonBeforePurge {
+			continue
 		}
+		if hasSite {
+			other, err := b.foreignBackup(ctx, r, cur)
+			if err != nil {
+				return 0, fmt.Errorf("đếm backup của %s: %w", domain, err)
+			}
+			if other {
+				continue
+			}
+		}
+		n++
 	}
 	return n, nil
+}
+
+// backupOwnerReader đọc chủ của site và của dòng backup trong cùng DB với
+// bảng backups (*store.Store có sẵn). Cùng DB thì cùng nguồn mà AddBackup dùng
+// để chép chủ vào dòng.
+type backupOwnerReader interface {
+	SiteOwner(ctx context.Context, domain string) (owner string, ok bool, err error)
+	BackupOwner(ctx context.Context, id string) (owner string, ok bool, err error)
+}
+
+// currentOwner trả chủ hiện tại của site domain. ok=false (store không đọc
+// được chủ, hay không có dòng site) thì không lọc theo chủ, như trước B12:
+// prune và fullCount chỉ được gọi cho site đang có nên trường hợp này không
+// gặp ở máy thật.
+func (b *Backups) currentOwner(ctx context.Context, domain string) (owner string, ok bool, err error) {
+	or, can := b.Store.(backupOwnerReader)
+	if !can {
+		return "", false, nil
+	}
+	return or.SiteOwner(ctx, domain)
+}
+
+// foreignBackup (B12 của soát cuối M28): dòng r thuộc chủ khác cur. Backup
+// sống lâu hơn site và mang chủ lúc ghi (cột owner), nên sau khi chủ cũ xoá
+// hẳn site và khách khác tạo lại cùng domain, bản của chủ cũ vẫn nằm chung
+// domain: chúng không được tính vào số giữ hay hạn mức của chủ mới, và không
+// bao giờ bị dọn thay chủ mới. Dòng store không biết (không có trong bảng)
+// thì không thuộc ai khác: xử lý như trước.
+//
+// ponytail: BackupStore và site.Backup chưa mang chủ, nên đọc qua giao diện
+// tuỳ chọn, mỗi dòng một câu (vài chục dòng mỗi domain). Chỉ gọi khi
+// currentOwner trả ok (store có backupOwnerReader). Nâng cấp: thêm Owner vào
+// site.Backup (đọc trong store/backup.go) rồi bỏ hàm này.
+func (b *Backups) foreignBackup(ctx context.Context, r Backup, cur string) (bool, error) {
+	o, found, err := b.Store.(backupOwnerReader).BackupOwner(ctx, r.ID)
+	if err != nil {
+		return false, fmt.Errorf("đọc chủ của backup %s: %w", r.ID, err)
+	}
+	return found && o != cur, nil
 }
 
 // maxBackups là max_backups của gói của chủ site domain (M13); 0 là không
@@ -256,6 +309,11 @@ func (b *Backups) prune(ctx context.Context, domain string, protect ...string) e
 	if most > 0 && most < set.Keep {
 		keep[BackupFull] = most
 	}
+	// B12: chỉ dọn bản của chủ hiện tại.
+	cur, hasSite, err := b.currentOwner(ctx, domain)
+	if err != nil {
+		return fmt.Errorf("dọn backup cũ của %s: đọc chủ của site: %w", domain, err)
+	}
 	rows, err := b.Store.Backups(ctx, domain)
 	if err != nil {
 		return fmt.Errorf("dọn backup cũ của %s: %w", domain, err)
@@ -265,6 +323,15 @@ func (b *Backups) prune(ctx context.Context, domain string, protect ...string) e
 	for _, r := range rows {
 		if r.Domain != domain || r.Reason == ReasonBeforePurge {
 			continue
+		}
+		// Đọc chủ lỗi thì bỏ qua dòng đó (không dọn), báo lỗi.
+		if hasSite {
+			if other, err := b.foreignBackup(ctx, r, cur); err != nil || other {
+				if err != nil {
+					errs = append(errs, fmt.Errorf("dọn backup cũ của %s: %w", domain, err))
+				}
+				continue
+			}
 		}
 		if !r.Local {
 			// Không file trên máy: không chiếm chỗ trong Keep.

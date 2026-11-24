@@ -5,6 +5,7 @@ package steps
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -220,6 +221,67 @@ func TestSiteUserCapUID(t *testing.T) {
 		userOnlyGetent(t, m)
 	})
 
+	t.Run("file site-uid-max ngoài tpan.db có số lớn hơn thì đi tiếp từ file, rồi ghi số mới (B10)", func(t *testing.T) {
+		m := userMachine(t)
+		m.SetDir("/var/lib/tpan", 0o755, system.Root)
+		// tpan.db khôi phục bản cũ: chỉ biết 65600; file giữ 70000.
+		m.SetFile(siteUIDFile, []byte("70000\n"), 0o600, system.Root)
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{max: 65600}}).Apply(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		if got := f1UID(t, m, l.User); got != "70001" {
+			t.Errorf("UID = %s, muốn 70001", got)
+		}
+		b, err := m.ReadFile(siteUIDFile)
+		if err != nil || string(b) != "70001\n" {
+			t.Errorf("file = %q, %v; muốn \"70001\\n\"", b, err)
+		}
+		fi, err := m.Stat(siteUIDFile)
+		if err != nil || fi.Mode.Perm() != 0o600 || fi.Owner.User != "root" {
+			t.Errorf("file: %v, %v, %v", fi.Mode, fi.Owner, err)
+		}
+	})
+
+	t.Run("tpan.db lớn hơn file thì theo tpan.db, file được nâng lên (B10)", func(t *testing.T) {
+		m := userMachine(t)
+		m.SetDir("/var/lib/tpan", 0o755, system.Root)
+		m.SetFile(siteUIDFile, []byte("65540\n"), 0o600, system.Root)
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{max: 66000}}).Apply(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		if b, _ := m.ReadFile(siteUIDFile); string(b) != "66001\n" {
+			t.Errorf("file = %q, muốn \"66001\\n\"", b)
+		}
+	})
+
+	for _, bad := range []string{"abc", "999999999", "-5", ""} {
+		t.Run("file site-uid-max hỏng ("+bad+") thì bỏ qua", func(t *testing.T) {
+			m := userMachine(t)
+			m.SetDir("/var/lib/tpan", 0o755, system.Root)
+			m.SetFile(siteUIDFile, []byte(bad), 0o600, system.Root)
+			if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m); err != nil {
+				t.Fatal(err)
+			}
+			if got := f1UID(t, m, l.User); got != "65536" {
+				t.Errorf("UID = %s, muốn 65536", got)
+			}
+			if b, _ := m.ReadFile(siteUIDFile); string(b) != "65536\n" {
+				t.Errorf("file = %q, muốn ghi đè bằng \"65536\\n\"", b)
+			}
+		})
+	}
+
+	t.Run("ghi file site-uid-max lỗi thì không useradd", func(t *testing.T) {
+		m := userMachine(t)
+		m.SetDir("/var/lib/tpan", 0o755, system.Root)
+		m.Fail("write", siteUIDFile, errors.New("đĩa đầy"))
+		err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m)
+		if err == nil || !strings.Contains(err.Error(), siteUIDFile) {
+			t.Fatalf("Apply = %v", err)
+		}
+		userOnlyGetent(t, m)
+	})
+
 	t.Run("hết dải thì lỗi", func(t *testing.T) {
 		m := userMachine(t)
 		m.SetFile(userPasswd, []byte(userRoot+"cuoi:x:99999:99999::/:/usr/sbin/nologin\n"), 0o644, system.Root)
@@ -285,6 +347,7 @@ func TestSiteUserAbsentDonDauVet(t *testing.T) {
 		want := []string{
 			"getent passwd " + u,
 			"crontab -r -u " + u,
+			"runuser -u " + u + " -- kill -KILL -1",
 			"pgrep -U 65536", "pgrep -u 65536",
 			"runuser -u " + u + " -- kill -KILL -1",
 			"pkill -KILL -U 65536", "pkill -KILL -u 65536",
@@ -319,6 +382,48 @@ func TestSiteUserAbsentDonDauVet(t *testing.T) {
 		if last := info.Commands[len(info.Commands)-1]; last != "userdel "+u {
 			t.Errorf("userdel không đứng cuối trong Info: %q", last)
 		}
+	})
+
+	t.Run("pgrep không thấy gì vẫn chạy kill -1 dưới user một lần (B8, saved-UID)", func(t *testing.T) {
+		m := f1Purge(t, l)
+		m.Handle([]string{"pgrep"}, func(system.Cmd) system.Result { return system.Result{ExitCode: 1} })
+		if err := (&SiteUserAbsent{Layout: l}).Apply(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		ran := ranStrings(m.Ran())
+		kill := "runuser -u " + u + " -- kill -KILL -1"
+		ki, ui := slices.Index(ran, kill), slices.Index(ran, "userdel "+u)
+		if ki < 0 || ui < 0 || ki > ui {
+			t.Fatalf("muốn %q trước userdel: %v", kill, ran)
+		}
+		n := 0
+		for _, c := range ran {
+			if c == kill {
+				n++
+			}
+			if strings.HasPrefix(c, "pkill") {
+				t.Errorf("chạy pkill khi pgrep không thấy gì: %s", c)
+			}
+		}
+		if n != 1 {
+			t.Errorf("kill -1 chạy %d lần, muốn 1", n)
+		}
+	})
+
+	t.Run("kill -1 lỗi (không có tiến trình) không làm hỏng xoá hẳn", func(t *testing.T) {
+		m := f1Purge(t, l)
+		m.Handle([]string{"pgrep"}, func(system.Cmd) system.Result { return system.Result{ExitCode: 1} })
+		m.failCmd([]string{"kill", "-KILL", "-1"}, 1, "kill: (-1): No such process")
+		if err := (&SiteUserAbsent{Layout: l}).Apply(ctx, m); err != nil {
+			t.Fatalf("Apply = %v", err)
+		}
+	})
+
+	t.Run("userdel mã 8 nói cả khả năng tiến trình còn giữ UID", func(t *testing.T) {
+		m := f1Purge(t, l)
+		m.failCmd([]string{"userdel"}, 8, "userdel: user "+u+" is currently used by process 4321")
+		err := (&SiteUserAbsent{Layout: l}).Apply(ctx, m)
+		wantExit(t, err, "còn giữ UID của user")
 	})
 
 	t.Run("crontab -r báo không có crontab (mã 1) mà file đã mất thì đạt", func(t *testing.T) {

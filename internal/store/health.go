@@ -314,10 +314,18 @@ func (s *Store) CheckResults(ctx context.Context) ([]StoredResult, error) {
 }
 
 // ownedTarget là điều kiện SQL "target là site của owner (hoặc owner rỗng: tất
-// cả)", dùng chung cho kết quả và sự cố. Khi owner khác rỗng, phép kiểm của máy
+// cả)" cho kết quả phép kiểm (sự cố dùng ownedIncident). Khi owner khác rỗng, phép kiểm của máy
 // (target ""), của stack và của tpan bị loại: chúng không thuộc ai ngoài admin.
 // Cần hai tham số: owner, owner.
 const ownedTarget = "(? = '' OR target IN (SELECT domain FROM sites WHERE owner = ?))"
+
+// ownedIncident là ownedTarget cho bảng incidents, thêm "mở từ lúc site hiện tại
+// được tạo" (B3 của soát cuối M28): sự cố không ghi chủ mà đi theo tên domain,
+// nên khách tạo lại domain của chủ cũ đã xoá hẳn không được đọc sự cố (và bằng
+// chứng) của chủ cũ. So chuỗi được vì cả hai cột ghi bằng fmtTime, độ rộng cố
+// định. Cần hai tham số: owner, owner.
+const ownedIncident = `(? = '' OR EXISTS (SELECT 1 FROM sites s WHERE s.domain = incidents.target
+	AND s.owner = ? AND incidents.opened_at >= s.created_at))`
 
 // CheckResultsOf là CheckResults chỉ lấy phép kiểm của site thuộc owner (rỗng là tất cả).
 func (s *Store) CheckResultsOf(ctx context.Context, owner string) ([]StoredResult, error) {
@@ -450,12 +458,12 @@ func (s *Store) Incidents(ctx context.Context, openOnly bool, limit int) ([]Inci
 
 // IncidentsOf là Incidents chỉ lấy sự cố của site thuộc owner (rỗng là tất cả).
 // Sự cố đã đóng vì "gone" (site xoá hẳn) không còn site nào để suy chủ nên chỉ
-// admin thấy.
+// admin thấy; sự cố mở trước lúc site hiện tại được tạo cũng vậy (ownedIncident).
 func (s *Store) IncidentsOf(ctx context.Context, owner string, openOnly bool, limit int) ([]Incident, error) {
 	if limit <= 0 {
 		limit = -1 // SQLite: LIMIT âm là không giới hạn
 	}
-	query := "SELECT " + incidentColumns + " FROM incidents WHERE " + ownedTarget
+	query := "SELECT " + incidentColumns + " FROM incidents WHERE " + ownedIncident
 	if openOnly {
 		query += " AND closed_at IS NULL"
 	}
@@ -479,12 +487,14 @@ func (s *Store) IncidentsOf(ctx context.Context, owner string, openOnly bool, li
 }
 
 // IncidentOwner trả chủ của sự cố: chủ của site là target của nó. Sự cố của
-// máy, stack, tpan (hay của site đã xoá hẳn) trả "" và ok=true; chỉ admin được
-// xem. ok=false khi không có sự cố.
+// máy, stack, tpan (hay của site đã xoá hẳn, hay mở trước lúc site hiện tại
+// cùng tên được tạo: B3) trả "" và ok=true; chỉ admin được xem. ok=false khi
+// không có sự cố.
 func (s *Store) IncidentOwner(ctx context.Context, id int64) (owner string, ok bool, err error) {
 	var o sql.NullString
 	err = s.db.QueryRowContext(ctx,
-		`SELECT (SELECT owner FROM sites WHERE domain = i.target) FROM incidents i WHERE i.id = ?`, id).Scan(&o)
+		`SELECT (SELECT s.owner FROM sites s WHERE s.domain = i.target AND i.opened_at >= s.created_at)
+		 FROM incidents i WHERE i.id = ?`, id).Scan(&o)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false, nil
 	}

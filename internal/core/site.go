@@ -536,6 +536,14 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		if err := s.checkPanelReserved(ctx, d); err != nil {
 			return nil, err
 		}
+		// M28 đợt 2, B11: không dùng chung slug với site khác (m28_p4.go).
+		all, err := s.Store.Sites(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err := refuseSlugTaken(all, d); err != nil {
+			return nil, err
+		}
 		if in.Email.IsZero() {
 			return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị (--email): site mới cần email cho tài khoản quản trị WordPress", "the admin email is missing (--email): a new site needs an email for its WordPress admin account"))
 		}

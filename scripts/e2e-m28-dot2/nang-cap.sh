@@ -151,7 +151,9 @@ sys.exit(0 if bad else 1)' "$W/health.json" "$id"
   step "N8. sau harden: tpan health so với trước khi nâng"
   tpan health </dev/null >"$W/health.full" 2>&1
   loi_health "$W/health.full" >"$W/health.sau"
-  moi="$(comm -13 "$W/health.truoc" "$W/health.sau")"
+  # M20: máy nâng từ bản cũ có thêm cảnh báo "admin chưa bật đăng nhập hai bước"
+  # (đúng thiết kế của M20, không do bản vá này): không tính.
+  moi="$(comm -13 "$W/health.truoc" "$W/health.sau" | grep -v "đăng nhập hai bước")"
   [ -n "$moi" ] && printf '  dòng mới:\n%s\n' "$moi" | cut -c1-300
   ok "sau harden không có dòng [lỗi] hay [cảnh báo] mới so với trước khi nâng" test -z "$moi"
   rm -f "$W/health.full"

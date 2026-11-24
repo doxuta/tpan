@@ -21,8 +21,11 @@ const SiteUIDKey = "site_uid_max"
 // (steps.SiteUser) ghi số TRƯỚC khi chạy useradd: useradd lỗi thì số đó bỏ
 // phí, không sao; ngược lại (useradd xong mà chưa kịp ghi) mới là dùng lại.
 //
-// Mất tpan.db (cài lại từ đầu) là mất lịch sử này; khi đó steps.SiteUser vẫn
-// bắt đầu từ trên mọi UID đang có trong /etc/passwd, /etc/group của dải.
+// Mất tpan.db (cài lại từ đầu) hay khôi phục một bản sao tpan.db cũ (bộ đếm
+// lùi lại) thì số ở đây không còn đủ; steps.SiteUser vì thế lấy thêm mức sàn
+// từ mọi UID đang có trong /etc/passwd, /etc/group của dải và từ bản thứ hai
+// ngoài tpan.db (/var/lib/tpan/site-uid-max, B10 của soát cuối nhóm B), rồi
+// truyền max của chúng vào đây làm floor.
 func (s *Store) ReserveSiteUID(ctx context.Context, floor int) (int, error) {
 	// settings là bảng STRICT, cột value kiểu TEXT: đổi qua lại bằng CAST.
 	// Giá trị cũ không phải số (sửa tay) thì CAST ra 0, tức là dùng floor.
