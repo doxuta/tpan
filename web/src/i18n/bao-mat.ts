@@ -88,6 +88,48 @@ const vi = {
   hardenKept: (n: number) => `${n} site giữ day-du vì .htaccess có chỉ thị ngoài danh sách cho phép`,
   hardenKeptHint: "Sửa các dòng này trong .htaccess rồi áp bản vá lần nữa, hoặc để site ở day-du và nhận cảnh báo trong health.",
   hardenNoFindings: "Máy chủ không gửi kèm dòng nào.",
+
+  // ---- M17: thẻ "Thử tấn công" (mục 6.15 của KE-HOACH.md, mục 7 của GIAO-DIEN.md) ----
+  probeHeading: "Thử tấn công",
+  probeLead:
+    "TPAN tạo hai site thử có tên dành riêng, chạy các đường tấn công ở ngoài lồng rồi trong lồng, rồi xoá sạch cả hai. Mất vài phút. Site thật không bị đụng.",
+  probeButton: "Thử tấn công",
+  probeOnlyLabel: "Lượt chạy",
+  probeOnlyBoth: "Cả hai",
+  probeOnlyOutside: "Ngoài lồng",
+  probeOnlyInside: "Trong lồng",
+  probeLoadFailed: "Chưa đọc được kết quả thử tấn công.",
+  probePreviewError: "Chưa dựng được bản xem trước của lượt thử tấn công",
+  probeCleanupPreviewError: "Chưa dựng được bản xem trước của việc dọn lượt thử",
+  probeEmpty: "Chưa có lượt thử nào. Bấm Thử tấn công để chạy lượt đầu tiên.",
+
+  probeRunning: (domains: string) => `Đang có một lượt thử chạy (site thử ${domains}). Đợi nó xong rồi hãy chạy lượt khác.`,
+  probePending: (n: number, domains: string) => `Còn ${n} lượt thử chưa dọn (site thử ${domains}).`,
+  probeCleanupButton: "Dọn lượt thử còn sót",
+
+  probePreviewHeading: "Hai site thử sẽ được tạo rồi xoá",
+  probePreviewLead: "Tên dành riêng cho việc thử; site thật không bị đụng. Chạy xong, TPAN xoá cả hai.",
+  probePreviewA: "Site thử A",
+  probePreviewB: "Site thử B",
+  probePreviewPasses: "Lượt chạy",
+
+  probeLastHeading: "Lượt gần nhất",
+  probeWhen: (when: string) => `Chạy lúc ${when}`,
+  probePaths: (n: number) => `${n} đường`,
+  probeOnlyDone: { "": "cả hai lượt", ngoai: "chỉ ngoài lồng", trong: "chỉ trong lồng" },
+  probeExposedNotice: (n: number) => `Có ${n} ô lộ: đường lẽ ra phải bị chặn mà vẫn đi được. Mở ô lộ trong bảng để xem bằng chứng.`,
+  probeSafeNotice: "Không ô nào lộ.",
+  probeStatus: { blocked: "bị chặn", exposed: "lộ", needs_cage: "chỉ lồng chặn được", skipped: "bỏ qua", na: "không áp dụng" },
+  probeCount: (n: number, status: string) => `${n} ${status}`,
+
+  probeCaption: "Kết quả thử tấn công: mỗi đường tấn công một hàng, hai cột là ngoài lồng và trong lồng",
+  probeColPath: "Đường",
+  probeColName: "Cách tấn công",
+  probeColOutside: "Ngoài lồng",
+  probeColInside: "Trong lồng",
+  probeCellLabel: (path: string, column: string, status: string) => `${path}, ${column}: ${status}`,
+  probeNoEvidence: "Ô này không ghi lại lệnh nào.",
+  probeNaSummary: (n: number) => `${n} đường không áp dụng cho stack này`,
 };
 
 export const strings = defineStrings(vi, {
@@ -170,4 +212,45 @@ export const strings = defineStrings(vi, {
   hardenKept: (n) => `${n} ${n === 1 ? "site stays" : "sites stay"} on day-du because .htaccess has directives outside the allow list`,
   hardenKeptHint: "Fix these lines in .htaccess and apply the hardening again, or leave the site on day-du and accept the warning in health.",
   hardenNoFindings: "The server sent no lines with it.",
+
+  probeHeading: "Attack test",
+  probeLead:
+    "TPAN creates two test sites with reserved names, runs the attack paths outside the cage and then inside it, then deletes both. It takes a few minutes. Your real sites are not touched.",
+  probeButton: "Attack test",
+  probeOnlyLabel: "Pass to run",
+  probeOnlyBoth: "Both",
+  probeOnlyOutside: "Not caged",
+  probeOnlyInside: "Caged",
+  probeLoadFailed: "Could not read the attack test result.",
+  probePreviewError: "Could not build the preview of the attack test",
+  probeCleanupPreviewError: "Could not build the preview of the clean-up",
+  probeEmpty: "No test run yet. Press Attack test to run the first one.",
+
+  probeRunning: (domains) => `A test run is in progress (test sites ${domains}). Wait for it to finish before starting another.`,
+  probePending: (n, domains) => `${n} test ${n === 1 ? "run is" : "runs are"} still not cleaned up (test sites ${domains}).`,
+  probeCleanupButton: "Clean up leftover test runs",
+
+  probePreviewHeading: "Two test sites will be created, then deleted",
+  probePreviewLead: "The names are reserved for testing; your real sites are not touched. When the run ends, TPAN deletes both.",
+  probePreviewA: "Test site A",
+  probePreviewB: "Test site B",
+  probePreviewPasses: "Pass to run",
+
+  probeLastHeading: "Latest run",
+  probeWhen: (when) => `Ran at ${when}`,
+  probePaths: (n) => `${n} ${n === 1 ? "path" : "paths"}`,
+  probeOnlyDone: { "": "both passes", ngoai: "not caged only", trong: "caged only" },
+  probeExposedNotice: (n) => `${n} ${n === 1 ? "cell is" : "cells are"} exposed: a path that should be blocked still gets through. Open the exposed cell in the table to see the evidence.`,
+  probeSafeNotice: "No cell is exposed.",
+  probeStatus: { blocked: "blocked", exposed: "exposed", needs_cage: "needs a cage", skipped: "skipped", na: "not applicable" },
+  probeCount: (n, status) => `${n} ${status}`,
+
+  probeCaption: "Attack test result: one row per attack path, with a not caged column and a caged column",
+  probeColPath: "Path",
+  probeColName: "Attack",
+  probeColOutside: "Not caged",
+  probeColInside: "Caged",
+  probeCellLabel: (path, column, status) => `${path}, ${column}: ${status}`,
+  probeNoEvidence: "This cell did not record any command.",
+  probeNaSummary: (n) => `${n} ${n === 1 ? "path does" : "paths do"} not apply to this stack`,
 });
