@@ -335,24 +335,30 @@ func TestVhostHardenedNginx(t *testing.T) {
 		return f
 	}
 
-	t.Run("có dòng chặn symlink thì đạt", func(t *testing.T) {
-		f := vhost("\t" + templates.NginxSymlinkGuard)
-		r := VhostHardened("nginx", l, "").Run(bg(), f)
-		assertShape(t, r, id, StageWeb, Pass)
-		assertNoCmd(t, f)
-		if ev := r.Evidence[0]; ev.Command != recheck+" (tpan)" || ev.Output != "5:\t"+templates.NginxSymlinkGuard {
-			t.Errorf("Evidence = %+v", ev)
-		}
-	})
+	// Dòng cũ (vhost ghi trước M28 đợt 2) và dòng mới đều đạt: phép này nằm
+	// trong kiểm chứng của mọi Plan chạm site, vhost cũ không được làm hỏng Plan.
+	for _, guard := range []string{templates.NginxSymlinkGuard, templates.NginxSymlinkGuardV2} {
+		t.Run("có dòng chặn symlink thì đạt: "+guard, func(t *testing.T) {
+			f := vhost("\t" + guard)
+			r := VhostHardened("nginx", l, "").Run(bg(), f)
+			assertShape(t, r, id, StageWeb, Pass)
+			assertNoCmd(t, f)
+			if ev := r.Evidence[0]; ev.Command != recheck+" (tpan)" || ev.Output != "5:\t"+guard {
+				t.Errorf("Evidence = %+v", ev)
+			}
+		})
+	}
 	t.Run("thiếu dòng chặn, hoặc dòng chỉ nằm trong chú thích, thì lỗi", func(t *testing.T) {
 		for _, f := range []*system.FakeSystem{
 			vhost("    index index.php;"),
 			vhost("    # " + templates.NginxSymlinkGuard),
+			vhost("    # " + templates.NginxSymlinkGuardV2),
 			vhost("    disable_symlinks off;"),
 		} {
 			r := VhostHardened("nginx", l, site.HtaccessFull).Run(bg(), f)
 			assertShape(t, r, id, StageWeb, Fail)
-			if !strings.Contains(r.Summary.Vi, templates.NginxSymlinkGuard) || !strings.Contains(r.Cause.Vi, "symlink") {
+			// Lời báo nêu dòng mới: đó là dòng `tpan security harden` sẽ ghi.
+			if !strings.Contains(r.Summary.Vi, templates.NginxSymlinkGuardV2) || !strings.Contains(r.Cause.Vi, "symlink") {
 				t.Errorf("Summary = %q, Cause = %q", r.Summary.Vi, r.Cause.Vi)
 			}
 			if r.ManualFix[0] != hardenCmd || lastFix(r) != recheck {

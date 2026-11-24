@@ -221,7 +221,7 @@ func TestRunningJobsOf(t *testing.T) {
 	ctx := context.Background()
 	mk := func(id, target, actor string, st engine.JobStatus) {
 		j := sampleJob(id, t0)
-		j.Target, j.Actor, j.Status = target, actor, st
+		j.Kind, j.Target, j.Actor, j.Status = "site.add", target, actor, st // P7: chủ suy theo loại job
 		if err := s.CreateJob(ctx, j); err != nil {
 			t.Fatal(err)
 		}

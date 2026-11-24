@@ -90,10 +90,26 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 			Verify: []checks.Check{checks.Drift(obj, hex.EncodeToString(sum[:]), checks.DriftStage(obj))},
 		}, nil
 	case FixWebRewrite:
-		if kind == "web.vhost" || kind == "web.hardened" {
+		if kind == "web.vhost" || kind == "web.hardened" || kind == "web.docroot_guard" {
 			return f.vhostRewrite(ctx, cfg, r.ID, obj)
 		}
 		return f.webRewrite(ctx, cfg, r.ID, kind)
+	case FixPHPPool:
+		return f.poolRewrite(ctx, cfg, r.ID, obj)
+	case FixApacheModOff:
+		// ID chỉ có một dạng; stack không phải Apache thì kết quả cũ đó không
+		// còn đúng (a2dismod không có gì để làm).
+		if cfg.Web != Apache || obj != "apache2" {
+			return engine.Plan{}, noAutoFix(r.ID)
+		}
+		return engine.Plan{
+			Target: obj,
+			Title:  i18n.T("Tắt mod_status của Apache", "Turn off Apache mod_status"),
+			Steps:  []engine.Step{&steps.ApacheModOff{Module: "status"}},
+			Verify: []checks.Check{checks.ApacheModStatus()},
+		}, nil
+	case FixDBUserLimit:
+		return f.dbUserLimit(ctx, r.ID, obj)
 	case FixPHPHarden:
 		// obj là bản PHP, lấy từ ID của phép kiểm: kiểm dạng trước khi nó đi
 		// vào đường dẫn và tên dịch vụ.
@@ -599,15 +615,22 @@ func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj strin
 	// File vhost người dùng đã nhận bản sửa tay làm chuẩn thì giữ; bước
 	// symlink vẫn chạy nên vhost vẫn được bật lại.
 	//
-	// Trừ khi đang sửa web.hardened (M14): phép kiểm đó nói chính file vhost
-	// thiếu dòng chặn, nên phải ghi lại nó. Mà "khớp sha256 đã ghi nhưng khác
-	// template" cũng là hình dạng của một vhost do bản tpan cũ ghi (thấy trên
-	// máy ảo, nâng từ v0.1.2: dropAccepted bỏ bước ghi và job hỏng ở kiểm
-	// chứng). Bản xem trước hiện diff, người dùng thấy điều sẽ bị ghi đè.
-	if kind, _, _ := strings.Cut(id, ":"); kind != "web.hardened" {
+	// Trừ khi đang sửa web.hardened (M14) hay web.docroot_guard (M28 đợt 2):
+	// hai phép kiểm đó nói chính file vhost thiếu dòng chặn, nên phải ghi lại
+	// nó. Mà "khớp sha256 đã ghi nhưng khác template" cũng là hình dạng của một
+	// vhost do bản tpan cũ ghi (thấy trên máy ảo, nâng từ v0.1.2: dropAccepted
+	// bỏ bước ghi và job hỏng ở kiểm chứng). Bản xem trước hiện diff, người
+	// dùng thấy điều sẽ bị ghi đè.
+	kind, _, _ := strings.Cut(id, ":")
+	if kind != "web.hardened" && kind != "web.docroot_guard" {
 		if ss, err = f.dropAccepted(ctx, ss); err != nil {
 			return engine.Plan{}, err
 		}
+	}
+	// Vhost tạm khoá không trỏ vào public nên không có dấu F4 nào để ghi; một
+	// kết quả web.docroot_guard cũ của site nay đã khoá thì không sửa.
+	if kind == "web.docroot_guard" && st.Suspended != account.NotSuspended {
+		return engine.Plan{}, noAutoFix(id)
 	}
 	l := st.Layout()
 	config := checks.NginxConfig()
@@ -620,12 +643,114 @@ func (f *Fixes) vhostRewrite(ctx context.Context, cfg StackConfig, id, obj strin
 	if st.Suspended == account.NotSuspended {
 		verify = append(verify, checks.VhostHardened(string(cfg.Web), l, st.Htaccess))
 	}
+	if kind == "web.docroot_guard" {
+		verify = append(verify, checks.DocrootGuard(string(cfg.Web), l))
+	}
 	return engine.Plan{
 		Target: obj,
 		Title:  i18n.T("Ghi lại và bật lại vhost của "+obj, "Rewrite and re-enable the vhost of "+obj),
 		Steps:  ss,
 		Verify: verify,
 	}, nil
+}
+
+// poolRewrite sửa php.pool (M28 đợt 2, S8): ghi lại file pool của bản PHP site
+// đang dùng từ template (kiểm cú pháp, reload, chờ socket như lúc tạo). Không
+// qua dropAccepted: phép kiểm nói chính pool đang mở lỗ (listen TCP, user
+// khác), bản sửa tay đã nhận cũng phải ghi lại; bản xem trước hiện diff.
+// Site tạm khoá không có pool: ghi lại là mở khoá lén.
+//
+// ponytail: chỉ ghi pool của bản PHP hiện tại. File pool của site nằm lại ở
+// một bản PHP khác (máy lệch) vẫn làm kiểm chứng Fail và job hoàn tác; người
+// dùng xoá tay theo ManualFix của phép kiểm. Nâng cấp: thêm bước Absent cho
+// file đó nếu ca này gặp thật.
+func (f *Fixes) poolRewrite(ctx context.Context, cfg StackConfig, id, obj string) (engine.Plan, error) {
+	st, err := f.activeSite(ctx, id, obj)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	if err := refuseSuspendedPool(st); err != nil {
+		return engine.Plan{}, err
+	}
+	// M17: site trong lồng không có pool chung; ghi lại pool là đưa nó ra khỏi
+	// lồng. Pool chung còn sót của site trong lồng thì xoá tay (ManualFix).
+	if st.Caged {
+		return engine.Plan{}, noAutoFix(id)
+	}
+	// sitePHPSteps (có gác cageAbsentPool): Plan dựng lúc site ngoài lồng mà
+	// chạy sau một job cage.enable thì không ghi pool chung. Bước pool tự chờ
+	// socket như lúc tạo site.
+	pool, err := sitePHPSteps(st, cfg, account.Limits{})
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	vers, err := phpInstalled(f.Sys)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	l := st.Layout()
+	return engine.Plan{
+		Target: l.Domain.String(),
+		Title:  i18n.T("Ghi lại pool PHP-FPM của "+obj+" từ bản của tpan", "Rewrite the PHP-FPM pool of "+obj+" from tpan's version"),
+		Steps:  pool,
+		Verify: []checks.Check{checks.PHPPool(l, vers)},
+	}, nil
+}
+
+// dbUserLimit sửa db.user_limit (D2 của soát cuối đợt 2): đặt trần kết nối cho
+// user DB. user đến từ ID nên chỉ nhận user DB của một site active hay một DB
+// rời active (f.Store cũng là DBStore, như *store.Store): khớp dạng tên thôi
+// thì `db.user_limit:root` sẽ đặt trần cho chính root của MariaDB. Trần đã
+// khác 0 (lớn hơn max_connections) hay user không có thì bước không đổi gì,
+// nên không có cách sửa tự động. Verify là DBUserLimit, cảnh báo cũng tính là
+// không đạt (không thì job "thành công" mà máy vẫn y như cũ).
+func (f *Fixes) dbUserLimit(ctx context.Context, id, user string) (engine.Plan, error) {
+	known := false
+	sites, err := f.activeSites(ctx)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	for _, st := range sites {
+		known = known || st.Layout().DB == user
+	}
+	if dbs, ok := f.Store.(DBStore); ok && !known {
+		all, err := dbs.StandaloneDBs(ctx, "")
+		if err != nil {
+			return engine.Plan{}, fmt.Errorf("đọc danh sách DB rời: %w", err)
+		}
+		for _, d := range all {
+			known = known || (d.Status == account.DBActive && d.Name == user)
+		}
+	}
+	if !known {
+		return engine.Plan{}, noAutoFix(id)
+	}
+	exists, limit, err := steps.DBUserLimitState(ctx, f.Sys, user)
+	if err != nil {
+		return engine.Plan{}, err
+	}
+	if !exists || limit != 0 {
+		return engine.Plan{}, noAutoFix(id)
+	}
+	n := fmt.Sprint(site.DBMaxUserConnections)
+	return engine.Plan{
+		Target: user,
+		Title:  i18n.T("Đặt trần "+n+" kết nối cùng lúc cho user DB "+user, "Limit the database user "+user+" to "+n+" simultaneous connections"),
+		Steps:  []engine.Step{&steps.DBUserLimit{User: user, Max: site.DBMaxUserConnections}},
+		Verify: []checks.Check{strictCheck{checks.DBUserLimit(user)}},
+	}, nil
+}
+
+// strictCheck coi Warn là Fail: cho Verify của cách sửa mà phép kiểm gốc chỉ
+// cảnh báo (db.user_limit).
+type strictCheck struct{ c checks.Check }
+
+func (s strictCheck) Run(ctx context.Context, sys system.System) checks.Result {
+	r := s.c.Run(ctx, sys)
+	if r.Status == checks.Warn {
+		r.Status = checks.Fail
+	}
+	return r
 }
 
 // siteVhost dựng bước ghi vhost đúng loại của site: có SSL (M5) thì bản có

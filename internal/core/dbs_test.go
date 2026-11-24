@@ -6,6 +6,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -33,6 +34,7 @@ type dbsSimDB struct{ cs, coll, data string }
 type dbsSimUser struct {
 	pw     string
 	locked bool
+	limit  int // MAX_USER_CONNECTIONS (0: không trần)
 }
 
 var (
@@ -45,10 +47,13 @@ var (
 	dbsReLock    = regexp.MustCompile(`^ALTER USER '(\w+)'@'localhost' ACCOUNT (LOCK|UNLOCK);$`)
 	dbsRePw      = regexp.MustCompile(`^ALTER USER '(\w+)'@'localhost' IDENTIFIED BY '(\w+)';$`)
 	dbsReKill    = regexp.MustCompile(`^KILL CONNECTION (\d+);$`)
-	dbsReCrUser  = regexp.MustCompile(`^CREATE USER '(\w+)'@'localhost' IDENTIFIED BY '(\w+)';$`)
+	dbsReCrUser  = regexp.MustCompile(`^CREATE USER '(\w+)'@'localhost' IDENTIFIED BY '(\w+)' WITH MAX_USER_CONNECTIONS 20;$`)
 	dbsReGrant   = regexp.MustCompile("^GRANT ALL PRIVILEGES ON `[\\w\\\\]+`\\.\\* TO '(\\w+)'@'localhost';$")
 	dbsReDrUser  = regexp.MustCompile(`^DROP USER IF EXISTS '(\w+)'@'localhost';$`)
 	dbsReDrDB    = regexp.MustCompile("^DROP DATABASE IF EXISTS `(\\w+)`;$")
+	dbsReLimSt   = regexp.MustCompile(`^SELECT COUNT\(\*\), COALESCE\(MAX\(max_user_connections\), 0\) FROM mysql\.user WHERE User='(\w+)' AND Host='localhost';$`)
+	dbsReLimit   = regexp.MustCompile(`^ALTER USER '(\w+)'@'localhost' WITH MAX_USER_CONNECTIONS (\d+);$`)
+	dbsReKillU   = regexp.MustCompile(`^KILL USER '(\w+)'@'localhost';$`)
 )
 
 const dbsCollationsOut = "latin1\tlatin1_bin\t\nlatin1\tlatin1_swedish_ci\tYes\n" +
@@ -119,8 +124,21 @@ func newDBsSim() *dbsSim {
 				f.users[m[1]] = u
 			case match(dbsReKill):
 				delete(f.conns, m[1])
+			case match(dbsReLimSt):
+				u, ok := f.users[m[1]]
+				fmt.Fprintf(&out, "%d\t%d\n", b(ok), u.limit)
+			case match(dbsReLimit):
+				u := f.users[m[1]]
+				u.limit, _ = strconv.Atoi(m[2])
+				f.users[m[1]] = u
+			case match(dbsReKillU):
+				for id, u := range f.conns {
+					if u == m[1] {
+						delete(f.conns, id)
+					}
+				}
 			case match(dbsReCrUser):
-				f.users[m[1]] = dbsSimUser{pw: m[2]}
+				f.users[m[1]] = dbsSimUser{pw: m[2], limit: 20}
 			case match(dbsReGrant):
 			case match(dbsReDrUser):
 				delete(f.users, m[1])
@@ -498,8 +516,20 @@ func TestDBTrashRestorePurge(t *testing.T) {
 	}
 	r.Suspended = ""
 	e.store.dbs["alice_shop"] = r
+	// D10: user vào thùng rác lúc máy chưa có bản vá M1-DBCONN (không trần),
+	// còn một kết nối mở từ trước.
+	u := e.sim.users["alice_shop"]
+	u.limit = 0
+	e.sim.users["alice_shop"] = u
+	e.sim.conns["77"] = "alice_shop"
 
 	dbsExec(t)(e.d.PrepareRestore(ctx, "alice_shop"))
+	if n := e.sim.users["alice_shop"].limit; n != site.DBMaxUserConnections {
+		t.Errorf("trần sau khôi phục DB rời = %d, muốn %d", n, site.DBMaxUserConnections)
+	}
+	if _, ok := e.sim.conns["77"]; ok {
+		t.Error("kết nối mở trước khi có trần không bị cắt (D3)")
+	}
 	if got := e.sim.dbs["alice_shop"]; got.data != "orders" || got.coll != "utf8mb4_general_ci" {
 		t.Errorf("DB khôi phục = %+v", got)
 	}

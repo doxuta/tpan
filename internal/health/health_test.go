@@ -540,6 +540,28 @@ func openFor(t *testing.T, e *env, id string) bool {
 	return false
 }
 
+// D10 của soát cuối đợt 2: DB rời đang chạy có db.user_limit, gắn vào máy
+// (""); DB rời trong thùng rác thì không (user của nó đã bị khoá, DB đã DROP).
+func TestRunDBRoiCoTranKetNoi(t *testing.T) {
+	e := newEnv(t, true)
+	ctx := context.Background()
+	for _, d := range []account.Database{
+		{Name: "app_kho", Owner: "admin", Status: account.DBActive, Created: t0},
+		{Name: "app_cu", Owner: "admin", Status: account.DBTrashed, Created: t0},
+	} {
+		if err := e.st.SaveStandaloneDB(ctx, d); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := targets(t, e.run(t, Options{Full: true}))
+	if tg, ok := got["db.user_limit:app_kho"]; !ok || tg != "" {
+		t.Errorf("db.user_limit:app_kho: có %v, target %q; muốn có, target rỗng", ok, tg)
+	}
+	if _, ok := got["db.user_limit:app_cu"]; ok {
+		t.Error("DB rời trong thùng rác không được có db.user_limit")
+	}
+}
+
 func storedIDs(t *testing.T, e *env) map[string]bool {
 	t.Helper()
 	rs, err := e.st.CheckResults(context.Background())

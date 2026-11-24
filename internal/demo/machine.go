@@ -405,6 +405,9 @@ func (m *machine) mariadb(c system.Cmd) system.Result {
 	if res, ok := m.mariadbLock(sql); ok {
 		return res
 	}
+	if res, ok := m.mariadbLimit(sql); ok {
+		return res
+	}
 	// Màn Cơ sở dữ liệu hỏi dung lượng và số bảng của các DB trong một câu
 	// (core.Sites.Databases): mỗi DB có một dòng "tên<TAB>số bảng<TAB>byte".
 	if i := strings.Index(sql, "SCHEMA_NAME IN ("); i >= 0 && strings.Contains(sql, "information_schema.SCHEMATA") {

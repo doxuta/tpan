@@ -36,10 +36,11 @@ type dbFake struct {
 	stateOut string
 }
 
+// M28 đợt 2: user mới phải có trần kết nối (dbFakeCrUser, site.DBMaxUserConnections = 20).
 var (
 	dbFakeState  = regexp.MustCompile(`^SELECT \(SELECT COUNT\(\*\) FROM information_schema\.SCHEMATA WHERE SCHEMA_NAME='([a-z0-9_]+)'\), \(SELECT COUNT\(\*\) FROM mysql\.global_priv WHERE User='([a-z0-9_]+)' AND Host='localhost'\);$`)
 	dbFakeCrDB   = regexp.MustCompile("^CREATE DATABASE `([a-z0-9_]+)` CHARACTER SET utf8mb4;$")
-	dbFakeCrUser = regexp.MustCompile(`^CREATE USER '([a-z0-9_]+)'@'localhost' IDENTIFIED BY '([A-Za-z0-9]+)';$`)
+	dbFakeCrUser = regexp.MustCompile(`^CREATE USER '([a-z0-9_]+)'@'localhost' IDENTIFIED BY '([A-Za-z0-9]+)' WITH MAX_USER_CONNECTIONS 20;$`)
 	dbFakeGrant  = regexp.MustCompile("^GRANT ALL PRIVILEGES ON `([a-z0-9_\\\\]+)`\\.\\* TO '([a-z0-9_]+)'@'localhost';$")
 	dbFakeDrUser = regexp.MustCompile(`^DROP USER IF EXISTS '([a-z0-9_]+)'@'localhost';$`)
 	dbFakeDrDB   = regexp.MustCompile("^DROP DATABASE IF EXISTS `([a-z0-9_]+)`;$")
@@ -490,7 +491,7 @@ func TestSiteDBInfo(t *testing.T) {
 	}
 	want := []string{
 		"mariadb -N -B  (stdin: CREATE DATABASE `" + l.DB + "` CHARACTER SET utf8mb4;)",
-		"mariadb -N -B  (stdin: CREATE USER '" + l.DB + "'@'localhost' IDENTIFIED BY '••••';)",
+		"mariadb -N -B  (stdin: CREATE USER '" + l.DB + "'@'localhost' IDENTIFIED BY '••••' WITH MAX_USER_CONNECTIONS 20;)",
 		"mariadb -N -B  (stdin: GRANT ALL PRIVILEGES ON `" + strings.ReplaceAll(l.DB, "_", `\_`) + "`.* TO '" + l.DB + "'@'localhost';)",
 	}
 	if !reflect.DeepEqual(db.Commands, want) {

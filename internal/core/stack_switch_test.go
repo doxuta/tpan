@@ -181,6 +181,7 @@ func (e *switchEnv) install(p string) {
 		e.SetDir("/etc/logrotate.d", 0o755, system.Root)
 		e.units["apache2"] = on
 		e.mods["mpm_prefork"] = true
+		e.mods["status"] = true // gói apache2 của Ubuntu bật sẵn (H5)
 	}
 }
 

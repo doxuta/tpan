@@ -53,8 +53,15 @@ func (s *Stack) Checks(ctx context.Context) (cs []checks.Check, installed bool, 
 // trùng giữa các vhost, và vhost mặc định từ chối tên lạ (thêm cổng 443 khi có
 // site bật SSL). Sites nil (lệnh chỉ cần phép kiểm của stack) thì bỏ hai phép
 // định tuyến.
+//
+// M28 đợt 2 (H5, S15): web.mod_status khi stack là Apache. Ở đây (health và
+// kiểm chứng của harden), KHÔNG ở stackChecks: admin cố ý bật lại mod_status
+// để giám sát thì `tpan update` vẫn chạy được.
 func (s *Stack) isolationChecks(ctx context.Context, cfg StackConfig) ([]checks.Check, error) {
 	var cs []checks.Check
+	if cfg.Web == Apache {
+		cs = append(cs, checks.ApacheModStatus())
+	}
 	if s.Sys != nil {
 		vers, err := phpInstalled(s.Sys)
 		if err != nil {
@@ -107,11 +114,15 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if err != nil {
 		return nil, err
 	}
+	vers, err := healthPHPVers(s.Sys)
+	if err != nil {
+		return nil, err
+	}
 	lim, err := siteCageLimits(ctx, s.Accounts, st)
 	if err != nil {
 		return nil, err
 	}
-	cs := append(siteEdgeChecks(st.Layout(), st.SSL), siteStateChecks(st, cfg, others, lim, false)...)
+	cs := append(siteEdgeChecks(st.Layout(), st.SSL), siteHealthChecks(st, cfg, others, lim, vers)...)
 	state, err := s.cageStateCheck(ctx, st)
 	if err != nil {
 		return nil, err
@@ -164,6 +175,37 @@ func (s *Sites) cageStateCheck(ctx context.Context, st site.Site) (checks.Check,
 //
 // lim (M17) là trần của lồng khi st.Caged (siteCageLimits), nil khi ngoài lồng;
 // đi thẳng vào siteChecks.
+//
+// siteHealthChecks là bộ của health: siteStateChecks (verify=false) cộng ba
+// phép chỉ health xét của M28 đợt 2, ở cuối: php.pool (S8: file pool của site
+// ở mọi bản PHP đang cài, phpVers), web.docroot_guard (S5: Plan không ghi vhost
+// thì không làm hỏng nó vì vhost cũ), cả hai chỉ cho site không tạm khoá (site
+// tạm khoá không có pool và vhost của nó không trỏ vào public); db.user_limit
+// khi cả site lẫn DB của nó không tạm khoá.
+func siteHealthChecks(st site.Site, cfg StackConfig, others []site.Site, lim *account.Limits, phpVers []string) []checks.Check {
+	cs := siteStateChecks(st, cfg, others, lim, false)
+	l := st.Layout()
+	if st.Suspended == account.NotSuspended {
+		cs = append(cs, checks.PHPPool(l, phpVers), checks.DocrootGuard(string(cfg.Web), l))
+	}
+	// db.user_limit ở chặng DB: site hay DB đang tạm khoá thì chặng DB chỉ hiện
+	// "tạm khoá" xám (M13), nên không xét; harden vẫn đặt trần cho user khoá, và
+	// mở khoá xong thì health xét lại.
+	if st.Suspended == account.NotSuspended && st.DBSuspended == account.NotSuspended {
+		cs = append(cs, checks.DBUserLimit(l.DB))
+	}
+	return cs
+}
+
+// healthPHPVers là các bản PHP đang cài cho php.pool; nil khi không có System
+// (lệnh chỉ dựng phép kiểm, như isolationChecks).
+func healthPHPVers(sys system.System) ([]string, error) {
+	if sys == nil {
+		return nil, nil
+	}
+	return phpInstalled(sys)
+}
+
 func siteStateChecks(st site.Site, cfg StackConfig, others []site.Site, lim *account.Limits, verify bool) []checks.Check {
 	web, php, l := string(cfg.Web), sitePHP(st, cfg), st.Layout()
 	var cs []checks.Check
@@ -177,7 +219,7 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Site, lim *acc
 		if st.SSL {
 			cs = append(cs, checks.TLSCert(l))
 		}
-		cs = append(cs, checks.VhostEnabled(web, l), checks.LogPerms(l))
+		cs = append(cs, checks.VhostEnabled(web, l), checks.LogPerms(l), checks.SiteDocroot(l))
 		hold(checks.StagePHP, false)
 		hold(checks.StageWordPress, false)
 		hold(checks.StageDB, false)
@@ -264,6 +306,21 @@ const (
 	// điều kiện đầu (email, DNS). Site chưa từng xin SSL chỉ có Warn nên không
 	// có nút này: xin chứng chỉ lần đầu là một quyết định, không phải sửa lỗi.
 	FixSSLIssue = "ssl.issue"
+	// "php.pool:<domain>" Fail (M28 đợt 2, S8): file pool của site bị sửa tay
+	// (listen TCP, user khác, quyền socket khác): ghi lại pool của bản PHP site
+	// đang dùng từ template, có kiểm cú pháp và reload như lúc tạo.
+	FixPHPPool = "php.pool.rewrite"
+	// "web.mod_status:apache2" Fail (D2 của soát cuối đợt 2): tắt mod_status
+	// bằng đúng bước của harden (steps.ApacheModOff), Verify chỉ
+	// ApacheModStatus. Không phải chạy lại cả harden (một site xấu không làm
+	// được job này lỗi). Chỉ khi stack là Apache.
+	FixApacheModOff = "apache.mod-off"
+	// "db.user_limit:<user>" Warn (D2): user DB của một site active hay một
+	// DB rời active không có trần: đặt trần site.DBMaxUserConnections bằng
+	// steps.DBUserLimit (cắt luôn kết nối đang mở), Verify chỉ DBUserLimit.
+	// Trần đã có mà lớn hơn max_connections: không sửa tự động (tpan không
+	// đè trần admin đã chọn).
+	FixDBUserLimit = "db.user-limit"
 )
 
 // AutoFixName trả tên cách sửa tự động cho r, rỗng khi không có (Pass,
@@ -288,6 +345,9 @@ func AutoFixName(r checks.Result) string {
 			return FixCageRestart
 		case "cage.state":
 			return cageStateFix(r)
+		case "db.user_limit":
+			// M28 đợt 2: thiếu trần kết nối chỉ là cảnh báo nhưng có sửa tự động.
+			return FixDBUserLimit
 		}
 		return ""
 	default: // Pass, Unknown: không có gì để sửa, hoặc chưa biết sửa gì.
@@ -317,10 +377,15 @@ func AutoFixName(r checks.Result) string {
 		return FixPHPHarden
 	case "log.perm":
 		return FixLogPerms
-	case "web.hardened":
-		// Vhost thiếu dòng chặn của M14: ghi lại vhost của riêng site đó từ
-		// template hiện tại, theo chế độ .htaccess đang lưu (Fixes.vhostRewrite).
+	case "web.hardened", "web.docroot_guard":
+		// Vhost thiếu dòng chặn của M14 hay dấu của bản vá F4 (M28 đợt 2): ghi
+		// lại vhost của riêng site đó từ template hiện tại, theo chế độ
+		// .htaccess đang lưu (Fixes.vhostRewrite).
 		return FixWebRewrite
+	case "php.pool":
+		return FixPHPPool
+	case "web.mod_status":
+		return FixApacheModOff
 	// M17 (mục 3.7 của docs/thay-doi/M17-thiet-ke.md).
 	case "cage.socket":
 		return FixCageStart

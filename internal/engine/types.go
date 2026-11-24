@@ -156,8 +156,10 @@ type Job struct {
 	// job. Rỗng: dòng lệnh, MCP hoặc bộ hẹn giờ (đều chạy bằng root).
 	Actor string `json:"actor,omitempty"`
 	// Owner là user sở hữu đối tượng job chạm vào (M13). Engine chỉ đặt khi
-	// ctx có WithOwner; không thì store tự suy lúc ghi job (chủ của site hay DB có tên trùng Target, không
-	// có thì Actor, không có nữa thì admin) và đọc ra khi liệt kê.
+	// ctx có WithOwner; không thì store tự suy lúc ghi job (chủ của site hay DB
+	// rời có tên là Target, chỉ với loại job có Target chắc chắn là domain hay
+	// tên DB rời: store.jobOwnerLookup, M28 P7; không có thì Actor, không có nữa
+	// thì admin) và đọc ra khi liệt kê.
 	Owner string `json:"owner,omitempty"`
 }
 

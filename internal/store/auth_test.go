@@ -126,14 +126,18 @@ func TestDemDangNhapSai(t *testing.T) {
 	win, lock := 15*time.Minute, 15*time.Minute
 	now := t0
 	for i := 1; i <= 4; i++ {
-		locked, _, err := s.RecordLoginFailure(ctx, ip, now, 5, win, lock)
-		if err != nil || locked {
-			t.Fatalf("lần sai %d: locked=%v err=%v", i, locked, err)
+		f, err := s.RecordLoginFailure(ctx, ip, now, 5, win, lock)
+		if err != nil || f.Locked || f.Failures != i || !f.FirstAt.Equal(now) {
+			t.Fatalf("lần sai %d: %+v err=%v", i, f, err)
 		}
 	}
-	locked, until, err := s.RecordLoginFailure(ctx, ip, now, 5, win, lock)
-	if err != nil || !locked || !until.Equal(now.Add(lock)) {
-		t.Fatalf("lần sai 5: locked=%v until=%v err=%v", locked, until, err)
+	f, err := s.RecordLoginFailure(ctx, ip, now, 5, win, lock)
+	if err != nil || !f.Locked || !f.Until.Equal(now.Add(lock)) {
+		t.Fatalf("lần sai 5: %+v err=%v", f, err)
+	}
+	// Lỗi 2 của P1: thêm một lần sai lúc khoá còn hạn không được xoá khoá.
+	if f, err := s.RecordLoginFailure(ctx, ip, now.Add(time.Minute), 5, win, lock); err != nil || !f.Locked || !f.Until.Equal(now.Add(lock)) {
+		t.Fatalf("lần sai lúc đang khoá: %+v err=%v; muốn giữ khoá cũ", f, err)
 	}
 	if _, l, _ := s.LoginLockedUntil(ctx, ip, now.Add(14*time.Minute)); !l {
 		t.Fatal("phải còn khoá sau 14 phút")
@@ -145,22 +149,25 @@ func TestDemDangNhapSai(t *testing.T) {
 		t.Fatal("IP khác không bị khoá")
 	}
 	// Khoá hết thì đếm lại từ 1.
-	if l, _, _ := s.RecordLoginFailure(ctx, ip, now.Add(16*time.Minute), 5, win, lock); l {
-		t.Fatal("sau khi hết khoá, một lần sai không được khoá ngay")
+	if f, _ := s.RecordLoginFailure(ctx, ip, now.Add(16*time.Minute), 5, win, lock); f.Locked || f.Failures != 1 {
+		t.Fatalf("sau khi hết khoá phải đếm lại từ 1: %+v", f)
 	}
 	// Lần sai đầu đã quá cửa sổ thì cũng đếm lại.
 	for i := 0; i < 3; i++ {
-		_, _, _ = s.RecordLoginFailure(ctx, ip, now.Add(17*time.Minute), 5, win, lock)
+		_, _ = s.RecordLoginFailure(ctx, ip, now.Add(17*time.Minute), 5, win, lock)
 	}
-	if l, _, _ := s.RecordLoginFailure(ctx, ip, now.Add(40*time.Minute), 5, win, lock); l {
-		t.Fatal("lần sai đầu quá 15 phút thì phải đếm lại")
+	if f, _ := s.RecordLoginFailure(ctx, ip, now.Add(40*time.Minute), 5, win, lock); f.Locked || f.Failures != 1 {
+		t.Fatalf("lần sai đầu quá 15 phút thì phải đếm lại: %+v", f)
 	}
-	if err := s.ClearLoginFailures(ctx, ip); err != nil {
-		t.Fatal(err)
+	if found, err := s.ClearLoginFailures(ctx, ip); err != nil || !found {
+		t.Fatalf("gỡ khoá %s: found=%v err=%v", ip, found, err)
+	}
+	if found, err := s.ClearLoginFailures(ctx, ip); err != nil || found {
+		t.Fatalf("gỡ lần hai: found=%v err=%v; muốn không thấy", found, err)
 	}
 
 	// ResetAdminPassword: hash mới, không còn phiên, không còn khoá.
-	_, _, _ = s.RecordLoginFailure(ctx, ip, now, 1, win, lock)
+	_, _ = s.RecordLoginFailure(ctx, ip, now, 1, win, lock)
 	_ = s.CreateSession(ctx, Session{TokenSHA256: "aa", ID: "a", IP: ip, Created: now})
 	if err := s.ResetAdminPassword(ctx, "$moi", now); err != nil {
 		t.Fatal(err)

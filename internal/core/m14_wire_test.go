@@ -262,7 +262,7 @@ func TestFixVhostHardenedM14(t *testing.T) {
 		// old đổi vhost hiện tại thành dạng bản cũ ghi.
 		old func(conf string) string
 	}{
-		{Nginx, func(conf string) string { return strings.ReplaceAll(conf, templates.NginxSymlinkGuard, "") }},
+		{Nginx, func(conf string) string { return strings.ReplaceAll(conf, templates.NginxSymlinkGuardV2, "") }},
 		{Apache, func(conf string) string {
 			return strings.ReplaceAll(conf, "AllowOverride "+htaccess.OverrideOptions(), "AllowOverride All")
 		}},

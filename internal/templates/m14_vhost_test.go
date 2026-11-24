@@ -15,8 +15,10 @@ import (
 // Phép kiểm checks.VhostHardened so "có chứa" với đúng các hằng dùng ở đây, nên
 // test này là thứ giữ cho template và phép kiểm không lệch nhau.
 
-// Vhost nginx: dòng chặn symlink đứng ngay sau dòng root của site, đúng một
-// lần; ở bản SSL nó nằm trong khối cổng 443 (khối cổng 80 không có root).
+// Vhost nginx: dòng chặn symlink (bản M28 đợt 2, không có from=) đứng ngay sau
+// dòng root của site, đúng một lần; ở bản SSL nó nằm trong khối cổng 443 (khối
+// cổng 80 không có root). Dòng cũ có from= không còn ở đâu, kể cả trong chú
+// thích: e2e và test của core tìm nó bằng so chuỗi trên cả file.
 func TestNginxSymlinkGuard(t *testing.T) {
 	l := siteTestLayout(t, "example.com")
 	for name, gen := range map[string]func(site.Layout, string, string) ([]byte, error){
@@ -28,16 +30,27 @@ func TestNginxSymlinkGuard(t *testing.T) {
 			t.Fatalf("%s: %v", name, err)
 		}
 		lines := codeLines(out)
-		if n := countLines(lines, NginxSymlinkGuard); n != 1 {
-			t.Errorf("%s: dòng %q xuất hiện %d lần, muốn 1", name, NginxSymlinkGuard, n)
+		if n := countLines(lines, NginxSymlinkGuardV2); n != 1 {
+			t.Errorf("%s: dòng %q xuất hiện %d lần, muốn 1", name, NginxSymlinkGuardV2, n)
 		}
 		i := slices.Index(lines, "root "+l.Public+";")
-		if i < 0 || i+1 >= len(lines) || lines[i+1] != NginxSymlinkGuard {
-			t.Errorf("%s: dòng lệnh ngay sau root phải là %q", name, NginxSymlinkGuard)
+		if i < 0 || i+1 >= len(lines) || lines[i+1] != NginxSymlinkGuardV2 {
+			t.Errorf("%s: dòng lệnh ngay sau root phải là %q", name, NginxSymlinkGuardV2)
 		}
 		// Cấp server: thụt đúng 4 dấu cách, không nằm trong location nào.
-		if !bytes.Contains(out, []byte("\n    "+NginxSymlinkGuard+"\n")) {
+		if !bytes.Contains(out, []byte("\n    "+NginxSymlinkGuardV2+"\n")) {
 			t.Errorf("%s: dòng chặn symlink phải ở cấp server (thụt 4 dấu cách)", name)
+		}
+		for _, old := range []string{NginxSymlinkGuard, "from="} {
+			if bytes.Contains(out, []byte(old)) {
+				t.Errorf("%s: vhost còn chuỗi %q của dòng chặn cũ", name, old)
+			}
+		}
+		// Mọi dòng disable_symlinks đang có hiệu lực đều là dòng mới.
+		for _, ln := range lines {
+			if strings.HasPrefix(ln, "disable_symlinks") && ln != NginxSymlinkGuardV2 {
+				t.Errorf("%s: dòng %q khác dòng chặn mới", name, ln)
+			}
 		}
 	}
 	ssl, _ := NginxSiteSSL(l, "8.3", acmeRoot)
@@ -98,6 +111,43 @@ func TestApacheFCGIGuards(t *testing.T) {
 				}
 				if i443 := bytes.Index(out, []byte("<VirtualHost *:443>")); i443 >= 0 && i < i443 {
 					t.Errorf("%s %q: dòng %q phải nằm trong vhost 443", name, mode, g)
+				}
+			}
+		}
+	}
+}
+
+// Vhost Apache (M28 đợt 2, lỗ F4): MỌI <VirtualHost> (cả khối cổng 80 chỉ
+// chuyển hướng của bản SSL) có đúng một khối <Directory "<neo>"> với đúng hai
+// dòng Options SymLinksIfOwnerMatch và AllowOverride None, không có Require
+// (khối chỉ đổi Options, không mở thêm gì), và trong vhost có public thì khối
+// neo đứng trước khối public. checks.DocrootGuard đòi đúng hình này.
+func TestApacheAnchorGuard(t *testing.T) {
+	l := siteTestLayout(t, "example.com")
+	open := `<Directory "` + l.Dir + `">`
+	for name, gen := range apacheGens {
+		for _, mode := range []site.HtaccessMode{site.HtaccessSafe, site.HtaccessOff, site.HtaccessFull} {
+			out, err := gen(l, "8.3", acmeRoot, mode)
+			if err != nil {
+				t.Fatalf("%s %q: %v", name, mode, err)
+			}
+			vhosts := strings.Split(string(out), "<VirtualHost ")[1:]
+			if want := map[string]int{"cổng 80": 1, "ssl": 2}[name]; len(vhosts) != want {
+				t.Fatalf("%s %q: có %d VirtualHost, muốn %d", name, mode, len(vhosts), want)
+			}
+			for _, vh := range vhosts {
+				port, _, _ := strings.Cut(vh, ">")
+				lines := codeLines([]byte(vh))
+				i := slices.Index(lines, open)
+				if i < 0 || countLines(lines, open) != 1 {
+					t.Errorf("%s %q %s: muốn đúng một khối %s", name, mode, port, open)
+					continue
+				}
+				if got := lines[i+1 : min(i+4, len(lines))]; !slices.Equal(got, []string{"Options SymLinksIfOwnerMatch", "AllowOverride None", "</Directory>"}) {
+					t.Errorf("%s %q %s: khối neo là %q", name, mode, port, got)
+				}
+				if p := slices.Index(lines, `<Directory "`+l.Public+`">`); p >= 0 && p < i {
+					t.Errorf("%s %q %s: khối neo phải đứng trước khối public", name, mode, port)
 				}
 			}
 		}

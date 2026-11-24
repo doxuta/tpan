@@ -224,6 +224,18 @@ func (d *DBs) PrepareAdd(ctx context.Context, in DBInput) (*DBAdd, error) {
 		}
 	}
 	exists := refuse(CodeDBExists, i18n.T("DB "+name+" đã có", "database "+name+" already exists"))
+	// P7 của rà soát v0.2.0: tên đầy đủ của DB rời không được trùng tên một
+	// user (kể cả user đang khoá): job trên user có Target là tên user, trùng
+	// tên DB thì hai thứ của hai người mang cùng một tên.
+	if d.Accounts != nil {
+		if _, ok, err := d.Accounts.User(ctx, name); err != nil {
+			return nil, fmt.Errorf("đọc user %s: %w", name, err)
+		} else if ok {
+			return nil, refuse(CodeDBExists, i18n.T(
+				"đã có user tên "+name+"; tên DB rời không được trùng tên user, chọn tên khác",
+				"a user named "+name+" already exists; a standalone database name cannot match a user name, choose another"))
+		}
+	}
 	if d.Store != nil {
 		if _, ok, err := d.Store.StandaloneDB(ctx, name); err != nil {
 			return nil, fmt.Errorf("đọc DB rời %s: %w", name, err)
@@ -498,6 +510,11 @@ func (d *DBs) PrepareRestore(ctx context.Context, name string) (*Planned, error)
 	}
 	st := []engine.Step{&steps.DBRestore{Name: db.Name, Charset: db.Charset, Collation: db.Collation}}
 	st = append(st, dbUnlockSteps(db.Name)...)
+	// D10 của soát cuối đợt 2: DB rời vào thùng rác trước khi máy có bản vá
+	// M1-DBCONN thì user của nó (giữ lại trong thùng rác) không có trần, và
+	// harden không đi qua DB trong thùng rác. Đặt trần lúc khôi phục, như
+	// khôi phục site (S16). Trần đã có thì bước được bỏ qua.
+	st = append(st, &steps.DBUserLimit{User: db.Name, Max: site.DBMaxUserConnections})
 	st = append(st, &steps.DBTrashDumpAbsent{Name: db.Name, Restored: true})
 	return newPlanned(d.Sys, d.Journal, engine.Plan{
 		Kind:   "dbs.restore",
