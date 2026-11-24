@@ -35,7 +35,9 @@ truoc)
   ok "site add $OLD2 thoát 0" test "$RC" -eq 0
   tp ssl issue "$S1" --yes
   ok "ssl issue $S1 thoát 0" test "$RC" -eq 0
-  ok "bản trước M19 chưa có lệnh site alias (xác nhận đang đo đúng bản cũ)" bash -c '! tpan site alias list "$1" >/dev/null 2>&1' _ "$S1"
+  # Lệnh con lạ của bản cũ chỉ in trợ giúp và thoát 0, nên đo bằng DB: bản
+  # trước M19 chưa có migration 1900, tức chưa có bảng site_names.
+  ok "bản trước M19 chưa có bảng site_names (xác nhận đang đo đúng bản cũ)" test "$(sqlq "SELECT COUNT(*) FROM sqlite_master WHERE name = 'site_names'")" = 0
 
   step "N2. mốc: sha256 hai vhost và health"
   sha256sum "$V1" "$V2" | tee "$W/nc.sha"
@@ -55,7 +57,7 @@ sau)
   step "E60. sau nâng: site_names chỉ có hai dòng primary; vhost không đổi; health không có dòng mới"
   ok "E60: site_names có đúng 2 dòng" test "$(sqlq "SELECT COUNT(*) FROM site_names")" = 2
   ok "E60: cả hai dòng là primary, active" test "$(sqlq "SELECT COUNT(*) FROM site_names WHERE kind = 'primary' AND state = 'active'")" = 2
-  ok "E60: tên là $S1 và $OLD2" test "$(sqlq "SELECT group_concat(name, ' ') FROM (SELECT name FROM site_names ORDER BY name)")" = "$OLD2 $S1"
+  ok "E60: tên là $S1 và $OLD2" test "$(sqlq "SELECT group_concat(name, ' ') FROM (SELECT name FROM site_names ORDER BY name)")" = "$S1 $OLD2"
   alias_list "$S1"
   ok "E60: site alias list $S1: chỉ tên chính" pj "$W/names.json" "len(d) == 1 and d[0]['kind'] == 'primary'"
   ok "E60: sha256 hai vhost không đổi so với bản trước M19" sha256sum -c "$W/nc.sha"

@@ -84,6 +84,10 @@ func (s *Server) apiSites() *core.Sites {
 		Accounts: st,
 		Samples:  st, // M17: xoá hẳn site thì xoá số liệu của nó
 		WPHash:   s.deps.WPHash,
+		// M19 (soát cuối C1): mặc định chặt. Handler nào giữ chỗ tên (tạo
+		// site, apply, tên phụ) đặt lại theo vai của phiên; quên đặt thì user
+		// thường không bao giờ được miễn luật tên miền gốc.
+		NotAdmin: true,
 	}
 }
 

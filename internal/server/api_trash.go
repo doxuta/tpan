@@ -153,6 +153,9 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request) {
 		target += ", prune"
 	}
 	sites := s.apiSites()
+	// M19 soát cuối C1: giữ chỗ tên của lô (ClaimNames) phải áp luật tên miền
+	// gốc cho người không phải admin, như POST /sites.
+	sites.NotAdmin = !who(r).IsAdmin()
 
 	if apiDryRun(r) {
 		ap, err := sites.PrepareApply(r.Context(), in)
