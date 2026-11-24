@@ -302,8 +302,11 @@ func (s *Store) Settings(ctx context.Context) (map[string]string, error) {
 // CreateJob ghi một job mới (engine.Journal).
 func (s *Store) CreateJob(ctx context.Context, job engine.Job) error {
 	// owner (M13): người gọi đặt sẵn thì dùng; không thì chủ của site hay DB
-	// rời trùng tên với Target, rồi tới Actor, cuối cùng là admin. Suy ở đây,
-	// một chỗ, thay vì bắt mọi ca sử dụng của core tự truyền chủ vào engine.
+	// rời có tên là Target (chỉ với loại job mà jobOwnerLookup cho phép), rồi
+	// tới Actor, cuối cùng là admin. Suy ở đây, một chỗ, thay vì bắt mọi ca sử
+	// dụng của core tự truyền chủ vào engine. Tra với tên rỗng không ra dòng nào
+	// (NULL), COALESCE đi tiếp.
+	siteName, dbName := jobOwnerLookup(job.Kind, job.Target)
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO jobs (id, kind, target, title_vi, title_en, status, started_at, finished_at, error, actor, owner)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''),
@@ -312,11 +315,45 @@ func (s *Store) CreateJob(ctx context.Context, job engine.Job) error {
 		   NULLIF(?, ''), 'admin'))`,
 		job.ID, job.Kind, job.Target, job.Title.Vi, job.Title.En, string(job.Status),
 		fmtTime(job.Started), nullTime(job.Finished), job.Error, job.Actor,
-		job.Owner, job.Target, job.Target, job.Actor)
+		job.Owner, siteName, dbName, job.Actor)
 	if err != nil {
 		return fmt.Errorf("tạo job %s: %w", job.ID, err)
 	}
 	return nil
+}
+
+// jobOwnerLookup (P7 của rà soát v0.2.0) cho biết CreateJob được tra chủ của
+// job ở bảng nào theo Target: trả domain cần tra trong sites, tên cần tra
+// trong databases, rỗng là không tra. Chỉ loại job có Target chắc chắn là
+// domain của site (site.*, db.* của DB site, và các loại liệt kê dưới) hay
+// tên đầy đủ của DB rời (dbs.*) mới được tra. Loại khác, kể cả loại thêm sau
+// này, KHÔNG suy chủ từ tên: Target của chúng có thể là tên user (user.*),
+// tên gói (cage.sync), tên dịch vụ hay tên khác mà khách tự đặt được cho
+// trùng. Ví dụ: khách khach tạo DB rời "a" thì tên đầy đủ là khach_a; nếu tra
+// databases cho mọi loại thì job user.suspend admin chạy trên user khach_a
+// thành của khach, và khach đọc được nó.
+//
+// Sửa tự động ("fix." + tên cách sửa, core/health.go) liệt kê từng cái: Target
+// của fix.service.start là tên dịch vụ (php8.3-fpm), mà validate.ParseDomain
+// nhận "php8.3-fpm" là một domain hợp lệ.
+func jobOwnerLookup(kind, target string) (siteDomain, dbName string) {
+	switch {
+	case strings.HasPrefix(kind, "dbs."):
+		return "", target
+	case strings.HasPrefix(kind, "site."), strings.HasPrefix(kind, "db."):
+		return target, ""
+	}
+	switch kind {
+	case "backup.create", "backup.restore", "cage.enable", "cage.disable", "cage.restart", "php.use",
+		// Sửa tự động có Target là domain của site.
+		"fix.php.restart", "fix.web.rewrite", "fix.wp.config.perm", "fix.db.unlock", "fix.ssl.issue",
+		"fix.php.pool.rewrite", "fix.log.perm",
+		"fix.cage.start", "fix.cage.restart", "fix.cage.sync", "fix.cage.enable", "fix.cage.disable":
+		return target, ""
+	case "fix.db.user-limit": // Target là user DB, trùng tên DB rời khi đó là DB rời
+		return "", target
+	}
+	return "", ""
 }
 
 // FinishJob cập nhật Status, Finished và Error của job đã tạo (engine.Journal).
