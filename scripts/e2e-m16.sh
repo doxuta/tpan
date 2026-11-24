@@ -511,8 +511,17 @@ part_e() {
   health_errs "$h1"
   moi="$(new_errs "$H0" "$h1")"
   [ -n "$moi" ] && printf '[lỗi] mới so với trước khi nâng:\n%s\n' "$moi"
-  ok "tpan health sau khi nâng không có [lỗi] mới" test -z "$moi"
+  moi="$(chua_harden <<<"$moi")"
+  ok "tpan health sau khi nâng không có [lỗi] mới (trừ phép kiểm chờ harden của M28)" test -z "$moi"
   part_end E
+}
+
+# chua_harden: bỏ ba phép kiểm M28 đợt 2 báo chưa đạt trên máy nâng từ bản
+# cũ cho tới khi chạy `tpan security harden` (KE-HOACH 6.27, "Bản vá áp lúc
+# nào"): đúng thiết kế, không phải lỗi giao diện.
+chua_harden() {
+  grep -v -e 'Vhost không đi theo public khi nó là symlink sang chủ khác' \
+    -e 'mod_status của Apache đang tắt' -e 'User DB có trần số kết nối cùng lúc' || true
 }
 
 # ================================================================ PHẦN F
@@ -536,7 +545,8 @@ part_end_all() {
   health_errs "$h2"
   moi="$(new_errs "$H0" "$h2")"
   [ -n "$moi" ] && printf '[lỗi] mới so với lúc mới cài %s:\n%s\n' "$OLD_VER" "$moi"
-  ok "cuối kịch bản tpan health không có [lỗi] mới so với lúc mới cài $OLD_VER" test -z "$moi"
+  moi="$(chua_harden <<<"$moi")"
+  ok "cuối kịch bản tpan health không có [lỗi] mới so với lúc mới cài $OLD_VER (trừ phép kiểm chờ harden của M28)" test -z "$moi"
   page "$SITE_CLI"
   ok "$SITE_CLI vẫn 200" is200
   vroot systemctl stop "$HTTP_UNIT"
