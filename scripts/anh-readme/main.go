@@ -70,7 +70,7 @@ func main() {
 	chrome := flag.String("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "đường dẫn Chrome")
 	debugPort := flag.Int("debug-port", 18142, "cổng DevTools của Chrome")
 	out := flag.String("out", "docs/anh", "thư mục ghi ảnh")
-	set := flag.String("bo", "readme", "bộ ảnh: readme (ảnh của README), m15 (khối Phiên bản và cập nhật ở demo), m15-that (bấm thật trên panel ở -panel), m16-do (đo từng màn, xem m16.go), m16, m16-that, m18 (màn của M18 trên demo, xem m18_anh.go) hoặc m18-that (bấm thật trên panel ở -panel, xem m18_that.go)")
+	set := flag.String("bo", "readme", "bộ ảnh: readme (ảnh của README), m15 (khối Phiên bản và cập nhật ở demo), m15-that (bấm thật trên panel ở -panel), m16-do (đo từng màn, xem m16.go), m16, m16-that, m17 (màn của M17 trên demo, xem m17_anh.go), m18 (màn của M18 trên demo, xem m18_anh.go) hoặc m18-that (bấm thật trên panel ở -panel, xem m18_that.go)")
 	panel := flag.String("panel", "", "địa chỉ một panel đang chạy (máy ảo test), thay cho serve --demo; mật khẩu admin lấy từ biến môi trường TPAN_PANEL_PASSWORD")
 	var m16 m16Opts
 	flag.BoolVar(&m16.longNames, "ten-dai", false, "bộ m16-do trên demo: tạo ba site tên dài qua API nếu chưa có")
@@ -99,7 +99,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lỗi: -bo m15-that cần -panel (panel của máy ảo test; demo không cập nhật được)")
 			os.Exit(2)
 		}
-	case "m16-do", "m16", "mau-v2", "m18":
+	case "m16-do", "m16", "mau-v2", "m17", "m18":
 		list = nil
 	case "m16-that", "m18-that":
 		list = nil
@@ -108,7 +108,7 @@ func main() {
 			os.Exit(2)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that, m18, m18-that hoặc mau-v2")
+		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that, m17, m18, m18-that hoặc mau-v2")
 		os.Exit(2)
 	}
 	if err := run(*listen, *chrome, *debugPort, *out, *set, list, *panel, m16); err != nil {
@@ -252,6 +252,8 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 		return measureM16(c, base, m16)
 	case "m16":
 		return photosM16(c, base, password, out, m16.only)
+	case "m17":
+		return photosM17(c, base, out, m16.only)
 	case "m18":
 		return photosM18(c, base, out, m16.only)
 	}
