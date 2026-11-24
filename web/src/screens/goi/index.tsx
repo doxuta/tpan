@@ -230,7 +230,9 @@ function PackageDialog({ row, cagedSites, flow, onPlan, onClose, onDone }: Dialo
 
   const save = useMutation({
     // Máy chủ trả 200 PackageRow, hoặc 202 JobStarted khi có site trong lồng cần áp mức mới.
-    mutationFn: (body: PackageEdit & { name: string }) => post<PackageRow | JobStarted>(edit ? packagePath(body.name) : packagesPath, body),
+    // Sửa: tên nằm trên đường dẫn, thân không mang "name" (PackageEdit). Tạo: thân là cả gói, có tên.
+    mutationFn: ({ name, ...rest }: PackageEdit & { name: string }) =>
+      post<PackageRow | JobStarted>(edit ? packagePath(name) : packagesPath, edit ? rest : { name, ...rest }),
     onSuccess: (r, body) => {
       refreshAccounts(qc);
       void qc.invalidateQueries({ queryKey: packagesKey });

@@ -143,7 +143,8 @@ func liveCagePackage(c *cdp, l *liveCheck, base, name string) error {
 		return err
 	}
 	if err := c.waitTrue(`!document.querySelector('[role=dialog]')`, 20*time.Second); err != nil {
-		return fmt.Errorf("hộp Sửa gói không đóng sau khi Lưu: %w", err)
+		// Chữ của hộp (lời lỗi của form hay của server) để biết vì sao; hộp sửa gói không có bí mật.
+		return fmt.Errorf("hộp Sửa gói không đóng sau khi Lưu: %w; hộp đang ghi: %s", err, c.str(`(document.querySelector('[role=dialog]')?.innerText||'').replace(/\s+/g,' ').slice(0,1500)`))
 	}
 	got := packageRow(c, name)
 	l.ok(got == "true 200 50 40 3", "GET /api/v1/packages: gói %s có cage true, RAM 200, CPU 50, 40 tiến trình, 3 worker (đọc được: %s)", name, got)
