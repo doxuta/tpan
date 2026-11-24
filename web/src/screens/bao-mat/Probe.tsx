@@ -77,30 +77,72 @@ export function ProbeBlock() {
     setOnly(v);
   };
 
+  // Một dòng mở ra được trong thẻ "Cô lập giữa các site", cùng khuôn với hai
+  // dòng phép kiểm cấp máy và của từng site (CheckGroup): lúc mới mở chỉ cao
+  // một dòng, để màn Bảo mật không quá 2 màn hình (mục 10 của GIAO-DIEN.md).
+  // Có ô lộ thì mở sẵn. Nút và bản xem trước nằm bên trong.
+  const exposed = q.data?.last?.exposed ?? 0;
+  const status = exposed > 0 ? "fail" : stale.length > 0 ? "warn" : q.data?.last ? "pass" : "unknown";
+  const summary = (
+    <span className="flex items-center gap-[12px]">
+      <span className="flex h-[20px] w-[20px] flex-none items-center justify-center">
+        <StatusMark status={status} label={k.status[status]} />
+      </span>
+      <span className="flex min-w-0 flex-wrap items-baseline gap-x-[12px]">
+        <span className="font-medium">{t.probeHeading}</span>
+        <span className="text-[13px] text-muted">
+          {q.data?.last ? t.probeSummaryLine(formatWhen(q.data.last.started, lang), exposed) : q.isSuccess ? t.probeSummaryNone : ""}
+          {stale.length > 0 && ` · ${t.probeSummaryPending(stale.length)}`}
+        </span>
+      </span>
+    </span>
+  );
+
   return (
-    <>
-      <Card
-        id="bm-thu-tan-cong"
-        title={t.probeHeading}
-        titleId="bm-thu-tan-cong-ten"
-        actions={
-          <>
-            <SegmentButton
-              label={t.probeOnlyLabel}
-              value={only}
-              onChange={pick}
-              options={[
-                { value: "", label: t.probeOnlyBoth },
-                { value: "ngoai", label: t.probeOnlyOutside },
-                { value: "trong", label: t.probeOnlyInside },
-              ]}
-            />
-            <Button id="act-probe" onClick={() => flow.ask(probeRequest(only))} disabled={busy || running.length > 0}>
-              {flow.dry.isPending && !cleaning ? t.previewing : t.probeButton}
-            </Button>
-          </>
-        }
-      >
+    <Disclosure id="bm-thu-tan-cong" defaultOpen={exposed > 0} summary={summary}>
+      <div className="flex flex-col gap-[16px] pb-[12px]">
+        <div className="flex flex-wrap items-center gap-[8px]">
+          <SegmentButton
+            label={t.probeOnlyLabel}
+            value={only}
+            onChange={pick}
+            options={[
+              { value: "", label: t.probeOnlyBoth },
+              { value: "ngoai", label: t.probeOnlyOutside },
+              { value: "trong", label: t.probeOnlyInside },
+            ]}
+          />
+          <Button id="act-probe" onClick={() => flow.ask(probeRequest(only))} disabled={busy || running.length > 0}>
+            {flow.dry.isPending && !cleaning ? t.previewing : t.probeButton}
+          </Button>
+        </div>
+        {body()}
+
+      {(flow.open || (flow.dry.isError && flow.asked)) && (
+        <div ref={previewRef} tabIndex={-1} className="flex flex-col gap-[20px] outline-offset-0">
+          {flow.open ? (
+            <>
+              {flow.open.req.path !== probeCleanupPath && <ProbeSummary preview={flow.open.preview} only={only} />}
+              <PlanReview preview={flow.open.preview} onRun={flow.start} running={flow.run.isPending} error={flow.run.error} onCancel={cancel} />
+            </>
+          ) : (
+            <Card>
+              <ErrorNote error={flow.dry.error} heading={cleaning ? t.probeCleanupPreviewError : t.probePreviewError} checksHeading={t.checksHeading} />
+              <div className="pt-[12px]">
+                <Button onClick={cancel}>{k.cancel}</Button>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+      </div>
+    </Disclosure>
+  );
+
+  // Nội dung của dòng (giải thích, lượt đang chạy hay chưa dọn, lượt gần nhất).
+  // Khai báo hàm nên dùng được ở trên.
+  function body() {
+    return (
         <div className="flex flex-col gap-[16px]">
           <p className="m-0 max-w-[72ch] text-muted">{t.probeLead}</p>
 
@@ -132,27 +174,8 @@ export function ProbeBlock() {
             </>
           )}
         </div>
-      </Card>
-
-      {(flow.open || (flow.dry.isError && flow.asked)) && (
-        <div ref={previewRef} tabIndex={-1} className="flex flex-col gap-[20px] outline-offset-0">
-          {flow.open ? (
-            <>
-              {flow.open.req.path !== probeCleanupPath && <ProbeSummary preview={flow.open.preview} only={only} />}
-              <PlanReview preview={flow.open.preview} onRun={flow.start} running={flow.run.isPending} error={flow.run.error} onCancel={cancel} />
-            </>
-          ) : (
-            <Card>
-              <ErrorNote error={flow.dry.error} heading={cleaning ? t.probeCleanupPreviewError : t.probePreviewError} checksHeading={t.checksHeading} />
-              <div className="pt-[12px]">
-                <Button onClick={cancel}>{k.cancel}</Button>
-              </div>
-            </Card>
-          )}
-        </div>
-      )}
-    </>
-  );
+    );
+  }
 }
 
 // ------------------------------------------- phía trên bản xem trước

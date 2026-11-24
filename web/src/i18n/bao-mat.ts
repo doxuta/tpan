@@ -55,6 +55,10 @@ const vi = {
   matrixNotChecked:
     "Chưa kiểm. Health chưa chạy phép kiểm cô lập nào cho các site này. Kết quả hiện ở đây sau lần health kế tiếp; muốn có ngay thì chạy tpan health trên máy.",
   cellLabel: (from: string, to: string, status: string) => `${from} sang ${to}: ${status}`,
+  cagedCell: "lồng",
+  matrixCagedShort: (n: number) => `${n} ô của site trong lồng ghi "lồng" (bấm để biết vì sao).`,
+  cagedCellLabel: (from: string, to: string) => `${from} sang ${to}: site trong lồng, hàng rào của lồng thay cho phép này`,
+  matrixCaged: `Site trong lồng không có phép kiểm này: lệnh thử phải chạy dưới user của site ở ngoài lồng, mà làm vậy là mở cửa thoát lồng. Thay vào đó phép kiểm "hàng rào của lồng" (cage.fence) ở trang của site chứng minh site không thấy site khác.`,
   cellHeading: (from: string, to: string) => `${from} sang ${to}`,
   cellNoResult: "Chưa kiểm. Health chưa chạy phép kiểm của cặp này, nên chưa có lệnh hay output nào.",
   cellClose: "Đóng",
@@ -119,6 +123,9 @@ const vi = {
   probeOnlyDone: { "": "cả hai lượt", ngoai: "chỉ ngoài lồng", trong: "chỉ trong lồng" },
   probeExposedNotice: (n: number) => `Có ${n} ô lộ: đường lẽ ra phải bị chặn mà vẫn đi được. Mở ô lộ trong bảng để xem bằng chứng.`,
   probeSafeNotice: "Không ô nào lộ.",
+  probeSummaryLine: (when: string, exposed: number) => (exposed > 0 ? `Lượt gần nhất ${when}: ${exposed} ô lộ` : `Lượt gần nhất ${when}: không ô nào lộ`),
+  probeSummaryNone: "Chưa có lượt thử nào",
+  probeSummaryPending: (n: number) => `còn ${n} lượt chưa dọn`,
   probeStatus: { blocked: "bị chặn", exposed: "lộ", needs_cage: "chỉ lồng chặn được", skipped: "bỏ qua", na: "không áp dụng" },
   probeCount: (n: number, status: string) => `${n} ${status}`,
 
@@ -179,6 +186,10 @@ export const strings = defineStrings(vi, {
   matrixNotChecked:
     "Not checked. Health has not run any isolation check for these sites yet. Results show up here after the next health run; to get them now, run tpan health on the machine.",
   cellLabel: (from, to, status) => `${from} to ${to}: ${status}`,
+  cagedCell: "cage",
+  matrixCagedShort: (n) => `${n} ${n === 1 ? "cell" : "cells"} of caged sites say "cage" (press one to see why).`,
+  cagedCellLabel: (from, to) => `${from} to ${to}: caged site, the cage fence replaces this check`,
+  matrixCaged: `A caged site has no such check: the test commands would have to run as the site user outside the cage, which would open a way out of the cage. Instead the cage fence check (cage.fence) on the site page proves the site cannot see other sites.`,
   cellHeading: (from, to) => `${from} to ${to}`,
   cellNoResult: "Not checked. Health has not run the check for this pair, so there is no command or output yet.",
   cellClose: "Close",
@@ -242,6 +253,9 @@ export const strings = defineStrings(vi, {
   probeOnlyDone: { "": "both passes", ngoai: "not caged only", trong: "caged only" },
   probeExposedNotice: (n) => `${n} ${n === 1 ? "cell is" : "cells are"} exposed: a path that should be blocked still gets through. Open the exposed cell in the table to see the evidence.`,
   probeSafeNotice: "No cell is exposed.",
+  probeSummaryLine: (when, exposed) => (exposed > 0 ? `Last run ${when}: ${exposed} exposed` : `Last run ${when}: nothing exposed`),
+  probeSummaryNone: "No test run yet",
+  probeSummaryPending: (n) => `${n} not cleaned up`,
   probeStatus: { blocked: "blocked", exposed: "exposed", needs_cage: "needs a cage", skipped: "skipped", na: "not applicable" },
   probeCount: (n, status) => `${n} ${status}`,
 
