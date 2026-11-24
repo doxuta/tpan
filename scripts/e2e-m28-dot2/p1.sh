@@ -106,13 +106,25 @@ c401="$(cat "$W"/p1-par.* | grep -cx 401)"
 ck="$(cat "$W"/p1-par.* | grep -cvx -e 401 -e 423 -e 429)"
 rm -f "$W"/p1-par.*
 ok "P1b: số câu 401 không quá 5 ($c401), còn lại chỉ 423 hay 429" test "$c401" -le 5 -a "$ck" = 0
+# Hàng chờ của khoá nguồn (4) trả 429 cho phần lớn loạt song song, nên có thể
+# chưa đủ 5 lần sai thật để khoá. Gửi tiếp tuần tự từng lần sai tới khi 423:
+# tổng số 401 (loạt song song cộng tuần tự) vẫn không được quá 5.
+log=""
+for n in $(seq 1 6); do
+  c="$(sai m28p1b 127.0.0.32 admin "seq$n")"
+  log="$log $c"
+  [ "$c" = 401 ] && c401=$((c401 + 1))
+  [ "$c" = 423 ] && break
+done
+echo "  sau loạt song song, các lần sai tuần tự:$log; tổng 401: $c401"
+ok "P1b: tổng số lần sai được so mật khẩu (401) không quá 5 ($c401), rồi 423" bash -c '[ "$1" -le 5 ] && [ "${2##* }" = 423 ]' _ "$c401" "$log"
+nk="$(sqlq "SELECT COUNT(*) FROM login_failures WHERE ip = ?" "uid:$(id -u m28p1b)")"
+ok "P1b: khoá nằm ở khoá nguồn uid:$(id -u m28p1b) trong login_failures (dòng: $nk)" test "$nk" -ge 1
 c="$(dung m28p1b 127.0.0.32 admin)"
-ok "P1b: sau loạt song song, mật khẩu admin đúng vẫn 423 (HTTP $c)" test "$c" = 423
+ok "P1b: đang khoá thì mật khẩu admin đúng vẫn 423 (HTTP $c)" test "$c" = 423
 nfail="$(sqlq "SELECT COUNT(*) FROM audit WHERE id > ? AND action = 'login.fail'" "$a0")"
 echo "  dòng login.fail mới trong audit: $nfail"
 ok "P1b: không quá 5 lần so mật khẩu sai thật (login.fail trong audit: $nfail)" test "$nfail" -le 5
-nk="$(sqlq "SELECT COUNT(*) FROM login_failures WHERE ip = ?" "uid:$(id -u m28p1b)")"
-ok "P1b: khoá nằm ở khoá nguồn uid:$(id -u m28p1b) trong login_failures (dòng: $nk)" test "$nk" -ge 1
 
 step "P1c. ca hợp lệ (user m28p1c): admin sai 4 lần rồi đúng; sau đó sai 4 lần nữa chưa bị khoá; tpan admin unlock gỡ được khoá"
 log=""
