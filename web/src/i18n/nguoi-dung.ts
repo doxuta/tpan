@@ -76,15 +76,15 @@ const vi = {
   roleOptionAdmin: "Quản trị: thấy và làm mọi thứ",
   fPackage: "Gói",
   fPassword: "Mật khẩu",
-  fPasswordHint: "Để trống thì tpan tạo mật khẩu và hiện đúng một lần. Tự đặt thì từ 12 ký tự.",
+  fPasswordHint: "Để trống thì TPAN tạo mật khẩu và hiện đúng một lần. Tự đặt thì từ 12 ký tự.",
   minPassword: 12,
-  passwordTooShort: (min: number) => `Mật khẩu ngắn hơn ${min} ký tự. Thêm ký tự hoặc để trống cho tpan tạo.`,
+  passwordTooShort: (min: number) => `Mật khẩu ngắn hơn ${min} ký tự. Thêm ký tự hoặc để trống cho TPAN tạo.`,
   nameMissing: "Chưa có tên đăng nhập. Gõ tên rồi bấm lại.",
 
   // Mật khẩu hiện một lần
   secretLabel: "Mật khẩu, hiện một lần",
   secretTitle: (name: string) => `Mật khẩu của ${name}`,
-  secretBody: "tpan chỉ hiện mật khẩu này một lần và không giữ bản rõ. Chép và gửi cho người dùng trước khi ẩn đi.",
+  secretBody: "TPAN chỉ hiện mật khẩu này một lần và không giữ bản rõ. Chép và gửi cho người dùng trước khi ẩn đi.",
   secretUser: "Tên đăng nhập",
   secretPassword: "Mật khẩu",
   secretCopy: "Chép",
@@ -105,6 +105,18 @@ const vi = {
   pwTitle: (name: string) => `Đổi mật khẩu của ${name}`,
   pwDesc: "Mọi phiên đang đăng nhập của user này bị huỷ.",
   pwConfirm: "Đổi mật khẩu",
+
+  // Hỏi lại admin đang thao tác (F1 của M20)
+  reauthPassword: "Mật khẩu của bạn",
+  reauthCode: "Mã hai bước của bạn",
+  reauthCodeHint: "Mã 6 số trong app, hoặc một mã dự phòng.",
+  reauthPasswordMissing: "Gõ mật khẩu của bạn (admin đang đăng nhập) vào ô Mật khẩu của bạn.",
+  reauthCodeMissing: "Gõ mã 6 số trong app hai bước của bạn (hoặc một mã dự phòng) vào ô mã.",
+  reauthWhyCreate: "TPAN hỏi lại mật khẩu của chính bạn trước khi tạo user, để người chiếm được một phiên không tạo được tài khoản cửa sau.",
+  reauthWhyAdmin: "TPAN hỏi lại mật khẩu của chính bạn trước khi cấp vai này, để người chiếm được một phiên không tự nâng tài khoản cửa sau lên quản trị.",
+  reauthWhyPassword: "TPAN hỏi lại mật khẩu của chính bạn, để người chiếm được một phiên không đặt lại mật khẩu mà chiếm tài khoản người khác.",
+  errReauthRequired: "Máy chủ cần mật khẩu của chính bạn cho việc này. Gõ vào ô Mật khẩu của bạn rồi lưu lại.",
+  errLoginLocked: (wait: string) => `Gõ sai mật khẩu quá nhiều lần nên địa chỉ IP này bị khoá khoảng ${wait}. Hết lúc đó thì thử lại.`,
 
   // Xoá
   delTitle: (name: string) => `Xoá user ${name}?`,
@@ -216,7 +228,7 @@ export const strings = defineStrings(vi, {
 
   secretLabel: "Password, shown once",
   secretTitle: (name) => `Password of ${name}`,
-  secretBody: "tpan shows this password only once and keeps no plain copy. Copy it and send it to the user before you hide it.",
+  secretBody: "TPAN shows this password only once and keeps no plain copy. Copy it and send it to the user before you hide it.",
   secretUser: "Username",
   secretPassword: "Password",
   secretCopy: "Copy",
@@ -235,6 +247,17 @@ export const strings = defineStrings(vi, {
   pwTitle: (name) => `Change the password of ${name}`,
   pwDesc: "Every open session of this user is ended.",
   pwConfirm: "Change password",
+
+  reauthPassword: "Your password",
+  reauthCode: "Your two-step code",
+  reauthCodeHint: "The 6-digit code in the app, or a recovery code.",
+  reauthPasswordMissing: "Type your own password (the admin who is signed in) in the Your password box.",
+  reauthCodeMissing: "Type the 6-digit code from your two-step app (or a recovery code) in the code box.",
+  reauthWhyCreate: "So a hijacked session cannot plant a back-door account, TPAN asks for your own password again before it creates a user.",
+  reauthWhyAdmin: "So a hijacked session cannot promote a back-door account to admin, TPAN asks for your own password again before it grants this role.",
+  reauthWhyPassword: "So a hijacked session cannot take over someone else's account by resetting its password, TPAN asks for your own password again.",
+  errReauthRequired: "The server needs your own password for this. Type it in the Your password box and save again.",
+  errLoginLocked: (wait) => `Too many wrong passwords, so this IP address is locked for about ${wait}. Try again after that.`,
 
   delTitle: (name) => `Delete user ${name}?`,
   delDesc: "The account cannot be recovered after this. The user's old jobs and log stay, with the name.",

@@ -748,7 +748,9 @@ part_c() {
       note "bản mới nhất trên GitHub không còn là $OLD_VER: sha256 khác dòng của gói $OLD_VER, chỉ khẳng định dạng"
       ok "check.sha256 là 64 ký tự hex" bq '.check.sha256 | test("^[0-9a-f]{64}$")'
     fi
-    ok "check.latest rỗng (bản phát hành cũ chưa có file VERSION), up_to_date false, asset tpan-linux-$ARCH" bq '.check.latest == "" and .check.up_to_date == false and .check.asset == ("tpan-linux-" + $arch)'
+    # Từ v0.2.1 bản phát hành có file VERSION (M15), nên latest là tên bản
+    # (v0.2.0 thì rỗng). Khẳng định đúng cho cả hai, phần còn lại như cũ.
+    ok "check.latest rỗng (bản cũ chưa có file VERSION) hoặc là tên bản phát hành, up_to_date false, asset tpan-linux-$ARCH" bq '(.check.latest == "" or (.check.latest | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) and .check.up_to_date == false and .check.asset == ("tpan-linux-" + $arch)'
   fi
 
   section "C3: Kiểm bản mới với nguồn tải loopback (bản B)"

@@ -124,6 +124,19 @@ const paths = {
     </>
   ),
   activity: <path d="M3.5 12h4l2.5-6 4 12 2.5-6h4" />,
+  // M20: token API (chìa khoá) và đăng nhập hai bước (điện thoại).
+  key: (
+    <>
+      <circle cx="8" cy="15.5" r="3.5" />
+      <path d="M10.5 13L19.5 4M16 7.5l2.5 2.5M13.5 10l2 2" />
+    </>
+  ),
+  smartphone: (
+    <>
+      <rect x="7" y="3.5" width="10" height="17" rx="2" />
+      <path d="M11 17.5h2" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof paths;

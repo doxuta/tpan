@@ -434,9 +434,17 @@ type memSites struct {
 	mu       sync.Mutex
 	sites    map[string]site.Site
 	failSave error
+	maxUID   int // cùng luật với store.ReserveSiteUID
 }
 
 func newMemSites() *memSites { return &memSites{sites: map[string]site.Site{}} }
+
+func (m *memSites) ReserveSiteUID(_ context.Context, floor int) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.maxUID = max(m.maxUID+1, floor)
+	return m.maxUID, nil
+}
 
 func (m *memSites) Site(_ context.Context, d validate.Domain) (site.Site, bool, error) {
 	m.mu.Lock()
@@ -640,6 +648,8 @@ func TestSiteAddPlanOrder(t *testing.T) {
 			}
 			l := site.LayoutOf(mustDomain(t, dom))
 			want := append([]string{
+				// M20: bước chỉ kiểm tên panel dưới khoá, chỉ ở site mới.
+				"site.notpanel:shop.example.com",
 				"site.user:" + l.User,
 				"dir:/var/www/shop.example.com",
 				"dir:/var/www/shop.example.com/public",
@@ -859,7 +869,8 @@ func TestSiteAddExecuteAndRerun(t *testing.T) {
 				t.Error("xem trước ghi Store")
 			}
 			for _, sp := range pv.Steps {
-				if sp.Done {
+				// site.notpanel chỉ kiểm: không trùng tên panel thì luôn Done.
+				if sp.Done && sp.Info.ID != "site.notpanel:shop.example.com" {
 					t.Errorf("máy sạch mà bước %s đã Done", sp.Info.ID)
 				}
 			}

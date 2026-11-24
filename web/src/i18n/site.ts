@@ -214,7 +214,7 @@ const vi = {
   dbUnsuspendErrorHeading: (d: string) => `Chưa dựng được bản xem trước mở khoá DB của ${d}`,
   // Việc không làm được khi site hay DB đang khoá: nút bị vô hiệu kèm lý do.
   blockedSite: "Site đang tạm khoá. Mở khoá site trước: việc này ghi lại pool PHP nên sẽ vô tình mở khoá site.",
-  blockedDb: "User DB của site đang khoá. Mở khoá DB trước: WordPress không vào được DB nên kiểm chứng của việc này chắc chắn hỏng.",
+  blockedDb: "User DB của site đang khoá. Mở khoá DB trước: WordPress không vào được DB nên bước kiểm của việc này chắc chắn hỏng.",
   blockedTrashSite: "Site đang tạm khoá nên chưa đưa vào thùng rác được: khôi phục từ thùng rác sẽ vô tình mở khoá. Mở khoá trước rồi mới xoá.",
   blockedTrashDb: "User DB của site đang khoá nên chưa đưa site vào thùng rác được. Mở khoá DB trước rồi mới xoá.",
 
@@ -270,9 +270,9 @@ const vi = {
     tasks: "Tiến trình",
     hits: "Chạm mức tối đa",
     hitsTitle: (oom: number, tasks: number) => `${oom} lần bị giết vì chạm mức RAM, ${tasks} lần chạm mức tiến trình`,
-    notRunning: "Lồng chưa chạy nên chưa có số đo.",
+    notRunning: "Lồng chưa chạy nên chưa có số liệu.",
     usageLink: "Xem ở màn Tài nguyên",
-    usageFailed: "Chưa tải được số đo của lồng.",
+    usageFailed: "Chưa tải được số liệu của lồng.",
     loadFailed: "Chưa tải được trạng thái lồng.",
     enable: "Vào lồng",
     disable: "Ra khỏi lồng",

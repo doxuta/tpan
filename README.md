@@ -257,6 +257,7 @@ Thử bản cài trên máy ảo trước khi đụng VPS: `make release`, chép
   - [15-m15-nut-cap-nhat.md](docs/giai-thich/15-m15-nut-cap-nhat.md): nút cập nhật TPAN trong panel, quay về bản trước
   - [16-m16-giao-dien-ban-2.md](docs/giai-thich/16-m16-giao-dien-ban-2.md): giao diện bản 2, trang Công cụ, trang chủ theo vai, test giữ luật kiểu dáng
   - [18-m18-cloud.md](docs/giai-thich/18-m18-cloud.md): sao lưu ra kho S3 (đọc lại so sha256), khôi phục từ kho, gói panel mã hoá, cài máy mới bằng cloud-init (phần lõi)
+  - [20-m20-hai-buoc-va-token.md](docs/giai-thich/20-m20-hai-buoc-va-token.md): đăng nhập hai bước (TOTP, mã dự phòng), token API có phạm vi, chứng chỉ panel được tin
 - [docs/HUONG-DAN-CHU-DU-AN.md](docs/HUONG-DAN-CHU-DU-AN.md): thử từng phần trên VPS thật, từng lệnh một (stack, site, SSL, tường lửa, thùng rác, backup, AI).
 - [docs/bang-chung/](docs/bang-chung/): log chạy thật trên máy ảo của từng mốc (`M1.log` tới `M16.log`, và các lần chạy lại sau khi ghép); ảnh mọi màn của giao diện bản 2 ở `M16/`.
 

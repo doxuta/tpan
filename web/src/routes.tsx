@@ -169,12 +169,20 @@ const table = [
     menu: { label: "packages", group: "taiKhoan", icon: "package" },
     admin: true,
   },
+  // M20: hai bước và token API của chính mình; mọi vai đều có.
+  {
+    path: "/account",
+    load: () => import("./screens/tai-khoan").then((m) => m.default),
+    menu: { label: "account", group: "taiKhoan", icon: "key" },
+  },
   {
     path: "/settings",
     load: () => import("./screens/cai-dat").then((m) => m.default),
     menu: { label: "settings", group: "taiKhoan", icon: "sliders" },
   },
   { path: "/dang-nhap", load: () => import("./screens/dang-nhap").then((m) => m.default), bare: true },
+  // M20: trang bật hai bước bắt buộc; nằm ngoài khung nên tự lo chuyện chưa đăng nhập.
+  { path: "/bat-hai-buoc", load: () => import("./screens/bat-hai-buoc").then((m) => m.default), bare: true },
 ] as const satisfies readonly ScreenEntry[];
 
 /** Mọi đường dẫn có trong bảng trên. Ô của trang Công cụ khai đích bằng kiểu này, viết sai là tsc báo lỗi. */

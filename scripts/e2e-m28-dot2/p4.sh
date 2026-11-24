@@ -56,6 +56,22 @@ for sub in www mail; do
   fi
 done
 
+step "P4.1b (B1 của soát cuối nhóm B). admin vào panel bằng tên panel.example.org; khach1 xin site mang đúng tên đó: $MODE"
+# Admin đăng nhập với Host là tên miền (curl --resolve về 127.0.0.1): bản vá ghi
+# tên đó vào danh sách tên dành riêng của panel.
+python3 -I -c 'import json,sys; print(json.dumps({"name": "admin", "password": open(sys.argv[1]).read().strip()}))' /root/m28-admin.pw >"$W/p4-admin.json"
+chmod 600 "$W/p4-admin.json"
+c="$(curl -sk -m 30 -o /dev/null -w '%{http_code}' --resolve panel.example.org:8443:127.0.0.1 -H 'Content-Type: application/json' --data @"$W/p4-admin.json" https://panel.example.org:8443$LOGIN_PATH)"
+rm -f "$W/p4-admin.json"
+ok "admin đăng nhập qua https://panel.example.org:8443 (HTTP $c)" test "$c" = 204
+thu khach1 panel.example.org
+if [ "$MODE" = lo ]; then
+  note "bản chưa vá: khach1 xin site panel.example.org: HTTP $HTTP"
+else
+  ok "khach1 không tạo được site mang tên dùng để vào panel (HTTP $HTTP)" test "$HTTP" = 400
+  ok "lời là domain_reserved" grep -q '"domain_reserved"' "$O"
+fi
+
 step "P4.2. ca hợp lệ"
 thu khach2 "www.$VIC"
 ok "khach2 tạo được www.$VIC của chính mình (bản xem trước 200, HTTP $HTTP)" test "$HTTP" = 200

@@ -12,7 +12,7 @@ LDFLAGS := -s -w \
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
   do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang anh-m17 e2e-m17-gd anh-m18 e2e-m18-gd \
   m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 \
-  nc-m17 e2e don-tmp
+  nc-m17 e2e don-tmp thu-m20 e2e-m20 anh-m20
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -98,6 +98,25 @@ e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: 
 	@# Log ghi ra tmp-phien/ (ngoài git) rồi mới chép vào LOG: file log đã commit mà bị ghi đè lúc
 	@# bắt đầu chạy thì cây làm việc thành "dirty" và tên bản tpan được đóng gói có đuôi -dirty.
 	E2E_LOG=tmp-phien/e2e-m16.log bash scripts/e2e-m16.sh > tmp-phien/e2e-m16.log 2>&1; rc=$$?; cp tmp-phien/e2e-m16.log $(or $(LOG),docs/bang-chung/M16.log); exit $$rc
+
+# ---- M20: hai bước, token API, chứng chỉ panel ----
+# Thử của đợt 0 trên máy ảo trong .tpan-vm (từ máy sạch): ACME cho tên panel qua
+# vhost mặc định (nginx rồi apache), đồng hồ của máy, CSP. Log vào docs/bang-chung/M20-nghien-cuu/.
+M20_THU := docs/bang-chung/M20-nghien-cuu
+thu-m20: build-linux ## Thử của đợt 0 M20 trên máy ảo sạch; log vào docs/bang-chung/M20-nghien-cuu/thu-vm.log
+	scripts/vm.sh reset
+	scripts/vm.sh deploy
+	multipass transfer $(M20_THU)/thu-vm.sh "$$(cat .tpan-vm):/tmp/thu-vm.sh" </dev/null
+	scripts/vm.sh root bash /tmp/thu-vm.sh > tmp-phien/thu-vm.log 2>&1 </dev/null; rc=$$?; cp tmp-phien/thu-vm.log $(M20_THU)/thu-vm.log; exit $$rc
+
+e2e-m20: ## e2e bước 23 trên máy ảo trong .tpan-vm (hai bước, token, chứng chỉ panel, nâng từ v0.2.0); log vào LOG (mặc định docs/bang-chung/M20.log)
+	@# Như e2e-m16: log ghi ra tmp-phien/ rồi mới chép, để tên bản được đóng gói không có đuôi -dirty.
+	E2E_LOG=tmp-phien/e2e-m20.log bash scripts/e2e-m20.sh </dev/null >tmp-phien/e2e-m20.log 2>&1; rc=$$?; \
+	  cp tmp-phien/e2e-m20.log $(or $(LOG),docs/bang-chung/M20.log); \
+	  echo "e2e-m20: mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' tmp-phien/e2e-m20.log), không đạt $$(grep -c '=> KHÔNG ĐẠT' tmp-phien/e2e-m20.log)"; exit $$rc
+
+anh-m20: web ## Chụp các màn của M20 (đăng nhập chặng hai, bật hai bước, Tài khoản, Cài đặt, Công cụ) sáng, tối, 390 px vào docs/bang-chung/M20
+	$(ANH) -bo m20 -out docs/bang-chung/M20
 
 anh-m17: web ## Chụp các màn của M17 (Tài nguyên, Gói có lồng, khối lồng của trang site, Thử tấn công, Công cụ) ở 1440 sáng, tối và 390 px vào docs/bang-chung/M17, kiểm như anh-m16
 	$(ANH) -bo m17 -out docs/bang-chung/M17

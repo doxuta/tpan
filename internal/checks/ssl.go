@@ -357,7 +357,30 @@ func CertRenewDryRun(l site.Layout, server string) Check {
 	if g := siteGuard(b, l, false); g != nil {
 		return g
 	}
-	dom := l.Domain.String()
+	return sslRenewDryRun(b, l.Domain.String(), server)
+}
+
+// certNameRE là dạng tên lineage tự đặt (cùng luật steps.CertbotDelete dùng):
+// tên đi vào argv của certbot.
+var certNameRE = regexp.MustCompile(`^[a-z0-9-]{1,64}$`)
+
+// CertRenewDryRunName (ID "tls.renew:<name>", StageTPAN) là CertRenewDryRun
+// cho một lineage đặt tên riêng (M20: "tpan-panel", chứng chỉ của panel):
+// `--cert-name <name>` thay cho tên miền của một site. Tên sai dạng: Unknown.
+func CertRenewDryRunName(name, server string) Check {
+	b := base{id: "tls.renew:" + name, stage: StageTPAN,
+		title: i18n.T("Gia hạn thử chứng chỉ "+name+" (certbot renew --dry-run) thành công", "A trial renewal of certificate "+name+" (certbot renew --dry-run) succeeds")}
+	if !certNameRE.MatchString(name) {
+		return checkFunc(func(context.Context, system.System) Result {
+			return b.unknown(i18n.T("tên chứng chỉ không hợp lệ", "the certificate name is not valid"))
+		})
+	}
+	return sslRenewDryRun(b, name, server)
+}
+
+// sslRenewDryRun là thân chung của hai phép gia hạn thử; dom là tên lineage
+// (tên miền của site, hoặc tên tự đặt) đi sau --cert-name.
+func sslRenewDryRun(b base, dom, server string) Check {
 	if server != "" {
 		u, err := url.Parse(server)
 		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || strings.ContainsAny(server, " \t\r\n") {

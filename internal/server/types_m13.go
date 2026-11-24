@@ -80,6 +80,12 @@ type UserCreate struct {
 	// Password rỗng thì tpan sinh (như mật khẩu quản trị) và trả về đúng một
 	// lần trong UserCreated.Password. Có thì tối thiểu 12 ký tự.
 	Password string `json:"password,omitempty"`
+	// CurrentPassword, Code (M20, soát cuối F1): mật khẩu của chính admin đang
+	// làm, và mã hai bước khi admin đó đã bật. Việc tạo, nâng quyền hay đặt lại
+	// mật khẩu một tài khoản đòi xác nhận lại, để một phiên bị chiếm (chỉ có
+	// cookie) không tạo được cửa sau.
+	CurrentPassword string `json:"current_password,omitempty"`
+	Code            string `json:"code,omitempty"`
 }
 
 // UserCreated trả lời POST /api/v1/users.
@@ -96,12 +102,21 @@ type UserEdit struct {
 	Email    *string       `json:"email,omitempty"`
 	Role     *account.Role `json:"role,omitempty"`
 	Package  *string       `json:"package,omitempty"`
+	// Bắt buộc khi Role đổi thành admin (M20, F1).
+	CurrentPassword string `json:"current_password,omitempty"`
+	Code            string `json:"code,omitempty"`
 }
 
 // PasswordSet là thân của POST /api/v1/users/{name}/password. Password rỗng
 // thì tpan sinh. Mọi phiên của user đó bị huỷ.
 type PasswordSet struct {
 	Password string `json:"password,omitempty"`
+	// CurrentPassword, Code (M20, soát cuối F1): mật khẩu của chính admin đang
+	// làm, và mã hai bước khi admin đó đã bật. Việc tạo, nâng quyền hay đặt lại
+	// mật khẩu một tài khoản đòi xác nhận lại, để một phiên bị chiếm (chỉ có
+	// cookie) không tạo được cửa sau.
+	CurrentPassword string `json:"current_password,omitempty"`
+	Code            string `json:"code,omitempty"`
 }
 
 // PasswordSetResult: Password chỉ có khi tpan sinh; hiện một lần.

@@ -179,11 +179,15 @@ func apiGroupResults(rs []store.StoredResult) map[string][]checks.Result {
 // M13: mọi phần lọc theo chủ ở truy vấn. User thường không thấy phần máy
 // (Machine, StackChecks, TPANChecks rỗng) mà thấy Quota; ?refresh=1 của họ bị
 // bỏ qua (chạy health đầy đủ là việc của admin, quyết định 12).
+//
+// M20 (soát cuối F3): request bằng token cũng bỏ qua ?refresh=1. Route này
+// thuộc nhóm health chỉ đọc; chạy health đầy đủ là việc của POST /health/run,
+// cần health:write.
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := who(r)
 	scope := scopeOf(r)
-	if r.URL.Query().Get("refresh") == "1" && id.IsAdmin() {
+	if r.URL.Query().Get("refresh") == "1" && id.IsAdmin() && tokenIDOf(ctx) == "" {
 		if _, err := s.healthRunner().Run(ctx, health.Options{Full: true}); err != nil {
 			apiFail(w, r, err)
 			return

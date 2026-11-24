@@ -124,13 +124,23 @@ type heldSecret struct {
 	one  *AdminSecret
 	many []AdminSecret
 	db   *DBSecret // M13: JobDetail.DBSecret
+	// starterToken (M20, mục 11.3, R9): id token đã khởi job; rỗng là job do
+	// một phiên khởi.
+	starterToken string
 }
 
 // takeSecret trả mật khẩu của job rồi xoá khỏi bộ nhớ: lần sau không còn.
-func (a *apiState) takeSecret(id string) heldSecret {
+// tokenID là token của request đang hỏi (rỗng: phiên). Chỉ đúng thông tin
+// đăng nhập đã khởi job lấy được (R9): token chỉ lấy mật khẩu của job do chính
+// nó khởi, phiên không lấy mật khẩu của job do token khởi. Không lấy được thì
+// cũng không làm mất mật khẩu.
+func (a *apiState) takeSecret(id, tokenID string) heldSecret {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	sec := a.secrets[id]
+	if sec.starterToken != tokenID {
+		return heldSecret{}
+	}
 	delete(a.secrets, id)
 	return sec
 }
@@ -182,7 +192,7 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, o jobOpts, fn 
 		res, err := fn(ar.Context(), onEvent)
 		a.mu.Lock()
 		if (res.secret != nil || len(res.secrets) > 0 || res.dbSecret != nil) && run.id != "" {
-			a.secrets[run.id] = heldSecret{one: res.secret, many: res.secrets, db: res.dbSecret}
+			a.secrets[run.id] = heldSecret{one: res.secret, many: res.secrets, db: res.dbSecret, starterToken: tokenIDOf(ar.Context())}
 		}
 		delete(a.runs, run.id)
 		a.busy = false

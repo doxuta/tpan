@@ -8,6 +8,11 @@ package steps
 //   - https://manpages.ubuntu.com/manpages/noble/man8/useradd.8.html
 //   - https://manpages.ubuntu.com/manpages/noble/man8/userdel.8.html
 //   - https://manpages.ubuntu.com/manpages/noble/man1/getent.1.html
+//   - mã shadow 4.13: src/useradd.c (check_uid_range chỉ cảnh báo; Uflg chỉ
+//     lấy từ USERGROUPS_ENAB khi không có -g), libmisc/find_new_gid.c (GID
+//     muốn dùng phải nằm trong dải), src/groupadd.c (-g: mã 4 khi GID đã có)
+//   - https://systemd.io/UIDS-GIDS/ (các dải UID đã có chủ)
+//   - procps pgrep(1), pkill(1); findutils find(1); cron crontab(1)
 
 import (
 	"context"
@@ -15,7 +20,9 @@ import (
 	"fmt"
 	"io/fs"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -52,7 +59,7 @@ func userCheckLayout(l site.Layout) error {
 
 // userEntry là các trường của một dòng passwd mà tpan cần.
 type userEntry struct {
-	home, shell string
+	uid, home, shell string
 }
 
 // userLookup hỏi user name qua `getent passwd`. getent trả mã 2 khi không có
@@ -71,7 +78,7 @@ func userLookup(ctx context.Context, sys system.System, name string) (userEntry,
 	if len(f) != 7 || f[0] != name {
 		return userEntry{}, false, fmt.Errorf("hỏi user %s: getent trả dòng lạ %q", name, res.Stdout)
 	}
-	return userEntry{home: f[5], shell: f[6]}, true, nil
+	return userEntry{uid: f[2], home: f[5], shell: f[6]}, true, nil
 }
 
 func userGetent(name string) system.Cmd {
@@ -90,43 +97,223 @@ func userOurs(l site.Layout, e userEntry) error {
 
 // ================================================================== SiteUser
 
+// Dải UID (và GID, luôn bằng UID) của user site từ M28 đợt 2 (F1 của rà soát
+// v0.2.0). Trước đó useradd --system lấy UID trống CAO NHẤT của dải hệ thống
+// (100-999), nên UID của site vừa xoá hẳn được cấp ngay cho site tạo kế tiếp
+// của người khác, kèm mọi file sót lại của site cũ (bản bash setuid ở
+// /var/tmp). Giờ tpan tự cấp số, tăng dần, không bao giờ trả lại số đã cấp
+// (store.ReserveSiteUID giữ số lớn nhất từng cấp trong tpan.db).
+//
+// Chọn 65536-99999 vì nó không đụng dải nào đã có chủ trên Ubuntu 24.04
+// (https://systemd.io/UIDS-GIDS/ và /etc/login.defs):
+//   - 0-999 hệ thống (gói cài bằng adduser --system lấy số ở đây), 1000-60000
+//     người thật (UID_MIN..UID_MAX), 60001-60577 systemd-homed và
+//     nspawn --bind-user, 61184-65519 DynamicUser= của systemd, 65534 nobody,
+//     65535 là -1 của uid_t 16 bit;
+//   - từ 100000 là dải UID phụ (/etc/subuid, SUB_UID_MIN mặc định 100000) mà
+//     useradd cấp cho người thật để chạy container không cần root (podman,
+//     LXD từ 1000000): UID site nằm trong đó thì root của container của một
+//     người dùng chính là user site.
+//
+// ponytail: 34464 số cho cả đời máy (mỗi site tạo mới một số, kể cả site thử
+// của phép thử tấn công). Hết dải thì SiteUser báo lỗi rõ; nâng cấp: đọc
+// /etc/subuid để biết chỗ trống phía trên.
+const (
+	siteUIDMin = 65536
+	siteUIDMax = 99999
+	// siteUIDTries: số lần thử khi số vừa cấp đã có người dùng (user hay nhóm
+	// từ nguồn NSS khác /etc/passwd, như LDAP). Mỗi lần thử bỏ phí một số.
+	siteUIDTries = 100
+)
+
+// UIDReserver giữ "UID lớn nhất từng cấp" cho user site; *store.Store thoả.
+type UIDReserver interface {
+	// ReserveSiteUID ghi lại và trả về max(floor, số lớn nhất từng cấp + 1).
+	ReserveSiteUID(ctx context.Context, floor int) (int, error)
+}
+
 // SiteUser đảm bảo user Linux l.User có, kèm nhóm riêng cùng tên. PHP của site
 // chạy dưới user này; vì nó không thuộc nhóm www-data nên không đọc được file
 // của site khác (mục 5).
+//
+// User mới nhận UID và GID mới (xem siteUIDMin): groupadd --gid N rồi
+// useradd --uid N --gid N. Không dùng --user-group: với --system, useradd chỉ
+// cho nhóm mang GID bằng UID khi số đó nằm trong SYS_GID_MIN..SYS_GID_MAX
+// (find_new_gid, check_gid của shadow 4.13), ngoài dải thì nó lặng lẽ lấy
+// GID trống cao nhất của dải hệ thống, tức là dùng lại GID của site đã xoá.
+// User site có sẵn (kể cả UID cũ trong dải hệ thống, site tạo trước bản này)
+// giữ nguyên: Check chỉ xét tên, home và shell.
 type SiteUser struct {
 	Layout site.Layout
+	// UIDs là nơi cấp số (tpan.db). nil thì Apply lỗi khi phải tạo user: không
+	// bao giờ quay về để useradd tự chọn số.
+	UIDs UIDReserver
 
 	created bool // chính Apply đã chạy useradd
 	applied bool
 }
 
-func (s *SiteUser) useradd() system.Cmd {
+// groupadd tạo nhóm riêng của site với GID đã cấp. Không có --system: cờ đó
+// chỉ đổi dải mà groupadd tự chọn số, ở đây số đã cho sẵn.
+func (s *SiteUser) groupadd(id string) system.Cmd {
+	return system.Cmd{Name: "groupadd", Args: []string{"--gid", id, s.Layout.User}}
+}
+
+func (s *SiteUser) useradd(id string) system.Cmd {
 	l := s.Layout
-	// --system: UID trong dải hệ thống, không có thông tin hết hạn mật khẩu.
-	// --user-group: tạo nhóm cùng tên làm nhóm chính (không vào nhóm users hay www-data).
+	// --system: không có thông tin hết hạn mật khẩu trong /etc/shadow, không
+	// cấp dải UID phụ (/etc/subuid). Với --uid cho sẵn, useradd không chọn số
+	// trong dải hệ thống nữa; số ngoài SYS_UID_MIN..SYS_UID_MAX chỉ làm nó in
+	// một dòng cảnh báo (check_uid_range), không lỗi.
+	// --uid, --gid: số do tpan cấp (pickUID), nhóm đã tạo bằng groupadd.
 	// --no-create-home: thư mục site do SiteDirs tạo với quyền 2750, không để
 	// useradd tạo bằng quyền mặc định của nó.
 	// Không có cờ mật khẩu: tài khoản không có mật khẩu, cộng shell nologin là
 	// không đăng nhập được bằng bất cứ đường nào.
 	return system.Cmd{Name: "useradd", Args: []string{
-		"--system", "--user-group",
+		"--system", "--uid", id, "--gid", id,
 		"--home-dir", l.Dir, "--no-create-home",
 		"--shell", userShell,
 		l.User,
 	}}
 }
 
+func (s *SiteUser) groupdel() system.Cmd {
+	return system.Cmd{Name: "groupdel", Args: []string{s.Layout.User}}
+}
+
+// uidPlaceholder đứng thay số trong Info: số chỉ được cấp lúc Apply, để bản
+// xem trước không tiêu số nào và không đổi giữa lúc duyệt và lúc chạy.
+const uidPlaceholder = "<UID>"
+
 func (s *SiteUser) Info() engine.StepInfo {
 	u := s.Layout.User
+	ga, ua := s.groupadd(uidPlaceholder), s.useradd(uidPlaceholder)
 	return engine.StepInfo{
 		ID:    "site.user:" + u,
 		Title: i18n.T("Tạo user Linux "+u+" cho site", "Create Linux user "+u+" for the site"),
 		Why: i18n.T(
-			"PHP của site chạy dưới user riêng này. Bỏ bước này thì PHP của mọi site chạy chung một user, và một site bị chiếm là đọc được wp-config.php (mật khẩu DB) của mọi site khác trên máy.",
-			"The site's PHP runs as this dedicated user. Without it every site's PHP shares one user, so one compromised site can read the wp-config.php (database password) of every other site on the machine.",
+			"PHP của site chạy dưới user riêng này. Bỏ bước này thì PHP của mọi site chạy chung một user, và một site bị chiếm là đọc được wp-config.php (mật khẩu DB) của mọi site khác trên máy. UID của user là số mới chưa từng cấp (từ 65536 trở lên): dùng lại UID của site đã xoá thì file sót lại của site đó thành của site mới.",
+			"The site's PHP runs as this dedicated user. Without it every site's PHP shares one user, so one compromised site can read the wp-config.php (database password) of every other site on the machine. The user gets a UID never handed out before (65536 and up): reusing a deleted site's UID would give its leftover files to the new site.",
 		),
-		Commands: []string{s.useradd().String()},
+		Commands: cmdStrings(&ga, &ua),
 	}
+}
+
+// pickUID cấp số cho user mới: lớn hơn mọi UID, GID đang có trong
+// /etc/passwd, /etc/group nằm trong dải (máy đã có user lạ ở đó, hay
+// tpan.db mới trên máy cũ), lớn hơn mọi số tpan từng cấp, và chưa có user
+// hay nhóm nào mang số đó theo getent (nguồn NSS khác file).
+func (s *SiteUser) pickUID(ctx context.Context, sys system.System) (int, error) {
+	if s.UIDs == nil {
+		return 0, errors.New("không có nơi ghi UID đã cấp (tpan.db): tpan không để useradd tự chọn số vì nó dùng lại UID của site đã xoá")
+	}
+	floor := siteUIDMin
+	for _, p := range []string{"/etc/passwd", "/etc/group"} {
+		b, err := sys.ReadFile(p)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue // chỉ máy giả (demo, test) mới thiếu hai file này
+		}
+		if err != nil {
+			return 0, fmt.Errorf("đọc %s: %w", p, err)
+		}
+		for line := range strings.Lines(string(b)) {
+			// passwd(5), group(5): trường thứ ba là UID, GID.
+			f := strings.SplitN(line, ":", 4)
+			if len(f) < 3 {
+				continue
+			}
+			if id, err := strconv.Atoi(f[2]); err == nil && id >= floor && id <= siteUIDMax {
+				floor = id + 1
+			}
+		}
+	}
+	for range siteUIDTries {
+		n, err := s.UIDs.ReserveSiteUID(ctx, floor)
+		if err != nil {
+			return 0, err
+		}
+		if n > siteUIDMax {
+			return 0, fmt.Errorf("hết dải UID của user site (%d-%d): mọi số đã được cấp một lần", siteUIDMin, siteUIDMax)
+		}
+		taken, err := idTaken(ctx, sys, n)
+		if err != nil {
+			return 0, err
+		}
+		if !taken {
+			return n, nil
+		}
+		floor = n + 1
+	}
+	return 0, fmt.Errorf("thử %d số UID liền nhau từ %d mà số nào cũng đã có user hay nhóm dùng", siteUIDTries, floor-siteUIDTries)
+}
+
+// idTaken: đã có user hay nhóm mang số n chưa (getent passwd n, getent group
+// n; getent nhận số làm key). Mã 2 là "không có". Mã 0 kèm một dòng là có.
+func idTaken(ctx context.Context, sys system.System, n int) (bool, error) {
+	id := strconv.Itoa(n)
+	for _, db := range []string{"passwd", "group"} {
+		res, err := sys.Run(ctx, system.Cmd{Name: "getent", Args: []string{db, id}})
+		if ee, ok := isExit(err); ok && ee.Code == 2 {
+			continue
+		}
+		if err != nil {
+			return false, withStdout(fmt.Errorf("hỏi %s %s: %w", db, id, err), res)
+		}
+		if strings.TrimSpace(res.Stdout) != "" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// groupLookup hỏi nhóm name qua `getent group`; trả GID khi có.
+func groupLookup(ctx context.Context, sys system.System, name string) (gid int, found bool, err error) {
+	res, err := sys.Run(ctx, system.Cmd{Name: "getent", Args: []string{"group", name}})
+	if ee, ok := isExit(err); ok && ee.Code == 2 {
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, withStdout(fmt.Errorf("hỏi nhóm %s: %w", name, err), res)
+	}
+	out := strings.TrimSpace(res.Stdout)
+	if out == "" {
+		return 0, false, nil
+	}
+	f := strings.Split(out, ":")
+	if len(f) != 4 || f[0] != name {
+		return 0, false, fmt.Errorf("hỏi nhóm %s: getent trả dòng lạ %q", name, res.Stdout)
+	}
+	gid, err = strconv.Atoi(f[2])
+	if err != nil {
+		return 0, false, fmt.Errorf("hỏi nhóm %s: GID %q không phải số", name, f[2])
+	}
+	return gid, true, nil
+}
+
+// userGroupID chọn số cho user mới. Nhóm cùng tên còn từ một lần Apply bị
+// ngắt giữa groupadd và useradd (tiến trình bị giết) thì dùng lại chính số
+// của nhóm đó: số trong dải là số tpan đã cấp và đã ghi. Nhóm cùng tên mà
+// GID ngoài dải thì không phải của lần chạy dở nào: lỗi, không đụng.
+func (s *SiteUser) userGroupID(ctx context.Context, sys system.System) (id int, haveGroup bool, err error) {
+	gid, found, err := groupLookup(ctx, sys, s.Layout.User)
+	if err != nil || !found {
+		if err == nil {
+			id, err = s.pickUID(ctx, sys)
+		}
+		return id, false, err
+	}
+	if gid < siteUIDMin || gid > siteUIDMax {
+		return 0, false, fmt.Errorf("nhóm %s đã có trên máy (GID %d) mà chưa có user cùng tên: không phải nhóm tpan để lại, tpan không đụng tới; xoá nó bằng tay (groupdel %s) nếu chắc là thừa", s.Layout.User, gid, s.Layout.User)
+	}
+	res, err := sys.Run(ctx, system.Cmd{Name: "getent", Args: []string{"passwd", strconv.Itoa(gid)}})
+	if ee, ok := isExit(err); !ok || ee.Code != 2 {
+		if err == nil {
+			err = fmt.Errorf("UID %d đã thuộc user khác", gid)
+		}
+		return 0, false, withStdout(fmt.Errorf("dùng lại nhóm %s còn từ lần chạy dở: %w", s.Layout.User, err), res)
+	}
+	return gid, true, nil
 }
 
 func (s *SiteUser) Check(ctx context.Context, sys system.System) (bool, error) {
@@ -160,11 +347,29 @@ func (s *SiteUser) Apply(ctx context.Context, sys system.System) error {
 		s.created, s.applied = false, true
 		return nil
 	}
-	if res, err := sys.Run(ctx, s.useradd()); err != nil {
-		return withStdout(fmt.Errorf("tạo user %s: %w", l.User, err), res)
+	n, haveGroup, err := s.userGroupID(ctx, sys)
+	if err != nil {
+		return fmt.Errorf("tạo user %s: %w", l.User, err)
+	}
+	id := strconv.Itoa(n)
+	if !haveGroup {
+		if res, err := sys.Run(ctx, s.groupadd(id)); err != nil {
+			return withStdout(fmt.Errorf("tạo nhóm %s (GID %s): %w", l.User, id, err), res)
+		}
+	}
+	// groupadd, useradd, groupdel đều thay /etc/group bằng rename: gắn lại bản
+	// riêng của các lồng sau mỗi lần đổi, kể cả khi useradd lỗi.
+	defer cageRebindIdentity(ctx, sys)
+	if res, err := sys.Run(ctx, s.useradd(id)); err != nil {
+		err = withStdout(fmt.Errorf("tạo user %s (UID %s): %w", l.User, id, err), res)
+		// Nhóm (vừa tạo, hay còn từ lần chạy dở) không để lại: số của nó đã
+		// ghi trong tpan.db nên lần chạy lại lấy số mới, bỏ phí số này.
+		if res, gerr := sys.Run(ctx, s.groupdel()); gerr != nil {
+			err = errors.Join(err, withStdout(fmt.Errorf("gỡ nhóm %s vừa tạo: %w", l.User, gerr), res))
+		}
+		return err
 	}
 	s.created, s.applied = true, true
-	cageRebindIdentity(ctx, sys) // useradd thay /etc/passwd: gắn lại bản riêng của các lồng
 	return nil
 }
 
@@ -207,22 +412,102 @@ func userDelCmd(name string) system.Cmd {
 // ============================================================ SiteUserAbsent
 
 // SiteUserAbsent xoá user của site và nhóm cùng tên (mục 6.4, "Xoá hẳn").
+//
+// Trước userdel nó dọn mọi thứ còn chạy hay còn nằm dưới quyền của user đó
+// (M28 đợt 2, F1 của rà soát v0.2.0), theo thứ tự:
+//  1. crontab riêng của user (cageCrontabGone: `crontab -r -u <user>` khi
+//     file spool có, rồi kiểm file đã mất). Crontab gắn với TÊN user, mà tên
+//     tp_<slug> sinh từ domain: tạo lại site cùng domain là crontab cũ sống
+//     lại dưới user mới. Gỡ trước khi giết để cron không sinh tiến trình mới.
+//  2. mọi tiến trình mang UID đó, theo uid thật (-U) hay uid hiệu lực (-u,
+//     người khác chạy một file setuid của site): `pkill -KILL` theo vòng tới
+//     khi `pgrep` không còn thấy, có hạn userKillWait.
+//  3. file (mọi loại trừ thư mục, kể cả symlink, không đi theo symlink) mang
+//     UID đó trong /tmp, /var/tmp, /dev/shm, ba chỗ ai cũng ghi được; rồi thư
+//     mục rỗng của UID đó. `find -xdev` không sang phân vùng khác.
+//
+// User không còn mà file crontab cùng tên còn (site xoá hẳn bằng bản trước
+// M28 đợt 2) thì xoá file đó: `crontab -u` không nhận user không tồn tại.
+//
+// ponytail: không dọn hàng đợi `at` (Ubuntu server không cài sẵn at, và atd
+// chạy job theo chủ của file job, mà UID đó không bao giờ được cấp lại); nếu
+// cần: `atq` rồi `atrm` các job có cột user là user site.
 type SiteUserAbsent struct{ Layout site.Layout }
 
+// userTmpDirs là các thư mục ai cũng ghi được (1777) nơi tiến trình của site
+// để file lại được ngoài thư mục site.
+var userTmpDirs = []string{"/tmp", "/var/tmp", "/dev/shm"}
+
+// Thời hạn chờ tiến trình của user thoát hẳn. Biến để test rút ngắn.
+var (
+	// userKillWait: SIGKILL giao bất đồng bộ, và tiến trình đã chết vẫn còn
+	// (zombie) tới khi cha của nó đọc mã thoát.
+	userKillWait = 5 * time.Second
+	userKillTick = 100 * time.Millisecond
+)
+
+// userPgrep, userPkill: -U là uid thật, -u là uid hiệu lực; pkill, pgrep
+// (procps) nhận nhiều tiêu chí thì đòi khớp tất cả, nên mỗi loại một lệnh.
+// pgrep, pkill trả 1 khi không tiến trình nào khớp.
+func userPgrep(flag, uid string) system.Cmd {
+	return system.Cmd{Name: "pgrep", Args: []string{flag, uid}}
+}
+
+func userPkill(flag, uid string) system.Cmd {
+	return system.Cmd{Name: "pkill", Args: []string{"-KILL", flag, uid}}
+}
+
+// userKillAll là `kill -KILL -1` chạy dưới user name, như cageKillAll.
+func userKillAll(name string) system.Cmd {
+	return system.Cmd{Name: "kill", Args: []string{"-KILL", "-1"}, AsUser: name}
+}
+
+// userFindFiles xoá mọi thứ không phải thư mục của uid trong dir. find mặc
+// định không đi theo symlink (-P), -delete xoá chính symlink; -xdev đứng
+// trước các phép thử (GNU find cảnh báo khi tuỳ chọn chung đứng sau).
+func userFindFiles(dir, uid string) system.Cmd {
+	return system.Cmd{Name: "find", Args: []string{dir, "-xdev", "-uid", uid, "!", "-type", "d", "-delete"}}
+}
+
+// userFindLeft in tên file đầu tiên còn lại của uid trong dir (nếu có).
+func userFindLeft(dir, uid string) system.Cmd {
+	return system.Cmd{Name: "find", Args: []string{dir, "-xdev", "-uid", uid, "!", "-type", "d", "-print", "-quit"}}
+}
+
+// userFindDirs xoá thư mục rỗng của uid (-delete kéo theo -depth: thư mục
+// con rỗng đi trước, thư mục cha rỗng theo sau).
+func userFindDirs(dir, uid string) system.Cmd {
+	return system.Cmd{Name: "find", Args: []string{dir, "-xdev", "-uid", uid, "-type", "d", "-empty", "-delete"}}
+}
+
 func (s *SiteUserAbsent) Info() engine.StepInfo {
-	u := s.Layout.User
+	l := s.Layout
+	u, id := l.User, uidPlaceholder
+	cron := cageCrontabRemove(l)
+	cmds := []string{cron.String()}
+	for _, c := range []system.Cmd{
+		userPgrep("-U", id), userPgrep("-u", id),
+		userKillAll(u),
+		userPkill("-U", id), userPkill("-u", id),
+	} {
+		cmds = append(cmds, c.String())
+	}
+	for _, d := range userTmpDirs {
+		cmds = append(cmds, userFindFiles(d, id).String(), userFindLeft(d, id).String(), userFindDirs(d, id).String())
+	}
+	cmds = append(cmds, userDelCmd(u).String())
 	return engine.StepInfo{
 		ID:    "site.user.absent:" + u,
-		Title: i18n.T("Xoá user Linux "+u, "Delete Linux user "+u),
+		Title: i18n.T("Dọn và xoá user Linux "+u, "Clean up and delete Linux user "+u),
 		Why: i18n.T(
-			"Site đã bị xoá thì user của nó không còn việc gì. Để lại thì UID cũ có thể bị một user mới dùng lại, và file sót lại của site cũ thuộc về user mới đó.",
-			"Once the site is gone its user has no purpose. If it stays, a later user may reuse the old UID and become the owner of any files the old site left behind.",
+			"Site đã bị xoá thì user của nó không còn việc gì. Trước khi xoá user, tpan gỡ crontab riêng của nó (tạo lại site cùng tên miền là crontab cũ chạy lại dưới user mới), giết mọi tiến trình còn chạy dưới UID của nó, và xoá file của UID đó trong /tmp, /var/tmp, /dev/shm (ví dụ một bản shell setuid để lại để ai chạy cũng thành user này).",
+			"Once the site is gone its user has no purpose. Before deleting the user, tpan removes its personal crontab (re-creating a site with the same domain would bring the old crontab back under the new user), kills every process still running under its UID, and deletes that UID's files in /tmp, /var/tmp and /dev/shm (for example a setuid shell left behind so that anyone running it becomes this user).",
 		),
-		Commands: []string{userDelCmd(u).String()},
+		Commands: cmds,
 		Danger:   true,
 		NoUndo: i18n.T(
-			"Tạo lại user sẽ ra UID khác; muốn có lại site thì tạo lại cả site.",
-			"Recreating the user gives it a different UID; to get the site back, create the whole site again.",
+			"Tiến trình đã giết và file đã xoá không lấy lại được; tạo lại user sẽ ra UID khác. Muốn có lại site thì tạo lại cả site.",
+			"Killed processes and deleted files cannot be brought back; recreating the user gives it a different UID. To get the site back, create the whole site again.",
 		),
 	}
 }
@@ -236,11 +521,23 @@ func (s *SiteUserAbsent) Check(ctx context.Context, sys system.System) (bool, er
 		return false, err
 	}
 	if !found {
-		return true, nil
+		return userNoCrontab(sys, s.Layout)
 	}
 	// User cùng tên mà không phải của tpan thì không xoá.
 	if err := userOurs(s.Layout, e); err != nil {
 		return false, err
+	}
+	return false, nil
+}
+
+// userNoCrontab: không có file crontab cùng tên user trong spool của cron.
+func userNoCrontab(sys system.System, l site.Layout) (bool, error) {
+	_, err := sys.Stat(cageCrontab(l))
+	if errors.Is(err, fs.ErrNotExist) {
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("kiểm %s: %w", cageCrontab(l), err)
 	}
 	return false, nil
 }
@@ -255,12 +552,117 @@ func (s *SiteUserAbsent) Apply(ctx context.Context, sys system.System) error {
 		return fmt.Errorf("xoá user %s: %w", l.User, err)
 	}
 	if !found {
+		// Crontab mồ côi của user đã xoá bằng bản cũ.
+		if err := sys.Remove(cageCrontab(l)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("xoá crontab còn sót của %s (%s): %w", l.User, cageCrontab(l), err)
+		}
 		return nil
 	}
 	if err := userOurs(l, e); err != nil {
 		return err
 	}
+	if err := userPurge(ctx, sys, l, e.uid); err != nil {
+		return fmt.Errorf("dọn dấu vết của user %s trước khi xoá: %w", l.User, err)
+	}
 	return userDel(ctx, sys, l.User)
+}
+
+// userPurge: crontab, tiến trình, file tạm của user (thứ tự và lý do ở
+// SiteUserAbsent). uid 0 bị từ chối: không bao giờ giết hay xoá thứ của root.
+func userPurge(ctx context.Context, sys system.System, l site.Layout, uid string) error {
+	if n, err := strconv.ParseUint(uid, 10, 32); err != nil || n == 0 {
+		return fmt.Errorf("UID của %s là %q: không phải số khác 0", l.User, uid)
+	}
+	if err := cageCrontabGone(ctx, sys, l); err != nil {
+		return err
+	}
+	if err := userKill(ctx, sys, l.User, uid); err != nil {
+		return err
+	}
+	for _, d := range userTmpDirs {
+		if err := userTmpClean(ctx, sys, d, uid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// userKill giết mọi tiến trình mang uid tới khi pgrep không còn thấy cái nào.
+func userKill(ctx context.Context, sys system.System, name, uid string) error {
+	deadline := time.Now().Add(userKillWait)
+	for {
+		pids, err := userPids(ctx, sys, uid)
+		if err != nil || len(pids) == 0 {
+			return err
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("sau %v vẫn còn tiến trình của %s (UID %s): %s", userKillWait, name, uid, strings.Join(pids, " "))
+		}
+		// `kill -KILL -1` dưới chính user đó giết mọi tiến trình cùng uid trong
+		// một lượt duyệt của kernel, nên một chuỗi "fork rồi tự thoát" không
+		// chạy trước được như với pkill (đọc /proc rồi giết từng pid; soát cuối
+		// M17, N2). Lỗi bỏ qua như cageReap (chính lệnh kill bị giết theo, hay
+		// runuser từ chối tài khoản đã hết hạn): pkill bằng root ngay sau là
+		// đường dự phòng, và vòng sau mới là câu trả lời.
+		_, _ = sys.Run(ctx, userKillAll(name))
+		for _, f := range []string{"-U", "-u"} {
+			res, err := sys.Run(ctx, userPkill(f, uid))
+			// 1: không tiến trình nào khớp (vừa tự thoát), không phải lỗi.
+			if ee, ok := isExit(err); err != nil && (!ok || ee.Code != 1) {
+				return withStdout(fmt.Errorf("giết tiến trình của %s (UID %s): %w", name, uid, err), res)
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("chờ tiến trình của %s thoát: %w", name, ctx.Err())
+		case <-time.After(userKillTick):
+		}
+	}
+}
+
+// userPids trả pid của mọi tiến trình có uid thật hay uid hiệu lực là uid.
+func userPids(ctx context.Context, sys system.System, uid string) ([]string, error) {
+	var pids []string
+	for _, f := range []string{"-U", "-u"} {
+		res, err := sys.Run(ctx, userPgrep(f, uid))
+		if ee, ok := isExit(err); ok && ee.Code == 1 {
+			continue
+		}
+		if err != nil {
+			return nil, withStdout(fmt.Errorf("tìm tiến trình của UID %s: %w", uid, err), res)
+		}
+		pids = append(pids, strings.Fields(res.Stdout)...)
+	}
+	return pids, nil
+}
+
+// userTmpClean xoá file của uid trong dir (không có dir thì thôi). find thoát
+// khác 0 cả khi một file tự biến mất giữa lúc duyệt (thư mục tạm luôn có file
+// vào ra), nên khi lệnh xoá lỗi thì hỏi lại: chỉ lỗi khi còn file của uid,
+// hay không hỏi lại được. Thư mục của uid mà còn file của người khác bên
+// trong thì để lại (lần xoá thư mục rỗng bỏ qua lỗi): nó rỗng quyền, vì UID
+// không bao giờ được cấp lại, và người khác không chặn được việc xoá site
+// bằng cách bỏ một file vào thư mục đó.
+func userTmpClean(ctx context.Context, sys system.System, dir, uid string) error {
+	if _, err := sys.Stat(dir); errors.Is(err, fs.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("kiểm %s: %w", dir, err)
+	}
+	if res, err := sys.Run(ctx, userFindFiles(dir, uid)); err != nil {
+		// find thoát khác 0 cả khi chỉ một mục không đọc được, ví dụ điểm mount
+		// FUSE của user khác trong /tmp (từ chối cả root): coi đó là hỏng thì
+		// một user bất kỳ chặn được mọi lần xoá hẳn trên máy (B2 của soát cuối
+		// nhóm B). Chỉ hỏng khi hỏi lại còn thấy đúng một file của UID; mã thoát
+		// của lần hỏi lại không tính, vì nó gặp lại đúng điểm mount đó.
+		left, lerr := sys.Run(ctx, userFindLeft(dir, uid))
+		if strings.TrimSpace(left.Stdout) != "" {
+			return withStdout(fmt.Errorf("xoá file của UID %s trong %s (còn %q, hỏi lại: %v): %w",
+				uid, dir, strings.TrimSpace(left.Stdout), lerr, err), res)
+		}
+	}
+	_, _ = sys.Run(ctx, userFindDirs(dir, uid))
+	return nil
 }
 
 func (s *SiteUserAbsent) Undo(context.Context, system.System) error { return nil }

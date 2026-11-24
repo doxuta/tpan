@@ -18,17 +18,20 @@ package steps
 //
 // ---------------------------------------------------------------- site_user.go
 //
-//	// SiteUser đảm bảo user Linux l.User có, kèm nhóm riêng cùng tên:
-//	// useradd --system --user-group --home-dir l.Dir --no-create-home
+//	// SiteUser đảm bảo user Linux l.User có, kèm nhóm riêng cùng tên, UID và
+//	// GID là số N do UIDs cấp (tăng dần từ 65536, không bao giờ dùng lại; M28
+//	// đợt 2, F1):
+//	// groupadd --gid N l.User
+//	// useradd --system --uid N --gid N --home-dir l.Dir --no-create-home
 //	//         --shell /usr/sbin/nologin l.User
 //	// Check: `getent passwd l.User` (mã 2 = chưa có). Đã có mà home hoặc shell
 //	// khác thì lỗi (không sửa user không do tpan tạo). Undo: userdel l.User,
 //	// chỉ khi chính bước này đã tạo.
-//	type SiteUser struct{ Layout site.Layout }
+//	type SiteUser struct{ Layout site.Layout; UIDs UIDReserver }
 //
-//	// SiteUserAbsent xoá user (và nhóm cùng tên): userdel l.User. Danger,
-//	// NoUndo. Còn tiến trình chạy dưới user (worker PHP-FPM chưa thoát) thì
-//	// userdel lỗi: trả lỗi có ngữ cảnh nói rõ điều đó.
+//	// SiteUserAbsent xoá user (và nhóm cùng tên): trước userdel gỡ crontab,
+//	// giết tiến trình còn sống, xoá file của UID ở /tmp, /var/tmp, /dev/shm
+//	// (F1). Danger, NoUndo.
 //	type SiteUserAbsent struct{ Layout site.Layout }
 //
 //	// SiteDirs trả các bước dựng thư mục của site theo mục 5, đúng thứ tự:

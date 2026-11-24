@@ -4,6 +4,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
@@ -34,7 +36,10 @@ type RunOptions struct {
 	// /etc/tpan/tls). Cả hai rỗng thì nghe HTTP thường: chỉ dùng cho
 	// make dev-api và --demo trên máy dev, không bao giờ trên máy chủ.
 	CertFile, KeyFile string
-	Deps              Deps
+	// ACMEDir (M20) là thư mục lineage Let's Encrypt của panel; rỗng là
+	// core.PanelCertDir. Chỉ test đặt.
+	ACMEDir string
+	Deps    Deps
 }
 
 // Run nghe cho tới khi ctx bị huỷ, rồi tắt êm (chờ các request đang chạy tối
@@ -108,7 +113,13 @@ func Run(ctx context.Context, o RunOptions) error {
 	slog.Info("tpan đang chạy", "listen", o.Listen, "tls", o.CertFile != "", "demo", o.Deps.Demo, "version", buildinfo.Version)
 	var err error
 	if o.CertFile != "" || o.KeyFile != "" {
-		err = srv.ListenAndServeTLS(o.CertFile, o.KeyFile)
+		// M20: chọn chứng chỉ theo SNI và nạp lại khi file đổi (tls_m20.go).
+		pc := s.newPanelCerts(o.CertFile, o.KeyFile, o.ACMEDir)
+		if _, err := pc.selfSigned(); err != nil {
+			return err // như ListenAndServeTLS cũ: chứng chỉ hỏng thì không chạy
+		}
+		srv.TLSConfig = &tls.Config{GetCertificate: pc.GetCertificate, MinVersion: tls.VersionTLS12}
+		err = srv.ListenAndServeTLS("", "")
 	} else {
 		err = srv.ListenAndServe()
 	}
@@ -146,6 +157,17 @@ type Server struct {
 	// system.DefaultRemoteLockPath. Chỉ test đặt (system.MemLock): /run/tpan
 	// không ghi được trên máy dev.
 	remoteLock system.Locker
+
+	// M20 (auth_m20.go, host_m20.go, tls_m20.go). Zero value dùng được.
+	mfaUsers mfaLocks   // khoá theo user khi kiểm mã
+	mfaKeyMu sync.Mutex // tạo, đọc file khoá
+	sites    siteNames  // đệm tên site cho 421
+	panelDom panelDomainCache
+	// mfaMatch thay mfa.Match (nil: hàm thật); chỉ test đặt để đếm lần chạy.
+	mfaMatch func(secret []byte, code string, now time.Time) (uint64, bool)
+	// beforeEnable chạy giữa lúc so mã và lúc bật (nil: không làm gì); chỉ
+	// test đặt để chen một lần setup vào đúng khe đó.
+	beforeEnable func()
 }
 
 func (s *Server) bgCtx() context.Context {
@@ -178,7 +200,7 @@ func (s *Server) auditAs(ctx context.Context, ip, action, target, result, jobID 
 	// bộ hẹn giờ không có ai nên rỗng.
 	err := s.deps.Store.AddAudit(ctx, store.AuditEntry{
 		Time: s.now(), IP: ip, Action: action, Target: target, Result: result, JobID: jobID,
-		Actor: engine.ActorFrom(ctx),
+		Actor: engine.ActorFrom(ctx), TokenID: tokenIDOf(ctx),
 	})
 	if err != nil {
 		slog.Error("ghi nhật ký", "action", action, "err", err)

@@ -56,6 +56,7 @@ const vi = {
     aiSessions: "Phiên AI",
     users: "Người dùng",
     packages: "Gói",
+    account: "Tài khoản của tôi",
     settings: "Cài đặt",
     logout: "Đăng xuất",
   },
@@ -104,7 +105,7 @@ const vi = {
   cancel: "Huỷ",
 
   loading: "Đang tải…",
-  errorNetwork: "Không tới được máy chủ tpan. Kiểm tra kết nối rồi tải lại trang.",
+  errorNetwork: "Không tới được máy chủ TPAN. Kiểm tra kết nối rồi tải lại trang.",
   errorHttp: (code: number) => `Máy chủ trả lỗi HTTP ${code}. Tải lại trang; vẫn lỗi thì xem log của tpan.`,
   retry: "Tải lại",
 
@@ -162,6 +163,7 @@ export const strings = defineStrings(vi, {
     aiSessions: "AI sessions",
     users: "Users",
     packages: "Packages",
+    account: "My account",
     settings: "Settings",
     logout: "Log out",
   },

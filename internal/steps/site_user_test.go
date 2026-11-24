@@ -48,14 +48,17 @@ func userMachine(t *testing.T) *machine {
 		}
 		return string(b)
 	}
-	find := func(name string) (string, bool) {
-		for line := range strings.Lines(read(userPasswd)) {
-			if strings.HasPrefix(line, name+":") {
+	// findIn tìm dòng theo tên (trường 1) hay theo số (trường 3), như getent.
+	findIn := func(p, key string) (string, bool) {
+		for line := range strings.Lines(read(p)) {
+			f := strings.Split(line, ":")
+			if f[0] == key || (len(f) > 2 && f[2] == key) {
 				return line, true
 			}
 		}
 		return "", false
 	}
+	find := func(name string) (string, bool) { return findIn(userPasswd, name) }
 	drop := func(p, name string) {
 		var out strings.Builder
 		for line := range strings.Lines(read(p)) {
@@ -66,20 +69,42 @@ func userMachine(t *testing.T) *machine {
 		m.SetFile(p, []byte(out.String()), 0o644, system.Root)
 	}
 
-	m.Handle([]string{"getent", "passwd"}, func(c system.Cmd) system.Result {
-		if line, ok := find(c.Args[1]); ok {
-			return exit(0, line, "")
+	for db, p := range map[string]string{"passwd": userPasswd, "group": userGroup} {
+		m.Handle([]string{"getent", db}, func(c system.Cmd) system.Result {
+			if line, ok := findIn(p, c.Args[1]); ok {
+				return exit(0, line, "")
+			}
+			return exit(2, "", "")
+		})
+	}
+	arg := func(c system.Cmd, flag string) string { return c.Args[slices.Index(c.Args, flag)+1] }
+	m.Handle([]string{"groupadd"}, func(c system.Cmd) system.Result {
+		name, gid := c.Args[len(c.Args)-1], arg(c, "--gid")
+		if _, ok := findIn(userGroup, name); ok {
+			return exit(9, "", "groupadd: group '"+name+"' already exists")
 		}
-		return exit(2, "", "")
+		if _, ok := findIn(userGroup, gid); ok {
+			return exit(4, "", "groupadd: GID '"+gid+"' already exists")
+		}
+		m.SetFile(userGroup, []byte(read(userGroup)+name+":x:"+gid+":\n"), 0o644, system.Root)
+		return exit(0, "", "")
+	})
+	m.Handle([]string{"groupdel"}, func(c system.Cmd) system.Result {
+		drop(userGroup, c.Args[len(c.Args)-1])
+		return exit(0, "", "")
 	})
 	m.Handle([]string{"useradd"}, func(c system.Cmd) system.Result {
-		name := c.Args[len(c.Args)-1]
+		name, uid, gid := c.Args[len(c.Args)-1], arg(c, "--uid"), arg(c, "--gid")
 		if _, ok := find(name); ok {
 			return exit(9, "", "useradd: user '"+name+"' already exists")
 		}
-		arg := func(flag string) string { return c.Args[slices.Index(c.Args, flag)+1] }
-		m.SetFile(userPasswd, []byte(read(userPasswd)+name+":x:999:999::"+arg("--home-dir")+":"+arg("--shell")+"\n"), 0o644, system.Root)
-		m.SetFile(userGroup, []byte(read(userGroup)+name+":x:999:\n"), 0o644, system.Root)
+		if _, ok := find(uid); ok {
+			return exit(4, "", "useradd: UID "+uid+" is not unique")
+		}
+		if _, ok := findIn(userGroup, gid); !ok {
+			return exit(6, "", "useradd: group '"+gid+"' does not exist")
+		}
+		m.SetFile(userPasswd, []byte(read(userPasswd)+name+":x:"+uid+":"+gid+"::"+arg(c, "--home-dir")+":"+arg(c, "--shell")+"\n"), 0o644, system.Root)
 		return exit(0, "", "")
 	})
 	m.Handle([]string{"userdel"}, func(c system.Cmd) system.Result {
@@ -88,7 +113,7 @@ func userMachine(t *testing.T) *machine {
 			return exit(6, "", "userdel: user '"+name+"' does not exist")
 		}
 		drop(userPasswd, name)
-		drop(userGroup, name)
+		drop(userGroup, name) // USERGROUPS_ENAB yes: nhóm cùng tên đi theo
 		return exit(0, "", "")
 	})
 	// rm -r: xoá p và mọi thứ bên dưới, từ trong ra ngoài.
@@ -133,11 +158,15 @@ func userRanString(m *machine, want string) bool {
 func TestSiteUser(t *testing.T) {
 	ctx := context.Background()
 	l := userTestLayout(t)
-	useradd := "useradd --system --user-group --home-dir /var/www/example.com --no-create-home --shell /usr/sbin/nologin " + l.User
+	useradd := "useradd --system --uid 65536 --gid 65536 --home-dir /var/www/example.com --no-create-home --shell /usr/sbin/nologin " + l.User
+	infoCmds := []string{
+		"groupadd --gid '<UID>' " + l.User,
+		"useradd --system --uid '<UID>' --gid '<UID>' --home-dir /var/www/example.com --no-create-home --shell /usr/sbin/nologin " + l.User,
+	}
 
 	t.Run("máy sạch rồi Apply thì Check true", func(t *testing.T) {
 		m := userMachine(t)
-		s := &SiteUser{Layout: l}
+		s := &SiteUser{Layout: l, UIDs: &memUIDs{}}
 		if done, err := s.Check(ctx, m); err != nil || done {
 			t.Fatalf("Check trước Apply = %v, %v; muốn false, nil", done, err)
 		}
@@ -150,22 +179,22 @@ func TestSiteUser(t *testing.T) {
 		if !userRanString(m, useradd) {
 			t.Errorf("không thấy lệnh %q trong %v", useradd, ranStrings(m.Ran()))
 		}
-		if g, _ := m.ReadFile(userGroup); !strings.Contains(string(g), l.User+":") {
-			t.Error("useradd không tạo nhóm cùng tên")
+		if g, _ := m.ReadFile(userGroup); !strings.Contains(string(g), l.User+":x:65536:") {
+			t.Errorf("không có nhóm cùng tên với GID 65536: %s", g)
 		}
-		if got := s.Info().Commands; !reflect.DeepEqual(got, []string{useradd}) {
+		if got := s.Info().Commands; !reflect.DeepEqual(got, infoCmds) {
 			t.Errorf("Info().Commands = %v", got)
 		}
 	})
 
 	t.Run("chạy lại thì chỉ hỏi getent", func(t *testing.T) {
 		m := userMachine(t)
-		if rep := execute(t, m, &SiteUser{Layout: l}); rep.Job.Status != engine.JobSucceeded {
+		if rep := execute(t, m, &SiteUser{Layout: l, UIDs: &memUIDs{}}); rep.Job.Status != engine.JobSucceeded {
 			t.Fatalf("lần đầu: %s %s", rep.Job.Status, rep.Job.Error)
 		}
 		before := m.whole()
 		m.ResetRan()
-		rep := execute(t, m, &SiteUser{Layout: l})
+		rep := execute(t, m, &SiteUser{Layout: l, UIDs: &memUIDs{}})
 		if got := rep.Steps[0].Outcome; got != "skipped" {
 			t.Fatalf("lần hai: outcome %q (%s)", got, rep.Steps[0].Error)
 		}
@@ -178,7 +207,7 @@ func TestSiteUser(t *testing.T) {
 	t.Run("Apply rồi Undo thì máy về như cũ", func(t *testing.T) {
 		m := userMachine(t)
 		before := m.whole()
-		s := &SiteUser{Layout: l}
+		s := &SiteUser{Layout: l, UIDs: &memUIDs{}}
 		if err := s.Apply(ctx, m); err != nil {
 			t.Fatal(err)
 		}
@@ -197,7 +226,7 @@ func TestSiteUser(t *testing.T) {
 		m := userMachine(t)
 		m.SetFile(userPasswd, []byte(userRoot+l.User+":x:998:998::"+l.Dir+":/usr/sbin/nologin\n"), 0o644, system.Root)
 		before := m.whole()
-		s := &SiteUser{Layout: l}
+		s := &SiteUser{Layout: l, UIDs: &memUIDs{}}
 		if err := s.Apply(ctx, m); err != nil {
 			t.Fatal(err)
 		}
@@ -213,7 +242,7 @@ func TestSiteUser(t *testing.T) {
 	t.Run("user cùng tên mà home khác thì từ chối", func(t *testing.T) {
 		m := userMachine(t)
 		m.SetFile(userPasswd, []byte(userRoot+l.User+":x:998:998::/home/khac:/bin/bash\n"), 0o644, system.Root)
-		s := &SiteUser{Layout: l}
+		s := &SiteUser{Layout: l, UIDs: &memUIDs{}}
 		if _, err := s.Check(ctx, m); err == nil || !strings.Contains(err.Error(), "không phải user do tpan tạo") {
 			t.Errorf("Check = %v; muốn lỗi user lạ", err)
 		}
@@ -227,7 +256,7 @@ func TestSiteUser(t *testing.T) {
 		m := userMachine(t)
 		before := m.whole()
 		m.failCmd([]string{"useradd"}, 10, "useradd: cannot lock /etc/group")
-		wantExit(t, (&SiteUser{Layout: l}).Apply(ctx, m), "tạo user "+l.User)
+		wantExit(t, (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m), "tạo user "+l.User)
 		if !reflect.DeepEqual(before, m.whole()) {
 			t.Error("máy bị đổi")
 		}
@@ -236,7 +265,7 @@ func TestSiteUser(t *testing.T) {
 	t.Run("getent mã khác 2 là lỗi thật", func(t *testing.T) {
 		m := userMachine(t)
 		m.failCmd([]string{"getent", "passwd"}, 1, "")
-		_, err := (&SiteUser{Layout: l}).Check(ctx, m)
+		_, err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Check(ctx, m)
 		wantExit(t, err, "hỏi user "+l.User)
 	})
 
@@ -245,13 +274,13 @@ func TestSiteUser(t *testing.T) {
 		m.Handle([]string{"getent", "passwd"}, func(system.Cmd) system.Result {
 			return system.Result{Stdout: "rác\n"}
 		})
-		if _, err := (&SiteUser{Layout: l}).Check(ctx, m); err == nil || !strings.Contains(err.Error(), "dòng lạ") {
+		if _, err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Check(ctx, m); err == nil || !strings.Contains(err.Error(), "dòng lạ") {
 			t.Errorf("Check = %v; muốn lỗi dòng lạ", err)
 		}
 	})
 
 	t.Run("Undo khi chưa Apply thì lỗi", func(t *testing.T) {
-		if err := (&SiteUser{Layout: l}).Undo(ctx, userMachine(t)); err == nil {
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Undo(ctx, userMachine(t)); err == nil {
 			t.Error("muốn lỗi")
 		}
 	})
@@ -264,7 +293,7 @@ func TestSiteUserAbsent(t *testing.T) {
 	l := userTestLayout(t)
 	withUser := func(t *testing.T) *machine {
 		m := userMachine(t)
-		if err := (&SiteUser{Layout: l}).Apply(ctx, m); err != nil {
+		if err := (&SiteUser{Layout: l, UIDs: &memUIDs{}}).Apply(ctx, m); err != nil {
 			t.Fatal(err)
 		}
 		m.ResetRan()
@@ -377,7 +406,7 @@ func TestUserBadLayout(t *testing.T) {
 	}
 	for name, l := range cases {
 		t.Run(name, func(t *testing.T) {
-			for _, s := range []engine.Step{&SiteUser{Layout: l}, &SiteUserAbsent{Layout: l}} {
+			for _, s := range []engine.Step{&SiteUser{Layout: l, UIDs: &memUIDs{}}, &SiteUserAbsent{Layout: l}} {
 				m := userMachine(t)
 				if _, err := s.Check(ctx, m); err == nil {
 					t.Errorf("%T.Check không lỗi", s)
@@ -745,7 +774,7 @@ func TestRemoveTree(t *testing.T) {
 func TestUserInfo(t *testing.T) {
 	l := userTestLayout(t)
 	steps := append([]engine.Step{
-		&SiteUser{Layout: l}, &SiteUserAbsent{Layout: l},
+		&SiteUser{Layout: l, UIDs: &memUIDs{}}, &SiteUserAbsent{Layout: l},
 		&RemoveTree{Path: l.Dir, Under: "/var/www"},
 	}, SiteDirs(l)...)
 	for _, s := range steps {

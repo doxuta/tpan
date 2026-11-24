@@ -69,6 +69,11 @@ type CertbotCert struct {
 	// Probe (M19, S3): kết quả của ACMEProbeNames. Probe.Blocked mà chứng chỉ
 	// đã có thì không chạy certbot, giữ chứng chỉ cũ. nil: không bao giờ chặn.
 	Probe *ProbeResult
+	// CertName (M20, mục 11.7 của docs/thay-doi/M20-thiet-ke.md) là tên lineage
+	// của certbot. Rỗng: tên miền, đúng như chứng chỉ của site từ M5. Panel dùng
+	// "tpan-panel": tên không có dấu chấm nên không bao giờ trùng lineage của một
+	// site, và xoá hẳn site không xoá được chứng chỉ của panel.
+	CertName string
 }
 
 // names là bộ tên đi vào lệnh certbot: tên chính đầu, không lặp.
@@ -85,9 +90,52 @@ func (s *CertbotCert) names() []validate.Domain {
 	return out
 }
 
+// sslCertNameRe: tên lineage đi vào argv của certbot và vào đường dẫn dưới
+// /etc/letsencrypt, nên chỉ nhận chữ thường, số, gạch ngang (không '/', không '.').
+var sslCertNameRe = regexp.MustCompile(`^[a-z0-9-]{1,64}$`)
+
+func sslCheckCertName(n string) error {
+	if !sslCertNameRe.MatchString(n) {
+		return fmt.Errorf("tên chứng chỉ %q không hợp lệ (chỉ nhận a-z, 0-9, '-', tối đa 64 ký tự)", n)
+	}
+	return nil
+}
+
+// Đường dẫn của một lineage đặt tên riêng (CertName khác rỗng).
+func sslLiveDir(name string) string     { return "/etc/letsencrypt/live/" + name }
+func sslRenewalConf(name string) string { return "/etc/letsencrypt/renewal/" + name + ".conf" }
+
+// lineage, fullchain, renewal: tên và đường dẫn của chứng chỉ mà bước này lo.
+// CertName rỗng thì đúng chuỗi của Layout như trước M20.
+func (s *CertbotCert) lineage() string {
+	if s.CertName != "" {
+		return s.CertName
+	}
+	return s.Layout.Domain.String()
+}
+
+func (s *CertbotCert) fullchain() string {
+	if s.CertName != "" {
+		return sslLiveDir(s.CertName) + "/fullchain.pem"
+	}
+	return s.Layout.CertFullchain()
+}
+
+func (s *CertbotCert) renewal() string {
+	if s.CertName != "" {
+		return sslRenewalConf(s.CertName)
+	}
+	return s.Layout.CertRenewal()
+}
+
 func (s *CertbotCert) validate() error {
 	if err := webCheckLayout(s.Layout); err != nil {
 		return err
+	}
+	if s.CertName != "" {
+		if err := sslCheckCertName(s.CertName); err != nil {
+			return err
+		}
 	}
 	if err := sslCheckWebroot(s.Webroot); err != nil {
 		return err
@@ -113,12 +161,11 @@ func (s *CertbotCert) validate() error {
 // --cert-name thì certbot tự xin lại khi bộ tên đổi, không cần --expand).
 // Names nil cho đúng argv trước M19.
 func (s *CertbotCert) cmd(force bool) system.Cmd {
-	d := s.Layout.Domain.String()
 	args := []string{"certonly", "--webroot", "-w", s.Webroot}
 	for _, n := range s.names() {
 		args = append(args, "-d", n.String())
 	}
-	args = append(args, "--cert-name", d,
+	args = append(args, "--cert-name", s.lineage(),
 		"--non-interactive", "--agree-tos", "-m", s.Email.String(), "--server", s.Server)
 	if force {
 		args = append(args, "--force-renewal")
@@ -128,6 +175,21 @@ func (s *CertbotCert) cmd(force bool) system.Cmd {
 
 func (s *CertbotCert) Info() engine.StepInfo {
 	d := s.Layout.Domain.String()
+	if s.CertName != "" {
+		return engine.StepInfo{
+			ID:    "ssl.cert:" + d,
+			Title: i18n.T("Xin chứng chỉ Let's Encrypt cho panel ở "+d, "Get a Let's Encrypt certificate for the panel at "+d),
+			Why: i18n.T(
+				"Panel đang dùng chứng chỉ tự ký nên trình duyệt cảnh báo mỗi lần vào, và người dùng quen bấm \"vẫn vào\" thì không còn nhận ra khi có kẻ đứng giữa. Có chứng chỉ do Let's Encrypt ký cho "+d+" thì trình duyệt tin ngay. Chứng chỉ nằm ở lineage riêng "+s.CertName+", không chung thư mục với site nào.",
+				"The panel uses a self-signed certificate, so browsers warn on every visit, and people used to clicking \"proceed anyway\" stop noticing a man in the middle. A Let's Encrypt certificate for "+d+" is trusted right away. It lives in its own lineage "+s.CertName+", never in a site's folder.",
+			),
+			Commands: []string{s.cmd(false).String()},
+			NoUndo: i18n.T(
+				"Giữ chứng chỉ để lần chạy lại không tốn lượt của Let's Encrypt. Panel chỉ dùng nó khi tên miền của panel đã được ghi, nên để trên đĩa không ảnh hưởng gì.",
+				"The certificate is kept so a retry does not use up Let's Encrypt's quota. The panel only uses it once the panel domain is saved, so leaving it on disk changes nothing.",
+			),
+		}
+	}
 	why := i18n.T(
 		"Không có chứng chỉ thì trình duyệt không mở được https://"+d+" mà không báo lỗi, và mật khẩu đăng nhập WordPress đi qua mạng ở dạng đọc được. Hoàn tác không xoá chứng chỉ: xoá đi thì mỗi lần thử lại tốn thêm một lượt trong hạn mức 5 chứng chỉ cùng tên mỗi 7 ngày của Let's Encrypt; chứng chỉ nằm trên đĩa không làm gì khi vhost chưa dùng nó.",
 		"Without a certificate browsers cannot open https://"+d+" without an error, and WordPress login passwords cross the network readable. Undo keeps the certificate: deleting it would cost another of Let's Encrypt's 5 certificates per name per 7 days on every retry; a certificate on disk does nothing while no vhost uses it.",
@@ -152,7 +214,7 @@ func (s *CertbotCert) Info() engine.StepInfo {
 // renewalServer đọc dòng `server = ...` trong file renewal của site. exists
 // false: chưa có lineage nào cho domain này.
 func (s *CertbotCert) renewalServer(sys system.System) (server string, exists bool, err error) {
-	p := s.Layout.CertRenewal()
+	p := s.renewal()
 	data, err := sys.ReadFile(p)
 	if errors.Is(err, fs.ErrNotExist) {
 		return "", false, nil
@@ -176,13 +238,19 @@ func (s *CertbotCert) Check(_ context.Context, sys system.System) (bool, error) 
 	if err := s.validate(); err != nil {
 		return false, err
 	}
-	p := s.Layout.CertFullchain()
-	if _, err := sys.ReadFile(p); errors.Is(err, fs.ErrNotExist) {
+	p := s.fullchain()
+	data, err := sys.ReadFile(p)
+	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
 	} else if err != nil {
 		return false, fmt.Errorf("đọc %s: %w", p, err)
 	}
-	// S3: một tên đang nằm trong chứng chỉ hỏng bước thử. Xin lại thì hoặc
+	// Lineage đặt tên riêng (M20) không mang tên miền trong đường dẫn: đổi tên
+	// panel thì file vẫn ở đó mà cấp cho tên cũ. Phải đọc SAN mới biết đúng chưa.
+	if s.CertName != "" && !sslCertCovers(data, s.Layout.Domain.String()) {
+		return false, nil
+	}
+	// S3 (M19): một tên đang nằm trong chứng chỉ hỏng bước thử. Xin lại thì hoặc
 	// certbot hỏng (có tên đó) hoặc chứng chỉ mất tên đó (bỏ nó): giữ nguyên.
 	if s.held() {
 		return true, nil
@@ -194,15 +262,15 @@ func (s *CertbotCert) Check(_ context.Context, sys system.System) (bool, error) 
 	if s.Names == nil {
 		return true, nil
 	}
-	// Đủ tên mới là xong: so SAN của cert.pem với bộ tên (so tập, không thứ tự).
+	// Đủ tên mới là xong (M19): so SAN của cert.pem với bộ tên (so tập).
 	cp := sslCertPem(s.Layout)
-	data, err := sys.ReadFile(cp)
+	pem, err := sys.ReadFile(cp)
 	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
 	} else if err != nil {
 		return false, fmt.Errorf("đọc %s: %w", cp, err)
 	}
-	have, err := CertNames(data)
+	have, err := CertNames(pem)
 	if err != nil {
 		return false, fmt.Errorf("đọc tên trong %s: %w", cp, err)
 	}
@@ -259,6 +327,23 @@ func (s *CertbotCert) Apply(ctx context.Context, sys system.System) error {
 
 // Undo không làm gì (xem NoUndo trong Info).
 func (s *CertbotCert) Undo(context.Context, system.System) error { return nil }
+
+// sslCertCovers: chứng chỉ ĐẦU TIÊN trong dữ liệu PEM (chứng chỉ của máy chủ;
+// các khối sau là CA trung gian) có tên d trong SAN. Đọc hỏng thì coi là không:
+// Check trả false và bước xin lại, đúng việc phải làm với một file hỏng.
+func sslCertCovers(data []byte, d string) bool {
+	for {
+		var blk *pem.Block
+		if blk, data = pem.Decode(data); blk == nil {
+			return false
+		}
+		if blk.Type != "CERTIFICATE" {
+			continue
+		}
+		c, err := x509.ParseCertificate(blk.Bytes)
+		return err == nil && slices.ContainsFunc(c.DNSNames, func(n string) bool { return strings.EqualFold(n, d) })
+	}
+}
 
 // ================================================================== ACMEProbe
 
@@ -633,14 +718,51 @@ func sslResolve(ctx context.Context, sys system.System, domain string) string {
 
 // ============================================================== CertbotDelete
 
-// CertbotDelete xoá chứng chỉ khi xoá hẳn site (mục 6.4).
-type CertbotDelete struct{ Layout site.Layout }
+// CertbotDelete xoá chứng chỉ khi xoá hẳn site (mục 6.4). M20: có CertName thì
+// xoá lineage mang tên đó (chứng chỉ panel khi đổi hay bỏ tên miền của panel),
+// Layout bỏ trống được.
+type CertbotDelete struct {
+	Layout   site.Layout
+	CertName string
+}
+
+// validate: có CertName thì chỉ cần tên lineage đúng dạng; không thì Layout của site.
+func (s *CertbotDelete) validate() error {
+	if s.CertName != "" {
+		return sslCheckCertName(s.CertName)
+	}
+	return webCheckLayout(s.Layout)
+}
+
+// name là tên lineage sẽ xoá.
+func (s *CertbotDelete) name() string {
+	if s.CertName != "" {
+		return s.CertName
+	}
+	return s.Layout.Domain.String()
+}
 
 func (s *CertbotDelete) cmd() system.Cmd {
-	return system.Cmd{Name: "certbot", Args: []string{"delete", "--cert-name", s.Layout.Domain.String(), "--non-interactive"}}
+	return system.Cmd{Name: "certbot", Args: []string{"delete", "--cert-name", s.name(), "--non-interactive"}}
 }
 
 func (s *CertbotDelete) Info() engine.StepInfo {
+	if n := s.CertName; n != "" {
+		return engine.StepInfo{
+			ID:    "ssl.delete:" + n,
+			Title: i18n.T("Xoá chứng chỉ "+n+" đang có", "Delete the existing certificate "+n),
+			Why: i18n.T(
+				"Chứng chỉ "+n+" đang cấp cho tên miền khác, hoặc tên miền đó vừa bị bỏ. Xoá trước thì bước xin sau (nếu có) ra một chứng chỉ mới đúng tên, không phải sửa bộ tên của chứng chỉ cũ; và certbot thôi gia hạn một tên không còn dùng. Từ lúc xoá tới khi có chứng chỉ mới, panel dùng lại chứng chỉ tự ký (trình duyệt cảnh báo như lúc mới cài); bước xin sau đó mà hỏng thì panel ở lại chứng chỉ tự ký cho tới khi chạy lại thành công.",
+				"The certificate "+n+" covers another domain, or that domain was just dropped. Deleting it first lets the next request (if any) produce a new certificate with the right name instead of editing the old one's names, and stops certbot renewing a name nobody uses. Between the delete and the new certificate the panel falls back to its self-signed certificate (browsers warn as on a fresh install); if the request then fails the panel stays on the self-signed certificate until a rerun succeeds.",
+			),
+			Commands: []string{s.cmd().String()},
+			Danger:   true,
+			NoUndo: i18n.T(
+				"Chứng chỉ đã xoá không lấy lại được; cần thì xin lại.",
+				"A deleted certificate cannot be restored; request a new one if needed.",
+			),
+		}
+	}
 	d := s.Layout.Domain.String()
 	return engine.StepInfo{
 		ID:    "ssl.delete:" + d,
@@ -659,10 +781,14 @@ func (s *CertbotDelete) Info() engine.StepInfo {
 }
 
 func (s *CertbotDelete) Check(_ context.Context, sys system.System) (bool, error) {
-	if err := webCheckLayout(s.Layout); err != nil {
+	if err := s.validate(); err != nil {
 		return false, err
 	}
-	for _, p := range []string{s.Layout.CertRenewal(), s.Layout.CertDir()} {
+	paths := []string{s.Layout.CertRenewal(), s.Layout.CertDir()}
+	if s.CertName != "" {
+		paths = []string{sslRenewalConf(s.CertName), sslLiveDir(s.CertName)}
+	}
+	for _, p := range paths {
 		_, err := sys.Stat(p)
 		if err == nil {
 			return false, nil
@@ -675,11 +801,11 @@ func (s *CertbotDelete) Check(_ context.Context, sys system.System) (bool, error
 }
 
 func (s *CertbotDelete) Apply(ctx context.Context, sys system.System) error {
-	if err := webCheckLayout(s.Layout); err != nil {
+	if err := s.validate(); err != nil {
 		return err
 	}
 	if res, err := sys.Run(ctx, s.cmd()); err != nil {
-		return withStdout(fmt.Errorf("xoá chứng chỉ của %s: %w", s.Layout.Domain, err), res)
+		return withStdout(fmt.Errorf("xoá chứng chỉ của %s: %w", s.name(), err), res)
 	}
 	return nil
 }

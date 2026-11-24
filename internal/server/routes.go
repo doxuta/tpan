@@ -9,7 +9,12 @@ package server
 // duy nhất, trước khi tới handler; handler không tự nhớ phải kiểm quyền.
 //
 // Thứ tự trong guard:
+//  0. (M20) Request có header Authorization chỉ xác thực bằng token
+//     (token_m20.go, guardToken): nhóm token của route, phạm vi, chính sách
+//     hai bước, rồi tới bước 3 với vai hiện tại của chủ token.
 //  1. Đọc phiên, dựng danh tính (account.Identity); không có thì 401.
+//     (M20) Chính sách bắt buộc hai bước: user thật chưa bật thì 403
+//     mfa_enroll_required, trừ route có allowEnroll.
 //  2. Phiên "xem như" chỉ đọc: mọi request không phải GET, HEAD bị 403
 //     read_only_view, trừ route có allowReadOnly (thoát "xem như").
 //  3. Luật của route: any qua; admin thì user thường 403 forbidden; owner:X
@@ -24,6 +29,7 @@ import (
 	"strconv"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/apitoken"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -78,6 +84,12 @@ type route struct {
 	// allowReadOnly: chạy được cả trong phiên "xem như" khi không phải GET.
 	// Chỉ thoát "xem như" cần (đăng xuất là public, không qua guard).
 	allowReadOnly bool
+	// tok (M20) là nhóm token của route: request bằng token cần phạm vi đọc
+	// (GET, HEAD) hoặc ghi nhóm này. Rỗng là chỉ phiên: quên khai là đóng.
+	tok apitoken.Group
+	// allowEnroll (M20): gọi được khi chính sách bắt bật hai bước mà chưa bật
+	// (trang bật hai bước và lối thoát "xem như").
+	allowEnroll bool
 }
 
 // routes là bảng route của server: thêm đường dẫn mới ở đây, kèm luật. Thứ tự
@@ -89,6 +101,7 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/login", rule: public, h: s.handleLogin},
 		{pattern: "POST /api/v1/logout", rule: public, h: s.handleLogout},
 		{pattern: "GET /api/v1/session", rule: public, h: s.handleSession},
+		{pattern: "POST /api/v1/login/2fa", rule: public, h: s.handleLogin2FA},
 
 		// Tài khoản của chính mình (auth.go).
 		{pattern: "POST /api/v1/account/password", rule: anyone, h: s.handlePasswordChange},
@@ -96,37 +109,37 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "DELETE /api/v1/account/sessions/{id}", rule: anyone, h: s.handleSessionDelete},
 
 		// M3: tổng quan, site, job, DB (api.go, api_job.go, sse.go).
-		{pattern: "GET /api/v1/overview", rule: anyone, h: s.handleOverview},
-		{pattern: "GET /api/v1/machine", rule: adminOnly, h: s.handleMachine},
-		{pattern: "GET /api/v1/stack", rule: adminOnly, h: s.handleStack},
-		{pattern: "GET /api/v1/checks", rule: anyone, h: s.handleChecks},
-		{pattern: "GET /api/v1/sites", rule: anyone, h: s.handleSites},
-		{pattern: "POST /api/v1/sites", rule: anyone, h: s.handleSiteCreate},
-		{pattern: "GET /api/v1/sites/{domain}", rule: ownerSite, h: s.handleSite},
-		{pattern: "DELETE /api/v1/sites/{domain}", rule: ownerSite, h: s.handleSiteDelete},
-		{pattern: "GET /api/v1/jobs", rule: anyone, h: s.handleJobs},
-		{pattern: "GET /api/v1/jobs/{id}", rule: ownerJob, h: s.handleJob},
-		{pattern: "GET /api/v1/jobs/{id}/events", rule: ownerJob, h: s.handleJobEvents},
-		{pattern: "GET /api/v1/databases", rule: anyone, h: s.handleDatabases},
+		{pattern: "GET /api/v1/overview", rule: anyone, tok: apitoken.GroupHealth, h: s.handleOverview},
+		{pattern: "GET /api/v1/machine", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleMachine},
+		{pattern: "GET /api/v1/stack", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleStack},
+		{pattern: "GET /api/v1/checks", rule: anyone, tok: apitoken.GroupHealth, h: s.handleChecks},
+		{pattern: "GET /api/v1/sites", rule: anyone, tok: apitoken.GroupSites, h: s.handleSites},
+		{pattern: "POST /api/v1/sites", rule: anyone, tok: apitoken.GroupSites, h: s.handleSiteCreate},
+		{pattern: "GET /api/v1/sites/{domain}", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSite},
+		{pattern: "DELETE /api/v1/sites/{domain}", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteDelete},
+		{pattern: "GET /api/v1/jobs", rule: anyone, tok: apitoken.GroupJobs, h: s.handleJobs},
+		{pattern: "GET /api/v1/jobs/{id}", rule: ownerJob, tok: apitoken.GroupJobs, h: s.handleJob},
+		{pattern: "GET /api/v1/jobs/{id}/events", rule: ownerJob, tok: apitoken.GroupJobs, h: s.handleJobEvents},
+		{pattern: "GET /api/v1/databases", rule: anyone, tok: apitoken.GroupDatabases, h: s.handleDatabases},
 
 		// M5: SSL và trang bảo mật (types_m5.go).
-		{pattern: "GET /api/v1/ssl", rule: anyone, h: s.handleSSL},
-		{pattern: "POST /api/v1/ssl/settings", rule: adminOnly, h: s.handleSSLSettings},
-		{pattern: "POST /api/v1/sites/{domain}/ssl", rule: ownerSite, h: s.handleSiteSSL},
-		{pattern: "GET /api/v1/security", rule: adminOnly, h: s.handleSecurity},
-		{pattern: "POST /api/v1/security/ufw", rule: adminOnly, h: s.handleSecurityUFW},
-		{pattern: "POST /api/v1/security/fail2ban", rule: adminOnly, h: s.handleSecurityFail2ban},
+		{pattern: "GET /api/v1/ssl", rule: anyone, tok: apitoken.GroupSSL, h: s.handleSSL},
+		{pattern: "POST /api/v1/ssl/settings", rule: adminOnly, tok: apitoken.GroupSSL, h: s.handleSSLSettings},
+		{pattern: "POST /api/v1/sites/{domain}/ssl", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteSSL},
+		{pattern: "GET /api/v1/security", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSecurity},
+		{pattern: "POST /api/v1/security/ufw", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSecurityUFW},
+		{pattern: "POST /api/v1/security/fail2ban", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSecurityFail2ban},
 
 		// M4: health (api_health.go). Sửa tự động, nhận bản sửa tay, chạy lại
 		// health chỉ admin: thân chứa id phép kiểm, không phải đường dẫn
 		// (quyết định 12 ở docs/KE-HOACH.md mục 6.12 ("Đã chốt khi làm M13")).
-		{pattern: "GET /api/v1/incidents", rule: anyone, h: s.handleIncidents},
-		{pattern: "GET /api/v1/incidents/{id}", rule: ownerIncident, h: s.handleIncident},
-		{pattern: "POST /api/v1/fixes", rule: adminOnly, h: s.handleFix},
-		{pattern: "POST /api/v1/files/accept", rule: adminOnly, h: s.handleAcceptFile},
-		{pattern: "POST /api/v1/health/run", rule: adminOnly, h: s.handleHealthRun},
-		{pattern: "GET /api/v1/sites/{domain}/traffic", rule: ownerSite, h: s.handleSiteTraffic},
-		{pattern: "GET /api/v1/sites/{domain}/log", rule: ownerSite, h: s.handleSiteLog},
+		{pattern: "GET /api/v1/incidents", rule: anyone, tok: apitoken.GroupHealth, h: s.handleIncidents},
+		{pattern: "GET /api/v1/incidents/{id}", rule: ownerIncident, tok: apitoken.GroupHealth, h: s.handleIncident},
+		{pattern: "POST /api/v1/fixes", rule: adminOnly, tok: apitoken.GroupHealth, h: s.handleFix},
+		{pattern: "POST /api/v1/files/accept", rule: adminOnly, tok: apitoken.GroupHealth, h: s.handleAcceptFile},
+		{pattern: "POST /api/v1/health/run", rule: adminOnly, tok: apitoken.GroupHealth, h: s.handleHealthRun},
+		{pattern: "GET /api/v1/sites/{domain}/traffic", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteTraffic},
+		{pattern: "GET /api/v1/sites/{domain}/log", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteLog},
 
 		// M7: Plan chờ duyệt và cổng agent: chỉ admin (quyết định 11).
 		{pattern: "GET /api/v1/plans", rule: adminOnly, h: s.handlePlans},
@@ -136,12 +149,12 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "GET /api/v1/agent", rule: adminOnly, h: s.handleAgent},
 
 		// M6: thùng rác và hàng loạt (types_m6.go, api_trash.go).
-		{pattern: "POST /api/v1/sites/{domain}/restore", rule: ownerSite, h: s.handleSiteRestore},
-		{pattern: "GET /api/v1/trash", rule: anyone, h: s.handleTrash},
-		{pattern: "POST /api/v1/trash/settings", rule: adminOnly, h: s.handleTrashSettings},
-		{pattern: "DELETE /api/v1/trash/{domain}", rule: ownerSite, h: s.handleTrashPurge},
-		{pattern: "POST /api/v1/apply", rule: anyone, h: s.handleApply},
-		{pattern: "GET /api/v1/export", rule: anyone, h: s.handleExport},
+		{pattern: "POST /api/v1/sites/{domain}/restore", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteRestore},
+		{pattern: "GET /api/v1/trash", rule: anyone, tok: apitoken.GroupSites, h: s.handleTrash},
+		{pattern: "POST /api/v1/trash/settings", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleTrashSettings},
+		{pattern: "DELETE /api/v1/trash/{domain}", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleTrashPurge},
+		{pattern: "POST /api/v1/apply", rule: anyone, tok: apitoken.GroupSites, h: s.handleApply},
+		{pattern: "GET /api/v1/export", rule: anyone, tok: apitoken.GroupSites, h: s.handleExport},
 
 		// M8: AI trong panel: chỉ admin.
 		{pattern: "GET /api/v1/ai/brain", rule: adminOnly, h: s.handleAIBrain},
@@ -153,27 +166,27 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/ai/views", rule: adminOnly, h: s.handleAIView},
 
 		// M12: phiên bản và cập nhật (types_m12.go, api_m12.go).
-		{pattern: "GET /api/v1/php", rule: anyone, h: s.handlePHP},
-		{pattern: "POST /api/v1/php/install", rule: adminOnly, h: s.handlePHPInstall},
-		{pattern: "POST /api/v1/php/remove", rule: adminOnly, h: s.handlePHPRemove},
-		{pattern: "POST /api/v1/sites/{domain}/php", rule: ownerSite, h: s.handleSitePHP},
-		{pattern: "GET /api/v1/updates", rule: adminOnly, h: s.handleUpdates},
-		{pattern: "POST /api/v1/updates", rule: adminOnly, h: s.handleUpdateApply},
-		{pattern: "POST /api/v1/updates/auto", rule: adminOnly, h: s.handleUpdateAuto},
-		{pattern: "POST /api/v1/mariadb/upgrade", rule: adminOnly, h: s.handleMariaDBUpgrade},
+		{pattern: "GET /api/v1/php", rule: anyone, tok: apitoken.GroupSites, h: s.handlePHP},
+		{pattern: "POST /api/v1/php/install", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handlePHPInstall},
+		{pattern: "POST /api/v1/php/remove", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handlePHPRemove},
+		{pattern: "POST /api/v1/sites/{domain}/php", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSitePHP},
+		{pattern: "GET /api/v1/updates", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleUpdates},
+		{pattern: "POST /api/v1/updates", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleUpdateApply},
+		{pattern: "POST /api/v1/updates/auto", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleUpdateAuto},
+		{pattern: "POST /api/v1/mariadb/upgrade", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleMariaDBUpgrade},
 
 		// M10: chuyển LEMP ⇄ LAMP.
-		{pattern: "POST /api/v1/stack/switch", rule: adminOnly, h: s.handleStackSwitch},
+		{pattern: "POST /api/v1/stack/switch", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleStackSwitch},
 
 		// M9: backup, cron, thao tác DB của site (types_m9.go, api_m9.go).
-		{pattern: "GET /api/v1/backups", rule: anyone, h: s.handleBackups},
-		{pattern: "POST /api/v1/sites/{domain}/backups", rule: ownerSite, h: s.handleSiteBackup},
-		{pattern: "POST /api/v1/backups/{id}/restore", rule: ownerBackup, h: s.handleBackupRestore},
-		{pattern: "POST /api/v1/backups/settings", rule: adminOnly, h: s.handleBackupSettings},
-		{pattern: "GET /api/v1/cron", rule: anyone, h: s.handleCron},
-		{pattern: "POST /api/v1/databases/{domain}/password", rule: ownerSite, h: s.handleDBPassword},
-		{pattern: "POST /api/v1/databases/{domain}/dump", rule: ownerSite, h: s.handleDBDump},
-		{pattern: "POST /api/v1/databases/{domain}/import", rule: ownerSite, h: s.handleDBImport},
+		{pattern: "GET /api/v1/backups", rule: anyone, tok: apitoken.GroupBackups, h: s.handleBackups},
+		{pattern: "POST /api/v1/sites/{domain}/backups", rule: ownerSite, tok: apitoken.GroupBackups, h: s.handleSiteBackup},
+		{pattern: "POST /api/v1/backups/{id}/restore", rule: ownerBackup, tok: apitoken.GroupBackups, h: s.handleBackupRestore},
+		{pattern: "POST /api/v1/backups/settings", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupSettings},
+		{pattern: "GET /api/v1/cron", rule: anyone, tok: apitoken.GroupCron, h: s.handleCron},
+		{pattern: "POST /api/v1/databases/{domain}/password", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBPassword},
+		{pattern: "POST /api/v1/databases/{domain}/dump", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBDump},
+		{pattern: "POST /api/v1/databases/{domain}/import", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBImport},
 
 		// M13: user, gói, tạm khoá, DB rời, xem như (types_m13.go, api_m13.go).
 		{pattern: "GET /api/v1/users", rule: adminOnly, h: s.handleUsers},
@@ -186,73 +199,95 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/users/{name}/unsuspend", rule: adminOnly, h: s.handleUserUnsuspend},
 		{pattern: "POST /api/v1/users/{name}/trash-all", rule: adminOnly, h: s.handleUserTrashAll},
 		{pattern: "POST /api/v1/users/{name}/view-as", rule: adminOnly, h: s.handleViewAs},
-		{pattern: "POST /api/v1/session/view-as/exit", rule: anyone, h: s.handleViewAsExit, allowReadOnly: true},
+		{pattern: "POST /api/v1/session/view-as/exit", rule: anyone, h: s.handleViewAsExit, allowReadOnly: true, allowEnroll: true},
 		{pattern: "GET /api/v1/packages", rule: adminOnly, h: s.handlePackages},
 		{pattern: "POST /api/v1/packages", rule: adminOnly, h: s.handlePackageCreate},
 		{pattern: "POST /api/v1/packages/{name}", rule: adminOnly, h: s.handlePackageEdit},
 		{pattern: "DELETE /api/v1/packages/{name}", rule: adminOnly, h: s.handlePackageDelete},
-		{pattern: "POST /api/v1/sites/{domain}/suspend", rule: adminOnly, h: s.handleSiteSuspend},
-		{pattern: "POST /api/v1/sites/{domain}/unsuspend", rule: adminOnly, h: s.handleSiteUnsuspend},
-		{pattern: "POST /api/v1/databases/{domain}/suspend", rule: adminOnly, h: s.handleSiteDBSuspend},
-		{pattern: "POST /api/v1/databases/{domain}/unsuspend", rule: adminOnly, h: s.handleSiteDBUnsuspend},
-		{pattern: "POST /api/v1/databases/{domain}/charset", rule: ownerSite, h: s.handleSiteDBCharset},
-		{pattern: "GET /api/v1/collations", rule: anyone, h: s.handleCollations},
-		{pattern: "POST /api/v1/dbs", rule: anyone, h: s.handleDBCreate},
-		{pattern: "POST /api/v1/dbs/{name}", rule: ownerDB, h: s.handleDBEdit},
-		{pattern: "POST /api/v1/dbs/{name}/password", rule: ownerDB, h: s.handleStandaloneDBPassword},
-		{pattern: "POST /api/v1/dbs/{name}/suspend", rule: adminOnly, h: s.handleDBSuspend},
-		{pattern: "POST /api/v1/dbs/{name}/unsuspend", rule: adminOnly, h: s.handleDBUnsuspend},
-		{pattern: "DELETE /api/v1/dbs/{name}", rule: ownerDB, h: s.handleDBTrash},
-		{pattern: "POST /api/v1/dbs/{name}/restore", rule: ownerDB, h: s.handleDBRestore},
-		{pattern: "DELETE /api/v1/trash/dbs/{name}", rule: ownerDB, h: s.handleDBPurge},
+		{pattern: "POST /api/v1/sites/{domain}/suspend", rule: adminOnly, tok: apitoken.GroupSites, h: s.handleSiteSuspend},
+		{pattern: "POST /api/v1/sites/{domain}/unsuspend", rule: adminOnly, tok: apitoken.GroupSites, h: s.handleSiteUnsuspend},
+		{pattern: "POST /api/v1/databases/{domain}/suspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleSiteDBSuspend},
+		{pattern: "POST /api/v1/databases/{domain}/unsuspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleSiteDBUnsuspend},
+		{pattern: "POST /api/v1/databases/{domain}/charset", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleSiteDBCharset},
+		{pattern: "GET /api/v1/collations", rule: anyone, tok: apitoken.GroupDatabases, h: s.handleCollations},
+		{pattern: "POST /api/v1/dbs", rule: anyone, tok: apitoken.GroupDatabases, h: s.handleDBCreate},
+		{pattern: "POST /api/v1/dbs/{name}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBEdit},
+		{pattern: "POST /api/v1/dbs/{name}/password", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleStandaloneDBPassword},
+		{pattern: "POST /api/v1/dbs/{name}/suspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleDBSuspend},
+		{pattern: "POST /api/v1/dbs/{name}/unsuspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleDBUnsuspend},
+		{pattern: "DELETE /api/v1/dbs/{name}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBTrash},
+		{pattern: "POST /api/v1/dbs/{name}/restore", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBRestore},
+		{pattern: "DELETE /api/v1/trash/dbs/{name}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBPurge},
 
 		// M14: cô lập sâu và định tuyến (types_m14.go, api_m14.go). /htaccess
 		// là owner:site, riêng mode "day-du" handler đòi admin.
-		{pattern: "GET /api/v1/sites/{domain}/route", rule: ownerSite, h: s.handleSiteRoute},
-		{pattern: "POST /api/v1/sites/{domain}/htaccess", rule: ownerSite, h: s.handleSiteHtaccess},
-		{pattern: "GET /api/v1/security/isolation", rule: adminOnly, h: s.handleIsolation},
-		{pattern: "POST /api/v1/security/harden", rule: adminOnly, h: s.handleSecurityHarden},
+		{pattern: "GET /api/v1/sites/{domain}/route", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteRoute},
+		{pattern: "POST /api/v1/sites/{domain}/htaccess", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteHtaccess},
+		{pattern: "GET /api/v1/security/isolation", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleIsolation},
+		{pattern: "POST /api/v1/security/harden", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSecurityHarden},
 
 		// M17: lồng theo site, số liệu, thử tấn công (types_m17.go, api_m17.go).
 		// Mọi thao tác đổi lồng hay trần là admin; user thường chỉ xem số liệu
 		// của site mình (bất biến 7 của docs/thay-doi/M17-thiet-ke.md).
-		{pattern: "GET /api/v1/cage", rule: adminOnly, h: s.handleCage},
-		{pattern: "POST /api/v1/sites/{domain}/cage", rule: adminOnly, h: s.handleSiteCage},
-		{pattern: "GET /api/v1/usage", rule: anyone, h: s.handleUsage},
-		{pattern: "GET /api/v1/sites/{domain}/usage", rule: ownerSite, h: s.handleSiteUsage},
-		{pattern: "GET /api/v1/usage/suggestions", rule: adminOnly, h: s.handleUsageSuggestions},
-		{pattern: "GET /api/v1/security/probe", rule: adminOnly, h: s.handleProbe},
-		{pattern: "POST /api/v1/security/probe", rule: adminOnly, h: s.handleProbeRun},
-		{pattern: "POST /api/v1/security/probe/cleanup", rule: adminOnly, h: s.handleProbeCleanup},
+		{pattern: "GET /api/v1/cage", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleCage},
+		{pattern: "POST /api/v1/sites/{domain}/cage", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSiteCage},
+		{pattern: "GET /api/v1/usage", rule: anyone, tok: apitoken.GroupHealth, h: s.handleUsage},
+		{pattern: "GET /api/v1/sites/{domain}/usage", rule: ownerSite, tok: apitoken.GroupHealth, h: s.handleSiteUsage},
+		{pattern: "GET /api/v1/usage/suggestions", rule: adminOnly, tok: apitoken.GroupHealth, h: s.handleUsageSuggestions},
+		{pattern: "GET /api/v1/security/probe", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleProbe},
+		{pattern: "POST /api/v1/security/probe", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleProbeRun},
+		{pattern: "POST /api/v1/security/probe/cleanup", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleProbeCleanup},
 		// M15: nút cập nhật TPAN trong panel (types_m15.go, api_m15.go). Chỉ
 		// admin: lượt chạy thay file chạy của panel bằng quyền root.
-		{pattern: "GET /api/v1/self", rule: adminOnly, h: s.handleSelf},
-		{pattern: "POST /api/v1/self/update", rule: adminOnly, h: s.handleSelfUpdate},
-		{pattern: "POST /api/v1/self/rollback", rule: adminOnly, h: s.handleSelfRollback},
+		{pattern: "GET /api/v1/self", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSelf},
+		{pattern: "POST /api/v1/self/update", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSelfUpdate},
+		{pattern: "POST /api/v1/self/rollback", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSelfRollback},
 
 		// M18: kho S3 và cloud-init (types_m18.go, api_m18.go). Mọi route là
 		// admin (B5): đích quyết định bản sao lưu của MỌI site đi đâu, job đẩy,
 		// tải mang endpoint và câu lỗi của kho, user-data mang cấu hình của cả
 		// máy mới.
+		//
+		// Soát cuối M20 (F2): đích sao lưu và cloud-init là chỉ phiên (nhóm
+		// token rỗng). Token backups:write đổi được đích là chuyển bản sao lưu
+		// (không mã hoá) của mọi site sang kho của người khác; user-data mang
+		// cấu hình máy. Đẩy, tải, xem kho vẫn theo nhóm backups.
 		{pattern: "GET /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTarget},
 		{pattern: "POST /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTargetSet},
 		{pattern: "DELETE /api/v1/backups/target", rule: adminOnly, h: s.handleBackupTargetRemove},
 		{pattern: "POST /api/v1/backups/target/test", rule: adminOnly, h: s.handleBackupTargetTest},
-		{pattern: "POST /api/v1/backups/{id}/push", rule: adminOnly, h: s.handleBackupPush},
-		{pattern: "POST /api/v1/backups/{id}/pull", rule: adminOnly, h: s.handleBackupPull},
-		{pattern: "GET /api/v1/backups/remote", rule: adminOnly, h: s.handleBackupRemote},
+		{pattern: "POST /api/v1/backups/{id}/push", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupPush},
+		{pattern: "POST /api/v1/backups/{id}/pull", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupPull},
+		{pattern: "GET /api/v1/backups/remote", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupRemote},
 		{pattern: "POST /api/v1/cloud-init/render", rule: adminOnly, h: s.handleCloudInitRender},
 
 		// M19: tên phụ của site và màn "Tên miền" (types_m19.go, api_m19.go).
 		// Thao tác trên tên là của chủ site; /domains tự lọc theo phạm vi.
-		{pattern: "GET /api/v1/sites/{domain}/names", rule: ownerSite, h: s.handleSiteNames},
-		{pattern: "POST /api/v1/sites/{domain}/names", rule: ownerSite, h: s.handleAliasAdd},
-		{pattern: "POST /api/v1/sites/{domain}/names/{name}/mode", rule: ownerSite, h: s.handleAliasMode},
-		{pattern: "DELETE /api/v1/sites/{domain}/names/{name}", rule: ownerSite, h: s.handleAliasRemove},
-		{pattern: "GET /api/v1/sites/{domain}/redirects", rule: ownerSite, h: s.handleRedirectList},
-		{pattern: "POST /api/v1/sites/{domain}/redirects", rule: ownerSite, h: s.handleRedirectAdd},
-		{pattern: "DELETE /api/v1/sites/{domain}/redirects/{id}", rule: ownerSite, h: s.handleRedirectRemove},
-		{pattern: "GET /api/v1/domains", rule: anyone, h: s.handleDomains},
+		{pattern: "GET /api/v1/sites/{domain}/names", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteNames},
+		{pattern: "POST /api/v1/sites/{domain}/names", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleAliasAdd},
+		{pattern: "POST /api/v1/sites/{domain}/names/{name}/mode", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleAliasMode},
+		{pattern: "DELETE /api/v1/sites/{domain}/names/{name}", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleAliasRemove},
+		{pattern: "GET /api/v1/sites/{domain}/redirects", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleRedirectList},
+		{pattern: "POST /api/v1/sites/{domain}/redirects", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleRedirectAdd},
+		{pattern: "DELETE /api/v1/sites/{domain}/redirects/{id}", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleRedirectRemove},
+		{pattern: "GET /api/v1/domains", rule: anyone, tok: apitoken.GroupSites, h: s.handleDomains},
+		// M20: hai bước, token API, chính sách, tên miền của panel (types_m20.go,
+		// auth_m20.go, api_m20.go, token_m20.go). Mọi route quản lý hai bước,
+		// token, chính sách là chỉ phiên (B5).
+		{pattern: "GET /api/v1/account/2fa", rule: anyone, h: s.handleMFAState, allowEnroll: true},
+		{pattern: "POST /api/v1/account/2fa/setup", rule: anyone, h: s.handleMFASetup, allowEnroll: true},
+		{pattern: "POST /api/v1/account/2fa/enable", rule: anyone, h: s.handleMFAEnable, allowEnroll: true},
+		{pattern: "POST /api/v1/account/2fa/disable", rule: anyone, h: s.handleMFADisable},
+		{pattern: "POST /api/v1/account/2fa/recovery", rule: anyone, h: s.handleMFARecovery},
+		{pattern: "GET /api/v1/account/tokens", rule: anyone, h: s.handleMyTokens},
+		{pattern: "POST /api/v1/account/tokens", rule: anyone, h: s.handleTokenCreate},
+		{pattern: "DELETE /api/v1/account/tokens/{id}", rule: anyone, h: s.handleMyTokenRevoke},
+		{pattern: "GET /api/v1/settings/auth", rule: adminOnly, h: s.handleAuthSettings},
+		{pattern: "POST /api/v1/settings/auth", rule: adminOnly, h: s.handleAuthSettingsSet},
+		{pattern: "GET /api/v1/tokens", rule: adminOnly, h: s.handleTokens},
+		{pattern: "DELETE /api/v1/tokens/{id}", rule: adminOnly, h: s.handleTokenRevoke},
+		{pattern: "GET /api/v1/panel", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handlePanel},
+		{pattern: "POST /api/v1/panel/domain", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handlePanelDomain},
 
 		// Còn lại: đường dẫn API lạ là 404 JSON; mọi thứ khác là giao diện web
 		// (đã nhúng). Cũng nằm trong bảng để test duyệt đủ mọi mẫu của mux.
@@ -283,6 +318,10 @@ func (s *Server) guard(rt route) http.Handler {
 		panic("route " + rt.pattern + " không khai luật (public, any, owner:X, admin); mặc định là cấm")
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if hasAuthorization(r) {
+			s.guardToken(w, r, rt)
+			return
+		}
 		ss, id, ok, err := s.authResolve(r)
 		if err != nil {
 			authInternal(w, "đọc phiên", err)
@@ -292,6 +331,17 @@ func (s *Server) guard(rt route) http.Handler {
 			writeError(w, http.StatusUnauthorized, "unauthorized", i18n.T(
 				"Chưa đăng nhập hoặc phiên đã hết hạn.", "Not logged in, or the session has expired."))
 			return
+		}
+		if !rt.allowEnroll {
+			// User THẬT của phiên (đang "xem như" thì là admin): chính sách áp
+			// cho người cầm phiên, không cho người được xem.
+			if req, err := s.enrollRequired(r.Context(), ss.UserName, realRole(id)); err != nil {
+				authInternal(w, "đọc chính sách hai bước", err)
+				return
+			} else if req {
+				writeEnrollRequired(w)
+				return
+			}
 		}
 		if id.ReadOnly() && r.Method != http.MethodGet && r.Method != http.MethodHead && !rt.allowReadOnly {
 			writeError(w, http.StatusForbidden, "read_only_view", i18n.T(
@@ -306,22 +356,26 @@ func (s *Server) guard(rt route) http.Handler {
 		}
 		ctx := context.WithValue(r.Context(), authCtxKey{}, ss)
 		ctx = context.WithValue(ctx, identityKey{}, id)
-		r = r.WithContext(engine.WithActor(ctx, actor))
-
-		switch rt.rule.kind {
-		case ruleAdmin:
-			if !id.IsAdmin() {
-				writeError(w, http.StatusForbidden, "forbidden", i18n.T(
-					"Chỉ quản trị viên được làm việc này.", "Only an administrator can do this."))
-				return
-			}
-		case ruleOwner:
-			if !id.IsAdmin() && !s.ownsPath(w, r, rt.rule.obj, id.Name) {
-				return
-			}
-		}
-		rt.h(w, r)
+		s.serveRule(w, r.WithContext(engine.WithActor(ctx, actor)), rt, id)
 	})
+}
+
+// serveRule áp luật vai của route cho danh tính id (phiên hay chủ token) rồi
+// gọi handler.
+func (s *Server) serveRule(w http.ResponseWriter, r *http.Request, rt route, id account.Identity) {
+	switch rt.rule.kind {
+	case ruleAdmin:
+		if !id.IsAdmin() {
+			writeError(w, http.StatusForbidden, "forbidden", i18n.T(
+				"Chỉ quản trị viên được làm việc này.", "Only an administrator can do this."))
+			return
+		}
+	case ruleOwner:
+		if !id.IsAdmin() && !s.ownsPath(w, r, rt.rule.obj, id.Name) {
+			return
+		}
+	}
+	rt.h(w, r)
 }
 
 // identityKey là khoá context giữ account.Identity của request đã qua guard.

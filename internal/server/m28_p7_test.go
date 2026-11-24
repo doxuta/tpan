@@ -13,6 +13,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/store"
 )
 
 func TestP7JobCuaUserTrungTenDBRoiKhongLoChoChuDB(t *testing.T) {
@@ -20,9 +21,18 @@ func TestP7JobCuaUserTrungTenDBRoiKhongLoChoChuDB(t *testing.T) {
 	h := e.s.handler(authzDist)
 	ctx := context.Background()
 	admin, a := e.cookies[account.AdminName], e.cookies[authzA]
+	// M20 (soát cuối F1): tạo user đòi mật khẩu của admin đang làm, nên admin
+	// của môi trường thử cần một hash thật.
+	hash, err := store.HashPassword(authTestPassword)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.SetAdminPasswordHash(ctx, hash); err != nil {
+		t.Fatal(err)
+	}
 
 	// Phòng thủ: tạo user trùng tên DB rời bị từ chối 409, và ngược lại.
-	rec := e.do(h, "POST", "/api/v1/users", `{"name":"`+authzDB+`"}`, admin)
+	rec := e.do(h, "POST", "/api/v1/users", `{"name":"`+authzDB+`","current_password":"`+authTestPassword+`"}`, admin)
 	if rec.Code != http.StatusConflict || errCode(t, rec) != "user_exists" {
 		t.Errorf("tạo user %s trùng tên DB rời: %d %s", authzDB, rec.Code, rec.Body)
 	}

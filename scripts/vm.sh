@@ -111,7 +111,9 @@ case "$cmd" in
     ;;
   reset)
     has_snapshot || { echo "Chưa có snapshot '$SNAP'. Chạy: scripts/vm.sh up" >&2; exit 1; }
-    multipass stop "$VM"
+    # Máy ảo đang treo (QEMU không tắt trong 300 giây, thấy ở e2e M20 ngày
+    # 25/11) thì dừng cứng: trạng thái hiện tại sắp bị bỏ đi bằng restore.
+    multipass stop "$VM" || multipass stop --force "$VM"
     # --destructive: bỏ hẳn trạng thái hiện tại, không tự chụp lại trước khi khôi phục.
     multipass restore --destructive "$VM.$SNAP"
     multipass start "$VM"

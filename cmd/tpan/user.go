@@ -214,7 +214,7 @@ func userCmd(e *env) *cobra.Command {
 		Short: "User của panel: thêm, xem, sửa, đổi mật khẩu, tạm khoá, xoá",
 	}
 	c.AddCommand(userAddCmd(e), userListCmd(e), userInfoCmd(e), userEditCmd(e), userPasswdCmd(e),
-		userSuspendCmd(e), userUnsuspendCmd(e), userTrashAllCmd(e), userRmCmd(e))
+		userSuspendCmd(e), userUnsuspendCmd(e), userTrashAllCmd(e), userRmCmd(e), user2FACmd(e))
 	return c
 }
 
@@ -523,13 +523,25 @@ func userPasswdCmd(e *env) *cobra.Command {
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
-			var pw string
+			var (
+				pw      string
+				revoked int // M20: token đã thu hồi cùng lúc (đếm trước khi đổi)
+			)
 			return runAcctOp(cmd, e, f, acctOp{
 				action: "user.passwd", target: name.String(),
 				what: i18n.T(
 					"Sẽ: sinh mật khẩu mới cho "+name.String()+" (in ra một lần) và huỷ mọi phiên đăng nhập của user này.",
 					"Will: generate a new password for "+name.String()+" (printed once) and end every login session of this user."),
 				do: func(ctx context.Context, a *core.Accounts, _ *core.DBs) error {
+					// Đặt lại mật khẩu thu hồi mọi token của user (mục 11.5): đếm
+					// trước, vì sau đó không còn token nào còn sống để đếm.
+					if tc, ok := a.Store.(interface {
+						ActiveTokens(context.Context, string, time.Time) (int, error)
+					}); ok {
+						if revoked, err = tc.ActiveTokens(ctx, name.String(), time.Now()); err != nil {
+							return err
+						}
+					}
 					pw, err = a.SetPassword(ctx, name.String(), "")
 					return err
 				},
@@ -537,6 +549,9 @@ func userPasswdCmd(e *env) *cobra.Command {
 					return server.PasswordSetResult{Password: pw}, func() {
 						printOncePassword(e, e.tr("Mật khẩu mới của "+name.String(), "New password of "+name.String()), pw)
 						printf(e.stdout, "%s\n", e.tr("Mọi phiên của user này đã bị huỷ.", "Every session of this user has been ended."))
+						if revoked > 0 {
+							printf(e.stdout, "%s\n", e.tr("Đã thu hồi "+strconv.Itoa(revoked)+" token API của user này.", strconv.Itoa(revoked)+" API token(s) of this user revoked."))
+						}
 					}, nil
 				},
 			})
