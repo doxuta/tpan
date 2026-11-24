@@ -204,7 +204,13 @@ func siteHealthChecks(st site.Site, cfg StackConfig, others []site.Site, lim *ac
 	cs := siteStateChecks(st, cfg, others, lim, false)
 	l := st.Layout()
 	if st.Suspended == account.NotSuspended {
-		cs = append(cs, checks.PHPPool(l, phpVers), checks.DocrootGuard(string(cfg.Web), l))
+		// php.pool kiểm file pool CHUNG của site (tpan-<slug>.conf trong pool.d);
+		// site trong lồng không có file đó (pool của nó là file của lồng, do
+		// cage.state, cage.limits kiểm), nên với nó phép này chỉ báo "chưa kiểm được".
+		if !st.Caged {
+			cs = append(cs, checks.PHPPool(l, phpVers))
+		}
+		cs = append(cs, checks.DocrootGuard(string(cfg.Web), l))
 	}
 	// db.user_limit ở chặng DB: site hay DB đang tạm khoá thì chặng DB chỉ hiện
 	// "tạm khoá" xám (M13), nên không xét; harden vẫn đặt trần cho user khoá, và

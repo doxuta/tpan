@@ -1,6 +1,7 @@
 package demo
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -53,13 +54,13 @@ func TestSelfOnDemo(t *testing.T) {
 		t.Errorf("Last = %+v, %v, %v; muốn chưa có lượt nào", run, ok, err)
 	}
 
+	// M17 (m17.go): demo có site trong lồng, nên quay về bản trước bị từ chối
+	// cage_active kèm lệnh gỡ, đúng như máy thật (bản trước không biết lồng).
 	sys.ResetRan()
-	p, err := su.RollbackPreview(ctx)
-	if err != nil {
-		t.Fatalf("RollbackPreview: %v", err)
-	}
-	if want := (core.SelfRollbackPreview{Current: demoSelfRunning, Old: demoSelfOld}); p != want {
-		t.Errorf("RollbackPreview = %+v, muốn %+v", p, want)
+	_, err = su.RollbackPreview(ctx)
+	var refused *core.RefusedError
+	if !errors.As(err, &refused) || refused.Code != core.CodeCageActive || !strings.Contains(refused.Message.Vi, "tpan cage disable --all") {
+		t.Fatalf("RollbackPreview: %v; muốn từ chối %s kèm lệnh gỡ lồng", err, core.CodeCageActive)
 	}
 	// Máy giả không có /var/lib/tpan/tpan.db: phép thử `tpan.old site list` bị
 	// bỏ qua, lệnh duy nhất chạy trên file cũ là `version`.

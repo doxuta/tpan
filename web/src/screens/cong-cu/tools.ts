@@ -60,6 +60,7 @@ export const toolGroups: ToolGroup[] = [
       { path: "/", userPath: "/dashboard", icon: "chart", key: "traffic" },
       { path: "/incidents", icon: "alert", key: "incidents", count: "incidents" },
       { path: "/jobs", icon: "list", key: "jobs" },
+      { path: "/usage", icon: "activity", key: "usage" },
     ],
   },
   {

@@ -44,6 +44,8 @@ type m16Opts struct {
 	step, userName, waitFile string
 	// Bộ m18-that, bước dich (m18_that.go): phần không bí mật của form đích.
 	s3Endpoint, s3Region, s3Bucket, s3Prefix string
+	// Bộ m17-that (m17_that.go): gói để bật lồng rồi sửa mức tối đa.
+	pkg string
 	// threshold: bộ m16-do kiểm các ngưỡng cứng của M16 (mục 7 của
 	// docs/thay-doi/M16-thiet-ke.md) và thoát mã khác 0 khi sai một cái.
 	threshold bool

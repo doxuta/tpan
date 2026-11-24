@@ -47,6 +47,7 @@ import { strings } from "../../i18n/site";
 import { PlanReview } from "../duyet-plan";
 import { formatWhen } from "../thung-rac/model";
 import { Backups } from "./Backups";
+import { CageBlock } from "./CageBlock";
 import { CheckItem } from "./CheckItem";
 import { ErrorNote } from "./ErrorNote";
 import { formatDate, formatTime } from "./format";
@@ -453,6 +454,9 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
           {hasLogs && <Traffic domain={domain} />}
 
           <SiteIncidents domain={domain} />
+
+          {/* M17: thẻ Lồng. Cần stack (lồng là phần của pool PHP) và site đang chạy; hasLogs đã gồm cả hai điều kiện đó. */}
+          {hasLogs && <CageBlock site={info.site} admin={isAdmin} />}
         </TabPanel>
 
         <TabPanel value="phep-kiem">

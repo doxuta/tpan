@@ -6,7 +6,7 @@
 // Cả hai theo một nhịp: bấm → POST ?dry_run=1 trả Preview → PlanReview (hỏi
 // lại vì bước bật ufw nguy hiểm) → POST thật trả job_id → chuyển tới /jobs/:id.
 // Hai dòng SSH chỉ cảnh báo, không có nút: sửa sai là mất đường vào máy.
-// Giao diện bản 2: hai thẻ. Thẻ "Kiểm tra bảo mật máy" (mỗi mục một CheckRow,
+// Giao diện bản 2: hai thẻ (dòng "Thử tấn công" của M17 nằm trong thẻ cô lập, Probe.tsx). Thẻ "Kiểm tra bảo mật máy" (mỗi mục một CheckRow,
 // đóng sẵn trừ dòng lỗi) và thẻ "Cô lập giữa các site" của M14 (Isolation.tsx,
 // mục 6.13). Bản xem trước và khối "cổng sẽ mở" nằm dưới hai thẻ.
 

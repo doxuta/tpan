@@ -66,15 +66,19 @@ type ProbeStatus struct {
 
 // PackageEdit là thân của POST /api/v1/packages/{name} (tên lấy từ đường dẫn).
 type PackageEdit struct {
-	MaxSites   int   `json:"max_sites"`
-	MaxDBs     int   `json:"max_dbs"`
-	DiskMB     int   `json:"disk_mb"`
-	MaxBackups int   `json:"max_backups"`
-	Cage       *bool `json:"cage,omitempty"`
-	CPUPercent *int  `json:"cpu_percent,omitempty"`
-	RAMMB      *int  `json:"ram_mb,omitempty"`
-	Tasks      *int  `json:"tasks,omitempty"`
-	IOReadMB   *int  `json:"io_read_mb,omitempty"`
-	IOWriteMB  *int  `json:"io_write_mb,omitempty"`
-	PHPWorkers *int  `json:"php_workers,omitempty"`
+	// Name: tên gói lấy từ đường dẫn. Thân trước M17 là account.Package, có
+	// "name", và giao diện cũ vẫn gửi kèm: nhận để không trả 400 vì trường lạ,
+	// nhưng phải trùng tên trên đường dẫn (handlePackageEdit).
+	Name       string `json:"name,omitempty"`
+	MaxSites   int    `json:"max_sites"`
+	MaxDBs     int    `json:"max_dbs"`
+	DiskMB     int    `json:"disk_mb"`
+	MaxBackups int    `json:"max_backups"`
+	Cage       *bool  `json:"cage,omitempty"`
+	CPUPercent *int   `json:"cpu_percent,omitempty"`
+	RAMMB      *int   `json:"ram_mb,omitempty"`
+	Tasks      *int   `json:"tasks,omitempty"`
+	IOReadMB   *int   `json:"io_read_mb,omitempty"`
+	IOWriteMB  *int   `json:"io_write_mb,omitempty"`
+	PHPWorkers *int   `json:"php_workers,omitempty"`
 }

@@ -267,6 +267,20 @@ Số đo đáng nhớ (nginx / Apache khi hai bên khác nhau):
 | Thử tấn công `tpan isolation probe` | 14 đường (L1 đến L9 của M14, C1 đến C5 của lồng); ngoài lồng: các đường L bị chặn, C1 đến C5 là `needs_cage` (chỉ lồng chặn được); trong lồng: mọi đường bị chặn; hai site thử bị xoá sạch, kể cả khi `kill -9` tpan giữa lượt rồi chạy `--cleanup` |
 | Khởi động lại máy ảo | A, B trả 200; site tạm khoá vẫn 403 và socket vẫn tắt |
 
+### 2.8 Bấm thật trên giao diện (25/11/2026)
+
+Trên Mac, trong thư mục repo: `make e2e-m17-gd`. Lệnh đưa máy ảo về sạch, cài tpan của cây, tạo gói `long` chưa bật lồng, user `khach` và site `a.example.com` của khach, rồi cho Chrome không giao diện (chạy trên Mac, `scripts/anh-readme`, bộ `m17-that`) mở panel thật của máy ảo và bấm như người dùng. Sau mỗi bước, script hỏi lại máy ảo bằng lệnh không đi qua giao diện. Log: `docs/bang-chung/M17-giao-dien.log`, **68 khẳng định đạt, 0 không đạt** trên mã cuối.
+
+| Bước trên giao diện | Máy ảo xác nhận |
+|---|---|
+| Màn Gói: Sửa gói `long`, chọn lồng, CPU 50, RAM 200, 40 tiến trình, 3 worker, Lưu | `tpan package list --json` đúng các số; site A chuyển sang "chờ vào lồng" |
+| Trang của A: "Vào lồng", xem trước, chạy | `tpan cage status`: A trong lồng; `systemctl show` slice: `MemoryMax=209715200`, `MemorySwapMax=0`, `CPUQuotaPerSecUSec=500ms`, `TasksMax=40`; dịch vụ PHP của lồng chạy bằng user của A; A trả 200 |
+| Màn Gói: RAM 256, nút của hộp là "Xem trước", chạy (job `cage.sync`) | slice có `MemoryMax=268435456`; A vẫn 200 |
+| Màn Bảo mật: mở dòng "Thử tấn công", chạy cả hai lượt | lượt có 14 đường, 0 ô lộ, đã dọn; không còn user, thư mục, unit nào của site thử; health không có `probe.leftover` lỗi |
+| Trang của A: "Ra khỏi lồng" | A ngoài lồng, không còn file `tpan-cage-*`, A trả 200 |
+
+Lần chạy đầu của e2e này tìm ra một lỗi thật: bấm Lưu trong hộp sửa gói bị 400 (mục 5.12).
+
 ## 3. Đi qua mã theo thứ tự chạy
 
 Thứ tự đi: bạn gõ `tpan cage enable a.example.com`, lệnh dựng một Plan (danh sách bước, có xem trước, hoàn tác được: quy ước từ M1), engine chạy từng bước, và cuối cùng nginx trỏ vào socket của lồng. Sau đó đi theo một request, một lệnh `wp`, một số liệu, và một lượt thử tấn công.
@@ -668,11 +682,26 @@ ss = append(ss, clean...)                             // 6. dọn
 
 Cùng ca sử dụng, bọc thành route HTTP: `handleCage` (danh sách), `handleSiteCage` (`POST /api/v1/sites/{domain}/cage`, admin), `handleUsage`, `handleSiteUsage`, `handleUsageSuggestions`, `handleProbe`, `handleProbeRun`, `handleProbeCleanup`. Quyền mỗi route nằm ở bảng route (mặc định cấm; user thường gọi route của admin thì 403), và `TestPhanQuyenMoiRoute` trong `internal/server/authz_test.go` duyệt mọi route. `handleProbeRun` kiểm `only` ở biên (chỉ rỗng, `ngoai` hay `trong`) vì giá trị đó đi vào tên sổ và quyết định bước nào chạy. Sửa gói hay sửa user mà làm trần của site trong lồng đổi thì API trả `202 JobStarted` (job `cage.sync`) thay cho `200`.
 
-Giao diện (`web/`) của mốc này **chưa làm**: để phần F, sau M16.
+Giao diện (`web/`) gọi đúng các route này: mục 3.15.
 
 ### 3.14 Ra khỏi lồng: `PrepareDisable`
 
 Đi ngược: `steps.SitePool` ghi lại pool chung từ template, vhost về bản thường, `CageSocket{Disable: true}` (`disable --now` socket, dừng dịch vụ và slice, gỡ thư mục socket), rồi `CageFiles{Remove: true}` gỡ **hàng rào trước tiên**, rồi các file còn lại. Vì pool và vhost sinh lại từ template và `cageDrift` đã đảm bảo lúc vào chúng đúng template, ra lồng trả lại đúng từng byte (test `TestCageEnableDisableTraLaiTungByte`). `PrepareDisable` không đòi `caged=1`: nó đọc máy xem còn file của lồng không, nên cũng là cách dọn một lồng dựng dở khi panel bị tắt giữa `cage.enable`.
+
+### 3.15 Giao diện (phần làm sau M16, ngày 25/11/2026)
+
+Giao diện không thêm luật mới nào: mọi việc đổi máy vẫn đi qua đúng các route ở mục 3.13, và qua luồng "xem trước rồi chạy" có sẵn (`usePlanFlow` trong `web/src/api/m13-users.ts`). Đặc tả hình thức nằm ở `docs/GIAO-DIEN.md` (mục 7, các dòng có chữ M17, và bảng thuật ngữ: "lồng", "mức tối đa", "chạm mức tối đa", "thử tấn công"...). Chữ giao diện không dùng "trần": người dùng đọc "mức tối đa".
+
+Đi theo đường dữ liệu, từ dưới lên:
+
+1. **Kiểu và hàm gọi API**: `web/src/api/m17-types.ts` chép đúng hình JSON của Go (`CageRow`, `SiteUsage`, `Suggestion`, `ProbeReport`...), `web/src/api/m17.ts` có các hook đọc (`useCages`, `useUsage`, `useSiteUsage`, `useSuggestions`, `useProbe`) và ba "yêu cầu Plan" (`cageRequest`, `probeRequest`, `probeCleanupRequest`) để đưa vào `usePlanFlow`.
+2. **Phép tính thuần**: `web/src/screens/tai-nguyen/model.ts` (đổi byte ra MiB, phần trăm so với mức tối đa, CPU giữa hai lần đọc, gộp theo user), `screens/goi/model.ts` (kiểm form gói theo đúng thứ tự như server), `screens/bao-mat/probe-model.ts` (đổi trạng thái của một ô thử tấn công sang bốn dấu trạng thái). Ba file này có test chạy bằng `make test-web`, không cần trình duyệt.
+3. **Màn mới "Tài nguyên"** (`/usage`, `screens/tai-nguyen/`): bảng theo site (RAM đang dùng so với mức tối đa, đỉnh, tiến trình, số lần chạm mức tối đa, CPU), bảng theo user (chỉ admin), thẻ "Gợi ý mức tối đa" (chỉ admin; mở từng gói thấy từng câu giải thích của `core.Suggestion.Reasons`). User thường cũng vào được nhưng chỉ thấy site của mình: route `GET /api/v1/usage` đã lọc theo chủ ở server, giao diện không lọc thêm.
+4. **Màn Gói** (`screens/goi/`): cột "Lồng" và "Mức tối đa trong lồng"; hộp sửa gói có ô chọn lồng và sáu ô số. Sửa gói mà gói có site đang trong lồng và một trong sáu mức đổi thì nút của hộp đổi từ "Lưu" sang "Xem trước": server sẽ chạy job `cage.sync` để áp mức mới lên slice, nên người dùng phải thấy bản xem trước trước khi máy đổi.
+5. **Trang một site**: thẻ "Lồng" ở tab Tổng quan (`screens/site/CageBlock.tsx`): trạng thái, mức tối đa của gói, số đang dùng khi trong lồng, nút "Vào lồng" hoặc "Ra khỏi lồng" (chỉ admin). Gói chưa bật lồng thì nút "Vào lồng" bị khoá kèm lời giải thích. Trạng thái "trong lồng" hay "ngoài lồng" viết bằng chữ thường, **không** tô xanh hay đỏ: ba màu trạng thái chỉ nói về tình trạng của máy, mà ngoài lồng không phải là lỗi. Chỉ "chờ vào lồng", "chờ ra khỏi lồng" mới có dấu cảnh báo, vì khi đó máy lệch với gói.
+6. **Màn Bảo mật**: dòng "Thử tấn công" trong thẻ "Cô lập giữa các site" (`screens/bao-mat/Probe.tsx`). Lúc mới mở chỉ là một dòng trạng thái; mở ra có nút chọn lượt, nút chạy (qua bản xem trước, nói tên hai site thử), câu báo khi còn lượt chưa dọn kèm nút dọn, và bảng mỗi đường một hàng với hai cột Ngoài lồng, Trong lồng. Ma trận cô lập ghi chữ "lồng" ở hàng của site trong lồng (vì sao, xem câu tự kiểm 11).
+
+Dữ liệu cho chế độ `--demo` (`internal/demo/m17.go`) đi qua **chính mã thật**: hai site vào lồng bằng `core.Cages.PrepareEnable` và job thật trên máy giả; máy giả chỉ đóng vai systemd và nhân (file cgroup có số nhúc nhích mỗi 15 giây, trả lời `systemctl show`). Nhờ vậy ảnh chụp trên demo và phép kiểm `cage.*` của demo đều thật như trên máy.
 
 ## 4. Kiến thức nền
 
@@ -844,6 +873,7 @@ Lấy từ bản thiết kế mục 5 và sổ quyết định; không phải m�
 - **Không phủ:** việc site đẩy sang dịch vụ chung (truy vấn nặng trong MariaDB, TLS và file tĩnh trong web server), dung lượng đĩa (đầy đĩa), băng thông mạng.
 - **Mail.** `sendmail` không chạy được trong lồng; vốn đã không gửi được ở ngoài lồng trên stack của TPAN (t2).
 - **Trần CPU trên máy ảo rảnh** nhận ít hơn mức đặt (mục 2.3); không bao giờ nhiều hơn.
+- **Số lần chạm mức tiến trình có thể đếm thiếu.** Trên kernel 6.8, bộ đếm nằm ở cgroup nơi gọi `fork` (bản thử t3b), tức cgroup của dịch vụ PHP. Dịch vụ khởi động lại (needrestart sau khi apt nâng gói PHP, hay đổi bản PHP) thì cgroup mới bắt đầu từ 0. Thấy thật ngày 25/11/2026: một lượt e2e bước 20 có apt nâng gói nền đúng lúc phép thử, `tpan usage` ra `tasks_hits` bằng 0 dù script đọc thẳng `pids.events` lúc chạm mức thấy 1. Số lần bị giết vì RAM (`oom_kill` ở `memory.events` của slice) không bị ảnh hưởng, vì slice không khởi động lại.
 
 ### 5.11 Gộp với M28: luật lệnh root từ chối chính lồng
 
@@ -856,6 +886,16 @@ Gộp `dev` vào nhánh M17 làm hỏng ba chỗ, vì M17 viết trước luật
 3. **Dọn site thử bằng `rm -r` của root trong `/var/www`.** Cách mới theo đúng đường của thùng rác (M10): chuyển thư mục ra `/var/lib/tpan/trash/...` rồi mới xoá ở đó, ngoài vùng site.
 
 Chỗ đáng nhớ: không nới luật chung của M28 cho tiện. Mỗi chỗ hỏng sửa theo cách M28 muốn (chạy bằng user của site, hoặc đi đường ngoài vùng site), và chỗ duy nhất luật phải nhận thêm là một dạng lệnh hẹp tới mức test liệt kê được các biến thể bị từ chối. Bản đầu của `cageRunAsSite` còn lỏng ba chỗ (không ràng User với tên unit, không bắt buộc có unit, nhận thư mục tương đối); thợ soát tìm ra, đã siết (bảng G1 đến G4 ở `docs/thay-doi/M17.md`). Sau khi sửa, e2e bước 20 chạy lại trên mã cuối (mục 2.7).
+
+### 5.12 Sửa gói từ giao diện bị 400: hai đầu của một hợp đồng
+
+Phần lõi M17 đổi thân của `POST /api/v1/packages/{name}` từ `account.Package` (có trường `name`) sang `PackageEdit` (không có `name`, vì tên nằm trên đường dẫn). Server đọc JSON chặt (`DisallowUnknownFields`: trường lạ là 400, để gõ sai tên trường không bị lặng lẽ bỏ qua). Giao diện, kể cả bản trước M17, luôn gửi kèm `name`. Kết quả: từ lúc phần lõi vào `dev`, bấm Lưu trong hộp sửa gói là nhận 400. Test của phần lõi gọi API bằng thân viết tay nên không thấy; ảnh chụp trên demo chỉ mở hộp chứ không bấm Lưu. Lỗi lộ ra ở e2e bấm thật trên máy ảo (`scripts/e2e-m17-gd.sh`, phần B): hộp không đóng.
+
+Sửa ở cả hai đầu. Server nhận lại `name` nếu nó trùng tên trên đường dẫn (khác thì từ chối `args_invalid`: tên gói không đổi được), nên khách cũ không vỡ. Giao diện thôi gửi `name` khi sửa. Bài học: đổi hình của một thân request là đổi hợp đồng; phải tìm mọi nơi gọi, kể cả giao diện, trước khi coi là xong.
+
+### 5.13 Màn Bảo mật dài quá 2 màn hình
+
+Bản đầu đặt "Thử tấn công" thành thẻ thứ ba, có bảng 11 đường mở sẵn: màn dài 2,8 màn hình, quá ngưỡng cứng 2 màn hình của `make do-giao-dien NGUONG=1`. Gập bảng lại vẫn 2,2 màn hình; đo riêng thì thấy không có thẻ đó màn đã dài 2,0 màn hình. Nên phần thử tấn công thành một dòng mở ra được trong thẻ cô lập, cùng khuôn với hai dòng "Phép kiểm cấp máy", "Phép kiểm của từng site": thêm đúng một dòng cao 44 px. Có ô lộ thì dòng tự mở sẵn, nên chuyện cần thấy không bị giấu.
 
 ## 6. Tự kiểm
 
@@ -871,6 +911,7 @@ Câu 4 và câu 9 cần chạy lệnh trên máy ảo. Đáp án ở cuối file
 8. Panel bị `kill -9` giữa lúc `tpan isolation probe` đang chạy. Còn lại những gì, và những cơ chế nào dọn chúng?
 9. (máy ảo) Làm sao tự thấy rằng dịch vụ PHP của một site trong lồng và lệnh `wp` chạy thay cho site cùng nhận **một** file `fence.conf`? Gợi ý: có hai lệnh cần chạy.
 10. Người review hỏi: "Site trong lồng có tự thoát lồng được không?" Bạn liệt kê những thứ cụ thể nào đã chặn các đường thoát, và nói thẳng điều gì chưa chặn được?
+11. Trên màn Bảo mật, ma trận cô lập ghi chữ "lồng" thay cho dấu trạng thái ở hàng của site trong lồng. Vì sao TPAN không chạy phép cô lập của M14 đi từ một site trong lồng, và cái gì chứng minh thay?
 
 ## Đáp án
 
@@ -878,7 +919,7 @@ Câu 4 và câu 9 cần chạy lệnh trên máy ảo. Đáp án ở cuối file
 
 2. Dịch vụ nên chỉ khởi động khi request đầu tiên tới (socket activation), đó là lúc mã của site thật sự được chạy trong lồng. Nếu bước này khởi động dịch vụ thì: (a) mã PHP của site có thể chạy trong lồng trước khi `CageReap` giết tiến trình ngoài lồng (mục 3.3 bước 4); (b) bước có thể hỏng vì điều site điều khiển được (site giết tiến trình chính, trả mã lạ), mà đây là bước của chính sách admin. Thiết kế muốn không gì do mã của site điều khiển làm bước này hỏng (`applyEnable`, đoạn chú thích cuối mục 3.5).
 
-3. Đổi vhost trước thì request vào socket của lồng trong lúc pool chung còn chạy: sẽ có tiến trình cùng uid ở ngoài slice đúng lúc mã của site bắt đầu chạy trong lồng, mở cửa `/proc/<pid>/root` (mục 5.5). Gỡ pool chung và `CageReap` trước vhost thì khi mã site vào lồng, không còn tiến trình ngoài lồng nào. Hệ quả: một khoảng ngắn giữa "gỡ pool chung" và "đổi vhost" request nhận 502. Độ dài khoảng đó phải do e2e đo; chưa có số (mục 2.7). Bản thiết kế mong đợi dưới 1 giây khi vào lồng; đó là mong đợi, chưa phải số đo.
+3. Đổi vhost trước thì request vào socket của lồng trong lúc pool chung còn chạy: sẽ có tiến trình cùng uid ở ngoài slice đúng lúc mã của site bắt đầu chạy trong lồng, mở cửa `/proc/<pid>/root` (mục 5.5). Gỡ pool chung và `CageReap` trước vhost thì khi mã site vào lồng, không còn tiến trình ngoài lồng nào. Hệ quả: một khoảng ngắn giữa "gỡ pool chung" và "đổi vhost" request nhận 502. e2e bước 20 đo được (mục 2.7): vào lồng có 2 request hỏng trên 68, gián đoạn 66 ms trên nginx; 1 request hỏng trên 59, gián đoạn 4 ms trên Apache.
 
 4. Lấy PID của tiến trình chính rồi đọc `status` của nó. Chạy từ Mac:
 
@@ -892,10 +933,12 @@ Câu 4 và câu 9 cần chạy lệnh trên máy ảo. Đáp án ở cuối file
 
 6. Trong Plan `cage.enable`, lúc bước kiểm chứng chạy, mã của site đã nhận request và có thể lấp số tiến trình của slice (bằng `exec`) làm `systemd-run` của `cage.fence` không khởi động được; nếu phép đó cứng thì site chặn được việc vào lồng của chính nó. Hàng rào đã được thử lúc `CageSocket` bật lồng (`runFenceTest`), trước khi mã của site vào slice. Còn khi chạy trong health (mỗi giờ), không có Plan nào chờ nó, nên Fail của `cage.fence` là một cảnh báo thật và báo lỗi. (`policyHard` chỉ liệt kê chặng web, `cage.socket`, `cage.limits`, `php.socket`.)
 
-7. Không phải lỗi của thiết kế. Máy bận thì đúng: trần 50% nhận 50,0%, trần 25% nhận 25,0%, trần 100% nhận 99,5% (t3b mục c). Máy rảnh thì ít hơn (35,7% cho trần 50%) vì vCPU đang ngủ của máy ảo thức dậy trễ khoảng 10 đến 14 ms ở đầu mỗi chu kỳ 100 ms. Không lần nào vượt trần. Khi trả lời: nêu cả hai con số, nói e2e đo lúc máy bận. Con số e2e riêng của phiên chính chưa có (mục 2.7).
+7. Không phải lỗi của thiết kế. Máy bận thì đúng: trần 50% nhận 50,0%, trần 25% nhận 25,0%, trần 100% nhận 99,5% (t3b mục c). Máy rảnh thì ít hơn (35,7% cho trần 50%) vì vCPU đang ngủ của máy ảo thức dậy trễ khoảng 10 đến 14 ms ở đầu mỗi chu kỳ 100 ms. Không lần nào vượt trần. Khi trả lời: nêu cả hai con số, nói e2e đo lúc máy bận. e2e bước 20 (mục 2.7): máy bận, cả hai lần đo A nhận 45% đến 52% với trần 50%; máy rảnh 46,0% (nginx), 35,2% (Apache).
 
 8. Dòng `running` còn trong bảng `probe_runs`, cùng hai site thử đã tạo dở (user Linux, thư mục site, DB, vhost, và có thể file lồng). Dọn bằng: `tpan isolation probe --cleanup`; lượt thử kế tiếp tự dọn lượt sót trước; bộ hẹn giờ của `tpan serve` dọn khi khoá toàn cục đang trống; health báo lỗi `probe.leftover` (sửa tự động `probe.cleanup`) khi dòng đã quá 2 giờ. Plan dọn chỉ nhận tên khớp mẫu `tpan-probe-[ab]-<12 hex>.test` **và** có trong sổ, nên không đụng được site thật (`TestProbeCleanupTuChoiTenLa`).
 
 9. Hai lệnh, chạy trên máy ảo bằng `scripts/vm.sh root ...`. Lệnh một: `systemctl cat tpan-cage-<slug>-php.service`, in file unit kèm mọi drop-in áp cho nó; cuối output có `fence.conf`. Lệnh hai: tạo một lệnh tạm sống 60 giây rồi hỏi unit của nó, `systemd-run --unit=tpan-cage-<slug>-run-thu -p User=tp_<slug> sleep 60` và ngay sau đó `systemctl cat tpan-cage-<slug>-run-thu.service`; output cũng có cùng `fence.conf`, vì tên unit bắt đầu bằng `tpan-cage-<slug>-`. Bản thử t1 (mục 4) đã kiểm điều này: `DropInPaths` của unit tạm là file hàng rào. Mình chưa chạy lại hai lệnh trên trong phiên này.
 
-10. Chặn: không capability (`CapEff: 0`), `NoNewPrivileges` và `RestrictSUIDSGID` (không `sudo`, `su`, `crontab`), `RestrictNamespaces` (không tạo namespace mới), `/sys/fs/cgroup` và `/run` (socket của systemd) không thấy được, `SystemCallFilter=~@privileged @resources`, và không có tiến trình cùng uid ngoài lồng (`CageReap`, `Isolated` không sinh từ site trong lồng). Chưa chặn được (nói thẳng): mạng dùng chung (đọc `/proc/self/net/tcp`), và với Apache chế độ `.htaccess` `day-du` thì site đặt được `SetHandler` sang socket của lồng khác. Danh sách từng lỗ đã tìm và đã sửa nằm trong bảng "Soát cuối, pha 1" của `docs/thay-doi/M17.md` (N1 tới N5, V1 tới V5, L1 tới L10) và mục "Phát hiện của đợt chạy thật trên máy ảo (đợt 4)". Ba lỗ nặng cần nhớ tên: N2 (tiến trình nhảy pid sống qua lượt giết), N3 (crontab riêng của user chạy mã ngoài lồng), N4 (Plan dựng trước ghi lại pool chung, user tự ra khỏi lồng). Pha 2 (thử trên máy ảo) chưa có trong bảng lúc mình viết.
+10. Chặn: không capability (`CapEff: 0`), `NoNewPrivileges` và `RestrictSUIDSGID` (không `sudo`, `su`, `crontab`), `RestrictNamespaces` (không tạo namespace mới), `/sys/fs/cgroup` và `/run` (socket của systemd) không thấy được, `SystemCallFilter=~@privileged @resources`, và không có tiến trình cùng uid ngoài lồng (`CageReap`, `Isolated` không sinh từ site trong lồng). Chưa chặn được (nói thẳng): mạng dùng chung (đọc `/proc/self/net/tcp`), và với Apache chế độ `.htaccess` `day-du` thì site đặt được `SetHandler` sang socket của lồng khác. Danh sách từng lỗ đã tìm và đã sửa nằm trong bảng "Soát cuối, pha 1" của `docs/thay-doi/M17.md` (N1 tới N5, V1 tới V5, L1 tới L10) và mục "Phát hiện của đợt chạy thật trên máy ảo (đợt 4)". Ba lỗ nặng cần nhớ tên: N2 (tiến trình nhảy pid sống qua lượt giết), N3 (crontab riêng của user chạy mã ngoài lồng), N4 (Plan dựng trước ghi lại pool chung, user tự ra khỏi lồng). Pha 2 (thử trên máy ảo) nằm ở mục "Soát cuối, pha 2" của cùng file.
+
+11. Phép cô lập của M14 chạy lệnh `test -r`, `test -x`... dưới user của site "từ" ở NGOÀI lồng (bằng `runuser` của root). Với site trong lồng, một tiến trình cùng uid chạy ngoài lồng là cửa cho mã trong lồng mở `/proc/<pid>/root` ra gốc thật của máy (mục 5.5), nên `core.siteChecks` không sinh phép đó cho site trong lồng (mục 3.3 và chú thích của hàm). Thay vào đó phép `cage.fence` chạy bảy lệnh thử bằng chính lớp bọc của lồng (`cage.Wrap`) và chứng minh site chỉ thấy đồ của mình. Chiều ngược lại (site khác đánh vào site trong lồng) vẫn có ô bình thường trong ma trận. Bấm một ô "lồng" thì giao diện nói đúng điều này và dẫn tới tab Phép kiểm của site đó.

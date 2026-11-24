@@ -565,8 +565,9 @@ func fpmVersion(unit string) (string, bool) {
 }
 
 var (
-	phpVerRE      = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
-	fastcgiSockRE = regexp.MustCompile(`unix:(/run/php/[A-Za-z0-9._-]+\.sock)`)
+	phpVerRE = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
+	// M17: vhost của site trong lồng trỏ socket của lồng, /run/tpan-cage/<hex>/php.sock.
+	fastcgiSockRE = regexp.MustCompile(`unix:(/run/(?:php|tpan-cage/[0-9a-f]+)/[A-Za-z0-9._-]+\.sock)`)
 )
 
 // vhostSocket là socket PHP-FPM mà vhost của site đang trỏ tới (fastcgi_pass
