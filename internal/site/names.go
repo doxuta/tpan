@@ -5,7 +5,7 @@ package site
 // gọi CheckClaims bên trong transaction, core gọi nó cho bản xem trước.
 
 import (
-	"errors"
+	"slices"
 	"time"
 
 	"github.com/doxuta/tpan/internal/validate"
@@ -46,6 +46,8 @@ const (
 	CodeNameTaken        = "name_taken"
 	CodeNameTakenSelf    = "name_taken_self"
 	CodeNameRootForeign  = "name_root_foreign"
+	// CodeAliasLimit: site đã có đủ MaxNames tên (S10).
+	CodeAliasLimit = "alias_limit"
 )
 
 // Name là một dòng của bảng site_names.
@@ -82,21 +84,95 @@ type NameError struct {
 
 func (e *NameError) Error() string { return e.Code + ": " + e.Name.String() }
 
-// errNamesTODO: thân thật do thợ 1a viết.
-var errNamesTODO = errors.New("site: CheckClaims chưa làm (M19 đợt 1)")
-
-// CheckClaims áp luật mục 3.2 cho mọi claim trên ảnh chụp existing (mọi dòng
-// của site_names). Lỗi (*NameError) ở claim đầu tiên vi phạm.
+// CheckClaims áp luật mục 3.2 cho mọi claim, theo thứ tự, trên ảnh chụp
+// existing (mọi dòng của site_names, cộng tên chính suy từ bảng sites). Lỗi
+// (*NameError) ở claim đầu tiên vi phạm. Mỗi claim đã nhận được coi là một
+// dòng pending trước khi xét claim sau (S10), nên hai claim trong cùng một lô
+// cũng không lấn tên miền gốc của nhau.
+//
+// Với mỗi claim:
+//  1. Tên dành cho phép thử (IsProbeDomain): domain_reserved, kể cả admin.
+//  2. Đã có dòng mang tên đó:
+//     - claim tên chính, dòng cùng site VÀ cùng chủ: no-op (chạy lại site add,
+//     apply lần hai), không xét gì thêm (S4);
+//     - claim tên phụ, dòng pending cùng site, cùng chủ, cùng kiểu: nhận lại
+//     (job trước chết giữa chừng, S9);
+//     - còn lại: alias_exists (cùng site), name_taken_self (site khác của cùng
+//     chủ), name_taken (của chủ khác). Không ai được miễn luật này (B2).
+//  3. Trừ admin: tên là hậu tố công cộng (domain_public_suffix) hay tên miền
+//     gốc có tên của chủ khác (name_root_foreign).
+//  4. Site đã đủ MaxNames tên: alias_limit.
 func CheckClaims(claims []Claim, existing []Name) error {
-	return errNamesTODO
+	rows := append([]Name(nil), existing...)
+	for _, c := range claims {
+		if IsProbeDomain(c.Name.String()) {
+			return &NameError{Code: CodeNameReserved, Name: c.Name}
+		}
+		reclaim := false
+		if i := slices.IndexFunc(rows, func(n Name) bool { return n.Name == c.Name }); i >= 0 {
+			n := rows[i]
+			mine := n.Site == c.Site && n.Owner == c.Owner
+			switch {
+			case mine && c.Kind == KindPrimary && n.Kind == KindPrimary:
+				continue
+			case mine && c.Kind == KindAlias && n.Kind == KindAlias && n.State == StatePending:
+				reclaim = true
+			case n.Owner != c.Owner:
+				return &NameError{Code: CodeNameTaken, Name: c.Name}
+			case n.Site == c.Site:
+				return &NameError{Code: CodeAliasExists, Name: c.Name}
+			default:
+				return &NameError{Code: CodeNameTakenSelf, Name: c.Name, Other: n.Site}
+			}
+		}
+		if !c.ByAdmin {
+			foreign, err := RootForeign(rows, c.Name, c.Owner)
+			if err != nil {
+				return err
+			}
+			if foreign {
+				return &NameError{Code: CodeNameRootForeign, Name: c.Name}
+			}
+		}
+		if reclaim {
+			continue // dòng đã có, không thêm vào số tên
+		}
+		count := 0
+		for _, n := range rows {
+			if n.Site == c.Site {
+				count++
+			}
+		}
+		if count >= MaxNames {
+			return &NameError{Code: CodeAliasLimit, Name: c.Name}
+		}
+		rows = append(rows, Name{Name: c.Name, Site: c.Site, Owner: c.Owner, Kind: c.Kind, Mode: c.Mode, State: StatePending})
+	}
+	return nil
 }
 
 // RootForeign báo có dòng nào trong existing (pending hay active, tên chính hay
 // phụ) cùng tên miền gốc với d mà owner khác. d không có tên miền gốc (là
-// public suffix) thì lỗi *NameError{Code: CodeNamePublicSuffix}. Đây là luật
-// P4 duy nhất: core.RegistrableTaken (M28) và CheckClaims đều gọi nó.
+// public suffix) thì lỗi *NameError{Code: CodeNamePublicSuffix}. Dòng không
+// tính được tên miền gốc (dữ liệu cũ, admin tạo) thì bỏ qua, như M28. Đây là
+// luật P4 duy nhất: core.RegistrableTaken (M28) và CheckClaims đều gọi nó.
+//
+// ponytail: duyệt cả danh sách và tính PSL lại mỗi dòng; một máy chỉ có vài
+// trăm tên. Nhiều hơn thì thêm cột tên miền gốc có chỉ mục.
 func RootForeign(existing []Name, d validate.Domain, owner string) (bool, error) {
-	return false, errNamesTODO
+	want, err := validate.RegisteredDomain(d)
+	if err != nil {
+		return false, &NameError{Code: CodeNamePublicSuffix, Name: d}
+	}
+	for _, n := range existing {
+		if n.Owner == owner {
+			continue
+		}
+		if r, err := validate.RegisteredDomain(n.Name); err == nil && r == want {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Names là các tên phụ active và luật chuyển hướng active của một site, theo
