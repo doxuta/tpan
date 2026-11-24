@@ -285,6 +285,33 @@ func TestRouteM18ChiAdmin(t *testing.T) {
 	}
 }
 
+// TestAuthzTable (M19, B10): mọi route của M19 có trong bảng với đúng luật.
+// Ba vai (admin qua, user khác 404, xem như 403 khi ghi) đã được
+// TestPhanQuyenMoiRoute và TestXemNhuChiDoc duyệt cho mọi route; test này chặn
+// việc một route M19 bị đổi luật hay bị xoá mà không ai thấy.
+func TestAuthzTable(t *testing.T) {
+	rules := map[string]rule{}
+	for _, rt := range newServer(Deps{}).routes(authzDist) {
+		rules[rt.pattern] = rt.rule
+	}
+	for p, want := range map[string]rule{
+		"GET /api/v1/sites/{domain}/names":              ownerSite,
+		"POST /api/v1/sites/{domain}/names":             ownerSite,
+		"POST /api/v1/sites/{domain}/names/{name}/mode": ownerSite,
+		"DELETE /api/v1/sites/{domain}/names/{name}":    ownerSite,
+		"GET /api/v1/domains":                           anyone,
+	} {
+		r, ok := rules[p]
+		if !ok {
+			t.Errorf("thiếu route %s", p)
+			continue
+		}
+		if r != want {
+			t.Errorf("%s: luật %+v, muốn %+v", p, r, want)
+		}
+	}
+}
+
 // TestMountRouteThieuLuat: route quên luật thì server không khởi động.
 func TestMountRouteThieuLuat(t *testing.T) {
 	s := newServer(Deps{})

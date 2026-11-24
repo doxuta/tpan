@@ -28,6 +28,7 @@ import (
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
@@ -253,8 +254,10 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	in := core.SiteInput{Domain: d, Title: body.Title, Email: email, Owner: owner}
+	in := core.SiteInput{Domain: d, Title: body.Title, Email: email, Owner: owner, WWW: site.NameMode(body.WWW)}
 	sites := s.apiSites()
+	// M19: giữ chỗ tên (ClaimNames) áp luật tên miền gốc cho người không phải admin.
+	sites.NotAdmin = !who(r).IsAdmin()
 
 	if apiDryRun(r) {
 		add, err := sites.PrepareAdd(r.Context(), in)

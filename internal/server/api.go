@@ -123,7 +123,9 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			core.CodeCloudInitInvalid, core.CodeCloudInitTooLarge,
 			// M17: trần của gói sai, có trần mà gói không bật lồng, tên miền
 			// dành cho phép thử tấn công.
-			core.CodePackageLimitInvalid, core.CodePackageLimitsNeedCage, core.CodeDomainReserved:
+			core.CodePackageLimitInvalid, core.CodePackageLimitsNeedCage, core.CodeDomainReserved,
+			// M19: kiểu tên phụ sai, tên phụ trùng tên chính, tên là public suffix.
+			"name_mode_invalid", "alias_primary", "domain_public_suffix":
 			status = http.StatusBadRequest
 		case "site_not_found",
 			// M9: id backup không có (hoặc không thuộc site đó) là "không có".
@@ -132,7 +134,9 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			"job_not_found", "incident_not_found",
 			core.CodeUserNotFound, core.CodePackageNotFound, core.CodeDBNotFound,
 			// M17: số liệu của site ngoài lồng (không có cgroup riêng để đọc).
-			core.CodeUsageNotCaged:
+			core.CodeUsageNotCaged,
+			// M19: tên phụ không có trên site.
+			"alias_not_found":
 			status = http.StatusNotFound
 		}
 		return status, ErrorBody{Error: ErrorDetail{Code: re.Code, Message: re.Message, Checks: re.Checks}}

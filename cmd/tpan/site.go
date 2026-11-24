@@ -30,7 +30,7 @@ func siteCmd(e *env) *cobra.Command {
 			func(ctx context.Context, s *core.Sites, d validate.Domain) (*core.Planned, error) {
 				return s.PrepareUnsuspend(ctx, d)
 			}),
-		siteSetCmd(e))
+		siteSetCmd(e), siteAliasCmd(e))
 	return c
 }
 
@@ -220,12 +220,12 @@ func (f *planRun) progress(e *env, p engine.Plan) *progress {
 
 func siteAddCmd(e *env) *cobra.Command {
 	var (
-		title, email, owner string
-		withSSL             bool
-		f                   planRun
+		title, email, owner, www string
+		withSSL                  bool
+		f                        planRun
 	)
 	c := &cobra.Command{
-		Use:   "add <domain> [--email E] [--title T] [--ssl] [--owner U]",
+		Use:   "add <domain> [--email E] [--title T] [--ssl] [--owner U] [--www redirect|serve|none]",
 		Short: "Tạo một site WordPress (chạy lại cho domain đã có thì sửa chỗ lệch)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -248,6 +248,10 @@ func siteAddCmd(e *env) *cobra.Command {
 					return fail(e, f.asJSON, err)
 				}
 			}
+			wwwMode, err := parseWWWArg(www)
+			if err != nil {
+				return fail(e, f.asJSON, err)
+			}
 			if !f.dryRun {
 				if err := requireRoot(e, cmd); err != nil {
 					return fail(e, f.asJSON, err)
@@ -259,7 +263,7 @@ func siteAddCmd(e *env) *cobra.Command {
 			}
 			defer done()
 
-			add, err := s.PrepareAdd(ctx, core.SiteInput{Domain: d, Title: title, Email: em, Owner: owner})
+			add, err := s.PrepareAdd(ctx, core.SiteInput{Domain: d, Title: title, Email: em, Owner: owner, WWW: wwwMode})
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
@@ -319,6 +323,7 @@ func siteAddCmd(e *env) *cobra.Command {
 	fl.StringVar(&title, "title", "", "tiêu đề site (mặc định là domain)")
 	fl.BoolVar(&withSSL, "ssl", false, "tạo xong thì xin luôn chứng chỉ Let's Encrypt (email SSL chưa đặt thì dùng --email)")
 	fl.StringVar(&owner, "owner", "", "user chủ của site mới (mặc định admin; kiểm hạn mức gói của user đó)")
+	fl.StringVar(&www, "www", "redirect", "tên www mặc định của site mới (www.<gốc>, hay <gốc> khi domain là www.<gốc>): redirect (301 về tên chính), serve hoặc none (không thêm)")
 	f.flags(c)
 	return c
 }

@@ -243,6 +243,14 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "GET /api/v1/backups/remote", rule: adminOnly, h: s.handleBackupRemote},
 		{pattern: "POST /api/v1/cloud-init/render", rule: adminOnly, h: s.handleCloudInitRender},
 
+		// M19: tên phụ của site và màn "Tên miền" (types_m19.go, api_m19.go).
+		// Thao tác trên tên là của chủ site; /domains tự lọc theo phạm vi.
+		{pattern: "GET /api/v1/sites/{domain}/names", rule: ownerSite, h: s.handleSiteNames},
+		{pattern: "POST /api/v1/sites/{domain}/names", rule: ownerSite, h: s.handleAliasAdd},
+		{pattern: "POST /api/v1/sites/{domain}/names/{name}/mode", rule: ownerSite, h: s.handleAliasMode},
+		{pattern: "DELETE /api/v1/sites/{domain}/names/{name}", rule: ownerSite, h: s.handleAliasRemove},
+		{pattern: "GET /api/v1/domains", rule: anyone, h: s.handleDomains},
+
 		// Còn lại: đường dẫn API lạ là 404 JSON; mọi thứ khác là giao diện web
 		// (đã nhúng). Cũng nằm trong bảng để test duyệt đủ mọi mẫu của mux.
 		{pattern: "/api/", rule: public, h: handleAPINotFound},

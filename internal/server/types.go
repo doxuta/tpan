@@ -205,6 +205,8 @@ type SiteCreate struct {
 	// Owner (M13): chủ của site mới. Chỉ admin được đặt; rỗng là chính người
 	// gọi. User thường gửi tên khác mình thì bị từ chối (forbidden).
 	Owner string `json:"owner,omitempty"`
+	// WWW (M19): tên www mặc định "redirect" | "serve" | "none"; rỗng là redirect.
+	WWW string `json:"www,omitempty"`
 }
 
 // JobStarted: job đã bắt đầu chạy nền.
