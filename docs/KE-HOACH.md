@@ -384,7 +384,7 @@ Xoá một site là đưa vào thùng rác, không mất dữ liệu:
 
 Khôi phục: làm ngược lại rồi chạy bước kiểm chứng của 6.2. Từ chối nếu domain đã được tạo lại.
 
-Xoá hẳn (bấm tay hoặc hết hạn): xoá DB và user DB, xoá file, `userdel`, `certbot delete`. Việc dọn thùng rác hết hạn do một bộ hẹn giờ trong `tpan serve` chạy mỗi giờ; cũng gọi tay được bằng `tpan trash purge --expired`.
+Xoá hẳn (bấm tay hoặc hết hạn): xoá DB và user DB, xoá file, `userdel` (từ M28 đợt 2, F1: trước đó gỡ crontab, giết tiến trình còn sống, xoá file của UID ở `/tmp`, `/var/tmp`, `/dev/shm`; UID của site cấp tăng dần từ 65536, không bao giờ dùng lại, mục 6.28), `certbot delete`. Việc dọn thùng rác hết hạn do một bộ hẹn giờ trong `tpan serve` chạy mỗi giờ; cũng gọi tay được bằng `tpan trash purge --expired`.
 
 #### Đã chốt khi làm M6
 
@@ -1187,9 +1187,9 @@ Thêm ngày 25/11/2026. Bản thiết kế và soát thiết kế: `docs/thay-do
 - Kẻ chiếm site còn vài khoá nguồn phụ ngoài `uid:<n>`, nên được vài lần đoán hơn 5 mỗi 15 phút.
 - Phần còn lại của D2: ngoài harden, một site bị chiếm vẫn làm được các Plan khác chạm tới nó bị hoàn tác (có từ M14; không mở lỗ đọc file, chỉ chặn thao tác của admin tới khi sửa site đó).
 - Hồi quy cho site hợp lệ (D13 của soát cuối): site có `public` là symlink cùng chủ (kiểu thư mục `current` của công cụ triển khai) vẫn chạy nhưng mọi Plan trên site đó bị hoàn tác vì `site.docroot`; đổi `public` thành thư mục thật.
-- Nhóm B của đợt 2: P4, P7 vá ở mục 6.28; F1, P06, T3 và các phát hiện vừa còn lại chưa làm.
+- Nhóm B của đợt 2: P4, P7, F1 vá ở mục 6.28; P06, T3 và các phát hiện vừa còn lại chưa làm.
 
-### 6.28 Vá theo rà soát v0.2.0, đợt 2 nhóm B: tên con của domain người khác, chủ của job (M28)
+### 6.28 Vá theo rà soát v0.2.0, đợt 2 nhóm B: tên con của domain người khác, chủ của job, UID dùng lại (M28)
 
 Thêm ngày 25/11/2026. Hai phát hiện của nhóm B mà bản rà soát mới đo trên máy giả; tái hiện trên máy ảo trước khi vá (e2e P4, P7 trên bản nhóm A).
 
@@ -1199,7 +1199,11 @@ Thêm ngày 25/11/2026. Hai phát hiện của nhóm B mà bản rà soát mới
 
 **Kết quả.** Trên bản nhóm A (chưa có P4, P7; `docs/bang-chung/M28-dot2b-truoc-ban-va.log`): phần nginx 66 đạt, 7 không đạt, đúng các lỗ: khach1 nhận Plan tạo `www.example.net`, `mail.example.net` của khach2 (200); khach1 tạo được DB rời `p7y` trùng tên user `khach1_p7y`, job admin khoá user đó ghi chủ `khach1` và khach1 đọc được (200). Trên bản vá (`v0.2.2-100-g64ef6b7`, `docs/bang-chung/M28-dot2b.log`, mỗi phần từ máy ảo sạch): **192 khẳng định đạt, 0 không đạt** (nginx 73, Apache 39, nâng từ v0.2.0 80; ít hơn lần nhóm A ở Apache và nâng cấp vì phép đo N3b đã bỏ khỏi repo): khach1 nhận 404 `site_not_found` cho hai tên con của khach2, khach2 vẫn tạo được `www.example.net` của mình, khach1 vẫn tạo được tên dưới domain gốc không ai dùng; khach1 tạo DB rời trùng tên user nhận 409, job khoá user ghi chủ `admin`, khach1 nhận 404 và không thấy nó trong `GET /jobs`, job tạo DB rời của chính khach1 vẫn thuộc khach1. P2 (sửa để mỗi request một khoá nguồn): 138 request song song, 53 lần so mật khẩu, 85 câu 429, RSS tăng 191 MiB, không OOM. Hồi quy e2e M13 trên `45055ae` (đã sửa chặng của `site.docroot`, `db.user_limit` cho site tạm khoá, mục 42 của `docs/thay-doi/M28.md`): 293 đạt, 0 không đạt.
 
-**Còn lại:** `validate.ParseDomain` nhận cả tên như `php8.3-fpm` (nhãn cuối không phải TLD thật); không mở lỗ nào đã biết (P7 đã kê đích danh loại `fix.*` có `target` là domain) nhưng nên siết sau. F1, P06, T3 và các phát hiện vừa còn lại của rà soát chưa làm.
+**F1 (UID dùng lại sau khi xoá hẳn).** User của site tạo bằng `useradd --system`, mà lệnh đó cấp UID trống cao nhất của dải hệ thống, nên UID của site vừa xoá hẳn được cấp ngay cho site tạo kế tiếp (của người khác); xoá hẳn chỉ `userdel`, không gỡ crontab, không dọn file của user ở `/tmp`, `/var/tmp`, `/dev/shm`, và hỏng khi user còn tiến trình. Site A (hay khách tự xoá hẳn site của mình) để lại một file setuid ở `/var/tmp`; site C tạo sau nhận lại UID đó, ai chạy file ấy là thành user của C (đọc `wp-config.php` của C); crontab sót chạy lại dưới user mới. Đã tái hiện trên máy ảo: site x2 nhận lại đúng UID 993 của x1 đã xoá hẳn, file setuid của x1 thành của user x2. Vá: UID và GID của user site mới là cùng một số N cấp tăng dần từ 65536 (trên mọi dải hệ thống, người thật, `DynamicUser` của systemd, `nobody`; dưới 100000 nơi bắt đầu dải UID phụ của container), số lớn nhất từng cấp lưu ở `settings` (`site_uid_max`) và ghi trước khi chạy lệnh, nên không bao giờ cấp lại; N đã có trên máy thì nhảy tiếp. `groupadd --gid N` rồi `useradd --system --uid N --gid N` (bỏ `--user-group`: shadow chỉ cho GID = UID trong dải hệ thống, ngoài dải nó lấy GID trống cao nhất, tức dùng lại GID cũ). Xoá hẳn (`SiteUserAbsent`) trước `userdel`: `crontab -r -u`, giết mọi tiến trình của UID (`pkill -KILL -U`, `-u`, `kill -KILL -1` dưới user, chờ tối đa 5 giây), xoá file của UID ở `/tmp`, `/var/tmp`, `/dev/shm` (`find -xdev -uid N ! -type d -delete`, rồi thư mục rỗng). Site cũ giữ UID cũ (dưới 1000); xoá hẳn chúng vẫn trả UID đó cho lần `useradd --system` kế tiếp của gói khác, nhưng không còn dấu vết nào đi theo.
+
+**Kết quả F1.** Trên bản chưa có F1 (`v0.2.2-104-gc7e607a`, `docs/bang-chung/M28-dot2c-truoc-ban-va.log`): phần nginx 80 đạt, 6 không đạt, đúng các khẳng định của F1 (x2 nhận lại UID 993 của x1, file setuid ở `/var/tmp` thành của user x2, crontab còn, xoá hẳn hỏng khi user còn tiến trình). Trên bản vá (`v0.2.2-106-gde80bbb`, `docs/bang-chung/M28-dot2c.log`, mỗi phần từ máy ảo sạch): **205 khẳng định đạt, 0 không đạt** (nginx 86, Apache 39, nâng từ v0.2.0 80): x1 uid 65540, x2 uid 65541 (GID bằng UID), không còn file, crontab, user, nhóm của x1; xoá hẳn x3 xong khi user còn 2 tiến trình, sau đó không còn tiến trình nào. Cùng lần chạy này giữ xanh mọi khẳng định của F4, H5, DBCONN, P1, P2, P4, P7.
+
+**Còn lại:** `validate.ParseDomain` nhận cả tên như `php8.3-fpm` (nhãn cuối không phải TLD thật); không mở lỗ nào đã biết (P7 đã kê đích danh loại `fix.*` có `target` là domain) nhưng nên siết sau. Phần `NoNewPrivileges` cho PHP-FPM của F1 (chặn chương trình setuid từ pool; đổi cấu hình site đang chạy), P06, T3 và các phát hiện vừa còn lại của rà soát chưa làm.
 
 ## 7. Thao tác hàng loạt
 
