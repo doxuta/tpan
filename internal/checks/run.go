@@ -130,7 +130,8 @@ func (b base) cantRun(err error, ev ...Evidence) Result {
 // err khác nil chỉ khi lệnh không chạy được; khi đó phép kiểm phải trả Unknown.
 func execCmd(ctx context.Context, sys system.System, cmd system.Cmd) (system.Result, Evidence, error) {
 	res, err := sys.Run(ctx, cmd)
-	ev := Evidence{Command: cmd.String(), ExitCode: res.ExitCode, Output: clip(joinOutput(res))}
+	// Bằng chứng là lệnh thật sự chạy (M17: systemd-run khi site có lồng).
+	ev := Evidence{Command: system.Describe(sys, cmd), ExitCode: res.ExitCode, Output: clip(joinOutput(res))}
 	var ee *system.ExitError
 	switch {
 	case err == nil:

@@ -248,7 +248,7 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 	if len(a.units) == 0 {
 		return a, nil
 	}
-	if a.Batch, err = s.applyBatch(cfg, all, trashed, a.units); err != nil {
+	if a.Batch, err = s.applyBatch(ctx, cfg, all, trashed, a.units); err != nil {
 		return nil, err
 	}
 	return a, nil
@@ -256,7 +256,7 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 
 // applyBatch dựng engine.Batch cho các unit (đã theo đúng thứ tự: tạo theo
 // thứ tự danh sách, rồi thùng rác theo domain).
-func (s *Sites) applyBatch(cfg StackConfig, all []site.Site, trashed map[validate.Domain]bool, units []applyUnit) (engine.Batch, error) {
+func (s *Sites) applyBatch(ctx context.Context, cfg StackConfig, all []site.Site, trashed map[validate.Domain]bool, units []applyUnit) (engine.Batch, error) {
 	// Một mutex cho cả lô: useradd/usermod khoá /etc/passwd, và `nginx -t`
 	// kiểm cả config nên file dở của site này làm site kia lỗi oan.
 	mu := &sync.Mutex{}
@@ -264,10 +264,10 @@ func (s *Sites) applyBatch(cfg StackConfig, all []site.Site, trashed map[validat
 	// Kiểm cô lập của site mới với các site đang chạy, trừ site lô này đưa vào
 	// thùng rác: thư mục và user của chúng đang được chuyển và khoá song song,
 	// kiểm vào lúc đó có thể Fail và hoàn tác oan một site mới lành.
-	var others []site.Layout
+	var others []site.Site
 	for _, st := range all {
 		if st.Status == site.Active && !trashed[st.Domain] {
-			others = append(others, st.Layout())
+			others = append(others, st)
 		}
 	}
 
@@ -291,11 +291,17 @@ func (s *Sites) applyBatch(cfg StackConfig, all []site.Site, trashed map[validat
 				prep = append(prep, st)
 			}
 			l := add.Layout
+			// Site mới luôn sinh ra ở ngoài lồng (lim nil); đọc qua siteCageLimits
+			// như mọi chỗ gọi siteChecks để không chỗ nào tự đoán trần.
+			lim, err := siteCageLimits(ctx, s.Accounts, add.Site)
+			if err != nil {
+				return engine.Batch{}, err
+			}
 			b.Units = append(b.Units, engine.Unit{
 				Target:  l.Domain.String(),
 				Prepare: applySerial(mu, prep),
 				Finish:  []engine.Step{add.install},
-				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, l, others, add.Site.SSL, add.Site.Htaccess),
+				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, add.Site, others, lim),
 			})
 		default:
 			trashes++
@@ -358,6 +364,14 @@ func applySerial(mu *sync.Mutex, ss []engine.Step) []engine.Step {
 			serial = st.Test != nil
 		case *steps.Absent:
 			serial = st.Test != nil
+		case *cageAbsentPool:
+			// Bước pool của site ngoài lồng (sitePHPSteps) được bọc để từ chối khi
+			// site đã vào lồng (N4 của soát cuối M17): bỏ reload và xếp hàng theo
+			// bước bên trong, như một File thường.
+			steps.WithoutReload([]engine.Step{st.Step})
+			if f, ok := st.Step.(*steps.File); ok {
+				serial = f.Test != nil
+			}
 		}
 		if serial {
 			st = steps.Serial(mu, st)
@@ -405,6 +419,10 @@ type ApplySiteResult struct {
 	// chưa có email cho Let's Encrypt...): job SSL không chạy, site vẫn được
 	// tạo. Job SSL đã chạy (thành hay hỏng) thì nằm ở ApplyResult.SSL.
 	SSLError *RefusedError `json:"ssl_error,omitempty"`
+	// CageError (M17) là lời từ chối của job cage.enable sau lô cho site này
+	// (gói của chủ bật lồng); site vẫn được tạo, ở ngoài lồng. Job đã chạy thì
+	// nằm ở ApplyResult.Cage.
+	CageError *RefusedError `json:"cage_error,omitempty"`
 }
 
 // ApplyResult là kết quả của Apply.Execute.
@@ -418,6 +436,9 @@ type ApplyResult struct {
 	Isolation []checks.Result `json:"isolation,omitempty"`
 	// SSL: job SSL của pha D, theo thứ tự (site lỗi SSL không làm hỏng site).
 	SSL []engine.Report `json:"ssl,omitempty"`
+	// Cage (M17): job cage.enable chạy sau lô cho mỗi site mới mà gói của chủ
+	// bật lồng, theo thứ tự (site hỏng lồng vẫn được tạo, ở ngoài lồng).
+	Cage []engine.Report `json:"cage,omitempty"`
 }
 
 // Execute chạy job hàng loạt (engine.ExecuteBatch), ghi bảng sites cho từng
@@ -514,6 +535,19 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 			errs = append(errs, err)
 		}
 	}
+
+	// Pha E (M17): như `site add`, mỗi site mới mà gói của chủ muốn lồng một
+	// job cage.enable, lần lượt, sau SSL (PrepareEnable đọc lại bảng sites nên
+	// thấy cờ SSL vừa ghi và ra vhost 443 của lồng) và sau kiểm cô lập trong lô
+	// (Isolated không được chạy từ một site đã vào lồng). Site hỏng lồng vẫn
+	// được tạo, ở ngoài lồng.
+	for _, x := range made {
+		rep, re := s.enableCageIfWanted(ctx, x.u.add.Site, onEvent)
+		if rep != nil {
+			res.Cage = append(res.Cage, *rep)
+		}
+		res.Created[x.k].CageError = re
+	}
 	return res, errors.Join(errs...)
 }
 
@@ -522,7 +556,7 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 // khi job đã chạy; lời từ chối khi không chạy (re); err cho lỗi khác.
 func (s *Sites) applySSL(ctx context.Context, u applyUnit, onEvent func(engine.Event)) (*engine.Report, *RefusedError, error) {
 	d := u.add.Site.Domain
-	ssl := &SSL{Sys: s.Sys, Settings: s.Settings, Store: s.Store, Journal: s.Journal}
+	ssl := &SSL{Sys: s.Sys, Settings: s.Settings, Store: s.Store, Journal: s.Journal, Accounts: s.Accounts}
 	var re *RefusedError
 	cfg, err := ssl.Config(ctx)
 	if err != nil {

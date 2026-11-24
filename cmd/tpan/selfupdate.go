@@ -49,6 +49,7 @@ func selfUpdateCmd(e *env) *cobra.Command {
 				}
 				defer closeStore(st)
 				s.Settings = st
+				s.Sites, s.Runs = st, st // M17: rollback từ chối khi còn lồng hay lượt thử chưa dọn
 				if !f.dryRun {
 					s.Journal = st
 				}

@@ -6,7 +6,7 @@ import { defineStrings } from "./index";
 const vi = {
   // ---- danh sách ----
   title: "Phiên AI",
-  summary: "Mỗi cuộc hỏi AI trong panel, và mỗi lần một agent nối thẳng vào qua MCP, là một phiên. Mở một phiên để xem đúng thứ đã gửi cho AI và thứ AI đã đọc.",
+  summary: "Mỗi cuộc hỏi AI trong panel, và mỗi lần một agent nối thẳng vào qua MCP, là một phiên. Mở một phiên để xem chính xác cái gì đã gửi cho AI và AI đã đọc gì.",
   listLabel: "Các phiên AI",
   colLast: "Lần cuối",
   colEntry: "Lối vào",
@@ -24,7 +24,7 @@ const vi = {
   listFailed: "Chưa đọc được danh sách phiên AI.",
 
   // ---- một phiên ----
-  detailSummary: "Đúng thứ đã đi qua lại giữa panel, AI và TPAN. Mọi nội dung là bản đã che.",
+  detailSummary: "Nguyên văn những gì đã đi qua lại giữa panel, AI và TPAN. Mọi nội dung đều là bản đã che.",
   notFound: (id: string) => `Không có phiên AI ${id}. Có thể địa chỉ gõ sai. Mở danh sách phiên và chọn lại.`,
   detailFailed: "Chưa đọc được phiên AI này.",
   backToList: "Về danh sách phiên",
@@ -47,7 +47,7 @@ const vi = {
   hidePrompt: "Ẩn nội dung prompt",
   promptLabel: "Nội dung đầy đủ của prompt (đã che)",
   answerLabel: "AI",
-  answerNote: "Đã đổi bí danh về tên thật; chỉ hiện ở panel, không gửi đi đâu.",
+  answerNote: "Đã thay bí danh bằng tên thật; chỉ hiện ở panel, không gửi đi đâu.",
   working: "AI đang trả lời…",
   noAnswer: "Chưa có câu trả lời.",
   refused: (why: string) => (why ? `AI từ chối: ${why}` : "AI từ chối câu hỏi này."),
@@ -56,17 +56,17 @@ const vi = {
 
   // ---- lần gọi công cụ ----
   callsHeading: "Các lần gọi công cụ",
-  callsHint: "Đúng thứ đi qua lại giữa AI và TPAN: đầu vào AI gửi, đầu ra TPAN trả về.",
+  callsHint: "Nguyên văn hai chiều giữa AI và TPAN: input AI gửi, output TPAN trả về.",
   callsLabel: "Các lần gọi công cụ",
   callsOfTurn: "AI đã đọc",
   noCalls: "AI chưa gọi công cụ nào.",
   toolRead: "Đọc",
   toolPlan: "Lập Plan",
   callFailed: "lỗi",
-  callInput: "Đầu vào (đã che)",
-  callOutput: "Đầu ra (đã che)",
+  callInput: "Input (đã che)",
+  callOutput: "Output (đã che)",
   callError: "Lỗi",
-  callNoOutput: "Không có đầu ra.",
+  callNoOutput: "Không có output.",
 
   // ---- Plan ----
   plansHeading: "Plan đã đề xuất",

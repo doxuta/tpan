@@ -1,0 +1,66 @@
+## 0. Phiên bản
+Ubuntu 24.04.5 LTS | kernel 6.8.0-147-generic | systemd 255 (255.4-1ubuntu8.18)
+php 8.3.6 | nginx version: nginx/1.24.0 (Ubuntu) | mariadb  Ver 15.1 Distrib 10.11.14-Maria
+user A=tp_a_example_com_7653e4  user B=tp_b_example_com_cd59d5
+
+## 1. Dịch vụ PHP-FPM chung: unit, tiến trình, điểm bảo mật
+[Unit]
+Description=The PHP 8.3 FastCGI Process Manager
+Documentation=man:php-fpm8.3(8)
+After=network.target
+[Service]
+Type=notify
+ExecStart=/usr/sbin/php-fpm8.3 --nodaemonize --fpm-config /etc/php/8.3/fpm/php-fpm.conf
+ExecStartPost=-/usr/lib/php/php-fpm-socket-helper install /run/php/php-fpm.sock /etc/php/8.3/fpm/pool.d/www.conf 83
+ExecStopPost=-/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/8.3/fpm/pool.d/www.conf 83
+ExecReload=/bin/kill -USR2 $MAINPID
+[Install]
+WantedBy=multi-user.target
+[Service]
+ProtectProc=invisible
+-- tiến trình:
+root                           13488 32312 php-fpm: master process (/etc/php/8.3/fpm/php-fpm.conf)
+-- systemd-analyze security php8.3-fpm.service (dòng tổng):
+
+→ Overall exposure level for php8.3-fpm.service: 9.4 UNSAFE 😨
+
+## 2. Dưới user của A (ngoài lồng): những chỗ đọc được tên site khác
+  ls /var/www                         -> a.example.com b.example.com html 
+  ls /var/log/tpan/sites              -> a.example.com b.example.com 
+  ls /etc/nginx/sites-enabled         -> tpan-a.example.com.conf tpan-b.example.com.conf tpan-default.conf 
+  ls /etc/php/8.3/fpm/pool.d          -> tpan-a_example_com_7653e4.conf tpan-b_example_com_cd59d5.conf tpan-idle.conf 
+  ls /etc/cron.d                      -> certbot e2scrub_all php sysstat tpan-a_example_com_7653e4 tpan-b_example_com_cd59d5 
+  ls /run/php                         -> php-fpm.sock php8.3-fpm.pid tpan-a_example_com_7653e4-8.3.sock tpan-b_example_com_cd59d5-8.3.sock tpan-idle-8.3.sock 
+  ls /var/lib/tpan                    -> acme tpan.db 
+  ls /var/lib/tpan/backups            -> ls: cannot access '/var/lib/tpan/backups': No such file or directory 
+  ls /etc/letsencrypt                 -> cli.ini 
+  ls /etc/systemd/system              -> cloud-config.target.wants cloud-final.service.wants cloud-init.target.wants dbus-org.freedesktop.ModemManager1.service dbus-org.freedesktop.resolve1.service dbus-org.free
+  ls /sys/fs/cgroup/system.slice      -> ModemManager.service boot-efi.mount boot.mount cgroup.controllers cgroup.events cgroup.freeze cgroup.kill cgroup.max.depth cgroup.max.descendants cgroup.pressure cgroup.p
+  ls /var/lib/logrotate               -> 
+  getent passwd | grep tp_ -> 2 dòng: tp_a_example_com_7653e4 tp_b_example_com_cd59d5 
+  grep -c example /var/lib/logrotate/status -> grep: /var/lib/logrotate/status: No such file or directory
+  /etc/passwd- đọc được: CO; quyền: 644 root:root
+  /dev/shm: 1777 root:root | /var/lib/php/sessions: 1733 root:root
+
+## 3. Quyền các thư mục của tpan
+755 root:root /var/lib/tpan
+755 root:root /var/lib/tpan/acme
+600 root:root /var/lib/tpan/tpan.db
+755 root:root /var/log/tpan
+755 root:root /var/log/tpan/sites
+750 root:tp_a_example_com_7653e4 /var/log/tpan/sites/a.example.com
+750 root:tp_b_example_com_cd59d5 /var/log/tpan/sites/b.example.com
+755 www-data:www-data /run/php
+777 root:root /run/php/php-fpm.sock
+644 root:root /run/php/php8.3-fpm.pid
+660 www-data:www-data /run/php/tpan-a_example_com_7653e4-8.3.sock
+660 www-data:www-data /run/php/tpan-b_example_com_cd59d5-8.3.sock
+600 root:root /run/php/tpan-idle-8.3.sock
+stat: cannot statx '/etc/tpan': No such file or directory
+
+## 4. cgroup: controller bật ở gốc và ở system.slice
+gốc: cpu memory pids
+system.slice: memory pids
+đĩa của /var/www: /dev/sda1 ext4 | scheduler: [none] mq-deadline 
+php mặc định của CLI: /usr/bin/php8.3 | wp: #!/usr/bin/env php
+runuser PAM: auth		sufficient	pam_rootok.so;session		optional	pam_keyinit.so revoke;session		required	pam_limits.so;session		required	pam_unix.so;

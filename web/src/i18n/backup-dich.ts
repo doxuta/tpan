@@ -35,7 +35,7 @@ const vi = {
 
   noBackupKey: "Chưa có khoá sao lưu nên gói panel không được tạo.",
   noBackupKeyMore:
-    "Gói panel giữ danh sách site, user, gói và cài đặt của TPAN, mã hoá bằng khoá sao lưu. Bản sao lưu của site vẫn được đẩy lên kho. Khoá chỉ tạo bằng lệnh trên máy chủ, và được in ra một lần:",
+    "Gói panel giữ danh sách site, user, gói và cài đặt của TPAN, mã hoá bằng khoá sao lưu. Bản sao lưu của site vẫn đẩy lên kho. Khoá chỉ tạo được bằng lệnh trên máy chủ, và chỉ in ra một lần:",
   panelError: (err: string) => `Lần tạo gói panel gần nhất hỏng: ${err}`,
   targetError: "Lần đẩy gần nhất lên kho hỏng.",
   retryAt: (when: string) => `Lượt đẩy thử lại lúc ${when}.`,
@@ -77,7 +77,7 @@ const vi = {
   accessKeyLabel: "Khoá truy cập (access key)",
   secretKeyLabel: "Khoá bí mật (secret key)",
   keysHint: "Để trống để giữ khoá đang lưu. Đổi endpoint, vùng, bucket, kiểu địa chỉ hay CA thì phải nhập lại cả hai khoá.",
-  keysHintNew: "Hai khoá chỉ được gửi lên máy chủ, không hiện lại ở đâu.",
+  keysHintNew: "Hai khoá chỉ gửi lên máy chủ, không hiện lại ở đâu.",
   keysPair: "Nhập cả hai khoá, hoặc để trống cả hai để giữ khoá đang lưu.",
   keysRequired: "Nhập cả hai khoá: máy chưa lưu khoá nào.",
 };

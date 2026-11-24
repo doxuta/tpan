@@ -1,0 +1,69 @@
+## 1. Qua HTTP: A (trong lồng)
+  user: tp_a_example_com_7653e4
+  db (trang chu da nap): dat
+  phan giai ten api.wordpress.org: dat
+  HTTPS ra ngoai (WP HTTP API): dat, ma 200
+  tai plugin vao thu muc tam: dat (/var/www/a.example.com/tmp)
+  giai nen plugin: dat
+  xoa plugin thu: dat
+  get_filesystem_method: direct
+  upload anh + thumbnail: dat (4 co, quyen file 0640, nhom 65534)
+  session: dat (/var/www/a.example.com/tmp)
+  wp_mail: khong gui duoc (sendmail_path=/usr/sbin/sendmail -t -i)
+  preg (PCRE JIT=1): dat
+  opcache: co, API bi khoa
+  disk_free_space: dat | sys_get_temp_dir: /var/www/a.example.com/tmp
+  cron spawn (loopback HTTP toi chinh site): khong: cURL error 6: Could not resolve host: a.example.com
+
+## 1b. Qua HTTP: B (PHP-FPM chung, để so)
+  user: tp_b_example_com_cd59d5
+  db (trang chu da nap): dat
+  phan giai ten api.wordpress.org: dat
+  HTTPS ra ngoai (WP HTTP API): dat, ma 200
+  tai plugin vao thu muc tam: dat (/var/www/b.example.com/tmp)
+  giai nen plugin: dat
+  xoa plugin thu: dat
+  get_filesystem_method: direct
+  upload anh + thumbnail: dat (4 co, quyen file 0640, nhom 33)
+  session: dat (/var/www/b.example.com/tmp)
+  wp_mail: khong gui duoc (sendmail_path=/usr/sbin/sendmail -t -i)
+  preg (PCRE JIT=1): dat
+  opcache: co, API bi khoa
+  disk_free_space: dat | sys_get_temp_dir: /var/www/b.example.com/tmp
+  cron spawn (loopback HTTP toi chinh site): khong: cURL error 6: Could not resolve host: b.example.com
+
+## 2. WP-CLI trong lồng (các lệnh tpan gọi và vài lệnh người dùng hay cần)
+  wp core is-installed                                    -> mã 0 | 
+  wp core version                                         -> mã 0 | 7.1.5
+  wp core verify-checksums                                -> mã 0 | Success: WordPress installation verifies against checksums.
+  wp option get siteurl                                   -> mã 0 | http://a.example.com
+  wp config get DB_NAME --type=constant                   -> mã 0 | tp_a_example_com_7653e4
+  wp config set TPAN_THU 1 --raw --type=constant --quiet  -> mã 0 | 
+  wp config delete TPAN_THU --type=constant --quiet       -> mã 0 | 
+  wp db query SHOW DATABASES --skip-column-names          -> mã 0 | tp_a_example_com_7653e4
+  wp cron event run --due-now --quiet                     -> mã 0 | 
+  wp plugin install hello-dolly --activate                -> mã 0 | Success: Installed 1 of 1 plugins.
+  wp plugin list --field=name                             -> mã 0 | hello
+  wp plugin delete hello-dolly                            -> mã 0 | Success: Deleted 1 of 1 plugins.
+  wp rewrite structure /%postname%/ --quiet               -> mã 0 | 
+  wp user list --field=user_login                         -> mã 0 | admin
+  wp db export /var/www/a.example.com/tmp/thu.sql         -> mã 0 | Success: Exported to '/var/www/a.example.com/tmp/thu.sql'.
+  wp eval echo gethostbyname("downloads.wordpress.org");  -> mã 0 | 66.6.42.250
+  quyền wp-config.php sau các lệnh: 600 tp_a_example_com_7653e4:www-data | file xuất: 644 tp_a_example_com_7653e4:tp_a_example_com_7653e4 118442 byte
+  mật khẩu qua stdin (wp config set --prompt): mã 0 | đọc lại: giatri-bi-mat
+  tar giải nén WordPress từ /var/cache/tpan (như bước WPFiles): wordpress-7.1.5.tar.gz wp-cli-2.12.0.phar 
+
+## 3. Thời gian một lệnh wp: 5 lần trong lồng, 5 lần ngoài lồng (giây)
+  trong .225843734  trong .259751698  trong .262177058  trong .362318812  trong .636441621
+  ngoai .278070498  ngoai .170002553  ngoai .153558856  ngoai .158515994  ngoai .137900073
+
+## 4. Log của FPM riêng nằm trong journal của đúng unit
+[NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock"
+[NOTICE] fpm is running, pid 16003
+[NOTICE] ready to handle connections
+[NOTICE] systemd monitor interval set to 10000ms
+php-error.log của A: 640 tp_a_example_com_7653e4:tp_a_example_com_7653e4 223 byte
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200

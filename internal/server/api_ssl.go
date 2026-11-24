@@ -21,7 +21,7 @@ func (s *Server) apiSSL() *core.SSL {
 	st := s.deps.Store
 	return &core.SSL{
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
-		Settings: st, Store: st, Journal: st,
+		Settings: st, Store: st, Journal: st, Accounts: st,
 	}
 }
 

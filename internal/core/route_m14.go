@@ -104,9 +104,15 @@ func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace
 	tr.Hops = append(tr.Hops, vhop)
 
 	php := sitePHP(st, cfg)
-	rootHop, sockHop, socket := routeTargets(s.Sys, cfg.Web, vh, l, port, l.SocketFor(php))
+	// Site trong lồng (M17): socket, pool và user đều đến từ file của lồng chứ
+	// không từ pool.d của bản PHP chung.
+	wantSocket := l.SocketFor(php)
+	if st.Caged {
+		wantSocket = l.CageSocket()
+	}
+	rootHop, sockHop, socket := routeTargets(s.Sys, cfg.Web, vh, l, port, wantSocket)
 	tr.Hops = append(tr.Hops, rootHop, sockHop)
-	tr.Hops = append(tr.Hops, routePoolHops(s.Sys, socket, l, php)...)
+	tr.Hops = append(tr.Hops, routePoolHops(s.Sys, socket, l, php, st.Caged)...)
 
 	var probe checks.Check
 	switch {
@@ -695,59 +701,33 @@ func poolSections(file string, data []byte) []poolSection {
 
 // routePoolHops tìm pool đang nghe socket (mọi file trong
 // /etc/php/*/fpm/pool.d) rồi đọc user và open_basedir của chính pool đó.
-func routePoolHops(sys system.System, socket string, l site.Layout, php string) []RouteHop {
+// Site trong lồng (caged): pool nằm ở php-fpm.conf của lồng, user ở dòng User=
+// của file dịch vụ systemd; pool.d không có gì của site này nữa.
+func routePoolHops(sys system.System, socket string, l site.Layout, php string, caged bool) []RouteHop {
 	if socket == "" {
 		return []RouteHop{routeBlocked(HopPool, HopSocket), routeBlocked(HopUser, HopSocket), routeBlocked(HopOpenBasedir, HopSocket)}
 	}
-	const glob = "/etc/php/*/fpm/pool.d/*.conf"
-	scan := checks.Evidence{Command: "grep -n 'listen = " + socket + "' " + glob + " (tpan)"}
-	var pool *poolSection
-	vers, err := sys.ReadDir("/etc/php")
-	if err != nil {
-		scan.ExitCode, scan.Output = 1, err.Error()
-		return []RouteHop{
-			routeHop(HopPool, checks.Unknown, "", i18n.T("không đọc được /etc/php: "+err.Error(), "could not read /etc/php: "+err.Error()), scan),
-			routeBlocked(HopUser, HopPool), routeBlocked(HopOpenBasedir, HopPool),
-		}
+	var (
+		pool     *poolSection
+		scan     checks.Evidence
+		wantFile string
+		early    []RouteHop
+	)
+	if caged {
+		wantFile = l.CageFPMConf()
+		pool, scan, early = routeCagePool(sys, socket, wantFile)
+	} else {
+		wantFile = l.PoolConf(php)
+		pool, scan, early = routeScanPools(sys, socket)
 	}
-search:
-	for _, v := range vers {
-		dir := "/etc/php/" + v + "/fpm/pool.d"
-		names, err := sys.ReadDir(dir)
-		if err != nil {
-			continue // bản PHP không có FPM (chỉ CLI): không có pool.d
-		}
-		for _, n := range names {
-			if !strings.HasSuffix(n, ".conf") {
-				continue // PHP-FPM chỉ nạp *.conf; pool tạm khoá mang đuôi .suspended
-			}
-			data, err := sys.ReadFile(dir + "/" + n)
-			if err != nil {
-				continue
-			}
-			for _, sec := range poolSections(dir+"/"+n, data) {
-				if sec.keys["listen"].value == socket {
-					pool = &sec
-					break search
-				}
-			}
-		}
-	}
-	if pool == nil {
-		scan.ExitCode, scan.Output = 1, "(no pool file listens on "+socket+")"
-		return []RouteHop{
-			routeHop(HopPool, checks.Fail, "", i18n.T(
-				"Không file pool nào trong "+glob+" nghe socket "+socket+": request PHP của site sẽ báo 502",
-				"No pool file in "+glob+" listens on "+socket+": PHP requests of the site will get a 502"), scan),
-			routeBlocked(HopUser, HopPool), routeBlocked(HopOpenBasedir, HopPool),
-		}
+	if early != nil {
+		return early
 	}
 
 	listen := pool.keys["listen"]
 	scan.Output = fmt.Sprintf("%s:%d: %s\n%s:%d: %s", pool.file, pool.line, strings.TrimSpace(pool.lines[pool.line-1]),
 		pool.file, listen.line, strings.TrimSpace(pool.lines[listen.line-1]))
 	value := pool.file + " [" + pool.name + "]"
-	wantFile := l.PoolConf(php)
 	poolHop := routeHop(HopPool, checks.Pass, value, i18n.T(
 		"Socket do đúng pool của site nghe", "The socket is served by the site's own pool"), scan)
 	if pool.file != wantFile || pool.name != l.Pool {
@@ -758,6 +738,8 @@ search:
 
 	var userHop RouteHop
 	switch u, ok := pool.keys["user"]; {
+	case caged:
+		userHop = routeCageUser(sys, l)
 	case !ok:
 		userHop = routeHop(HopUser, checks.Unknown, "", i18n.T(
 			"Pool "+pool.name+" không có dòng user", "The pool "+pool.name+" has no user line"),
@@ -792,4 +774,114 @@ search:
 			routeLines(pool.file, pool.lines, ob.line))
 	}
 	return []RouteHop{poolHop, userHop, baseHop}
+}
+
+// routeScanPools tìm file pool nghe socket trong mọi pool.d của /etc/php.
+// Trả pool, hoặc early (ba chặng đã dựng) khi không tìm được.
+func routeScanPools(sys system.System, socket string) (pool *poolSection, scan checks.Evidence, early []RouteHop) {
+	const glob = "/etc/php/*/fpm/pool.d/*.conf"
+	scan = checks.Evidence{Command: "grep -n 'listen = " + socket + "' " + glob + " (tpan)"}
+	vers, err := sys.ReadDir("/etc/php")
+	if err != nil {
+		scan.ExitCode, scan.Output = 1, err.Error()
+		return nil, scan, []RouteHop{
+			routeHop(HopPool, checks.Unknown, "", i18n.T("không đọc được /etc/php: "+err.Error(), "could not read /etc/php: "+err.Error()), scan),
+			routeBlocked(HopUser, HopPool), routeBlocked(HopOpenBasedir, HopPool),
+		}
+	}
+	for _, v := range vers {
+		dir := "/etc/php/" + v + "/fpm/pool.d"
+		names, err := sys.ReadDir(dir)
+		if err != nil {
+			continue // bản PHP không có FPM (chỉ CLI): không có pool.d
+		}
+		for _, n := range names {
+			if !strings.HasSuffix(n, ".conf") {
+				continue // PHP-FPM chỉ nạp *.conf; pool tạm khoá mang đuôi .suspended
+			}
+			data, err := sys.ReadFile(dir + "/" + n)
+			if err != nil {
+				continue
+			}
+			for _, sec := range poolSections(dir+"/"+n, data) {
+				if sec.keys["listen"].value == socket {
+					return &sec, scan, nil
+				}
+			}
+		}
+	}
+	scan.ExitCode, scan.Output = 1, "(no pool file listens on "+socket+")"
+	return nil, scan, []RouteHop{
+		routeHop(HopPool, checks.Fail, "", i18n.T(
+			"Không file pool nào trong "+glob+" nghe socket "+socket+": request PHP của site sẽ báo 502",
+			"No pool file in "+glob+" listens on "+socket+": PHP requests of the site will get a 502"), scan),
+		routeBlocked(HopUser, HopPool), routeBlocked(HopOpenBasedir, HopPool),
+	}
+}
+
+// routeCagePool đọc php-fpm.conf của lồng (file duy nhất có thể chứa pool của
+// site trong lồng: pool.d đã bị cage.enable dọn) và tìm khối nghe socket.
+func routeCagePool(sys system.System, socket, file string) (pool *poolSection, scan checks.Evidence, early []RouteHop) {
+	scan = checks.Evidence{Command: "grep -n 'listen = " + socket + "' " + file + " (tpan)"}
+	data, err := sys.ReadFile(file)
+	if err != nil {
+		return nil, scan, []RouteHop{
+			routeReadErr(HopPool, file, err),
+			routeBlocked(HopUser, HopPool), routeBlocked(HopOpenBasedir, HopPool),
+		}
+	}
+	for _, sec := range poolSections(file, data) {
+		if sec.keys["listen"].value == socket {
+			return &sec, scan, nil
+		}
+	}
+	scan.ExitCode, scan.Output = 1, "(no pool in "+file+" listens on "+socket+")"
+	return nil, scan, []RouteHop{
+		routeHop(HopPool, checks.Fail, "", i18n.T(
+			"Không khối pool nào trong "+file+" nghe socket "+socket+": request PHP của site sẽ báo 502",
+			"No pool block in "+file+" listens on "+socket+": PHP requests of the site will get a 502"), scan),
+		routeBlocked(HopUser, HopPool), routeBlocked(HopOpenBasedir, HopPool),
+	}
+}
+
+// routeCageUser đọc dòng User= trong mục [Service] của unit dịch vụ PHP của
+// lồng: FPM của lồng không có dòng user trong pool (không chạy bằng root nên
+// không đổi user được); systemd là chỗ quyết định tiến trình chạy bằng ai.
+// Khai nhiều lần thì lần sau thắng, như systemd.
+func routeCageUser(sys system.System, l site.Layout) RouteHop {
+	file := l.CageServiceFile()
+	data, err := sys.ReadFile(file)
+	if err != nil {
+		return routeReadErr(HopUser, file, err)
+	}
+	lines := strings.Split(string(data), "\n")
+	var user string
+	line, inService := 0, false
+	for i, raw := range lines {
+		ln := strings.TrimSpace(raw)
+		switch {
+		case ln == "" || ln[0] == '#' || ln[0] == ';':
+		case ln[0] == '[':
+			inService = ln == "[Service]"
+		case inService:
+			if k, v, ok := strings.Cut(ln, "="); ok && strings.TrimSpace(k) == "User" {
+				user, line = strings.TrimSpace(v), i+1
+			}
+		}
+	}
+	switch {
+	case user == "":
+		return routeHop(HopUser, checks.Fail, "", i18n.T(
+			"Unit "+file+" không có dòng User= trong mục [Service]: dịch vụ PHP của lồng sẽ chạy bằng root",
+			"The unit "+file+" has no User= line in its [Service] section: the cage's PHP service would run as root"),
+			routeLines(file, lines))
+	case user != l.User:
+		return routeHop(HopUser, checks.Fail, user, i18n.T(
+			"Dịch vụ PHP của lồng chạy dưới user "+user+", không phải user của site ("+l.User+")",
+			"The cage's PHP service runs as "+user+", not as the site's user ("+l.User+")"),
+			routeLines(file, lines, line))
+	}
+	return routeHop(HopUser, checks.Pass, user, i18n.T(
+		"Dịch vụ PHP của lồng chạy dưới đúng user riêng của site", "The cage's PHP service runs as the site's own user"),
+		routeLines(file, lines, line))
 }

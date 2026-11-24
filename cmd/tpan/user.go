@@ -480,7 +480,7 @@ func userEditCmd(e *env) *cobra.Command {
 					"không có gì để sửa: thêm ít nhất một trong --full-name, --email, --role, --package",
 					"nothing to change: give at least one of --full-name, --email, --role, --package")})
 			}
-			return runAcctOp(cmd, e, f, acctOp{
+			op := acctOp{
 				action: "user.edit", target: name.String(),
 				what: i18n.T("Sẽ: sửa user "+name.String()+": "+strings.Join(vi, ", ")+".",
 					"Will: change user "+name.String()+": "+strings.Join(en, ", ")+"."),
@@ -497,7 +497,14 @@ func userEditCmd(e *env) *cobra.Command {
 						printf(e.stdout, "%s\n", e.tr("Đã sửa user "+name.String()+".", "User "+name.String()+" updated."))
 					}, nil
 				},
-			})
+			}
+			// M17: đổi gói làm đổi trần của site trong lồng thì là một job cage.sync
+			// (mọi thay đổi ghi ở móc before); không thì đường cũ chỉ ghi tpan.db.
+			return runCageEdit(cmd, e, f, "user.edit", name.String(), op.what,
+				func(ctx context.Context, c *core.Cages) (*core.Planned, error) {
+					return c.PrepareUserEdit(ctx, name.String(), ch, account.Root)
+				},
+				func() error { return runAcctOp(cmd, e, f, op) })
 		},
 	}
 	uf.flags(c)

@@ -1,0 +1,38 @@
+## a. Các bản PHP
+đã cài: 7.4 8.1 8.2 8.3 8.4 8.5  | php mặc định của CLI: /usr/bin/php8.3
+PHP 8.3: trang chủ HTTP 200 | 8.3.6 user=tp_a_example_com_7653e4 www=a.example.com khac=0 opcache_api=khoa validate_permission=1 pool_d=[/etc/php/7.4/fpm/pool.d: tpan-idle.conf  /etc/php/8.1/fpm/pool.d: tpan-idle.conf  /etc/php/8.2/fpm/pool.d: tpan-idle.conf  /etc/php/8.4/fpm/pool.d: tpan-
+   journal: [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" 
+   wp trong lồng (php CLI mặc định): 7.1.5 | php-fpm8.3 -t: configuration file /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf test is successful
+   sau reload (USR2): dịch vụ active, HTTP 200
+PHP 7.4: trang chủ HTTP 200 | 7.4.33 user=tp_a_example_com_7653e4 www=a.example.com khac=0 opcache_api=khoa validate_permission=1 pool_d=[/etc/php/8.1/fpm/pool.d: tpan-idle.conf  /etc/php/8.2/fpm/pool.d: tpan-idle.conf  /etc/php/8.3/fpm/pool.d: tpan-a_example_com_7653e4.conf tpan-b_example
+   journal: [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" 
+   wp trong lồng (php CLI mặc định): 7.1.5 | php-fpm7.4 -t: 
+   sau reload (USR2): dịch vụ active, HTTP 200
+PHP 8.1: trang chủ HTTP 200 | 8.1.34 user=tp_a_example_com_7653e4 www=a.example.com khac=0 opcache_api=khoa validate_permission=1 pool_d=[/etc/php/7.4/fpm/pool.d: tpan-idle.conf  /etc/php/8.2/fpm/pool.d: tpan-idle.conf  /etc/php/8.3/fpm/pool.d: tpan-a_example_com_7653e4.conf tpan-b_example
+   journal: [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" 
+   wp trong lồng (php CLI mặc định): 7.1.5 | php-fpm8.1 -t: 
+   sau reload (USR2): dịch vụ active, HTTP 200
+PHP 8.2: trang chủ HTTP 200 | 8.2.36 user=tp_a_example_com_7653e4 www=a.example.com khac=0 opcache_api=khoa validate_permission=1 pool_d=[/etc/php/7.4/fpm/pool.d: tpan-idle.conf  /etc/php/8.1/fpm/pool.d: tpan-idle.conf  /etc/php/8.3/fpm/pool.d: tpan-a_example_com_7653e4.conf tpan-b_example
+   journal: [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" 
+   wp trong lồng (php CLI mặc định): 7.1.5 | php-fpm8.2 -t: 
+   sau reload (USR2): dịch vụ active, HTTP 200
+PHP 8.4: trang chủ HTTP 200 | 8.4.28 user=tp_a_example_com_7653e4 www=a.example.com khac=0 opcache_api=khoa validate_permission=1 pool_d=[/etc/php/7.4/fpm/pool.d: tpan-idle.conf  /etc/php/8.1/fpm/pool.d: tpan-idle.conf  /etc/php/8.2/fpm/pool.d: tpan-idle.conf  /etc/php/8.3/fpm/pool.d: tpan
+   journal: [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" 
+   wp trong lồng (php CLI mặc định): 7.1.5 | php-fpm8.4 -t: configuration file /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf test is successful
+   sau reload (USR2): dịch vụ active, HTTP 200
+PHP 8.5: trang chủ HTTP 200 | 8.5.13 user=tp_a_example_com_7653e4 www=a.example.com khac=0 opcache_api=khoa validate_permission=1 pool_d=[/etc/php/7.4/fpm/pool.d: tpan-idle.conf  /etc/php/8.1/fpm/pool.d: tpan-idle.conf  /etc/php/8.2/fpm/pool.d: tpan-idle.conf  /etc/php/8.3/fpm/pool.d: tpan
+   journal: [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" [NOTICE] using inherited socket fd=3, "/run/tpan-cage/a_example_com_7653e4/php.sock" 
+   wp trong lồng (php CLI mặc định): 7.1.5 | php-fpm8.5 -t: configuration file /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf test is successful
+   sau reload (USR2): dịch vụ active, HTTP 200
+-- thư mục pool.d của các bản khác bản đang dùng có bị che không: xem cột pool_d ở trên (lib chỉ che /etc/php/$V/fpm/pool.d)
+
+## b. Tên unit
+slug [a_example_com_7653e4] (20 ký tự): systemd-run mã 0  | cgroup: /tpan.slice/tpan-a_example_com_7653e4.slice/tpan-cage-a_example_com_7653e4-run-ten.service
+slug [123_example_com_abcdef] (22 ký tự): systemd-run mã 0  | cgroup: /tpan.slice/tpan-123_example_com_abcdef.slice/tpan-cage-123_example_com_abcdef-run-ten.service
+slug [xn__bcher_kva_exa_1a2b3c] (24 ký tự): systemd-run mã 0  | cgroup: /tpan.slice/tpan-xn__bcher_kva_exa_1a2b3c.slice/tpan-cage-xn__bcher_kva_exa_1a2b3c-run-ten.service
+slug [aaaaaaaaaaaaaaaa_ffffff] (23 ký tự): systemd-run mã 0  | cgroup: /tpan.slice/tpan-aaaaaaaaaaaaaaaa_ffffff.slice/tpan-cage-aaaaaaaaaaaaaaaa_ffffff-run-ten.service
+slug [co-gach-ngang_abcdef] (20 ký tự): systemd-run mã 0  | cgroup: /tpan.slice/tpan-co.slice/tpan-co-gach.slice/tpan-co-gach-ngang_abcdef.slice/tpan-cage-co-gach-ngang_abcdef-run-ten.service
+tên unit dài nhất systemd nhận: 255 ký tự; tên dài nhất của tpan: tpan-cage-<slug 23 ký tự>-run-<16 hex>.service = 62 ký tự
+
+## Dọn
+A HTTP 200, B HTTP 200 | unit tpan-* còn: 2

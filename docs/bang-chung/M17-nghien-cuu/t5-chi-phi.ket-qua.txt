@@ -1,0 +1,34 @@
+số site: 10
+
+## a. RAM
+10 site ở PHP-FPM chung (tiến trình con đã thoát): MemAvailable=3363 MB | tiến trình php-fpm: 1
+  tiến trình chính chung: RSS 31.6 MB, PSS 24.7 MB, USS 23.4 MB
+10 site mỗi cái một lồng (chỉ còn tiến trình chính): MemAvailable=2965 MB | tiến trình php-fpm: 11
+  chênh: 397 MB cho 10 lồng = 39 MB mỗi lồng
+  a.example.com: RSS 31.6 MB, PSS 10.8 MB, USS 9.1 MB | memory.current của slice 31 MB (anon 6.5, file 24.5, shmem 24.5 MB)
+  j.example.com: RSS 31.6 MB, PSS 10.8 MB, USS 9.1 MB | memory.current của slice 31 MB (anon 6.5, file 24.5, shmem 24.5 MB)
+  tổng memory.current của 10 slice: 317 MB
+10 lồng đang ngủ (dừng dịch vụ, socket vẫn nghe): MemAvailable=3328 MB (so với PHP-FPM chung: 34 MB) | tiến trình php-fpm: 1
+
+## b. Thời gian khởi động
+  start dịch vụ: .097139994 giây   start dịch vụ: .058380291 giây   start dịch vụ: .064668832 giây   start dịch vụ: .073717435 giây   start dịch vụ: .054607021 giây 
+  request đầu khi đang ngủ: HTTP 200, 0.479907 giây | request kế: HTTP 200, 0.027461 giây
+  request đầu khi đang ngủ: HTTP 200, 0.334476 giây | request kế: HTTP 200, 0.025024 giây
+  request đầu khi đang ngủ: HTTP 200, 0.454567 giây | request kế: HTTP 200, 0.038725 giây
+  request đầu khi đang ngủ: HTTP 200, 0.305354 giây | request kế: HTTP 200, 0.025986 giây
+  request đầu khi đang ngủ: HTTP 200, 0.301839 giây | request kế: HTTP 200, 0.025875 giây
+  socket: active | dịch vụ: active
+  (để so) B ở PHP-FPM chung sau khi tiến trình con đã thoát:
+  B request đầu (ondemand sinh tiến trình con): 0.095847 | kế: 0.025502
+  B request đầu (ondemand sinh tiến trình con): 0.066590 | kế: 0.027987
+  B request đầu (ondemand sinh tiến trình con): 0.068340 | kế: 0.025777
+
+## c. Độ trễ mỗi request: 300 lượt xen kẽ, A trong lồng và B ngoài lồng (ms)
+  mã HTTP trước khi đo: A 200, B 200
+  A (trong lồng): trung bình 26.3, trung vị 25.3, p95 28.8, lớn nhất 79.5
+  B (ngoài lồng): trung bình 27.9, trung vị 24.7, p95 28.0, lớn nhất 240.3
+  file PHP một dòng, A: trung bình 0.1, trung vị 0.1, p95 0.2, lớn nhất 1.5
+  file PHP một dòng, B: trung bình 0.1, trung vị 0.1, p95 0.2, lớn nhất 0.4
+
+## Dọn (giữ 10 site cho các bản thử sau, gỡ hết lồng)
+sau khi dọn: A HTTP 200, B HTTP 200 | unit tpan-cage còn: 0 | /etc/tpan: ls: cannot access '/etc/tpan': No such file or directory 

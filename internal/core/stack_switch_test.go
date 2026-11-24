@@ -695,7 +695,7 @@ func TestSwitchSucceeds(t *testing.T) {
 				if strings.HasSuffix(path, ".htaccess") || strings.Contains(path, "default-ssl") || !strings.HasPrefix(path, "/etc/"+webUnit(tc.to)+"/") {
 					continue
 				}
-				file, err := f.managedFile(ctx, cfg, path)
+				_, file, err := f.managedFile(ctx, cfg, path)
 				if err != nil || file == nil {
 					t.Errorf("managedFile(%s) = %v, %v", path, file, err)
 					continue

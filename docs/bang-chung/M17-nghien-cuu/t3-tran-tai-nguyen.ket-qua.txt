@@ -1,0 +1,65 @@
+## 1. Trần RAM cứng: MemoryMax=200M, MemorySwapMax=0, OOMPolicy=continue
+cgroup: memory.max=209715200 memory.swap.max=0
+trước: memory.events: low 0 high 0 max 0 oom 0 oom_kill 0 oom_group_kill 0 | memory.peak=44490752
+A cấp phát 400 MB: HTTP 502 sau .064160959 giây
+A trả 200 lại sau .044238207 giây (thử 0 lần hỏng trước đó)
+B: 0/60 request không phải 200 trong lúc đó
+sau: memory.events: low 0 high 0 max 18 oom 1 oom_kill 1 oom_group_kill 0 | memory.peak=209715200 (200 MB)
+dịch vụ: active, NRestarts=0, Result=success
+Memory cgroup out of memory: Killed process 21342 (php-fpm8.3) total-vm:420180kB, anon-rss:176796kB, file-rss:8192kB, shmem-rss:25088kB, UID:999 pgtables:644kB 
+tpan-cage-a_example_com_7653e4-php.service: A process of this unit has been killed by the OOM killer.
+[WARNING] [pool tpan-a_example_com_7653e4] child 21342 exited on signal 9 (SIGKILL) after 0.937407 seconds from start
+2026/11/21 02:30:14 [error] 21336#21336: *272 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 127.0.0.1, server: a.example.com, request: "GET /m.php?
+-- B (không có trần) cấp phát 400 MB: HTTP 200
+-- lệnh trong lồng (systemd-run) cấp phát 400 MB: ; mã 0
+   memory.events: low 0 high 0 max 18 oom 1 oom_kill 1 oom_group_kill 0 
+-- A sau đó: HTTP 200
+
+## 1b. Cùng phép thử, KHÔNG có OOMPolicy=continue (mặc định của systemd: stop)
+A cấp phát 400 MB: HTTP 502 | dịch vụ ngay sau đó: active, Result=success
+A trả 200 lại sau .040780605 giây (0 lần hỏng) | NRestarts=0
+
+## 2. Trần RAM mềm: MemoryHigh=200M, không có MemoryMax
+cgroup: memory.high=209715200 memory.max=max
+   trang chủ của A trong lúc bị bóp: HTTP 200 sau 27.756684212 giây
+A cấp phát 400 MB: HTTP 000 sau 40.042217411 giây (curl chờ tối đa 40 giây)
+memory.events: low 0 high 2356 max 0 oom 0 oom_kill 0 oom_group_kill 0 | memory.current=221 MB
+
+## 3. Trần CPU (máy ảo có 2 nhân). Vòng lặp một luồng, n=300 triệu
+không trần: 7.60 giây
+CPUQuota=100% (cpu.max=100000 100000): 10.50 giây, chậm 1.38 lần (mong đợi 1.00); CPU thật dùng = 74.4% | nr_throttled=62 throttled_usec=2678177
+CPUQuota=75% (cpu.max=75000 100000): 16.26 giây, chậm 2.13 lần (mong đợi 1.33); CPU thật dùng = 52.5% | nr_throttled=181 throttled_usec=10396067
+CPUQuota=50% (cpu.max=50000 100000): 29.19 giây, chậm 3.84 lần (mong đợi 2.00); CPU thật dùng = 36.3% | nr_throttled=425 throttled_usec=28974248
+(standard_in) 1: syntax error
+CPUQuota=25% (cpu.max=25000 100000):  giây, chậm  lần (mong đợi 4.00); CPU thật dùng = 14.2% | nr_throttled=1007 throttled_usec=80453465
+(standard_in) 1: syntax error
+CPUQuota=10% (cpu.max=10000 100000):  giây, chậm  lần (mong đợi 10.00); CPU thật dùng = 5.6% | nr_throttled=1606 throttled_usec=197204511
+-- B trong lúc A bị bóp ở 10%: 7.76 giây (không trần: 7.60)
+
+## 4. Trần số tiến trình: TasksMax=30
+cgroup: pids.max=30 pids.current=2
+A sinh 200 tiến trình sleep: vong lap xong
+pids.current=2 pids.peak=30 pids.events: max 0 
+trang chủ của A trong lúc đầy tiến trình: HTTP 200 | B: HTTP 200
+lệnh trong lồng lúc đầy:  mã 0
+sau 21 giây (các sleep đã thoát): pids.current=1 | A: HTTP 200
+
+## 5. Trần đọc ghi đĩa: IOWriteBandwidthMax=/var/www 4M, IOReadBandwidthMax=/var/www 4M
+controller bật cho slice cha: io memory pids | io.max: 8:0 rbps=4000000 wbps=4000000 riops=max wiops=max
+ghi 32 MB, direct:   10.0323 s, 3.3 MB/s   (mong đợi khoảng 8 giây, 4 MB/s)
+ghi 32 MB, có đệm + fsync: 8.9143 s, 3.8 MB/s
+đọc 32 MB (đã xoá cache): 10.9274 s, 3.1 MB/s
+-- cùng việc ở ngoài lồng (user của B, không trần): ghi direct 0.00835151 s, 4.0 GB/s
+io.stat của slice: 8:0 rbytes=33832960 wbytes=67108864 rios=97 wios=100 dbytes=0 dios=0 
+
+## 6. Đổi trần khi site đang chạy
+trước: memory.max=209715200 cpu.max=50000 100000 pids.max=40 | MainPID=24034
+sau khi ghi file slice + daemon-reload (.115814562 giây): memory.max=314572800 cpu.max=80000 100000 pids.max=60 | MainPID=24034 | A: HTTP 200
+cat: /sys/fs/cgroup/tpan.slice/tpan-a_example_com_7653e4.slice/cpu.max: No such file or directory
+gỡ hết trần + daemon-reload: memory.max=max cpu.max= pids.max=max
+hạ trần RAM xuống dưới mức đang dùng (memory.current=58 MB -> MemoryMax=8M):
+   memory.max=8388608 memory.current=0 MB | events: low 0 high 0 max 162 oom 28557 oom_kill 5 oom_group_kill 0 | dịch vụ activating | A: HTTP 502
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200

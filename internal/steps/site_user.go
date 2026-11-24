@@ -164,6 +164,7 @@ func (s *SiteUser) Apply(ctx context.Context, sys system.System) error {
 		return withStdout(fmt.Errorf("tạo user %s: %w", l.User, err), res)
 	}
 	s.created, s.applied = true, true
+	cageRebindIdentity(ctx, sys) // useradd thay /etc/passwd: gắn lại bản riêng của các lồng
 	return nil
 }
 
@@ -186,6 +187,7 @@ func userDel(ctx context.Context, sys system.System, name string) error {
 	ee, isEE := isExit(err)
 	switch {
 	case err == nil:
+		cageRebindIdentity(ctx, sys) // userdel thay /etc/passwd: gắn lại bản riêng của các lồng
 		return nil
 	case isEE && ee.Code == 6:
 		// 6: user không có. Đích "không còn user" đã đạt.

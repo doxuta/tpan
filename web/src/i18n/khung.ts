@@ -59,7 +59,7 @@ const vi = {
     logout: "Đăng xuất",
   },
   roles: { admin: "quản trị", user: "người dùng" },
-  signedInAs: (name: string, role: string) => `Đang đăng nhập là ${name}, vai ${role}`,
+  signedInAs: (name: string, role: string) => `Đang đăng nhập là ${name}, vai trò ${role}`,
   viewAsTitle: (name: string) => `Đang xem như ${name}`,
   viewAsBody: (admin: string) => `Phiên này chỉ đọc: nút nào đổi máy cũng bị từ chối. Bạn vẫn là ${admin}; bấm Thoát để về phiên của bạn.`,
   viewAsExit: "Thoát",

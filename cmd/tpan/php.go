@@ -40,7 +40,7 @@ func openPHP(ctx context.Context, e *env, dryRun bool) (*core.PHP, any, func(), 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return &core.PHP{Sys: s.Sys, Settings: s.Settings, Sites: s.Store, Journal: s.Journal}, s.Store, done, nil
+	return &core.PHP{Sys: s.Sys, Settings: s.Settings, Sites: s.Store, Journal: s.Journal, Accounts: s.Accounts}, s.Store, done, nil
 }
 
 // runPHPPlan là phần chung của install, use, remove: hỏi root (trừ --dry-run),

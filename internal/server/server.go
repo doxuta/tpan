@@ -70,6 +70,13 @@ func Run(ctx context.Context, o RunOptions) error {
 			defer close(trashDone)
 			s.newTrashTimer().Run(sctx)
 		}()
+		// Bộ hẹn giờ số liệu và dọn lượt thử sót (M17, usage_timer.go); lúc
+		// khởi động nó cũng dọn unit tạm hỏng của lệnh chạy thay cho site.
+		usageDone := make(chan struct{})
+		go func() {
+			defer close(usageDone)
+			s.newUsageTimer().Run(sctx)
+		}()
 		// M18: bộ đẩy nền lên kho S3 (pusher.go), tắt ở --demo. Goroutine tải
 		// về của POST /backups/{id}/pull dừng theo sctx (s.bg).
 		s.bg = sctx
@@ -78,9 +85,9 @@ func Run(ctx context.Context, o RunOptions) error {
 		}))
 		// Dừng rồi chờ vòng kiểm đang dở xong hẳn (ctx đã huỷ nên nó dừng
 		// nhanh), vòng dọn thùng rác đang dở (nó không dừng giữa chừng, xem
-		// trash_timer.go) và lượt đẩy đang dở trước khi trả về: người gọi đóng
-		// store ngay sau Run.
-		defer func() { cancel(); <-done; <-trashDone; <-pushDone }()
+		// trash_timer.go), vòng số liệu (M17) và lượt đẩy đang dở (M18) trước
+		// khi trả về: người gọi đóng store ngay sau Run.
+		defer func() { cancel(); <-done; <-trashDone; <-usageDone; <-pushDone }()
 	}
 	srv := &http.Server{
 		Addr:              o.Listen,

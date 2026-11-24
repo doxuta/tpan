@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/doxuta/tpan/internal/cage"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
 )
@@ -31,7 +32,9 @@ func main() {
 // realEnv nối CLI với máy thật.
 func realEnv() env {
 	return env{
-		sys:    system.NewLocal(),
+		// Bọc một lần ở đây: mọi lệnh chạy thay cho một site trong lồng (CLI,
+		// serve, cron, MCP) đi qua hàng rào của lồng (M17, cage.Wrap).
+		sys:    cage.Wrap(system.NewLocal()),
 		isRoot: func() bool { return os.Geteuid() == 0 },
 		// Stdin là terminal thì mới hỏi được "Chạy? [y/N]". Chạy trong script
 		// hay qua pipe thì không có ai trả lời.

@@ -86,7 +86,11 @@ func Drift(p, wantSHA256 string, stage Stage) Check {
 // ga trên bản đồ tuyến: /etc/nginx/ và /etc/apache2/ là StageWeb; /etc/php/
 // là StagePHP; dưới /var/www/ là StageWordPress; /etc/tpan/ và
 // /etc/systemd/system/tpan* là StageTPAN; còn lại (logrotate, mariadb.conf.d)
-// là StageMachine.
+// là StageMachine. Ngoại lệ (M17): file của lồng theo site là StagePHP vì lồng
+// thay chỗ của pool PHP: /etc/tpan/cage/ (php-fpm.conf, passwd, group), unit
+// tpan-cage-<slug>-* (socket, dịch vụ, drop-in hàng rào) và slice
+// tpan-<slug>.slice. Unit tpan khác (tpan.service, tpan-health.timer) vẫn là
+// StageTPAN.
 func DriftStage(p string) Stage {
 	// Clean trước để "/etc/nginx/../tpan/x" không bị xếp nhầm vào chặng web.
 	p = path.Clean(p)
@@ -97,6 +101,9 @@ func DriftStage(p string) Stage {
 		return StagePHP
 	case strings.HasPrefix(p, "/var/www/"):
 		return StageWordPress
+	case strings.HasPrefix(p, "/etc/tpan/cage/"), strings.HasPrefix(p, "/etc/systemd/system/tpan-cage-"),
+		strings.HasPrefix(p, "/etc/systemd/system/tpan-") && strings.HasSuffix(p, ".slice"):
+		return StagePHP
 	case p == "/etc/tpan", strings.HasPrefix(p, "/etc/tpan/"), strings.HasPrefix(p, "/etc/systemd/system/tpan"):
 		return StageTPAN
 	}

@@ -1,0 +1,37 @@
+# Do tpan quản lý. Sửa tay sẽ bị tpan health báo lệch.
+#
+# PHP-FPM riêng của site a.example.com trong lồng. Không có mục [Install]: dịch vụ
+# chỉ chạy khi socket của lồng đánh thức nó.
+[Unit]
+# Mặc định systemd chỉ cho 5 lần khởi động trong 10 giây; quá thì dịch vụ và cả
+# socket vào failed, file socket bị gỡ, site ra 502 tới khi có người reset.
+StartLimitIntervalSec=30
+StartLimitBurst=10
+# Không khởi động khi thư mục site chưa được gắn (đĩa riêng cho /var/www).
+RequiresMountsFor=/var/www/a.example.com
+
+[Service]
+Type=notify
+# User, Group, Slice, NoNewPrivileges lặp lại dù hàng rào cũng có: mất file hàng
+# rào thì dịch vụ vẫn chạy bằng user của site, trong slice có trần, không bao
+# giờ bằng root.
+User=tp_a_example_com_7653e4
+Group=tp_a_example_com_7653e4
+Slice=tpan-a_example_com_7653e4.slice
+NoNewPrivileges=yes
+# PHP-FPM nhận socket systemd đã mở ở fd 3, đúng cơ chế nó tự dùng khi reload.
+Environment=FPM_SOCKETS=/run/tpan-cage/7653e4959f8eac25/php.sock=3
+ExecStart=/usr/sbin/php-fpm8.3 --nodaemonize --fpm-config /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf
+ExecReload=/bin/kill -USR2 $MAINPID
+# SIGQUIT: PHP-FPM dừng êm, chờ request đang chạy tới process_control_timeout
+# (25 giây, trong php-fpm.conf), dưới TimeoutStopSec một chút.
+KillSignal=SIGQUIT
+TimeoutStopSec=30
+# Một tiến trình con chạm trần RAM thì chỉ nó bị giết, request đó ra 502; không
+# có dòng này systemd dừng cả dịch vụ, mọi request đang chạy của site chết theo.
+OOMPolicy=continue
+Restart=on-failure
+# Mười lần khởi động lại mất 50 giây, quá cửa sổ 30 giây ở trên, nên một lỗi
+# tạm thời (trần quá thấp rồi được nâng, MariaDB chưa lên) không bao giờ đẩy
+# dịch vụ và socket vào failed (t15).
+RestartSec=5s

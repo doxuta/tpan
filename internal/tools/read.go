@@ -60,7 +60,7 @@ const (
 // vì apply_plan có thể chạy Plan sửa stack (server chỉ đọc stack qua API).
 func (s *Session) sites() *core.Sites {
 	d := s.st.d
-	return &core.Sites{Sys: d.Sys, Settings: d.Store, Store: d.Store, Journal: d.Store, Backups: d.Store, WPHash: d.WPHash}
+	return &core.Sites{Sys: d.Sys, Settings: d.Store, Store: d.Store, Journal: d.Store, Backups: d.Store, Accounts: d.Store, Samples: d.Store, WPHash: d.WPHash}
 }
 
 func (s *Session) stack() *core.Stack {

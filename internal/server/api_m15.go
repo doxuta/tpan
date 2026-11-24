@@ -30,7 +30,9 @@ import (
 // không chạy Plan nào trong tiến trình này (đơn vị tạm tự lấy khoá của nó).
 func (s *Server) apiSelf() *core.SelfUpdate {
 	st := s.deps.Store
-	return &core.SelfUpdate{Sys: s.deps.Sys, Settings: st, Journal: st, Arch: runtime.GOARCH, Version: buildinfo.Version}
+	return &core.SelfUpdate{Sys: s.deps.Sys, Settings: st, Journal: st, Arch: runtime.GOARCH, Version: buildinfo.Version,
+		// M17: kiểm quay về được (lồng, lượt thử chưa dọn) ngay ở API.
+		Sites: st, Runs: st}
 }
 
 // selfChecks nhớ lần "Kiểm bản mới" gần nhất của tiến trình này, kể cả lần

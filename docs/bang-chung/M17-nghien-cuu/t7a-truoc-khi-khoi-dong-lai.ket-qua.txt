@@ -1,0 +1,18 @@
+trước: A 200 B 200 C 200
+A chạm trần RAM: HTTP 502
+A: memory.max=209715200 oom_kill=1 memory.peak=209715200 usage_usec=334711
+
+## daemon-reload khi lồng đang chạy
+MainPID 96114 -> 96114 | 40 request trong lúc đó:      40 200 
+bộ đếm sau daemon-reload: oom_kill=1 memory.peak=209715200
+
+## Đặt trạng thái trước khi khởi động lại
+Stopping 'tpan-cage-c_example_com_6e5b26-php.service', but its triggering units are still active:
+tpan-cage-c_example_com_6e5b26-php.socket
+a.example.com: socket active/enabled | dịch vụ active
+b.example.com: socket inactive/disabled | dịch vụ inactive
+c.example.com: socket active/enabled | dịch vụ inactive
+A 200 B 502 C(ngủ, request này đánh thức) 200
+Stopping 'tpan-cage-c_example_com_6e5b26-php.service', but its triggering units are still active:
+tpan-cage-c_example_com_6e5b26-php.socket
+uptime trước: 3770.08 giây

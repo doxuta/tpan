@@ -1,0 +1,28 @@
+## 1. Hàng rào mặc định (đã bỏ PrivateUsers)
+mặc định                                trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.5 OK 🙂
+   nhóm thật của file upload nhìn từ ngoài lồng: thư mục uploads 2750 tp_a_example_com_7653e4:www-data
+
+## 2. Thử thêm từng thuộc tính
+PrivateUsers=yes                             trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=65534;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.3 OK 🙂
+MemoryDenyWriteExecute=yes                   trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.5 OK 🙂
+SystemCallFilter=~@privileged                trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.4 OK 🙂
+SystemCallFilter=~@resources                 trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.4 OK 🙂
+~@privileged + ~@resources                   trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.3 OK 🙂
+NoExecPaths=<thư mục site>                trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.5 OK 🙂
+IPAddressDeny=localhost (chặn 127.0.0.0/8) trang chủ 200 | t2.php: 2 dòng hỏng [https: HONG;plugin: HONG A valid URL was not provided.;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 1 0 1 | điểm: 1.5 OK 🙂
+RestrictAddressFamilies=AF_UNIX AF_INET      trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.5 OK 🙂
+PrivateNetwork=yes                           trang chủ 200 | t2.php: 2 dòng hỏng [https: HONG;plugin: HONG A valid URL was not provided.;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 1 0 1 | điểm: 1.1 OK 🙂
+
+## 3. Máy tắt user namespace thì PrivateUsers ra sao
+PrivateUsers=yes, max_user_namespaces=0      trang chủ 502 | t2.php: 0 dòng hỏng [<html>;<head><title>502 Bad Gateway</title></head>;<body>;<center><h1>502 Bad Gateway</h1></center>;<hr><center>nginx/1.24.0 (Ubuntu)</center>;</] | wp: 217 217 217 | điểm: 1.3 OK 🙂
+      journal: tpan-cage-a_example_com_7653e4-php.service: Failed with result 'exit-code'.
+      journal: Failed to start tpan-cage-a_example_com_7653e4-php.service - TPAN: PHP-FPM 8.3 rieng cua a.example.com.
+      journal: tpan-cage-a_example_com_7653e4-php.service: Failed with result 'exit-code'.
+mặc định, max_user_namespaces=0         trang chủ 200 | t2.php: 0 dòng hỏng [https: dat;plugin: dat;upload: dat nhom=33;preg: dat loi=0;exec: dat;chmod: dat;] | wp: 0 0 0 | điểm: 1.5 OK 🙂
+      journal: tpan-cage-a_example_com_7653e4-php.service: Failed with result 'exit-code'.
+      journal: Failed to start tpan-cage-a_example_com_7653e4-php.service - TPAN: PHP-FPM 8.3 rieng cua a.example.com.
+      journal: tpan-cage-a_example_com_7653e4-php.service: Failed with result 'exit-code'.
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200

@@ -112,6 +112,9 @@ type PHP struct {
 	Sites    SiteStore
 	// Journal nhận job khi Execute; nil chỉ hợp lệ khi xem trước.
 	Journal engine.Journal
+	// Accounts (M17): trần của gói khi đổi bản PHP của site trong lồng (file
+	// của lồng ghi lại với trần đó). nil: coi như gói default (trần 0).
+	Accounts AccountStore
 }
 
 // ---- Cập nhật ----
@@ -205,6 +208,11 @@ type SelfUpdate struct {
 	Arch string
 	// Version là buildinfo.Version của bản đang chạy.
 	Version string
+	// Sites và Runs (M17): --rollback từ chối cage_active khi còn site caged
+	// hay lượt thử tấn công chưa dọn (mục 6 của docs/thay-doi/M17-thiet-ke.md).
+	// nil (xem trước khi máy chưa có tpan.db): chỉ xét file tpan-cage-* trên máy.
+	Sites SiteStore
+	Runs  ProbeStore
 }
 
 // ---- Plan đã dựng, dùng chung cho mọi ca sử dụng của M12 ----
@@ -222,6 +230,11 @@ type Planned struct {
 	// owner (M13) khác rỗng thì job ghi chủ này (engine.WithOwner): dùng cho
 	// Plan tạo một thứ chưa có dòng trong bảng lúc job bắt đầu (DB rời mới).
 	owner string
+	// before (M17) khác nil thì chạy đầu Execute, trước engine: ghi một quyết
+	// định của admin (dòng gói, gói của user) mà job theo sau đưa lên máy. Đặt
+	// ở đây chứ không trong Prepare để --dry-run và câu hỏi xác nhận không
+	// đổi gì. before lỗi thì không chạy job.
+	before func(ctx context.Context) error
 	// remoteLock (M18) khác nil thì Execute giữ khoá này (chờ tối đa
 	// remoteWait) từ trước engine tới sau after: đặt, gỡ đích và sinh khoá
 	// sao lưu không được chạy xen giữa một lượt đẩy (R4 của bản soát hẹp).
@@ -264,6 +277,11 @@ func (p *Planned) Execute(ctx context.Context, onEvent func(engine.Event)) (engi
 				"a storage upload run is in progress (waited "+p.remoteWait.String()+"); wait for it to finish, then try again"))
 		}
 		defer unlock()
+	}
+	if p.before != nil {
+		if err := p.before(ctx); err != nil {
+			return engine.Report{}, fmt.Errorf("%s: %w", p.Plan.Kind, err)
+		}
 	}
 	rep, err := engine.New(p.sys, engine.Options{Journal: p.journal, OnEvent: onEvent}).Execute(ctx, p.Plan)
 	if err != nil {

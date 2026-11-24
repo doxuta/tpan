@@ -456,7 +456,11 @@ func TestGroupRestart(t *testing.T) {
 		if err := s.Apply(ctx, f); err != nil {
 			t.Fatal(err)
 		}
-		want := []string{"id -nG nginx", "usermod -aG www-data nginx", "nginx -t", "systemctl restart nginx"}
+		// Lệnh liệt kê lồng: usermod thay /etc/group, các lồng đang chạy được
+		// gắn lại group riêng (ở đây không lồng nào chạy nên không có bind).
+		want := []string{"id -nG nginx", "usermod -aG www-data nginx",
+			"systemctl list-units --type=service --state=active --no-legend --plain 'tpan-cage-*-php.service'",
+			"nginx -t", "systemctl restart nginx"}
 		if got := ran(f)[1:]; !reflect.DeepEqual(got, want) {
 			t.Errorf("lệnh = %q; muốn %q", got, want)
 		}

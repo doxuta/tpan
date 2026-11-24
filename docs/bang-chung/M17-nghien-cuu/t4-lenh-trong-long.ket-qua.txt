@@ -1,0 +1,37 @@
+## a. Tham số qua systemd-run
+gốc:                         $HOME|${PATH}|%n %h %% 50%||a b|"nhay kep"|nhay'don|gach\cheo|cham;phay|xuong~dong|-dau-gach|tiếng Việt|$(id)|`id`|
+systemd-run mặc định:        /var/www/a.example.com|/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin|%n %h %% 50%||a b|"nhay kep"|nhay'don|gach\cheo|cham;phay|xuong~dong|-dau-gach|tiếng Việt|`id`|
+--expand-environment=no:     $HOME|${PATH}|%n %h %% 50%||a b|"nhay kep"|nhay'don|gach\cheo|cham;phay|xuong~dong|-dau-gach|tiếng Việt|$(id)|`id`|
+mặc định giữ nguyên: KHONG | --expand-environment=no giữ nguyên: CO
+biến môi trường lệnh nhận được: HOME=/var/www/a.example.com INVOCATION_ID=aa8d720a399046f0acb3436994edaee3 LANG=C.UTF-8 LOGNAME=tp_a_example_com_7653e4 MEMORY_PRESSURE_WATCH=/sys/fs/cgroup/tpan.slice/tpan-a_example_com_7653e4.slice/tpan-cage-a_example_com_7653e4-run-2622517126.service/memory.pressure MEMORY_PRESSURE_WRITE=c29tZSAy
+thêm biến bằng -E: LC_ALL=C X=a b $HOME
+thư mục làm việc mặc định: / | --working-directory: /var/www/a.example.com/public
+
+## b. permalink đã ghi ở t2 (wp rewrite structure '/%postname%/' qua systemd-run)
+permalink_structure = [/%postname%/]
+
+## c. Lệnh trong lồng vượt trần RAM 200M
+mã thoát 1 | stdout=[] stderr=[]
+memory.events của slice: low 0 high 0 max 20 oom 1 oom_kill 1 oom_group_kill 0 | dịch vụ PHP: active, NRestarts=0 | A: HTTP 200
+
+## d. Tiến trình gọi bị giết giữa chừng
+trước khi giết: unit active
+bash: line 216: 27277 Killed                  systemd-run --quiet --wait --pipe --collect --expand-environment=no --unit=tpan-cage-$S-run-giet -- sleep 300
+sau kill -9 systemd-run: unit active (sleep còn chạy: 1)
+sau kill -TERM systemd-run: unit active (sleep còn chạy: 1)
+RuntimeMaxSec=2 với sleep 300: mã 1 sau 2.204694532 giây (sleep còn chạy: 0)
+
+## e. php-fpm -t cho cấu hình của lồng
+bằng root:            [ERROR] FPM initialization failed (mã 0)
+bằng user của site (trong lồng): [NOTICE] configuration file /etc/tpan/cage/a_example_com_7653e4/php-fpm.conf test is successful
+   mã thoát: 0
+cấu hình sai: mã 78 | [21-Nov-2026 02:43:07] ERROR: failed to load configuration file '/etc/tpan/cage/a_example_com_7653e4/php-fpm.conf' [21-Nov-2026 02:43:07] ERROR: FPM initialization failed 
+
+## f. Dịch vụ hỏng liên tục (cấu hình sai còn nguyên)
+dịch vụ: failed (exit-code) | socket: failed (service-start-limit-hit) | file socket: MAT | A: HTTP 502
+sửa cấu hình, chỉ start lại socket:  -> socket active | A: HTTP 200
+reset-failed cả hai rồi start socket: socket active | A: HTTP 200 | dịch vụ active
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200

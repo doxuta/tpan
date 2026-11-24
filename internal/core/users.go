@@ -189,7 +189,7 @@ func (a *Accounts) isLastAdmin(ctx context.Context, u account.User) (bool, error
 
 func refuseLastAdmin(name string) *RefusedError {
 	return refuse(CodeLastAdmin, i18n.T(
-		name+" là admin cuối cùng đang hoạt động: khoá, xoá hay hạ xuống user thì không còn ai quản trị panel. Thêm hoặc mở khoá một admin khác trước",
+		name+" là admin cuối cùng đang hoạt động: khoá, xoá hay đổi thành user thì không còn ai quản trị panel. Thêm hoặc mở khoá một admin khác trước",
 		name+" is the last active admin: locking, deleting or demoting it leaves nobody to run the panel. Add or unlock another admin first"))
 }
 
@@ -486,7 +486,12 @@ func (a *Accounts) PrepareUnsuspendUser(ctx context.Context, name string) (*Plan
 		// DB của site đang khoá riêng thì WordPress báo lỗi kết nối DB: kiểm
 		// chứng đó chắc chắn Fail và engine hoàn tác cả lần mở khoá user, nên bỏ.
 		if st.DBSuspended == account.NotSuspended {
-			verify = append(verify, siteChecks(cfg.Web, sitePHP(st, cfg), st.Layout(), nil, st.SSL, st.Htaccess)...)
+			// M17: site trong lồng kiểm bằng bộ của lồng, với trần của gói.
+			lim, err := siteCageLimits(ctx, a.Store, st)
+			if err != nil {
+				return nil, err
+			}
+			verify = append(verify, siteChecks(cfg.Web, sitePHP(st, cfg), st, nil, lim)...)
 		}
 		opened = append(opened, st)
 	}
@@ -710,13 +715,61 @@ func (a *Accounts) Summaries(ctx context.Context) ([]UserSummary, error) {
 
 // ---------------------------------------------------------------- gói
 
-// checkPackageLimits: mọi giới hạn ≥ 0 (0 là không giới hạn). DB cũng có
-// CHECK nhưng lời từ chối ở đây đọc được.
+// checkPackageLimits kiểm giới hạn của gói. Bốn giới hạn cũ: ≥ 0 (0 là không
+// giới hạn); DB cũng có CHECK nhưng lời từ chối ở đây đọc được.
+//
+// M17 (mục 3.1 của docs/thay-doi/M17-thiet-ke.md), thứ tự kiểm:
+//  1. mỗi trần của lồng: 0 hợp lệ, khác 0 thì phải nằm trong khoảng (cả số âm
+//     là ngoài khoảng);
+//  2. tasks khác 0 thì ≥ số worker + CageTasksSlack: TasksMax đếm cả luồng, trần
+//     sát số worker làm upload ảnh hay cron wp hỏng;
+//  3. có trần khác 0 (kể cả php_workers: pool ngoài lồng luôn 5) mà gói không
+//     bật lồng thì từ chối, để không lưu một con số không có hiệu lực.
+//
+// Số sai đến trước cờ thiếu: sửa số rồi mới tới chuyện bật lồng.
 func checkPackageLimits(p account.Package) error {
 	if p.MaxSites < 0 || p.MaxDBs < 0 || p.DiskMB < 0 || p.MaxBackups < 0 {
 		return refuse("args_invalid", i18n.T(
 			"giới hạn của gói phải là số nguyên ≥ 0 (0 là không giới hạn)",
 			"package limits must be whole numbers ≥ 0 (0 means unlimited)"))
+	}
+	caps := []struct {
+		name     string
+		val      int
+		min, max int
+	}{
+		{"cpu_percent", p.CPUPercent, CageCPUMin, CageCPUMax},
+		{"ram_mb", p.RAMMB, CageRAMMin, CageRAMMax},
+		{"tasks", p.Tasks, CageTasksMin, CageTasksMax},
+		{"io_read_mb", p.IOReadMB, CageIOMin, CageIOMax},
+		{"io_write_mb", p.IOWriteMB, CageIOMin, CageIOMax},
+		{"php_workers", p.PHPWorkers, CageWorkersMin, CageWorkersMax},
+	}
+	var set []string // trường có trần khác 0, theo thứ tự trên
+	for _, c := range caps {
+		if c.val == 0 {
+			continue
+		}
+		if c.val < c.min || c.val > c.max {
+			return refuse(CodePackageLimitInvalid, i18n.T(
+				fmt.Sprintf("%s = %d ngoài khoảng cho phép: 0 (không giới hạn) hoặc từ %d đến %d", c.name, c.val, c.min, c.max),
+				fmt.Sprintf("%s = %d is out of range: 0 (unlimited) or from %d to %d", c.name, c.val, c.min, c.max)))
+		}
+		set = append(set, c.name)
+	}
+	lim := account.Limits{PHPWorkers: p.PHPWorkers}
+	if need := lim.Workers() + CageTasksSlack; p.Tasks != 0 && p.Tasks < need {
+		return refuse(CodePackageLimitInvalid, i18n.T(
+			fmt.Sprintf("tasks = %d thấp quá: phải ≥ %d (số worker %d cộng %d cho tiến trình chính, lệnh wp, cron và luồng của ImageMagick); tăng tasks hoặc giảm php_workers",
+				p.Tasks, need, need-CageTasksSlack, CageTasksSlack),
+			fmt.Sprintf("tasks = %d is too low: it must be ≥ %d (%d workers plus %d for the master process, wp commands, cron and ImageMagick threads); raise tasks or lower php_workers",
+				p.Tasks, need, need-CageTasksSlack, CageTasksSlack)))
+	}
+	if len(set) > 0 && !p.Cage {
+		list := strings.Join(set, ", ")
+		return refuse(CodePackageLimitsNeedCage, i18n.T(
+			"gói có trần ("+list+") mà chưa bật lồng: trần chỉ có hiệu lực trong lồng, nên không lưu; thêm --cage on, hoặc đặt các trần này về 0",
+			"the package sets limits ("+list+") but the cage is off: limits only apply inside the cage, so nothing is saved; add --cage on, or set these limits back to 0"))
 	}
 	return nil
 }

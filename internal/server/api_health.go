@@ -411,6 +411,7 @@ func (s *Server) apiFixes() *core.Fixes {
 		// Bọc như apiSites: chờ khoá toàn cục có hạn rồi trả 409.
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
 		Settings: st, Store: st, Journal: st, Files: st,
+		Accounts: st, Runs: st, // M17: cách sửa của lồng và của phép thử
 		WPCLISHA512: s.deps.WPCLISHA512,
 	}
 }

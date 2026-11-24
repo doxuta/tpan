@@ -46,7 +46,9 @@ func internalSelfUpdateCmd(e *env) *cobra.Command {
 				return err
 			}
 			defer closeStore(st)
-			s := &core.SelfUpdate{Sys: e.sys, Settings: st, Journal: st, Arch: runtime.GOARCH, Version: buildinfo.Version}
+			s := &core.SelfUpdate{Sys: e.sys, Settings: st, Journal: st, Arch: runtime.GOARCH, Version: buildinfo.Version,
+				// M17: quay về từ nút của panel cũng từ chối khi còn lồng hay lượt thử chưa dọn.
+				Sites: st, Runs: st}
 
 			action, auditAction := core.SelfActionUpdate, "self.update"
 			prepare := func() (*core.Planned, error) { return s.Prepare(ctx, "") }

@@ -355,6 +355,14 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		limited = append(limited, u)
 	}
 
+	// Nhóm 8 (M17), luôn ở cuối: khởi động lại dịch vụ của mọi lồng đang chạy,
+	// để hàng rào che cả những file nhóm 1 vừa ghi (xem cageRestartSteps).
+	restarts, err := cageRestartSteps(ctx, s.Sites)
+	if err != nil {
+		return nil, wrap(err)
+	}
+	ss = append(ss, restarts...)
+
 	// S2: site trả lời sai TRƯỚC Plan (đo ngay đây, như sitesAnswer của chuyển
 	// web server) được nêu trong bản xem trước, và phép HTTP, cô lập của nó
 	// không chạy sau job (chỉ tốn thời gian chờ retryCheck). Site đó vẫn được
@@ -398,9 +406,17 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 		if c := siteHTTP(st); c != nil {
 			verify = append(verify, checks.Soft(retryCheck{c: c}))
 		}
+		// Cùng luật với siteChecks (M17, bất biến 8): Isolated chạy `test` dưới
+		// user của site "from" ở NGOÀI lồng, nên không sinh từ site trong lồng.
 		for _, o := range active[i+1:] {
-			if healthy[o.Domain] {
-				verify = append(verify, checks.Soft(checks.Isolated(l, o.Layout())), checks.Soft(checks.Isolated(o.Layout(), l)))
+			if !healthy[o.Domain] {
+				continue
+			}
+			if !st.Caged {
+				verify = append(verify, checks.Soft(checks.Isolated(l, o.Layout())))
+			}
+			if !o.Caged {
+				verify = append(verify, checks.Soft(checks.Isolated(o.Layout(), l)))
 			}
 		}
 	}

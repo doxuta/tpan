@@ -10,6 +10,7 @@ import (
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/system"
@@ -34,7 +35,7 @@ func (r *Runner) clock() func() time.Time {
 // stack đã cài chưa.
 func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, installed bool, err error) {
 	stack := &core.Stack{Sys: r.Sys, Settings: r.Store, WPCLISHA512: r.WPCLISHA512, Sites: r.Store}
-	sites := &core.Sites{Sys: r.Sys, Settings: r.Store, Store: r.Store}
+	sites := &core.Sites{Sys: r.Sys, Settings: r.Store, Store: r.Store, Accounts: r.Store} // M17: trần của gói cho phép kiểm của lồng
 
 	stackChecks, installed, err := stack.Checks(ctx)
 	if err != nil {
@@ -162,7 +163,7 @@ func fileOwner(path string, sites []site.Site) string {
 		switch {
 		case strings.HasPrefix(path, l.Dir+"/"), strings.HasPrefix(path, l.LogDir+"/"),
 			path == l.NginxConf, path == l.NginxLink, path == l.ApacheConf, path == l.ApacheLink,
-			isPoolConf(path, l.Pool):
+			isPoolConf(path, l.Pool), l.OwnsCagePath(path): // M17: file của lồng mang slug, không mang domain
 			return st.Domain.String()
 		}
 	}
@@ -210,7 +211,43 @@ func (r *Runner) selfChecks() []checks.Check {
 		// M9: bản sao tpan.db do lịch backup hằng ngày tạo; 48 giờ là một ngày
 		// lịch cộng một ngày cho trễ (máy tắt qua đêm, một lần chạy lỗi).
 		checks.TPANBackupAge(site.TPANDBBackupDir, 48*time.Hour, now),
+		// M17: lượt thử tấn công chưa dọn. Chỉ lượt đã bắt đầu quá
+		// ProbeLeftoverAfter: lượt đang chạy (vài phút) không bị báo.
+		probeLeftover(func(ctx context.Context) ([]string, error) {
+			runs, err := r.Store.PendingProbeRuns(ctx)
+			if err != nil {
+				return nil, err
+			}
+			cut := now().Add(-ProbeLeftoverAfter)
+			var left []string
+			for _, p := range runs {
+				if p.Started.Before(cut) {
+					left = append(left, p.ID+" ("+p.DomainA+", "+p.DomainB+", bắt đầu/started "+p.Started.UTC().Format(time.RFC3339)+")")
+				}
+			}
+			return left, nil
+		}),
 	)
+}
+
+// ProbeLeftoverAfter: lượt thử tấn công chưa dọn sau chừng này là bỏ dở (mục
+// 3.7 của docs/thay-doi/M17-thiet-ke.md).
+const ProbeLeftoverAfter = 2 * time.Hour
+
+// probeLeftover là checks.ProbeLeftover với danh sách đọc từ sổ lúc chạy (cần
+// ctx). Đọc sổ lỗi: Unknown cùng ID, không mở hay đóng sự cố.
+type probeLeftover func(ctx context.Context) ([]string, error)
+
+func (f probeLeftover) Run(ctx context.Context, sys system.System) checks.Result {
+	left, err := f(ctx)
+	if err != nil {
+		return checks.Result{
+			ID: "probe.leftover:tpan", Stage: checks.StageTPAN, Status: checks.Unknown,
+			Title:   i18n.T("Không còn site thử và user thử của phép thử tấn công", "No test sites or users of the attack probe are left behind"),
+			Summary: i18n.T("không đọc được sổ phép thử tấn công: "+err.Error(), "could not read the attack probe log: "+err.Error()),
+		}
+	}
+	return checks.ProbeLeftover(left).Run(ctx, sys)
 }
 
 // lastBeat đọc nhịp mà Scheduler ghi (RFC 3339).

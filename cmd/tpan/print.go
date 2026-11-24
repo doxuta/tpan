@@ -167,29 +167,53 @@ type progress struct {
 	w       io.Writer
 	lang    string
 	verbose bool
-	titles  map[string]i18n.Text
-	noUndo  map[string]i18n.Text
-	out     map[string][]string
+	// steps: Info của các bước theo ID, đúng thứ tự trong Plan. Một Plan có thể
+	// có hai bước cùng ID (phép thử tấn công M17: vhost lúc tạo site thử rồi
+	// vhost trong lồng; ghi rồi gỡ file của lồng), nên tiêu đề lấy theo lần
+	// xuất hiện của ID, không theo ID: tra theo ID thì bước sau đè tên bước
+	// trước, log in "Gỡ file của lồng" cho bước đang ghi.
+	steps map[string][]engine.StepInfo
+	// started: số bước mang ID đó đã bắt đầu; cur: chỉ số của bước đang chạy;
+	// ran: chỉ số các bước đã xong (engine chỉ hoàn tác bước đã xong, ngược thứ
+	// tự, nên lấy từ cuối); undoing: chỉ số của bước đang hoàn tác.
+	started, cur, undoing map[string]int
+	ran                   map[string][]int
+	out                   map[string][]string
 }
 
 // maxKeptLines là số dòng output cuối của một bước được giữ để in khi bước lỗi.
 const maxKeptLines = 40
 
 func newProgress(w io.Writer, lang string, verbose bool, p engine.Plan) *progress {
-	pr := &progress{w: w, lang: lang, verbose: verbose, titles: map[string]i18n.Text{}, noUndo: map[string]i18n.Text{}, out: map[string][]string{}}
-	for _, s := range p.Steps {
-		info := s.Info()
-		pr.titles[info.ID] = info.Title
-		if !info.NoUndo.IsZero() {
-			pr.noUndo[info.ID] = info.NoUndo
-		}
+	infos := make([]engine.StepInfo, len(p.Steps))
+	for i, s := range p.Steps {
+		infos[i] = s.Info()
+	}
+	return progressOf(w, lang, verbose, infos)
+}
+
+// progressOf dựng bộ in tiến độ từ Info của các bước, đúng thứ tự trong Plan.
+func progressOf(w io.Writer, lang string, verbose bool, infos []engine.StepInfo) *progress {
+	pr := &progress{w: w, lang: lang, verbose: verbose, steps: map[string][]engine.StepInfo{},
+		started: map[string]int{}, cur: map[string]int{}, undoing: map[string]int{}, ran: map[string][]int{}, out: map[string][]string{}}
+	for _, info := range infos {
+		pr.steps[info.ID] = append(pr.steps[info.ID], info)
 	}
 	return pr
 }
 
-func (p *progress) title(id string) string {
-	if t, ok := p.titles[id]; ok {
-		return t.In(p.lang)
+// info trả Info của lần xuất hiện thứ i của ID (lần cuối nếu i vượt quá).
+func (p *progress) info(id string, i int) (engine.StepInfo, bool) {
+	ss := p.steps[id]
+	if len(ss) == 0 {
+		return engine.StepInfo{}, false
+	}
+	return ss[min(i, len(ss)-1)], true
+}
+
+func (p *progress) title(id string, i int) string {
+	if info, ok := p.info(id, i); ok {
+		return info.Title.In(p.lang)
 	}
 	return id
 }
@@ -204,10 +228,13 @@ func (p *progress) onEvent(ev engine.Event) {
 	case engine.EventJobStart:
 		printf(p.w, "%s %s\n", p.tr("Bắt đầu job", "Starting job"), ev.JobID)
 	case engine.EventStepStart:
-		printf(p.w, "- %s ...\n", p.title(ev.StepID))
+		i := p.started[ev.StepID]
+		p.started[ev.StepID], p.cur[ev.StepID] = i+1, i
+		printf(p.w, "- %s ...\n", p.title(ev.StepID, i))
 	case engine.EventStepSkip:
 		printf(p.w, "  %s\n", p.tr("đã đúng, bỏ qua", "already correct, skipped"))
 	case engine.EventStepDone:
+		p.ran[ev.StepID] = append(p.ran[ev.StepID], p.cur[ev.StepID])
 		printf(p.w, "  %s\n", p.tr("xong", "done"))
 	case engine.EventStepFail:
 		printf(p.w, "  %s %s\n", p.tr("LỖI:", "FAILED:"), ev.Message)
@@ -231,12 +258,17 @@ func (p *progress) onEvent(ev engine.Event) {
 		}
 		p.out[ev.StepID] = kept
 	case engine.EventUndoStart:
-		printf(p.w, "- %s %s ...\n", p.tr("Hoàn tác:", "Undo:"), p.title(ev.StepID))
+		i := p.cur[ev.StepID]
+		if r := p.ran[ev.StepID]; len(r) > 0 {
+			i, p.ran[ev.StepID] = r[len(r)-1], r[:len(r)-1]
+		}
+		p.undoing[ev.StepID] = i
+		printf(p.w, "- %s %s ...\n", p.tr("Hoàn tác:", "Undo:"), p.title(ev.StepID, i))
 	case engine.EventUndoDone:
 		// Bước có NoUndo thì Undo không làm gì; nói thẳng như vậy để người đọc
 		// không tưởng máy vừa được trả lại thứ gì.
-		if n, ok := p.noUndo[ev.StepID]; ok {
-			printf(p.w, "  %s %s\n", p.tr("không có gì để hoàn tác:", "nothing to undo:"), n.In(p.lang))
+		if info, ok := p.info(ev.StepID, p.undoing[ev.StepID]); ok && !info.NoUndo.IsZero() {
+			printf(p.w, "  %s %s\n", p.tr("không có gì để hoàn tác:", "nothing to undo:"), info.NoUndo.In(p.lang))
 			return
 		}
 		printf(p.w, "  %s\n", p.tr("đã hoàn tác", "undone"))
