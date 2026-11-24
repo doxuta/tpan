@@ -195,6 +195,10 @@ type Site struct {
 	// Caged: site đang ở trong lồng (M17, sites.caged). Chỉ Plan cage.enable,
 	// cage.disable đổi trường này, khi job thành công.
 	Caged bool `json:"caged"`
+	// Names: tên phụ, luật chuyển hướng và bộ tên trong chứng chỉ, chỉ dòng
+	// active (M19, bảng site_names và site_redirects). Store điền khi đọc; vhost
+	// vẽ từ trường này. Zero (site không có tên phụ, luật) thì vhost giống bản cũ.
+	Names Names `json:"names"`
 }
 
 // Layout trả tên và đường dẫn của site.

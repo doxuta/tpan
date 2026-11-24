@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -53,7 +54,7 @@ func TestSiteThemVaDocRa(t *testing.T) {
 	want.Slug = validate.SlugOf(in.Domain)
 	want.Owner = "admin"              // Owner rỗng lưu thành admin (M13)
 	want.Htaccess = site.HtaccessSafe // Htaccess rỗng lưu thành an-toan (M14)
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("đọc ra %+v, muốn %+v", got, want)
 	}
 	if !got.TrashedAt.IsZero() {
@@ -67,7 +68,7 @@ func TestSiteKhongCo(t *testing.T) {
 	if err != nil || ok {
 		t.Fatalf("Site = ok %v, err %v, muốn ok=false, err=nil", ok, err)
 	}
-	if got != (site.Site{}) {
+	if !reflect.DeepEqual(got, site.Site{}) {
 		t.Errorf("site không có phải là zero, được %+v", got)
 	}
 	// Domain zero cũng chỉ là "không có", không phải lỗi.
