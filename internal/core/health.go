@@ -80,19 +80,36 @@ func (s *Stack) isolationChecks(ctx context.Context, cfg StackConfig) ([]checks.
 	if err != nil {
 		return nil, err
 	}
-	var layouts []site.Layout
+	var named []checks.NamedSite
+	var owned []checks.OwnedNames
 	ssl := false
 	for _, st := range all {
+		// M19: mọi site (cả thùng rác) giữ tên của nó, nên names.root.shared xét hết.
+		owned = append(owned, checks.OwnedNames{Site: st.Domain, Owner: ownerOf(st), Names: siteAllNames(st)})
 		if st.Status != site.Active {
 			continue
 		}
-		layouts = append(layouts, st.Layout())
+		named = append(named, checks.NamedSite{Layout: st.Layout(), Names: siteAliasNames(st)})
 		ssl = ssl || st.SSL
 	}
 	return append(cs,
-		checks.ServerNameUnique(string(cfg.Web), layouts),
+		checks.ServerNameUnique(string(cfg.Web), named),
 		checks.DefaultRejects(string(cfg.Web), ssl),
+		checks.NamesRootShared(owned),
 	), nil
+}
+
+// siteAliasNames là các tên phụ active của st (phục vụ rồi chuyển, đúng thứ
+// tự của store).
+func siteAliasNames(st site.Site) []validate.Domain {
+	out := make([]validate.Domain, 0, len(st.Names.Serve)+len(st.Names.Redirect))
+	out = append(out, st.Names.Serve...)
+	return append(out, st.Names.Redirect...)
+}
+
+// siteAllNames là tên chính rồi các tên phụ active của st.
+func siteAllNames(st site.Site) []validate.Domain {
+	return append([]validate.Domain{st.Domain}, siteAliasNames(st)...)
 }
 
 // Checks trả bộ phép kiểm của site d (siteChecks: đường đi request, rồi cô
@@ -122,7 +139,8 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if err != nil {
 		return nil, err
 	}
-	cs := append(siteEdgeChecks(st.Layout(), st.SSL), siteHealthChecks(st, cfg, others, lim, vers)...)
+	cs := append(siteEdgeChecks(st.Layout(), st.SSL), siteNameEdgeChecks(st)...)
+	cs = append(cs, siteHealthChecks(st, cfg, others, lim, vers)...)
 	state, err := s.cageStateCheck(ctx, st)
 	if err != nil {
 		return nil, err
@@ -275,6 +293,44 @@ func siteEdgeChecks(l site.Layout, ssl bool) []checks.Check {
 		return []checks.Check{dns}
 	}
 	return []checks.Check{dns, checks.Soft(checks.TLSCert(l))}
+}
+
+// siteNameEdgeChecks (M19, mục 3.8) là phần của chặng DNS và TLS cho tên phụ
+// mà chỉ health xét, cùng lý do với siteEdgeChecks: DNS do nhà cung cấp tên
+// miền quản lý, hỏng ở đó không được làm hoàn tác một thao tác. Cả hai đều
+// chỉ Warn (B4) và đều nặng (gọi resolver, mỗi tên tối đa 2 giây).
+//   - site.alias.dns:<tên> cho mỗi tên phụ active;
+//   - ssl.names:<tên chính> khi site có SSL và có (hoặc từng có) tên phụ: site
+//     chỉ có tên chính thì chứng chỉ chỉ có tên chính, không có gì để so, và
+//     site cũ giữ nguyên bộ phép kiểm như trước M19.
+//
+// site.alias.http nằm trong siteChecks (đường đi của request), không ở đây.
+func siteNameEdgeChecks(st site.Site) []checks.Check {
+	var cs []checks.Check
+	for _, n := range siteAliasNames(st) {
+		cs = append(cs, checks.Heavy(checks.AliasDNS(st.Layout(), n)))
+	}
+	if st.SSL && (len(siteAliasNames(st)) > 0 || len(st.Names.Covered) > 1) {
+		cs = append(cs, checks.Heavy(checks.SSLNames(st.Layout(), siteAllNames(st))))
+	}
+	return cs
+}
+
+// siteAliasHTTPChecks (M19, mục 3.8) là site.alias.http:<tên> cho mỗi tên phụ
+// active của st, cùng luật đạt với bước steps.NameProbe lúc thêm tên. Chỉ Warn
+// (B4). Là phép kiểm nặng (một request tới PHP của site cho mỗi tên): nằm ở
+// siteChecks để kiểm chứng sau thao tác dùng chung, health chỉ chạy nó mỗi giờ.
+// Site chưa có tên phụ: không có phép kiểm nào.
+func siteAliasHTTPChecks(st site.Site) []checks.Check {
+	var cs []checks.Check
+	l := st.Layout()
+	for _, n := range st.Names.Serve {
+		cs = append(cs, checks.Heavy(checks.AliasHTTP(l, n, site.ModeServe, st.SSL, st.Names.Covered)))
+	}
+	for _, n := range st.Names.Redirect {
+		cs = append(cs, checks.Heavy(checks.AliasHTTP(l, n, site.ModeRedirect, st.SSL, st.Names.Covered)))
+	}
+	return cs
 }
 
 // Tên các cách sửa tự động (giá trị của checks.Result.AutoFix). Đối tượng

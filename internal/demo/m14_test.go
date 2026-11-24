@@ -46,7 +46,7 @@ func TestM14ChecksOnDemo(t *testing.T) {
 	for _, c := range []checks.Check{
 		checks.OPcacheHardened(phpVer),
 		checks.PHPProtectProc(phpVer),
-		checks.ServerNameUnique("nginx", ls),
+		checks.ServerNameUnique("nginx", namedOf(ls)),
 		checks.DefaultRejects("nginx", true),
 	} {
 		if r := runCheck(ctx, sys, c); r.Status != checks.Pass {
@@ -56,7 +56,7 @@ func TestM14ChecksOnDemo(t *testing.T) {
 
 	// nginx -T phải thật sự in vhost của từng site: thiếu thì phép kiểm vẫn
 	// "đạt" vì không thấy tên nào để trùng.
-	ev := evidenceText(runCheck(ctx, sys, checks.ServerNameUnique("nginx", ls)))
+	ev := evidenceText(runCheck(ctx, sys, checks.ServerNameUnique("nginx", namedOf(ls))))
 	for _, want := range []string{
 		ls[0].NginxLink + ":", siteBlog + " (port 80)", siteBlog + " (port 443)", siteShop + " (port 80)", siteWiki + " (port 80)",
 	} {
@@ -68,7 +68,7 @@ func TestM14ChecksOnDemo(t *testing.T) {
 	// Lỗ L8: ai đó thêm tay một vhost khai trùng tên của shop.
 	const stray = "/etc/nginx/sites-enabled/aaa-la.conf"
 	sys.SetFile(stray, []byte("server {\n    listen 80;\n    server_name "+siteShop+";\n    return 200 \"la\";\n}\n"), 0o644, system.Root)
-	if r := runCheck(ctx, sys, checks.ServerNameUnique("nginx", ls)); r.Status != checks.Fail || !strings.Contains(r.Summary.Vi, stray+":3") {
+	if r := runCheck(ctx, sys, checks.ServerNameUnique("nginx", namedOf(ls))); r.Status != checks.Fail || !strings.Contains(r.Summary.Vi, stray+":3") {
 		t.Errorf("vhost lạ trùng tên: %s %s", r.Status, r.Summary.Vi)
 	}
 
@@ -124,7 +124,7 @@ func TestApacheVhostsOnDemo(t *testing.T) {
 		}
 	}
 
-	r := runCheck(ctx, m, checks.ServerNameUnique("apache", ls))
+	r := runCheck(ctx, m, checks.ServerNameUnique("apache", namedOf(ls)))
 	if r.Status != checks.Pass {
 		t.Fatalf("web.server_name.unique: %s %s", r.Status, r.Summary.Vi)
 	}
@@ -137,7 +137,17 @@ func TestApacheVhostsOnDemo(t *testing.T) {
 
 	const stray = "/etc/apache2/sites-enabled/aaa-la.conf"
 	m.SetFile(stray, []byte("<VirtualHost *:80>\n    ServerName "+siteShop+"\n</VirtualHost>\n"), 0o644, rootOwner)
-	if r := runCheck(ctx, m, checks.ServerNameUnique("apache", ls)); r.Status != checks.Fail || !strings.Contains(r.Summary.Vi, stray+":1") {
+	if r := runCheck(ctx, m, checks.ServerNameUnique("apache", namedOf(ls))); r.Status != checks.Fail || !strings.Contains(r.Summary.Vi, stray+":1") {
 		t.Errorf("vhost lạ trùng tên: %s %s", r.Status, r.Summary.Vi)
 	}
+}
+
+// namedOf bọc danh sách Layout thành NamedSite không tên phụ (M19 đổi chữ ký
+// ServerNameUnique).
+func namedOf(ls []site.Layout) []checks.NamedSite {
+	out := make([]checks.NamedSite, 0, len(ls))
+	for _, l := range ls {
+		out = append(out, checks.NamedSite{Layout: l})
+	}
+	return out
 }

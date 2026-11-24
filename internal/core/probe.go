@@ -1069,7 +1069,7 @@ func (s *probeL8) Apply(ctx context.Context, sys system.System) (err error) {
 			err = errors.Join(err, fmt.Errorf("L8: gỡ vhost lạ %s: %w", path, rerr))
 		}
 	}()
-	res := checks.ServerNameUnique(string(j.cfg.Web), []site.Layout{j.a, j.b}).Run(ctx, sys)
+	res := checks.ServerNameUnique(string(j.cfg.Web), []checks.NamedSite{{Layout: j.a}, {Layout: j.b}}).Run(ctx, sys)
 	name := "aaa-tpan-probe-" + j.sfx + ".conf"
 	var c ProbeCell
 	switch {

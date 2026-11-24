@@ -327,6 +327,7 @@ func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Site, err
 func siteChecks(web WebServer, php string, st site.Site, others []site.Site, lim *account.Limits) []checks.Check {
 	l := st.Layout()
 	cs := siteRequestChecks(web, php, st, lim)
+	cs = append(cs, siteAliasHTTPChecks(st)...)
 	cs = append(cs, siteHardeningChecks(web, l, st.Htaccess)...)
 	for _, o := range others {
 		if !st.Caged {

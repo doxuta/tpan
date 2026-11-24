@@ -152,7 +152,13 @@ func DNSPointsHere(l site.Layout) Check {
 	if g := siteGuard(b, l, false); g != nil {
 		return g
 	}
-	dom := l.Domain.String()
+	return dnsPointsHere(b, l.Domain.String())
+}
+
+// dnsPointsHere là thân của DNSPointsHere cho một tên dom bất kỳ, kết quả mang
+// id và tiêu đề của b: DNSPointsHere dùng nó cho tên chính, AliasDNS (M19) cho
+// tên phụ. dom đã qua validate.Domain ở người gọi.
+func dnsPointsHere(b base, dom string) Check {
 	return checkFunc(func(ctx context.Context, sys system.System) Result {
 		a4, ev4, ok, err := sslGetent(ctx, sys, "ahostsv4", dom)
 		if err != nil {

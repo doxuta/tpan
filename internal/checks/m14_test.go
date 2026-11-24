@@ -844,7 +844,7 @@ func TestServerNameUniqueNginx(t *testing.T) {
 	run := func(stdout, stderr string) (Result, *system.FakeSystem) {
 		f := system.NewFake()
 		reply(f, []string{"nginx", "-T"}, 0, stdout, stderr)
-		return ServerNameUnique("nginx", sites).Run(bg(), f), f
+		return ServerNameUnique("nginx", named(sites)).Run(bg(), f), f
 	}
 
 	t.Run("mỗi tên một vhost thì đạt; site có SSL khai tên ở cổng 80 và 443 không phải là trùng", func(t *testing.T) {
@@ -932,14 +932,14 @@ func TestServerNameUniqueNginx(t *testing.T) {
 	t.Run("nginx -T thoát mã khác 0 hoặc output lạ thì chưa kiểm được", func(t *testing.T) {
 		f := system.NewFake()
 		reply(f, []string{"nginx", "-T"}, 1, "", "nginx: [emerg] unexpected \"}\" in /etc/nginx/sites-enabled/x.conf:3\nnginx: configuration file /etc/nginx/nginx.conf test failed\n")
-		r := ServerNameUnique("nginx", sites).Run(bg(), f)
+		r := ServerNameUnique("nginx", named(sites)).Run(bg(), f)
 		assertShape(t, r, id, StageWeb, Unknown)
 		if !strings.Contains(r.Summary.Vi, "emerg") {
 			t.Errorf("Summary = %q", r.Summary.Vi)
 		}
 		r, _ = run("server { server_name a.example.com; }\n", ngxSyntaxOK) // không có dòng mở file
 		assertShape(t, r, id, StageWeb, Unknown)
-		assertShape(t, ServerNameUnique("nginx", sites).Run(cancelledCtx(), system.NewFake()), id, StageWeb, Unknown)
+		assertShape(t, ServerNameUnique("nginx", named(sites)).Run(cancelledCtx(), system.NewFake()), id, StageWeb, Unknown)
 	})
 	t.Run("không có site nào thì đạt, không chạy lệnh", func(t *testing.T) {
 		f := system.NewFake()
@@ -948,8 +948,8 @@ func TestServerNameUniqueNginx(t *testing.T) {
 	})
 	t.Run("web lạ và Layout rỗng", func(t *testing.T) {
 		f := system.NewFake()
-		assertShape(t, ServerNameUnique("caddy", sites).Run(bg(), f), id, StageWeb, Unknown)
-		assertShape(t, ServerNameUnique("nginx", []site.Layout{a, {}}).Run(bg(), f), id, StageWeb, Unknown)
+		assertShape(t, ServerNameUnique("caddy", named(sites)).Run(bg(), f), id, StageWeb, Unknown)
+		assertShape(t, ServerNameUnique("nginx", named([]site.Layout{a, {}})).Run(bg(), f), id, StageWeb, Unknown)
 		assertNoCmd(t, f)
 	})
 }
@@ -1000,7 +1000,7 @@ func TestServerNameUniqueApache(t *testing.T) {
 	run := func(stdout string) Result {
 		f := system.NewFake()
 		reply(f, []string{"apache2ctl", "-S"}, 0, stdout, fqdnWarn)
-		r := ServerNameUnique("apache", sites).Run(bg(), f)
+		r := ServerNameUnique("apache", named(sites)).Run(bg(), f)
 		if r.Evidence[0].Command != "apache2ctl -S" {
 			t.Errorf("lệnh = %q", r.Evidence[0].Command)
 		}
@@ -1052,9 +1052,9 @@ func TestServerNameUniqueApache(t *testing.T) {
 	t.Run("lệnh lỗi hoặc output lạ thì chưa kiểm được", func(t *testing.T) {
 		f := system.NewFake()
 		reply(f, []string{"apache2ctl", "-S"}, 1, "", "AH00526: Syntax error on line 3 of /etc/apache2/sites-enabled/x.conf:\nInvalid command 'Foo'\n")
-		assertShape(t, ServerNameUnique("apache", sites).Run(bg(), f), id, StageWeb, Unknown)
+		assertShape(t, ServerNameUnique("apache", named(sites)).Run(bg(), f), id, StageWeb, Unknown)
 		assertShape(t, run("apache2: unrecognized output\n"), id, StageWeb, Unknown)
-		assertShape(t, ServerNameUnique("apache", sites).Run(cancelledCtx(), system.NewFake()), id, StageWeb, Unknown)
+		assertShape(t, ServerNameUnique("apache", named(sites)).Run(cancelledCtx(), system.NewFake()), id, StageWeb, Unknown)
 	})
 }
 
@@ -1201,7 +1201,7 @@ func TestM14ChecksOnlyRead(t *testing.T) {
 		OPcacheHardened("8.3"), PHPProtectProc("8.3"), LogPerms(l),
 		VhostHardened("nginx", l, ""), VhostHardened("apache", l, site.HtaccessOff),
 		HtaccessDirectives(l, site.HtaccessSafe),
-		ServerNameUnique("nginx", []site.Layout{l}), ServerNameUnique("apache", []site.Layout{l}),
+		ServerNameUnique("nginx", named([]site.Layout{l})), ServerNameUnique("apache", named([]site.Layout{l})),
 		DefaultRejects("nginx", true), DefaultRejects("apache", true),
 	})
 	for _, c := range f.Ran() {

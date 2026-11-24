@@ -737,7 +737,10 @@ type nameConflict struct {
 // dùng vhost nạp trước và (với nginx) chỉ in một dòng cảnh báo; `nginx -t` vẫn
 // thoát mã 0. Tên miền khi đó trả trang của vhost lạ mà không phép kiểm nào
 // khác chỉ ra được vì sao.
-func ServerNameUnique(web string, sites []site.Layout) Check {
+//
+// M19: tập tên của mỗi site là tên chính cộng các tên phụ active (NamedSite);
+// mỗi tên được xét như tên chính trước đây.
+func ServerNameUnique(web string, sites []NamedSite) Check {
 	b := base{id: "web.server_name.unique", stage: StageWeb,
 		title: i18n.T("Mỗi tên miền chỉ được khai ở đúng vhost của site đó", "Each domain is declared only in its own site's vhost")}
 	unknown := func(why i18n.Text) Check {
@@ -762,10 +765,12 @@ func ServerNameUnique(web string, sites []site.Layout) Check {
 	default:
 		return unknown(i18n.T("web server phải là nginx hoặc apache (nhận được \""+web+"\")", "web server must be nginx or apache (got \""+web+"\")"))
 	}
-	for _, l := range sites {
-		if l.Domain.IsZero() {
+	nameCount := 0
+	for _, ns := range sites {
+		if ns.Layout.Domain.IsZero() {
 			return unknown(i18n.T("thông tin của một site rỗng (chưa có domain)", "the layout of one site is empty (no domain)"))
 		}
+		nameCount += len(ns.allNames())
 	}
 	if len(sites) == 0 {
 		return checkFunc(func(context.Context, system.System) Result {
@@ -792,17 +797,18 @@ func ServerNameUnique(web string, sites []site.Layout) Check {
 		// nghìn dòng), kèm dòng cảnh báo trùng tên của nginx nếu có.
 		var shown []string
 		var conflicts []nameConflict
-		for _, l := range sites {
-			dom := l.Domain.String()
-			var mine []vhostDecl
-			for _, d := range decls {
-				if d.name == dom {
-					mine = append(mine, d)
-					shown = append(shown, d.where()+": "+d.name+" (port "+d.port+")")
+		for _, ns := range sites {
+			for _, dom := range ns.allNames() {
+				var mine []vhostDecl
+				for _, d := range decls {
+					if d.name == dom {
+						mine = append(mine, d)
+						shown = append(shown, d.where()+": "+d.name+" (port "+d.port+")")
+					}
 				}
-			}
-			if c, found := findNameConflict(mine, own(l)); found {
-				conflicts = append(conflicts, c)
+				if c, found := findNameConflict(mine, own(ns.Layout)); found {
+					conflicts = append(conflicts, c)
+				}
 			}
 		}
 		for _, ln := range strings.Split(res.Stderr, "\n") {
@@ -815,6 +821,10 @@ func ServerNameUnique(web string, sites []site.Layout) Check {
 			ev.Output = "(no tpan site name found in the loaded configuration)"
 		}
 		if len(conflicts) == 0 {
+			if nameCount > len(sites) { // có tên phụ (M19)
+				return b.pass(i18n.T(fmt.Sprintf("%d tên miền của %d site đều chỉ được khai ở vhost của chính site đó", nameCount, len(sites)),
+					fmt.Sprintf("The %d domains of %d sites are each declared only in their own site's vhost", nameCount, len(sites))), ev)
+			}
 			return b.pass(i18n.T(fmt.Sprintf("Tên miền của %d site đều chỉ được khai ở vhost của chính site đó", len(sites)),
 				fmt.Sprintf("The domains of %d sites are each declared only in their own site's vhost", len(sites))), ev)
 		}
