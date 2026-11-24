@@ -259,6 +259,7 @@ func photosM16(c *cdp, base, adminPW, out, only string) error {
 		{name: "backup", path: "/backups"},
 		{name: "cron", path: "/cron"},
 		{name: "thung-rac", path: "/trash"},
+		{name: "tai-nguyen", path: "/usage"},
 		{name: "su-co", path: "/incidents"},
 		{name: "su-co-chi-tiet", path: "/incidents/" + incident},
 		{name: "lich-su", path: "/jobs"},

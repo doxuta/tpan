@@ -158,7 +158,7 @@ Bo góc chỉ có bốn cỡ, là bốn lớp Tailwind khai trong `styles.css`: 
 | Menu thả (`Menu`) | Radix DropdownMenu, luôn `modal={false}` (bản modal chèn một thẻ `<style>` và CSP chặn); khung bo 8 px, viền `--hair`, bóng; mục cao 40 px, mục đang tới nền `--soft` |
 | Tab (`Tabs`) | Radix Tabs; hàng tab kẻ dưới `--hair`; tab đang mở chữ `--accent` đậm 600 và gạch dưới 2 px. Phím mũi tên đổi tab. Tab đang mở ghi vào địa chỉ (`?tab=`) bằng `replace` |
 | Nhãn nhỏ (`Tag`) | bo tròn, nền `--paper` (trên thẻ) hoặc `--surface` (trên nền trang), không viền, chữ 12 px `--ink-soft` |
-| Ô mức dùng (`UsageMeter`) | "5 / ∞": số đã dùng đậm, "/ trần" màu `--muted`; có trần thì thêm thanh cao 4 px (rãnh `--track`, đầy `--ink`) |
+| Ô mức dùng (`UsageMeter`) | "5 / ∞": số đã dùng đậm, "/ mức tối đa" màu `--muted`; có mức tối đa thì thêm thanh cao 4 px (rãnh `--track`, đầy `--ink`) |
 | Thanh số liệu (`MetricBar`) | nhãn 12/500, số 24 px, một dòng phụ, thanh cao 6 px có vạch ngưỡng 80% |
 | Khối mở ra (`Disclosure`) | một nút cả hàng có mũi tên và `aria-expanded`; nội dung chỉ dựng khi mở. Dùng cho bằng chứng |
 | Khối bằng chứng (`EvidenceBlock`) | nền `--pre`, bo 8 px, mono 12,5 px dòng 1,55, tự xuống dòng; dòng lệnh (bắt đầu bằng `$`) đậm 600; bấm là chép toàn bộ. Output dài: chỉ vẽ 20 dòng đầu và nút "Xem hết N dòng" |
