@@ -67,6 +67,9 @@ type Claim struct {
 	Owner string
 	Kind  NameKind
 	Mode  NameMode
+	// ByAdmin: admin đang làm; miễn luật tên miền gốc và public suffix (như
+	// M28 P4), không miễn luật một tên một site.
+	ByAdmin bool
 }
 
 // NameError là lời từ chối của CheckClaims. Message (ở tầng trên) không chép
@@ -86,6 +89,14 @@ var errNamesTODO = errors.New("site: CheckClaims chưa làm (M19 đợt 1)")
 // của site_names). Lỗi (*NameError) ở claim đầu tiên vi phạm.
 func CheckClaims(claims []Claim, existing []Name) error {
 	return errNamesTODO
+}
+
+// RootForeign báo có dòng nào trong existing (pending hay active, tên chính hay
+// phụ) cùng tên miền gốc với d mà owner khác. d không có tên miền gốc (là
+// public suffix) thì lỗi *NameError{Code: CodeNamePublicSuffix}. Đây là luật
+// P4 duy nhất: core.RegistrableTaken (M28) và CheckClaims đều gọi nó.
+func RootForeign(existing []Name, d validate.Domain, owner string) (bool, error) {
+	return false, errNamesTODO
 }
 
 // Names là các tên phụ active và luật chuyển hướng active của một site, theo

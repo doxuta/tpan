@@ -39,6 +39,8 @@ type NamesResult struct {
 	// NeedsCert: site có SSL và bộ tên muốn có khác bộ tên trong chứng chỉ.
 	NeedsCert bool        `json:"needs_cert"`
 	Notes     []i18n.Text `json:"notes,omitempty"`
+	// FollowUpJob: ID job site.ssl chạy tiếp (nếu có), để giao diện theo dõi.
+	FollowUpJob string `json:"follow_up_job,omitempty"`
 }
 
 // RedirectInput là luật chuyển hướng người dùng gõ, chưa kiểm.

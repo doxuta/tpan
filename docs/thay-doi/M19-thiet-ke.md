@@ -913,3 +913,40 @@ Thợ soát `opus` effort max, 25/11/2026, đọc bản thiết kế, khung `age
 **S19. NHẸ (chưa đo): tên dài.** `ParseDomain` nhận tên tới 253 ký tự. Với `server_names_hash_bucket_size 64` mà tpan đặt, nginx từ chối tên dài quá khoảng 46 byte (`nginx -t` báo emerg). `alias add` hoàn tác được, nhưng lời lỗi khó hiểu. Lỗ này có sẵn với tên chính. Đề xuất: đo, rồi tăng bucket lên 128 hoặc từ chối sớm bằng một lời rõ ràng.
 
 **S20. NHẸ: vòng chuyển qua hai luật.** `/a`→`/b` cùng `/b`→`/a` không bị phát hiện. Đề xuất: khi thêm luật, so một bước với các luật đang có.
+
+## Trả lời soát lượt 1 (phiên chính, 02:00 ngày 25/11/2026)
+
+Quyết định dưới đây **đè lên phần thân** ở chỗ nào khác nhau. Thợ đọc mục này trước mục 3.
+
+**Trước hết:** đã `git merge origin/dev` (commit `a60b185`, có `6db4d1e` P4 và `4011e39` P7 của M28). Phần 0b (`internal/site/names.go`, `internal/validate/redirect.go`, `internal/core/types_m19.go`, trường `site.Site.Names`) viết trong lúc soát; đã soát lại sau khi ghép: chỉ là kiểu, biên dịch xanh, sửa theo các mục dưới.
+
+- **S1 (nhận).** Một luật duy nhất, là luật của M28, mở rộng cho tên phụ:
+  - `validate.RegisteredDomain` (psl.go) là chỗ DUY NHẤT gọi `publicsuffix`; `core.registrable` (m28_p4.go) gọi nó.
+  - Vị từ thuần `site.RootForeign(existing []Name, d validate.Domain, owner string) (bool, error)`: có dòng nào (pending hay active, tên chính hay phụ) cùng tên miền gốc với `d` mà `owner` khác; `d` không có tên miền gốc thì lỗi `*NameError{Code: domain_public_suffix}`.
+  - `core.RegistrableTaken(all, d, caller)` **giữ chữ ký** (M28 gọi và test), thân đổi thành: dựng `[]site.Name` primary từ `all` rồi gọi `site.RootForeign`. Lỗi public suffix vẫn dịch ra `domain_invalid` với lời cũ của M28 (test M28 không đổi).
+  - `site.CheckClaims` gọi `RootForeign`. `site.Claim` thêm `ByAdmin bool`: **admin được miễn luật tên miền gốc và luật public suffix** (như M28: admin là người vận hành máy, có thể cố ý gắn tên cho khách); luật "một tên một site" (khoá chính) không ai được miễn.
+  - Mã lỗi: đường tạo site giữ nguyên 404 `site_not_found` của M28. Đường tên phụ: user thường nhận 409 `name_unavailable` với một câu chung cho mọi kiểu trùng (không nói tên thuộc site nào, chủ nào); admin nhận `name_taken`/`name_root_foreign`.
+  - `ClaimNames` (store, trong transaction) áp cùng luật trên ảnh chụp `site_names` ∪ primary suy từ `sites`. M28 kiểm ở server ngoài transaction vẫn giữ (từ chối sớm); `ClaimNames` ở Execute là lớp chặn đua.
+  - 4d **không** sửa `e2e-m13.sh` (dev đã đổi). 4d chỉ kiểm `e2e-m14.sh`: site của user thường chung tên miền gốc với site của người khác thì đổi tên thử (chỉ dòng gán tên).
+- **S2 (nhận, cách (a) có dấu hiệu đo được).** `NameProbe` kiểu `serve` đạt khi: 200 kèm dấu hiệu WordPress (như `HTTPSite` nhưng **không** đòi tên trong thân), **hoặc** 301/302 có header `X-Redirect-By: WordPress` (chuyển hướng canonical của WordPress, chứng minh request đã tới PHP của site, tức vhost phục vụ tên đó). Kiểu `redirect` đạt khi 301, `Location` đúng bằng đích, và **không** có `X-Redirect-By`. E04 đổi: cả hai tên trả 200 cho `/readme.html` (file tĩnh WordPress có sẵn, đi thẳng vhost); `/` qua `www.` kiểu `serve` trả 301 có `X-Redirect-By: WordPress` (ghi rõ trong giải thích và trên giao diện: "WordPress tự đưa www về tên trong cài đặt Site Address"). Thợ máy ảo đo lại khi chạy e2e.
+- **S3 (nhận).** Job SSL: tên đang `in_cert=1` và vẫn là tên của site mà bước thử hỏng → không chạy certbot, giữ chứng chỉ cũ, job đạt với ghi chú lý do (không thu nhỏ). Chỉ thu nhỏ khi tên bị gỡ khỏi site (`alias.rm`) — tên đó không còn trong bộ muốn có nên không thử. Test `steps.TestCertbotKeepsCoveredNameOnProbeFail` (hay ở core nếu logic nằm ở core).
+- **S4 (nhận).** Chạy lại tên chính là no-op chỉ khi dòng có cùng `site` **và** cùng `owner`; khác owner → `name_taken`. Test `site.TestCheckClaimsPrimaryRerunOtherOwner`.
+- **S5 (chốt).** `store.SaveSite` trong cùng transaction với upsert `sites`: `INSERT INTO site_names (...) VALUES (<domain>, <domain>, <owner>, 'primary', 'serve', 'active', <ssl>, <created>) ON CONFLICT (name) DO UPDATE SET owner = excluded.owner, state = 'active' WHERE site_names.site = excluded.site AND site_names.kind = 'primary'`. Không bao giờ trả lỗi vì trùng (dòng của site khác thì không đổi gì). Câu "SaveSite không đụng site_names" bị bỏ.
+- **S6 (nhận).** E24: request thua nhận 409 `job_running` hoặc mã tên; thêm ca CLI `tpan site alias add` song song với API; khẳng định cuối: `site_names` đúng một dòng, `server_name` không lặp. B2 dựa vào `store.TestClaimNamesRace`.
+- **S7 (nhận).** E60/E61 so với output của bản ngay trước M19 (bản `dev` lúc mở mốc, đã cài trước khi lên bản M19), không so với file v0.2.0. B5 giữ file vàng.
+- **S8 (nhận).** `internal/core/probe.go` (đúng dòng gọi `ServerNameUnique`) vào vùng của 4b.
+- **S9 (nhận).** `ClaimNames` coi dòng `pending` có `created_at` cũ hơn 1 giờ là bỏ (xoá trong cùng transaction rồi xét như không có). Cùng site + cùng owner + cùng kind thì nhận lại dòng pending (cả tên phụ). Vhost khử trùng tên khi vẽ (không bao giờ hai lần một tên trong `server_name`).
+- **S10 (nhận).** `CheckClaims` thêm từng claim đã nhận vào ảnh chụp trước khi xét claim sau. `ClaimNames` đếm `MaxNames` của site trong transaction (`alias_limit`).
+- **S11 (nhận).** Nguồn `/` và `/index.php` bị từ chối, mã `redirect_reserved` (400, `field: source`).
+- **S12 (nhận).** Mọi thao tác tên phụ và luật (thêm, đổi kiểu, gỡ) trên site tạm khoá → `site_suspended`; trên site không `active` (thùng rác) → `site_not_active`. Muốn giải phóng tên của site trong thùng rác: xoá hẳn site.
+- **S13 (nhận, đợt 1, thợ 1c).** Prepare và Execute (dưới khoá engine) của `alias.add` từ chối tên đang khai ở file vhost không phải của site đó (đọc `nginx -T`/`apache2ctl -S` qua hàm parse có sẵn `checks.nginxDecls`/`apacheDecls`; xuất một hàm `checks.DeclaredNames(web, dump) (map[string]string, bool)` trả tên → file), mã `name_unavailable`/`name_taken`.
+- **S14 (nhận một phần).** Bản xem trước của thao tác tên trên site SSL có ghi chú "sau đó chạy job site.ssl cho các tên: …" (hoặc ghi chú `ssl_rate_limited`). `NamesResult` thêm `FollowUpJob string \`json:"follow_up_job,omitempty"\``; API trả nó trong kết quả job. Ghi DB sau job hỏng: kết quả báo lỗi kèm lệnh sửa; health `site.names.drift` cắt (ghi rủi ro).
+- **S15 (nhận).** `redirect_loop` so phần đường dẫn của đích (bỏ query, bỏ `<scheme>://<tên của site>`) với nguồn.
+- **S16 (nhận).** Đích dạng đường dẫn được vẽ thành URL tuyệt đối `<http|https>://<tên chính><đích>` ở cả nginx và Apache (scheme theo site có SSL hay không). Không biến nào lấy từ request. B11 giữ nguyên câu.
+- **S17 (nhận, cắt được).** `CountJobs` đếm theo owner của job (sau migration 2800 của M28), trần 5 job `site.ssl` tự chạy mỗi owner mỗi 24 giờ.
+- **S18 (nhận).** Tra DNS cho danh sách tên: mỗi tên một lần `getent ahosts` có thời hạn 2 giây; không cache.
+- **S19 (để rủi ro).** Có từ trước với tên chính; `alias.add` hoàn tác khi `nginx -t` hỏng. Ghi rủi ro mở.
+- **S20 (nhận).** Khi thêm luật: từ chối nếu đích (phần đường dẫn) bằng nguồn của một luật đang có mà đích của luật đó bằng nguồn mới (`redirect_loop`).
+- **S21 (cắt, có cảnh báo).** File export/apply chưa mang tên phụ và luật. `tpan export` in cảnh báo (stderr) khi có site mang tên phụ hay luật; chú thích đầu file export và KE-HOACH ghi rõ. Thợ 2c làm.
+
+Kiểu đổi do mục này (phiên chính sửa stub trước đợt 1): `site.Claim.ByAdmin`, `site.Name.InCert`, `site.RootForeign`, `core.NamesResult.FollowUpJob`, mã `redirect_reserved`, `site_not_active`.
