@@ -1187,7 +1187,19 @@ Thêm ngày 25/11/2026. Bản thiết kế và soát thiết kế: `docs/thay-do
 - Kẻ chiếm site còn vài khoá nguồn phụ ngoài `uid:<n>`, nên được vài lần đoán hơn 5 mỗi 15 phút.
 - Phần còn lại của D2: ngoài harden, một site bị chiếm vẫn làm được các Plan khác chạm tới nó bị hoàn tác (có từ M14; không mở lỗ đọc file, chỉ chặn thao tác của admin tới khi sửa site đó).
 - Hồi quy cho site hợp lệ (D13 của soát cuối): site có `public` là symlink cùng chủ (kiểu thư mục `current` của công cụ triển khai) vẫn chạy nhưng mọi Plan trên site đó bị hoàn tác vì `site.docroot`; đổi `public` thành thư mục thật.
-- Nhóm B của đợt 2 (P4, P7, F1, P06, T3 và các phát hiện vừa còn lại) chưa làm.
+- Nhóm B của đợt 2: P4, P7 vá ở mục 6.28; F1, P06, T3 và các phát hiện vừa còn lại chưa làm.
+
+### 6.28 Vá theo rà soát v0.2.0, đợt 2 nhóm B: tên con của domain người khác, chủ của job (M28)
+
+Thêm ngày 25/11/2026. Hai phát hiện của nhóm B mà bản rà soát mới đo trên máy giả; tái hiện trên máy ảo trước khi vá (e2e P4, P7 trên bản nhóm A).
+
+**P4.** `POST /api/v1/sites` của user thường chỉ so đúng tên domain, nên khách A tạo được `www.<site của khách B>` hay `mail.<site của khách B>`: phục vụ nội dung dưới tên của B và xin được chứng chỉ Let's Encrypt cho tên đó (thử thách HTTP-01 đi vào vhost của A). Vá (`core.RegistrableTaken`, gọi từ `POST /sites` và `POST /apply`): site MỚI của user thường không được chung tên miền đăng ký được (eTLD+1, theo danh sách Public Suffix của `golang.org/x/net/publicsuffix`, có cả phần private như `github.io`) với bất kỳ site nào của chủ khác, kể cả admin và site trong thùng rác; trùng thì 404 `site_not_found` như site không tồn tại (không lộ tên thuộc ai). Tên là chính một đuôi công cộng (`co.uk`, `github.io`) thì chỉ admin tạo được. Admin không qua luật này (tạo hộ khách bằng `--owner` như trước); chạy lại site đã có của chính mình không đổi. Hệ quả có chủ ý: hai khách không thể có hai tên con của cùng một domain gốc; ai tạo `www.X` trước thì chủ thật của `X` nhờ admin.
+
+**P7.** Store suy chủ của job từ `target` cho mọi loại job: chủ của site có domain trùng, không có thì chủ của DB rời có tên trùng. Job trên user (`user.suspend`, `user.unsuspend`, `user.trash_all`) và trên gói (`cage.sync`) có `target` là tên user hay tên gói, mà DB rời tên `<khách>_<tên>`: khách `khach1` tạo DB rời `p7y` là thành chủ của job admin khoá user `khach1_p7y` và đọc được nó (tên site, DB, đường dẫn, user Linux của người khác). Vá: chỉ tra chủ theo `target` với loại job có `target` chắc chắn là domain hay tên DB rời (`store.jobOwnerLookup`; loại mới mặc định không tra); Plan trên user và gói đặt chủ admin (`core.adminOwned`); migration 2800 đưa chủ của các job đó đã ghi về admin; tên user không được trùng tên đầy đủ một DB rời (409 `user_exists`) và ngược lại (409 `db_exists`).
+
+**Kết quả.** Trên bản nhóm A (chưa có P4, P7; `docs/bang-chung/M28-dot2b-truoc-ban-va.log`): phần nginx 66 đạt, 7 không đạt, đúng các lỗ: khach1 nhận Plan tạo `www.example.net`, `mail.example.net` của khach2 (200); khach1 tạo được DB rời `p7y` trùng tên user `khach1_p7y`, job admin khoá user đó ghi chủ `khach1` và khach1 đọc được (200). Trên bản vá (`v0.2.2-100-g64ef6b7`, `docs/bang-chung/M28-dot2b.log`, mỗi phần từ máy ảo sạch): **192 khẳng định đạt, 0 không đạt** (nginx 73, Apache 39, nâng từ v0.2.0 80; ít hơn lần nhóm A ở Apache và nâng cấp vì phép đo N3b đã bỏ khỏi repo): khach1 nhận 404 `site_not_found` cho hai tên con của khach2, khach2 vẫn tạo được `www.example.net` của mình, khach1 vẫn tạo được tên dưới domain gốc không ai dùng; khach1 tạo DB rời trùng tên user nhận 409, job khoá user ghi chủ `admin`, khach1 nhận 404 và không thấy nó trong `GET /jobs`, job tạo DB rời của chính khach1 vẫn thuộc khach1. P2 (sửa để mỗi request một khoá nguồn): 138 request song song, 53 lần so mật khẩu, 85 câu 429, RSS tăng 191 MiB, không OOM.
+
+**Còn lại:** `validate.ParseDomain` nhận cả tên như `php8.3-fpm` (nhãn cuối không phải TLD thật); không mở lỗ nào đã biết (P7 đã kê đích danh loại `fix.*` có `target` là domain) nhưng nên siết sau. F1, P06, T3 và các phát hiện vừa còn lại của rà soát chưa làm.
 
 ## 7. Thao tác hàng loạt
 
