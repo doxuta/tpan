@@ -784,3 +784,132 @@ Luật: mỗi đợt tối đa 4 thợ, mỗi thợ một vùng file, không hai
 - **`tpan ssl issue` và `POST .../ssl` gọi tay không có hạn mức** (giữ hành vi M5): một user vẫn tự gọi lặp được để tốn hạn mức đơn của tài khoản ACME chung. Rủi ro có từ trước M19; M19 chỉ chặn đường tự chạy sau thay đổi tên phụ.
 - Bố cục cổng 443 của nginx chưa chạy trên máy ảo (mục 2.4); thợ 1b chạy trước khi đóng đợt 1.
 - Bản thử pebble chạy với `PEBBLE_AUTHZREUSE=0`; Let's Encrypt thật dùng lại xác minh còn hạn, nên xin lại khi thêm tên chỉ xác minh tên mới. Không đổi thiết kế.
+
+---
+
+## Soát thiết kế (lượt 1)
+
+Thợ soát `opus` effort max, 25/11/2026, đọc bản thiết kế, khung `agent-dev/TU-CHAY-M19.md`, mục "Đợt 0" của `agent-dev/LO-TRINH.md` và mã ở HEAD của `moc/M19` (cộng `origin/dev` cho S1). Không dùng máy ảo: chỗ nào ghi "chưa đo" là suy từ mã nguồn, cần đo trước khi viết mã.
+
+### NẶNG
+
+**S1. NẶNG: M28 đã vá P4 trên `origin/dev`, còn thiết kế viết một luật thứ hai, ngược với luật đó** (mục 1 ý 2, 3.2 "M28 dùng lại", 3.7 mã lỗi, B1, mục 6 "e2e cũ phải đổi tên thử", thợ 4d).
+- Commit `6db4d1e` trên `origin/dev` (chưa có trong `moc/M19`) đã thêm `core.RegistrableTaken` (`internal/core/m28_p4.go`, dùng `golang.org/x/net/publicsuffix`). Nó được gọi ở `server.siteCreateOwner` (`api_m13.go`) và ở `PrepareApply` khi có Scope, và commit đó cũng đã đổi `scripts/e2e-m13.sh` để mỗi chủ một tên miền gốc. Khung điểm 2 ghi: "nếu M28 đã có hàm thì dùng lại, không viết bản thứ hai".
+- Hai luật khác nhau ở bốn chỗ:
+  - Admin: M28 cho admin đi ngoài luật. M19 áp luật cho chủ site, kể cả khi admin làm hộ (B1, E22).
+  - Đuôi công cộng: M28 cho admin tạo được (user nhận `domain_invalid`). M19 từ chối mọi người (`domain_public_suffix`).
+  - Lời từ chối: M28 trả 404 `site_not_found`, cố ý không lộ tên đó có trên máy. M19 trả 409 `name_unavailable`, câu chữ nói thẳng tên thuộc một site trên máy này.
+  - Chỗ kiểm: M28 quét bảng `sites` ở lớp server, ngoài transaction, không thấy dòng pending hay tên phụ. M19 kiểm trong transaction của store.
+- Ghép `origin/dev` theo nguyên thiết kế này sẽ ra hai luật chạy nối tiếp và cho kết quả khác nhau. Thợ 4d cũng sẽ sửa đè `e2e-m13.sh` mà dev đã đổi.
+- Đề xuất:
+  - `git merge origin/dev` trước khi làm tiếp 0b. Phần 0b đã commit trong lúc soát (`93e71e5`, trường `site.Site.Names`) được viết trên nền chưa ghép dev, nên cần soát lại sau khi ghép.
+  - Viết lại 3.2 trên nền `RegistrableTaken`: chuyển nó vào chỗ dùng chung, cho đọc `site_names` (cả pending, cả tên phụ) và chạy trong transaction của `ClaimNames`.
+  - Chốt một luật cho admin (miễn hay không) và ghi lý do. Chốt một bộ mã lỗi; nên giữ lời 404 không lộ tên của M28.
+  - Bỏ `e2e-m13.sh` khỏi việc của 4d và soát lại `e2e-m14.sh` sau khi ghép.
+
+**S2. NẶNG (đã đối chiếu mã nguồn WordPress, `wp-includes/canonical.php` bản `master` ngày 25/11/2026; chưa đo trên máy ảo): WordPress tự chuyển `www.` ↔ tên trần, nên tên phụ `www.` kiểu `serve` không bao giờ qua `NameProbe`** (3.5 `site.alias.add`/`mode`, E04, E05 với `serve`, ý đầu của "Xong khi" trong khung).
+- `redirect_canonical` (`wp-includes/canonical.php`) chỉ chuyển host khi host được gọi và host của `home` khác nhau đúng ở tiền tố `www.` ("Only redirect no-www <=> yes-www"). Host khác hẳn thì nó để nguyên. Vì thế N02 với `xn--vitnam-jk8b.example.net` ra 200, và bản thử t1/t2 không có ca `www.` kiểu `serve`.
+- Ca gây lỗi: `tpan site alias set example.com www.example.com --mode serve`. WordPress trả 301 về `http://example.com/`, `NameProbe` mong 200 nên job hoàn tác. Ý "đổi sang phục vụ cùng nội dung: cả hai 200" của khung không đạt được với WordPress có sẵn.
+- Thêm một chỗ phải đoán: nếu `NameProbe` dùng nguyên luật "thân có chính domain" của `HTTPSite`, thân trang chỉ có tên `home`, nên mọi tên `serve` đều hỏng.
+- Đề xuất:
+  - Đo ngay trên máy ảo: `curl -H 'Host: www.<site>'` với `www.` nằm trong `server_name`.
+  - Chọn một trong hai: (a) với cặp `www.`/tên trần, `NameProbe` kiểu `serve` nhận cả 301 do WordPress trả về `<scheme>://<tên chính>/`, và giao diện nói rõ; (b) cặp `www.`/tên trần chỉ có kiểu `redirect`.
+  - Ghi rõ `NameProbe` không đòi tên phụ xuất hiện trong thân trang.
+
+**S3. NẶNG: job SSL tự chạy tiếp tự thu nhỏ chứng chỉ, làm rớt https của tên phụ đang chạy** (3.6 bước 3–5).
+- Tên đang có `in_cert=1` (đang phục vụ ở 443) mà bước thử hỏng vì lý do tạm thì bị bỏ khỏi `Result.Passed`. Lý do tạm có thể là resolver của máy chập chờn, hoặc `curl -m 10` hết giờ (`ACMEProbe` đi DNS thật). Sau đó certbot xin lại không có tên đó, `SetInCert` ghi 0, job vẽ lại đưa tên ra khỏi 443, và `https://<tên phụ>` gặp chứng chỉ mặc định.
+- Ca gây lỗi chính là ca B4/E40: thêm `nodns.example.invalid` đúng lúc resolver lỗi, và mọi tên phụ đang chạy https rớt theo. Trái với B4, và tốn thêm một đơn trong hạn mức Let's Encrypt.
+- Đề xuất:
+  - Tên đang `in_cert=1`, vẫn là tên của site mà thử hỏng: không chạy certbot, giữ chứng chỉ cũ, job báo lý do.
+  - Chỉ thu nhỏ chứng chỉ khi tên bị gỡ trong chính thao tác đó (`alias.rm`) hoặc khi admin gọi `tpan ssl issue` bằng tay.
+  - Thêm test `steps.TestCertbotKeepsCoveredNameOnProbeFail`.
+
+**S4. NẶNG: luật "chạy lại tên chính là no-op" không so chủ, nên dòng pending của chủ này bị chủ khác dùng** (3.2 "Chạy lại tên chính", 3.5 "chạy lại đúng lệnh trên đúng site là nhận lại").
+- Ca gây lỗi:
+  1. Job `site add example.com` của X chết ngay sau `ClaimNames`, ví dụ do `self-update`, OOM hay khởi động lại máy trong lúc chờ khoá engine hoặc cài WordPress.
+  2. Còn lại dòng `primary` pending, owner X. Chưa có dòng `sites`, chưa có user Linux hay thư mục, nên `unmanaged` không chặn.
+  3. Y gửi `POST /sites {"domain":"example.com"}`. `CheckNames` gặp dòng primary của S nên coi là no-op. `RegistrableTaken` của M28 chỉ quét `sites` nên cũng không chặn.
+  4. Job chạy, `SaveSite` ghi owner Y, còn `ActivateNames` giữ owner X trong `site_names`.
+- Từ đó DB nói X giữ tên miền gốc của site Y. X thêm được `shop.example.com` vào site của X, tức B1 vỡ. Y lại không thêm được `www.` cho chính site mình.
+- Đề xuất:
+  - No-op chỉ khi dòng có cùng `site` và cùng `owner`; khác owner thì trả `name_taken`.
+  - `ActivateNames` kiểm `site_names.owner = sites.owner` trong cùng transaction.
+  - Thêm test `site.TestCheckClaimsPrimaryRerunOtherOwner`.
+  - Ghi ở 3.1 rằng `SaveSite` đang ghi `owner = excluded.owner` (`sites.go:140`), nên `site_names.owner` là bản chép có thể lệch.
+
+### VỪA
+
+**S5. VỪA: 3.2 tự mâu thuẫn về `SaveSite`.** Dòng "Thêm một lớp ở chỗ ghi: `store.SaveSite` chạy trong một transaction … `ON CONFLICT (name) DO NOTHING` … trả `ErrNameTaken`" ngược với dòng "`store.SaveSite` không đụng `site_names`" ở cuối 3.2. Thợ 1a phải đoán. `SaveSite` có khoảng 15 nơi gọi sau khi job đã thành công (`suspend`, `php`, `ssl`, `trash` khôi phục, `cage`, `harden_m14`, `users.markSite`, `dbs`, `apply`). Trả lỗi ở đó là để máy và DB lệch nhau. Đề xuất: chốt một câu. Nếu giữ lớp phụ thì chỉ áp cho lần tạo dòng mới, không cho lần ghi đè.
+
+**S6. VỪA: E24 đo sai thứ.** API chỉ chạy một job mỗi lúc trên toàn máy: `apiState.claim()` đặt cờ `busy` tới khi job xong (`api_job.go:96`). 20 request song song nên ra 1 lần 202 và 19 lần 409 `job_running` (`jobBusy`, `api_job.go:138`), không phải `name_unavailable`/`alias_exists`, và cuộc đua của `ClaimNames` không bao giờ xảy ra qua API. Đua thật chỉ có giữa CLI (root) và API. Đề xuất: E24 nhận 409 `job_running` hoặc mã tên; thêm một ca đua `tpan site alias add` (CLI) song song với API; B2 dựa vào `store.TestClaimNamesRace`.
+
+**S7. VỪA: E60/E61 so với mốc sai.** Template site đã đổi từ v0.2.0 (`git diff v0.2.0 HEAD -- internal/templates/files/`: 242 dòng, ví dụ `disable_symlinks if_not_owner from=$document_root` thành `disable_symlinks if_not_owner`). Vì thế `tpan health --fix` sau khi nâng ghi lại vhost vì lý do của M14/M28, và sha256 đổi dù M19 đúng. Đề xuất: E61 so với output của bản ngay trước M19, không so với file do v0.2.0 ghi. B5 giữ file vàng như đã viết.
+
+**S8. VỪA: bảng chia việc làm vỡ biên dịch.** 4b đổi chữ ký `checks.ServerNameUnique` sang `[]checks.NamedSite`, nhưng `internal/core/probe.go:1072` đang gọi nó với `[]site.Layout{j.a, j.b}` mà không nằm trong vùng file của 4b. Đề xuất: thêm `internal/core/probe.go` (đúng dòng đó) vào vùng của 4b, hoặc giữ hàm cũ và thêm hàm mới.
+
+**S9. VỪA: dòng pending mồ côi của tên chính không gỡ được, và chạy lại `site add` cũng không cứu được.**
+- `tpan site alias rm` cần site có thật và từ chối tên chính (`alias_primary`). Site chưa có dòng `sites` nên không có thao tác nào gỡ được dòng đó.
+- Chạy lại `site add` (site "mới" vì chưa có dòng `sites`) giữ chỗ lại `www.`. Dòng `www.` pending của chính site bị từ chối `alias_exists` theo câu "Tên phụ không có ngoại lệ". Câu này mâu thuẫn với chú thích của `ClaimNames` ("hoặc giữ nguyên dòng pending của chính site đó").
+- Kết quả: tên và cả tên miền gốc bị khoá với mọi chủ khác mãi mãi.
+- Đề xuất:
+  - Khi tpan khởi động (hoặc khi lấy khoá engine), nhả mọi dòng pending không ứng với job `running` nào trong bảng `jobs`.
+  - Cùng site, cùng owner, cùng kind thì nhận lại dòng pending cho cả tên phụ.
+  - Thêm `tpan site names release <tên>` cho admin.
+
+**S10. VỪA: `CheckClaims` không so các claim trong cùng một lô với nhau, và trần 25 tên không nằm trong transaction.**
+- Ca 1: file `tpan apply` của admin có `example.com` (owner A) và `shop.example.com` (owner B) trong cùng một lô. Cả hai qua vì mỗi claim chỉ so với `existing`. Khoá chính chỉ chặn hai tên giống hệt nhau, nên B1 vỡ.
+- Ca 2: hai lần `alias add` chạy song song (CLI và API) đều thấy 24 tên ở Prepare, kết quả là 26 tên, vượt trần 25 của profile `tlsserver`/`shortlived`, và đơn certbot hỏng cả đơn.
+- Đề xuất: `CheckClaims` coi mỗi claim đã nhận là một dòng của `existing` trước khi xét claim sau; `ClaimNames` đếm `MaxNames` trong transaction, như `AddRedirectPending` đang làm với `MaxRedirects`.
+
+**S11. VỪA: luật nguồn `/` và `/index.php` phá phép kiểm chứng và cả site.**
+- `HTTPSite`/`HTTPSSite` gọi `/` và không theo chuyển hướng ("301 ở đây là lỗi"). Có luật nguồn `/` thì:
+  - mọi `NameProbe` kiểu `serve` hỏng;
+  - `alias.rm` và `redirect.rm` của luật khác hỏng ở bước "kiểm chứng tên chính vẫn đạt";
+  - job PHP, harden, lồng của site đó hoàn tác;
+  - `http.site` đỏ;
+  - `tpan stack switch` của admin bị từ chối cho cả máy ("Site nào Fail thì từ chối", `stack_switch.go`): một user thường chặn được thao tác toàn máy bằng một tính năng chính thức.
+- Nguồn `/index.php`: `try_files … /index.php?$args` của nginx chuyển nội bộ mọi permalink sang `/index.php`, và `location =` khớp lại, nên mọi trang chuyển hướng. `RedirectProbe` vẫn đạt. Apache có thể khác vì luật vhost chạy lại khi có chuyển nội bộ (chưa đo).
+- Đề xuất: cấm nguồn `/` và `/index.php` (mã `redirect_reserved`); chuyển cả tên thì đã có tên phụ `redirect`. Thêm vào bảng test của `ParseRedirectSource`.
+
+**S12. VỪA: `alias.rm`, `alias.mode`, `redirect.rm` không nói gì về site tạm khoá hay ở thùng rác.**
+- Site tạm khoá: `siteVhost` ra bản tạm khoá (`fix.go:769`), nên bước "kiểm chứng tên chính vẫn đạt (`HTTPSite`)" luôn hỏng và job luôn hoàn tác.
+- Site ở thùng rác: `siteVhost` không xét `Status`, nên sẽ ghi lại một vhost sống cho site trong thùng rác, trỏ vào thư mục đã chuyển đi, rồi hỏng và hoàn tác.
+- Hệ quả: đường "admin xoá tên phụ trên site đang giữ rồi thêm lại" mà mục 1 đưa ra (kể cả với site trong thùng rác) không làm được.
+- Đề xuất:
+  - Site ở thùng rác: gỡ tên chỉ trong DB, không có bước vhost.
+  - Site tạm khoá: vẽ bản tạm khoá và kiểm bằng phép thử trang tạm khoá (403), hoặc từ chối `site_suspended` và nói rõ cách làm.
+
+**S13. VỪA: tên phụ không được so với vhost không do tpan quản.**
+- Prepare không đọc `nginx -T`/`apache2ctl -S`. `ServerNameUnique` chỉ chạy trong health (và chỉ ở đợt 4), không có trong Verify của các Plan.
+- nginx thấy `server_name` trùng thì chỉ cảnh báo, và khối nạp trước thắng. `tpan-*.conf` đứng trước ví dụ `webmail.conf` theo thứ tự chữ cái. Apache cũng lấy vhost nạp trước.
+- Ca gây lỗi: B thêm `webmail.company.example`, tên của một vhost admin dựng tay mà tên miền gốc không có trong DB của tpan. B chiếm lưu lượng của tên đó, rồi xin được chứng chỉ cho nó (webroot ACME dùng chung).
+- Lỗ này có sẵn với tên chính; M19 nhân lên 24 lần cho mỗi site.
+- Đề xuất: Prepare, và Execute dưới khoá, từ chối tên đang được khai ở file ngoài file của chính site (dùng `nginxDecls`/`apacheDecls` có sẵn); Verify của `alias.add` gồm `web.server_name.unique` cho tên mới (kéo phần này lên đợt 1).
+
+**S14. VỪA: không phải mọi thay đổi đều có xem trước và hoàn tác** (câu 6 của việc soát).
+- Job SSL và job vẽ lại vhost chạy tiếp sau thao tác tên phụ không có trong bản xem trước của `?dry_run=1`/`--dry-run`. Người dùng không thấy trước rằng sẽ có một đơn Let's Encrypt.
+- Các lần ghi DB sau job (`ActivateNames`, `DeleteAlias`, `SetAliasMode`, `SetInCert`, `ActivateRedirect`) nằm ngoài phần hoàn tác. Một lần ghi hỏng thì vhost và DB lệch nhau, và lần vẽ lại sau từ DB sẽ lặng lẽ gỡ tên vừa thêm hoặc thêm lại tên vừa gỡ.
+- API chỉ trả một `JobID` (`JobStarted`), nên giao diện không theo dõi được job SSL chạy tiếp.
+- Đề xuất:
+  - Bản xem trước có dòng "sau đó sẽ chạy job `site.ssl`" kèm argv, hoặc ghi chú `ssl_rate_limited`.
+  - Ghi DB hỏng thì kết quả báo lệnh sửa và có health `site.names.drift`.
+  - API trả thêm `follow_up_job`.
+
+**S15. VỪA: `redirect_loop` so nguyên đích, kể cả query.** Ca gây lỗi: nguồn `/old`, đích `/old?x=1`. Chuỗi khác nhau nên qua kiểm, nhưng `location =` và `%{REQUEST_URI}` bỏ query, nên vòng chuyển không dừng. `RedirectProbe` chỉ gọi một lần nên vẫn đạt. Đề xuất: so phần đường dẫn của đích (sau khi bỏ `<scheme>://<tên của site>`) với nguồn.
+
+**S21. VỪA: `tpan export` rồi `apply` làm mất mọi tên phụ và luật chuyển hướng.**
+- 3.5 giải thích việc `apply` không thêm tên `www.` mặc định bằng câu "file khai báo nói đủ trạng thái muốn có". Câu đó sai từ M19.
+- File export chỉ có `domain`, `ssl`, `owner` (`internal/core/sitesfile.go:134`). Dựng lại máy bằng `tpan export` rồi `tpan apply -f` sẽ lặng lẽ mất mọi tên phụ và luật chuyển hướng. Site có SSL cũng xin lại chứng chỉ chỉ cho tên chính.
+- Đề xuất: thêm `names` (tên, kiểu) và `redirects` vào định dạng file, cho cả export lẫn apply. Nếu cắt thì 3.5 và chú thích đầu file export phải nói rõ phần bị mất, và `tpan export` in cảnh báo khi có site mang tên phụ hay luật.
+
+### NHẸ
+
+**S16. NHẸ: B11 nói quá.** Với đích tương đối, Apache dựng `Location` theo `UseCanonicalName Off`, tức lấy tên và cổng từ Host của request. `Host: example.com:8080` cho ra `Location: http://example.com:8080/new-page`; nếu có cache hay CDN đứng trước thì cache có thể bị đầu độc. nginx cũng dùng tên đang gọi (P10). Đề xuất: ghi đúng phạm vi của B11 ("không chèn biến"), và nếu muốn chặt thì với Apache đổi đích tương đối thành tuyệt đối theo tên chính.
+
+**S17. NHẸ: hạn mức 5 job SSL mỗi 24 giờ tính theo site, không theo chủ hay tài khoản ACME.** User có N site được 5N đơn mỗi ngày, trong khi Let's Encrypt cho 300 đơn mỗi 3 giờ cho cả tài khoản. Đề xuất: đếm theo owner trong `CountJobs`. Lưu ý thêm: P7 của M28 (`4011e39`, migration 2800) đổi cách suy chủ của job, nên viết `CountJobs` sau khi ghép `origin/dev`.
+
+**S18. NHẸ: `GET …/names` gọi `getent` cho tối đa 25 tên ở mỗi request, ai cũng gọi được, không có cache.** Mỗi request sinh tới 25 tiến trình, và DNS hết giờ thì request chậm hàng chục giây. Đề xuất: đặt thời hạn ngắn cho mỗi lần tra và cache vài phút.
+
+**S19. NHẸ (chưa đo): tên dài.** `ParseDomain` nhận tên tới 253 ký tự. Với `server_names_hash_bucket_size 64` mà tpan đặt, nginx từ chối tên dài quá khoảng 46 byte (`nginx -t` báo emerg). `alias add` hoàn tác được, nhưng lời lỗi khó hiểu. Lỗ này có sẵn với tên chính. Đề xuất: đo, rồi tăng bucket lên 128 hoặc từ chối sớm bằng một lời rõ ràng.
+
+**S20. NHẸ: vòng chuyển qua hai luật.** `/a`→`/b` cùng `/b`→`/a` không bị phát hiện. Đề xuất: khi thêm luật, so một bước với các luật đang có.
