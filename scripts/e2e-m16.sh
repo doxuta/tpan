@@ -72,7 +72,7 @@ E=/home/ubuntu/e2e-m16 # thư mục đồ nghề trong máy ảo
 PORT=8016
 SRC="http://127.0.0.1:$PORT"
 HTTP_UNIT=tpan-e2e-http
-DEBUG_PORT=18172 # cổng DevTools riêng, không đụng script chụp của phiên khác
+DEBUG_PORT="${E2E_DEBUG_PORT:-18172}" # cổng DevTools riêng; nhiều phiên mốc chạy e2e-m16 cùng lúc thì đặt E2E_DEBUG_PORT khác nhau
 ARCH=""
 
 TMPD="$(mktemp -d)"
