@@ -26,16 +26,16 @@ Bản cũ suy chủ từ `target` cho mọi loại job. Ngoài `user.*` và `cag
 
 `KE-HOACH.md` nói site cũ (UID dưới 1000) khi xoá hẳn "không còn dấu vết nào đi theo". Bước dọn chỉ xét crontab, tiến trình, `/tmp`, `/var/tmp`, `/dev/shm`; đã sửa câu cho đúng giới hạn đó.
 
-## Chưa vá (ghi lại, để sau)
+## Vá ở lượt sau (cùng ngày, mỗi cái kèm test)
 
-- B3 (nhẹ): lịch sử sự cố của một site gắn theo tên domain, không theo chủ; ai tạo lại cùng tên sau khi chủ cũ xoá hẳn thì đọc được sự cố cũ.
-- B4 (nhẹ): bản xem trước tạo site cho khách biết một tên miền gốc đã có khách khác dùng hay chưa (không lộ là ai).
-- B5 (nhẹ): khôi phục site từ thùng rác không xét luật P4.
-- B7 (nhẹ): site của admin mang tên là chính một đuôi công cộng không được tính khi so tên miền gốc.
-- B8 (nhẹ): một dạng tiến trình còn giữ UID của site làm xoá hẳn site của chính user đó hỏng, kèm lời báo sai nguyên nhân.
-- B10 (nhẹ): khôi phục một bản `tpan.db` cũ trên cùng máy làm lùi bộ đếm UID.
-- B11 (nhẹ, có từ M2): tên user Linux và tên DB của site suy từ một đoạn băm ngắn của tên miền; khách có thể chiếm trước tên đó của một tên miền khác, chỉ chặn được người kia tạo site (không lấy được quyền nhờ F1).
-- B12 (nhẹ): bản sao lưu cũ của chủ trước bị dọn khi người khác tạo lại cùng tên miền.
+- B3 (nhẹ): sự cố của site gắn theo tên domain, nên ai tạo lại cùng tên sau khi chủ cũ xoá hẳn thì đọc được sự cố cũ. Vá: `store.IncidentsOf`, `IncidentOwner` chỉ tính sự cố mở từ lúc site hiện tại được tạo (`opened_at >= sites.created_at`); admin thấy hết. Test `TestSuCoCuKhongTheoDomainSangChuMoi`.
+- B4 (nhẹ): bản xem trước tạo site cho biết một tên miền gốc đã có khách khác dùng mà không để lại dấu. Vá: lời từ chối `site_not_found` ở bản xem trước của `POST /sites` ghi nhật ký (`site_not_found_dry_run`), `POST /apply?dry_run=1` ghi một dòng tóm tắt (số dòng bị từ chối, không ghi tên). Chưa có giới hạn tần suất. Test `TestXemTruocBiTuChoiCoNhatKyB4`.
+- B5 (nhẹ): khôi phục từ thùng rác không xét luật P4. Vá: người không phải admin khôi phục site mà trùng tên miền gốc với site của người khác thì 404 như P4. Test `TestKhoiPhucChungTenMienGocB5`.
+- B7 (nhẹ): site có tên là chính một đuôi công cộng (chỉ admin tạo được) bị bỏ qua khi so. Vá: mọi tên con của site đó coi như đã có người dùng. Test `TestRegistrableTakenTenLaDuoiCongCongB7`.
+- B8 (nhẹ): một tiến trình chỉ còn giữ UID của user ở saved-UID không bị tìm thấy, nên `userdel` thoát 8 với lời sai nguyên nhân. Vá: luôn chạy `runuser -u <user> -- kill -KILL -1` một lần trước khi tìm tiến trình; lời của mã 8 nói cả khả năng đó. Test trong `TestSiteUserAbsentDonDauVet`.
+- B10 (nhẹ): khôi phục bản `tpan.db` cũ làm lùi bộ đếm UID. Vá: mức sàn lấy thêm từ `/var/lib/tpan/site-uid-max` (root 0600), ghi trước khi tạo user. Khôi phục cả thư mục `/var/lib/tpan` từ một bản chụp thì vẫn lùi (chỉ còn mức sàn từ `/etc/passwd`). Test trong `TestSiteUserCapUID`.
+- B11 (nhẹ, có từ M2): tên user Linux và tên DB của site suy từ một đoạn băm ngắn của tên miền; khách có thể chiếm trước tên đó của một tên miền khác. Vá: site mới có slug trùng slug của một site đang có (mọi trạng thái) mà khác tên miền thì bị từ chối 409 `slug_taken`; độ dài băm không đổi (đổi là đổi tên user, DB của site đang chạy). Test `TestPrepareAddSlugTrungB11`.
+- B12 (nhẹ): bản sao lưu cũ của chủ trước bị dọn khi người khác tạo lại cùng tên miền. Vá: dọn và đếm hạn mức chỉ tính bản của chủ hiện tại. Test `TestDonBackupChiTheoChuHienTai`.
 
 ## Đã thử, không phá được (tóm tắt)
 
