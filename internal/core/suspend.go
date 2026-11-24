@@ -17,6 +17,10 @@ package core
 // vhost thường (hoặc 443). Kiểm chứng là phép kiểm của site thường (trả 200,
 // đúng WordPress), bỏ chặng DB và đầu cuối khi DB của site đang khoá riêng.
 //
+// M17, site trong lồng: bước 3 là CageSocket{Disable} (file của lồng giữ
+// nguyên); mở khoá dùng sitePHPSteps (CageFiles rồi CageSocket bật) thay cho
+// đưa pool về.
+//
 // User DB không bị đụng: tạm khoá site và tạm khoá DB là hai thao tác riêng
 // (site.Site.DBSuspended).
 
@@ -107,12 +111,16 @@ func (s *Sites) PrepareUnsuspend(ctx context.Context, d validate.Domain) (*Plann
 	if err != nil {
 		return nil, err
 	}
+	lim, err := siteCageLimits(ctx, s.Accounts, open)
+	if err != nil {
+		return nil, err
+	}
 	plan := engine.Plan{
 		Kind:   "site.unsuspend",
 		Target: dom,
 		Title:  i18n.T("Mở khoá site "+dom, "Unsuspend site "+dom),
 		Steps:  ss,
-		Verify: siteStateChecks(open, cfg, others, true),
+		Verify: siteStateChecks(open, cfg, others, lim, true),
 	}
 	return newPlanned(s.Sys, s.Journal, plan, func(ctx context.Context, _ engine.Report) error {
 		return s.markSuspended(ctx, d, account.NotSuspended, time.Time{})
@@ -154,9 +162,14 @@ func (s *Sites) suspendSteps(ctx context.Context, st site.Site) ([]engine.Step, 
 	if err != nil {
 		return nil, err
 	}
-	pool, err := steps.PoolSuspend(l, sitePHP(st, cfg))
-	if err != nil {
-		return nil, err
+	// M17: site trong lồng không có file pool chung để đổi tên; tắt socket của
+	// lồng (disable: máy khởi động lại thì site vẫn nằm yên) và dừng dịch vụ.
+	// File của lồng giữ nguyên, mở khoá ghi lại nếu chúng mất.
+	var pool engine.Step = &steps.CageSocket{Layout: l, PHP: sitePHP(st, cfg), Disable: true}
+	if !st.Caged {
+		if pool, err = steps.PoolSuspend(l, sitePHP(st, cfg)); err != nil {
+			return nil, err
+		}
 	}
 	cron, err := steps.CronSuspend(l)
 	if err != nil {
@@ -180,16 +193,30 @@ func (s *Sites) unsuspendSteps(ctx context.Context, st site.Site) ([]engine.Step
 		return nil, err
 	}
 	l, php := st.Layout(), sitePHP(st, cfg)
-	parked, err := pathExists(s.Sys, l.PoolConf(php)+steps.SuspendedSuffix)
-	if err != nil {
-		return nil, err
-	}
-	pool, err := steps.PoolUnsuspend(l, php)
-	if !parked && err == nil {
-		pool, err = steps.SitePool(l, php)
-	}
-	if err != nil {
-		return nil, err
+	var pool []engine.Step
+	if st.Caged {
+		// M17: sitePHPSteps ra CageFiles (file của lồng mất trong lúc khoá thì
+		// được ghi lại, như pool ghi lại từ template bên dưới) rồi CageSocket bật.
+		if pool, err = sitePHPStepsFor(ctx, s.Accounts, st, cfg); err != nil {
+			return nil, err
+		}
+	} else {
+		parked, err := pathExists(s.Sys, l.PoolConf(php)+steps.SuspendedSuffix)
+		if err != nil {
+			return nil, err
+		}
+		p, err := steps.PoolUnsuspend(l, php)
+		if err != nil {
+			return nil, err
+		}
+		pool = []engine.Step{p}
+		if !parked {
+			// Không có file pool đã đổi tên (mất trong lúc khoá): ghi lại pool
+			// từ template qua hàm chọn (site ngoài lồng nên ra đúng pool chung).
+			if pool, err = sitePHPSteps(st, cfg, account.Limits{}); err != nil {
+				return nil, err
+			}
+		}
 	}
 	cron, err := steps.CronUnsuspend(l)
 	if err != nil {
@@ -201,7 +228,7 @@ func (s *Sites) unsuspendSteps(ctx context.Context, st site.Site) ([]engine.Step
 	if err != nil {
 		return nil, err
 	}
-	ss := append([]engine.Step{pool, cron}, vhost...)
+	ss := append(append(pool, cron), vhost...)
 	// Kiểm giữa chừng như php.use và stack.switch: `systemctl reload apache2`
 	// trả về trước khi cấu hình mới có hiệu lực (steps.Reload chỉ chờ nginx),
 	// nên request đầu tiên có thể còn gặp vhost tạm khoá và kiểm chứng của Plan

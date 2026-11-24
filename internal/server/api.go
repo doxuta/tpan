@@ -82,6 +82,7 @@ func (s *Server) apiSites() *core.Sites {
 		// Accounts (M13): thiếu thì tạo site bỏ qua hạn mức gói và không kiểm
 		// chủ có thật, đang active.
 		Accounts: st,
+		Samples:  st, // M17: xoá hẳn site thì xoá số liệu của nó
 		WPHash:   s.deps.WPHash,
 	}
 }
@@ -119,14 +120,19 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			// là "máy chưa đạt điều kiện": 409 như mặc định.
 			s3.CodeEndpointInvalid, s3.CodeRegionInvalid, s3.CodeBucketInvalid, s3.CodePrefixInvalid,
 			s3.CodeKeysInvalid, s3.CodeKeepInvalid, s3.CodeCAInvalid,
-			core.CodeCloudInitInvalid, core.CodeCloudInitTooLarge:
+			core.CodeCloudInitInvalid, core.CodeCloudInitTooLarge,
+			// M17: trần của gói sai, có trần mà gói không bật lồng, tên miền
+			// dành cho phép thử tấn công.
+			core.CodePackageLimitInvalid, core.CodePackageLimitsNeedCage, core.CodeDomainReserved:
 			status = http.StatusBadRequest
 		case "site_not_found",
 			// M9: id backup không có (hoặc không thuộc site đó) là "không có".
 			"backup_not_found",
 			// M13: lời 404 của guard (routes.go) và của core.
 			"job_not_found", "incident_not_found",
-			core.CodeUserNotFound, core.CodePackageNotFound, core.CodeDBNotFound:
+			core.CodeUserNotFound, core.CodePackageNotFound, core.CodeDBNotFound,
+			// M17: số liệu của site ngoài lồng (không có cgroup riêng để đọc).
+			core.CodeUsageNotCaged:
 			status = http.StatusNotFound
 		}
 		return status, ErrorBody{Error: ErrorDetail{Code: re.Code, Message: re.Message, Checks: re.Checks}}

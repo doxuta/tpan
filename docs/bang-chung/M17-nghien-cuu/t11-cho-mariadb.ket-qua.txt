@@ -1,0 +1,32 @@
+trước: A HTTP 200
+
+## a. Gắn /run/mysqld bắt buộc (như lib.sh)
+  request ngay lúc MariaDB chưa lên: HTTP 200 | sau khi MariaDB lên (không đụng lồng): HTTP 200 | dịch vụ active (success, NRestarts=5) | socket active
+  mountinfo của lồng có /run/mysqld: 1
+  journal: tpan-cage-a_example_com_7653e4-php.service: Failed to set up mount namespacing: /run/mysqld: No such file or directory
+  journal: tpan-cage-a_example_com_7653e4-php.service: Main process exited, code=exited, status=226/NAMESPACE
+  journal: tpan-cage-a_example_com_7653e4-php.service: Failed with result 'exit-code'.
+
+## b. Gắn có dấu - (thiếu thì bỏ qua)
+  request ngay lúc MariaDB chưa lên: HTTP 500 | sau khi MariaDB lên (không đụng lồng): HTTP 500 | dịch vụ active (success, NRestarts=0) | socket active
+  mountinfo của lồng có /run/mysqld: 0
+không có tiến trình
+  restart lồng: 200 | mountinfo có /run/mysqld: 1
+
+## c. Thêm After=mariadb.service
+  request ngay lúc MariaDB chưa lên: HTTP 500 | sau khi MariaDB lên (không đụng lồng): HTTP 500 | dịch vụ active (success, NRestarts=0) | socket active
+  mountinfo của lồng có /run/mysqld: 0
+không có tiến trình
+  request ngay lúc MariaDB chưa lên: HTTP 500 | sau khi MariaDB lên (không đụng lồng): HTTP 500 | dịch vụ active (success, NRestarts=0) | socket active
+  mountinfo của lồng có /run/mysqld: 0
+không có tiến trình
+
+## d. MariaDB bị tắt hẳn (disable) thì lồng có treo chờ không
+Stopping 'tpan-cage-a_example_com_7653e4-php.service', but its triggering units are still active:
+tpan-cage-a_example_com_7653e4-php.socket
+  MariaDB dừng, gọi A: HTTP 500 sau .084473205 giây (lồng: active)
+  MariaDB chạy lại: A HTTP 200
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200 | mariadb active | /run/mysqld: 755 mysql:root

@@ -118,7 +118,7 @@ func (h *healthRun) run(ctx context.Context) (health.Report, error) {
 // Lỗi chỉ in ra stderr: số đo cũ được giữ, và hạn mức không phải là sức khoẻ
 // của máy nên không đổi mã thoát.
 func measureDisk(ctx context.Context, e *env, st *store.Store) {
-	s := &core.Sites{Sys: e.sys, Settings: st, Store: st}
+	s := &core.Sites{Sys: e.sys, Settings: st, Store: st, Accounts: st}
 	a := &core.Accounts{Sys: e.sys, Store: st, Sites: s, DBs: &core.DBs{Sys: e.sys, Store: st, Sites: st}}
 	if err := a.MeasureDisk(ctx); err != nil {
 		printf(e.stderr, "tpan: %v\n", err)
@@ -198,7 +198,7 @@ func (h *healthRun) fix(ctx context.Context, before health.Report, dryRun, yes b
 			"cannot ask for confirmation (no terminal, or --json is set); preview with --fix --dry-run, then run again with --fix --yes")})
 	}
 
-	fx := &core.Fixes{Sys: e.sys, Settings: h.st, Store: h.st, Journal: h.st, Files: h.st}
+	fx := &core.Fixes{Sys: e.sys, Settings: h.st, Store: h.st, Journal: h.st, Files: h.st, Accounts: h.st, Runs: h.st}
 	failed := false
 	for _, r := range todo {
 		o, ok, err := h.fixOne(ctx, fx, r, dryRun, yes)

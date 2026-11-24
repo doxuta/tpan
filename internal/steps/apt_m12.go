@@ -526,6 +526,7 @@ func (s *AptUpgrade) Apply(ctx context.Context, sys system.System) error {
 	if res, err := sys.Run(ctx, s.cmd()); err != nil {
 		return withStdout(fmt.Errorf("nâng gói %s: %w", strings.Join(s.Packages, " "), err), res)
 	}
+	cageRebindIdentity(ctx, sys) // gói có thể tạo user, nhóm hệ thống (apache2 tạo nhóm ssl-cert)
 	return nil
 }
 
@@ -574,6 +575,7 @@ func (s *AptRemove) Apply(ctx context.Context, sys system.System) error {
 	if res, err := sys.Run(ctx, s.cmd()); err != nil {
 		return withStdout(fmt.Errorf("gỡ gói %s: %w", strings.Join(s.Packages, " "), err), res)
 	}
+	cageRebindIdentity(ctx, sys) // gói có thể tạo user, nhóm hệ thống (apache2 tạo nhóm ssl-cert)
 	return nil
 }
 
@@ -808,6 +810,7 @@ func (s *UserInGroup) Apply(ctx context.Context, sys system.System) error {
 		if res, err := sys.Run(ctx, s.usermod()); err != nil {
 			return withStdout(fmt.Errorf("thêm user %s vào nhóm %s: %w", s.User, s.Group, err), res)
 		}
+		cageRebindIdentity(ctx, sys) // usermod thay /etc/group: gắn lại bản riêng của các lồng
 	}
 	// Undo không bỏ user ra khỏi nhóm nó vốn đã ở.
 	s.applied, s.added = true, !in
@@ -824,6 +827,7 @@ func (s *UserInGroup) Undo(ctx context.Context, sys system.System) error {
 	if res, err := sys.Run(ctx, system.Cmd{Name: "gpasswd", Args: []string{"-d", s.User, s.Group}}); err != nil {
 		return withStdout(fmt.Errorf("bỏ user %s khỏi nhóm %s: %w", s.User, s.Group, err), res)
 	}
+	cageRebindIdentity(ctx, sys)
 	return nil
 }
 

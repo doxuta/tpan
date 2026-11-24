@@ -1,0 +1,91 @@
+## 1. Sau khi bật socket, chưa có request nào
+socket: active | dịch vụ: inactive | file: 660 www-data:www-data
+tiến trình php-fpm của lồng: 0
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+request đầu (dịch vụ tự khởi động): HTTP 200 sau .861039280 giây | B: HTTP 200
+request thứ hai: HTTP 200 sau .031878674 giây
+dịch vụ: active
+
+## 2. Ai chạy, còn quyền gì
+root                           13488       1 php-fpm: master process (/etc/php/8.3/fpm/php-fpm.conf)
+tp_a_example_com_7653e4        15186       1 php-fpm: master process (/etc/tpan/cage/a_example_com_7653e4/php-fpm.conf)
+tp_a_example_com_7653e4        15188   15186 php-fpm: pool tpan-a_example_com_7653e4
+tp_b_example_com_cd59d5        15194   13488 php-fpm: pool tpan-b_example_com_cd59d5
+MainPID=15186: Uid: 999 999 999 999 Gid: 988 988 988 988 CapInh: 0000000000000000 CapPrm: 0000000000000000 CapEff: 0000000000000000 CapBnd: 0000000000000000 NoNewPrivs: 1 Seccomp: 2 
+cgroup của tiến trình chính: 0::/tpan.slice/tpan-a_example_com_7653e4.slice/tpan-cage-a_example_com_7653e4-php.service
+Starting tpan-cage-a_example_com_7653e4-php.service - TPAN: PHP-FPM 8.3 rieng cua a.example.com...
+[21-Nov-2026 02:21:48] ERROR: failed to open error_log (/proc/self/fd/2): No such device or address (6)
+[21-Nov-2026 02:21:48] ERROR: failed to post process the configuration
+[21-Nov-2026 02:21:48] ERROR: FPM initialization failed
+tpan-cage-a_example_com_7653e4-php.service: Main process exited, code=exited, status=78/CONFIG
+tpan-cage-a_example_com_7653e4-php.service: Failed with result 'exit-code'.
+Failed to start tpan-cage-a_example_com_7653e4-php.service - TPAN: PHP-FPM 8.3 rieng cua a.example.com.
+tpan-cage-a_example_com_7653e4-php.service: Scheduled restart job, restart counter is at 1.
+
+## 3. Từ PHP của A (shell_exec) nhìn thấy gì
+  user=tp_a_example_com_7653e4 uid=999
+  ls /var/www: a.example.com
+  ls /var: cache log run tmp www
+  ls /run: mysqld systemd
+  ls /tmp: []  ls /dev/shm: []
+  ls /var/log/tpan/sites: a.example.com
+  ls /etc/tpan/cage: a_example_com_7653e4
+  tien trinh nhin thay (so thu muc so trong /proc): 5 | cua user khac: 0
+  getent passwd: root tp_a_example_com_7653e4 nobody
+  ls /etc/nginx/sites-enabled: 
+  ls /etc/php/8.3/fpm/pool.d: 
+  ls /etc/cron.d: 
+  ls /etc/systemd/system: 
+  ls /sys/fs/cgroup: 
+  ls /var/lib/tpan: 
+  ls /root: 
+  ls /home: 
+  ls /boot: 
+  ls /run/php: 
+  ghi /etc: khong | touch /usr/x: khong
+  ghi vao site: duoc
+  /proc/meminfo: khong co | loadavg: [0.11572265625,0.083984375,0.0341796875]
+  id: uid=999(tp_a_example_com_7653e4) gid=988(tp_a_example_com_7653e4) groups=988(tp_a_example_com_7653e4)
+
+## 4. Lệnh chạy thay cho site qua systemd-run (unit tạm cùng tiền tố tên)
+  user=tp_a_example_com_7653e4 | ls /var/www: a.example.com | ls /run: mysqld systemd | /tmp: []
+  unit tạm tpan-cage-a_example_com_7653e4-run-thu: Slice=tpan-a_example_com_7653e4.slice User=tp_a_example_com_7653e4 ProtectSystem=strict DropInPaths=/etc/systemd/system/tpan-cage-a_example_com_7653e4-.service.d/10-hang-rao.conf
+  cgroup: /tpan.slice/tpan-a_example_com_7653e4.slice/tpan-cage-a_example_com_7653e4-run-thu.service
+  mã thoát của 'exit 7': 7
+  stdin: xin-chao
+  stdout=[ra-stdout] stderr=[ra-stderr]
+  systemd-run true: .032043049 giây
+  runuser true:     .002114126 giây
+  wp option get siteurl (trong lồng): http://a.example.com
+  wp core is-installed: mã 0, .571398498 giây
+  (ngoài lồng, runuser): mã 0, .162960591 giây
+
+## 5. reload (USR2), restart, stop
+reload: MainPID 15186 -> 15186, dịch vụ active, HTTP 200
+restart mất .046871366 giây; 40 request trong lúc đó:      39 200       1 502 
+Stopping 'tpan-cage-a_example_com_7653e4-php.service', but its triggering units are still active:
+tpan-cage-a_example_com_7653e4-php.socket
+stop: dịch vụ inactive | socket active | file socket còn: CO
+request sau khi stop: HTTP 200 sau .554219906 giây (dịch vụ: active)
+
+## 6. systemd-analyze security
+→ Overall exposure level for php8.3-fpm.service: 9.4 UNSAFE 😨
+→ Overall exposure level for tpan-cage-a_example_com_7653e4-php.service: 1.3 OK 🙂
+  NAME                                                        DESCRIPTION                                                                                         EXPOSURE
+✗ SystemCallFilter=~@resources                                System call allow list defined for service, and @resources is included (e.g. ioprio_set is allowed)      0.2
+✗ SystemCallFilter=~@privileged                               System call allow list defined for service, and @privileged is included (e.g. fchown is allowed)         0.2
+✗ RemoveIPC=                                                  Service user may leave SysV IPC objects around                                                           0.1
+✗ RootDirectory=/RootImage=                                   Service runs within the host's root directory                                                            0.1
+✗ MemoryDenyWriteExecute=                                     Service may create writable executable memory mappings                                                   0.1
+✗ RestrictAddressFamilies=~AF_UNIX                            Service may allocate local sockets                                                                       0.1
+✗ RestrictAddressFamilies=~AF_(INET|INET6)                    Service may allocate Internet sockets                                                                    0.3
+✗ PrivateNetwork=                                             Service has access to the host's network                                                                 0.5
+✗ DeviceAllow=                                                Service has a device ACL with some special devices: char-rtc:r                                           0.1
+✗ IPAddressDeny=                                              Service does not define an IP address allow list                                                         0.2
+✗ UMask=                                                      Files created by service are world-readable by default                                                   0.1
+
+→ Overall exposure level for tpan-cage-a_example_com_7653e4-php.service: 1.3 OK 🙂
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200

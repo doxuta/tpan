@@ -567,7 +567,7 @@ func HTTPSSite(l site.Layout) Check {
 					i18n.T("Request tới "+dom+" ở cổng 443 có vẻ rơi nhầm vào vhost của site khác, hoặc địa chỉ site (home/siteurl) trong WordPress chưa đổi sang https://"+dom+".",
 						"The request for "+dom+" on port 443 seems to have landed in another site's vhost, or the site address (home/siteurl) in WordPress is not set to https://"+dom+"."),
 					[]string{line("grep", "-Rl", dom, "/etc/nginx/sites-enabled", "/etc/apache2/sites-enabled"),
-						siteRunAs(l, "wp", "option", "get", "home", "--path="+l.Public), recheck}, ev)
+						siteRunAsOn(sys, l, "wp", "option", "get", "home", "--path="+l.Public), recheck}, ev)
 			}
 			return b.pass(i18n.T("Site trả 200 qua https, đúng là WordPress của "+dom, "The site answers 200 over https and is the WordPress of "+dom), ev)
 		case "502", "503", "504":
@@ -582,21 +582,21 @@ func HTTPSSite(l site.Layout) Check {
 				i18n.T("Thường là lỗi PHP trong plugin hay theme, hoặc WordPress không vào được DB (\"Error establishing a database connection\").",
 					"Usually a PHP error in a plugin or theme, or WordPress cannot reach the DB (\"Error establishing a database connection\")."),
 				[]string{line("tail", "-n", "20", l.PHPErrorLog), line("tail", "-n", "20", l.LogDir+"/error.log"),
-					siteRunAs(l, "wp", "db", "check", "--path="+l.Public), recheck}, ev)
+					siteRunAsOn(sys, l, "wp", "db", "check", "--path="+l.Public), recheck}, ev)
 		case "301", "302", "303", "307", "308":
 			return b.bad(Fail,
 				i18n.T("Site trả "+code+" qua https, đáng lẽ 200", "The site answered "+code+" over https, it should be 200"),
 				i18n.T("Trang https lại chuyển đi chỗ khác. Thường là WordPress vẫn đặt địa chỉ site (home/siteurl) là http nên nó chuyển https về http, còn web server chuyển http về https: vòng lặp chuyển hướng.",
 					"The https page redirects elsewhere. Usually WordPress still has the site address (home/siteurl) set to http, so it sends https back to http while the web server sends http to https: a redirect loop."),
-				[]string{siteRunAs(l, "wp", "option", "get", "home", "--path="+l.Public),
-					siteRunAs(l, "wp", "option", "update", "home", "https://"+dom, "--path="+l.Public),
-					siteRunAs(l, "wp", "option", "update", "siteurl", "https://"+dom, "--path="+l.Public), recheck}, ev)
+				[]string{siteRunAsOn(sys, l, "wp", "option", "get", "home", "--path="+l.Public),
+					siteRunAsOn(sys, l, "wp", "option", "update", "home", "https://"+dom, "--path="+l.Public),
+					siteRunAsOn(sys, l, "wp", "option", "update", "siteurl", "https://"+dom, "--path="+l.Public), recheck}, ev)
 		}
 		return b.bad(Fail,
 			i18n.T("Site trả "+code+" qua https, đáng lẽ 200", "The site answered "+code+" over https, it should be 200"),
 			i18n.T("Request https không tới được trang chủ WordPress: bị chặn (403) hoặc không tìm thấy (404). Xem vhost 443 và địa chỉ site trong WordPress.",
 				"The https request does not reach the WordPress home page: a block (403) or not found (404). Check the 443 vhost and the site address in WordPress."),
-			[]string{siteRunAs(l, "wp", "option", "get", "home", "--path="+l.Public), line("ls", "-l", l.Public), recheck}, ev)
+			[]string{siteRunAsOn(sys, l, "wp", "option", "get", "home", "--path="+l.Public), line("ls", "-l", l.Public), recheck}, ev)
 	})
 }
 

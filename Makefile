@@ -11,7 +11,8 @@ LDFLAGS := -s -w \
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
   do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang anh-m18 e2e-m18-gd \
-  m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 thu-m20 don-tmp e2e-m20 anh-m20
+  m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 \
+  nc-m17 e2e don-tmp thu-m20 e2e-m20 anh-m20
 
 help: ## Xem danh sách lệnh
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{ printf "  make %-12s %s\n", $$1, $$2 }'
@@ -117,10 +118,6 @@ e2e-m20: ## e2e bước 23 trên máy ảo trong .tpan-vm (hai bước, token, c
 anh-m20: web ## Chụp các màn của M20 (đăng nhập chặng hai, bật hai bước, Tài khoản, Cài đặt, Công cụ) sáng, tối, 390 px vào docs/bang-chung/M20
 	$(ANH) -bo m20 -out docs/bang-chung/M20
 
-# Dọn file tạm của phiên (tmp-phien/ nằm ngoài git). Không đụng gì khác.
-don-tmp: ## Xoá file tạm trong tmp-phien/
-	find tmp-phien -mindepth 1 -delete
-
 anh-m18: web ## Chụp các màn của M18 (Backup có đích, cài lên máy mới, Công cụ) ở 1440 sáng, tối và 390 px vào docs/bang-chung/M18, kiểm như anh-m16
 	$(ANH) -bo m18 -out docs/bang-chung/M18
 
@@ -150,6 +147,35 @@ vm-deploy: build-linux ## Build rồi chép tpan vào máy ảo test
 
 vm-shell: ## Mở shell trong máy ảo test
 	scripts/vm.sh shell
+
+# M17: chạy một bản thử nghiên cứu (docs/bang-chung/M17-nghien-cuu/<T>.sh) bằng
+# root trong máy ảo của mốc, lưu output cạnh script. TPAN_VM_CAPTURE=1 vì
+# `multipass exec` có lúc treo khi output dài (xem đầu scripts/vm.sh).
+NC17 := docs/bang-chung/M17-nghien-cuu
+nc-m17: ## (M17) Chạy một bản thử nghiên cứu trong máy ảo: make nc-m17 T=t0-hien-trang
+	@test -f $(NC17)/$(T).sh || { echo "không có $(NC17)/$(T).sh" >&2; exit 2; }
+	@# t0 tự đứng được; các bản thử sau dùng hàm chung trong lib.sh (nối vào trước).
+	@{ case "$(T)" in t0-*) ;; *) cat $(NC17)/lib.sh ;; esac; cat $(NC17)/$(T).sh; } | \
+	  TPAN_VM_CAPTURE=1 scripts/vm.sh root bash -s > $(NC17)/$(T).ket-qua.txt 2>&1; \
+	  rc=$$?; cat $(NC17)/$(T).ket-qua.txt; echo "(mã thoát $$rc; đã lưu $(NC17)/$(T).ket-qua.txt)"
+
+# Xoá một thư mục nháp của thợ trong tmp-phien/ (đã nằm ngoài git). Có target này
+# vì lệnh rm gói trong `bash -c` hay `eval` bắt người duyệt tay, làm phiên tự chạy
+# đứng chờ. Chỉ nhận tên thư mục nháp bắt đầu bằng dấu gạch dưới, không có / hay ..,
+# để không lỡ xoá lời giao việc (tmp-phien/giao-viec) hay thứ gì ngoài tmp-phien.
+don-tmp: ## (M17) Xoá một thư mục nháp trong tmp-phien/: make don-tmp T=_nhap
+	@case "$(T)" in _[a-z0-9]*) ;; *) echo "T phải là tên thư mục nháp bắt đầu bằng _ (ví dụ _nhap)" >&2; exit 2 ;; esac
+	@case "$(T)" in */*|*..*) echo "T không được chứa / hay .." >&2; exit 2 ;; esac
+	rm -rf -- "tmp-phien/$(T)"
+
+# Chạy một kịch bản e2e trên máy ảo của mốc và lưu log. Có target này vì phiên tự
+# chạy chỉ được gọi `make` và `scripts/vm.sh` (luật 9 của agent-dev/LO-TRINH.md);
+# cách gọi giống scripts/hoi-quy.sh (E2E_LOG để script tự soát bí mật trong log).
+e2e: ## Chạy một kịch bản e2e, lưu log: make e2e S=e2e-m13.sh P=chinh L=M17-hoi-quy-m13
+	@test -f scripts/$(S) || { echo "không có scripts/$(S)" >&2; exit 2; }
+	@test -n "$(L)" || { echo "thiếu L=<tên log, không đuôi>" >&2; exit 2; }
+	@E2E_LOG=docs/bang-chung/$(L).log bash scripts/$(S) $(P) </dev/null >docs/bang-chung/$(L).log 2>&1; rc=$$?; \
+	  echo "$(S) $(P): mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' docs/bang-chung/$(L).log), không đạt $$(grep -c '=> KHÔNG ĐẠT' docs/bang-chung/$(L).log); log: docs/bang-chung/$(L).log"; exit $$rc
 
 # T: tên script (không có .sh), A: tham số của script, S: hậu tố file kết quả.
 m28-nghien-cuu: ## (M28) Chạy một bản thử ở docs/bang-chung/M28-nghien-cuu trên máy ảo: make m28-nghien-cuu T=<tên>

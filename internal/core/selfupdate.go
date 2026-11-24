@@ -36,11 +36,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
 )
@@ -109,9 +112,11 @@ func (s *SelfUpdate) Prepare(ctx context.Context, baseURL string) (*Planned, err
 	return newPlanned(s.Sys, s.Journal, plan, nil), nil
 }
 
-// PrepareRollback dựng Plan "self.rollback". Hai điều kiện đầu, áp cho cả CLI
-// lẫn panel: có file cũ (self_no_old), và file cũ mở được tpan.db hiện tại
-// (CodeSelfRollbackDB).
+// PrepareRollback dựng Plan "self.rollback". Ba điều kiện đầu, áp cho cả CLI
+// lẫn panel: có file cũ (self_no_old); máy không còn lồng hay lượt thử tấn công
+// chưa dọn, thứ bản trước M17 không biết (CodeCageActive, M17); file cũ mở được
+// tpan.db hiện tại (CodeSelfRollbackDB, M15). Kiểm lồng trước vì nó không chạy
+// file cũ và lời từ chối có lệnh gỡ chạy được ngay.
 func (s *SelfUpdate) PrepareRollback(ctx context.Context) (*Planned, error) {
 	ok, err := pathExists(s.Sys, tpanOld)
 	if err != nil {
@@ -121,6 +126,9 @@ func (s *SelfUpdate) PrepareRollback(ctx context.Context) (*Planned, error) {
 		return nil, refuse("self_no_old", i18n.T(
 			"không có "+tpanOld+" để quay về (chưa từng self-update, hoặc đã quay về rồi)",
 			"there is no "+tpanOld+" to go back to (no self-update yet, or already rolled back)"))
+	}
+	if err := s.refuseCageActive(ctx); err != nil {
+		return nil, err
 	}
 	if err := s.oldOpensDB(ctx); err != nil {
 		return nil, err
@@ -136,6 +144,84 @@ func (s *SelfUpdate) PrepareRollback(ctx context.Context) (*Planned, error) {
 		Verify: []checks.Check{tpanRuns{}},
 	}
 	return newPlanned(s.Sys, s.Journal, plan, nil), nil
+}
+
+// cageUnitDir là chỗ systemd đọc unit do tpan ghi cho lồng (tpan-cage-*).
+const cageUnitDir = "/etc/systemd/system"
+
+// refuseCageActive từ chối lùi bản (cage_active, mục 6 của
+// docs/thay-doi/M17-thiet-ke.md) khi máy còn thứ mà bản trước M17 không biết:
+// site có cờ caged (mọi trạng thái: site ở thùng rác vẫn giữ cờ), file
+// tpan-cage-* trong /etc/systemd/system (lồng dựng dở cũng tính), hay lượt thử
+// tấn công chưa dọn. Bản cũ sẽ ghi lại pool chung cho site đang trỏ vào lồng và
+// không biết dọn phép thử. Lời từ chối liệt kê từng thứ kèm lệnh chạy được
+// ngay. Sites, Runs nil: chỉ xét file trên máy.
+func (s *SelfUpdate) refuseCageActive(ctx context.Context) error {
+	var vi, en []string
+	if s.Sites != nil {
+		all, err := s.Sites.Sites(ctx)
+		if err != nil {
+			return fmt.Errorf("đọc danh sách site: %w", err)
+		}
+		// Site trong thùng rác không chặn: file của lồng đã gỡ lúc đưa vào thùng
+		// rác (còn sót thì phần đọc thư mục unit bên dưới bắt). Site đang tạm
+		// khoá thì cage disable từ chối, nên lời khuyên là mở khoá trước.
+		var caged, suspended []string
+		for _, st := range all {
+			switch {
+			case !st.Caged || st.Status != site.Active:
+			case st.Suspended != account.NotSuspended:
+				suspended = append(suspended, st.Domain.String())
+			default:
+				caged = append(caged, st.Domain.String())
+			}
+		}
+		if len(caged) > 0 {
+			list := strings.Join(caged, ", ")
+			vi = append(vi, "site đang ở trong lồng: "+list+" (đưa ra bằng: sudo tpan cage disable --all --yes)")
+			en = append(en, "caged sites: "+list+" (take them out with: sudo tpan cage disable --all --yes)")
+		}
+		for _, d := range suspended {
+			vi = append(vi, "site trong lồng đang tạm khoá: "+d+" (mở khoá rồi đưa ra: sudo tpan site unsuspend "+d+" --yes, rồi sudo tpan cage disable "+d+" --yes)")
+			en = append(en, "suspended caged site: "+d+" (unsuspend it, then take it out: sudo tpan site unsuspend "+d+" --yes, then sudo tpan cage disable "+d+" --yes)")
+		}
+	}
+	names, err := s.Sys.ReadDir(cageUnitDir)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("đọc %s: %w", cageUnitDir, err)
+	}
+	var units []string
+	for _, n := range names {
+		if strings.HasPrefix(n, "tpan-cage-") {
+			units = append(units, n)
+		}
+	}
+	if len(units) > 0 {
+		list := strings.Join(units, ", ")
+		vi = append(vi, "file của lồng trong "+cageUnitDir+": "+list+" (gỡ bằng: sudo tpan cage disable --all --yes)")
+		en = append(en, "cage files in "+cageUnitDir+": "+list+" (remove them with: sudo tpan cage disable --all --yes)")
+	}
+	if s.Runs != nil {
+		runs, err := s.Runs.PendingProbeRuns(ctx)
+		if err != nil {
+			return fmt.Errorf("đọc sổ phép thử tấn công: %w", err)
+		}
+		if len(runs) > 0 {
+			ids := make([]string, 0, len(runs))
+			for _, r := range runs {
+				ids = append(ids, r.ID)
+			}
+			list := strings.Join(ids, ", ")
+			vi = append(vi, "lượt thử tấn công chưa dọn: "+list+" (dọn bằng: sudo tpan isolation probe --cleanup --yes)")
+			en = append(en, "attack probe runs not cleaned up: "+list+" (clean up with: sudo tpan isolation probe --cleanup --yes)")
+		}
+	}
+	if len(vi) == 0 {
+		return nil
+	}
+	return refuse(CodeCageActive, i18n.T(
+		"không lùi tpan về bản trước được: bản trước không biết lồng theo site và phép thử tấn công. Còn: "+strings.Join(vi, "; ")+". Làm các lệnh đó rồi chạy lại.",
+		"cannot roll tpan back: the previous release knows nothing about per-site cages or the attack probe. Still present: "+strings.Join(en, "; ")+". Run those commands, then try again."))
 }
 
 // oldOpensDB thử xem file chạy cũ có mở được tpan.db hiện tại không, bằng cách

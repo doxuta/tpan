@@ -1,0 +1,22 @@
+uptime sau: 9.74 giây (máy đã khởi động lại: CO)
+## 1. Ngay sau khi lên, chưa gọi request nào
+a.example.com: socket active/enabled | dịch vụ inactive | file socket 660 www-data:www-data | slice cgroup chua-co
+b.example.com: socket inactive/disabled | dịch vụ inactive | file socket KHONG-CO | slice cgroup chua-co
+c.example.com: socket active/enabled | dịch vụ inactive | file socket 660 www-data:www-data | slice cgroup chua-co
+tiến trình php-fpm của các lồng: 0
+
+## 2. Gọi request
+A: HTTP 200 | B (đang 'tạm khoá'): HTTP 502 | C: HTTP 200
+A sau request đầu: dịch vụ active | memory.max=209715200 cpu.max=50000 100000 pids.max=40
+bộ đếm của A sau khởi động lại: oom_kill=0 memory.peak=60141568 usage_usec=276007
+B vẫn tắt: socket inactive dịch vụ inactive tiến trình 0
+lệnh trong lồng của B khi B tạm khoá vẫn chạy được: tp_b_example_com_cd59d5
+
+## 3. Dịch vụ dừng hẳn thì slice và bộ đếm còn không
+Stopping 'tpan-cage-a_example_com_7653e4-php.service', but its triggering units are still active:
+tpan-cage-a_example_com_7653e4-php.socket
+sau khi stop dịch vụ của A: slice active | thư mục cgroup con | memory.peak=60141568
+A: HTTP 200 | memory.peak=61243392 usage_usec=541940
+
+## Dọn
+sau khi dọn: A HTTP 200, B HTTP 200, C HTTP 200

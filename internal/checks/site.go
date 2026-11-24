@@ -108,9 +108,14 @@ func siteStatUnknown(b base, p string, err error, ev ...Evidence) Result {
 	return b.unknown(i18n.T("không đọc được thông tin "+p+" ("+err.Error()+")", "could not stat "+p+" ("+err.Error()+")"), ev...)
 }
 
-// siteRunAs là lệnh chạy dưới user của site, dùng cho dòng ManualFix và bằng chứng.
-func siteRunAs(l site.Layout, name string, args ...string) string {
-	return system.Cmd{Name: name, Args: args, AsUser: l.User}.String()
+// siteRunAsOn là lệnh chạy dưới user của site, dùng cho dòng ManualFix và bằng
+// chứng, in đúng lệnh sẽ chạy trên sys (M17): site trong lồng ra dạng
+// `systemd-run ...` chứ không phải `runuser`. Người vận hành
+// dán dòng gợi ý vào shell; một dòng `runuser` sẽ chạy mã của site ở NGOÀI hàng
+// rào, đúng cái cửa mà thiết kế (mục 3.4, điểm 4) đã đóng. Phải gọi lúc chạy
+// phép kiểm (không dựng sẵn lúc tạo phép kiểm) vì lúc đó mới có sys.
+func siteRunAsOn(sys system.System, l site.Layout, name string, args ...string) string {
+	return system.Describe(sys, system.Cmd{Name: name, Args: args, AsUser: l.User})
 }
 
 // ---- Web server: vhost ----
@@ -309,16 +314,21 @@ func WPChecksums(l site.Layout) Check {
 		return g
 	}
 	cmd := system.Cmd{Name: "wp", Args: []string{"core", "verify-checksums", "--path=" + l.Public}, AsUser: l.User}
-	recheck := cmd.String()
-	// Tải lại đúng bản WordPress đang cài (không phải bản mới nhất, để không nâng cấp
-	// ngầm), đè lên file lõi và giữ nguyên wp-content. $(...) do shell của người gõ
-	// mở rộng; Public đã qua siteGuard nên chỉ có ký tự an toàn trong nháy kép.
-	// Cờ: developer.wordpress.org/cli/commands/core/download/ và core/version/.
-	asUser := "runuser -u " + l.User + " -- " // User khớp siteUserRE nên không cần nháy
-	download := asUser + "wp core download --force --skip-content --path=" + l.Public +
-		` --version="$(` + asUser + "wp core version --path=" + l.Public + `)"`
 
 	return checkFunc(func(ctx context.Context, sys system.System) Result {
+		// Dựng lúc chạy: site trong lồng phải ra dạng systemd-run (siteRunAsOn).
+		recheck := system.Describe(sys, cmd)
+		// Tải lại đúng bản WordPress đang cài (không phải bản mới nhất, để không nâng cấp
+		// ngầm), đè lên file lõi và giữ nguyên wp-content. $(...) do shell của người gõ
+		// mở rộng; Public đã qua siteGuard nên chỉ có ký tự an toàn trong nháy kép.
+		// Cờ: developer.wordpress.org/cli/commands/core/download/ và core/version/.
+		// Lệnh trong $(...) không đi qua Cmd.String (nó sẽ đặt trong nháy đơn): dựng
+		// dòng tải với một chữ giữ chỗ rồi thay bằng lệnh đọc bản.
+		const verMark = "TPAN_WP_VERSION"
+		download := strings.Replace(
+			siteRunAsOn(sys, l, "wp", "core", "download", "--force", "--skip-content", "--path="+l.Public, "--version="+verMark),
+			"--version="+verMark,
+			`--version="$(`+siteRunAsOn(sys, l, "wp", "core", "version", "--path="+l.Public)+`)"`, 1)
 		res, ev, err := execCmd(ctx, sys, cmd)
 		if err != nil {
 			return b.cantRun(err, ev)
@@ -420,7 +430,10 @@ type isoProbe struct {
 //  3. test -w <public của to>: không ghi được mã nguồn;
 //  4. test -r <access.log của to>: không đọc được log (lỗ L6);
 //  5. test -w <socket>, cho mỗi socket "<pool của to>-<bản PHP>.sock" trong
-//     /run/php: không gửi được request thẳng vào PHP của to.
+//     /run/php: không gửi được request thẳng vào PHP của to. M17: thêm
+//     to.CageSocket() khi file đó có (site đích trong lồng); không có thì bỏ
+//     lặng lẽ, không đổi bằng chứng hay Summary. Core không sinh phép kiểm
+//     này khi from ở trong lồng (mục 3.7 của thiết kế M17).
 //
 // Một phép trả mã 0 là lỗi nặng: site bị chiếm lấn được sang site kia.
 //
@@ -484,10 +497,16 @@ func Isolated(from, to site.Layout) Check {
 	// Dấu * để shell mở rộng ra mọi bản PHP; không qua line() vì line() đặt nó trong nháy.
 	poolGlob := "/etc/php/*/fpm/pool.d/" + to.Pool + ".conf"
 	socketProbe := func(sock string) isoProbe {
+		fix := []string{line("ls", "-l", sock), "grep -n '^listen' " + poolGlob}
+		if sock == to.CageSocket() {
+			// Socket của lồng do systemd tạo từ unit socket, không do pool: chỉ
+			// thư mục và unit mới sửa được.
+			fix = []string{line("ls", "-ld", to.CageRunDir()), line("ls", "-l", sock), line("systemctl", "cat", to.CageSocketUnit(), "--no-pager")}
+		}
 		return isoProbe{flag: "-w", target: sock,
 			what: i18n.T("ghi được vào socket PHP-FPM "+sock, "can write to the PHP-FPM socket "+sock),
 			risk: i18n.T("gửi được request thẳng vào PHP của site kia, tức chạy mã dưới user của site kia", "send requests straight to the other site's PHP, that is run code as the other site's user"),
-			fix:  []string{line("ls", "-l", sock), "grep -n '^listen' " + poolGlob}}
+			fix:  fix}
 	}
 	probeCmd := func(p isoProbe) system.Cmd {
 		return system.Cmd{Name: "test", Args: []string{p.flag, p.target}, AsUser: from.User}
@@ -553,6 +572,18 @@ func Isolated(from, to site.Layout) Check {
 				socks = append(socks, isoSocketDir+"/"+n)
 			}
 		}
+		// Site đích trong lồng (M17): socket của lồng nằm ở chỗ khác, và nó tồn tại
+		// thì cũng phải bị từ chối. Không có file thì bỏ lặng lẽ (không thêm bằng
+		// chứng, không đổi Summary) để site ngoài lồng ra đúng kết quả như trước M17.
+		if cageSock := to.CageSocket(); cageSock != "" && path.IsAbs(cageSock) {
+			_, cageEv, cageMissing, err := siteStat(sys, cageSock)
+			if err != nil {
+				return siteStatUnknown(b, cageSock, err, append(evs, cageEv)...)
+			}
+			if !cageMissing {
+				socks = append(socks, cageSock)
+			}
+		}
 		if len(socks) == 0 {
 			lsEv.Output = "no socket named " + to.Pool + "-<version>.sock (the site has no running pool): the socket probe is skipped"
 			evs = append(evs, lsEv)
@@ -579,7 +610,7 @@ func Isolated(from, to site.Layout) Check {
 			}
 			// Cuối cùng là các lệnh kiểm lại: đúng những phép thử vừa lọt.
 			for _, p := range leaked {
-				fix = append(fix, probeCmd(p).String())
+				fix = append(fix, system.Describe(sys, probeCmd(p)))
 			}
 			return b.bad(Fail,
 				i18n.T(from.User+" CHẠM ĐƯỢC vào site "+toDom+" ("+strings.Join(vi, "; ")+"): hai site không còn cô lập",
@@ -619,7 +650,6 @@ func DBAccess(l site.Layout) Check {
 		})
 	}
 	cmd := system.Cmd{Name: "wp", Args: []string{"db", "query", "SHOW DATABASES", "--skip-column-names", "--path=" + l.Public}, AsUser: l.User}
-	recheck := cmd.String()
 	// Tên DB đã khớp siteDBRE nên đặt trong nháy kép là an toàn (không có $, `, nháy), và dễ đọc hơn dạng '\'' của line().
 	grants := `mariadb -e "SHOW GRANTS FOR '` + l.DB + `'@'localhost'"`
 	whichDB := line("grep", "-E", "DB_(NAME|USER)", l.WPConfig) // chỉ khớp tên DB và tên user, không khớp dòng DB_PASSWORD
@@ -629,6 +659,7 @@ func DBAccess(l site.Layout) Check {
 		if err != nil {
 			return b.cantRun(err, ev)
 		}
+		recheck := ev.Command // lệnh thật đã chạy (M17: systemd-run khi site trong lồng)
 		if res.ExitCode != 0 {
 			out := ev.Output
 			if strings.Contains(out, "Access denied") || strings.Contains(out, "ERROR 1045") ||
@@ -772,7 +803,7 @@ func HTTPSite(l site.Layout) Check {
 					i18n.T("Request tới "+dom+" có vẻ rơi nhầm vào vhost của site khác, hoặc địa chỉ site (home/siteurl) trong WordPress đang là một tên khác.",
 						"The request for "+dom+" seems to have landed in another site's vhost, or the site address (home/siteurl) in WordPress is set to another name."),
 					[]string{line("grep", "-Rl", dom, "/etc/nginx/sites-enabled", "/etc/apache2/sites-enabled"),
-						siteRunAs(l, "wp", "option", "get", "home", "--path="+l.Public), recheck}, ev)
+						siteRunAsOn(sys, l, "wp", "option", "get", "home", "--path="+l.Public), recheck}, ev)
 			}
 			return b.pass(i18n.T("Site trả 200, đúng là WordPress của "+dom, "The site answers 200 and is the WordPress of "+dom), ev)
 		case "502", "504", "503":
@@ -787,13 +818,13 @@ func HTTPSite(l site.Layout) Check {
 				i18n.T("Thường là lỗi PHP trong plugin hay theme, hoặc WordPress không vào được DB (\"Error establishing a database connection\").",
 					"Usually a PHP error in a plugin or theme, or WordPress cannot reach the DB (\"Error establishing a database connection\")."),
 				[]string{line("tail", "-n", "20", l.PHPErrorLog), line("tail", "-n", "20", l.LogDir+"/error.log"),
-					siteRunAs(l, "wp", "db", "check", "--path="+l.Public), recheck}, ev)
+					siteRunAsOn(sys, l, "wp", "db", "check", "--path="+l.Public), recheck}, ev)
 		}
 		return b.bad(Fail,
 			i18n.T("Site trả "+code+", đáng lẽ 200", "The site answered "+code+", it should be 200"),
 			i18n.T("Request không tới được trang chủ WordPress: chuyển hướng (301/302), bị chặn (403) hoặc không tìm thấy (404). Xem vhost và địa chỉ site trong WordPress.",
 				"The request does not reach the WordPress home page: a redirect (301/302), a block (403) or not found (404). Check the vhost and the site address in WordPress."),
-			[]string{siteRunAs(l, "wp", "option", "get", "home", "--path="+l.Public), line("ls", "-l", l.Public), recheck}, ev)
+			[]string{siteRunAsOn(sys, l, "wp", "option", "get", "home", "--path="+l.Public), line("ls", "-l", l.Public), recheck}, ev)
 	})
 }
 

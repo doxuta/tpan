@@ -226,6 +226,17 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "GET /api/v1/security/isolation", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleIsolation},
 		{pattern: "POST /api/v1/security/harden", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSecurityHarden},
 
+		// M17: lồng theo site, số liệu, thử tấn công (types_m17.go, api_m17.go).
+		// Mọi thao tác đổi lồng hay trần là admin; user thường chỉ xem số liệu
+		// của site mình (bất biến 7 của docs/thay-doi/M17-thiet-ke.md).
+		{pattern: "GET /api/v1/cage", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleCage},
+		{pattern: "POST /api/v1/sites/{domain}/cage", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSiteCage},
+		{pattern: "GET /api/v1/usage", rule: anyone, tok: apitoken.GroupHealth, h: s.handleUsage},
+		{pattern: "GET /api/v1/sites/{domain}/usage", rule: ownerSite, tok: apitoken.GroupHealth, h: s.handleSiteUsage},
+		{pattern: "GET /api/v1/usage/suggestions", rule: adminOnly, tok: apitoken.GroupHealth, h: s.handleUsageSuggestions},
+		{pattern: "GET /api/v1/security/probe", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleProbe},
+		{pattern: "POST /api/v1/security/probe", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleProbeRun},
+		{pattern: "POST /api/v1/security/probe/cleanup", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleProbeCleanup},
 		// M15: nút cập nhật TPAN trong panel (types_m15.go, api_m15.go). Chỉ
 		// admin: lượt chạy thay file chạy của panel bằng quyền root.
 		{pattern: "GET /api/v1/self", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleSelf},

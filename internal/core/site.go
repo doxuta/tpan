@@ -80,7 +80,12 @@ type Sites struct {
 	Backups BackupStore
 	// Accounts (M13) là bảng users, packages: kiểm hạn mức gói khi tạo site.
 	// nil (test, xem trước khi máy chưa có tpan.db) thì không kiểm hạn mức.
+	// M17: cũng là nguồn cờ lồng và trần của gói (cageLimitsOf); nil thì mọi
+	// site coi như thuộc gói default (không lồng, không trần).
 	Accounts AccountStore
+	// Samples (M17) là bảng số liệu: xoá hẳn một site thì xoá mọi mẫu và dòng
+	// giờ của domain đó. nil (xem trước, test): không xoá số liệu.
+	Samples UsageStore
 }
 
 func (s *Sites) now() time.Time {
@@ -282,16 +287,17 @@ func (s *Sites) drift(ctx context.Context, l site.Layout) error {
 	return nil
 }
 
-// others trả Layout của mọi site active khác d, để kiểm cô lập hai chiều.
-func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Layout, error) {
+// others trả mọi site active khác d, để kiểm cô lập hai chiều. Trả cả bản ghi
+// (không chỉ Layout) vì siteChecks cần cờ Caged của từng site (M17).
+func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Site, error) {
 	all, err := s.Store.Sites(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var out []site.Layout
+	var out []site.Site
 	for _, o := range all {
 		if o.Domain != d && o.Status == site.Active {
-			out = append(out, o.Layout())
+			out = append(out, o)
 		}
 	}
 	return out, nil
@@ -301,17 +307,67 @@ func (s *Sites) others(ctx context.Context, d validate.Domain) ([]site.Layout, e
 // tạo và cho health (mục 6.7): SiteChecks theo đường đi của request (bản SSL
 // khi site đã có chứng chỉ: cổng 80 giờ trả 301), rồi cô lập hai chiều với
 // từng site còn lại. M14 (mục 6.13): thêm các phép kiểm cô lập sâu của riêng
-// site (siteHardeningChecks) theo chế độ .htaccess mode của nó.
-func siteChecks(web WebServer, php string, l site.Layout, others []site.Layout, ssl bool, mode site.HtaccessMode) []checks.Check {
-	cs := checks.SiteChecks(string(web), php, l)
-	if ssl {
-		cs = checks.SiteChecksSSL(string(web), php, l)
-	}
-	cs = append(cs, siteHardeningChecks(web, l, mode)...)
+// site (siteHardeningChecks) theo chế độ .htaccess của nó.
+//
+// M17 (mục 3.6, 3.7 của docs/thay-doi/M17-thiet-ke.md): đây là chỗ DUY NHẤT
+// chọn bộ phép kiểm trong hay ngoài lồng. st.Caged chọn bộ của lồng với trần
+// lim (người gọi đọc từ gói qua cageLimitsOf; nil khi site ngoài lồng).
+// Isolated(st, o) chỉ sinh khi st ở ngoài lồng, Isolated(o, st) chỉ khi o ở
+// ngoài lồng: lệnh `test` của Isolated chạy dưới user của site "from" ở NGOÀI
+// lồng, mà một tiến trình cùng uid với một site trong lồng chạy ngoài lồng là
+// cửa cho mã trong lồng mở /proc/<pid>/root ra gốc thật của máy (t14 P4). Site
+// trong lồng không nhìn thấy site khác là điều cage.fence, cage.runtime chứng minh.
+func siteChecks(web WebServer, php string, st site.Site, others []site.Site, lim *account.Limits) []checks.Check {
+	l := st.Layout()
+	cs := siteRequestChecks(web, php, st, lim)
+	cs = append(cs, siteHardeningChecks(web, l, st.Htaccess)...)
 	for _, o := range others {
-		cs = append(cs, checks.Isolated(l, o), checks.Isolated(o, l))
+		if !st.Caged {
+			cs = append(cs, checks.Isolated(l, o.Layout()))
+		}
+		if !o.Caged {
+			cs = append(cs, checks.Isolated(o.Layout(), l))
+		}
 	}
 	return cs
+}
+
+// siteRequestChecks là phần của siteChecks theo đường đi request (mục 6.7):
+// bộ trong lồng (cần trần lim) khi st.Caged, bản SSL khi site có chứng chỉ,
+// không thì bộ thường. Tách riêng vì kiểm chứng của xin SSL (ssl.go) chỉ dùng
+// phần này (không có hardening, không có cô lập), mà vẫn phải chọn đúng bộ
+// trong hay ngoài lồng (soát thiết kế M17, điểm 2).
+func siteRequestChecks(web WebServer, php string, st site.Site, lim *account.Limits) []checks.Check {
+	l := st.Layout()
+	switch {
+	case st.Caged:
+		var want account.Limits
+		if lim != nil {
+			want = *lim
+		}
+		if st.SSL {
+			return checks.SiteChecksSSLCaged(string(web), l, want)
+		}
+		return checks.SiteChecksCaged(string(web), l, want)
+	case st.SSL:
+		return checks.SiteChecksSSL(string(web), php, l)
+	}
+	return checks.SiteChecks(string(web), php, l)
+}
+
+// sitePHPStepsFor là sitePHPSteps với trần đọc từ gói của chủ site. Chỉ đọc
+// bảng gói khi st.Caged (siteCageLimits), nên site ngoài lồng dựng y như trước
+// M17, kể cả khi as nil.
+func sitePHPStepsFor(ctx context.Context, as AccountStore, st site.Site, cfg StackConfig) ([]engine.Step, error) {
+	lim, err := siteCageLimits(ctx, as, st)
+	if err != nil {
+		return nil, err
+	}
+	var want account.Limits
+	if lim != nil {
+		want = *lim
+	}
+	return sitePHPSteps(st, cfg, want)
 }
 
 // siteHardeningChecks là các phép kiểm cô lập sâu của riêng một site đang phục
@@ -364,6 +420,13 @@ type SiteAddResult struct {
 	// AdminPassword chỉ có khi WPInstalled. JSON của nó luôn là "••••": người
 	// gọi muốn hiện cho người dùng thì tự gọi Reveal, đúng một lần.
 	AdminPassword system.Secret `json:"admin_password"`
+	// M17 (mục 3.6, bảng "Ghép"): lần tạo đầu thành công và gói của chủ bật
+	// lồng thì Execute chạy tiếp job cage.enable. CageJob là báo cáo của job đó
+	// khi nó đã chạy (thành hay hỏng); CageError là lời từ chối khi job không
+	// chạy được (ví dụ máy có cgroup v1). Cả hai hỏng thì site vẫn dùng được ở
+	// ngoài lồng; health cảnh báo cage.state.
+	CageJob   *engine.Report `json:"cage_job,omitempty"`
+	CageError *RefusedError  `json:"cage_error,omitempty"`
 }
 
 // PrepareAdd làm phần chỉ đọc của "tạo site" (mục 6.2): kiểm đầu vào, kiểm
@@ -373,6 +436,14 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	d := in.Domain
 	if d.IsZero() {
 		return nil, refuse(validate.CodeDomainInvalid, i18n.T("thiếu domain", "the domain is missing"))
+	}
+	// M17 (mục 3.9): tên miền của hai site thử do `tpan isolation probe` tạo
+	// là tên dành riêng. Không ai tạo được site mang tên đó, để Plan dọn của
+	// phép thử không bao giờ gặp một site thật trùng tên.
+	if site.IsProbeDomain(d.String()) {
+		return nil, refuse(CodeDomainReserved, i18n.T(
+			"tên miền "+d.String()+" dành cho phép thử tấn công của tpan (tpan-probe-a|b-<12 hex>.test); chọn tên khác",
+			"the domain "+d.String()+" is reserved for tpan's attack probe (tpan-probe-a|b-<12 hex>.test); choose another name"))
 	}
 	title := in.Title
 	if title == "" {
@@ -476,14 +547,24 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		Layout: l, URL: scheme + d.String(), Title: title,
 		AdminUser: siteAdminUser, AdminEmail: in.Email, AdminPassword: adminPw,
 	}}
-	plan, err := addPlan(cfg.Web, rec.PHPVersion, l, dbPw, version, hash, install, rec.SSL, rec.Htaccess.OrDefault())
+	// M17: chạy lại site add của một site trong lồng ra bước của lồng và vhost
+	// của lồng, với trần của gói (site mới: Caged false, lim nil, như trước).
+	lim, err := siteCageLimits(ctx, s.Accounts, rec)
+	if err != nil {
+		return nil, err
+	}
+	var want account.Limits
+	if lim != nil {
+		want = *lim
+	}
+	plan, err := addPlanSite(rec, cfg, want, dbPw, version, hash, install)
 	if err != nil {
 		return nil, err
 	}
 	if !found { // M20: kiểm lại tên panel dưới khoá (panel_m20.go)
 		plan.Steps = append([]engine.Step{&siteNotPanel{settings: s.Settings, d: d}}, plan.Steps...)
 	}
-	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, l, others, rec.SSL, rec.Htaccess)
+	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, rec, others, lim)
 	return &SiteAdd{
 		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan,
 		sites: s, adminPassword: adminPw, install: install,
@@ -515,8 +596,24 @@ func (s *Sites) newOwner(ctx context.Context, owner string) (string, error) {
 	return owner, checkQuota(ctx, s.Accounts, owner, QuotaSites, validate.Domain{})
 }
 
-// addPlan dựng Plan "site.add" đúng thứ tự mục 6.2.
+// addPlan là chữ ký cũ của addPlanSite cho một site mới ở ngoài lồng (phép
+// thử tấn công ở probe.go dựng site thử bằng nó). Dựng bản ghi tương ứng rồi
+// gọi addPlanSite: cùng pool, cùng vhost như trước M17.
 func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep, ssl bool, mode site.HtaccessMode) (engine.Plan, error) {
+	rec := site.Site{Domain: l.Domain, Slug: l.Slug, Status: site.Active, PHPVersion: php, SSL: ssl, Htaccess: mode}
+	return addPlanSite(rec, StackConfig{Web: web, PHPVersion: php}, account.Limits{}, dbPw, wpVersion, wpHash, install)
+}
+
+// addPlanSite dựng Plan "site.add" đúng thứ tự mục 6.2. rec là dòng sẽ ghi (site
+// mới, hoặc dòng cũ khi chạy lại); lim là trần của gói khi rec.Caged.
+//
+// M17: nơi phục vụ PHP qua sitePHPSteps và vhost qua siteVhost (hai chỗ chọn
+// duy nhất), nên chạy lại site add của một site trong lồng ra CageFiles,
+// CageSocket và vhost của lồng, không ghi lại pool chung (bất biến 7). Site
+// ngoài lồng: đúng pool và vhost như trước (site tạm khoá đã bị từ chối ở
+// PrepareAdd nên nhánh tạm khoá của siteVhost không xảy ra ở đây).
+func addPlanSite(rec site.Site, cfg StackConfig, lim account.Limits, dbPw system.Secret, wpVersion, wpHash string, install *wpInstallStep) (engine.Plan, error) {
+	l, web, mode := rec.Layout(), cfg.Web, rec.Htaccess.OrDefault()
 	wrap := func(err error) error { return fmt.Errorf("dựng Plan tạo site %s: %w", l.Domain, err) }
 
 	// Bước 2, 3, 4: user Linux, thư mục và log, DB.
@@ -524,14 +621,15 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 	ss = append(ss, steps.SiteDirs(l)...)
 	ss = append(ss, &steps.SiteDB{Layout: l, Password: dbPw})
 
-	// Bước 5: pool PHP-FPM.
-	pool, err := steps.SitePool(l, php)
+	// Bước 5: pool PHP-FPM (hoặc lồng: hàng rào có trước mọi bước chạy wp).
+	pool, err := sitePHPSteps(rec, cfg, lim)
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
+	ss = append(ss, pool...)
 	// Bước 6, 7: WordPress từ cache, rồi wp-config.php.
 	archive := &steps.WPArchive{Version: wpVersion, Hash: wpHash}
-	ss = append(ss, pool, archive,
+	ss = append(ss, archive,
 		&steps.WPFiles{Layout: l, Archive: archive.Path()},
 		&steps.WPConfig{Layout: l, DBPassword: dbPw},
 	)
@@ -560,11 +658,7 @@ func addPlan(web WebServer, php string, l site.Layout, dbPw system.Secret, wpVer
 		}
 		ss = append(ss, ht)
 	}
-	vhostOf := steps.SiteVhost
-	if ssl {
-		vhostOf = steps.SiteVhostSSL
-	}
-	vhost, err := vhostOf(l, string(web), php, acmeRoot, mode)
+	vhost, err := siteVhost(rec, cfg)
 	if err != nil {
 		return engine.Plan{}, wrap(err)
 	}
@@ -654,7 +748,59 @@ func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (Site
 		return res, fmt.Errorf("job %s xong nhưng không ghi được site %s vào DB của tpan: %w. Máy đã có site mà tpan chưa ghi nhận, nên `tpan site add %s` sẽ bị từ chối là site không do tpan quản lý",
 			rep.Job.ID, a.Site.Domain, err, a.Site.Domain)
 	}
+	// M17 (mục 3.6, bảng "Ghép"): lần tạo đầu mà gói của chủ muốn lồng thì chạy
+	// tiếp một job cage.enable, SAU khi dòng site đã ghi (PrepareEnable đọc
+	// bảng sites). Chạy lại site add KHÔNG tự đưa site ngoài lồng vào lồng. Hỏng
+	// thì site vẫn dùng được ở ngoài lồng: kết quả mang lý do, Execute không
+	// báo lỗi cho phần này (site đã tạo xong).
+	if !a.Rerun {
+		res.CageJob, res.CageError = s.enableCageIfWanted(ctx, res.Site, onEvent)
+		if res.CageJob != nil && res.CageJob.Job.Status == engine.JobSucceeded {
+			if st, ok, err := s.Store.Site(ctx, res.Site.Domain); err == nil && ok {
+				res.Site = st
+			}
+		}
+	}
 	return res, nil
+}
+
+// enableCageIfWanted chạy job cage.enable cho site st vừa tạo khi gói của chủ
+// muốn lồng (dùng cho SiteAdd.Execute và pha sau lô của apply). Trả báo cáo
+// khi job đã chạy (thành hay hỏng), lời từ chối khi không chạy được; cả hai
+// nil khi gói không muốn lồng. Không bao giờ trả lỗi: site đã tạo xong, phần
+// lồng hỏng chỉ để lại site ở ngoài lồng và health cảnh báo cage.state.
+func (s *Sites) enableCageIfWanted(ctx context.Context, st site.Site, onEvent func(engine.Event)) (*engine.Report, *RefusedError) {
+	asRefused := func(err error) *RefusedError {
+		var re *RefusedError
+		if errors.As(err, &re) {
+			return re
+		}
+		d := st.Domain.String()
+		return refuse(CodeCageError, i18n.T(
+			"site "+d+" đã tạo nhưng chưa đưa được vào lồng: "+err.Error()+". Site vẫn chạy ở ngoài lồng; thử lại bằng: sudo tpan cage enable "+d,
+			"site "+d+" was created but could not be put in its cage: "+err.Error()+". The site still runs outside the cage; try again with: sudo tpan cage enable "+d))
+	}
+	_, want, err := cageLimitsOf(ctx, s.Accounts, st)
+	if err != nil {
+		return nil, asRefused(err)
+	}
+	if !want {
+		return nil, nil
+	}
+	c := &Cages{Sys: s.Sys, Settings: s.Settings, Store: s.Store, Accounts: s.Accounts, Journal: s.Journal, Now: s.Now}
+	p, err := c.PrepareEnable(ctx, st.Domain)
+	if err != nil {
+		return nil, asRefused(err)
+	}
+	rep, err := p.Execute(ctx, onEvent)
+	var out *engine.Report
+	if rep.Job.ID != "" {
+		out = &rep
+	}
+	if err != nil {
+		return out, asRefused(err)
+	}
+	return out, nil
 }
 
 // ---------------------------------------------------------------- đưa vào thùng rác
@@ -695,7 +841,7 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 		return nil, fmt.Errorf("site %s trong DB không có bản PHP", d)
 	}
 	l := st.Layout()
-	ss, err := trashSteps(cfg.Web, st.PHPVersion, l)
+	ss, err := trashSteps(cfg.Web, st.PHPVersion, st)
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan đưa site %s vào thùng rác: %w", d, err)
 	}
@@ -720,7 +866,14 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 //  4. Chuyển /var/www/<domain> vào site.TrashDir bằng một lần rename.
 //
 // Dùng chung cho PrepareRemove và unit "đưa vào thùng rác" của job hàng loạt.
-func trashSteps(web WebServer, php string, l site.Layout) ([]engine.Step, error) {
+//
+// M17, site trong lồng (st.Caged): gỡ link vhost → gỡ file cron →
+// CageSocket{Disable} → CageFiles{Remove} → khoá user DB, khoá user, chuyển
+// thư mục. Không có pool chung để gỡ. Cron gỡ TRƯỚC hàng rào: không thì một
+// lượt cron giữa hai bước chạy `wp` dưới user của site ở ngoài lồng (soát thiết
+// kế điểm 8). Cờ caged giữ nguyên trong lúc ở thùng rác; khôi phục dựng lại lồng.
+func trashSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) {
+	l := st.Layout()
 	webAbsent, err := steps.SiteWebAbsent(l, string(web), php)
 	if err != nil {
 		return nil, err
@@ -734,12 +887,13 @@ func trashSteps(web WebServer, php string, l site.Layout) ([]engine.Step, error)
 		"Web server và PHP-FPM thôi phục vụ "+d+" trước khi thư mục site bị chuyển đi, để khách không thấy lỗi lưng chừng. File vhost trong sites-available được giữ: khôi phục chỉ cần bật lại link. Bước này hoàn tác được.",
 		"The web server and PHP-FPM stop serving "+d+" before the site directory is moved, so visitors never see a half-gone site. The vhost file in sites-available is kept: a restore only re-enables the link. This step can be undone.")
 	var ss []engine.Step
-	for _, st := range webAbsent {
-		a, ok := st.(*steps.Absent)
+	for _, w := range webAbsent {
+		a, ok := w.(*steps.Absent)
 		if !ok {
-			return nil, fmt.Errorf("bước gỡ web của %s có kiểu lạ %T", d, st)
+			return nil, fmt.Errorf("bước gỡ web của %s có kiểu lạ %T", d, w)
 		}
-		if a.Path == conf {
+		// Site trong lồng không có pool chung: chỉ giữ bước gỡ link.
+		if a.Path == conf || (st.Caged && a.Path == l.PoolConf(php)) {
 			continue
 		}
 		a.Why = why
@@ -747,8 +901,23 @@ func trashSteps(web WebServer, php string, l site.Layout) ([]engine.Step, error)
 	}
 	// Chặn khi SiteWebAbsent đổi cách dựng: thiếu bước gỡ link hay gỡ pool thì
 	// site vẫn được phục vụ từ một thư mục đã chuyển đi.
-	if len(ss) != 2 {
-		return nil, fmt.Errorf("bước gỡ web của %s: cần đúng hai bước (link vhost, pool), có %d", d, len(ss))
+	want := 2
+	if st.Caged {
+		want = 1
+	}
+	if len(ss) != want {
+		return nil, fmt.Errorf("bước gỡ web của %s: cần đúng %d bước (link vhost, pool khi ở ngoài lồng), có %d", d, want, len(ss))
+	}
+	if st.Caged {
+		return append(ss,
+			siteCronAbsent(l),
+			&steps.CageSocket{Layout: l, PHP: php, Disable: true},
+			&steps.CageFiles{Layout: l, PHP: php, Remove: true},
+			&steps.DBUserLock{Layout: l},
+			&steps.SiteUserLock{Layout: l},
+			&steps.MoveTree{From: l.Dir, To: site.TrashDir(l),
+				Title: i18n.T("Chuyển thư mục của "+d+" vào thùng rác", "Move the directory of "+d+" to the trash")},
+		), nil
 	}
 	return append(ss,
 		&steps.DBUserLock{Layout: l},
@@ -812,11 +981,13 @@ func (s *Sites) Info(ctx context.Context, d validate.Domain) (SiteInfo, error) {
 	if err != nil {
 		return SiteInfo{}, err
 	}
-	php := st.PHPVersion
-	if php == "" {
-		php = h.Config.PHPVersion
+	// Site.Socket chọn socket của lồng khi Caged (M17); bản PHP rỗng (dòng cũ)
+	// thì lấy bản mặc định của stack như trước.
+	sock := st
+	if sock.PHPVersion == "" {
+		sock.PHPVersion = h.Config.PHPVersion
 	}
-	return SiteInfo{Site: st, Layout: st.Layout(), Socket: st.Layout().SocketFor(php), Web: h.Config.Web, Checks: h.Results}, nil
+	return SiteInfo{Site: st, Layout: st.Layout(), Socket: sock.Socket(), Web: h.Config.Web, Checks: h.Results}, nil
 }
 
 // Health chạy bộ phép kiểm của một site (mục 6.7): đường đi của request và cô
@@ -845,6 +1016,10 @@ func (s *Sites) health(ctx context.Context, d validate.Domain) (Health, site.Sit
 	}
 	// Cùng bộ phép kiểm với health định kỳ (siteStateChecks): site hay DB
 	// đang tạm khoá thì các chặng bị bỏ hiện xám, không đỏ (M13).
-	h.Results = checks.RunAll(ctx, s.Sys, siteStateChecks(st, cfg, others, false))
+	lim, err := siteCageLimits(ctx, s.Accounts, st)
+	if err != nil {
+		return Health{}, st, err
+	}
+	h.Results = checks.RunAll(ctx, s.Sys, siteStateChecks(st, cfg, others, lim, false))
 	return h, st, nil
 }

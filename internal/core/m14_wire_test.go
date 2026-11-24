@@ -338,7 +338,7 @@ func TestSiteStateChecksM14(t *testing.T) {
 			cfg := StackConfig{Web: tc.web, PHPVersion: "8.3"}
 			// verify=true (kiểm chứng sau thao tác) phải có cùng các phép này.
 			for _, verify := range []bool{false, true} {
-				ids := checkIDs(t, system.NewFake(), siteStateChecks(st, cfg, nil, verify))
+				ids := checkIDs(t, system.NewFake(), siteStateChecks(st, cfg, nil, nil, verify))
 				for _, id := range tc.want {
 					if n := countOf(ids, id); n != 1 {
 						t.Errorf("verify=%v: %s xuất hiện %d lần, muốn 1: %v", verify, id, n, ids)

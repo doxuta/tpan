@@ -1,0 +1,12 @@
+## (1) RestartSec=5s, giới hạn 10 lần/30 giây: StartLimitIntervalSec=30 StartLimitBurst=10 RestartSec=5s 
+   40 giây ở 8M, 11 request (0 trả 200): dịch vụ activating (signal, NRestarts=7) | socket active (success) | file socket CO
+   trả 200M, không lệnh nào khác: A trả 200 sau 1.701204838 giây | dịch vụ active | socket active
+   tiến trình php-fpm của lồng lúc 8M ăn CPU bao nhiêu (cpu.stat usage_usec của slice): 1123664
+## (2) RestartSec=5s, StartLimitIntervalSec=0: StartLimitIntervalSec=0 StartLimitBurst=10 RestartSec=5s 
+   40 giây ở 8M, 11 request (0 trả 200): dịch vụ activating (signal, NRestarts=7) | socket active (success) | file socket CO
+   trả 200M, không lệnh nào khác: A trả 200 sau 2.050217437 giây | dịch vụ active | socket active
+   tiến trình php-fpm của lồng lúc 8M ăn CPU bao nhiêu (cpu.stat usage_usec của slice): 1092108
+
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200

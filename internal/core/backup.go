@@ -586,6 +586,12 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 	if err != nil {
 		return nil, err
 	}
+	// M17: site trong lồng thì kiểm chứng là bộ của lồng (lệnh wp của các bước
+	// đã tự chạy trong lồng qua cage.Wrap).
+	lim, err := siteCageLimits(ctx, b.Sites.Accounts, st)
+	if err != nil {
+		return nil, err
+	}
 	pre := &steps.BackupArchive{Layout: l, Src: l.Dir, Dir: site.BackupDir(l), PHPVersion: php}
 	dn := d.String()
 	aside := rd + "/old-public"
@@ -609,7 +615,7 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 			&steps.MariaDBDump{DB: l.DB, Path: rd + "/db-before.sql"},
 			&steps.DBImport{Layout: l, File: rd + "/db.sql", UndoFile: rd + "/db-before.sql"},
 		},
-		Verify: siteChecks(cfg.Web, php, l, others, st.SSL, st.Htaccess),
+		Verify: siteChecks(cfg.Web, php, st, others, lim),
 	}
 	return newPlanned(b.Sites.Sys, b.Sites.Journal, plan, func(ctx context.Context, rep engine.Report) error {
 		var errs []error

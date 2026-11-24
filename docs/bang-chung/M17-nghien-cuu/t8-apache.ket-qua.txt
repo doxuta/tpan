@@ -1,0 +1,22 @@
+## 0. Chuyển sang Apache
+tpan stack switch --to apache: mã 0 |   Stack và mọi site vẫn đạt.
+apache2: active | nginx: inactive | Server version: Apache/2.4.58 (Ubuntu) | MPM: mpm_event_module(shared)
+A HTTP 200 | B HTTP 200
+
+## 1. Đưa A vào lồng trên Apache
+35:        # Danh sách cố ý không có SetHandler, AddHandler, Action,
+80:        SetHandler "proxy:unix:/run/tpan-cage/a_example_com_7653e4/php.sock|fcgi://localhost"
+Syntax OK
+trang chủ: HTTP 200 | user=tp_a_example_com_7653e4 www=a.example.com apache=[ls: cannot open directory '/etc/apache2': Permission denied]
+permalink /hello-world/: HTTP 200 | trang không có: HTTP 404 | wp-login.php: HTTP 200
+dịch vụ của lồng: active | tiến trình: tp_a_example_com_7653e4      php-fpm: master process (/etc/tpan/cage/a_example_com_7653e4/php-fpm.conf)
+restart lồng dưới tải (60 request):      60 200 
+ngủ rồi thức: HTTP 200, 0.391580 giây
+2026/11/21 02:46:51 [crit] 31696#31696: *3828 connect() to unix:/run/tpan-cage/a_example_com_7653e4/php.sock failed (2: No such file or directory) while connecting to upstream, client: 127.0.0.1, serv
+2026/11/21 02:54:00 [error] 96109#96109: *6482 recv() failed (104: Connection reset by peer) while reading response header from upstream, client: 127.0.0.1, server: a.example.com, request: "GET /m.php
+
+## Dọn: trả vhost, gỡ lồng, về nginx
+Syntax OK
+A trên Apache, ngoài lồng: HTTP 200
+tpan stack switch --to nginx: mã 0 |   Stack và mọi site vẫn đạt.
+sau khi dọn: A HTTP 200, B HTTP 200 | nginx: active

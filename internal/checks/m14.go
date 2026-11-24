@@ -603,7 +603,7 @@ func ScanHtaccess(ctx context.Context, sys system.System, l site.Layout) (found 
 		}
 	}
 
-	sum := Evidence{Command: read("FILE").String() + "  (x " + strconv.Itoa(len(files)) + ")"}
+	sum := Evidence{Command: system.Describe(sys, read("FILE")) + "  (x " + strconv.Itoa(len(files)) + ")"}
 	sum.Output = fmt.Sprintf("%d .htaccess files scanned, %d unreadable, %d skipped under wp-content/uploads, %d directives outside the allowed list",
 		len(files), unreadable, skipped, len(found)-unreadable)
 	if total > len(files) {

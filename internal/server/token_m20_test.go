@@ -419,13 +419,18 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 	add("cron", "GET /api/v1/cron")
 	add("jobs", "GET /api/v1/jobs", "GET /api/v1/jobs/{id}", "GET /api/v1/jobs/{id}/events")
 	add("health", "GET /api/v1/overview", "GET /api/v1/checks", "GET /api/v1/incidents", "GET /api/v1/incidents/{id}",
-		"POST /api/v1/fixes", "POST /api/v1/files/accept", "POST /api/v1/health/run")
+		"POST /api/v1/fixes", "POST /api/v1/files/accept", "POST /api/v1/health/run",
+		// M17 (ghép từ dev): số liệu đọc theo nhóm health.
+		"GET /api/v1/usage", "GET /api/v1/sites/{domain}/usage", "GET /api/v1/usage/suggestions")
 	add("ssl", "GET /api/v1/ssl", "POST /api/v1/ssl/settings")
 	add("system", "GET /api/v1/machine", "GET /api/v1/stack", "POST /api/v1/stack/switch", "GET /api/v1/security",
 		"POST /api/v1/security/ufw", "POST /api/v1/security/fail2ban", "POST /api/v1/security/harden", "GET /api/v1/security/isolation",
 		"POST /api/v1/php/install", "POST /api/v1/php/remove", "GET /api/v1/updates", "POST /api/v1/updates", "POST /api/v1/updates/auto",
 		"POST /api/v1/mariadb/upgrade", "POST /api/v1/trash/settings", "GET /api/v1/self", "POST /api/v1/self/update",
-		"POST /api/v1/self/rollback", "GET /api/v1/panel", "POST /api/v1/panel/domain")
+		"POST /api/v1/self/rollback", "GET /api/v1/panel", "POST /api/v1/panel/domain",
+		// M17 (ghép từ dev): lồng và thử tấn công là cấu hình máy của admin.
+		"GET /api/v1/cage", "POST /api/v1/sites/{domain}/cage", "GET /api/v1/security/probe",
+		"POST /api/v1/security/probe", "POST /api/v1/security/probe/cleanup")
 	// Chỉ phiên (nhóm rỗng): quản lý tài khoản, mật khẩu, hai bước, token,
 	// user, gói, Plan, AI, chính sách (B5).
 	add("", "POST /api/v1/account/password", "GET /api/v1/account/sessions", "DELETE /api/v1/account/sessions/{id}",

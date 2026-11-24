@@ -81,9 +81,52 @@ type Package struct {
 	// tạo mới, không xoá hay khoá gì tự động.
 	DiskMB int `json:"disk_mb"`
 	// MaxBackups: số bản backup đầy đủ tối đa của MỖI site.
-	MaxBackups int       `json:"max_backups"`
-	Created    time.Time `json:"created"`
+	MaxBackups int `json:"max_backups"`
+
+	// M17 (mục 3.1 của docs/thay-doi/M17-thiet-ke.md): cờ lồng ("muốn" đưa site
+	// của gói vào lồng) và các trần áp lên slice của mỗi site trong lồng. 0 là
+	// không giới hạn; riêng PHPWorkers: 0 là DefaultPHPWorkers.
+	Cage       bool `json:"cage"`
+	CPUPercent int  `json:"cpu_percent"` // % của một nhân
+	RAMMB      int  `json:"ram_mb"`      // MiB
+	Tasks      int  `json:"tasks"`       // tiến trình và luồng
+	IOReadMB   int  `json:"io_read_mb"`  // MB/giây
+	IOWriteMB  int  `json:"io_write_mb"` // MB/giây
+	PHPWorkers int  `json:"php_workers"` // pm.max_children
+
+	Created time.Time `json:"created"`
 }
+
+// DefaultPHPWorkers là pm.max_children khi gói để 0: đúng con số của pool PHP
+// ngoài lồng (mục 5 của docs/KE-HOACH.md), vì PHP-FPM bắt buộc có một con số.
+const DefaultPHPWorkers = 5
+
+// Limits là các trần của một site trong lồng (lấy từ gói của chủ site).
+type Limits struct {
+	CPUPercent int `json:"cpu_percent"`
+	RAMMB      int `json:"ram_mb"`
+	Tasks      int `json:"tasks"`
+	IOReadMB   int `json:"io_read_mb"`
+	IOWriteMB  int `json:"io_write_mb"`
+	PHPWorkers int `json:"php_workers"`
+}
+
+// Limits trả các trần của gói.
+func (p Package) Limits() Limits {
+	return Limits{CPUPercent: p.CPUPercent, RAMMB: p.RAMMB, Tasks: p.Tasks,
+		IOReadMB: p.IOReadMB, IOWriteMB: p.IOWriteMB, PHPWorkers: p.PHPWorkers}
+}
+
+// Workers là pm.max_children thật sẽ dùng: PHPWorkers, hoặc DefaultPHPWorkers khi 0.
+func (l Limits) Workers() int {
+	if l.PHPWorkers > 0 {
+		return l.PHPWorkers
+	}
+	return DefaultPHPWorkers
+}
+
+// Any cho biết có trần nào khác 0 (kể cả số worker): gói như vậy phải bật lồng.
+func (l Limits) Any() bool { return l != Limits{} }
 
 // Usage là phần một user đang dùng, để so với gói.
 type Usage struct {

@@ -1,0 +1,10 @@
+uptime: 10.99 giây
+ghi lúc khởi động: luc goi: /run/mysqld CO, mariadb inactive;HTTP 500;
+dịch vụ lồng: active (NRestarts=0, Result=success) | socket: active
+mountinfo của lồng có /run/mysqld: 1
+bây giờ (MariaDB active), KHÔNG đụng lồng: A HTTP 200 | B HTTP 200
+  journal: Started tpan-cage-a_example_com_7653e4-php.service - TPAN: PHP-FPM 8.3 rieng cua a.example.com.
+/run/mysqld: 755 mysql:root
+## Dọn
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+sau khi dọn: A HTTP 200, B HTTP 200

@@ -1,0 +1,2 @@
+trước khi khởi động lại: A HTTP 200 | socket enabled
+4:ExecStartPre=-/usr/bin/install -d -m 0755 -o mysql -g root /run/mysqld

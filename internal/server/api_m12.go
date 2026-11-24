@@ -25,7 +25,7 @@ func (s *Server) apiPHP() *core.PHP {
 	st := s.deps.Store
 	return &core.PHP{
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
-		Settings: st, Sites: st, Journal: st,
+		Settings: st, Sites: st, Journal: st, Accounts: st,
 	}
 }
 

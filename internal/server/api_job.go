@@ -55,6 +55,11 @@ func (j jobLockSystem) Lock(ctx context.Context) (func(), error) {
 	return unlock, err
 }
 
+// Describe chuyển tiếp tới System gốc (M17): mọi job của API chạy trên kiểu bọc
+// này, nên thiếu dòng này thì sự kiện command và bằng chứng của site trong lồng
+// in `runuser` thay cho dòng systemd-run thật (mục 3.4 của thiết kế M17).
+func (j jobLockSystem) Describe(cmd system.Cmd) string { return system.Describe(j.System, cmd) }
+
 // jobRun là một job đang chạy trong tiến trình này.
 type jobRun struct {
 	id   string
