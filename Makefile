@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 
 .DEFAULT_GOAL := help
 .PHONY: help web build build-linux release test test-web lint check dev-api dev-web vm-up vm-reset vm-deploy vm-shell clean \
-  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang anh-m17 anh-m18 e2e-m18-gd \
+  do-giao-dien anh-m16 anh-readme anh-xem anh-mau e2e-m16 lay-dev kieu-dang anh-m17 e2e-m17-gd anh-m18 e2e-m18-gd \
   m28-nghien-cuu m28-giu-ban e2e-m28 m28-test-vm hoi-quy-m28 \
   nc-m17 e2e don-tmp
 
@@ -101,6 +101,12 @@ e2e-m16: ## e2e bước 19 trên máy ảo trong .tpan-vm (giao diện bản 2: 
 
 anh-m17: web ## Chụp các màn của M17 (Tài nguyên, Gói có lồng, khối lồng của trang site, Thử tấn công, Công cụ) ở 1440 sáng, tối và 390 px vào docs/bang-chung/M17, kiểm như anh-m16
 	$(ANH) -bo m17 -out docs/bang-chung/M17
+
+e2e-m17-gd: ## e2e giao diện M17 trên máy ảo trong .tpan-vm (bật lồng ở gói, vào lồng, sửa gói qua bản xem trước, thử tấn công, ra lồng bằng trình duyệt); log vào docs/bang-chung/M17-giao-dien.log
+	@# Như e2e-m18-gd: log ghi ra tmp-phien/ rồi mới chép, để tên bản được đóng gói không có đuôi -dirty.
+	E2E_LOG=tmp-phien/e2e-m17-gd.log bash scripts/e2e-m17-gd.sh </dev/null >tmp-phien/e2e-m17-gd.log 2>&1; rc=$$?; \
+	  cp tmp-phien/e2e-m17-gd.log docs/bang-chung/M17-giao-dien.log; \
+	  echo "e2e-m17-gd: mã thoát $$rc, đạt $$(grep -c '=> ĐẠT' tmp-phien/e2e-m17-gd.log), không đạt $$(grep -c '=> KHÔNG ĐẠT' tmp-phien/e2e-m17-gd.log)"; exit $$rc
 
 anh-m18: web ## Chụp các màn của M18 (Backup có đích, cài lên máy mới, Công cụ) ở 1440 sáng, tối và 390 px vào docs/bang-chung/M18, kiểm như anh-m16
 	$(ANH) -bo m18 -out docs/bang-chung/M18

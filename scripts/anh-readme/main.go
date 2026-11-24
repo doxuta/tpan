@@ -77,13 +77,14 @@ func main() {
 	flag.StringVar(&m16.site, "site", "", "bộ m16-do: site dùng cho màn \"trang một site\" (mặc định: site tên dài nhất của máy)")
 	flag.StringVar(&m16.passwordFile, "mat-khau-tep", "", "với -panel: file chứa output của `tpan setup` hoặc `tpan admin passwd`; mật khẩu admin được đọc từ đó")
 	flag.BoolVar(&m16.threshold, "nguong", false, "bộ m16-do: kiểm các ngưỡng cứng của M16, sai một cái là thoát mã khác 0")
-	flag.StringVar(&m16.step, "buoc", "", "bộ m16-that: admin, tao-site, user hoặc nang-cap (xem m16_that.go); bộ m18-that: dich hoặc khoi-phuc (xem m18_that.go)")
+	flag.StringVar(&m16.step, "buoc", "", "bộ m16-that: admin, tao-site, user hoặc nang-cap (xem m16_that.go); bộ m18-that: dich hoặc khoi-phuc (xem m18_that.go); bộ m17-that: bat-long, vao-long, sua-goi, tan-cong, ra-long (xem m17_that.go)")
 	// Bộ m18-that, bước dich: phần KHÔNG bí mật của form đích. Hai khoá đi qua
 	// biến môi trường TPAN_S3_ACCESS, TPAN_S3_SECRET, không qua dòng lệnh.
 	flag.StringVar(&m16.s3Endpoint, "s3-endpoint", "", "bộ m18-that, bước dich: endpoint gõ vào form đích (máy chủ tpan gọi tới, ví dụ http://127.0.0.1:7070)")
 	flag.StringVar(&m16.s3Region, "s3-region", "", "bộ m18-that, bước dich: vùng")
 	flag.StringVar(&m16.s3Bucket, "s3-bucket", "", "bộ m18-that, bước dich: bucket")
 	flag.StringVar(&m16.s3Prefix, "s3-prefix", "", "bộ m18-that, bước dich: tiền tố (rỗng: giữ giá trị form điền sẵn)")
+	flag.StringVar(&m16.pkg, "goi", "", "bộ m17-that, bước bat-long và sua-goi: tên gói (xem m17_that.go)")
 	flag.StringVar(&m16.userName, "ten", "", "bộ m16-that, bước user: tên user thường (mật khẩu ở biến môi trường TPAN_USER_PASSWORD)")
 	flag.StringVar(&m16.waitFile, "cho-tep", "", "bộ m16-that, bước nang-cap: file mà script e2e tạo ra khi đã nâng cấp xong")
 	flag.StringVar(&m16.only, "chi", "", "bộ m16: chỉ chụp các ảnh có tên này (cách nhau bằng dấu phẩy, ví dụ cong-cu,nguoi-dung), bỏ phần bàn phím và tiếng Anh")
@@ -101,14 +102,14 @@ func main() {
 		}
 	case "m16-do", "m16", "mau-v2", "m17", "m18":
 		list = nil
-	case "m16-that", "m18-that":
+	case "m16-that", "m17-that", "m18-that":
 		list = nil
 		if *panel == "" {
 			fmt.Fprintf(os.Stderr, "lỗi: -bo %s cần -panel (panel của máy ảo test)\n", *set)
 			os.Exit(2)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that, m17, m18, m18-that hoặc mau-v2")
+		fmt.Fprintln(os.Stderr, "lỗi: -bo chỉ nhận readme, m15, m15-that, m16-do, m16, m16-that, m17, m17-that, m18, m18-that hoặc mau-v2")
 		os.Exit(2)
 	}
 	if err := run(*listen, *chrome, *debugPort, *out, *set, list, *panel, m16); err != nil {
@@ -233,6 +234,9 @@ func run(listen, chrome string, debugPort int, out, set string, list []shot, pan
 	}
 	if set == "m18-that" {
 		return liveM18(c, base, password, m16)
+	}
+	if set == "m17-that" {
+		return liveM17(c, base, password, m16)
 	}
 
 	// 4. đăng nhập bằng fetch cùng origin (cookie HttpOnly nằm trong Chrome).
