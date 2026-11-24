@@ -767,13 +767,13 @@ func siteVhost(st site.Site, cfg StackConfig) ([]engine.Step, error) {
 	web, php := string(cfg.Web), sitePHP(st, cfg)
 	switch {
 	case st.Suspended != account.NotSuspended:
-		return steps.SiteVhostSuspended(st.Layout(), web, acmeRoot, st.SSL)
+		return steps.SiteVhostSuspended(st.Layout(), web, acmeRoot, st.SSL, st.Names)
 	case st.Caged:
 		// M17: site trong lồng, vhost trỏ socket của lồng (mục 3.6). Sau nhánh
 		// tạm khoá: site trong lồng đang khoá vẫn ra bản tạm khoá.
-		return steps.SiteVhostCaged(st.Layout(), web, acmeRoot, st.SSL, st.Htaccess.OrDefault())
+		return steps.SiteVhostCaged(st.Layout(), web, acmeRoot, st.SSL, st.Htaccess.OrDefault(), st.Names)
 	case st.SSL:
-		return steps.SiteVhostSSL(st.Layout(), web, php, acmeRoot, st.Htaccess.OrDefault())
+		return steps.SiteVhostSSL(st.Layout(), web, php, acmeRoot, st.Htaccess.OrDefault(), st.Names)
 	}
-	return steps.SiteVhost(st.Layout(), web, php, acmeRoot, st.Htaccess.OrDefault())
+	return steps.SiteVhost(st.Layout(), web, php, acmeRoot, st.Htaccess.OrDefault(), st.Names)
 }

@@ -50,7 +50,7 @@ func TestSuspendLifecycle(t *testing.T) {
 	on := func(m *machine) { suspendBase(t, m, l) }
 	off := func(m *machine) { suspendedBase(t, m, l) }
 	vhost := func(web string, ssl bool, i int) func() engine.Step {
-		return func() engine.Step { return webStepsOK(t)(SiteVhostSuspended(l, web, webAcme, ssl))[i] }
+		return func() engine.Step { return webStepsOK(t)(SiteVhostSuspended(l, web, webAcme, ssl, site.Names{}))[i] }
 	}
 	page := func() engine.Step { return webStepOK(t)(SuspendedPage(l)) }
 	cases := []lifecycle{
@@ -240,9 +240,9 @@ func TestSuspendBadParams(t *testing.T) {
 		"pool layout sửa":   second(PoolUnsuspend(bad, "8.3")),
 		"cron layout zero":  second(CronSuspend(site.Layout{})),
 		"cron layout sửa":   second(CronUnsuspend(bad)),
-		"vhost web lạ":      secondSlice(SiteVhostSuspended(l, "caddy", webAcme, false)),
-		"vhost acme lạ":     secondSlice(SiteVhostSuspended(l, "nginx", "../../etc/passwd", false)),
-		"vhost layout zero": secondSlice(SiteVhostSuspended(site.Layout{}, "nginx", webAcme, true)),
+		"vhost web lạ":      secondSlice(SiteVhostSuspended(l, "caddy", webAcme, false, site.Names{})),
+		"vhost acme lạ":     secondSlice(SiteVhostSuspended(l, "nginx", "../../etc/passwd", false, site.Names{})),
+		"vhost layout zero": secondSlice(SiteVhostSuspended(site.Layout{}, "nginx", webAcme, true, site.Names{})),
 		"rename tương đối":  (&Rename{From: "etc/x", To: "/etc/y"}).validate(),
 		"rename trùng":      (&Rename{From: "/etc/x", To: "/etc/x"}).validate(),
 		"rename có ..":      (&Rename{From: "/etc/x/../shadow", To: "/etc/y"}).validate(),

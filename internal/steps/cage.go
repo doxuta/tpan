@@ -1505,7 +1505,7 @@ func cageRebindIdentity(ctx context.Context, sys system.System) {
 // l.CageSocket()) vào sites-available rồi bật bằng symlink, như SiteVhost và
 // SiteVhostSSL (ssl chọn bản có cổng 443). Cùng đường dẫn file với vhost ngoài
 // lồng: vào lồng và ra lồng là ghi đè cùng một file.
-func SiteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode) ([]engine.Step, error) {
+func SiteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.HtaccessMode, n site.Names) ([]engine.Step, error) {
 	if err := webCheckLayout(l); err != nil {
 		return nil, fmt.Errorf("dựng bước vhost trong lồng: %w", err)
 	}
@@ -1513,7 +1513,7 @@ func SiteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.Hta
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost trong lồng: %w", err)
 	}
-	conf, err := templates.SiteVhostCaged(l, web, acmeRoot, ssl, mode)
+	conf, err := templates.SiteVhostCagedNames(l, web, acmeRoot, ssl, mode, n)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost trong lồng %s: %w", web, err)
 	}

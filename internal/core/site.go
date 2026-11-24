@@ -152,6 +152,9 @@ type SiteInput struct {
 	// site đã có thì bỏ qua (không đổi chủ ở đây). Kiểm hạn mức gói của Owner
 	// khi Sites.Accounts khác nil.
 	Owner string
+	// WWW (M19): kiểu của tên phụ mặc định (www.<gốc> cho tên gốc, <gốc> cho
+	// www.<gốc>): "" là redirect, WWWNone là không thêm. Chỉ cho site mới.
+	WWW site.NameMode
 }
 
 // checkSiteTitle kiểm tiêu đề site: UTF-8 hợp lệ, không ký tự điều khiển (kể
@@ -411,10 +414,15 @@ type SiteAdd struct {
 	Rerun     bool
 	AdminUser string
 	Plan      engine.Plan
+	// Notes (M19): ghi chú cho người dùng, ví dụ tên www mặc định bị bỏ qua.
+	Notes []i18n.Text
 
 	sites         *Sites
 	adminPassword system.Secret
 	install       *wpInstallStep
+	// claims (M19): tên giữ chỗ ở Execute (tên chính và tên www của site mới);
+	// rỗng khi chạy lại hay khi store không giữ được tên.
+	claims []site.Claim
 }
 
 // SiteAddResult là kết quả của SiteAdd.Execute.
@@ -436,6 +444,8 @@ type SiteAddResult struct {
 	// ngoài lồng; health cảnh báo cage.state.
 	CageJob   *engine.Report `json:"cage_job,omitempty"`
 	CageError *RefusedError  `json:"cage_error,omitempty"`
+	// Notes (M19): như SiteAdd.Notes.
+	Notes []i18n.Text `json:"notes,omitempty"`
 }
 
 // PrepareAdd làm phần chỉ đọc của "tạo site" (mục 6.2): kiểm đầu vào, kiểm
@@ -472,6 +482,11 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		return nil, err
 	}
 	emailGuessed := false
+	if err := checkWWWMode(in.WWW); err != nil {
+		return nil, err
+	}
+	var claims []site.Claim
+	var notes []i18n.Text
 	rec := site.Site{Domain: d, Slug: l.Slug, Status: site.Active, PHPVersion: cfg.PHPVersion, Htaccess: site.HtaccessSafe}
 	if found {
 		switch old.Status {
@@ -515,6 +530,9 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 			return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị (--email): site mới cần email cho tài khoản quản trị WordPress", "the admin email is missing (--email): a new site needs an email for its WordPress admin account"))
 		}
 		if rec.Owner, err = s.newOwner(ctx, in.Owner); err != nil {
+			return nil, err
+		}
+		if claims, notes, err = s.addClaims(ctx, &rec, in.WWW); err != nil {
 			return nil, err
 		}
 		vi, en, err := s.unmanaged(ctx, l)
@@ -568,9 +586,16 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		return nil, err
 	}
 	plan.Verify = siteChecks(cfg.Web, rec.PHPVersion, rec, others, lim)
+	// M19: tên www mặc định được kiểm bằng một request thật, sau bước cài
+	// WordPress (kiểu serve cần WordPress trả lời).
+	for _, c := range claims {
+		if c.Kind == site.KindAlias {
+			plan.Steps = append(plan.Steps, &steps.NameProbe{Layout: l, Host: c.Name, Mode: c.Mode})
+		}
+	}
 	return &SiteAdd{
-		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan,
-		sites: s, adminPassword: adminPw, install: install,
+		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan, Notes: notes,
+		sites: s, adminPassword: adminPw, install: install, claims: claims,
 	}, nil
 }
 
@@ -724,9 +749,25 @@ func (a *SiteAdd) Preview(ctx context.Context) (engine.Preview, error) {
 // trị nếu WordPress đã được cài: mất nó là mất tài khoản quản trị.
 func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (SiteAddResult, error) {
 	s := a.sites
-	res := SiteAddResult{Site: a.Site, AdminUser: a.AdminUser}
+	res := SiteAddResult{Site: a.Site, AdminUser: a.AdminUser, Notes: a.Notes}
 	if s.Journal == nil {
 		return res, errors.New("tạo site: thiếu Journal, không ghi được lịch sử job")
+	}
+	// M19: giữ chỗ tên trước khi chạy job; job hỏng hay không chạy được thì nhả.
+	ns, _ := s.nameStore()
+	if len(a.claims) > 0 {
+		if err := ns.ClaimNames(ctx, a.claims); err != nil {
+			return res, s.siteAddRefusal(err)
+		}
+	}
+	release := func(cause error) error {
+		if len(a.claims) == 0 {
+			return cause
+		}
+		if err := ns.ReleaseNames(ctx, a.Site.Domain, claimNames(a.claims)); err != nil {
+			return errors.Join(cause, fmt.Errorf("nhả chỗ giữ tên của %s: %w (dòng pending tự hết hạn sau 1 giờ)", a.Site.Domain, err))
+		}
+		return cause
 	}
 	// Site mới chưa có dòng trong bảng sites lúc job bắt đầu: ghi chủ vào job
 	// ngay, để admin tạo hộ thì user chủ vẫn thấy job tạo site của mình.
@@ -736,10 +777,10 @@ func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (Site
 	rep, err := engine.New(s.Sys, engine.Options{Journal: s.Journal, OnEvent: onEvent}).Execute(ctx, a.Plan)
 	res.Report = rep
 	if err != nil {
-		return res, fmt.Errorf("chạy %s: %w", a.Plan.Kind, err)
+		return res, release(fmt.Errorf("chạy %s: %w", a.Plan.Kind, err))
 	}
 	if rep.Job.Status != engine.JobSucceeded {
-		return res, nil
+		return res, release(nil)
 	}
 	if a.install.ran {
 		res.WPInstalled, res.AdminPassword = true, a.adminPassword
@@ -750,6 +791,12 @@ func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (Site
 	if err := s.Store.SaveSite(ctx, res.Site); err != nil {
 		return res, fmt.Errorf("job %s xong nhưng không ghi được site %s vào DB của tpan: %w. Máy đã có site mà tpan chưa ghi nhận, nên `tpan site add %s` sẽ bị từ chối là site không do tpan quản lý",
 			rep.Job.ID, a.Site.Domain, err, a.Site.Domain)
+	}
+	if len(a.claims) > 0 {
+		if err := ns.ActivateNames(ctx, a.Site.Domain, claimNames(a.claims)); err != nil {
+			return res, fmt.Errorf("job %s đã tạo site %s nhưng không ghi được trạng thái các tên của nó vào DB của tpan: %w. Site chạy được bằng tên chính; tên phụ mặc định chưa được ghi nhận, thêm lại bằng `tpan site alias add %s <tên>`",
+				rep.Job.ID, a.Site.Domain, err, a.Site.Domain)
+		}
 	}
 	// M17 (mục 3.6, bảng "Ghép"): lần tạo đầu mà gói của chủ muốn lồng thì chạy
 	// tiếp một job cage.enable, SAU khi dòng site đã ghi (PrepareEnable đọc

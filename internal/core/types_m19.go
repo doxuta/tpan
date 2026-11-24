@@ -19,18 +19,24 @@ import (
 var errM19TODO = errors.New("core: M19 chưa làm")
 
 // NamesOp là một thay đổi tên phụ hay luật chuyển hướng đã qua điều kiện đầu.
-// Trường không xuất (sites, site, plan, claim, id luật) do thợ 1c thêm.
-type NamesOp struct{}
-
-// Preview trả bản xem trước của Plan, không giữ chỗ gì.
-func (o *NamesOp) Preview(ctx context.Context) (engine.Preview, error) {
-	return engine.Preview{}, errM19TODO
-}
-
-// Execute: giữ chỗ (nếu cần), chạy job, activate hoặc release. error chỉ khác
-// nil khi không chạy được hay không ghi được DB; job hỏng thì xem Report.
-func (o *NamesOp) Execute(ctx context.Context, onEvent func(engine.Event)) (NamesResult, error) {
-	return NamesResult{}, errM19TODO
+// Preview và Execute ở names_m19.go.
+type NamesOp struct {
+	sites *Sites
+	ns    NameStore
+	op    namesOpKind
+	// site là dòng đang có; next là site sau thay đổi (vhost vẽ từ next.Names:
+	// tên active cộng đúng thay đổi của job này, không bao giờ tên pending khác).
+	site, next site.Site
+	name       validate.Domain
+	mode       site.NameMode
+	// pending: alias.rm gỡ một dòng còn pending (nhả bằng ReleaseNames).
+	pending bool
+	// claim: alias.add giữ chỗ trước khi chạy job; nil với thao tác khác.
+	claim     *site.Claim
+	plan      engine.Plan
+	needsCert bool
+	// sslNote: ghi chú job site.ssl chạy tiếp, cho bản xem trước (S14).
+	sslNote *i18n.Text
 }
 
 // NamesResult là kết quả của một NamesOp.
@@ -75,27 +81,11 @@ type NameStore interface {
 	NameSite(ctx context.Context, name validate.Domain) (site.Name, bool, error)
 }
 
-func (s *Sites) PrepareAliasAdd(ctx context.Context, siteD, name validate.Domain, m site.NameMode) (*NamesOp, error) {
-	return nil, errM19TODO
-}
-
-func (s *Sites) PrepareAliasMode(ctx context.Context, siteD, name validate.Domain, m site.NameMode) (*NamesOp, error) {
-	return nil, errM19TODO
-}
-
-func (s *Sites) PrepareAliasRemove(ctx context.Context, siteD, name validate.Domain) (*NamesOp, error) {
-	return nil, errM19TODO
-}
-
 func (s *Sites) PrepareRedirectAdd(ctx context.Context, siteD validate.Domain, in RedirectInput) (*NamesOp, error) {
 	return nil, errM19TODO
 }
 
 func (s *Sites) PrepareRedirectRemove(ctx context.Context, siteD validate.Domain, id int64) (*NamesOp, error) {
-	return nil, errM19TODO
-}
-
-func (s *Sites) NameList(ctx context.Context, siteD validate.Domain) ([]NameView, error) {
 	return nil, errM19TODO
 }
 

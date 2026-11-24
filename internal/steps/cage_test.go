@@ -1567,7 +1567,7 @@ func TestSiteVhostCaged(t *testing.T) {
 	l := cageLayout(t)
 	for _, web := range []string{"nginx", "apache"} {
 		for _, ssl := range []bool{false, true} {
-			steps, err := SiteVhostCaged(l, web, "/var/lib/tpan/acme", ssl, site.HtaccessSafe)
+			steps, err := SiteVhostCaged(l, web, "/var/lib/tpan/acme", ssl, site.HtaccessSafe, site.Names{})
 			if err != nil {
 				t.Fatalf("%s ssl=%v: %v", web, ssl, err)
 			}
@@ -1592,10 +1592,10 @@ func TestSiteVhostCaged(t *testing.T) {
 			}
 		}
 	}
-	if _, err := SiteVhostCaged(l, "caddy", "/var/lib/tpan/acme", false, site.HtaccessSafe); err == nil {
+	if _, err := SiteVhostCaged(l, "caddy", "/var/lib/tpan/acme", false, site.HtaccessSafe, site.Names{}); err == nil {
 		t.Error("web lạ mà không lỗi")
 	}
-	if _, err := SiteVhostCaged(site.Layout{}, "nginx", "/var/lib/tpan/acme", false, site.HtaccessSafe); err == nil {
+	if _, err := SiteVhostCaged(site.Layout{}, "nginx", "/var/lib/tpan/acme", false, site.HtaccessSafe, site.Names{}); err == nil {
 		t.Error("Layout zero mà không lỗi")
 	}
 }

@@ -155,6 +155,10 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 	// pending đếm site mới đã nhận trong lô theo từng chủ: Usage của store
 	// chưa thấy chúng, nên hạn mức phải cộng thêm (dòng thừa thành Refused).
 	pending := map[string]int{}
+	// M19: tên chính của các site mới đã nhận trong lô. CheckNames xét chúng
+	// cùng nhau (S10): hai dòng cùng tên miền gốc của hai chủ không cùng qua.
+	ns, hasNames := s.nameStore()
+	var lot []site.Claim
 
 	a := &Apply{sites: s}
 	var creates []applyUnit
@@ -219,10 +223,20 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 				}
 			}
 			var add *SiteAdd
+			// M19: apply không thêm tên www mặc định (file khai báo không
+			// mang tên phụ, S21).
+			as.Input.WWW = WWWNone
 			add, err = s.PrepareAdd(ctx, as.Input)
 			if err != nil {
 				item, err = refusedItem(item, err)
 				break
+			}
+			if hasNames && len(add.claims) > 0 {
+				if cerr := ns.CheckNames(ctx, slices.Concat(lot, add.claims)); cerr != nil {
+					item, err = refusedItem(item, s.siteAddRefusal(cerr))
+					break
+				}
+				lot = append(lot, add.claims...)
 			}
 			pending[owner]++
 			item.Action, item.SSL = ApplyCreate, as.SSL
@@ -467,13 +481,42 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 	if s.Journal == nil {
 		return res, errors.New("áp danh sách site: thiếu Journal, không ghi được lịch sử job")
 	}
+	// M19: giữ chỗ tên chính của mọi site mới trong lô trước khi chạy lô, một
+	// transaction cho cả lô. Một tên không giữ được (đua với thao tác khác từ
+	// lúc xem trước) thì không chạy gì.
+	ns, _ := s.nameStore()
+	var claims []site.Claim
+	for _, u := range a.units {
+		if u.add != nil {
+			claims = append(claims, u.add.claims...)
+		}
+	}
+	if len(claims) > 0 {
+		if err := ns.ClaimNames(ctx, claims); err != nil {
+			return res, s.siteAddRefusal(err)
+		}
+	}
+	// release nhả tên của unit u (job không thành công cho site đó).
+	var errs []error
+	release := func(u applyUnit) {
+		if len(u.add.claims) == 0 {
+			return
+		}
+		if err := ns.ReleaseNames(ctx, u.add.Site.Domain, claimNames(u.add.claims)); err != nil {
+			errs = append(errs, fmt.Errorf("nhả chỗ giữ tên của %s: %w (dòng pending tự hết hạn sau 1 giờ)", u.add.Site.Domain, err))
+		}
+	}
 	rep, err := engine.New(s.Sys, engine.Options{Journal: s.Journal, OnEvent: onEvent}).ExecuteBatch(ctx, a.Batch)
 	if rep.Job.ID == "" {
 		// Job chưa được tạo (khoá, Journal, Batch sai): máy chưa đổi gì.
-		return res, fmt.Errorf("chạy job hàng loạt: %w", err)
+		for _, u := range a.units {
+			if u.add != nil {
+				release(u)
+			}
+		}
+		return res, errors.Join(append(errs, fmt.Errorf("chạy job hàng loạt: %w", err))...)
 	}
 	res.Report = &rep
-	var errs []error
 	if err != nil {
 		// Job đã chạy nhưng Journal hỏng giữa chừng: vẫn đi tiếp để ghi bảng
 		// sites và trả mật khẩu của các site đã thành.
@@ -501,6 +544,9 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 			continue
 		}
 		r := ApplySiteResult{Domain: u.add.Site.Domain.String(), Status: status}
+		if status != engine.UnitSucceeded {
+			release(u)
+		}
 		if status == engine.UnitSucceeded {
 			// Chỉ unit succeeded: unit bị hoàn tác ở pha C có thể đã chạy
 			// `wp core install` (ran = true) nhưng WordPress đó đã bị gỡ.
@@ -514,6 +560,12 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 					rep.Job.ID, rec.Domain, err, rec.Domain))
 			} else {
 				made = append(made, fresh{k: len(res.Created), u: u})
+				if len(u.add.claims) > 0 {
+					if err := ns.ActivateNames(ctx, rec.Domain, claimNames(u.add.claims)); err != nil {
+						errs = append(errs, fmt.Errorf("job %s đã tạo site %s nhưng không ghi được trạng thái tên của nó vào DB của tpan: %w",
+							rep.Job.ID, rec.Domain, err))
+					}
+				}
 			}
 		}
 		res.Created = append(res.Created, r)

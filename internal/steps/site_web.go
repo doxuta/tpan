@@ -93,17 +93,14 @@ func SitePool(l site.Layout, phpVersion string) (engine.Step, error) {
 // SiteVhost ghi vhost vào sites-available rồi bật bằng symlink ở
 // sites-enabled. Cả hai bước kiểm cú pháp rồi reload web server. phpVersion là
 // bản PHP site đang dùng: vhost chuyển .php tới socket của bản đó.
-func SiteVhost(l site.Layout, web, phpVersion, acmeRoot string, mode site.HtaccessMode) ([]engine.Step, error) {
+func SiteVhost(l site.Layout, web, phpVersion, acmeRoot string, mode site.HtaccessMode, n site.Names) ([]engine.Step, error) {
 	v, err := webVhostOf(l, web)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost: %w", err)
 	}
-	var conf []byte
-	if web == "nginx" {
-		conf, err = templates.NginxSite(l, phpVersion, acmeRoot)
-	} else {
-		conf, err = templates.ApacheSite(l, phpVersion, acmeRoot, mode)
-	}
+	// M19: n là tên phụ và luật active của site (site.Names{} ra đúng từng byte
+	// bản trước M19, templates.TestVhostZeroNamesGolden).
+	conf, err := templates.SiteVhostNames(l, web, phpVersion, acmeRoot, false, mode, n)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost %s: %w", web, err)
 	}

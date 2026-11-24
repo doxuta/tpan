@@ -166,7 +166,7 @@ func (s *Rename) Undo(ctx context.Context, sys system.System) error {
 // SiteVhostSuspended ghi vhost bản tạm khoá (templates.SuspendedVhost) vào
 // sites-available rồi bật bằng symlink, cùng đường dẫn, Test và Reload như
 // SiteVhost: tạm khoá là ghi đè vhost đang có, mở khoá là ghi đè ngược lại.
-func SiteVhostSuspended(l site.Layout, web, acmeRoot string, ssl bool) ([]engine.Step, error) {
+func SiteVhostSuspended(l site.Layout, web, acmeRoot string, ssl bool, n site.Names) ([]engine.Step, error) {
 	if err := webCheckLayout(l); err != nil {
 		return nil, fmt.Errorf("dựng bước vhost tạm khoá: %w", err)
 	}
@@ -174,7 +174,7 @@ func SiteVhostSuspended(l site.Layout, web, acmeRoot string, ssl bool) ([]engine
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost tạm khoá: %w", err)
 	}
-	conf, err := templates.SuspendedVhost(l, web, acmeRoot, ssl)
+	conf, err := templates.SuspendedVhostNames(l, web, acmeRoot, ssl, n)
 	if err != nil {
 		return nil, fmt.Errorf("dựng bước vhost tạm khoá: %w", err)
 	}
