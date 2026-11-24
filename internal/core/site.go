@@ -86,6 +86,10 @@ type Sites struct {
 	// Samples (M17) là bảng số liệu: xoá hẳn một site thì xoá mọi mẫu và dòng
 	// giờ của domain đó. nil (xem trước, test): không xoá số liệu.
 	Samples UsageStore
+	// NotAdmin (M19): người đang thao tác không phải admin. Zero (dòng lệnh,
+	// chạy bằng root) là admin; server đặt theo vai của phiên. Luật tên miền
+	// gốc và public suffix (site.Claim.ByAdmin) đọc trường này.
+	NotAdmin bool
 }
 
 func (s *Sites) now() time.Time {
