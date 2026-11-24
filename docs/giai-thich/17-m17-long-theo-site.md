@@ -873,6 +873,7 @@ Lấy từ bản thiết kế mục 5 và sổ quyết định; không phải m�
 - **Không phủ:** việc site đẩy sang dịch vụ chung (truy vấn nặng trong MariaDB, TLS và file tĩnh trong web server), dung lượng đĩa (đầy đĩa), băng thông mạng.
 - **Mail.** `sendmail` không chạy được trong lồng; vốn đã không gửi được ở ngoài lồng trên stack của TPAN (t2).
 - **Trần CPU trên máy ảo rảnh** nhận ít hơn mức đặt (mục 2.3); không bao giờ nhiều hơn.
+- **Số lần chạm mức tiến trình có thể đếm thiếu.** Trên kernel 6.8, bộ đếm nằm ở cgroup nơi gọi `fork` (bản thử t3b), tức cgroup của dịch vụ PHP. Dịch vụ khởi động lại (needrestart sau khi apt nâng gói PHP, hay đổi bản PHP) thì cgroup mới bắt đầu từ 0. Thấy thật ngày 25/11/2026: một lượt e2e bước 20 có apt nâng gói nền đúng lúc phép thử, `tpan usage` ra `tasks_hits` bằng 0 dù script đọc thẳng `pids.events` lúc chạm mức thấy 1. Số lần bị giết vì RAM (`oom_kill` ở `memory.events` của slice) không bị ảnh hưởng, vì slice không khởi động lại.
 
 ### 5.11 Gộp với M28: luật lệnh root từ chối chính lồng
 
