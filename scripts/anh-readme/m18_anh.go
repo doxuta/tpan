@@ -198,10 +198,6 @@ func genUserData(c *cdp) error {
 }
 
 func photosM18(c *cdp, base, out, only string) error {
-	if err := c.watchConsole(); err != nil {
-		return err
-	}
-	var fail m16Fail
 	blog := "blog.example.com" // site demo có bản chỉ còn trên kho (internal/demo/m18.go)
 
 	shots := []m16Shot{
@@ -212,30 +208,9 @@ func photosM18(c *cdp, base, out, only string) error {
 		{name: "may-moi-user-data", path: "/tools/new-server", prep: genUserData},
 		{name: "cong-cu", path: "/tools"},
 	}
-	if only != "" {
-		keep := map[string]bool{}
-		for _, n := range strings.Split(only, ",") {
-			keep[strings.TrimSpace(n)] = true
-		}
-		var picked []m16Shot
-		for _, s := range shots {
-			if keep[s.name] {
-				picked = append(picked, s)
-			}
-		}
-		if len(picked) == 0 {
-			return fmt.Errorf("-chi=%q không khớp ảnh nào", only)
-		}
-		shots = picked
-	}
 
 	// Điều phải thấy trên ảnh, ngoài các phép kiểm chung.
-	mainHas := func(label string) error {
-		if !strings.Contains(c.str(`document.querySelector('main')?.innerText||''`), label) {
-			return fmt.Errorf("màn không có chữ «%s»", label)
-		}
-		return nil
-	}
+	mainHas := func(label string) error { return mainHasText(c, label) }
 	expect := map[string]func() error{
 		"backup": func() error {
 			if c.str(`document.querySelector('`+theDichSel+` h2')?.innerText.trim()||''`) != m18Nhan.theDich {
@@ -270,6 +245,42 @@ func photosM18(c *cdp, base, out, only string) error {
 			}
 			return mainHas(m18Nhan.oCongCuMoi)
 		},
+	}
+	return photoSet(c, base, out, only, "M18", shots, expect)
+}
+
+// mainHasText báo lỗi khi <main> không có chữ label.
+func mainHasText(c *cdp, label string) error {
+	if !strings.Contains(c.str(`document.querySelector('main')?.innerText||''`), label) {
+		return fmt.Errorf("màn không có chữ «%s»", label)
+	}
+	return nil
+}
+
+// photoSet chụp một bộ ảnh của một mốc trên máy demo (M18, M17): mỗi ảnh ở
+// 1440 sáng, 1440 tối và 390 sáng, kiểm như bộ m16 cộng expect của riêng ảnh
+// đó; rồi đi bàn phím mọi màn (trừ ảnh hộp thoại) và mở bản tiếng Anh tìm chữ
+// tràn. only (cờ -chi) chỉ chụp vài ảnh và bỏ phần bàn phím, tiếng Anh.
+func photoSet(c *cdp, base, out, only, label string, shots []m16Shot, expect map[string]func() error) error {
+	if err := c.watchConsole(); err != nil {
+		return err
+	}
+	var fail m16Fail
+	if only != "" {
+		keep := map[string]bool{}
+		for _, n := range strings.Split(only, ",") {
+			keep[strings.TrimSpace(n)] = true
+		}
+		var picked []m16Shot
+		for _, s := range shots {
+			if keep[s.name] {
+				picked = append(picked, s)
+			}
+		}
+		if len(picked) == 0 {
+			return fmt.Errorf("-chi=%q không khớp ảnh nào", only)
+		}
+		shots = picked
 	}
 
 	open := func(path, theme, lang string) error {
@@ -407,7 +418,7 @@ func photosM18(c *cdp, base, out, only string) error {
 		fmt.Println("  -", s)
 	}
 	if len(fail.list) > 0 {
-		return errors.New("bộ ảnh M18 có điều không đạt")
+		return fmt.Errorf("bộ ảnh %s có điều không đạt", label)
 	}
 	return nil
 }

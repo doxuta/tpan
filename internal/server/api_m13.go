@@ -570,6 +570,11 @@ func (s *Server) handlePackageEdit(w http.ResponseWriter, r *http.Request) {
 	target := packageTarget(raw)
 	ctx := r.Context()
 	name, err := validate.ParsePackageName(raw)
+	if err == nil && body.Name != "" && body.Name != name {
+		err = &core.RefusedError{Code: "args_invalid", Message: i18n.T(
+			`"name" trong thân ("`+body.Name+`") khác tên gói trên đường dẫn ("`+name+`"); tên gói không đổi được.`,
+			`"name" in the body ("`+body.Name+`") differs from the package name in the path ("`+name+`"); a package cannot be renamed.`)}
+	}
 	if err != nil {
 		s.m17Refused(w, r, action, target, err)
 		return

@@ -172,7 +172,7 @@ func liveAdmin(c *cdp, l *liveCheck, base, pw string) error {
 			paths = append(paths, "/sites/"+site+"?tab="+t)
 		}
 	}
-	paths = append(paths, "/databases", "/ssl", "/backups", "/cron", "/trash", "/incidents", "/jobs")
+	paths = append(paths, "/databases", "/ssl", "/backups", "/cron", "/trash", "/usage", "/incidents", "/jobs")
 	if job != "" {
 		paths = append(paths, "/jobs/"+job)
 	}
@@ -302,7 +302,7 @@ func liveUser(c *cdp, l *liveCheck, base, name, pw, site string) error {
 			paths = append(paths, "/sites/"+site+"?tab="+t)
 		}
 	}
-	paths = append(paths, "/databases", "/ssl", "/backups", "/cron", "/trash", "/incidents", "/jobs", "/settings")
+	paths = append(paths, "/databases", "/ssl", "/backups", "/cron", "/trash", "/usage", "/incidents", "/jobs", "/settings")
 	for _, p := range paths {
 		visit(c, l, base, p) // request bị 403 hiện thành lỗi console, nên visit cũng bắt được
 	}

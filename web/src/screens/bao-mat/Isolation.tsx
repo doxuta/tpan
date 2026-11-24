@@ -18,6 +18,7 @@ import { Link } from "react-router";
 import { errorMessage } from "../../api/client";
 import { usePlanFlow } from "../../api/m13-users";
 import { asHardenPreview, hardenRequest, useIsolation } from "../../api/m14";
+import { useCages } from "../../api/m17";
 import type { HtaccessRow, Isolation, IsolationCell } from "../../api/m14-types";
 import type { CheckResult, Preview, Status } from "../../api/types";
 import { Button, buttonClass } from "../../components/Button";
@@ -36,6 +37,7 @@ import { PlanReview } from "../duyet-plan";
 import { ErrorNote } from "../site/ErrorNote";
 import { Legend } from "../site/RouteMap";
 import { CheckRow } from "./CheckRow";
+import { ProbeBlock } from "./Probe";
 
 /** Nhãn nhỏ trong thẻ (12/500, viết thường). */
 const labelClass = "m-0 text-[12px] font-medium text-muted";
@@ -116,6 +118,8 @@ function IsolationView({ data }: { data: Isolation }) {
         <div className="border-t border-hair">
           <CheckGroup id="bm-cl-may" heading={t.machineHeading} checks={data.machine ?? []} empty={t.machineEmpty} />
           <CheckGroup id="bm-cl-site" heading={t.perSiteHeading} checks={data.per_site ?? []} empty={t.perSiteEmpty} />
+          {/* M17: thử tấn công thật bằng hai site thử (Probe.tsx). */}
+          <ProbeBlock />
         </div>
       </IsoCard>
 
@@ -158,6 +162,10 @@ function Matrix({ sites, cells }: { sites: string[]; cells: IsolationCell[] }) {
   const t = useStrings(strings);
   const statusName = useStatusName();
   const [sel, setSel] = useState<{ r: number; c: number } | null>(null);
+  // M17: không có phép cô lập đi từ site trong lồng (core.siteChecks); hàng của
+  // nó ghi "lồng" thay cho dấu "chưa kiểm được", và không tính vào "chưa rõ".
+  const caged = new Set((useCages().data ?? []).filter((r) => r.caged).map((r) => r.domain));
+  const cagedCell = (r: number, c: number) => caged.has(sites[r] ?? "") && !resultOf(r, c);
 
   const byPair = new Map(cells.map((c) => [pairKey(c.from, c.to), c.result]));
   const resultOf = (r: number, c: number) => byPair.get(pairKey(sites[r] ?? "", sites[c] ?? ""));
@@ -165,9 +173,14 @@ function Matrix({ sites, cells }: { sites: string[]; cells: IsolationCell[] }) {
   const total = sites.length * (sites.length - 1);
   let pass = 0;
   let fail = 0;
+  let cagedCells = 0;
   for (let r = 0; r < sites.length; r++) {
     for (let c = 0; c < sites.length; c++) {
       if (r === c) continue;
+      if (cagedCell(r, c)) {
+        cagedCells++;
+        continue;
+      }
       const s = resultOf(r, c)?.status;
       if (s === "pass") pass++;
       else if (s === "fail") fail++;
@@ -218,7 +231,7 @@ function Matrix({ sites, cells }: { sites: string[]; cells: IsolationCell[] }) {
       ) : (
         <>
           <p className="m-0 text-[13px] text-muted">
-            {t.matrixCount(total, pass, fail, total - pass - fail)} {t.matrixKeys}
+            {t.matrixCount(total, pass, fail, total - pass - fail - cagedCells)} {cagedCells > 0 && t.matrixCagedShort(cagedCells)} {t.matrixKeys}
           </p>
           {/* Khung cuộn riêng: nhiều site thì bảng cuộn trong khung, cả trang không cuộn ngang. relative để chữ sr-only bị khung cắt. */}
           <div className="relative max-h-[620px] max-w-full overflow-auto rounded-ctl border border-hair">
@@ -247,7 +260,8 @@ function Matrix({ sites, cells }: { sites: string[]; cells: IsolationCell[] }) {
                     {sites.map((to, c) => {
                       if (r === c) return <td key={to} className="border-b border-hair" />;
                       const res = resultOf(r, c);
-                      const label = t.cellLabel(from, to, statusName(res?.status ?? "unknown", res?.suspended));
+                      const inCage = cagedCell(r, c);
+                      const label = inCage ? t.cagedCellLabel(from, to) : t.cellLabel(from, to, statusName(res?.status ?? "unknown", res?.suspended));
                       const on = sel?.r === r && sel.c === c;
                       return (
                         <td key={to} className="border-b border-hair p-0">
@@ -264,7 +278,7 @@ function Matrix({ sites, cells }: { sites: string[]; cells: IsolationCell[] }) {
                             onClick={() => (on ? close() : setSel({ r, c }))}
                             className={`flex h-[44px] w-full items-center justify-center border -outline-offset-2 hover:bg-soft ${on ? "border-accent bg-soft" : "border-transparent bg-transparent"}`}
                           >
-                            <StatusMark status={res?.status ?? "unknown"} />
+                            {inCage ? <span className="text-[12px] text-muted">{t.cagedCell}</span> : <StatusMark status={res?.status ?? "unknown"} />}
                           </button>
                         </td>
                       );
@@ -274,7 +288,15 @@ function Matrix({ sites, cells }: { sites: string[]; cells: IsolationCell[] }) {
               </tbody>
             </table>
           </div>
-          {sel && <Detail id="bm-cl-o" heading={t.cellHeading(sites[sel.r] ?? "", sites[sel.c] ?? "")} result={resultOf(sel.r, sel.c)} onClose={close} />}
+          {sel &&
+            (cagedCell(sel.r, sel.c) ? (
+              <p id="bm-cl-o" className="m-0 max-w-[72ch]">
+                {t.matrixCaged}{" "}
+                <Link to={`/sites/${encodeURIComponent(sites[sel.r] ?? "")}?tab=phep-kiem`}>{sites[sel.r]}</Link>
+              </p>
+            ) : (
+              <Detail id="bm-cl-o" heading={t.cellHeading(sites[sel.r] ?? "", sites[sel.c] ?? "")} result={resultOf(sel.r, sel.c)} onClose={close} />
+            ))}
         </>
       )}
     </div>

@@ -3,6 +3,7 @@ package demo
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/doxuta/tpan/internal/checks"
@@ -139,10 +140,12 @@ func TestPHPJobsOnDemo(t *testing.T) {
 	if r := list.Versions[slices.IndexFunc(list.Versions, func(r core.PHPVersionRow) bool { return r.Version == "8.4" })]; !r.Installed {
 		t.Fatalf("sau khi cài, 8.4 = %+v", r)
 	}
-	// Chạy lại: không còn gì để làm.
+	// Chạy lại: không còn gì để làm, trừ bước cuối khởi động lại dịch vụ PHP
+	// của các lồng đang chạy (M17, core.cageRestartSteps: luôn chạy, để hàng
+	// rào che thư mục pool.d của bản vừa cài).
 	pv = runOK(t, ctx, "php.install 8.4 lần hai")(p.PrepareInstall(ctx, "8.4"))
 	for _, s := range pv.Steps {
-		if !s.Done {
+		if !s.Done && !strings.HasPrefix(s.Info.ID, "service.restart:tpan-cage-") {
 			t.Errorf("chạy lại php.install mà bước %s chưa xong", s.Info.ID)
 		}
 	}

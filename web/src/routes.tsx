@@ -105,6 +105,12 @@ const table = [
     menu: { label: "trash", group: "chinh", icon: "trash", count: (o) => o.sites.filter((r) => r.site.status === "trashed").length || undefined },
   },
   {
+    // M17: số liệu của site trong lồng. Mọi vai xem được (user thường chỉ thấy site của mình).
+    path: "/usage",
+    load: () => import("./screens/tai-nguyen").then((m) => m.default),
+    menu: { label: "usage", group: "chinh", icon: "activity" },
+  },
+  {
     path: "/incidents",
     load: () => import("./screens/su-co").then((m) => m.IncidentList),
     menu: {

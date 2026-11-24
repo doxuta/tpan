@@ -159,6 +159,7 @@ func TestJobHistory(t *testing.T) {
 		kind, target string
 		status       engine.JobStatus
 	}{
+		{"cage.enable", siteLongNews, engine.JobSucceeded}, // M17 (m17.go): vào lồng 29 giờ 30 phút trước
 		{"site.add", siteLongNews, engine.JobSucceeded},
 		{"site.add", siteWiki, engine.JobSucceeded},
 		{"site.rm", siteOld, engine.JobSucceeded},
@@ -167,6 +168,7 @@ func TestJobHistory(t *testing.T) {
 		{"site.add", siteFail, engine.JobRolledBack},
 		{"site.add", siteLongEdu, engine.JobSucceeded},
 		{"dbs.add", userB + "_" + dbOld, engine.JobSucceeded},
+		{"cage.enable", siteLongShop, engine.JobSucceeded}, // M17: vào lồng 7 ngày 2 giờ trước
 		{"dbs.add", userA + "_" + dbApp, engine.JobSucceeded},
 		{"site.add", siteShop, engine.JobSucceeded},
 		{"site.add", siteLab, engine.JobSucceeded},

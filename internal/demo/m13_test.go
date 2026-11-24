@@ -27,7 +27,8 @@ func TestM13Seed(t *testing.T) {
 	if err != nil || !ok || p.MaxSites != 2 || p.MaxDBs != 1 || p.DiskMB == 0 || p.MaxBackups == 0 {
 		t.Errorf("gói %s = %+v, %v, %v", pkgBasic, p, ok, err)
 	}
-	for name, pkg := range map[string]string{userA: pkgBasic, userB: account.DefaultPackage} {
+	// khach_b dùng gói default ở seedM13, rồi seedM17 đổi sang gói có lồng nang_cao.
+	for name, pkg := range map[string]string{userA: pkgBasic, userB: pkgPlus} {
 		u, ok, err := st.User(ctx, name)
 		if err != nil || !ok || u.Role != account.RoleUser || u.Package != pkg || u.Status != account.Active {
 			t.Errorf("user %s = %+v, %v, %v", name, u, ok, err)

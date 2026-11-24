@@ -361,6 +361,13 @@ func TestM17SuaGoiKhongCoSiteTrongLong(t *testing.T) {
 		t.Errorf("audit = %+v", a)
 	}
 
+	// Giao diện trước M17 gửi kèm "name" (thân cũ là account.Package): trùng
+	// tên trên đường dẫn thì nhận như thân không có name.
+	m17Decode[PackageRow](t, e.m17Call(account.AdminName, "POST", "/api/v1/packages/pro", `{"name":"pro",`+m17OldFour+`}`), 200)
+	if got := e.pkg("pro"); got != want {
+		t.Errorf("thân có name trùng đường dẫn: %+v, muốn %+v", got, want)
+	}
+
 	// Có mặt thì đổi đúng trường đó; trường khác giữ nguyên.
 	m17Decode[PackageRow](t, e.m17Call(account.AdminName, "POST", "/api/v1/packages/pro", `{`+m17OldFour+`,"ram_mb":512}`), 200)
 	want.RAMMB = 512
@@ -381,7 +388,8 @@ func TestM17SuaGoiTuChoi(t *testing.T) {
 		{"pro", `{` + m17OldFour + `,"cage":false}`, 400, core.CodePackageLimitsNeedCage}, // còn trần mà tắt lồng
 		{"khong_co", `{` + m17OldFour + `}`, 404, core.CodePackageNotFound},
 		{"pro", `{` + m17OldFour + `,"ram_mb":"nhieu"}`, 400, "bad_request"},
-		{"pro", `{` + m17OldFour + `,"name":"khac"}`, 400, "bad_request"},
+		{"pro", `{` + m17OldFour + `,"name":"khac"}`, 400, "args_invalid"}, // thân cũ có name: phải trùng đường dẫn
+		{"pro", `{` + m17OldFour + `,"them":1}`, 400, "bad_request"},
 		{"a%3Brm", `{}`, 400, validate.CodePackageNameInvalid},
 	} {
 		if got := m17ErrCode(t, e.m17Call(account.AdminName, "POST", "/api/v1/packages/"+c.name, c.body), c.status); got != c.code {

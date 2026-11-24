@@ -64,6 +64,9 @@ const vi = {
   addConfirm: "Thêm user",
   editTitle: (name: string) => `Sửa ${name}`,
   editConfirm: "Lưu",
+  cageSyncConfirm: "Đổi gói và áp mức mới",
+  cageSyncNote: (pkg: string, n: number) =>
+    `User này có site trong lồng, và gói ${pkg} có mức tối đa khác: lưu là chạy ngay ${n} bước để áp mức mới lên các site đó (job cage.sync). Bấm "Đổi gói và áp mức mới" để chạy.`,
   fName: "Tên đăng nhập",
   fNameHint: "Chữ thường, số và gạch dưới; từ 3 đến 32 ký tự, bắt đầu bằng chữ. Không đổi được sau khi tạo.",
   fFull: "Tên đầy đủ",
@@ -194,6 +197,9 @@ export const strings = defineStrings(vi, {
   addConfirm: "Add user",
   editTitle: (name) => `Edit ${name}`,
   editConfirm: "Save",
+  cageSyncConfirm: "Change package and apply new limits",
+  cageSyncNote: (pkg, n) =>
+    `This user has caged sites, and package ${pkg} has different limits: saving runs ${n} ${n === 1 ? "step" : "steps"} right away to apply the new limits to those sites (job cage.sync). Press "Change package and apply new limits" to run it.`,
   fName: "Username",
   fNameHint: "Lowercase letters, digits and underscores; 3 to 32 characters, starting with a letter. It cannot be changed after creation.",
   fFull: "Full name",

@@ -167,6 +167,8 @@ export type Site = {
   db_suspended?: Suspension;
   /** M14: chế độ .htaccess của site (chỉ có tác dụng trên Apache). Server cũ không gửi. */
   htaccess?: "an-toan" | "tat" | "day-du";
+  /** M17: site đang ở trong lồng. Server cũ không gửi. */
+  caged?: boolean;
 };
 
 export type Layout = {
@@ -833,6 +835,17 @@ export type Package = {
   disk_mb: number;
   max_backups: number;
   created: string;
+  /**
+   * M17: cờ lồng và sáu mức tối đa của mỗi site trong lồng (0 là không giới
+   * hạn; riêng php_workers: 0 là mặc định của TPAN). Server cũ không gửi.
+   */
+  cage?: boolean;
+  cpu_percent?: number;
+  ram_mb?: number;
+  tasks?: number;
+  io_read_mb?: number;
+  io_write_mb?: number;
+  php_workers?: number;
 };
 
 /** disk_bytes -1 khi chưa đo lần nào. */
