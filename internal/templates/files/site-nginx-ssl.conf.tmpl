@@ -63,6 +63,7 @@ server {
 
     # Từ đây tới hết server là đúng các luật của bản cổng 80 (site-nginx.conf.tmpl):
     # có chứng chỉ rồi thì không được mất luật bảo mật nào.
+{{- template "site-nginx-redirects.tmpl" .}}
 
     # Các location regex được xét theo thứ tự trong file, cái khớp đầu tiên
     # thắng, nên hai luật chặn phải đứng trước location của PHP.

@@ -16,6 +16,7 @@
 
     # Giới hạn upload 64 MB (pool PHP đặt cùng mức). Đơn vị là byte.
     LimitRequestBody 67108864
+{{- template "site-apache-redirects.tmpl" .}}
 
     # Thử thách Let's Encrypt đọc từ webroot chung, không từ mã nguồn site.
     Alias /.well-known/acme-challenge/ "{{.AcmeRoot}}/.well-known/acme-challenge/"

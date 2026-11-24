@@ -31,6 +31,7 @@ server {
     location ^~ /.well-known/acme-challenge/ {
         root {{.AcmeRoot}};
     }
+{{- template "site-nginx-redirects.tmpl" .}}
 
     # Các location regex được xét theo thứ tự trong file, cái khớp đầu tiên
     # thắng, nên hai luật chặn phải đứng trước location của PHP.

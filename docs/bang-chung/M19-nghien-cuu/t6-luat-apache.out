@@ -1,0 +1,14 @@
+== phiên bản
+Server version: Apache/2.4.58 (Ubuntu)
+== apachectl -t từng biến thể có 50 luật
+luat-thuong-apache       mã 0 | Syntax OK  | dòng RewriteRule: 50
+luat-thuong-apache-ssl   mã 0 | Syntax OK  | dòng RewriteRule: 50
+luat-long-apache         mã 0 | Syntax OK  | dòng RewriteRule: 50
+luat-long-apache-ssl     mã 0 | Syntax OK  | dòng RewriteRule: 50
+== curl 50 luật qua Apache (luat-thuong-apache, cổng 80)
+apache: 50 luật đúng, 0 lệch (trên 50)
+== thử thách ACME và luật chặn có sẵn vẫn đứng (apache)
+acme: t6-acme-ok
+ 200
+/.env: 403
+xong

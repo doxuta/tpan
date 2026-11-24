@@ -3,9 +3,12 @@ package templates
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -422,8 +425,9 @@ func TestNoHostVariables(t *testing.T) {
 		Serve:    m19Doms(t, "a.example.net", "uncovered.example.net"),
 		Redirect: m19Doms(t, "www.example.com", "old.example.net"),
 		Covered:  m19Doms(t, "example.com", "a.example.net", "www.example.com"),
+		Rules:    m19Rules(t),
 	}
-	for _, names := range []site.Names{{}, n} {
+	for _, names := range []site.Names{{}, n, {Rules: m19Rules(t)}} {
 		for _, web := range []string{"nginx", "apache"} {
 			for _, ssl := range []bool{false, true} {
 				outs := []string{m19Render(t, web, ssl, names)}
@@ -455,8 +459,9 @@ func TestNoHostVariables(t *testing.T) {
 	}
 }
 
-// Lớp chặn cuối: tên ngoài [a-z0-9.-]{1,253} là ErrParam; luật (chưa vẽ ở đợt
-// 1) là ErrParam ở vhost nội dung, bị bỏ qua ở bản tạm khoá.
+// Lớp chặn cuối: tên ngoài [a-z0-9.-]{1,253} là ErrParam; luật dựng sai đường
+// (nguồn, đích zero; mã lạ; giữ query khi đích đã có query) là ErrParam ở vhost
+// nội dung, bị bỏ qua ở bản tạm khoá.
 func TestVhostNamesGuard(t *testing.T) {
 	for _, s := range []string{"", "a.com; rm -rf /", "$(id)", "../../etc/passwd", "a.com\nserver {", "A.COM", "việt.vn", "a b", strings.Repeat("a", 254)} {
 		if m19Name.MatchString(s) {
@@ -468,19 +473,36 @@ func TestVhostNamesGuard(t *testing.T) {
 			t.Errorf("m19Name từ chối %q", s)
 		}
 	}
+	for _, s := range []string{"", "/a b", "/a;", "/a{", "/a}", "/a$host", "/a\n", "/a%2F", `/a"`, "/a#b"} {
+		if m19Rule.MatchString(s) {
+			t.Errorf("m19Rule nhận %q", s)
+		}
+	}
 	l := siteTestLayout(t, "example.com")
-	n := site.Names{Rules: []site.Redirect{{ID: 1, Code: 301}}}
-	for _, web := range []string{"nginx", "apache"} {
-		for _, ssl := range []bool{false, true} {
-			if _, err := SiteVhostNames(l, web, "8.3", acmeRoot, ssl, site.HtaccessSafe, n); !errors.Is(err, ErrParam) {
-				t.Errorf("%s ssl=%v SiteVhostNames có luật: %v", web, ssl, err)
-			}
-			if _, err := SiteVhostCagedNames(l, web, acmeRoot, ssl, site.HtaccessSafe, n); !errors.Is(err, ErrParam) {
-				t.Errorf("%s ssl=%v SiteVhostCagedNames có luật: %v", web, ssl, err)
-			}
-			// Bản tạm khoá không vẽ luật: site có luật vẫn tạm khoá được.
-			if _, err := SuspendedVhostNames(l, web, acmeRoot, ssl, n); err != nil {
-				t.Errorf("%s ssl=%v SuspendedVhostNames có luật: %v", web, ssl, err)
+	src, _ := validate.ParseRedirectSource("/a")
+	dst, _ := validate.ParseRedirectTarget("/b")
+	dstQ, _ := validate.ParseRedirectTarget("/b?c=1")
+	for _, rule := range []site.Redirect{
+		{ID: 1, Code: 301},
+		{ID: 2, Source: src, Code: 301},
+		{ID: 3, Target: dst, Code: 301},
+		{ID: 4, Source: src, Target: dst, Code: 200},
+		{ID: 5, Source: src, Target: dst},
+		{ID: 6, Source: src, Target: dstQ, Code: 302, KeepQuery: true},
+	} {
+		n := site.Names{Rules: []site.Redirect{rule}}
+		for _, web := range []string{"nginx", "apache"} {
+			for _, ssl := range []bool{false, true} {
+				if _, err := SiteVhostNames(l, web, "8.3", acmeRoot, ssl, site.HtaccessSafe, n); !errors.Is(err, ErrParam) {
+					t.Errorf("%s ssl=%v SiteVhostNames luật %d: %v", web, ssl, rule.ID, err)
+				}
+				if _, err := SiteVhostCagedNames(l, web, acmeRoot, ssl, site.HtaccessSafe, n); !errors.Is(err, ErrParam) {
+					t.Errorf("%s ssl=%v SiteVhostCagedNames luật %d: %v", web, ssl, rule.ID, err)
+				}
+				// Bản tạm khoá không vẽ luật: site có luật vẫn tạm khoá được.
+				if _, err := SuspendedVhostNames(l, web, acmeRoot, ssl, n); err != nil {
+					t.Errorf("%s ssl=%v SuspendedVhostNames luật %d: %v", web, ssl, rule.ID, err)
+				}
 			}
 		}
 	}
@@ -572,4 +594,338 @@ func TestM19DumpForVM(t *testing.T) {
 	write("apache-default.conf", b, err)
 	b, err = ApacheDefaultSSL()
 	write("apache-default-ssl.conf", b, err)
+}
+
+// ---------------------------------------------------------------- luật (đợt 2)
+
+func m19Rule1(t testing.TB, id int64, src, dst string, code int, keep bool) site.Redirect {
+	t.Helper()
+	s, err := validate.ParseRedirectSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := validate.ParseRedirectTarget(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return site.Redirect{ID: id, Source: s, Target: d, Code: code, KeepQuery: keep}
+}
+
+// m19Rules: đích đường dẫn bỏ query (301), đích tuyệt đối giữ query (301),
+// đích đường dẫn có query (302), đích đường dẫn giữ query (302), và một luật
+// trùng nguồn (bị bỏ khi vẽ).
+func m19Rules(t testing.TB) []site.Redirect {
+	return []site.Redirect{
+		m19Rule1(t, 1, "/old-page", "/new-page", 301, false),
+		m19Rule1(t, 2, "/keepq", "https://example.net/target", 301, true),
+		m19Rule1(t, 3, "/tmp/", "/a?b=1&c=2", 302, false),
+		m19Rule1(t, 4, "/k2", "/dst/", 302, true),
+		m19Rule1(t, 5, "/old-page", "/other", 302, false),
+	}
+}
+
+func m19NginxRulesBlock(scheme string) string {
+	return `
+
+    # Chuyển hướng theo đường dẫn (M19, tpan site redirect). Mỗi luật là một
+    # location khớp đúng (=): nginx xét nó trước mọi location khác, so với đường
+    # dẫn đã giải mã, không gồm query. Nguồn không bao giờ bắt đầu bằng "/." nên
+    # không che được thử thách ACME hay luật chặn file ẩn.
+    location = /old-page {
+        return 301 ` + scheme + `://example.com/new-page;
+    }
+    location = /keepq {
+        return 301 https://example.net/target$is_args$args;
+    }
+    location = /tmp/ {
+        return 302 ` + scheme + `://example.com/a?b=1&c=2;
+    }
+    location = /k2 {
+        return 302 ` + scheme + `://example.com/dst/$is_args$args;
+    }`
+}
+
+func m19ApacheRulesBlock(scheme string) string {
+	return `
+
+    # Chuyển hướng theo đường dẫn (M19, tpan site redirect). So chuỗi (=), không
+    # regex; chạy trước .htaccess của site. QSD bỏ query, QSA giữ query.
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} =/old-page
+    RewriteRule ^ ` + scheme + `://example.com/new-page [R=301,L,QSD]
+    RewriteCond %{REQUEST_URI} =/keepq
+    RewriteRule ^ https://example.net/target [R=301,L,QSA]
+    RewriteCond %{REQUEST_URI} =/tmp/
+    RewriteRule ^ ` + scheme + `://example.com/a?b=1&c=2 [R=302,L,QSD]
+    RewriteCond %{REQUEST_URI} =/k2
+    RewriteRule ^ ` + scheme + `://example.com/dst/ [R=302,L,QSA]`
+}
+
+// m19CheckRulesBlock: block có đúng một lần, ngay trước after, sau mark (nếu
+// có), và bỏ block đi thì còn lại đúng output không luật.
+func m19CheckRulesBlock(t *testing.T, name, got, base, block, after, mark string) {
+	t.Helper()
+	if strings.Count(got, block) != 1 {
+		t.Errorf("%s: khối luật phải có đúng một lần:\n%s", name, got)
+		return
+	}
+	i := strings.Index(got, block)
+	if !strings.HasPrefix(got[i+len(block):], after) {
+		t.Errorf("%s: khối luật không đứng ngay trước %q:\n%s", name, after, got)
+	}
+	if mark != "" && strings.Index(got, mark) > i {
+		t.Errorf("%s: khối luật phải nằm sau %q:\n%s", name, mark, got)
+	}
+	if strings.Replace(got, block, "", 1) != base {
+		t.Errorf("%s: ngoài khối luật, vhost phải giống bản không luật", name)
+	}
+}
+
+func m19VhostVariants(t *testing.T, web string, ssl bool, n site.Names) map[string]string {
+	t.Helper()
+	l := siteTestLayout(t, "example.com")
+	a, err := SiteVhostNames(l, web, "8.3", acmeRoot, ssl, site.HtaccessSafe, n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := SiteVhostCagedNames(l, web, acmeRoot, ssl, site.HtaccessSafe, n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return map[string]string{"thuong": string(a), "long": string(b)}
+}
+
+// Nguyên văn mục 3.4 với S16: đích đường dẫn thành <scheme>://<tên chính><đích>.
+// Ca: bỏ/giữ query, 301/302, đích tuyệt đối, đích có query, nguồn trùng (bỏ).
+func TestVhostRedirectsNginx(t *testing.T) {
+	n := site.Names{Serve: m19Doms(t, "a.example.net"), Covered: m19Doms(t, "example.com", "a.example.net"), Rules: m19Rules(t)}
+	noRules := n
+	noRules.Rules = nil
+	for _, ssl := range []bool{false, true} {
+		scheme, after, mark := "http", "\n\n    # Các location regex", "root /var/lib/tpan/acme;\n    }"
+		if ssl {
+			scheme, mark = "https", "listen 443 ssl;"
+		}
+		got := m19VhostVariants(t, "nginx", ssl, n)
+		base := m19VhostVariants(t, "nginx", ssl, noRules)
+		for k := range got {
+			m19CheckRulesBlock(t, k+scheme, got[k], base[k], m19NginxRulesBlock(scheme), after, mark)
+		}
+		if !ssl && !strings.Contains(got["thuong"], "        root /var/lib/tpan/acme;\n    }"+m19NginxRulesBlock(scheme)) {
+			t.Errorf("không SSL: khối luật phải ngay sau location thử thách:\n%s", got["thuong"])
+		}
+	}
+}
+
+func TestVhostRedirectsApache(t *testing.T) {
+	n := site.Names{Serve: m19Doms(t, "a.example.net"), Covered: m19Doms(t, "example.com", "a.example.net"), Rules: m19Rules(t)}
+	noRules := n
+	noRules.Rules = nil
+	for _, ssl := range []bool{false, true} {
+		scheme, mark := "http", ""
+		if ssl {
+			scheme, mark = "https", "<VirtualHost *:443>"
+		}
+		got := m19VhostVariants(t, "apache", ssl, n)
+		base := m19VhostVariants(t, "apache", ssl, noRules)
+		for k := range got {
+			m19CheckRulesBlock(t, k+scheme, got[k], base[k], m19ApacheRulesBlock(scheme),
+				"\n\n    # Thử thách Let's Encrypt", mark)
+			if !strings.Contains(got[k], "    LimitRequestBody 67108864"+m19ApacheRulesBlock(scheme)) {
+				t.Errorf("%s%s: khối luật phải ngay sau LimitRequestBody", k, scheme)
+			}
+		}
+	}
+	// Bản tạm khoá không vẽ luật.
+	l := siteTestLayout(t, "example.com")
+	for _, web := range []string{"nginx", "apache"} {
+		for _, ssl := range []bool{false, true} {
+			a, err1 := SuspendedVhostNames(l, web, acmeRoot, ssl, n)
+			b, err2 := SuspendedVhostNames(l, web, acmeRoot, ssl, noRules)
+			if err1 != nil || err2 != nil || !bytes.Equal(a, b) {
+				t.Errorf("%s ssl=%v: bản tạm khoá đổi khi có luật (%v, %v)", web, ssl, err1, err2)
+			}
+		}
+	}
+}
+
+// Mỗi dòng luật phải khớp đúng một trong các mẫu này (B3).
+var m19RuleLine = map[string][]*regexp.Regexp{
+	"nginx": {
+		regexp.MustCompile(`^    location = /[A-Za-z0-9._~/-]* \{$`),
+		regexp.MustCompile(`^        return 30[12] https?://[A-Za-z0-9._~/:?=&-]+(\$is_args\$args)?;$`),
+	},
+	"apache": {
+		regexp.MustCompile(`^    RewriteCond %\{REQUEST_URI\} =/[A-Za-z0-9._~/-]*$`),
+		regexp.MustCompile(`^    RewriteRule \^ https?://[A-Za-z0-9._~/:?=&-]+ \[R=30[12],L,QS[AD]\]$`),
+	},
+}
+
+// m19SameShape: hai output cùng số dòng, cùng số ; { }, và mọi dòng khác nhau
+// là dòng luật khớp mẫu.
+func m19SameShape(t *testing.T, web, got, ref string) {
+	t.Helper()
+	for _, c := range []string{"\n", ";", "{", "}"} {
+		if strings.Count(got, c) != strings.Count(ref, c) {
+			t.Fatalf("%s: số %q khác (%d, mẫu %d):\n%s", web, c, strings.Count(got, c), strings.Count(ref, c), got)
+		}
+	}
+	gl, rl := strings.Split(got, "\n"), strings.Split(ref, "\n")
+	for i := range gl {
+		if gl[i] == rl[i] {
+			continue
+		}
+		matched := false
+		for _, re := range m19RuleLine[web] {
+			matched = matched || re.MatchString(gl[i])
+		}
+		if !matched {
+			t.Fatalf("%s: dòng %d không phải dòng luật: %q", web, i+1, gl[i])
+		}
+	}
+}
+
+// FuzzVhostRedirects (B3): mọi cặp nguồn/đích Parse nhận được vẽ ra vhost có
+// đúng hình của mẫu: cùng số dòng, số ; { }, chỉ khác ở dòng luật, và dòng luật
+// khớp mẫu. Thêm một luật thì đúng thêm số dòng của một luật.
+func FuzzVhostRedirects(f *testing.F) {
+	for _, s := range [][2]string{
+		{"/old-page", "/new-page"}, {"/a/b/", "https://example.net:8443/x?y=1&z"},
+		{"/x", "http://việtnam.example.net"}, {"/a;b", "/c"}, {"/a", "/b\n}"}, {"/~a_b-c.d", "/?q=1"},
+	} {
+		f.Add(s[0], s[1], false, false)
+		f.Add(s[0], s[1], true, true)
+	}
+	f.Fuzz(func(t *testing.T, src, dst string, is302, keep bool) {
+		s, err1 := validate.ParseRedirectSource(src)
+		d, err2 := validate.ParseRedirectTarget(dst)
+		if err1 != nil || err2 != nil {
+			return
+		}
+		code := 301
+		if is302 {
+			code = 302
+		}
+		keep = keep && !d.HasQuery() // core từ chối cặp này (redirect_query_conflict)
+		rule := site.Redirect{ID: 9, Source: s, Target: d, Code: code, KeepQuery: keep}
+		ref := m19Rule1(t, 1, "/ref", "/ref-target", code, keep)
+		other := m19Rule1(t, 2, "/zz-other", "/y", 301, false)
+		perRule := map[string]int{"nginx": 3, "apache": 2}
+		for _, web := range []string{"nginx", "apache"} {
+			for _, ssl := range []bool{false, true} {
+				render := func(rs ...site.Redirect) string {
+					return m19Render(t, web, ssl, site.Names{Rules: rs})
+				}
+				m19SameShape(t, web, render(rule), render(ref))
+				if s.String() == other.Source.String() {
+					continue
+				}
+				two, one := render(other, rule), render(other)
+				if got := strings.Count(two, "\n") - strings.Count(one, "\n"); got != perRule[web] {
+					t.Fatalf("%s ssl=%v: thêm một luật thêm %d dòng, muốn %d", web, ssl, got, perRule[web])
+				}
+				m19SameShape(t, web, two, render(other, ref))
+			}
+		}
+	})
+}
+
+// TestM19RedirectsDumpForVM ghi vhost có 50 luật ngẫu nhiên hợp lệ (sinh rồi
+// lọc qua ParseRedirect*, hạt giống cố định) ra thư mục M19_VM_DUMP_RULES, cho
+// t6-luat-*.sh chạy nginx -t / apachectl -t trên máy ảo. Cùng bộ tên với
+// TestM19DumpForVM. rules.txt: mỗi dòng "nguồn mã đích giữ-query".
+func TestM19RedirectsDumpForVM(t *testing.T) {
+	dir := os.Getenv("M19_VM_DUMP_RULES")
+	if dir == "" {
+		t.Skip("đặt M19_VM_DUMP_RULES=<thư mục> để ghi")
+	}
+	rules := m19RandomRules(t, rand.New(rand.NewPCG(19, 50)), 50)
+	n := site.Names{
+		Serve:    m19Doms(t, "xn--vitnam-jk8b.example.net", "uncovered.example.net"),
+		Redirect: m19Doms(t, "www.example.com"),
+		Covered:  m19Doms(t, "example.com", "www.example.com", "xn--vitnam-jk8b.example.net"),
+		Rules:    rules,
+	}
+	l := siteTestLayout(t, "example.com")
+	write := func(name string, b []byte, err error) {
+		if err != nil {
+			t.Fatal(name, err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, web := range []string{"nginx", "apache"} {
+		for _, ssl := range []bool{false, true} {
+			sfx := web
+			if ssl {
+				sfx += "-ssl"
+			}
+			b, err := SiteVhostNames(l, web, "8.3", acmeRoot, ssl, site.HtaccessSafe, n)
+			write("luat-thuong-"+sfx+".conf", b, err)
+			b, err = SiteVhostCagedNames(l, web, acmeRoot, ssl, site.HtaccessSafe, n)
+			write("luat-long-"+sfx+".conf", b, err)
+		}
+	}
+	var lst strings.Builder
+	for _, r := range rules {
+		fmt.Fprintf(&lst, "%s %d %s %v\n", r.Source, r.Code, r.Target, r.KeepQuery)
+	}
+	write("rules.txt", []byte(lst.String()), nil)
+}
+
+// m19RandomRules sinh n luật hợp lệ, nguồn không trùng: chuỗi ngẫu nhiên từ
+// bảng ký tự cho phép, chỉ giữ cặp Parse nhận.
+func m19RandomRules(t *testing.T, r *rand.Rand, n int) []site.Redirect {
+	const seg = "ABCXYZabcxyz0189._~-"
+	const q = "abcXYZ019._~-=&"
+	pick := func(set string, lo, hi int) string {
+		b := make([]byte, lo+r.IntN(hi-lo+1))
+		for i := range b {
+			b[i] = set[r.IntN(len(set))]
+		}
+		return string(b)
+	}
+	path := func() string {
+		p := ""
+		for range 1 + r.IntN(4) {
+			p += "/" + pick(seg, 1, 12)
+		}
+		if r.IntN(4) == 0 {
+			p += "/"
+		}
+		return p
+	}
+	hosts := []string{"example.net", "www.example.org", "xn--vitnam-jk8b.example.net", "a-b.example.com"}
+	var out []site.Redirect
+	seen := map[string]bool{}
+	for len(out) < n {
+		var dst string
+		switch r.IntN(3) {
+		case 0:
+			dst = path()
+		case 1:
+			dst = path() + "?" + pick(q, 1, 20)
+		default:
+			dst = []string{"http://", "https://"}[r.IntN(2)] + hosts[r.IntN(len(hosts))]
+			if r.IntN(3) == 0 {
+				dst += fmt.Sprintf(":%d", 1+r.IntN(65535))
+			}
+			if r.IntN(2) == 0 {
+				dst += path()
+			}
+			if r.IntN(3) == 0 {
+				dst += "?" + pick(q, 1, 20)
+			}
+		}
+		s, err1 := validate.ParseRedirectSource(path())
+		d, err2 := validate.ParseRedirectTarget(dst)
+		if err1 != nil || err2 != nil || seen[s.String()] {
+			continue
+		}
+		seen[s.String()] = true
+		code := []int{301, 302}[r.IntN(2)]
+		out = append(out, site.Redirect{ID: int64(len(out) + 1), Source: s, Target: d, Code: code, KeepQuery: !d.HasQuery() && r.IntN(2) == 0})
+	}
+	return out
 }

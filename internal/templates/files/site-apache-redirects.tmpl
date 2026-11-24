@@ -1,0 +1,14 @@
+{{- /* Luật chuyển hướng theo đường dẫn của site (M19, m19.go redirectLines
+điền .Redirects). Không luật thì không ra byte nào: vhost giống bản trước M19
+(B5). Có luật thì mở đầu bằng một dòng trống, không có xuống dòng cuối: chỗ gọi
+đứng trên dòng riêng, có dấu trừ cắt xuống dòng phía trước. */ -}}
+{{- if .Redirects}}
+
+    # Chuyển hướng theo đường dẫn (M19, tpan site redirect). So chuỗi (=), không
+    # regex; chạy trước .htaccess của site. QSD bỏ query, QSA giữ query.
+    RewriteEngine On
+{{- range .Redirects}}
+    RewriteCond %{REQUEST_URI} ={{.Source}}
+    RewriteRule ^ {{.Target}} [R={{.Code}},L,{{if .KeepQuery}}QSA{{else}}QSD{{end}}]
+{{- end}}
+{{- end -}}

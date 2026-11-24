@@ -1,0 +1,14 @@
+== phiên bản
+nginx version: nginx/1.24.0 (Ubuntu)
+== nginx -t từng biến thể có 50 luật
+luat-thuong-nginx        mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0 | location =: 50
+luat-thuong-nginx-ssl    mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0 | location =: 50
+luat-long-nginx          mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0 | location =: 50
+luat-long-nginx-ssl      mã 0 | nginx: configuration file /etc/nginx/nginx.conf test is successful | cảnh báo: 0 | location =: 50
+== curl 50 luật qua nginx (luat-thuong-nginx, cổng 80)
+nginx: 50 luật đúng, 0 lệch (trên 50)
+== thử thách ACME và luật chặn có sẵn vẫn đứng (nginx)
+acme: t6-acme-ok
+ 200
+/.env: 403
+xong

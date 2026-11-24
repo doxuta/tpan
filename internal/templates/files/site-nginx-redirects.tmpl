@@ -1,0 +1,16 @@
+{{- /* Luật chuyển hướng theo đường dẫn của site (M19, m19.go redirectLines
+điền .Redirects). Không luật thì không ra byte nào: vhost giống bản trước M19
+(B5). Có luật thì mở đầu bằng một dòng trống, không có xuống dòng cuối: chỗ gọi
+đứng trên dòng riêng, có dấu trừ cắt xuống dòng phía trước. */ -}}
+{{- if .Redirects}}
+
+    # Chuyển hướng theo đường dẫn (M19, tpan site redirect). Mỗi luật là một
+    # location khớp đúng (=): nginx xét nó trước mọi location khác, so với đường
+    # dẫn đã giải mã, không gồm query. Nguồn không bao giờ bắt đầu bằng "/." nên
+    # không che được thử thách ACME hay luật chặn file ẩn.
+{{- range .Redirects}}
+    location = {{.Source}} {
+        return {{.Code}} {{.Target}}{{if .KeepQuery}}$is_args$args{{end}};
+    }
+{{- end}}
+{{- end -}}

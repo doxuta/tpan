@@ -99,13 +99,52 @@ func splitNames(primary validate.Domain, n site.Names, ssl bool) (nameSplit, err
 	return sp, nil
 }
 
-// withNames chia tên rồi điền các trường tên phụ của d. cert, key chỉ dùng khi ssl.
-func withNames(d siteData, l site.Layout, cert, key string, ssl bool, n site.Names) (siteData, error) {
-	if len(n.Rules) > 0 {
-		// ponytail: luật chuyển hướng theo đường dẫn là việc đợt 2; tới lúc đó
-		// từ chối thay vì lặng lẽ bỏ luật. Bản tạm khoá không vẽ luật nên không qua đây.
-		return siteData{}, fmt.Errorf("%w: chưa vẽ được luật chuyển hướng (M19 đợt 2)", ErrParam)
+// m19Rule là lớp chặn cuối cho nguồn và đích của luật (mục 3.4); độ dài
+// 1..1024 kiểm riêng vì regexp của Go không nhận số lặp quá 1000.
+var m19Rule = regexp.MustCompile(`^[A-Za-z0-9._~/:?=&-]+$`)
+
+// redirectLine là một luật đã sẵn để in (files/site-*-redirects.tmpl).
+type redirectLine struct {
+	Source    string
+	Target    string // luôn là URL tuyệt đối (S16)
+	Code      int
+	KeepQuery bool
+}
+
+// redirectLines dựng các dòng luật. Đích dạng đường dẫn thành
+// scheme + tên chính + đường dẫn (S16): không biến nào lấy từ request (B11).
+// Nguồn trùng thì giữ luật đầu (store đã chặn trùng; nginx từ chối hai
+// "location =" cùng đường dẫn, nên không để một dòng hỏng làm đổ cả vhost).
+// Giá trị lạ (zero, mã khác 301/302, giữ query khi đích đã có query) là
+// ErrParam: core đã từ chối chúng, tới đây là lỗi lập trình.
+func redirectLines(scheme, primary string, rules []site.Redirect) ([]redirectLine, error) {
+	var out []redirectLine
+	seen := map[string]bool{}
+	ok := func(s string) bool { return len(s) <= 1024 && m19Rule.MatchString(s) }
+	for _, r := range rules {
+		src, dst := r.Source.String(), r.Target.String()
+		if !r.Target.IsAbsolute() {
+			dst = scheme + primary + dst
+		}
+		switch {
+		case !ok(src) || !strings.HasPrefix(src, "/") || !ok(dst) || r.Target.IsZero():
+			return nil, fmt.Errorf("%w: luật chuyển hướng %d có nguồn hay đích không cho phép", ErrParam, r.ID)
+		case r.Code != 301 && r.Code != 302:
+			return nil, fmt.Errorf("%w: luật chuyển hướng %d có mã %d", ErrParam, r.ID, r.Code)
+		case r.KeepQuery && r.Target.HasQuery():
+			return nil, fmt.Errorf("%w: luật chuyển hướng %d giữ query khi đích đã có query", ErrParam, r.ID)
+		case seen[src]:
+			continue
+		}
+		seen[src] = true
+		out = append(out, redirectLine{Source: src, Target: dst, Code: r.Code, KeepQuery: r.KeepQuery})
 	}
+	return out, nil
+}
+
+// withNames chia tên, dựng luật rồi điền các trường M19 của d. cert, key chỉ
+// dùng khi ssl. Bản tạm khoá không qua đây (không vẽ luật, không khối chuyển).
+func withNames(d siteData, l site.Layout, cert, key string, ssl bool, n site.Names) (siteData, error) {
 	sp, err := splitNames(l.Domain, n, ssl)
 	if err != nil {
 		return siteData{}, err
@@ -113,6 +152,9 @@ func withNames(d siteData, l site.Layout, cert, key string, ssl bool, n site.Nam
 	scheme := "http://"
 	if ssl {
 		scheme = "https://"
+	}
+	if d.Redirects, err = redirectLines(scheme, d.Domain, n.Rules); err != nil {
+		return siteData{}, err
 	}
 	block := func(names []string, to string) nameBlock {
 		return nameBlock{

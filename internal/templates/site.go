@@ -50,6 +50,8 @@ type siteData struct {
 	ContentAliases []string
 	NameBlocks80   []nameBlock
 	NameBlocks443  []nameBlock
+	// Luật chuyển hướng theo đường dẫn (M19, m19.go redirectLines).
+	Redirects []redirectLine
 }
 
 // SitePool sinh file pool PHP-FPM của site: /etc/php/<ver>/fpm/pool.d/tpan-<slug>.conf.
