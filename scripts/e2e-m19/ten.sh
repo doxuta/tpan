@@ -144,12 +144,14 @@ done
 wait
 cho_roi
 win=0
+wsites=""
 lose_ok=1
 for p in a b; do
   for i in $(seq 1 10); do
     c="$(cat "$W/e24-$p$i.code")"
     if [ "$c" = 202 ]; then
       win=$((win + 1))
+      wsites="$wsites $p"
       j="$(pv "$W/e24-$p$i.body" 'd["job_id"]')"
       echo "  người thắng: API $p$i, job $j: $(cho_job "$j")"
     else
@@ -164,13 +166,19 @@ done
 for i in 1 2 3; do
   if [ "$(cat "$W/e24-cli$i.rc")" = 0 ]; then
     win=$((win + 1))
+    if [ "$i" = 3 ]; then wsites="$wsites b"; else wsites="$wsites a"; fi
     echo "  người thắng: CLI $i"
   else
     echo "  CLI $i thua (thoát $(cat "$W/e24-cli$i.rc")): $(tr '\n' ' ' <"$W/e24-cli$i.out" | head -c 160)"
   fi
 done
 echo "  số người thắng (202 của API + CLI thoát 0): $win"
-ok "E24: đúng một người thắng trên mọi đường (API và CLI)" test "$win" = 1
+# Nhiều request cùng site, cùng chủ có thể cùng "thắng": lần sau nhận lại dòng
+# pending của chính site đó (S9), kết quả là một dòng, không lặp tên. Bất biến
+# B2 là: mọi người thắng thuộc CÙNG MỘT site.
+nsite="$(printf '%s\n' $wsites | sort -u | grep -c .)"
+echo "  site của người thắng:$wsites (số site khác nhau: $nsite)"
+ok "E24: có người thắng và mọi người thắng thuộc cùng một site (API và CLI)" test "$win" -ge 1 -a "$nsite" = 1
 ok "E24: mọi request thua nhận 409 job_running / name_unavailable / alias_exists / name_taken" test "$lose_ok" = 1
 ok "E24: site_names có đúng một dòng mang tên $RACE" test "$(sqlq "SELECT COUNT(*) FROM site_names WHERE name = ?" "$RACE")" = 1
 ok "E24: dòng đó active (job thắng đã xong, không còn pending mồ côi)" test "$(sqlq "SELECT state FROM site_names WHERE name = ?" "$RACE")" = active
