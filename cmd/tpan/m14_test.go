@@ -145,7 +145,7 @@ func TestM14NeedsRoot(t *testing.T) {
 // Máy chưa có gì: lệnh đọc và --dry-run từ chối rõ ràng, không tạo DB.
 func TestM14EmptyMachine(t *testing.T) {
 	for args, want := range map[string]string{
-		"route explain a.example.com --json":                     "site_not_found",
+		"route explain a.example.com --json":                     "name_unknown", // M19: tên không ai có
 		"security harden --dry-run --json":                       "stack_not_installed",
 		"site set a.example.com --htaccess tat --dry-run --json": "site_not_found",
 	} {

@@ -149,6 +149,9 @@ const (
 	HopUser        = "user"         // user Linux mà pool chạy
 	HopOpenBasedir = "open_basedir" // thư mục PHP của pool được mở
 	HopHTTP        = "http"         // gọi thật vào site trên chính máy
+	// M19: tên phụ kiểu redirect. Thay cho root, socket, pool, user,
+	// open_basedir, http: gọi thật, thấy 301 và Location rồi dừng.
+	HopRedirect = "redirect"
 )
 
 // RouteHop là một mắt xích của đường đi request.
@@ -172,7 +175,13 @@ type RouteHop struct {
 
 // RouteTrace là câu trả lời cho "request tới tên miền này đi đường nào".
 type RouteTrace struct {
+	// Domain là tên chính của site. Host (M19) là tên đã hỏi: bằng Domain với
+	// tên chính, khác với tên phụ. Kind là "primary" hoặc "alias"; Mode là
+	// "serve" hay "redirect" và chỉ có với tên phụ.
 	Domain string     `json:"domain"`
+	Host   string     `json:"host"`
+	Kind   string     `json:"kind"`
+	Mode   string     `json:"mode,omitempty"`
 	Web    WebServer  `json:"web"`
 	Hops   []RouteHop `json:"hops"`
 }

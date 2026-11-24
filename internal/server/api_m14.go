@@ -19,13 +19,25 @@ import (
 // handleSiteRoute lần đường đi của một request tới site (core.RouteExplain).
 // Chỉ đọc nhưng chạy lệnh trên máy (nginx -T, curl), và không đệm: người bấm
 // nút này đang hỏi "bây giờ request đi đâu", câu trả lời cũ là câu trả lời sai.
+//
+// M19: ?host=<tên> hỏi về một tên phụ của site. Tên phải thuộc {domain}; tên
+// của site khác hay không có đều là 404 name_unknown (core.RouteExplainName),
+// để người chỉ có quyền trên {domain} không dò được tên của người khác.
 func (s *Server) handleSiteRoute(w http.ResponseWriter, r *http.Request) {
 	d, err := validate.ParseDomain(r.PathValue("domain"))
 	if err != nil {
 		apiFail(w, r, err)
 		return
 	}
-	tr, err := s.apiSites().RouteExplain(r.Context(), d)
+	var tr core.RouteTrace
+	if q := r.URL.Query().Get("host"); q != "" && q != d.String() {
+		var host validate.Domain
+		if host, err = validate.ParseDomain(q); err == nil {
+			tr, err = s.apiSites().RouteExplainName(r.Context(), d, host)
+		}
+	} else {
+		tr, err = s.apiSites().RouteExplain(r.Context(), d)
+	}
 	if err != nil {
 		apiFail(w, r, err)
 		return

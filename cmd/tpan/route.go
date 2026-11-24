@@ -3,7 +3,7 @@ package main
 // Lệnh `tpan route explain <domain>` (M14, mục 6.13 và 9 của
 // docs/KE-HOACH.md): request tới tên miền này đi đường nào trên máy, từng
 // chặng kèm lệnh đã chạy và output. Chỉ đọc; mọi việc lần đường nằm ở
-// core.Sites.RouteExplain, lệnh này chỉ in.
+// core.Sites.RouteExplainHost, lệnh này chỉ in. M19: tên có thể là tên phụ.
 
 import (
 	"slices"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/core"
+	"github.com/doxuta/tpan/internal/site"
 )
 
 func init() { register(routeCmd) }
@@ -34,7 +35,9 @@ func routeExplainCmd(e *env) *cobra.Command {
 		Long: "Lần từ cấu hình web server ĐANG NẠP (nginx -T hoặc apache2ctl -S), không từ điều tpan nghĩ nó đã ghi:\n" +
 			"vhost nào nhận tên miền, vhost đó phục vụ thư mục nào, chuyển .php tới socket nào, pool nào nghe\n" +
 			"socket đó, pool chạy dưới user nào và được mở thư mục nào, rồi gọi thật vào site. Mỗi chặng so với\n" +
-			"thứ tpan mong đợi; chặng không đạt thì in luôn lệnh đã chạy và output. Lệnh không đổi gì trên máy.",
+			"thứ tpan mong đợi; chặng không đạt thì in luôn lệnh đã chạy và output. Lệnh không đổi gì trên máy.\n" +
+			"Tên phụ của site cũng được: kiểu serve đi đủ chuỗi, kiểu redirect dừng ở chỗ thấy 301 và Location.\n" +
+			"Tên không thuộc site nào thì báo name_unknown (request mang Host đó rơi vào vhost mặc định).",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
@@ -53,7 +56,7 @@ func routeExplainCmd(e *env) *cobra.Command {
 				return err
 			}
 			defer done()
-			tr, err := s.RouteExplain(ctx, d)
+			tr, err := s.RouteExplainHost(ctx, d)
 			if err != nil {
 				return fail(e, asJSON, err)
 			}
@@ -92,7 +95,11 @@ func routeFails(tr core.RouteTrace) (n int) {
 // khi chặng không đạt, vì đó là lúc người đọc cần tự kiểm lại.
 func printRoute(e *env, tr core.RouteTrace, evidence bool) {
 	w := e.stdout
-	printf(w, "%s %s (%s)\n\n", e.tr("Request tới", "A request to"), tr.Domain, tr.Web)
+	printf(w, "%s %s (%s)\n", e.tr("Request tới", "A request to"), tr.Host, tr.Web)
+	if tr.Kind == string(site.KindAlias) {
+		printf(w, e.tr("Tên phụ (%s) của site %s\n", "An alias name (%s) of the site %s\n"), tr.Mode, tr.Domain)
+	}
+	printf(w, "\n")
 	for _, h := range tr.Hops {
 		value := h.Value
 		if value == "" {
@@ -115,16 +122,22 @@ func printRoute(e *env, tr core.RouteTrace, evidence bool) {
 	printf(w, "\n")
 	if n := routeFails(tr); n > 0 {
 		printf(w, e.tr("Có %d chặng lỗi: request tới %s không đi đúng đường của site. Xem các chặng [lỗi] ở trên.\n",
-			"%d hop(s) failed: a request to %s does not follow the site's own path. See the [fail] hops above.\n"), n, tr.Domain)
+			"%d hop(s) failed: a request to %s does not follow the site's own path. See the [fail] hops above.\n"), n, tr.Host)
+		return
+	}
+	// Tên phụ kiểu redirect: request được chuyển đi, phần còn lại là của tên chính.
+	if slices.ContainsFunc(tr.Hops, func(h core.RouteHop) bool { return h.Key == core.HopRedirect }) {
+		printf(w, e.tr("Không chặng nào lỗi: request tới %s được vhost chuyển (301) về tên chính. Đi tiếp: tpan route explain %s\n",
+			"No hop failed: a request to %s is redirected (301) by the vhost to the primary name. To follow it: tpan route explain %s\n"), tr.Host, tr.Domain)
 		return
 	}
 	// Site tạm khoá: đường đi dừng ở vhost (không có chặng pool nào), nên câu
 	// "đúng thư mục, pool và user" là nói điều chưa hề được lần.
 	if !slices.ContainsFunc(tr.Hops, func(h core.RouteHop) bool { return h.Key == core.HopPool }) {
 		printf(w, e.tr("Không chặng nào lỗi: request tới %s dừng ở vhost của chính site (site đang tạm khoá, không chuyển tới PHP).\n",
-			"No hop failed: a request to %s stops at the site's own vhost (the site is suspended, nothing is sent to PHP).\n"), tr.Domain)
+			"No hop failed: a request to %s stops at the site's own vhost (the site is suspended, nothing is sent to PHP).\n"), tr.Host)
 		return
 	}
 	printf(w, e.tr("Không chặng nào lỗi: request tới %s đi đúng vhost, thư mục, pool và user của chính site.\n",
-		"No hop failed: a request to %s reaches the site's own vhost, directory, pool and user.\n"), tr.Domain)
+		"No hop failed: a request to %s reaches the site's own vhost, directory, pool and user.\n"), tr.Host)
 }

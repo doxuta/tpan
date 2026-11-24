@@ -43,6 +43,8 @@ var routeTitles = map[string]i18n.Text{
 	HopUser:        i18n.T("User Linux mà pool chạy", "Linux user the pool runs as"),
 	HopOpenBasedir: i18n.T("Thư mục PHP của pool được mở (open_basedir)", "Directories PHP of the pool may open (open_basedir)"),
 	HopHTTP:        i18n.T("Gọi thật vào site trên chính máy", "A real request to the site on this machine"),
+	// M19: tên phụ kiểu redirect dừng ở đây, không có root, socket, pool.
+	HopRedirect: i18n.T("Web server chuyển tên này về tên chính (301)", "The web server redirects this name to the primary name (301)"),
 }
 
 func routeHop(key string, st checks.Status, value string, summary i18n.Text, ev ...checks.Evidence) RouteHop {
@@ -70,6 +72,16 @@ func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace
 	if err != nil {
 		return RouteTrace{}, err
 	}
+	return s.routeTrace(ctx, st, nil)
+}
+
+// routeTrace lần đường đi tới một tên của site st: alias nil là tên chính (như
+// M14), khác nil là tên phụ (M19, route_m19.go). Các chặng giống nhau; chỗ khác
+// của tên phụ: DNS và vhost tìm theo tên đó, cổng 443 chỉ khi site có SSL VÀ
+// tên có trong chứng chỉ, tên redirect dừng ở chặng HopRedirect, tên serve gọi
+// HTTP bằng Host của tên đó.
+func (s *Sites) routeTrace(ctx context.Context, st site.Site, alias *site.Name) (RouteTrace, error) {
+	d := st.Domain
 	if st.Status != site.Active {
 		return RouteTrace{}, refuse("site_trashed", i18n.T(
 			"site "+d.String()+" đang ở thùng rác nên không có request nào đi tới nó; khôi phục bằng: sudo tpan site restore "+d.String(),
@@ -80,17 +92,23 @@ func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace
 		return RouteTrace{}, err
 	}
 	l := st.Layout()
-	tr := RouteTrace{Domain: d.String(), Web: cfg.Web}
+	host, ssl := d, st.SSL
+	tr := RouteTrace{Domain: d.String(), Host: d.String(), Kind: string(site.KindPrimary), Web: cfg.Web}
+	if alias != nil {
+		host, ssl = alias.Name, st.SSL && alias.InCert
+		tr.Host, tr.Kind, tr.Mode = host.String(), string(alias.Kind), string(alias.Mode)
+	}
+	hl := site.LayoutOf(host) // chỉ để đặt tên miền cho các phép kiểm có sẵn
 
 	// DNS: Fail hạ xuống Warn như health (bản ghi nằm ở nhà cung cấp tên miền).
-	dns := checks.Soft(checks.DNSPointsHere(l)).Run(ctx, s.Sys)
+	dns := checks.Soft(checks.DNSPointsHere(hl)).Run(ctx, s.Sys)
 	tr.Hops = append(tr.Hops, routeFromCheck(HopDNS, routeDNSValue(dns), dns))
 
 	port := "80"
-	if st.SSL {
+	if ssl {
 		port = "443" // site có SSL: cổng 80 chỉ chuyển hướng, site chạy ở 443
 	}
-	vh, vhop := routeVhostHop(ctx, s.Sys, cfg.Web, l, port)
+	vh, vhop := routeVhostHop(ctx, s.Sys, cfg.Web, l, host.String(), port)
 
 	if st.Suspended != account.NotSuspended {
 		// Vhost tạm khoá không trỏ tới mã nguồn hay pool nào: đường đi dừng ở đây.
@@ -98,10 +116,15 @@ func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace
 			vhop.Summary.Vi+". Site đang tạm khoá: vhost trả 403 kèm trang tạm khoá cho mọi đường dẫn, không chuyển request tới PHP",
 			vhop.Summary.En+". The site is suspended: the vhost answers 403 with the suspension page for every path and sends nothing to PHP")
 		tr.Hops = append(tr.Hops, vhop,
-			routeFromCheck(HopHTTP, routeURL(st), checks.HTTPSuspended(l, st.SSL).Run(ctx, s.Sys)))
+			routeFromCheck(HopHTTP, routeURL(host, ssl), checks.HTTPSuspended(hl, ssl).Run(ctx, s.Sys)))
 		return tr, nil
 	}
 	tr.Hops = append(tr.Hops, vhop)
+
+	if alias != nil && alias.Mode == site.ModeRedirect {
+		tr.Hops = append(tr.Hops, routeRedirectHop(ctx, s.Sys, d, host, st.SSL, ssl))
+		return tr, nil
+	}
 
 	php := sitePHP(st, cfg)
 	// Site trong lồng (M17): socket, pool và user đều đến từ file của lồng chứ
@@ -110,7 +133,7 @@ func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace
 	if st.Caged {
 		wantSocket = l.CageSocket()
 	}
-	rootHop, sockHop, socket := routeTargets(s.Sys, cfg.Web, vh, l, port, wantSocket)
+	rootHop, sockHop, socket := routeTargets(s.Sys, cfg.Web, vh, l, host.String(), port, wantSocket)
 	tr.Hops = append(tr.Hops, rootHop, sockHop)
 	tr.Hops = append(tr.Hops, routePoolHops(s.Sys, socket, l, php, st.Caged)...)
 
@@ -118,21 +141,24 @@ func (s *Sites) RouteExplain(ctx context.Context, d validate.Domain) (RouteTrace
 	switch {
 	case st.DBSuspended != account.NotSuspended:
 		// DB đang khoá thì WordPress báo lỗi kết nối DB: điều đã biết, như health.
-		probe = checks.SuspendedStage(checks.StageEndToEnd, l, true)
+		probe = checks.SuspendedStage(checks.StageEndToEnd, hl, true)
+	case alias != nil:
+		tr.Hops = append(tr.Hops, routeAliasHTTPHop(ctx, s.Sys, host, ssl))
+		return tr, nil
 	case st.SSL:
 		probe = checks.HTTPSSite(l)
 	default:
 		probe = checks.HTTPSite(l)
 	}
-	tr.Hops = append(tr.Hops, routeFromCheck(HopHTTP, routeURL(st), probe.Run(ctx, s.Sys)))
+	tr.Hops = append(tr.Hops, routeFromCheck(HopHTTP, routeURL(host, ssl), probe.Run(ctx, s.Sys)))
 	return tr, nil
 }
 
-func routeURL(st site.Site) string {
-	if st.SSL {
-		return "https://" + st.Domain.String() + "/"
+func routeURL(host validate.Domain, ssl bool) string {
+	if ssl {
+		return "https://" + host.String() + "/"
 	}
-	return "http://" + st.Domain.String() + "/"
+	return "http://" + host.String() + "/"
 }
 
 // routeDNSValue lấy các địa chỉ mà tên miền đang trỏ tới từ bằng chứng của
@@ -189,10 +215,11 @@ func (d routeDecl) where() string { return d.file + ":" + strconv.Itoa(d.line) }
 // một máy nhiều site dài cả nghìn dòng, người đọc chỉ cần các dòng liên quan.
 const routeMaxLines = 20
 
-// routeVhostHop tìm vhost đầu tiên mang tên miền của site trên cổng port.
+// routeVhostHop tìm vhost đầu tiên mang tên name (tên chính của l, hoặc một
+// tên phụ của site, M19) trên cổng port; file của site là file trong l.
 // Trả nil khi không tìm được vhost nào (chặng sau không có gì để lần).
-func routeVhostHop(ctx context.Context, sys system.System, web WebServer, l site.Layout, port string) (*routeDecl, RouteHop) {
-	dom := l.Domain.String()
+func routeVhostHop(ctx context.Context, sys system.System, web WebServer, l site.Layout, name, port string) (*routeDecl, RouteHop) {
+	dom := name
 	var cmd system.Cmd
 	var own []string
 	switch web {
@@ -546,7 +573,7 @@ func routeReadErr(key, file string, err error) RouteHop {
 
 // routeTargets đọc chính file vhost đã nhận tên miền và trả hai chặng root,
 // socket cùng đường dẫn socket tìm được (rỗng khi không có).
-func routeTargets(sys system.System, web WebServer, vh *routeDecl, l site.Layout, port, wantSocket string) (rootHop, sockHop RouteHop, socket string) {
+func routeTargets(sys system.System, web WebServer, vh *routeDecl, l site.Layout, name, port, wantSocket string) (rootHop, sockHop RouteHop, socket string) {
 	if vh == nil {
 		return routeBlocked(HopRoot, HopVhost), routeBlocked(HopSocket, HopVhost), ""
 	}
@@ -561,7 +588,7 @@ func routeTargets(sys system.System, web WebServer, vh *routeDecl, l site.Layout
 	found := false
 	if web == Nginx {
 		for _, srv := range ngxServers(lines) {
-			if !slices.ContainsFunc(srv.names(), func(d routeDecl) bool { return d.name == l.Domain.String() }) || !slices.Contains(srv.ports(), port) {
+			if !slices.ContainsFunc(srv.names(), func(d routeDecl) bool { return d.name == name }) || !slices.Contains(srv.ports(), port) {
 				continue
 			}
 			found = true
