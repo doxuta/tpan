@@ -259,6 +259,38 @@ vjson() {
 }
 
 
+# ---------------------------------------------------------------- máy ảo
+
+addrs() {
+  VM_IP="$("$VM" ip </dev/null)"
+  NET4="${VM_IP%.*}."
+  HOST_IP="$("$VM" exec bash -c 'echo "${SSH_CLIENT%% *}"' <"$STDIN_EMPTY" | tr -d '\r')"
+  local _
+  for _ in $(seq 1 30); do
+    VM_V6="$("$VM" exec bash -c 'ip -o -6 addr show scope global | awk "{print \$4}" | cut -d/ -f1' <"$STDIN_EMPTY" | tr -d '\r')"
+    [ -n "$VM_V6" ] && break
+    sleep 1
+  done
+  V6PFX="$(head -1 <<<"$VM_V6" | cut -d: -f1-4)"
+  BASE="https://$VM_IP:8443"
+  printf 'IP máy ảo: <vm> (IPv6: <vm-v6>); IP của Mac trong mạng Multipass: <mac> (đều được che trong log)\n'
+}
+reset_vm() {
+  printf 'Máy ảo: %s\n' "$VMNAME"
+  run make vm-reset
+  ok "máy ảo về snapshot clean" rc_is 0
+  local _
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    vexec cloud-init status --wait
+    [ "$RC" -ne 255 ] && break
+    sleep 3
+  done
+  ok "cloud-init xong" rc_is 0
+  addrs
+  vexec bash -c 'command -v tpan; ls /etc/tpan /var/lib/tpan 2>&1'
+  ok "máy sạch: chưa có tpan, /etc/tpan, /var/lib/tpan" bash -c '! grep -q "/usr/local/bin/tpan" <<<"$1" && [ "$(grep -c "No such file or directory" <<<"$1")" -eq 2 ]' _ "$OUT"
+}
+
 # push_tools: chép scripts/e2e-m18/*.sh, *.py vào $RT (qua /tmp, install bằng root).
 push_tools() {
   local f n=0
