@@ -2,14 +2,23 @@ package steps
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/fs"
+	"math/big"
 	"reflect"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
@@ -776,5 +785,581 @@ func TestDefaultSSL(t *testing.T) {
 			step: func() engine.Step { return webStepsOK(t)(DefaultSSL("nginx"))[1] }},
 	} {
 		t.Run(lc.name, lc.run)
+	}
+}
+
+// ================================================ Chứng chỉ nhiều tên (M19 3a)
+
+func sslNames(t *testing.T, names ...string) []validate.Domain {
+	t.Helper()
+	out := make([]validate.Domain, len(names))
+	for i, n := range names {
+		d, err := validate.ParseDomain(n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out[i] = d
+	}
+	return out
+}
+
+// sslPEM sinh một chứng chỉ tự ký có SAN là names, như cert.pem của certbot.
+func sslPEM(names ...string) ([]byte, error) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	tpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "tpan test"},
+		DNSNames:     names,
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &key.PublicKey, key)
+	if err != nil {
+		return nil, err
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), nil
+}
+
+func sslCertPath(d string) string { return "/etc/letsencrypt/live/" + d + "/cert.pem" }
+
+// sslSetSAN đặt chứng chỉ của d như sslSetCert, thêm cert.pem có SAN là names.
+func sslSetSAN(t *testing.T, m *machine, d, server string, names ...string) {
+	t.Helper()
+	sslSetCert(m, d, server)
+	data, err := sslPEM(names...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.SetFile(sslCertPath(d), data, 0o644, system.Root)
+}
+
+// sslCertbotNames giả certbot nhiều tên: certonly ghi chứng chỉ của
+// --cert-name với SAN là mọi -d, như bản thử C2 của thiết kế M19.
+func sslCertbotNames(m *machine) *[][]string {
+	var mu sync.Mutex
+	var calls [][]string
+	m.Handle([]string{"certbot", "certonly"}, func(c system.Cmd) system.Result {
+		mu.Lock()
+		calls = append(calls, slices.Clone(c.Args))
+		mu.Unlock()
+		var names []string
+		for i, a := range c.Args {
+			if a == "-d" && i+1 < len(c.Args) {
+				names = append(names, c.Args[i+1])
+			}
+		}
+		d := c.Args[slices.Index(c.Args, "--cert-name")+1]
+		data, err := sslPEM(names...)
+		if err != nil {
+			return system.Result{ExitCode: 1, Stderr: err.Error()}
+		}
+		sslSetCert(m, d, c.Args[slices.Index(c.Args, "--server")+1])
+		m.SetFile(sslCertPath(d), data, 0o644, system.Root)
+		return system.Result{Stdout: "Successfully received certificate.\n"}
+	})
+	return &calls
+}
+
+// sslNamesProbeMachine như sslProbeMachine nhưng curl đọc host từ URL, và
+// các tên trong bad không tới được máy này (curl lỗi kết nối).
+func sslNamesProbeMachine(t *testing.T, bad ...string) *machine {
+	m := sslProbeMachine(t)
+	m.Handle([]string{"curl", "-sS", "-m", "10"}, func(c system.Cmd) system.Result {
+		host, name, _ := strings.Cut(strings.TrimPrefix(c.Args[len(c.Args)-1], "http://"), "/.well-known/acme-challenge/")
+		if slices.Contains(bad, host) {
+			return system.Result{ExitCode: 7, Stderr: "curl: (7) Failed to connect to " + host + " port 80"}
+		}
+		data, err := m.ReadFile(sslChallengeDir(sslWebroot) + "/" + name)
+		if err != nil {
+			return system.Result{Stdout: "<html><body>404 Not Found</body></html>\n"}
+		}
+		return system.Result{Stdout: string(data)}
+	})
+	return m
+}
+
+// sslCurlHosts là các host mà curl đã gọi, theo thứ tự.
+func sslCurlHosts(t *testing.T, m *machine) []string {
+	t.Helper()
+	var out []string
+	for _, c := range sslCurls(m) {
+		if slices.ContainsFunc(c.Args, func(x string) bool { return strings.Contains(x, "resolve") }) {
+			t.Errorf("curl không được có --resolve: %s", c.String())
+		}
+		host, _, _ := strings.Cut(strings.TrimPrefix(c.Args[len(c.Args)-1], "http://"), "/")
+		out = append(out, host)
+	}
+	return out
+}
+
+func sslCertbotCalls(m *machine) int {
+	n := 0
+	for _, c := range m.Ran() {
+		if c.Name == "certbot" {
+			n++
+		}
+	}
+	return n
+}
+
+// sslNamesPlan nối bước thử và bước xin như core sẽ nối (mục 3.6 của thiết
+// kế M19): Names của certbot đọc kết quả thử, Probe cho S3.
+func sslNamesPlan(t *testing.T, names, covered []validate.Domain) (*ACMEProbeNames, *CertbotCert) {
+	cert := sslCert(t, LetsEncryptStaging)
+	probe := &ACMEProbeNames{Layout: cert.Layout, Webroot: sslWebroot, Names: names, Covered: covered,
+		Result: &ProbeResult{}, Cert: cert}
+	cert.Names = probe.CertbotNames
+	cert.Probe = probe.Result
+	return probe, cert
+}
+
+func TestCertbotCertNames(t *testing.T) {
+	ctx := context.Background()
+	base := []string{"certonly", "--webroot", "-w", sslWebroot, "-d", "example.com", "--cert-name", "example.com",
+		"--non-interactive", "--agree-tos", "-m", "admin@example.com", "--server", LetsEncryptStaging}
+
+	t.Run("tên chính đứng đầu, không lặp, tên phụ giữ thứ tự", func(t *testing.T) {
+		m := newMachine(t)
+		calls := sslCertbotNames(m)
+		c := sslCert(t, LetsEncryptStaging)
+		extra := sslNames(t, "www.example.com", "example.com", "www.example.com", "alias.example.net")
+		c.Names = func() []validate.Domain { return extra }
+		if err := c.Apply(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		want := []string{"certonly", "--webroot", "-w", sslWebroot,
+			"-d", "example.com", "-d", "www.example.com", "-d", "alias.example.net", "--cert-name", "example.com",
+			"--non-interactive", "--agree-tos", "-m", "admin@example.com", "--server", LetsEncryptStaging}
+		if len(*calls) != 1 || !reflect.DeepEqual((*calls)[0], want) {
+			t.Errorf("argv = %q, muốn %q", *calls, want)
+		}
+		if got := c.Info().Commands; len(got) != 1 || !strings.Contains(got[0], "-d example.com -d www.example.com -d alias.example.net --cert-name example.com") {
+			t.Errorf("Info.Commands = %q", got)
+		}
+		if done, err := c.Check(ctx, m); err != nil || !done {
+			t.Errorf("Check sau Apply = %v, %v", done, err)
+		}
+	})
+
+	t.Run("Names trả rỗng hay chỉ tên chính thì argv như trước M19", func(t *testing.T) {
+		for _, names := range [][]validate.Domain{nil, sslNames(t, "example.com")} {
+			m := newMachine(t)
+			calls := sslCertbotNames(m)
+			c := sslCert(t, LetsEncryptStaging)
+			c.Names = func() []validate.Domain { return names }
+			if err := c.Apply(ctx, m); err != nil {
+				t.Fatal(err)
+			}
+			if len(*calls) != 1 || !reflect.DeepEqual((*calls)[0], base) {
+				t.Errorf("Names %v: argv = %q, muốn %q", names, *calls, base)
+			}
+		}
+	})
+
+	t.Run("quá trần MaxNames thì không chạy lệnh", func(t *testing.T) {
+		var many []string
+		for i := range site.MaxNames {
+			many = append(many, fmt.Sprintf("a%d.example.com", i))
+		}
+		over := sslNames(t, many...)
+		m := newMachine(t)
+		c := sslCert(t, LetsEncryptStaging)
+		c.Names = func() []validate.Domain { return over }
+		if _, err := c.Check(ctx, m); err == nil || !strings.Contains(err.Error(), "quá trần") {
+			t.Errorf("Check: lỗi = %v", err)
+		}
+		if err := c.Apply(ctx, m); err == nil {
+			t.Error("Apply không lỗi")
+		}
+		if len(m.Ran()) > 0 {
+			t.Errorf("chạy lệnh: %q", ranStrings(m.Ran()))
+		}
+		// Đúng trần (tên chính + 24 tên phụ) thì nhận.
+		atCap := over[:site.MaxNames-1]
+		c.Names = func() []validate.Domain { return atCap }
+		if err := c.validate(); err != nil {
+			t.Errorf("đúng trần bị từ chối: %v", err)
+		}
+	})
+
+	t.Run("Info có Names thì nói tên hỏng bị bỏ khỏi lệnh", func(t *testing.T) {
+		c := sslCert(t, LetsEncryptStaging)
+		if strings.Contains(c.Info().Why.Vi, "bị bỏ khỏi lệnh") {
+			t.Error("Names nil mà Why vẫn nói về bước thử")
+		}
+		c.Names = func() []validate.Domain { return nil }
+		if w := c.Info().Why; !strings.Contains(w.Vi, "bị bỏ khỏi lệnh") || !strings.Contains(w.En, "dropped from the command") {
+			t.Errorf("Why = %+v", w)
+		}
+	})
+
+	lc := lifecycle{
+		name:  "CertbotCert nhiều tên",
+		setup: func(m *machine) { sslCertbotNames(m) },
+		step: func() engine.Step {
+			c := sslCert(t, LetsEncryptStaging)
+			names := sslNames(t, "www.example.com", "alias.example.net")
+			c.Names = func() []validate.Domain { return names }
+			return c
+		},
+		noUndo: true,
+	}
+	t.Run(lc.name, lc.run)
+}
+
+func TestCertbotCertCheckSAN(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name   string
+		server string   // máy chủ ghi trong renewal
+		san    []string // SAN của cert.pem
+		names  []string // Names (nil: không đặt Names)
+		want   bool
+	}{
+		{"đủ tên, khác thứ tự", LetsEncryptStaging, []string{"www.example.com", "example.com"}, []string{"www.example.com"}, true},
+		{"chứng chỉ thiếu tên", LetsEncryptStaging, []string{"example.com"}, []string{"www.example.com"}, false},
+		{"chứng chỉ thừa tên (tên đã gỡ)", LetsEncryptStaging, []string{"example.com", "www.example.com", "old.example.net"}, []string{"www.example.com"}, false},
+		{"đủ tên nhưng khác máy chủ ACME", LetsEncryptProd, []string{"example.com", "www.example.com"}, []string{"www.example.com"}, false},
+		{"Names nil không đọc SAN (như trước M19)", LetsEncryptStaging, []string{"example.com", "www.example.com"}, nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := newMachine(t)
+			sslSetSAN(t, m, "example.com", tc.server, tc.san...)
+			c := sslCert(t, LetsEncryptStaging)
+			if tc.names != nil {
+				names := sslNames(t, tc.names...)
+				c.Names = func() []validate.Domain { return names }
+			}
+			if done, err := c.Check(ctx, m); err != nil || done != tc.want {
+				t.Errorf("Check = %v, %v; muốn %v, nil", done, err, tc.want)
+			}
+			if len(m.Ran()) > 0 {
+				t.Errorf("Check chạy lệnh: %q", ranStrings(m.Ran()))
+			}
+		})
+	}
+
+	names := sslNames(t, "www.example.com")
+	t.Run("có fullchain mà thiếu cert.pem thì chưa xong", func(t *testing.T) {
+		m := newMachine(t)
+		sslSetCert(m, "example.com", LetsEncryptStaging)
+		c := sslCert(t, LetsEncryptStaging)
+		c.Names = func() []validate.Domain { return names }
+		if done, err := c.Check(ctx, m); err != nil || done {
+			t.Errorf("Check = %v, %v; muốn false, nil", done, err)
+		}
+	})
+
+	t.Run("cert.pem hỏng thì lỗi có ngữ cảnh", func(t *testing.T) {
+		m := newMachine(t)
+		sslSetCert(m, "example.com", LetsEncryptStaging)
+		m.SetFile(sslCertPath("example.com"), []byte("không phải PEM\n"), 0o644, system.Root)
+		c := sslCert(t, LetsEncryptStaging)
+		c.Names = func() []validate.Domain { return names }
+		if _, err := c.Check(ctx, m); err == nil || !strings.Contains(err.Error(), "đọc tên trong "+sslCertPath("example.com")) {
+			t.Errorf("lỗi = %v", err)
+		}
+	})
+}
+
+func TestACMEProbeNames(t *testing.T) {
+	ctx := context.Background()
+	l := sslLayout(t)
+	extra := sslNames(t, "www.example.com", "alias.example.net")
+	all := sslNames(t, "example.com", "www.example.com", "alias.example.net")
+
+	t.Run("mọi tên qua", func(t *testing.T) {
+		m := sslNamesProbeMachine(t)
+		before := m.Snapshot()
+		r := &ProbeResult{}
+		s := &ACMEProbeNames{Layout: l, Webroot: sslWebroot, Names: extra, Result: r}
+		if got := s.CertbotNames(); !slices.Equal(got, all) {
+			t.Errorf("CertbotNames trước Apply = %v, muốn mọi tên %v", got, all)
+		}
+		if done, err := s.Check(ctx, m); err != nil || done {
+			t.Fatalf("Check trước Apply = %v, %v", done, err)
+		}
+		if err := s.Apply(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+		if done, err := s.Check(ctx, m); err != nil || !done {
+			t.Fatalf("Check sau Apply = %v, %v", done, err)
+		}
+		if !slices.Equal(r.Passed, all) || len(r.Failed) != 0 || r.Blocked {
+			t.Errorf("Result = %+v", *r)
+		}
+		if got := s.CertbotNames(); !slices.Equal(got, r.Passed) {
+			t.Errorf("CertbotNames = %v, muốn %v", got, r.Passed)
+		}
+		if got := sslCurlHosts(t, m); !slices.Equal(got, []string{"example.com", "www.example.com", "alias.example.net"}) {
+			t.Errorf("curl gọi %q", got)
+		}
+		if !reflect.DeepEqual(before, m.Snapshot()) {
+			t.Error("Apply để lại file thử hoặc thư mục")
+		}
+	})
+
+	for _, covered := range []bool{false, true} {
+		name := "tên phụ hỏng, chưa nằm trong chứng chỉ: bỏ khỏi đơn"
+		var cov []validate.Domain
+		if covered {
+			name = "tên phụ hỏng, đang nằm trong chứng chỉ: Blocked"
+			cov = sslNames(t, "example.com", "alias.example.net")
+		}
+		t.Run(name, func(t *testing.T) {
+			m := sslNamesProbeMachine(t, "alias.example.net")
+			before := m.Snapshot()
+			r := &ProbeResult{}
+			s := &ACMEProbeNames{Layout: l, Webroot: sslWebroot, Names: extra, Covered: cov, Result: r}
+			if err := s.Apply(ctx, m); err != nil {
+				t.Fatalf("tên phụ hỏng mà bước hỏng: %v", err)
+			}
+			if !slices.Equal(r.Passed, all[:2]) || r.Blocked != covered || len(r.Failed) != 1 {
+				t.Fatalf("Result = %+v", *r)
+			}
+			f := r.Failed[0]
+			if f.Name.String() != "alias.example.net" || f.Covered != covered ||
+				!strings.Contains(f.Reason.Vi, "Failed to connect") || !strings.Contains(f.Reason.En, "alias.example.net") {
+				t.Errorf("Failed = %+v", f)
+			}
+			if got := s.CertbotNames(); !slices.Equal(got, all[:2]) {
+				t.Errorf("CertbotNames = %v", got)
+			}
+			if !reflect.DeepEqual(before, m.Snapshot()) {
+				t.Error("Apply để lại file thử hoặc thư mục")
+			}
+		})
+	}
+
+	t.Run("tên chính hỏng thì bước hỏng, không thử tiếp", func(t *testing.T) {
+		m := sslNamesProbeMachine(t, "example.com")
+		before := m.Snapshot()
+		r := &ProbeResult{}
+		s := &ACMEProbeNames{Layout: l, Webroot: sslWebroot, Names: extra, Result: r}
+		err := s.Apply(ctx, m)
+		if err == nil || !strings.Contains(err.Error(), "Failed to connect to example.com") {
+			t.Errorf("lỗi = %v", err)
+		}
+		if !reflect.DeepEqual(*r, ProbeResult{}) {
+			t.Errorf("bước hỏng mà vẫn ghi Result: %+v", *r)
+		}
+		if got := sslCurlHosts(t, m); !slices.Equal(got, []string{"example.com"}) {
+			t.Errorf("curl gọi %q", got)
+		}
+		if done, _ := s.Check(ctx, m); done {
+			t.Error("Apply lỗi mà Check vẫn true")
+		}
+		if !reflect.DeepEqual(before, m.Snapshot()) {
+			t.Error("Apply lỗi mà còn để lại file thử hoặc thư mục")
+		}
+	})
+
+	t.Run("tham số sai thì không chạy lệnh", func(t *testing.T) {
+		var many []string
+		for i := range site.MaxNames {
+			many = append(many, fmt.Sprintf("a%d.example.com", i))
+		}
+		other := sslCert(t, LetsEncryptStaging)
+		other.Layout = site.LayoutOf(sslNames(t, "other.example.com")[0])
+		badServer := sslCert(t, "https://a.com/dir; rm -rf /")
+		for name, s := range map[string]*ACMEProbeNames{
+			"thiếu Result":       {Layout: l, Webroot: sslWebroot, Names: extra},
+			"quá trần":           {Layout: l, Webroot: sslWebroot, Names: sslNames(t, many...), Result: &ProbeResult{}},
+			"webroot sai":        {Layout: l, Webroot: "/var/lib/tpan/../../etc", Names: extra, Result: &ProbeResult{}},
+			"Layout rỗng":        {Webroot: sslWebroot, Names: extra, Result: &ProbeResult{}},
+			"Cert của site khác": {Layout: l, Webroot: sslWebroot, Names: extra, Result: &ProbeResult{}, Cert: other},
+			"Cert tham số sai":   {Layout: l, Webroot: sslWebroot, Names: extra, Result: &ProbeResult{}, Cert: badServer},
+		} {
+			m := sslNamesProbeMachine(t)
+			if _, err := s.Check(ctx, m); err == nil {
+				t.Errorf("%s: Check không lỗi", name)
+			}
+			if err := s.Apply(ctx, m); err == nil {
+				t.Errorf("%s: Apply không lỗi", name)
+			}
+			if len(m.Ran()) > 0 {
+				t.Errorf("%s: chạy lệnh %q", name, ranStrings(m.Ran()))
+			}
+		}
+	})
+
+	t.Run("Info", func(t *testing.T) {
+		i := (&ACMEProbeNames{Layout: l, Webroot: sslWebroot, Names: extra, Result: &ProbeResult{}}).Info()
+		if i.ID != "ssl.probe:example.com" || i.Title.IsZero() || i.Why.IsZero() || i.NoUndo.IsZero() || i.Danger || len(i.Commands) != 3 {
+			t.Errorf("Info = %+v", i)
+		}
+		if !strings.Contains(i.Commands[2], "http://alias.example.net/.well-known/acme-challenge/") {
+			t.Errorf("Commands = %q", i.Commands)
+		}
+	})
+}
+
+// S3 của thiết kế M19: tên đang nằm trong chứng chỉ mà hỏng bước thử thì không
+// xin lại (xin lại thì hoặc certbot hỏng, hoặc chứng chỉ mất tên đó).
+func TestCertbotKeepsCoveredNameOnProbeFail(t *testing.T) {
+	want := sslNames(t, "www.example.com", "new.example.net")
+	covered := sslNames(t, "example.com", "www.example.com")
+
+	t.Run("tên đang có trong chứng chỉ hỏng: giữ chứng chỉ cũ", func(t *testing.T) {
+		m := sslNamesProbeMachine(t, "www.example.com")
+		sslCertbotNames(m)
+		sslSetSAN(t, m, "example.com", LetsEncryptStaging, "example.com", "www.example.com")
+		before := m.Snapshot()
+		probe, cert := sslNamesPlan(t, want, covered)
+		if rep := execute(t, m, probe, cert); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("job %s: %s", rep.Job.Status, rep.Job.Error)
+		}
+		if n := sslCertbotCalls(m); n != 0 {
+			t.Errorf("certbot chạy %d lần, muốn 0", n)
+		}
+		r := probe.Result
+		if !r.Blocked || len(r.Failed) != 1 || r.Failed[0].Name.String() != "www.example.com" || !r.Failed[0].Covered {
+			t.Errorf("Result = %+v", *r)
+		}
+		if !reflect.DeepEqual(before, m.Snapshot()) {
+			t.Error("chứng chỉ cũ bị đổi")
+		}
+	})
+
+	t.Run("tên mới hỏng, chứng chỉ đã đủ tên đã qua: không xin", func(t *testing.T) {
+		m := sslNamesProbeMachine(t, "new.example.net")
+		sslCertbotNames(m)
+		sslSetSAN(t, m, "example.com", LetsEncryptStaging, "example.com", "www.example.com")
+		probe, cert := sslNamesPlan(t, want, covered)
+		if rep := execute(t, m, probe, cert); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("job %s: %s", rep.Job.Status, rep.Job.Error)
+		}
+		if n := sslCertbotCalls(m); n != 0 || probe.Result.Blocked {
+			t.Errorf("certbot chạy %d lần, Blocked %v; muốn 0, false", n, probe.Result.Blocked)
+		}
+	})
+
+	t.Run("bị chặn mà chưa có chứng chỉ thì vẫn xin với tên đã qua", func(t *testing.T) {
+		m := sslNamesProbeMachine(t, "www.example.com")
+		calls := sslCertbotNames(m)
+		probe, cert := sslNamesPlan(t, want, covered)
+		if rep := execute(t, m, probe, cert); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("job %s: %s", rep.Job.Status, rep.Job.Error)
+		}
+		if !probe.Result.Blocked || len(*calls) != 1 {
+			t.Fatalf("Blocked %v, certbot %q", probe.Result.Blocked, *calls)
+		}
+		if a := strings.Join((*calls)[0], " "); !strings.Contains(a, "-d example.com -d new.example.net --cert-name") {
+			t.Errorf("argv = %s", a)
+		}
+	})
+}
+
+// Plan thử rồi xin chạy lại: bỏ qua khi chứng chỉ đã đúng; thêm tên thì xin lại.
+func TestACMEProbeNamesPlanRerun(t *testing.T) {
+	extra := sslNames(t, "www.example.com", "alias.example.net")
+
+	t.Run("mọi tên qua, chạy lại thì bỏ qua cả hai, không lệnh nào", func(t *testing.T) {
+		m := sslNamesProbeMachine(t)
+		calls := sslCertbotNames(m)
+		probe, cert := sslNamesPlan(t, extra, nil)
+		if rep := execute(t, m, probe, cert); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("lần đầu: %s %s", rep.Job.Status, rep.Job.Error)
+		}
+		if a := strings.Join((*calls)[0], " "); len(*calls) != 1 ||
+			!strings.Contains(a, "-d example.com -d www.example.com -d alias.example.net --cert-name example.com") {
+			t.Fatalf("certbot %q", *calls)
+		}
+		m.ResetRan()
+		probe, cert = sslNamesPlan(t, extra, nil)
+		rep := execute(t, m, probe, cert)
+		for _, st := range rep.Steps {
+			if st.Outcome != "skipped" {
+				t.Errorf("lần hai: %s outcome %q", st.ID, st.Outcome)
+			}
+		}
+		if len(m.Ran()) > 0 {
+			t.Errorf("lần hai chạy lệnh: %q", ranStrings(m.Ran()))
+		}
+		if !slices.Equal(probe.Result.Passed, sslNames(t, "example.com", "www.example.com", "alias.example.net")) {
+			t.Errorf("bỏ qua mà Result = %+v", *probe.Result)
+		}
+	})
+
+	t.Run("tên phụ hỏng: xin không có nó, chạy lại thử lại nhưng không xin", func(t *testing.T) {
+		m := sslNamesProbeMachine(t, "alias.example.net")
+		calls := sslCertbotNames(m)
+		probe, cert := sslNamesPlan(t, extra, nil)
+		if rep := execute(t, m, probe, cert); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("lần đầu: %s %s", rep.Job.Status, rep.Job.Error)
+		}
+		if a := strings.Join((*calls)[0], " "); len(*calls) != 1 || strings.Contains(a, "alias") ||
+			!strings.Contains(a, "-d example.com -d www.example.com --cert-name") {
+			t.Fatalf("certbot %q", *calls)
+		}
+		probe, cert = sslNamesPlan(t, extra, sslNames(t, "example.com", "www.example.com"))
+		if rep := execute(t, m, probe, cert); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("lần hai: %s %s", rep.Job.Status, rep.Job.Error)
+		}
+		if len(*calls) != 1 {
+			t.Errorf("lần hai xin lại: %q", *calls)
+		}
+	})
+
+	t.Run("thêm tên thì xin lại cùng --cert-name, không ép gia hạn", func(t *testing.T) {
+		m := sslNamesProbeMachine(t)
+		calls := sslCertbotNames(m)
+		sslSetSAN(t, m, "example.com", LetsEncryptStaging, "example.com", "www.example.com")
+		probe, cert := sslNamesPlan(t, extra, sslNames(t, "example.com", "www.example.com"))
+		if rep := execute(t, m, probe, cert); rep.Job.Status != engine.JobSucceeded {
+			t.Fatalf("job %s: %s", rep.Job.Status, rep.Job.Error)
+		}
+		if len(*calls) != 1 || slices.Contains((*calls)[0], "--force-renewal") ||
+			!strings.Contains(strings.Join((*calls)[0], " "), "-d alias.example.net --cert-name example.com") {
+			t.Errorf("certbot %q", *calls)
+		}
+	})
+}
+
+func TestCertNames(t *testing.T) {
+	mk := func(names ...string) []byte {
+		t.Helper()
+		b, err := sslPEM(names...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	key := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: []byte("x")})
+
+	for _, tc := range []struct {
+		name string
+		data []byte
+		want []string
+	}{
+		{"hai tên", mk("example.com", "www.example.com"), []string{"example.com", "www.example.com"}},
+		{"khối khác đứng trước thì bỏ qua", append(slices.Clone(key), mk("example.com")...), []string{"example.com"}},
+		{"fullchain: chỉ đọc chứng chỉ đầu", append(mk("example.com"), mk("other.example.org")...), []string{"example.com"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := CertNames(tc.data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(got, sslNames(t, tc.want...)) {
+				t.Errorf("= %v, muốn %v", got, tc.want)
+			}
+		})
+	}
+
+	for name, data := range map[string][]byte{
+		"rỗng":           nil,
+		"không phải PEM": []byte("example.com\n"),
+		"chỉ có khoá":    key,
+		"DER hỏng":       pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: []byte("x")}),
+		"tên đại diện":   mk("example.com", "*.example.com"),
+		"tên có ;":       mk("example.com", "a.com;id"),
+	} {
+		if got, err := CertNames(data); err == nil {
+			t.Errorf("%s: không lỗi, tên %v", name, got)
+		}
 	}
 }

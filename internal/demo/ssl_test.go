@@ -3,6 +3,7 @@ package demo
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/steps"
+	"github.com/doxuta/tpan/internal/system"
 )
 
 // TestSSLSeed: blog có SSL (chứng chỉ thật về cấu trúc, còn khoảng 60 ngày,
@@ -69,6 +72,54 @@ func TestSSLSeed(t *testing.T) {
 	// gọi) là Fail chứ không lỡ đạt.
 	if r := checks.HTTPSSite(site.LayoutOf(domain(t, siteShop))).Run(ctx, sys); r.Status == checks.Pass {
 		t.Errorf("shop chưa có SSL mà https.site đạt: %s", r.Summary.Vi)
+	}
+}
+
+// TestCertbotManyNames: certbot giả nhận nhiều -d (M19): SAN của cert.pem là
+// mọi -d; cùng bộ tên thì "chưa tới hạn", thêm tên thì xin lại.
+func TestCertbotManyNames(t *testing.T) {
+	ctx, sys, _ := newDemo(t)
+	l := site.LayoutOf(domain(t, siteShop))
+	run := func(names ...string) string {
+		t.Helper()
+		args := []string{"certonly", "--webroot", "-w", acmeRoot}
+		for _, n := range names {
+			args = append(args, "-d", n)
+		}
+		args = append(args, "--cert-name", siteShop, "--non-interactive", "--agree-tos", "-m", demoEmail, "--server", steps.LetsEncryptStaging)
+		res, err := sys.Run(ctx, system.Cmd{Name: "certbot", Args: args})
+		if err != nil {
+			t.Fatalf("certbot %v: %v", names, err)
+		}
+		return res.Stdout
+	}
+	san := func() []string {
+		t.Helper()
+		data, err := sys.ReadFile(l.CertDir() + "/cert.pem")
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := steps.CertNames(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := make([]string, len(got))
+		for i, d := range got {
+			out[i] = d.String()
+		}
+		return out
+	}
+
+	two := []string{siteShop, "www." + siteShop}
+	if out := run(two...); !strings.Contains(out, "Successfully") || !slices.Equal(san(), two) {
+		t.Fatalf("lần đầu: %q, SAN %v", out, san())
+	}
+	if out := run(two...); !strings.Contains(out, "not yet due") {
+		t.Errorf("cùng bộ tên mà xin lại: %q", out)
+	}
+	three := append(slices.Clone(two), "alias.example.net")
+	if out := run(three...); !strings.Contains(out, "Successfully") || !slices.Equal(san(), three) {
+		t.Errorf("thêm tên: %q, SAN %v", out, san())
 	}
 }
 

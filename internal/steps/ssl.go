@@ -3,6 +3,8 @@ package steps
 import (
 	"context"
 	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -32,6 +34,7 @@ const (
 var (
 	_ engine.Step = (*CertbotCert)(nil)
 	_ engine.Step = (*ACMEProbe)(nil)
+	_ engine.Step = (*ACMEProbeNames)(nil)
 	_ engine.Step = (*CertbotDelete)(nil)
 	_ engine.Step = (*WPSiteURL)(nil)
 )
@@ -57,6 +60,29 @@ type CertbotCert struct {
 	Webroot string // /var/lib/tpan/acme
 	Email   validate.Email
 	Server  string
+
+	// Names (M19): bộ tên xin cho chứng chỉ. nil: chỉ tên chính (như trước
+	// M19). Core gán ACMEProbeNames.CertbotNames: trước bước thử là mọi tên
+	// muốn có (cho bản xem trước), sau bước thử là các tên đã qua. Tên chính
+	// luôn đứng đầu lệnh dù Names trả nó ở đâu hay không trả.
+	Names func() []validate.Domain
+	// Probe (M19, S3): kết quả của ACMEProbeNames. Probe.Blocked mà chứng chỉ
+	// đã có thì không chạy certbot, giữ chứng chỉ cũ. nil: không bao giờ chặn.
+	Probe *ProbeResult
+}
+
+// names là bộ tên đi vào lệnh certbot: tên chính đầu, không lặp.
+func (s *CertbotCert) names() []validate.Domain {
+	out := []validate.Domain{s.Layout.Domain}
+	if s.Names == nil {
+		return out
+	}
+	for _, n := range s.Names() {
+		if !slices.Contains(out, n) {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 func (s *CertbotCert) validate() error {
@@ -77,13 +103,23 @@ func (s *CertbotCert) validate() error {
 	if !sslServerRe.MatchString(s.Server) {
 		return fmt.Errorf("địa chỉ máy chủ ACME %q không hợp lệ (chỉ nhận https://host[:cổng]/đường-dẫn)", s.Server)
 	}
+	if n := len(s.names()); n > site.MaxNames {
+		return fmt.Errorf("chứng chỉ của %s xin %d tên, quá trần %d", s.Layout.Domain, n, site.MaxNames)
+	}
 	return nil
 }
 
+// cmd: tên chính là -d đầu tiên, tên phụ nối ngay sau (bản thử C2: cùng
+// --cert-name thì certbot tự xin lại khi bộ tên đổi, không cần --expand).
+// Names nil cho đúng argv trước M19.
 func (s *CertbotCert) cmd(force bool) system.Cmd {
 	d := s.Layout.Domain.String()
-	args := []string{"certonly", "--webroot", "-w", s.Webroot, "-d", d, "--cert-name", d,
-		"--non-interactive", "--agree-tos", "-m", s.Email.String(), "--server", s.Server}
+	args := []string{"certonly", "--webroot", "-w", s.Webroot}
+	for _, n := range s.names() {
+		args = append(args, "-d", n.String())
+	}
+	args = append(args, "--cert-name", d,
+		"--non-interactive", "--agree-tos", "-m", s.Email.String(), "--server", s.Server)
 	if force {
 		args = append(args, "--force-renewal")
 	}
@@ -92,13 +128,19 @@ func (s *CertbotCert) cmd(force bool) system.Cmd {
 
 func (s *CertbotCert) Info() engine.StepInfo {
 	d := s.Layout.Domain.String()
+	why := i18n.T(
+		"Không có chứng chỉ thì trình duyệt không mở được https://"+d+" mà không báo lỗi, và mật khẩu đăng nhập WordPress đi qua mạng ở dạng đọc được. Hoàn tác không xoá chứng chỉ: xoá đi thì mỗi lần thử lại tốn thêm một lượt trong hạn mức 5 chứng chỉ cùng tên mỗi 7 ngày của Let's Encrypt; chứng chỉ nằm trên đĩa không làm gì khi vhost chưa dùng nó.",
+		"Without a certificate browsers cannot open https://"+d+" without an error, and WordPress login passwords cross the network readable. Undo keeps the certificate: deleting it would cost another of Let's Encrypt's 5 certificates per name per 7 days on every retry; a certificate on disk does nothing while no vhost uses it.",
+	)
+	if s.Names != nil {
+		// Bản xem trước chưa biết tên nào qua bước thử (bước thử chạy lúc áp dụng).
+		why.Vi += " Tên nào không qua bước thử sẽ bị bỏ khỏi lệnh; nếu tên đó đang nằm trong chứng chỉ thì không xin lại, giữ chứng chỉ cũ."
+		why.En += " Names that fail the test step are dropped from the command; if such a name is already in the certificate, nothing is requested and the current certificate is kept."
+	}
 	return engine.StepInfo{
-		ID:    "ssl.cert:" + d,
-		Title: i18n.T("Xin chứng chỉ Let's Encrypt cho "+d, "Get a Let's Encrypt certificate for "+d),
-		Why: i18n.T(
-			"Không có chứng chỉ thì trình duyệt không mở được https://"+d+" mà không báo lỗi, và mật khẩu đăng nhập WordPress đi qua mạng ở dạng đọc được. Hoàn tác không xoá chứng chỉ: xoá đi thì mỗi lần thử lại tốn thêm một lượt trong hạn mức 5 chứng chỉ cùng tên mỗi 7 ngày của Let's Encrypt; chứng chỉ nằm trên đĩa không làm gì khi vhost chưa dùng nó.",
-			"Without a certificate browsers cannot open https://"+d+" without an error, and WordPress login passwords cross the network readable. Undo keeps the certificate: deleting it would cost another of Let's Encrypt's 5 certificates per name per 7 days on every retry; a certificate on disk does nothing while no vhost uses it.",
-		),
+		ID:       "ssl.cert:" + d,
+		Title:    i18n.T("Xin chứng chỉ Let's Encrypt cho "+d, "Get a Let's Encrypt certificate for "+d),
+		Why:      why,
 		Commands: []string{s.cmd(false).String()},
 		NoUndo: i18n.T(
 			"Giữ chứng chỉ để lần chạy lại không tốn lượt của Let's Encrypt. Chứng chỉ chỉ bị xoá khi xoá hẳn site.",
@@ -140,16 +182,67 @@ func (s *CertbotCert) Check(_ context.Context, sys system.System) (bool, error) 
 	} else if err != nil {
 		return false, fmt.Errorf("đọc %s: %w", p, err)
 	}
+	// S3: một tên đang nằm trong chứng chỉ hỏng bước thử. Xin lại thì hoặc
+	// certbot hỏng (có tên đó) hoặc chứng chỉ mất tên đó (bỏ nó): giữ nguyên.
+	if s.held() {
+		return true, nil
+	}
 	server, _, err := s.renewalServer(sys)
-	if err != nil {
+	if err != nil || server != s.Server {
 		return false, err
 	}
-	return server == s.Server, nil
+	if s.Names == nil {
+		return true, nil
+	}
+	// Đủ tên mới là xong: so SAN của cert.pem với bộ tên (so tập, không thứ tự).
+	cp := sslCertPem(s.Layout)
+	data, err := sys.ReadFile(cp)
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	} else if err != nil {
+		return false, fmt.Errorf("đọc %s: %w", cp, err)
+	}
+	have, err := CertNames(data)
+	if err != nil {
+		return false, fmt.Errorf("đọc tên trong %s: %w", cp, err)
+	}
+	return sslSameNames(have, s.names()), nil
+}
+
+// held: bước thử đã chặn theo S3. Chỉ gọi sau khi đã thấy fullchain: chưa có
+// chứng chỉ thì không có gì để giữ, xin với các tên đã qua.
+func (s *CertbotCert) held() bool { return s.Probe != nil && s.Probe.Blocked }
+
+// sslCertPem là chứng chỉ của riêng site (không kèm trung gian); SAN đọc ở đây.
+// ponytail: site.Layout chưa có hàm cho file này (internal/site ngoài vùng M19 3a).
+func sslCertPem(l site.Layout) string { return l.CertDir() + "/cert.pem" }
+
+// sslSameNames so hai bộ tên như hai tập.
+func sslSameNames(a, b []validate.Domain) bool {
+	for _, x := range a {
+		if !slices.Contains(b, x) {
+			return false
+		}
+	}
+	for _, x := range b {
+		if !slices.Contains(a, x) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *CertbotCert) Apply(ctx context.Context, sys system.System) error {
 	if err := s.validate(); err != nil {
 		return err
+	}
+	if s.held() {
+		p := s.Layout.CertFullchain()
+		if _, err := sys.ReadFile(p); err == nil {
+			return nil // giữ chứng chỉ cũ; core đọc Probe để báo lý do
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("đọc %s: %w", p, err)
+		}
 	}
 	server, exists, err := s.renewalServer(sys)
 	if err != nil {
@@ -200,8 +293,12 @@ func (s *ACMEProbe) validate() error {
 	return nil
 }
 
-func (s *ACMEProbe) curl(name string) system.Cmd {
-	url := "http://" + s.Layout.Domain.String() + "/.well-known/acme-challenge/" + name
+func (s *ACMEProbe) curl(name string) system.Cmd { return sslProbeCurl(s.Layout.Domain, name) }
+
+// sslProbeCurl gọi file thử qua đúng tên host, KHÔNG --resolve: đi đường DNS
+// như Let's Encrypt sẽ đi.
+func sslProbeCurl(host validate.Domain, name string) system.Cmd {
+	url := "http://" + host.String() + "/.well-known/acme-challenge/" + name
 	return system.Cmd{Name: "curl", Args: []string{"-sS", "-m", "10", url}}
 }
 
@@ -235,19 +332,29 @@ func (s *ACMEProbe) Check(ctx context.Context, sys system.System) (bool, error) 
 	return s.Cert.Check(ctx, sys)
 }
 
-func (s *ACMEProbe) Apply(ctx context.Context, sys system.System) (err error) {
+func (s *ACMEProbe) Apply(ctx context.Context, sys system.System) error {
 	if err := s.validate(); err != nil {
 		return err
 	}
+	err := sslWithChallengeDir(sys, s.Webroot, func(dir string) error {
+		return sslProbeOne(ctx, sys, dir, s.Layout.Domain)
+	})
+	s.passed = err == nil
+	return err
+}
+
+// sslWithChallengeDir bảo đảm thư mục thử thách có, chạy fn, rồi xoá đúng
+// các thư mục nó đã tạo.
+func sslWithChallengeDir(sys system.System, webroot string, fn func(dir string) error) (err error) {
 	// Webroot do bước cài stack tạo; thiếu thì vhost cũng không trỏ tới đâu.
-	fi, err := sys.Stat(s.Webroot)
+	fi, err := sys.Stat(webroot)
 	if err != nil {
-		return fmt.Errorf("thư mục %s chưa có (stack chưa cài xong?): %w", s.Webroot, err)
+		return fmt.Errorf("thư mục %s chưa có (stack chưa cài xong?): %w", webroot, err)
 	}
 	if !fi.Mode.IsDir() {
-		return fmt.Errorf("%s không phải thư mục", s.Webroot)
+		return fmt.Errorf("%s không phải thư mục", webroot)
 	}
-	dir := sslChallengeDir(s.Webroot)
+	dir := sslChallengeDir(webroot)
 	created, err := missingDirs(sys, dir)
 	if err != nil {
 		return err
@@ -257,7 +364,12 @@ func (s *ACMEProbe) Apply(ctx context.Context, sys system.System) (err error) {
 		return errors.Join(err, removeDirs(sys, created))
 	}
 	defer func() { err = errors.Join(err, removeDirs(sys, created)) }()
+	return fn(dir)
+}
 
+// sslProbeOne ghi một file ngẫu nhiên vào dir, gọi nó qua host, luôn xoá file.
+// Lỗi nói host đang trỏ về đâu và lệnh đã chạy.
+func sslProbeOne(ctx context.Context, sys system.System, dir string, host validate.Domain) (err error) {
 	// Tên và nội dung ngẫu nhiên: không đoán trước được, nên câu trả lời khớp
 	// chỉ có thể đến từ đúng file này trên đúng máy này.
 	name := strings.ToLower(rand.Text())
@@ -272,20 +384,212 @@ func (s *ACMEProbe) Apply(ctx context.Context, sys system.System) (err error) {
 		}
 	}()
 
-	cmd := s.curl(name)
+	cmd := sslProbeCurl(host, name)
 	res, cerr := sys.Run(ctx, cmd)
 	got := strings.TrimSpace(res.Stdout)
 	if cerr == nil && got == want {
-		s.passed = true
 		return nil
 	}
-	d := s.Layout.Domain.String()
+	d := host.String()
 	where := fmt.Sprintf("%s theo DNS của máy; lệnh đã chạy: %s", sslResolve(ctx, sys, d), cmd.String())
 	if cerr != nil {
 		return fmt.Errorf("thử http://%s/.well-known/acme-challenge/ không tới được máy này (Let's Encrypt cũng sẽ thất bại): %w; %s", d, cerr, where)
 	}
 	return fmt.Errorf("thử http://%s/.well-known/acme-challenge/ không về đúng máy này (Let's Encrypt cũng sẽ thất bại): nội dung khác file thử: %s; %s",
 		d, sslExcerpt(got), where)
+}
+
+// ============================================================= ACMEProbeNames
+
+// ProbeResult là kết quả của ACMEProbeNames, CertbotCert và core đọc.
+type ProbeResult struct {
+	// Passed: tên qua bước thử, tên chính đầu.
+	Passed []validate.Domain
+	// Failed: tên phụ hỏng bước thử (tên chính hỏng thì bước hỏng).
+	Failed []ProbeFail
+	// Blocked (S3): có tên hỏng mà đang nằm trong chứng chỉ; không chạy
+	// certbot, giữ chứng chỉ cũ.
+	Blocked bool
+}
+
+// ProbeFail là một tên phụ hỏng bước thử.
+type ProbeFail struct {
+	Name   validate.Domain
+	Reason i18n.Text
+	// Covered: tên đang nằm trong chứng chỉ (lý do của Blocked).
+	Covered bool
+}
+
+// ACMEProbeNames thử đường HTTP của Let's Encrypt cho TỪNG tên của site trước
+// khi xin chứng chỉ nhiều tên (M19, mục 3.6 bước 3). Một tên hỏng làm cả đơn
+// certbot hỏng (bản thử C3), nên chỉ tên qua mới vào lệnh.
+// Tên chính hỏng: bước hỏng. Tên phụ hỏng: ghi Result.Failed, bước vẫn đạt;
+// tên đó nằm trong Covered thì Result.Blocked (S3).
+type ACMEProbeNames struct {
+	Layout  site.Layout
+	Webroot string
+	// Names: tên muốn có (tên chính được thêm vào đầu nếu thiếu).
+	Names []validate.Domain
+	// Covered: tên đang nằm trong chứng chỉ (in_cert = 1).
+	Covered []validate.Domain
+	// Result: nơi ghi kết quả; bắt buộc.
+	Result *ProbeResult
+	// Cert: khác nil thì chứng chỉ đã đúng đủ mọi tên muốn có là bỏ qua bước thử.
+	Cert *CertbotCert
+
+	ran bool // Apply của chính bước này đã thành công
+}
+
+// want: tên chính đầu, không lặp.
+func (s *ACMEProbeNames) want() []validate.Domain {
+	out := []validate.Domain{s.Layout.Domain}
+	for _, n := range s.Names {
+		if !slices.Contains(out, n) {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// CertbotNames là giá trị cho CertbotCert.Names: sau Apply là các tên đã qua,
+// trước đó (bản xem trước, hay khi bước được bỏ qua) là mọi tên muốn có.
+func (s *ACMEProbeNames) CertbotNames() []validate.Domain {
+	if s.ran && s.Result != nil {
+		return slices.Clone(s.Result.Passed)
+	}
+	return s.want()
+}
+
+func (s *ACMEProbeNames) validate() error {
+	if err := webCheckLayout(s.Layout); err != nil {
+		return err
+	}
+	if err := sslCheckWebroot(s.Webroot); err != nil {
+		return err
+	}
+	if s.Result == nil {
+		return errors.New("bước thử nhiều tên thiếu chỗ ghi kết quả")
+	}
+	if n := len(s.want()); n > site.MaxNames {
+		return fmt.Errorf("thử %d tên cho %s, quá trần %d", n, s.Layout.Domain, site.MaxNames)
+	}
+	if s.Cert != nil {
+		if s.Cert.Layout != s.Layout || s.Cert.Webroot != s.Webroot {
+			return errors.New("bước xin chứng chỉ đi kèm không cùng site hoặc cùng webroot với bước thử")
+		}
+		return s.Cert.validate()
+	}
+	return nil
+}
+
+func (s *ACMEProbeNames) Info() engine.StepInfo {
+	d := s.Layout.Domain.String()
+	var cmds []string
+	for _, n := range s.want() {
+		cmds = append(cmds, sslProbeCurl(n, "<tên-ngẫu-nhiên>").String())
+	}
+	return engine.StepInfo{
+		ID:    "ssl.probe:" + d,
+		Title: i18n.T("Thử đường HTTP mà Let's Encrypt sẽ kiểm cho từng tên của "+d, "Test the HTTP path Let's Encrypt will check for each name of "+d),
+		Why: i18n.T(
+			"Let's Encrypt chỉ cấp chứng chỉ khi gọi được http://<tên>/.well-known/acme-challenge/ tới đúng máy này cho MỌI tên trong đơn; một tên hỏng làm cả đơn hỏng. Thử trước từng tên bằng một file ngẫu nhiên: tên chính hỏng thì dừng; tên phụ hỏng thì bị bỏ khỏi đơn (nếu nó đang nằm trong chứng chỉ thì giữ chứng chỉ cũ, không xin lại).",
+			"Let's Encrypt only issues a certificate when http://<name>/.well-known/acme-challenge/ reaches this machine for EVERY name in the order; one bad name fails the whole order. Each name is tested first with a random file: if the main name fails we stop; a failing extra name is dropped from the order (if it is already in the certificate, the current certificate is kept and nothing is requested).",
+		),
+		Commands: cmds,
+		NoUndo: i18n.T(
+			"Bước này không để lại gì trên máy: file thử luôn bị xoá ngay sau khi gọi.",
+			"This step leaves nothing behind: the test files are always deleted right after the request.",
+		),
+	}
+}
+
+// Check: đã thử xong, hoặc chứng chỉ đã đúng máy chủ và đủ mọi tên muốn có
+// (khi đó ghi Result như mọi tên đều qua). Không đặt ran: bản xem trước và lúc
+// chạy dùng chung bước, lúc chạy phải xét lại.
+func (s *ACMEProbeNames) Check(ctx context.Context, sys system.System) (bool, error) {
+	if err := s.validate(); err != nil {
+		return false, err
+	}
+	if s.ran {
+		return true, nil
+	}
+	if s.Cert == nil {
+		return false, nil
+	}
+	// Bản sao: so với mọi tên muốn có, không theo cách core nối Names/Probe.
+	c := *s.Cert
+	want := s.want()
+	c.Names = func() []validate.Domain { return want }
+	c.Probe = nil
+	ok, err := c.Check(ctx, sys)
+	if ok {
+		*s.Result = ProbeResult{Passed: want}
+	}
+	return ok, err
+}
+
+func (s *ACMEProbeNames) Apply(ctx context.Context, sys system.System) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	var r ProbeResult
+	err := sslWithChallengeDir(sys, s.Webroot, func(dir string) error {
+		for i, n := range s.want() {
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("thử tên %s: %w", n, err)
+			}
+			perr := sslProbeOne(ctx, sys, dir, n)
+			if perr == nil {
+				r.Passed = append(r.Passed, n)
+				continue
+			}
+			if i == 0 {
+				return perr
+			}
+			covered := slices.Contains(s.Covered, n)
+			r.Failed = append(r.Failed, ProbeFail{Name: n, Covered: covered, Reason: i18n.T(perr.Error(),
+				"http://"+n.String()+"/.well-known/acme-challenge/ does not reach this machine (check the name's DNS record)")})
+			r.Blocked = r.Blocked || covered
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	*s.Result, s.ran = r, true
+	return nil
+}
+
+// Undo không làm gì (xem NoUndo trong Info).
+func (s *ACMEProbeNames) Undo(context.Context, system.System) error { return nil }
+
+// CertNames đọc các tên (SAN kiểu DNS) của chứng chỉ đầu tiên trong pem, như
+// /etc/letsencrypt/live/<tên>/cert.pem. Tên không hợp lệ (kể cả tên đại diện
+// "*.") là lỗi: TPAN không bao giờ xin chúng.
+func CertNames(data []byte) ([]validate.Domain, error) {
+	for {
+		var b *pem.Block
+		b, data = pem.Decode(data)
+		if b == nil {
+			return nil, errors.New("không có khối CERTIFICATE nào")
+		}
+		if b.Type != "CERTIFICATE" {
+			continue
+		}
+		c, err := x509.ParseCertificate(b.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("đọc chứng chỉ: %w", err)
+		}
+		out := make([]validate.Domain, 0, len(c.DNSNames))
+		for _, n := range c.DNSNames {
+			d, err := validate.ParseDomain(n)
+			if err != nil {
+				return nil, fmt.Errorf("tên %q trong chứng chỉ: %w", sslExcerpt(n), err)
+			}
+			out = append(out, d)
+		}
+		return out, nil
+	}
 }
 
 // Undo không làm gì (xem NoUndo trong Info).

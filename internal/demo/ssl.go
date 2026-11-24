@@ -76,11 +76,22 @@ func (m *machine) certbot(c system.Cmd) system.Result {
 			return exit(1, "", "certbot: --cert-name không hợp lệ\n")
 		}
 		server := argAfter(c.Args, "--server")
+		// Mọi -d (M19: tên chính đầu, rồi tên phụ). Bộ tên đổi thì certbot thật
+		// xin lại dù chưa tới hạn (bản thử C2 của thiết kế M19).
+		var names []string
+		for i, a := range c.Args {
+			if a == "-d" && i+1 < len(c.Args) {
+				names = append(names, c.Args[i+1])
+			}
+		}
+		if len(names) == 0 {
+			return exit(1, "", "certbot: thiếu -d\n")
+		}
 		if old, err := m.ReadFile(l.CertRenewal()); err == nil && !slices.Contains(c.Args, "--force-renewal") &&
-			strings.Contains(string(old), "server = "+server+"\n") {
+			strings.Contains(string(old), "server = "+server+"\n") && m.certHas(l, names) {
 			return exit(0, "Certificate not yet due for renewal; no action taken.\n", "")
 		}
-		if err := m.issueCert(l, server, time.Now()); err != nil {
+		if err := m.issueCert(l, server, time.Now(), names...); err != nil {
 			return exit(1, "", err.Error()+"\n")
 		}
 		return exit(0, "Successfully received certificate.\nCertificate is saved at: "+l.CertFullchain()+"\n", "")
@@ -97,12 +108,34 @@ func (m *machine) certbot(c system.Cmd) system.Result {
 	return okResult
 }
 
-// issueCert ghi bộ file certbot để lại cho site l: chứng chỉ (fullchain.pem),
-// khoá riêng, và file renewal có dòng server. Chứng chỉ có hiệu lực từ
-// notBefore, trong 90 ngày, do "tổ chức cấp" mang tên giống Let's Encrypt
-// (staging có chữ "(STAGING)" như thật). Khoá chỉ nằm trong bộ nhớ máy giả.
-func (m *machine) issueCert(l site.Layout, server string, notBefore time.Time) error {
+// certHas: cert.pem của site l có đúng bộ tên names (so tập).
+func (m *machine) certHas(l site.Layout, names []string) bool {
+	data, err := m.ReadFile(l.CertDir() + "/cert.pem")
+	if err != nil {
+		return false
+	}
+	have, err := steps.CertNames(data)
+	if err != nil || len(have) != len(names) {
+		return false
+	}
+	for _, h := range have {
+		if !slices.Contains(names, h.String()) {
+			return false
+		}
+	}
+	return true
+}
+
+// issueCert ghi bộ file certbot để lại cho site l: chứng chỉ (fullchain.pem,
+// và cert.pem để đọc SAN), khoá riêng, và file renewal có dòng server. SAN là
+// names, rỗng thì chỉ tên chính. Chứng chỉ có hiệu lực từ notBefore, trong 90
+// ngày, do "tổ chức cấp" mang tên giống Let's Encrypt (staging có chữ
+// "(STAGING)" như thật). Khoá chỉ nằm trong bộ nhớ máy giả.
+func (m *machine) issueCert(l site.Layout, server string, notBefore time.Time, names ...string) error {
 	d := l.Domain.String()
+	if len(names) == 0 {
+		names = []string{d}
+	}
 	issuer := "E6"
 	if strings.Contains(server, "staging") {
 		issuer = "(STAGING) Ersatz Edamame E1"
@@ -118,7 +151,7 @@ func (m *machine) issueCert(l site.Layout, server string, notBefore time.Time) e
 	leaf := &x509.Certificate{
 		SerialNumber: serial,
 		Subject:      pkix.Name{CommonName: d},
-		DNSNames:     []string{d},
+		DNSNames:     names,
 		NotBefore:    notBefore,
 		NotAfter:     notBefore.Add(certLife),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
@@ -136,7 +169,9 @@ func (m *machine) issueCert(l site.Layout, server string, notBefore time.Time) e
 	}
 
 	m.SetDir(l.CertDir(), 0o755, rootOwner)
-	m.SetFile(l.CertFullchain(), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o644, rootOwner)
+	leafPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	m.SetFile(l.CertFullchain(), leafPEM, 0o644, rootOwner)
+	m.SetFile(l.CertDir()+"/cert.pem", leafPEM, 0o644, rootOwner)
 	m.SetFile(l.CertPrivkey(), pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER}), 0o600, rootOwner)
 	live := l.CertDir()
 	renewal := "# renew_before_expiry = 30 days\nversion = 2.9.0\narchive_dir = /etc/letsencrypt/archive/" + d +
