@@ -75,6 +75,8 @@ const table = [
     menu: { label: "sites", group: "chinh", icon: "globe", count: activeSites },
   },
   { path: "/sites/new", load: () => import("./screens/tao-site").then((m) => m.default) },
+  // M19: tên phụ và luật chuyển hướng của mọi site trong phạm vi người xem. Không có mục menu; vào từ hai ô ở trang Công cụ.
+  { path: "/domains", load: () => import("./screens/ten-mien").then((m) => m.default) },
   { path: "/sites/:domain", load: () => import("./screens/site").then((m) => m.SiteDetail) },
   {
     path: "/databases",

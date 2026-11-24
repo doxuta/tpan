@@ -137,7 +137,7 @@ function ToolTile({ t, tool, admin, count }: { t: T; tool: Tool; admin: boolean;
   const label = t.tiles[tool.key];
   return (
     <Link
-      to={admin ? tool.path : (tool.userPath ?? tool.path)}
+      to={(admin ? tool.path : (tool.userPath ?? tool.path)) + (tool.tab ? `?tab=${tool.tab}` : "")}
       className="flex min-h-[44px] items-start gap-[12px] rounded-ctl border border-hair bg-surface px-[12px] py-[10px] text-ink no-underline transition-colors hover:bg-soft hover:text-ink"
     >
       <span aria-hidden="true" className="flex size-[36px] flex-none items-center justify-center rounded-ctl bg-accent-tint text-accent">

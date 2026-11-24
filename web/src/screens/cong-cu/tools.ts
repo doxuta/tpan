@@ -21,6 +21,8 @@ export type Tool = {
   count?: "sites" | "dbs" | "incidents";
   /** Đích khi người xem là user thường (Bảng điều khiển của họ nằm ở /dashboard). */
   userPath?: ScreenPath;
+  /** Tab của màn đích, nối vào đường dẫn thành ?tab=<tab> (màn Tên miền phụ đọc nó để biết dẫn sang tab nào). */
+  tab?: string;
 };
 
 export type ToolGroup = { group: keyof S["groups"]; tools: Tool[] };
@@ -31,6 +33,9 @@ export const toolGroups: ToolGroup[] = [
     tools: [
       { path: "/sites", icon: "globe", key: "sites", count: "sites" },
       { path: "/sites/new", icon: "plus", key: "newSite" },
+      // M19: cùng màn /domains; tab quyết định dòng nào dẫn sang tab Tên miền hay Chuyển hướng của site.
+      { path: "/domains", icon: "globe", key: "domains", tab: "ten-mien" },
+      { path: "/domains", icon: "chevron-right", key: "redirects", tab: "chuyen-huong" },
     ],
   },
   {

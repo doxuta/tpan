@@ -20,6 +20,15 @@ export const siteRedirectPath = (domain: string, id: number) => `${siteRedirects
 export const namesKey = (domain: string) => ["site", domain, "names"] as const;
 export const redirectsKey = (domain: string) => ["site", domain, "redirects"] as const;
 
+/** Một dòng của GET /api/v1/domains (internal/server/types_m19.go → DomainRow). Tên phụ active, không tra DNS. */
+export type DomainRow = { site: string; names: string[]; redirects: number };
+
+export const domainsKey = ["domains"] as const;
+
+export function useDomains() {
+  return useQuery({ queryKey: domainsKey, queryFn: () => get<DomainRow[]>("/api/v1/domains") });
+}
+
 export function useSiteNames(domain: string) {
   return useQuery({ queryKey: namesKey(domain), queryFn: () => get<NameView[]>(siteNamesPath(domain)) });
 }

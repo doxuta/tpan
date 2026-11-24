@@ -20,6 +20,8 @@ const vi = {
   tiles: {
     sites: { label: "Site", desc: "Danh sách site, đường đi của request" },
     newSite: { label: "Tạo site", desc: "WordPress mới, một hoặc nhiều site" },
+    domains: { label: "Tên miền phụ", desc: "Tên phụ của từng site, phục vụ hoặc chuyển về tên chính" },
+    redirects: { label: "Chuyển hướng", desc: "Luật chuyển hướng theo đường dẫn của từng site" },
     backups: { label: "Backup", desc: "Sao lưu, khôi phục, đặt lịch" },
     trash: { label: "Thùng rác", desc: "Site và DB rời đã xoá, còn khôi phục được" },
     databases: { label: "Cơ sở dữ liệu", desc: "DB của site và DB rời; xuất, nhập" },
@@ -76,6 +78,8 @@ export const strings = defineStrings(vi, {
   tiles: {
     sites: { label: "Sites", desc: "Site list, the route of each request" },
     newSite: { label: "Create a site", desc: "New WordPress, one site or many" },
+    domains: { label: "Domains", desc: "Secondary names of each site, served or redirected to the primary" },
+    redirects: { label: "Redirects", desc: "Path-based redirect rules of each site" },
     backups: { label: "Backups", desc: "Back up, restore, schedule" },
     trash: { label: "Trash", desc: "Deleted sites and databases you can still restore" },
     databases: { label: "Databases", desc: "Site and standalone databases; export, import" },
