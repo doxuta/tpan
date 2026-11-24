@@ -262,7 +262,7 @@ Log bản vá (dòng 203 tới 223):
   => ĐẠT: có ít nhất một câu 429 (55 trên 60)
 ```
 
-Số 429 gộp mọi chỗ trả `auth_busy`: hàng chờ của khoá nguồn, chỗ tra UID, và chỗ argon2; log không tách riêng. Phép thử này chưa chạm đường "kết nối loopback với bảng socket lớn" của D1 (mục 5.3).
+Số 429 gộp mọi chỗ trả `auth_busy`: hàng chờ của khoá nguồn, chỗ tra UID, và chỗ argon2; log không tách riêng. Cẩn thận: phép thử P2 trong log này (N = 60) phần lớn chưa tới chỗ argon2, vì mọi request chung khoá `uid:0` (3 câu 401, 2 câu 423). Phép thử đã được viết lại để mỗi request một khoá nguồn; số liệu mới và lý do ở mục 4 của `28c-m28-dot-2-nhom-b.md`. Phép thử này chưa chạm đường "kết nối loopback với bảng socket lớn" của D1 (mục 5.3).
 
 Tự chạy: bộ đo đầy đủ là `scripts/e2e-m28-dot2/p2.sh` (gắn nhiều địa chỉ tạm vào `lo`), chạy qua `make e2e-m28-dot2 P=nginx` từ Mac. Cách nhìn nhanh trên máy ảo, chưa chạy trong phiên viết:
 
@@ -712,7 +712,7 @@ Chép nguyên từ mục 6.27 của `docs/KE-HOACH.md` (cách gây ra giữ ngo�
 - Kẻ chiếm site còn vài khoá nguồn phụ ngoài `uid:<n>`, nên được vài lần đoán hơn 5 mỗi 15 phút.
 - Phần còn lại của D2: ngoài harden, một site bị chiếm vẫn làm được các Plan khác chạm tới nó bị hoàn tác (có từ M14; không mở lỗ đọc file, chỉ chặn thao tác của admin tới khi sửa site đó).
 - Hồi quy cho site hợp lệ (D13 của soát cuối): site có `public` là symlink cùng chủ (kiểu thư mục `current` của công cụ triển khai) vẫn chạy nhưng mọi Plan trên site đó bị hoàn tác vì `site.docroot`; đổi `public` thành thư mục thật.
-- Nhóm B của đợt 2 (P4, P7, F1, P06, T3 và các phát hiện vừa còn lại) chưa làm.
+- Nhóm B của đợt 2: P4, P7 đã vá (xem `28c-m28-dot-2-nhom-b.md`); F1, P06, T3 và các phát hiện vừa còn lại chưa làm.
 
 Nếu bị hỏi "bản này đã an toàn hoàn toàn chưa": chưa. Bốn gạch đầu là lỗ chưa vá. Gạch thứ nhất là lý do để khuyên nginx cho máy nhiều khách.
 
@@ -737,3 +737,5 @@ Nếu bị hỏi "bản này đã an toàn hoàn toàn chưa": chưa. Bốn gạ
 9. Một lần argon2id xin 64 MiB và mất cỡ 0,1 giây; 2 chỗ nghĩa là bộ nhớ sống cho argon2 không quá 128 MiB, vẫn nhận vài lần đăng nhập mỗi giây, đủ cho một panel quản trị. Chờ tối đa 3 giây, quá thì 429 kèm `Retry-After: 3`: không xếp hàng vô hạn. CLI dùng `HashPasswordWait` (chờ không hạn) vì nó là tiến trình riêng, không tranh chỗ với server. Hash giả cho tên lạ cũng dùng `HashPasswordWait` lúc khởi động (S11): nếu nó gặp `ErrPasswordBusy` và lỗi bị nhớ thì mọi tên lạ trả 500 ngay còn tên thật trả 401 sau argon2, tức lộ tên user nào có thật. 429 không tính là lần sai vì chưa so mật khẩu thì chưa có gì sai để đếm; đếm sẽ cho kẻ làm đầy chỗ tra khoá được người khác.
 
 10. `sudo tpan admin unlock <khoá nguồn>` (khoá in trong lời 423, ví dụ `uid:993`); không đối số thì gỡ mọi khoá. Nó không đổi mật khẩu, không huỷ phiên, và ghi nhật ký `admin.unlock`. Khác `tpan admin passwd`, lệnh này đổi mật khẩu và huỷ mọi phiên. Chạy thử: vòng 6 lần `curl` ở mục 2.4 từ shell root (khoá `uid:0`), rồi `tpan admin unlock uid:0`; sẽ thấy `401` bốn lần, `423` từ lần 5, và một dòng báo đã gỡ khoá (dòng 195 của log bản vá là `Đã gỡ khoá đăng nhập của uid:993.`). Chưa chạy trong phiên viết với `uid:0`.
+
+Nhóm B của đợt 2 (P4, P7, và sửa phép thử P2): xem `28c-m28-dot-2-nhom-b.md`.
