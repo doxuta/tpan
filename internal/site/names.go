@@ -36,6 +36,17 @@ const (
 	MaxNames = 25
 	// MaxRedirects: số luật chuyển hướng tối đa mỗi site.
 	MaxRedirects = 50
+	// MaxNameLen (soát cuối C8): số byte tối đa của một tên phụ, để nginx với
+	// server_names_hash_bucket_size 64 (nginx-org-include.conf.tmpl; gói
+	// Ubuntu mặc định bằng cache line, 64 trên amd64 và arm64) vẫn dựng được
+	// bảng băm tên. src/core/ngx_hash.c, ngx_hash_init: một tên cần
+	// NGX_HASH_ELT_SIZE = sizeof(void*) + ngx_align(len+2, sizeof(void*)) cộng
+	// thêm sizeof(void*) đánh dấu cuối bucket; máy 64 bit: 8 + align8(len+2) +
+	// 8 <= 64, tức len <= 46. Khớp số đo của soát cuối (46 byte: nginx -t đạt,
+	// 47 byte: "could not build server_names_hash"). Áp cho mọi stack: máy
+	// Apache có thể đổi sang nginx, và một tên dài làm hỏng đổi stack cả máy.
+	// Tên chính không bị luật này (hành vi trước M19 giữ nguyên).
+	MaxNameLen = 46
 )
 
 // Mã của NameError (mục 3.2 và 3.7).
@@ -48,6 +59,8 @@ const (
 	CodeNameRootForeign  = "name_root_foreign"
 	// CodeAliasLimit: site đã có đủ MaxNames tên (S10).
 	CodeAliasLimit = "alias_limit"
+	// CodeNameTooLong: tên phụ dài hơn MaxNameLen byte (soát cuối C8).
+	CodeNameTooLong = "name_too_long"
 )
 
 // Name là một dòng của bảng site_names.
@@ -92,6 +105,7 @@ func (e *NameError) Error() string { return e.Code + ": " + e.Name.String() }
 //
 // Với mỗi claim:
 //  1. Tên dành cho phép thử (IsProbeDomain): domain_reserved, kể cả admin.
+//     Tên phụ dài hơn MaxNameLen byte: name_too_long, kể cả admin.
 //  2. Đã có dòng mang tên đó:
 //     - claim tên chính, dòng cùng site VÀ cùng chủ: no-op (chạy lại site add,
 //     apply lần hai), không xét gì thêm (S4);
@@ -107,6 +121,10 @@ func CheckClaims(claims []Claim, existing []Name) error {
 	for _, c := range claims {
 		if IsProbeDomain(c.Name.String()) {
 			return &NameError{Code: CodeNameReserved, Name: c.Name}
+		}
+		// Trước bước tra dòng: lời chỉ phụ thuộc chính tên, không lộ tên của ai.
+		if c.Kind == KindAlias && len(c.Name.String()) > MaxNameLen {
+			return &NameError{Code: CodeNameTooLong, Name: c.Name}
 		}
 		reclaim := false
 		if i := slices.IndexFunc(rows, func(n Name) bool { return n.Name == c.Name }); i >= 0 {

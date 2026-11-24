@@ -533,7 +533,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		if rec.Owner, err = s.newOwner(ctx, in.Owner); err != nil {
 			return nil, err
 		}
-		if claims, notes, err = s.addClaims(ctx, &rec, in.WWW); err != nil {
+		if claims, notes, err = s.addClaims(ctx, &rec, in.WWW, cfg.Web); err != nil {
 			return nil, err
 		}
 		vi, en, err := s.unmanaged(ctx, l)

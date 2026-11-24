@@ -25,6 +25,8 @@ func newNamesEnv(t *testing.T) *siteEnv {
 	// nginx -T: in mọi file trong sites-enabled như nginx thật.
 	m.Handle([]string{"nginx", "-T"}, func(system.Cmd) system.Result {
 		var b strings.Builder
+		// nginx thật luôn in nginx.conf trước, kể cả khi sites-enabled rỗng.
+		b.WriteString("# configuration file /etc/nginx/nginx.conf:\n")
 		names, _ := m.ReadDir("/etc/nginx/sites-enabled")
 		for _, n := range names {
 			p := "/etc/nginx/sites-enabled/" + n

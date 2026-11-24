@@ -135,6 +135,8 @@ func apiErrorStatus(err error) (status int, body ErrorBody) {
 			core.CodePackageLimitInvalid, core.CodePackageLimitsNeedCage, core.CodeDomainReserved,
 			// M19: kiểu tên phụ sai, tên phụ trùng tên chính, tên là public suffix.
 			"name_mode_invalid", "alias_primary", "domain_public_suffix",
+			// M19 soát cuối C8: tên phụ dài quá giới hạn của nginx.
+			"name_too_long",
 			// M19: luật chuyển hướng (core từ chối khi cần biết site).
 			"redirect_invalid", "redirect_reserved", "redirect_loop", "redirect_query_conflict":
 			status = http.StatusBadRequest

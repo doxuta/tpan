@@ -6,6 +6,11 @@ package checks
 // trước thắng; tpan-*.conf đứng trước nhiều file theo thứ tự chữ cái, nên tên
 // phụ sẽ lặng lẽ chiếm lưu lượng của vhost kia.
 
+import (
+	"path"
+	"strings"
+)
+
 // DeclaredNames đọc bản in cấu hình đang nạp (web "nginx": stdout của
 // `nginx -T`; "apache": stdout cộng stderr của `apache2ctl -S`) và trả mỗi tên
 // đang khai (chữ thường, bỏ chấm cuối) kèm file khai nó. Một tên khai ở nhiều
@@ -30,4 +35,39 @@ func DeclaredNames(web string, dump string) (map[string]string, bool) {
 		}
 	}
 	return out, true
+}
+
+// DeclaredFile trả file khai name trong decl (kết quả của DeclaredNames), ""
+// khi không ai khai. Khớp đúng thắng (như nginx); không có thì xét tên
+// wildcard (soát cuối C9): "*.x" khớp mọi tên con của x ở mọi độ sâu (không
+// khớp chính x), ".x" của nginx khớp x và mọi tên con, còn lại "*" và "?" như
+// ServerAlias của Apache và "x.*" của nginx (path.Match: tên không có "/").
+// Nhiều wildcard cùng khớp thì lấy file đứng trước theo tên (ổn định).
+//
+// ponytail: bỏ qua server_name dạng regex (~...) của nginx; đọc regex của
+// người khác để đoán tên nào khớp không đáng rủi ro sai. Cần thì dịch bằng
+// regexp (cú pháp PCRE khác RE2 ở vài chỗ).
+func DeclaredFile(decl map[string]string, name string) string {
+	if f, ok := decl[name]; ok {
+		return f
+	}
+	best := ""
+	for pat, f := range decl {
+		if strings.HasPrefix(pat, "~") || !strings.ContainsAny(pat, "*?") && !strings.HasPrefix(pat, ".") {
+			continue
+		}
+		match := false
+		switch {
+		case strings.HasPrefix(pat, "."):
+			match = name == pat[1:] || strings.HasSuffix(name, pat)
+		case strings.HasPrefix(pat, "*."):
+			match = strings.HasSuffix(name, pat[1:])
+		default:
+			match, _ = path.Match(pat, name)
+		}
+		if match && (best == "" || f < best) {
+			best = f
+		}
+	}
+	return best
 }

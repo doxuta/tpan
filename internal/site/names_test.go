@@ -3,6 +3,7 @@ package site
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/doxuta/tpan/internal/validate"
@@ -168,4 +169,22 @@ func TestRootForeign(t *testing.T) {
 	}
 	_, err := RootForeign(existing, nd(t, "co.uk"), "userb")
 	checkCode(t, "co.uk", err, CodeNamePublicSuffix)
+}
+
+// TestCheckClaimsNameTooLong (soát cuối C8): tên phụ dài hơn MaxNameLen byte bị
+// từ chối, kể cả admin; tên chính không bị luật này.
+func TestCheckClaimsNameTooLong(t *testing.T) {
+	long := func(n int) string { // n byte, đuôi .example.com (12 byte)
+		return strings.Repeat("a", n-len(".example.com")) + ".example.com"
+	}
+	ok46, bad47 := long(MaxNameLen), long(MaxNameLen+1)
+	if len(ok46) != 46 || len(bad47) != 47 {
+		t.Fatalf("độ dài %d %d", len(ok46), len(bad47))
+	}
+	alias := claimOf(t, bad47, "a.example.com", "usera", KindAlias)
+	checkCode(t, "tên phụ 47 byte", CheckClaims([]Claim{alias}, nil), CodeNameTooLong)
+	alias.ByAdmin = true
+	checkCode(t, "tên phụ 47 byte, admin", CheckClaims([]Claim{alias}, nil), CodeNameTooLong)
+	checkCode(t, "tên phụ 46 byte", CheckClaims([]Claim{claimOf(t, ok46, "a.example.com", "usera", KindAlias)}, nil), "")
+	checkCode(t, "tên chính 47 byte", CheckClaims([]Claim{claimOf(t, bad47, bad47, "usera", KindPrimary)}, nil), "")
 }

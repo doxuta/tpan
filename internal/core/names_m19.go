@@ -80,6 +80,10 @@ func (s *Sites) aliasRefusal(err error) error {
 		return refuse(CodeDomainReserved, i18n.T(
 			"tên "+n+" dành cho phép thử của tpan; chọn tên khác",
 			"the name "+n+" is reserved for tpan's probe; choose another name"))
+	case site.CodeNameTooLong:
+		return refuse(ne.Code, i18n.T(
+			fmt.Sprintf("tên phụ %s dài %d byte; tối đa %d byte (giới hạn bảng băm tên của nginx, server_names_hash_bucket_size 64), áp cho mọi web server để máy đổi được stack", n, len(n), site.MaxNameLen),
+			fmt.Sprintf("the alias %s is %d bytes long; at most %d bytes (nginx's server name hash limit, server_names_hash_bucket_size 64), applied on every web server so the machine can switch stack", n, len(n), site.MaxNameLen)))
 	case site.CodeAliasExists:
 		return refuse(ne.Code, i18n.T("tên "+n+" đã là tên phụ của site này", "the name "+n+" is already an alias of this site"))
 	case site.CodeNameTakenSelf:
@@ -213,7 +217,8 @@ func declaredElsewhere(ctx context.Context, sys system.System, web WebServer, l 
 	if !ok {
 		return "", fmt.Errorf("đọc cấu hình web đang nạp: không hiểu output của %s", cmd.String())
 	}
-	if f, found := decl[name.String()]; found && !slices.Contains(own, f) {
+	// Soát cuối C9: kể cả tên khớp wildcard (*.example.com) của vhost khác.
+	if f := checks.DeclaredFile(decl, name.String()); f != "" && !slices.Contains(own, f) {
 		return f, nil
 	}
 	return "", nil
@@ -629,7 +634,17 @@ func claimNames(cs []site.Claim) []validate.Domain {
 // không dùng được thì bỏ qua kèm ghi chú (site vẫn tạo được). Store không giữ
 // được tên (store giả): chỉ kiểm tên chính trên bảng sites, không có www.
 // Thêm tên www vào rec.Names để vhost của job có nó.
-func (s *Sites) addClaims(ctx context.Context, rec *site.Site, www site.NameMode) ([]site.Claim, []i18n.Text, error) {
+//
+// Soát cuối: tên www dài hơn site.MaxNameLen (C8, qua CheckNames) hay đang
+// được vhost khác khai (C9, như declaredGuard của alias.add) cũng bỏ qua kèm
+// ghi chú. Không đọc được cấu hình web đang nạp thì cũng bỏ www: thà thiếu
+// www còn hơn chiếm tên của vhost khác.
+//
+// ponytail: chỉ kiểm vhost khác ở Prepare, không thêm bước chặn dưới khoá như
+// alias.add (bước đó hỏng thì hỏng cả tạo site). Cửa sổ đua: một vhost tay khai
+// tên www giữa Prepare và Execute thì không bị bắt; health (web.server_name.unique)
+// sẽ báo.
+func (s *Sites) addClaims(ctx context.Context, rec *site.Site, www site.NameMode, web WebServer) ([]site.Claim, []i18n.Text, error) {
 	primary := site.Claim{Name: rec.Domain, Site: rec.Domain, Owner: ownerOf(*rec), Kind: site.KindPrimary, Mode: site.ModeServe, ByAdmin: !s.NotAdmin}
 	ns, ok := s.nameStore()
 	if !ok {
@@ -650,14 +665,32 @@ func (s *Sites) addClaims(ctx context.Context, rec *site.Site, www site.NameMode
 		www = site.ModeRedirect
 	}
 	wc := site.Claim{Name: w, Site: rec.Domain, Owner: primary.Owner, Kind: site.KindAlias, Mode: www, ByAdmin: primary.ByAdmin}
+	skip := func(why i18n.Text) ([]site.Claim, []i18n.Text, error) {
+		note := i18n.T("Không thêm tên phụ mặc định "+w.String()+": "+why.Vi,
+			"The default alias "+w.String()+" was not added: "+why.En)
+		return claims, []i18n.Text{note}, nil
+	}
 	if err := ns.CheckNames(ctx, []site.Claim{primary, wc}); err != nil {
 		var re *RefusedError
 		if !errors.As(s.aliasRefusal(err), &re) {
 			return nil, nil, err
 		}
-		note := i18n.T("Không thêm tên phụ mặc định "+w.String()+": "+re.Message.Vi,
-			"The default alias "+w.String()+" was not added: "+re.Message.En)
-		return claims, []i18n.Text{note}, nil
+		return skip(re.Message)
+	}
+	f, err := declaredElsewhere(ctx, s.Sys, web, rec.Layout(), w)
+	if err != nil {
+		detail := "" // user thường không thấy stderr của web server (đường dẫn cấu hình)
+		if !s.NotAdmin {
+			detail = " (" + err.Error() + ")"
+		}
+		return skip(i18n.T("không đọc được cấu hình web đang nạp để kiểm tên này chưa có vhost khác khai"+detail,
+			"could not read the loaded web configuration to check no other vhost declares this name"+detail))
+	}
+	if f != "" {
+		var re *RefusedError
+		if errors.As(s.declaredRefusal(w, f), &re) {
+			return skip(re.Message)
+		}
 	}
 	rec.Names = withName(rec.Names, w, www)
 	return append(claims, wc), nil, nil
