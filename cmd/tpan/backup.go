@@ -27,7 +27,7 @@ func backupCmd(e *env) *cobra.Command {
 		Use:   "backup",
 		Short: "Backup site (mã nguồn và DB), xem, khôi phục, đặt lịch backup hằng ngày",
 	}
-	c.AddCommand(backupCreateCmd(e), backupListCmd(e), backupRestoreCmd(e), backupSettingsCmd(e))
+	c.AddCommand(backupCreateCmd(e), backupListCmd(e), backupRestoreCmd(e), backupRmCmd(e), backupSettingsCmd(e))
 	// M18: target, key, push, pull (backup_s3.go).
 	c.AddCommand(backupS3Cmds(e)...)
 	return c
@@ -506,4 +506,35 @@ func printBackupSettings(e *env, s core.BackupSettings) {
 	}
 	printf(w, "%s %s (%s, %s)\n", e.tr("Lịch backup hằng ngày: lúc", "Daily backup at"), s.At,
 		e.tr("giờ máy", "machine time"), site.BackupCronFile)
+}
+
+// backupRmCmd: `tpan backup rm <id>` xoá file của một bản backup khỏi máy.
+func backupRmCmd(e *env) *cobra.Command {
+	var f planFlags
+	c := &cobra.Command{
+		Use:   "rm <id>",
+		Short: "Xoá một bản backup khỏi máy (bản đã đẩy lên kho thì bản trên kho vẫn còn)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			if !f.dryRun {
+				if err := requireRoot(e, cmd); err != nil {
+					return fail(e, f.asJSON, err)
+				}
+			}
+			b, done, err := openBackups(ctx, e, f.dryRun)
+			if err != nil {
+				return err
+			}
+			defer done()
+			p, err := b.PrepareDelete(ctx, args[0])
+			if err != nil {
+				return fail(e, f.asJSON, err)
+			}
+			_, err = runPlanned(ctx, e, f, b.Sites.Store, "backup.delete", args[0], p)
+			return err
+		},
+	}
+	bindChangeFlags(c, &f)
+	return c
 }

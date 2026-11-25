@@ -195,6 +195,12 @@ func (s *Store) DeleteUser(ctx context.Context, name string) error {
 		if err := endSessionsOf(ctx, tx, name); err != nil {
 			return fmt.Errorf("xoá user %s: %w", name, err)
 		}
+		// Bản backup của site đã xoá hẳn sống lâu hơn user: giao về admin, để một
+		// user tạo sau này trùng tên không thấy và không khôi phục được dữ liệu
+		// của người cũ.
+		if _, err := tx.ExecContext(ctx, "UPDATE backups SET owner = ? WHERE owner = ?", adminName, name); err != nil {
+			return fmt.Errorf("xoá user %s: giao backup về admin: %w", name, err)
+		}
 		res, err := tx.ExecContext(ctx, "DELETE FROM users WHERE name = ?", name)
 		if err != nil {
 			return fmt.Errorf("xoá user %s: %w", name, err)

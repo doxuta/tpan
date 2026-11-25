@@ -34,6 +34,8 @@ type Props = {
   pending: PendingRow;
   anyPending: boolean;
   onRestore: (b: Backup) => void;
+  /** Xoá file của bản backup khỏi máy (chủ bản backup hoặc admin). */
+  onDelete: (b: Backup) => void;
   /** Việc kho (đẩy lên kho, tải về máy): chỉ admin. */
   isAdmin: boolean;
   /** Đã đặt đích ngoài máy chưa (admin đọc từ GET /backups/target); undefined với user thường hoặc khi chưa đọc được. */
@@ -113,7 +115,7 @@ export function Where({ b, configured }: { b: Backup; configured: boolean | unde
 /** Ghi chú thay cho nút ở cột Việc (site trong thùng rác, site đã xoá, bản sql). */
 const note = "inline-block max-w-[200px] text-[12.5px] text-muted";
 
-export function BackupList({ items, filter, onFilter, stateOf, pending, anyPending, onRestore, isAdmin, targetConfigured, onPush, onPull }: Props) {
+export function BackupList({ items, filter, onFilter, stateOf, pending, anyPending, onRestore, onDelete, isAdmin, targetConfigured, onPush, onPull }: Props) {
   const t = useStrings(strings);
   const { lang } = useLang();
 
@@ -162,8 +164,10 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
       const label = push ? t.pushFor(b.domain, when) : t.pullFor(b.domain, when);
       primary.push({ label: push ? t.push : t.pull, ariaLabel: label, disabled: anyPending, busy: pending?.action === work && pending.id === b.id, busyLabel: t.previewing, onClick: () => (push ? onPush(b) : onPull(b)) });
     }
-    if (primary.length === 0) return lead;
-    const buttons = <RowActions moreLabel={t.restoreFor(b.domain, when)} primary={primary} />;
+    // Xoá: chỉ bản còn file trên máy (bản chỉ còn trên kho do kho tự dọn).
+    const more = b.local ? [{ label: t.deleteLocal, danger: true, disabled: anyPending, onSelect: () => onDelete(b) }] : [];
+    if (primary.length === 0 && more.length === 0) return lead;
+    const buttons = <RowActions moreLabel={t.moreFor(b.domain, when)} primary={primary} more={more} />;
     if (!lead) return buttons;
     return (
       <span className="flex flex-col items-end gap-[4px]">

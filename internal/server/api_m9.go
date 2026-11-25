@@ -268,3 +268,18 @@ func (s *Server) handleDBImport(w http.ResponseWriter, r *http.Request) {
 		return b.PrepareDBImport(ctx, d, body.BackupID)
 	})
 }
+
+// handleBackupDelete: DELETE /api/v1/backups/{id} (chủ bản backup hoặc admin):
+// xoá file backup khỏi máy (core/backup_delete.go). ?dry_run=1 trả bản xem trước.
+func (s *Server) handleBackupDelete(w http.ResponseWriter, r *http.Request) {
+	const action = "backup.delete"
+	id := r.PathValue("id")
+	if !backupIDRe.MatchString(id) {
+		apiFail(w, r, backupNotFound("?"))
+		return
+	}
+	b := s.apiBackups()
+	s.planJob(w, r, action, id, func(ctx context.Context) (apiPlan, error) {
+		return plannedOf(b.PrepareDelete(ctx, id))
+	})
+}

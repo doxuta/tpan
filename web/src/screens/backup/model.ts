@@ -15,6 +15,7 @@ export const backupsPath = "/api/v1/backups";
 export const backupSettingsPath = "/api/v1/backups/settings";
 export const siteBackupPath = (domain: string) => `/api/v1/sites/${encodeURIComponent(domain)}/backups`;
 export const restorePath = (id: string) => `/api/v1/backups/${encodeURIComponent(id)}/restore`;
+export const backupPath = (id: string) => `/api/v1/backups/${encodeURIComponent(id)}`;
 
 /** Trần số bản giữ: khớp core.MaxBackupKeep, để máy chủ không phải từ chối một lỗi gõ. */
 export const maxKeep = 30;
@@ -51,7 +52,7 @@ export type SiteState = "active" | "trashed" | "gone";
 // ---- Kho ngoài máy (M18) ----
 
 /** Việc mở từ một hàng của bảng: để khoá nút và đổi chữ nút vừa bấm. */
-export type RowWork = "restore" | "push" | "pull";
+export type RowWork = "restore" | "push" | "pull" | "delete";
 export type PendingRow = { action: RowWork; id: string } | null;
 
 /**

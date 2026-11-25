@@ -19,7 +19,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { errorMessage, get } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
 import { useOverview } from "../../api/queries";
@@ -73,8 +73,7 @@ export default function CoSoDuLieu() {
   }, [overview.data]);
 
   // Dung lượng, danh sách bản xuất, thùng rác và số đếm ở menu đều đổi sau job.
-  const op = usePreviewedOp([databasesKey, backupsKey, trashKey]);
-  const navigate = useNavigate();
+  const op = usePreviewedOp([databasesKey, backupsKey, trashKey, ["sites"]]);
   const [creating, setCreating] = useState(false);
   /** Khối đang mở dưới bảng: chọn bản nhập (DB của site) hoặc Sửa, Đổi charset. Theo tên DB để dữ liệu luôn mới. */
   const [view, setView] = useState<{ kind: "import" | "edit"; db: string } | null>(null);
@@ -123,9 +122,10 @@ export default function CoSoDuLieu() {
           </span>
         );
       }
+      // Sửa và Xoá là hai việc người dùng tìm đầu tiên: để thành nút, không giấu trong menu ba chấm.
       return row(
-        [{ label: t.edit, ariaLabel: t.editFor(r.db), disabled: op.pending, onClick: () => open("edit", r) }, button("password", t.password, t.passwordForDb(r.db))],
-        [...lock, { label: t.trash, disabled: op.pending, onSelect: () => act("trash", r) }],
+        [{ label: t.edit, ariaLabel: t.editFor(r.db), disabled: op.pending, onClick: () => open("edit", r) }, button("trash", t.del, t.trashFor(r.db))],
+        [{ label: t.password, disabled: op.pending, onSelect: () => act("password", r) }, ...lock],
       );
     }
     if (trashed) {
@@ -141,13 +141,12 @@ export default function CoSoDuLieu() {
       );
     }
     return row(
-      [button("password", t.password, t.passwordFor(r.domain)), button("dump", t.dump, t.dumpFor(r.domain))],
+      [{ label: t.edit, ariaLabel: t.editFor(r.db), disabled: op.pending, onClick: () => open("edit", r) }, button("trash-site", t.del, t.delSiteDbFor(r.db, r.domain))],
       [
+        { label: t.password, disabled: op.pending, onSelect: () => act("password", r) },
+        { label: t.dump, disabled: op.pending, onSelect: () => act("dump", r) },
         { label: t.importOpen, disabled: op.pending || siteSuspended, hint: siteSuspended ? t.importBlocked : undefined, onSelect: () => open("import", r) },
-        { label: t.charset, disabled: op.pending, onSelect: () => open("edit", r) },
         ...lock,
-        // DB của site không xoá riêng được (site sẽ chết): chỉ đường tới chỗ xoá cả site.
-        { label: t.trashWithSite, hint: t.trashWithSiteHint, onSelect: () => void navigate(`/sites/${encodeURIComponent(r.domain)}`) },
       ],
     );
   }

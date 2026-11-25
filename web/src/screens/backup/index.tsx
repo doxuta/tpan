@@ -17,7 +17,7 @@
 import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { errorMessage, get, post } from "../../api/client";
+import { del, errorMessage, get, post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
 import { pullPath, pushPath } from "../../api/m18-types";
 import { queryKeys, useOverview } from "../../api/queries";
@@ -33,7 +33,7 @@ import { ErrorNote } from "../site/ErrorNote";
 import { formatWhen } from "../thung-rac/model";
 import { CreateNow } from "./Create";
 import { BackupList } from "./List";
-import { backupSettingsPath, backupsKey, backupsPath, restorePath, siteBackupPath, type SiteState } from "./model";
+import { backupPath, backupSettingsPath, backupsKey, backupsPath, restorePath, siteBackupPath, type SiteState } from "./model";
 import { BackupSettingsForm } from "./Settings";
 import { TargetCard } from "./Target";
 import { useStorageFlow, type Started } from "./StorageFlow";
@@ -44,6 +44,7 @@ import { useStorageFlow, type Started } from "./StorageFlow";
  */
 type Req =
   | { action: "restore"; backup: Backup }
+  | { action: "delete"; backup: Backup }
   | { action: "push"; backup: Backup }
   | { action: "pull"; backup: Backup; fromRestore?: boolean }
   | { action: "create"; domain: string }
@@ -53,6 +54,8 @@ const pathOf = (r: Req): string => {
   switch (r.action) {
     case "restore":
       return restorePath(r.backup.id);
+    case "delete":
+      return backupPath(r.backup.id);
     case "push":
       return pushPath(r.backup.id);
     case "pull":
@@ -87,11 +90,11 @@ export default function Backups() {
   const resultRef = useRef<HTMLDivElement>(null);
 
   const dry = useMutation({
-    mutationFn: (req: Req) => post<Preview>(`${pathOf(req)}?dry_run=1`, bodyOf(req)),
+    mutationFn: (req: Req) => (req.action === "delete" ? del<Preview>(`${pathOf(req)}?dry_run=1`) : post<Preview>(`${pathOf(req)}?dry_run=1`, bodyOf(req))),
     onSuccess: (preview, req) => setOpen({ req, preview }),
   });
   const run = useMutation({
-    mutationFn: (req: Req) => post<Started>(pathOf(req), bodyOf(req)),
+    mutationFn: (req: Req) => (req.action === "delete" ? del<Started>(pathOf(req)) : post<Started>(pathOf(req), bodyOf(req))),
     onSuccess: (res, req) => {
       // Danh sách, cài đặt và số đếm ở menu đều đổi sau job.
       void qc.invalidateQueries({ queryKey: backupsKey });
@@ -150,6 +153,8 @@ export default function Backups() {
     switch (r.action) {
       case "restore":
         return t.restoreErrorHeading(r.backup.domain);
+      case "delete":
+        return t.deleteErrorHeading(r.backup.domain);
       case "push":
         return t.pushErrorHeading(r.backup.domain);
       case "pull":
@@ -167,6 +172,8 @@ export default function Backups() {
         return stateOf(r.backup.domain) === "gone"
           ? t.restoreRecreateWarning(r.backup.domain, formatWhen(r.backup.created, lang))
           : t.restoreWarning(r.backup.domain, formatWhen(r.backup.created, lang));
+      case "delete":
+        return t.deleteWarning(r.backup.domain, formatWhen(r.backup.created, lang), r.backup.remote === "stored");
       case "push":
         return t.pushWarning(r.backup.domain, formatWhen(r.backup.created, lang));
       case "pull":
@@ -201,9 +208,10 @@ export default function Backups() {
             filter={filter}
             onFilter={setFilter}
             stateOf={stateOf}
-            pending={pendingReq && (pendingReq.action === "restore" || pendingReq.action === "push" || pendingReq.action === "pull") ? { action: pendingReq.action, id: pendingReq.backup.id } : null}
+            pending={pendingReq && (pendingReq.action === "restore" || pendingReq.action === "delete" || pendingReq.action === "push" || pendingReq.action === "pull") ? { action: pendingReq.action, id: pendingReq.backup.id } : null}
             anyPending={dry.isPending}
             onRestore={restore}
+            onDelete={(backup) => ask({ action: "delete", backup })}
             isAdmin={isAdmin}
             targetConfigured={flow.configured}
             onPush={(backup) => ask({ action: "push", backup })}

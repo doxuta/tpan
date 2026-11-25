@@ -17,7 +17,7 @@ export const databasesPath = "/api/v1/databases";
 export type DbOp = "password" | "dump" | "import";
 
 /** Việc trên một hàng của bảng. "dump" và "import" chỉ có với DB của site (định danh bằng domain). */
-export type RowAction = DbOp | "charset" | "suspend" | "unsuspend" | "trash";
+export type RowAction = DbOp | "charset" | "suspend" | "unsuspend" | "trash" | "trash-site";
 
 type T = (typeof strings)["vi"];
 
@@ -70,6 +70,9 @@ export function rowOp(t: T, action: RowAction, r: DatabaseRow, extra: { backup?:
     }
     case "trash":
       return { id, method: "DELETE", path: dbPath(r.db), warning: t.trashDbWarning(r.db), errorHeading: t.trashErrorHeading(r.db) };
+    case "trash-site":
+      // DB đi kèm site không xoá riêng được: xoá là đưa cả site vào thùng rác (DELETE /sites/{domain}).
+      return { id, method: "DELETE", path: `/api/v1/sites/${encodeURIComponent(r.domain)}`, warning: t.trashSiteWarning(r.db, r.domain), errorHeading: t.trashSiteErrorHeading(r.domain) };
   }
 }
 

@@ -359,3 +359,24 @@ func TestSetSiteOwner(t *testing.T) {
 		t.Errorf("site không có: %v", err)
 	}
 }
+
+// Xoá user: bản backup của họ về admin, user tạo sau trùng tên không thấy.
+func TestDeleteUserGiaoBackupVeAdmin(t *testing.T) {
+	s, _ := openTemp(t)
+	ctx := context.Background()
+	addUser(t, s, "an", account.RoleUser)
+	saveSiteOf(t, s, "a.example.com", "an")
+	b, err := s.AddBackup(ctx, backupSample("a.example.com", "/var/lib/tpan/backups/a.example.com/1.tar.gz", time.Now()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o, _, _ := s.BackupOwner(ctx, b.ID); o != "an" {
+		t.Fatalf("chủ backup lúc tạo = %q", o)
+	}
+	if err := s.DeleteUser(ctx, "an"); err != nil {
+		t.Fatal(err)
+	}
+	if o, ok, err := s.BackupOwner(ctx, b.ID); err != nil || !ok || o != "admin" {
+		t.Errorf("chủ backup sau khi xoá user = %q, %v, %v; muốn admin", o, ok, err)
+	}
+}
