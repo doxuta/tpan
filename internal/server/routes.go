@@ -111,6 +111,7 @@ func (s *Server) routes(dist fs.FS) []route {
 		// M3: tổng quan, site, job, DB (api.go, api_job.go, sse.go).
 		{pattern: "GET /api/v1/overview", rule: anyone, tok: apitoken.GroupHealth, h: s.handleOverview},
 		{pattern: "GET /api/v1/machine", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleMachine},
+		{pattern: "GET /api/v1/machine/ips", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleMachineIPs},
 		{pattern: "GET /api/v1/stack", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleStack},
 		{pattern: "GET /api/v1/checks", rule: anyone, tok: apitoken.GroupHealth, h: s.handleChecks},
 		{pattern: "GET /api/v1/sites", rule: anyone, tok: apitoken.GroupSites, h: s.handleSites},

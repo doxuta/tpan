@@ -3,7 +3,7 @@
 // nhập, khối "Phiên bản và cập nhật" (M15, mục 6.14; chỉ admin, dùng chung với
 // màn Cập nhật), giao diện (ngôn ngữ, sáng hoặc tối, Gợi ý), mục "AI và bộ não"
 // (M8) và mục Agent và MCP (M7). M20 thêm cho admin ba thẻ: chính sách hai bước,
-// token API, tên miền của panel.
+// token API, tên miền của panel. Mục Địa chỉ IP (admin, chỉ đọc) đứng sau tên miền.
 //
 // Mục Giao diện dùng đúng state của menu tài khoản (useLang, useTheme, useTips),
 // nên đổi ở đây hay ở menu là cùng một thay đổi.
@@ -24,6 +24,7 @@ import { Phien } from "./Phien";
 import { Agent } from "./Agent";
 import { BoNao } from "./BoNao";
 import { ChinhSach } from "./ChinhSach";
+import { DiaChiIP } from "./DiaChiIP";
 import { TenMien } from "./TenMien";
 import { TokenAdmin } from "./TokenAdmin";
 
@@ -48,6 +49,7 @@ export default function CaiDat() {
           <ChinhSach />
           <TokenAdmin />
           <TenMien />
+          <DiaChiIP />
         </>
       )}
       {/* Route /api/v1/self chỉ admin: user thường không thấy khối này. */}

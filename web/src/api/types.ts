@@ -900,3 +900,8 @@ export type StandaloneDB = {
   trashed_at?: string;
   purge_at?: string;
 };
+
+/** GET /api/v1/machine/ips (admin, chỉ đọc): IP của máy, panel nghe ở đâu, DNS của từng site. */
+export type MachineIPAddr = { iface: string; ip: string; prefix: number; family: "ipv4" | "ipv6"; public: boolean };
+export type SiteDNS = { domain: string; a: string[]; aaaa: string[]; here: boolean; error?: string };
+export type MachineIPs = { hostname: string; os?: string; addrs: MachineIPAddr[]; panel_port: string; panel_private: boolean; sites: SiteDNS[] };
