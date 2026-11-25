@@ -8,7 +8,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { ApiError, del, errorMessage, post } from "../../api/client";
-import { packagesKey, previewOf, refreshAccounts, userPath, usersPath } from "../../api/m13-users";
+import { packagesKey, previewOf, refreshAccounts, useUsers, userPath, usersPath } from "../../api/m13-users";
+import { useSiteCheck } from "../../api/site-check";
+import { LiveCheck } from "../../components/LiveCheck";
+import { StatusLine } from "../../components/StatusMark";
 import type { JobStarted, PasswordSetResult, Role, UserCreated, UserRow } from "../../api/types";
 import { useJobTracker } from "../../components/JobTracker";
 import { Button } from "../../components/Button";
@@ -62,6 +65,11 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
   const [pkg, setPkg] = useState(row?.user.package ?? "default");
   const [password, setPassword] = useState("");
   const [local, setLocal] = useState<string | null>(null);
+  // Kiểm ngay lúc gõ: tên đã có user chưa (danh sách user admin đang xem), email hợp lệ (máy chủ).
+  const all = useUsers(!edit);
+  const nameTrim = name.trim();
+  const nameTaken = !edit && nameTrim !== "" && (all.data ?? []).some((u) => u.user.name.toLowerCase() === nameTrim.toLowerCase());
+  const liveEmail = useSiteCheck("", email).email;
   // Thêm user, hoặc nâng người chưa là admin lên admin: máy chủ hỏi lại mật khẩu (và mã hai bước) của admin đang thao tác.
   const promote = edit && role === "admin" && row.user.role !== "admin";
   const needReauth = !edit || promote;
@@ -112,6 +120,8 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
     if (save.isPending || checking) return;
     save.reset();
     if (!edit && name.trim() === "") return setLocal(t.nameMissing);
+    if (nameTaken) return setLocal(t.liveNameTaken(nameTrim));
+    if (liveEmail.status === "fail") return document.getElementById("u-email")?.focus();
     if (!edit && tooShort(password, t.minPassword)) return setLocal(t.passwordTooShort(t.minPassword));
     const missing = needReauth ? re.problem() : null;
     if (missing) return setLocal(missing);
@@ -134,9 +144,17 @@ export function UserFormDialog({ row, packages, onClose, onDone }: FormProps) {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={edit ? t.editTitle(row.user.name) : t.addTitle} confirmLabel={save.isPending || checking ? t.saving : planned !== null ? t.cageSyncConfirm : edit ? t.editConfirm : t.addConfirm} onConfirm={submit} busy={save.isPending || checking}>
       <Form onSubmit={submit}>
-        {!edit && <TextField id="u-ten" label={t.fName} hint={t.fNameHint} autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus required value={name} onChange={(e) => setName(e.target.value)} />}
+        {!edit && <TextField id="u-ten" label={t.fName} hint={t.fNameHint} autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus required value={name} onChange={(e) => setName(e.target.value)} invalid={nameTaken} />}
+        {!edit && nameTrim !== "" && (
+          <p aria-live="polite" className="-mt-[8px] mb-0 text-[13px]">
+            {nameTaken ? <StatusLine status="fail">{t.liveNameTaken(nameTrim)}</StatusLine> : all.data ? <StatusLine status="pass">{t.liveNameFree}</StatusLine> : null}
+          </p>
+        )}
         <TextField id="u-day-du" label={t.fFull} autoComplete="off" autoFocus={edit} value={full} onChange={(e) => setFull(e.target.value)} />
-        <TextField id="u-email" type="email" label={t.fEmail} autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <div>
+          <TextField id="u-email" type="email" label={t.fEmail} autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} invalid={liveEmail.status === "fail"} />
+          <LiveCheck id="u-email-kiem" state={liveEmail} okText={t.liveEmailOk} checkingText={t.liveChecking} />
+        </div>
         <SelectField id="u-vai" label={t.fRole} value={role} onChange={(e) => setRole(e.target.value as Role)}>
           <option value="user">{t.roleOptionUser}</option>
           <option value="admin">{t.roleOptionAdmin}</option>

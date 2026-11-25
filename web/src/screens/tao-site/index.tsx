@@ -13,16 +13,18 @@
 // và nút gửi là `form button[type=submit]`: script chụp và e2e dùng.
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from "react";
+import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { ApiError, post } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
 import { useUsers } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
+import { useSiteCheck } from "../../api/site-check";
 import type { JobStarted, Preview, SiteCreate } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Field, Input, Select } from "../../components/Field";
+import { LiveCheck } from "../../components/LiveCheck";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { SegmentButton } from "../../components/SegmentButton";
 import { useLang, useStrings, tx } from "../../i18n";
@@ -87,6 +89,8 @@ function OneSite() {
   const [ownerSel, setOwnerSel] = useState("");
   const owner = ownerSel || me;
   const owners = (users.data ?? []).filter((u) => u.user.status === "active").map((u) => u.user.name);
+  // Kiểm ngay lúc gõ: domain hợp lệ và chưa ai dùng, email hợp lệ (GET /api/v1/site-check).
+  const live = useSiteCheck(domain, email);
   /** Lỗi nhập thiếu, bắt ngay ở trình duyệt để khỏi gọi máy chủ chỉ để nghe "thiếu". */
   const [missing, setMissing] = useState<FieldName | null>(null);
   /** Nội dung đã gửi đi xem trước. "Chạy" gửi đúng bản này. */
@@ -141,6 +145,12 @@ function OneSite() {
       document.getElementById(`o-${empty}`)?.focus();
       return;
     }
+    // Ô đang báo sai thì khỏi gọi xem trước: câu lỗi đã nằm ngay dưới ô.
+    const bad = live.domain.status === "fail" ? "domain" : live.email.status === "fail" ? "email" : null;
+    if (bad) {
+      document.getElementById(`o-${bad}`)?.focus();
+      return;
+    }
     dry.mutate(body);
   }
 
@@ -154,8 +164,9 @@ function OneSite() {
   };
 
   // Một ô một dòng: nhãn, ô, gợi ý, câu lỗi. Câu lỗi mang id e-<ô> để ô trỏ aria-describedby tới.
-  const field = (f: Exclude<FieldName, "owner">, label: string, hint: string, value: string, set: (v: string) => void, extra: Omit<InputHTMLAttributes<HTMLInputElement>, "className">) => {
+  const field = (f: Exclude<FieldName, "owner">, label: string, hint: string, value: string, set: (v: string) => void, extra: Omit<InputHTMLAttributes<HTMLInputElement>, "className">, after?: ReactNode) => {
     const err = fieldError(f);
+    const liveId = after ? ` l-${f}` : "";
     return (
       <Field label={label} htmlFor={`o-${f}`} hint={hint} hintId={`h-${f}`} error={err && <span id={`e-${f}`}>{err}</span>}>
         <Input
@@ -163,11 +174,12 @@ function OneSite() {
           name={f}
           value={value}
           onChange={(e) => edit(set, f)(e.target.value)}
-          aria-describedby={`h-${f}${err ? ` e-${f}` : ""}`}
+          aria-describedby={`h-${f}${err ? ` e-${f}` : ""}${liveId}`}
           aria-invalid={err ? true : undefined}
           autoComplete="off"
           {...extra}
         />
+        {after}
       </Field>
     );
   };
@@ -185,14 +197,14 @@ function OneSite() {
               spellCheck: false,
               autoCapitalize: "none",
               placeholder: "shop.example.com",
-            })}
+            }, <LiveCheck id="l-domain" state={live.domain} okText={t.liveDomainOk} checkingText={t.liveChecking} />)}
             {field("title", t.titleLabel, t.titleHint, title, setTitle, { type: "text" })}
             {field("email", t.emailLabel, t.emailHint, email, setEmail, {
               type: "email",
               spellCheck: false,
               autoCapitalize: "none",
               placeholder: "admin@example.com",
-            })}
+            }, <LiveCheck id="l-email" state={live.email} okText={t.liveEmailOk} checkingText={t.liveChecking} />)}
             {isAdmin && (
               <Field label={t.ownerLabel} htmlFor="o-owner" hint={t.ownerHint} hintId="h-owner" error={ownerErr && <span id="e-owner">{ownerErr}</span>}>
                 <Select

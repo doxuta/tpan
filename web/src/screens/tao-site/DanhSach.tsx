@@ -16,10 +16,12 @@ import { ApiError, errorMessage, post } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
 import { useUsers } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
+import { useSiteCheck } from "../../api/site-check";
 import type { ApplyItem, ApplyPreview, ApplyRequest, JobStarted } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Checkbox, Field, Input, Select, Textarea } from "../../components/Field";
+import { LiveCheck } from "../../components/LiveCheck";
 import { StatusLine } from "../../components/StatusMark";
 import { TableList } from "../../components/TableList";
 import { tx, useLang, useStrings } from "../../i18n";
@@ -64,6 +66,10 @@ export function DanhSach() {
   const [ownerSel, setOwnerSel] = useState("");
   const owner = ownerSel || me;
   const owners = (users.data ?? []).filter((u) => u.user.status === "active").map((u) => u.user.name);
+  // Kiểm ngay: email hợp lệ (máy chủ), domain lặp lại trong chính danh sách (trình duyệt).
+  // Domain đã có site hay không thì bảng xem trước nói cho từng dòng.
+  const live = useSiteCheck("", email);
+  const dups = [...new Set(domainsOf(list).map((d) => d.toLowerCase()).filter((d, i, a) => a.indexOf(d) !== i))];
   /** Thiếu ô nào, bắt ngay ở trình duyệt. */
   const [missing, setMissing] = useState<FieldName | null>(null);
   /** Nội dung đã gửi đi xem trước. "Chạy" gửi đúng bản này. */
@@ -118,6 +124,10 @@ export function DanhSach() {
       document.getElementById(empty === "list" ? "o-list" : "o-list-email")?.focus();
       return;
     }
+    if (live.email.status === "fail") {
+      document.getElementById("o-list-email")?.focus();
+      return;
+    }
     dry.mutate({ defaults: { admin_email: mail, ssl, ...(isAdmin && owner !== me ? { owner } : {}) }, sites: domains.map((domain) => ({ domain })) });
   }
 
@@ -166,6 +176,11 @@ export function DanhSach() {
                 placeholder={"shop.example.com\nblog.example.com"}
                 className="min-h-[160px] resize-y"
               />
+              {dups.length > 0 && (
+                <p aria-live="polite" className="mt-[6px] mb-0 text-[13px]">
+                  <StatusLine status="warn">{t.liveListDup(dups.join(", "))}</StatusLine>
+                </p>
+              )}
             </Field>
             <Field label={t.emailLabel} htmlFor="o-list-email" hint={t.listEmailHint} hintId="h-list-email" error={emailErr && <span id="e-list-email">{emailErr}</span>}>
               <Input
@@ -184,6 +199,7 @@ export function DanhSach() {
                 autoComplete="off"
                 placeholder="admin@example.com"
               />
+              <LiveCheck id="l-list-email" state={live.email} okText={t.liveEmailOk} checkingText={t.liveChecking} />
             </Field>
             {isAdmin && (
               <Field label={t.ownerLabel} htmlFor="o-list-owner" hint={t.listOwnerHint} hintId="h-list-owner" error={ownerErr && <span id="e-list-owner">{ownerErr}</span>}>

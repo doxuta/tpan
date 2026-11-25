@@ -20,6 +20,10 @@ const vi = {
   emailHint: "Tài khoản quản trị WordPress dùng email này. Mật khẩu của nó hiện một lần sau khi tạo xong.",
   emailRequired: "Nhập email quản trị, ví dụ admin@example.com.",
   ownerLabel: "Chủ site",
+  liveChecking: "Đang kiểm…",
+  liveDomainOk: "Tên miền hợp lệ và chưa site nào dùng.",
+  liveEmailOk: "Email hợp lệ.",
+  liveListDup: (n: string) => `${n} lặp lại trong danh sách.`,
   ownerHint: "Site thuộc user này và tính vào gói của họ. Mặc định là chính bạn.",
   ownerSelf: (name: string) => `${name} (bạn)`,
 
@@ -72,6 +76,10 @@ export const strings = defineStrings(vi, {
   emailHint: "The WordPress admin account uses this email. Its password is shown once, after the site is created.",
   emailRequired: "Enter the admin email, for example admin@example.com.",
   ownerLabel: "Site owner",
+  liveChecking: "Checking…",
+  liveDomainOk: "The domain is valid and no site uses it.",
+  liveEmailOk: "The email is valid.",
+  liveListDup: (n) => `${n} appears more than once in the list.`,
   ownerHint: "The site belongs to this user and counts against their package. It defaults to you.",
   ownerSelf: (name) => `${name} (you)`,
 

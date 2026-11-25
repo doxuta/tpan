@@ -79,6 +79,10 @@ const vi = {
   fPasswordHint: "Để trống thì TPAN tạo mật khẩu và hiện đúng một lần. Tự đặt thì từ 12 ký tự.",
   minPassword: 12,
   passwordTooShort: (min: number) => `Mật khẩu ngắn hơn ${min} ký tự. Thêm ký tự hoặc để trống cho TPAN tạo.`,
+  liveNameTaken: (n: string) => `Đã có user tên ${n}.`,
+  liveNameFree: "Tên này chưa có user nào dùng.",
+  liveEmailOk: "Email hợp lệ.",
+  liveChecking: "Đang kiểm…",
   nameMissing: "Chưa có tên đăng nhập. Gõ tên rồi bấm lại.",
 
   // Mật khẩu hiện một lần
@@ -224,6 +228,10 @@ export const strings = defineStrings(vi, {
   fPasswordHint: "Leave it empty and tpan generates a password and shows it exactly once. If you set one, use at least 12 characters.",
   minPassword: 12,
   passwordTooShort: (min) => `The password is shorter than ${min} characters. Add more, or leave it empty so tpan generates one.`,
+  liveNameTaken: (n) => `A user named ${n} already exists.`,
+  liveNameFree: "No user has this name yet.",
+  liveEmailOk: "The email is valid.",
+  liveChecking: "Checking…",
   nameMissing: "There is no username yet. Type one and press again.",
 
   secretLabel: "Password, shown once",

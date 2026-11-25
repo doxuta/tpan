@@ -115,6 +115,7 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "GET /api/v1/stack", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleStack},
 		{pattern: "GET /api/v1/checks", rule: anyone, tok: apitoken.GroupHealth, h: s.handleChecks},
 		{pattern: "GET /api/v1/sites", rule: anyone, tok: apitoken.GroupSites, h: s.handleSites},
+		{pattern: "GET /api/v1/site-check", rule: anyone, tok: apitoken.GroupSites, h: s.handleSiteCheck},
 		{pattern: "POST /api/v1/sites", rule: anyone, tok: apitoken.GroupSites, h: s.handleSiteCreate},
 		{pattern: "GET /api/v1/sites/{domain}", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSite},
 		{pattern: "DELETE /api/v1/sites/{domain}", rule: ownerSite, tok: apitoken.GroupSites, h: s.handleSiteDelete},
