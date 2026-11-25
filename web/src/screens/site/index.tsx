@@ -62,6 +62,7 @@ import { Legend, RouteMap, stageGroupId } from "./RouteMap";
 import { checksOfStage, routeStages, stageOrder, worstMark } from "./route";
 import { OwnerBlock } from "./OwnerBlock";
 import { SuspendBlock } from "./SuspendBlock";
+import { WpPasswordBlock } from "./WpPasswordBlock";
 import { Traffic } from "./Traffic";
 
 const sitePath = (domain: string) => `/api/v1/sites/${encodeURIComponent(domain)}`;
@@ -538,6 +539,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
           )}
 
           {info.site.status === "active" && <SuspendBlock site={info.site} admin={isAdmin} />}
+          {info.site.status === "active" && <WpPasswordBlock site={info.site} />}
           {isAdmin && info.site.status === "active" && <OwnerBlock site={info.site} />}
 
           <Card title={t.layoutHeading} titleId="ten-duong-dan" actions={<span className="text-[13px] text-muted">{t.layoutHint}</span>}>

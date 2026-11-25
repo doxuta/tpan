@@ -42,3 +42,31 @@ func TestTenMienDungChung(t *testing.T) {
 		t.Errorf("tên con của site người khác: muốn 404, được %d", rec.Code)
 	}
 }
+
+// Thẻ Tên miền dùng chung ở Cài đặt: chỉ admin; thêm, trùng, bỏ.
+func TestTenMienDungChungAPI(t *testing.T) {
+	e := newM14Env(t)
+	t.Cleanup(func() { validate.SetSharedSuffixes(nil) })
+	const p = "/api/v1/settings/shared-domains"
+	if rec := e.call("GET", p, "", m14UserA); rec.Code != 403 {
+		t.Fatalf("khách đọc: %d", rec.Code)
+	}
+	if got := apiDecode[SharedDomains](t, e.call("GET", p, "", "admin"), 200); len(got.Domains) != 0 {
+		t.Fatalf("ban đầu: %+v", got)
+	}
+	if got := apiDecode[SharedDomains](t, e.call("POST", p, `{"domain":"Lab.Example.NET"}`, "admin"), 200); len(got.Domains) != 1 || got.Domains[0] != "lab.example.net" {
+		t.Fatalf("thêm: %+v", got)
+	}
+	if code := apiErrCode(t, e.call("POST", p, `{"domain":"lab.example.net"}`, "admin"), 409); code != "shared_domain_exists" {
+		t.Errorf("thêm trùng: %s", code)
+	}
+	if code := apiErrCode(t, e.call("POST", p, `{"domain":"khong hop le"}`, "admin"), 400); code != "domain_invalid" {
+		t.Errorf("sai dạng: %s", code)
+	}
+	if got := apiDecode[SharedDomains](t, e.call("DELETE", p+"/lab.example.net", "", "admin"), 200); len(got.Domains) != 0 {
+		t.Fatalf("bỏ: %+v", got)
+	}
+	if code := apiErrCode(t, e.call("DELETE", p+"/lab.example.net", "", "admin"), 409); code != "shared_domain_not_found" {
+		t.Errorf("bỏ tên không có: %s", code)
+	}
+}

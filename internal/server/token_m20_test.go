@@ -404,7 +404,7 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 			want[p] = g
 		}
 	}
-	add("sites", "GET /api/v1/sites", "GET /api/v1/site-check", "POST /api/v1/sites", "GET /api/v1/sites/{domain}", "DELETE /api/v1/sites/{domain}", "POST /api/v1/sites/{domain}/owner",
+	add("sites", "GET /api/v1/sites", "GET /api/v1/site-check", "POST /api/v1/sites", "GET /api/v1/sites/{domain}", "DELETE /api/v1/sites/{domain}", "POST /api/v1/sites/{domain}/owner", "POST /api/v1/sites/{domain}/wp-password",
 		"POST /api/v1/sites/{domain}/ssl", "POST /api/v1/sites/{domain}/restore", "POST /api/v1/sites/{domain}/php",
 		"POST /api/v1/sites/{domain}/htaccess", "POST /api/v1/sites/{domain}/suspend", "POST /api/v1/sites/{domain}/unsuspend",
 		"GET /api/v1/sites/{domain}/traffic", "GET /api/v1/sites/{domain}/log", "GET /api/v1/sites/{domain}/route",
@@ -428,7 +428,7 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		// M17 (ghép từ dev): số liệu đọc theo nhóm health.
 		"GET /api/v1/usage", "GET /api/v1/sites/{domain}/usage", "GET /api/v1/usage/suggestions")
 	add("ssl", "GET /api/v1/ssl", "POST /api/v1/ssl/settings")
-	add("system", "GET /api/v1/machine", "GET /api/v1/machine/ips", "GET /api/v1/stack", "POST /api/v1/stack/switch", "GET /api/v1/security",
+	add("system", "GET /api/v1/settings/shared-domains", "POST /api/v1/settings/shared-domains", "DELETE /api/v1/settings/shared-domains/{domain}", "GET /api/v1/machine", "GET /api/v1/machine/ips", "GET /api/v1/stack", "POST /api/v1/stack/switch", "GET /api/v1/security",
 		"POST /api/v1/security/ufw", "POST /api/v1/security/fail2ban", "POST /api/v1/security/harden", "GET /api/v1/security/isolation",
 		"POST /api/v1/php/install", "POST /api/v1/php/remove", "GET /api/v1/updates", "POST /api/v1/updates", "POST /api/v1/updates/auto",
 		"POST /api/v1/mariadb/upgrade", "POST /api/v1/trash/settings", "GET /api/v1/self", "POST /api/v1/self/update",

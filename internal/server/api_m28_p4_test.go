@@ -52,6 +52,7 @@ func p4Create(e *authzEnv, h http.Handler, who, domain, q string) *httptest.Resp
 func p4SameAsMissing(t *testing.T, rec *httptest.ResponseRecorder, domain string) {
 	t.Helper()
 	status, want := apiErrorStatus(siteNotFound(apiDomain(t, domain)))
+	sudoNote(&want) // người gọi trong các test này là user thường
 	var got ErrorBody
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("%s: thân không đọc được: %s", domain, rec.Body)

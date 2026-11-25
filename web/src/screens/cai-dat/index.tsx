@@ -26,6 +26,7 @@ import { BoNao } from "./BoNao";
 import { ChinhSach } from "./ChinhSach";
 import { DiaChiIP } from "./DiaChiIP";
 import { TenMien } from "./TenMien";
+import { TenMienChung } from "./TenMienChung";
 import { TokenAdmin } from "./TokenAdmin";
 
 const groupLabel = "mb-[6px] text-[14px] font-medium";
@@ -49,6 +50,7 @@ export default function CaiDat() {
           <ChinhSach />
           <TokenAdmin />
           <TenMien />
+          <TenMienChung />
           <DiaChiIP />
         </>
       )}

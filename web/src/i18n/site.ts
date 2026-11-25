@@ -194,6 +194,15 @@ const vi = {
   colAction: "Việc",
   suspend: "Tạm khoá",
   unsuspend: "Mở khoá",
+  // ---- đặt lại mật khẩu quản trị WordPress ----
+  wpPassHeading: "Tài khoản quản trị WordPress",
+  wpPassHint:
+    "Quên mật khẩu vào /wp-admin thì đặt lại ở đây. TPAN sinh một mật khẩu ngẫu nhiên cho tài khoản quản trị đầu tiên của site và hiện nó đúng một lần. Các tài khoản WordPress khác không đổi.",
+  wpPassButton: "Đặt lại mật khẩu quản trị",
+  wpPassFor: (d: string) => `Đặt lại mật khẩu quản trị WordPress của ${d}`,
+  wpPassWarning: (d: string) =>
+    `Đặt mật khẩu mới cho tài khoản quản trị WordPress của ${d}: mật khẩu cũ hết dùng được. Chạy xong, bấm "Xem chi tiết" ở thẻ báo việc (góc dưới) để lấy tên đăng nhập và mật khẩu mới; chúng chỉ hiện một lần.`,
+  wpPassErrorHeading: (d: string) => `Chưa đặt lại được mật khẩu WordPress của ${d}`,
   // ---- đổi chủ site (admin) ----
   ownerHeading: "Chủ của site",
   ownerNow: (o: string) => `Site này đang thuộc ${o}.`,
@@ -482,6 +491,14 @@ export const strings = defineStrings(vi, {
   colAction: "Action",
   suspend: "Suspend",
   unsuspend: "Unsuspend",
+  wpPassHeading: "WordPress admin account",
+  wpPassHint:
+    "If you forgot the /wp-admin password, reset it here. TPAN generates a random password for the site's first administrator account and shows it exactly once. Other WordPress accounts do not change.",
+  wpPassButton: "Reset the admin password",
+  wpPassFor: (d) => `Reset the WordPress admin password of ${d}`,
+  wpPassWarning: (d) =>
+    `Sets a new password for the WordPress admin account of ${d}: the old one stops working. When it is done, press "View details" on the job card (bottom corner) to get the login name and the new password; they are shown only once.`,
+  wpPassErrorHeading: (d) => `Could not reset the WordPress password of ${d}`,
   ownerHeading: "Site owner",
   ownerNow: (o) => `This site belongs to ${o}.`,
   ownerHint:

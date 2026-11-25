@@ -14,9 +14,11 @@ package server
 import (
 	"context"
 	"errors"
+	"github.com/doxuta/tpan/internal/account"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -185,6 +187,9 @@ func apiFail(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	if status == http.StatusTooManyRequests {
 		w.Header().Set("Retry-After", authBusyAfter)
+	}
+	if id, ok := r.Context().Value(identityKey{}).(account.Identity); ok && id.Name != "" && !id.IsAdmin() {
+		sudoNote(&body)
 	}
 	writeJSON(w, status, body)
 }
@@ -382,4 +387,15 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 		d.Secret, d.Secrets, d.DBSecret = sec.one, sec.many, sec.db
 	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+// sudoNote: nhiều lời từ chối chỉ đường bằng một lệnh "sudo tpan ...". User
+// thường không có quyền gõ lệnh trên máy chủ, nên với họ lời đó được nói rõ
+// thêm: lệnh là của quản trị viên.
+func sudoNote(body *ErrorBody) {
+	if !strings.Contains(body.Error.Message.Vi, "sudo ") {
+		return
+	}
+	body.Error.Message.Vi += " (Lệnh sudo là của quản trị viên, gõ trên máy chủ: nhờ họ làm giúp.)"
+	body.Error.Message.En += " (The sudo command is for an administrator to run on the server: ask them to do it.)"
 }
