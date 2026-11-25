@@ -478,7 +478,8 @@ export type TrashOverview = { days: number; sites: Site[]; dbs: StandaloneDB[] }
 
 export type TrashSettings = { days: number };
 
-export type SitesDefaults = { admin_email?: string; ssl?: boolean };
+/** owner: chủ của mọi site trong lô (chỉ admin đặt được), như owner trong sites.yaml. */
+export type SitesDefaults = { admin_email?: string; ssl?: boolean; owner?: string };
 
 export type SitesEntry = { domain: string; title?: string; admin_email?: string; ssl?: boolean };
 

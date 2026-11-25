@@ -1,5 +1,6 @@
 // Chế độ "Dán danh sách" của màn Tạo site (mục 7 của KE-HOACH.md): mỗi dòng một
-// domain, một email quản trị chung, một ô chọn SSL chung.
+// domain, một email quản trị chung, một ô chọn SSL chung, và (admin) một chủ
+// chung cho cả lô, gửi trong defaults.owner như owner của sites.yaml.
 //
 // Ba chặng như mọi thao tác: "Xem trước" gọi POST /api/v1/apply?dry_run=1 và
 // hiện bảng việc của từng domain (tạo, đã có thì bỏ qua, không làm được và vì
@@ -12,11 +13,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { ApiError, errorMessage, post } from "../../api/client";
+import { useIdentity } from "../../api/m13-dbs";
+import { useUsers } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
 import type { ApplyItem, ApplyPreview, ApplyRequest, JobStarted } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
-import { Checkbox, Field, Input, Textarea } from "../../components/Field";
+import { Checkbox, Field, Input, Select, Textarea } from "../../components/Field";
 import { StatusLine } from "../../components/StatusMark";
 import { TableList } from "../../components/TableList";
 import { tx, useLang, useStrings } from "../../i18n";
@@ -24,7 +27,7 @@ import { strings } from "../../i18n/tao-site";
 import { PlanReview } from "../duyet-plan";
 import { ErrorNote } from "../site/ErrorNote";
 
-type FieldName = "list" | "email";
+type FieldName = "list" | "email" | "owner";
 
 // Mã lỗi 400 của máy chủ ứng với ô nào. Mã khác (nothing_to_do, job đang chạy...)
 // không thuộc ô nào nên hiện cạnh nút.
@@ -33,6 +36,9 @@ const fieldOfCode: Record<string, FieldName> = {
   sites_file_invalid: "list",
   title_invalid: "list",
   email_invalid: "email",
+  // Chủ không có hoặc đang bị khoá. Hạn mức gói (quota_*) hiện ở bảng việc của từng domain.
+  user_not_found: "owner",
+  user_suspended: "owner",
 };
 
 /** Mỗi dòng một domain: bỏ khoảng trắng hai đầu và dòng trống. Kiểm domain đúng sai là việc của máy chủ. */
@@ -52,6 +58,12 @@ export function DanhSach() {
   const [list, setList] = useState("");
   const [email, setEmail] = useState("");
   const [ssl, setSsl] = useState(false);
+  // Chủ của cả lô (chỉ admin chọn được); mặc định là chính mình như tab Một site.
+  const { isAdmin, name: me } = useIdentity();
+  const users = useUsers(isAdmin);
+  const [ownerSel, setOwnerSel] = useState("");
+  const owner = ownerSel || me;
+  const owners = (users.data ?? []).filter((u) => u.user.status === "active").map((u) => u.user.name);
   /** Thiếu ô nào, bắt ngay ở trình duyệt. */
   const [missing, setMissing] = useState<FieldName | null>(null);
   /** Nội dung đã gửi đi xem trước. "Chạy" gửi đúng bản này. */
@@ -106,7 +118,7 @@ export function DanhSach() {
       document.getElementById(empty === "list" ? "o-list" : "o-list-email")?.focus();
       return;
     }
-    dry.mutate({ defaults: { admin_email: mail, ssl }, sites: domains.map((domain) => ({ domain })) });
+    dry.mutate({ defaults: { admin_email: mail, ssl, ...(isAdmin && owner !== me ? { owner } : {}) }, sites: domains.map((domain) => ({ domain })) });
   }
 
   // Lỗi của lần xem trước: lỗi thuộc một ô thì hiện ngay dưới ô đó.
@@ -119,6 +131,7 @@ export function DanhSach() {
   };
   const listErr = fieldError("list");
   const emailErr = fieldError("email");
+  const ownerErr = fieldError("owner");
 
   const n = (a: ApplyItem["action"]) => result?.items.filter((i) => i.action === a).length ?? 0;
   const counts = { create: n("create"), skip: n("skip") + n("trash"), refused: n("refused") };
@@ -172,6 +185,29 @@ export function DanhSach() {
                 placeholder="admin@example.com"
               />
             </Field>
+            {isAdmin && (
+              <Field label={t.ownerLabel} htmlFor="o-list-owner" hint={t.listOwnerHint} hintId="h-list-owner" error={ownerErr && <span id="e-list-owner">{ownerErr}</span>}>
+                <Select
+                  id="o-list-owner"
+                  name="owner"
+                  value={owner}
+                  onChange={(e) => {
+                    setOwnerSel(e.target.value);
+                    changed("owner");
+                  }}
+                  aria-describedby={`h-list-owner${ownerErr ? " e-list-owner" : ""}`}
+                  aria-invalid={ownerErr ? true : undefined}
+                >
+                  {/* Danh sách user chưa tải xong hoặc lỗi: vẫn có đúng một lựa chọn là chính mình. */}
+                  {!owners.includes(me) && <option value={me}>{t.ownerSelf(me)}</option>}
+                  {owners.map((n) => (
+                    <option key={n} value={n}>
+                      {n === me ? t.ownerSelf(n) : n}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
             <label className="flex items-start gap-[10px]">
               <span className="flex pt-[2px]">
                 <Checkbox
