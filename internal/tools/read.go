@@ -25,6 +25,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/doxuta/tpan/internal/account"
 	"io/fs"
 	"net/url"
 	"slices"
@@ -81,8 +82,13 @@ type siteRow struct {
 	Domain     string      `json:"domain"`
 	Status     site.Status `json:"status"`
 	PHPVersion string      `json:"php_version"`
-	SSL        bool        `json:"ssl"`
-	Created    time.Time   `json:"created"`
+	// Owner là user của panel sở hữu site (không phải bí mật); Suspended, Caged
+	// để AI trả lời được "site này của ai, có đang khoá, có trong lồng không".
+	Owner     string    `json:"owner"`
+	Suspended bool      `json:"suspended"`
+	Caged     bool      `json:"caged"`
+	SSL       bool      `json:"ssl"`
+	Created   time.Time `json:"created"`
 }
 
 func listSites(ctx context.Context, c *call, _ noArgs, _ validate.Domain) (any, error) {
@@ -92,7 +98,12 @@ func listSites(ctx context.Context, c *call, _ noArgs, _ validate.Domain) (any, 
 	}
 	out := make([]siteRow, len(list))
 	for i, x := range list {
-		out[i] = siteRow{Domain: x.Domain.String(), Status: x.Status, PHPVersion: x.PHPVersion, SSL: x.SSL, Created: x.Created}
+		owner := x.Owner
+		if owner == "" {
+			owner = account.AdminName
+		}
+		out[i] = siteRow{Domain: x.Domain.String(), Status: x.Status, PHPVersion: x.PHPVersion, SSL: x.SSL, Created: x.Created,
+			Owner: owner, Suspended: x.Suspended != account.NotSuspended, Caged: x.Caged}
 	}
 	return out, nil
 }

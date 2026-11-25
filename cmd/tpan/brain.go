@@ -197,8 +197,8 @@ func runBrain(ctx context.Context, e *env, target, model string, maxTurns int, s
 	}
 	if !welcomed && waitErr != nil {
 		printf(e.stderr, "%s\n", e.tr(
-			"Không nối được panel qua ssh (xem lỗi của ssh ở trên). tpan brain chạy ssh với BatchMode=yes nên không hỏi mật khẩu: cần đăng nhập bằng khoá, và trên máy chủ cần dòng sudoers cho phép user của bạn chạy /usr/local/bin/tpan brain-link và /usr/local/bin/tpan mcp không mật khẩu (sudo -n).",
-			"Could not reach the panel over ssh (see ssh's error above). tpan brain runs ssh with BatchMode=yes, so it never asks for a password: you need key login, and on the server a sudoers line letting your user run /usr/local/bin/tpan brain-link and /usr/local/bin/tpan mcp without a password (sudo -n)."))
+			"Chưa nối được bộ não. Đọc dòng lỗi ngay phía trên: nếu là lời của tpan trên máy chủ (bắt đầu bằng \"Từ chối\" hoặc \"tpan:\") thì làm theo lời đó. Nếu là lỗi của ssh hay sudo (Permission denied, a password is required) thì: tpan brain chạy ssh với BatchMode=yes nên không hỏi mật khẩu, cần đăng nhập bằng khoá, và trên máy chủ cần dòng sudoers cho phép user của bạn chạy /usr/local/bin/tpan brain-link và /usr/local/bin/tpan mcp không mật khẩu (sudo -n).",
+			"The brain is not connected. Read the error line just above: if it comes from tpan on the server (it starts with \"Refused\" or \"tpan:\"), do what it says. If it is an ssh or sudo error (Permission denied, a password is required): tpan brain runs ssh with BatchMode=yes, so it never asks for a password; you need key login, and on the server a sudoers line letting your user run /usr/local/bin/tpan brain-link and /usr/local/bin/tpan mcp without a password (sudo -n)."))
 	}
 	if serveErr != nil {
 		if waitErr != nil {
