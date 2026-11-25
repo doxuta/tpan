@@ -81,6 +81,19 @@ type JobBase = Omit<JobDetail, "secret" | "secrets" | "db_secret">;
 
 export type StreamState = "idle" | "live" | "lost";
 
+/**
+ * Cất mật khẩu của một câu trả lời GET /jobs/{id} vào bộ nhớ của trang. Máy chủ
+ * chỉ trả mật khẩu ở đúng một lần GET sau khi job xong, nên MỌI chỗ đọc job
+ * (trang chi tiết, thẻ theo dõi ở góc dưới) phải gọi hàm này: chỗ nào đọc mà
+ * không cất là làm mất mật khẩu của người dùng. Trả true khi có mật khẩu.
+ */
+export function stashJobSecrets(id: string, d: JobDetail): boolean {
+  const list = [...(d.secret ? [d.secret] : []), ...(d.secrets ?? [])];
+  if (list.length > 0) setSecrets(id, list);
+  if (d.db_secret) setDbSecret(id, d.db_secret);
+  return list.length > 0 || Boolean(d.db_secret);
+}
+
 /** Chờ gom sự kiện trước khi vẽ: apt in hàng nghìn dòng, vẽ từng dòng sẽ giật. */
 const flushMs = 100;
 
@@ -92,9 +105,7 @@ export function useJob(id: string) {
     queryKey: key,
     queryFn: async (): Promise<JobBase> => {
       const d = await get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
-      const list = [...(d.secret ? [d.secret] : []), ...(d.secrets ?? [])];
-      if (list.length > 0) setSecrets(id, list);
-      if (d.db_secret) setDbSecret(id, d.db_secret);
+      stashJobSecrets(id, d);
       return { job: d.job, events: d.events };
     },
     // Tiến độ đi qua SSE, không đọc lại theo thời gian hay khi chuyển tab: mỗi lần GET

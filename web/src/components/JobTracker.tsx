@@ -15,9 +15,11 @@ import type { JobDetail, JobStatus, Text } from "../api/types";
 import { tx, useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/khung";
 import { IconButton } from "./Button";
+import { stashJobSecrets } from "../screens/lich-su/useJob";
 import { StatusMark } from "./StatusMark";
 
-type Tracked = { id: string; title?: Text; status: JobStatus | "unknown"; error?: string };
+/** hasSecret: job trả về một mật khẩu chỉ hiện một lần (đã cất bằng stashJobSecrets); thẻ nhắc người dùng mở chi tiết và không tự ẩn. */
+type Tracked = { id: string; title?: Text; status: JobStatus | "unknown"; error?: string; hasSecret?: boolean };
 
 type Ctx = {
   track: (id: string) => void;
@@ -37,8 +39,10 @@ const pollMs = 1200;
 /** Thẻ của job xong tốt tự ẩn sau chừng này; job lỗi thì giữ tới khi người dùng đóng. */
 const doneHideMs = 8000;
 
-async function readJob(id: string): Promise<JobDetail> {
-  return get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
+/** Đọc job và cất ngay mật khẩu (nếu có): lần GET này có thể là lần duy nhất máy chủ trả nó. */
+async function readJob(id: string): Promise<JobDetail & { hasSecret: boolean }> {
+  const d = await get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
+  return { ...d, hasSecret: stashJobSecrets(id, d) };
 }
 
 export function JobTrackerProvider({ children }: { children: ReactNode }) {
@@ -70,11 +74,12 @@ export function JobTrackerProvider({ children }: { children: ReactNode }) {
         for (;;) {
           try {
             const d = await readJob(id);
-            setJobs((cur) => cur.map((j) => (j.id === id ? { ...j, title: d.job.title, status: d.job.status, error: d.job.error } : j)));
+            setJobs((cur) => cur.map((j) => (j.id === id ? { ...j, title: d.job.title, status: d.job.status, error: d.job.error, hasSecret: j.hasSecret || d.hasSecret } : j)));
             if (d.job.status !== "running") {
               // Job xong: tải lại mọi dữ liệu đang hiện (bảng, số đếm ở menu, bản đồ tuyến).
               void qc.invalidateQueries();
-              if (d.job.status === "succeeded") {
+              // Có mật khẩu chờ người dùng lấy thì thẻ ở lại cho tới khi họ đóng.
+              if (d.job.status === "succeeded" && !d.hasSecret) {
                 timers.current.set(
                   id,
                   window.setTimeout(() => setJobs((cur) => cur.filter((j) => j.id !== id)), doneHideMs),
@@ -134,8 +139,9 @@ function JobCard({ job, onClose }: { job: Tracked; onClose: () => void }) {
             {text}
             {job.error ? `: ${job.error}` : ""}
           </p>
+          {job.hasSecret && <p className="m-0 mt-[4px] text-[13px] font-medium">{t.jobSecret}</p>}
           <Link to={`/jobs/${encodeURIComponent(job.id)}`} className="mt-[4px] inline-block text-[13px]">
-            {t.jobDetails}
+            {job.hasSecret ? t.jobSecretLink : t.jobDetails}
           </Link>
         </div>
         {/* Lề âm: nút 40 px không làm thẻ cao hơn nội dung. */}

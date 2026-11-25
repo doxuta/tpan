@@ -201,7 +201,7 @@ const vi = {
   wpPassButton: "Đặt lại mật khẩu quản trị",
   wpPassFor: (d: string) => `Đặt lại mật khẩu quản trị WordPress của ${d}`,
   wpPassWarning: (d: string) =>
-    `Đặt mật khẩu mới cho tài khoản quản trị WordPress của ${d}: mật khẩu cũ hết dùng được. Chạy xong, bấm "Xem chi tiết" ở thẻ báo việc (góc dưới) để lấy tên đăng nhập và mật khẩu mới; chúng chỉ hiện một lần.`,
+    `Đặt mật khẩu mới cho tài khoản quản trị WordPress của ${d}: mật khẩu cũ hết dùng được. Chạy xong, bấm "Xem mật khẩu" ở thẻ báo việc (góc dưới) để lấy tên đăng nhập và mật khẩu mới; chúng chỉ hiện một lần.`,
   wpPassErrorHeading: (d: string) => `Chưa đặt lại được mật khẩu WordPress của ${d}`,
   // ---- đổi chủ site (admin) ----
   ownerHeading: "Chủ của site",
@@ -497,7 +497,7 @@ export const strings = defineStrings(vi, {
   wpPassButton: "Reset the admin password",
   wpPassFor: (d) => `Reset the WordPress admin password of ${d}`,
   wpPassWarning: (d) =>
-    `Sets a new password for the WordPress admin account of ${d}: the old one stops working. When it is done, press "View details" on the job card (bottom corner) to get the login name and the new password; they are shown only once.`,
+    `Sets a new password for the WordPress admin account of ${d}: the old one stops working. When it is done, press "View the password" on the job card (bottom corner) to get the login name and the new password; they are shown only once.`,
   wpPassErrorHeading: (d) => `Could not reset the WordPress password of ${d}`,
   ownerHeading: "Site owner",
   ownerNow: (o) => `This site belongs to ${o}.`,

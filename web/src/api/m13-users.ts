@@ -12,7 +12,8 @@ import { useState } from "react";
 import { useJobTracker } from "../components/JobTracker";
 import { del, get, post } from "./client";
 import { queryKeys, useSession } from "./queries";
-import type { Identity, Job, JobStarted, PackageRow, Preview, SessionInfo, UserRow } from "./types";
+import { stashJobSecrets } from "../screens/lich-su/useJob";
+import type { Identity, Job, JobDetail, JobStarted, PackageRow, Preview, SessionInfo, UserRow } from "./types";
 
 export const usersKey = ["users"] as const;
 export const packagesKey = ["packages"] as const;
@@ -151,7 +152,8 @@ export function startOf(req: PlanRequest): Promise<JobStarted> {
 export async function waitJob(id: string, limitMs = 10 * 60_000): Promise<Job> {
   const until = Date.now() + limitMs;
   for (;;) {
-    const d = await get<{ job: Job }>(`/api/v1/jobs/${encodeURIComponent(id)}`);
+    const d = await get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
+    stashJobSecrets(id, d); // lần GET này có thể là lần duy nhất máy chủ trả mật khẩu của job
     if (d.job.status !== "running" || Date.now() >= until) return d.job;
     await new Promise((r) => setTimeout(r, 1000));
   }
