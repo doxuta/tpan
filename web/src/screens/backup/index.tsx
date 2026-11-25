@@ -164,7 +164,9 @@ export default function Backups() {
   const previewLead = (r: Req): string | null => {
     switch (r.action) {
       case "restore":
-        return t.restoreWarning(r.backup.domain, formatWhen(r.backup.created, lang));
+        return stateOf(r.backup.domain) === "gone"
+          ? t.restoreRecreateWarning(r.backup.domain, formatWhen(r.backup.created, lang))
+          : t.restoreWarning(r.backup.domain, formatWhen(r.backup.created, lang));
       case "push":
         return t.pushWarning(r.backup.domain, formatWhen(r.backup.created, lang));
       case "pull":

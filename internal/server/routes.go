@@ -321,6 +321,7 @@ func (s *Server) guard(rt route) http.Handler {
 		panic("route " + rt.pattern + " không khai luật (public, any, owner:X, admin); mặc định là cấm")
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.refreshShared(r.Context())
 		if hasAuthorization(r) {
 			s.guardToken(w, r, rt)
 			return

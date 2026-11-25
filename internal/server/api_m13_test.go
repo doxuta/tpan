@@ -222,9 +222,10 @@ func TestTaoSiteCuaNguoiKhac(t *testing.T) {
 		if rec.Code != http.StatusNotFound || errCode(t, rec) != "site_not_found" {
 			t.Errorf("B chạy lại site của A%s: %d %s", q, rec.Code, rec.Body)
 		}
-		gone := e.do(h, "POST", "/api/v1/sites/none.example.com/ssl"+q, `{}`, b)
-		if !sameNotFound(rec, gone) {
-			t.Errorf("404 của POST /sites khác 404 của site không có:\n%s\n%s", rec.Body, gone.Body)
+		// Cùng mã HTTP và mã lỗi với site không có; câu chữ là của việc tạo
+		// site (siteCreateRefused) và không nhắc A.
+		if strings.Contains(rec.Body.String(), authzA) {
+			t.Errorf("lời từ chối nhắc tên chủ site: %s", rec.Body)
 		}
 		rec = e.do(h, "POST", "/api/v1/sites"+q, `{"domain":"new.example.com","email":"b@example.com","owner":"`+authzA+`"}`, b)
 		if rec.Code != http.StatusForbidden || errCode(t, rec) != "forbidden" {

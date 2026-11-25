@@ -61,6 +61,20 @@ func p4SameAsMissing(t *testing.T, rec *httptest.ResponseRecorder, domain string
 	}
 }
 
+// p4CreateRefused: lời từ chối của POST /sites cho tên thuộc người khác: cùng
+// mã HTTP và mã lỗi với "không có site", không nhắc chủ hay site nào khác.
+func p4CreateRefused(t *testing.T, rec *httptest.ResponseRecorder, domain string) {
+	t.Helper()
+	status, want := apiErrorStatus(siteCreateRefused(apiDomain(t, domain)))
+	var got ErrorBody
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("%s: thân không đọc được: %s", domain, rec.Body)
+	}
+	if rec.Code != 404 || rec.Code != status || got.Error.Code != "site_not_found" || got.Error.Message != want.Error.Message {
+		t.Errorf("%s: %d %s; muốn lời từ chối tạo site (%d %+v)", domain, rec.Code, rec.Body, status, want.Error)
+	}
+}
+
 func TestTaoSiteChungTenMienGocP4(t *testing.T) {
 	e, h := p4Env(t)
 	for _, q := range []string{"?dry_run=1", ""} {
@@ -73,7 +87,7 @@ func TestTaoSiteChungTenMienGocP4(t *testing.T) {
 			// Hoa thường như nhau (validate hạ chữ thường).
 			"WWW.B.Example.NET",
 		} {
-			p4SameAsMissing(t, p4Create(e, h, authzA, d, q), d)
+			p4CreateRefused(t, p4Create(e, h, authzA, d, q), d)
 		}
 	}
 
@@ -127,7 +141,7 @@ func TestTaoSiteChungTenMienGocP4ThungRac(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	p4SameAsMissing(t, p4Create(e, h, authzA, "www.old.example.info", "?dry_run=1"), "www.old.example.info")
+	p4CreateRefused(t, p4Create(e, h, authzA, "www.old.example.info", "?dry_run=1"), "www.old.example.info")
 }
 
 // TestApplyChungTenMienGocP4: POST /apply theo phạm vi user đi cùng luật.

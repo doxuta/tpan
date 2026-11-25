@@ -6,7 +6,9 @@
 import { useJobTracker } from "../../components/JobTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { errorMessage, get, post } from "../../api/client";
+import { useIdentity } from "../../api/m13-dbs";
 import { queryKeys } from "../../api/queries";
 import type { JobStarted, PHPList, PHPVersionBody, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -38,6 +40,7 @@ export function PhpBlock({ domain, version, socket, blocked }: Props) {
   const { lang } = useLang();
   const qc = useQueryClient();
   const { track } = useJobTracker();
+  const { isAdmin } = useIdentity();
   const list = useQuery({ queryKey: phpKey, queryFn: () => get<PHPList>("/api/v1/php") });
 
   // Chỉ bản đã cài mới chọn được. Go có thể trả null cho danh sách rỗng.
@@ -104,7 +107,17 @@ export function PhpBlock({ domain, version, socket, blocked }: Props) {
         )}
         {list.isSuccess &&
           (others.length === 0 ? (
-            <p className="mt-[14px] mb-0 max-w-[72ch] text-muted">{t.phpNone}</p>
+            <p className="mt-[14px] mb-0 max-w-[72ch] text-muted">
+              {isAdmin ? (
+                <>
+                  {t.phpNone}
+                  <Link to="/stack">{t.phpNoneLink}</Link>
+                  {t.phpNoneTail}
+                </>
+              ) : (
+                t.phpNoneUser
+              )}
+            </p>
           ) : (
             <div className="mt-[14px] border-t border-hair pt-[14px]">
               <div className="flex flex-wrap items-end gap-x-[14px] gap-y-[10px]">

@@ -146,7 +146,9 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
           </span>
         );
       } else if (st === "gone") {
+        // Site đã xoá hẳn: máy chủ tạo lại site rồi khôi phục (POST /backups/{id}/restore).
         lead = <span className={note}>{t.goneNote}</span>;
+        primary.push({ label: t.restoreRecreate, ariaLabel: t.restoreRecreateFor(b.domain, when), disabled: anyPending, busy: pending?.action === "restore" && pending.id === b.id, busyLabel: t.previewing, onClick: () => onRestore(b) });
       } else {
         const label = t.restoreFor(b.domain, when);
         // Bản chỉ còn trên kho vẫn có nút này: màn hỏi tải về trước (admin) hoặc nhắn nhờ admin (user thường), xem index.tsx.

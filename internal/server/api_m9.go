@@ -157,6 +157,19 @@ func (s *Server) handleBackupRestore(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// Site đã xoá hẳn: tạo lại rồi khôi phục (api_backup_recreate.go).
+	if _, exists, err := s.deps.Store.Site(r.Context(), d); err != nil {
+		apiFail(w, r, err)
+		return
+	} else if !exists {
+		owner, _, err := s.deps.Store.BackupOwner(r.Context(), id)
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		s.backupRecreate(w, r, d, id, owner)
+		return
+	}
 	// Kick đúng site: mã nguồn và DB vừa đổi, health kiểm nó ngay.
 	s.planJobKick(w, r, jobOpts{action: action, target: d.String(), kick: d.String()}, func(ctx context.Context) (apiPlan, error) {
 		return b.PrepareRestore(ctx, d, id)

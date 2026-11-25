@@ -11,7 +11,7 @@ import (
 // thì không ghi gì.
 func TestXemTruocBiTuChoiCoNhatKyB4(t *testing.T) {
 	e, h := p4Env(t)
-	p4SameAsMissing(t, p4Create(e, h, authzA, "www.b.example.net", "?dry_run=1"), "www.b.example.net")
+	p4CreateRefused(t, p4Create(e, h, authzA, "www.b.example.net", "?dry_run=1"), "www.b.example.net")
 	p4Create(e, h, authzA, "www.a.example.com", "?dry_run=1") // được phép: không ghi
 	body := `{"defaults":{"admin_email":"x@example.com"},"sites":[{"domain":"zz.b.example.net"},{"domain":"zz.c.example.org"},{"domain":"zz.a.example.com"}]}`
 	e.do(h, "POST", "/api/v1/apply?dry_run=1", body, e.cookies[authzA])

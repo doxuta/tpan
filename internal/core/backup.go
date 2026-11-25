@@ -776,3 +776,17 @@ func (b *Backups) PrepareSettings(ctx context.Context, keep int, at string) (*Pl
 		return nil
 	}), nil
 }
+
+// CheckRestoreSource kiểm bản backup id của domain d dùng được để khôi phục
+// (có dòng, file còn trên máy, sha256 khớp) mà không cần site d đang tồn tại.
+// Dùng khi tạo lại một site đã xoá hẳn từ bản backup: kiểm trước khi tạo site.
+func (b *Backups) CheckRestoreSource(ctx context.Context, d validate.Domain, id string) error {
+	src, err := b.restoreSource(ctx, d, id)
+	if err != nil {
+		return err
+	}
+	if err := b.checkOnMachine(ctx, d, src); err != nil {
+		return err
+	}
+	return b.checkIntact(ctx, site.LayoutOf(d), src)
+}

@@ -15,6 +15,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/doxuta/tpan/internal/buildinfo"
@@ -133,8 +134,10 @@ func Run(ctx context.Context, o RunOptions) error {
 // (apiState, api.go). Mỗi phần tự định nghĩa kiểu trạng thái của mình.
 type Server struct {
 	deps Deps
-	auth *authState
-	api  *apiState
+	// sharedAt: lần gần nhất nạp tên miền dùng chung (shared_suffix.go).
+	sharedAt atomic.Int64
+	auth     *authState
+	api      *apiState
 	// sched là bộ hẹn giờ health; nil khi không chạy bằng Run (test dùng
 	// NewHandler), khi đó kick không làm gì.
 	sched *health.Scheduler

@@ -237,7 +237,10 @@ func (s *Server) siteCreateOwner(w http.ResponseWriter, r *http.Request, d valid
 			result += "_dry_run"
 		}
 		s.audit(r, "site.add", d.String(), result, "")
-		apiFail(w, r, siteNotFound(d))
+		// Cùng mã với "không có site" (không nói tên đó thuộc ai), nhưng lời
+		// phải có nghĩa với người đang TẠO site: trước đây họ đọc thấy "không
+		// có site ... trong tpan" và không biết làm gì tiếp.
+		apiFail(w, r, siteCreateRefused(d))
 		return "", false
 	}
 	return id.Name, true
@@ -918,4 +921,14 @@ func (t *diskTimer) after(ctx context.Context, s *Server) {
 	if err := s.apiAccounts().MeasureDisk(ctx); err != nil {
 		slog.Warn("đo dung lượng của user", "err", err)
 	}
+}
+
+// siteCreateRefused là lời cho user thường xin tạo site ở tên đã thuộc (hay
+// chung tên miền gốc với) tài khoản khác. Cùng mã và mã HTTP với "không có
+// site" và không nói tên đó thuộc ai; chỉ khác câu chữ, vì người đang tạo site
+// đọc "không có site ... trong tpan" thì không biết phải làm gì.
+func siteCreateRefused(d validate.Domain) error {
+	return &core.RefusedError{Code: "site_not_found", Message: i18n.T(
+		"Tên miền "+d.String()+" không dùng được cho tài khoản này. Nếu nó là của bạn, nhờ quản trị viên tạo site giúp.",
+		"The domain "+d.String()+" cannot be used by this account. If it is yours, ask an administrator to create the site for you.")}
 }

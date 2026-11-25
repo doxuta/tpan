@@ -244,6 +244,12 @@ func openStore(ctx context.Context, e *env) (*store.Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mở DB %s: %w", e.dbPath, err)
 	}
+	// Tên miền dùng chung admin đã khai: luật tên miền gốc của tiến trình này
+	// phải khớp với của tpan serve (core/shared_suffix.go).
+	if err := core.LoadSharedSuffixes(ctx, st); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
 	return st, nil
 }
 

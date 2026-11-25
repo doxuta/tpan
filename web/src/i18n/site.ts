@@ -126,7 +126,10 @@ const vi = {
   phpVersion: "Bản PHP đang dùng",
   phpSocket: "Socket",
   phpChoose: "Đổi sang bản",
-  phpNone: "Máy chưa cài bản PHP nào khác để đổi sang. Cài thêm ở màn Stack.",
+  phpNone: "Máy mới có một bản PHP nên chưa đổi được. ",
+  phpNoneLink: "Cài thêm bản PHP ở màn Stack",
+  phpNoneTail: " (mất khoảng một phút), rồi quay lại đây chọn bản mới.",
+  phpNoneUser: "Máy mới có một bản PHP nên chưa đổi được. Nhờ quản trị viên cài thêm bản bạn cần, sau đó ô chọn bản PHP sẽ hiện ở đây.",
   phpChange: "Đổi bản PHP",
   phpPreviewing: "Đang dựng bản xem trước…",
   phpHint:
@@ -414,7 +417,10 @@ export const strings = defineStrings(vi, {
   phpVersion: "PHP version in use",
   phpSocket: "Socket",
   phpChoose: "Change to version",
-  phpNone: "No other PHP version is installed to switch to. Install one on the Stack screen.",
+  phpNone: "This server has only one PHP version, so there is nothing to switch to yet. ",
+  phpNoneLink: "Install another PHP version on the Stack screen",
+  phpNoneTail: " (about a minute), then come back here and pick it.",
+  phpNoneUser: "This server has only one PHP version, so there is nothing to switch to yet. Ask an administrator to install the version you need; the version picker will then show up here.",
   phpChange: "Change PHP version",
   phpPreviewing: "Building the preview…",
   phpHint:
