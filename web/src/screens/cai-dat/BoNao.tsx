@@ -2,10 +2,13 @@
 // GET /api/v1/ai/brain. Chỉ để xem và để đọc cách nối. Bật AI là lệnh trên máy
 // chủ (`sudo tpan mcp config --brain bridge`), nối bộ não là lệnh trên máy cá
 // nhân của người vận hành; trang web không làm hai việc đó thay họ, và không
-// bao giờ chạm vào đăng nhập Claude.
+// bao giờ chạm vào đăng nhập Claude. Nút "Nối bộ não" chỉ mở link
+// tpan-brain://connect: app TPAN Brain do `tpan brain-install` cài trên Mac
+// mới là thứ mở Terminal chạy tpan brain (web/src/ai/BrainLink.tsx).
 
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { BrainLinkButton } from "../../ai/BrainLink";
 import { errorMessage, get } from "../../api/client";
 import type { BrainStatus } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -108,6 +111,12 @@ function ConnectSteps({ modeOff }: { modeOff: boolean }) {
             <p className="mt-[6px] mb-0 text-[13px] text-muted">{t.brainHostHint}</p>
           </div>
         </div>
+        {/* AI đã bật thì nối bằng một lần bấm (cần tpan brain-install trên Mac); AI còn tắt thì làm bước 1 trước. */}
+        {!modeOff && (
+          <div className="mb-[16px]">
+            <BrainLinkButton target={target} />
+          </div>
+        )}
         <CommandBlock commands={connectCommands} addSudo={false} where={t.brainConnectWhere} />
       </div>
     </div>

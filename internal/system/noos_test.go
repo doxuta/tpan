@@ -45,6 +45,9 @@ var osAllowed = map[string]string{
 	// M18: render user-data chạy không cần root (WriteFileAtomic luôn chown về
 	// root) và chỉ đọc, ghi file theo đường dẫn chính người gõ lệnh đưa.
 	"cmd/tpan/cloudinit.go": "đọc sites.yaml, SHA256SUMS và ghi user-data theo đường dẫn người gõ lệnh chỉ ra (M18)",
+	// Nút Nối bộ não: chạy trên Mac của người vận hành, không root (WriteFileAtomic
+	// luôn chown về root), chỉ ghi ~/Applications/TPAN Brain.app và một thư mục tạm.
+	"cmd/tpan/brain_install.go": "cài TPAN Brain.app vào ~/Applications trên Mac của người vận hành, không bao giờ chạy trên máy chủ",
 	// M20: GetCertificate stat chứng chỉ của chính panel ở mỗi bắt tay để nạp
 	// lại khi certbot gia hạn (system.FileInfo không có mtime). Hai đường dẫn
 	// là hằng: /etc/tpan/tls (0700 root) và /etc/letsencrypt/live/tpan-panel

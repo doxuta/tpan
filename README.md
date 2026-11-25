@@ -206,6 +206,7 @@ AI tắt sẵn. Bộ não là Claude Code đã đăng nhập trên máy cá nhâ
 1. Trên máy chủ: `sudo tpan mcp config --brain bridge && sudo systemctl restart tpan`.
 2. Trên máy chủ, một lần: cho user SSH chạy `tpan mcp` và `tpan brain-link` bằng sudo không mật khẩu (file `/etc/sudoers.d/tpan-mcp`; dòng cần ghi có sẵn trên màn Cài đặt).
 3. Trên máy cá nhân, trong thư mục mã nguồn: `make build`, rồi `bin/tpan brain <user>@<máy>` và để terminal đó mở.
+4. Trên Mac, nếu muốn nối bằng một lần bấm: chạy một lần `bin/tpan brain-install <user>@<máy>` (hoặc tên đã khai trong `~/.ssh/config`). Lệnh cài app nhỏ `~/Applications/TPAN Brain.app` nhận link `tpan-brain://`; từ đó nút **Nối bộ não** trên panel mở Terminal chạy đúng lệnh ở bước 3. Đích ssh ghi cố định lúc cài, link không mang tham số; gỡ bằng `bin/tpan brain-install --remove`.
 
 Chi tiết và cách dùng với Claude Code, Codex qua MCP: [docs/giai-thich/07-m7-cong-cho-agent.md](docs/giai-thich/07-m7-cong-cho-agent.md), [docs/giai-thich/08-m8-ai-trong-panel.md](docs/giai-thich/08-m8-ai-trong-panel.md).
 

@@ -581,6 +581,18 @@ sudo tpan mcp config --brain bridge && sudo systemctl restart tpan
 bin/tpan brain <user>@<IP>
 ```
 
+Nối bằng một nút (chỉ macOS, làm một lần trên Mac, trong `~/tpan`):
+
+```bash
+bin/tpan brain-install <user>@<IP>
+```
+
+```bash
+open tpan-brain://connect
+```
+
+Chờ thấy: một cửa sổ Terminal mở và in "Bộ não: đã nối". Từ giờ nút **Nối bộ não** ở Cài đặt → AI và bộ não (và trong ngăn Hỏi AI) làm đúng việc đó; lần đầu bấm, Chrome hỏi có mở TPAN Brain không, chọn luôn cho phép. Bấm khi bộ não đang chạy thì chỉ đưa Terminal lên trước. Gỡ: `bin/tpan brain-install --remove`.
+
 ### 3.10. Nâng VPS lên bản có nhiều người dùng (M13, khi đã phát hành v0.2.0)
 
 VPS của bạn đang chạy v0.1.1. Bản M13 thêm bảng `users` và chuyển mật khẩu quản trị sang đó; đăng nhập bằng mật khẩu `admin` cũ vẫn được, phiên đang mở vẫn sống (đã chạy thật trên máy ảo từ gói v0.1.1, `docs/bang-chung/M13-nang-cap.log`).

@@ -36,6 +36,7 @@ import { tx, useLang, useStrings } from "../i18n";
 import { strings } from "../i18n/ai";
 import { useAi, type AiMode, type TurnView, type ToolItem } from "./AiProvider";
 import { AnswerText } from "./AnswerText";
+import { BrainLinkButton } from "./BrainLink";
 import { useWide } from "./platform";
 import { extractLinks } from "./views";
 
@@ -223,6 +224,8 @@ function Panel({ overlay, className, expanded, onToggleExpand }: { overlay: bool
 function Connect({ brain, draft }: { brain: BrainStatus; draft: string }) {
   const t = useStrings(strings);
   const off = brain.mode === "off";
+  const connectCmd = brain.connect_command.replace(/@[^@\s]*$/, "@" + window.location.hostname);
+  const target = connectCmd.replace(/^tpan brain /, "");
   return (
     <div id="ai-noi-bo-nao" className="border-b border-hair px-[16px] py-[14px]">
       <p className="m-0 text-[14px] font-medium">{off ? t.connectTitleOff : t.connectTitleBridge}</p>
@@ -234,10 +237,13 @@ function Connect({ brain, draft }: { brain: BrainStatus; draft: string }) {
             <CommandBlock commands={["tpan mcp config --brain bridge", "systemctl restart tpan"]} />
           </div>
         )}
+        {/* AI đã bật thì nối bằng một lần bấm; AI còn tắt thì nút chưa có ích, phải bật trên máy chủ trước. */}
+        {!off && <BrainLinkButton target={target} />}
         <div>
           {off && <p className="m-0 mb-[4px] text-[13px]">{t.connectLocalStep}</p>}
+          {!off && <p className="m-0 mb-[4px] text-[13px]">{t.linkOrType}</p>}
           {/* Lệnh chạy trên máy cá nhân của người vận hành: không sudo, và dòng "chạy ở đâu" nói máy cá nhân chứ không phải máy chủ. Tên máy (hostname) thường không phân giải được từ máy cá nhân: dùng địa chỉ đang mở panel. */}
-          <CommandBlock commands={[brain.connect_command.replace(/@[^@\s]*$/, "@" + window.location.hostname)]} addSudo={false} where={t.connectLocalWhere} />
+          <CommandBlock commands={[connectCmd]} addSudo={false} where={t.connectLocalWhere} />
         </div>
         <p className="m-0 text-[13px]">
           {t.connectFullLead}
