@@ -281,6 +281,7 @@ func (s *Server) handleSite(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
+	info.Checks = s.withEdgeResults(r.Context(), d.String(), info.Checks)
 	info.Checks = apiNonNil(keepChecks(info.Checks, hide))
 	writeJSON(w, http.StatusOK, info)
 }
