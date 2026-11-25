@@ -12,6 +12,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"net"
@@ -112,6 +113,9 @@ func setupCmd(e *env) *cobra.Command {
 				}); aerr != nil {
 					printf(e.stderr, "tpan: %v\n", aerr)
 				}
+				if rerr := recordSkippedFiles(ctx, st, sp.plan, rep); rerr != nil {
+					printf(e.stderr, "tpan: %v\n", rerr)
+				}
 			}
 			if f.asJSON {
 				if werr := writeJSON(e.stdout, out); werr != nil {
@@ -204,6 +208,29 @@ func stepOutcome(rep engine.Report, id string) string {
 		}
 	}
 	return ""
+}
+
+// recordSkippedFiles ghi sha256 của mọi *steps.File trong Plan mà engine bỏ
+// qua vì file đã đúng. Engine chỉ ghi file của bước đã Apply, nên thiếu bước
+// này thì một file đã đúng sẵn vẫn bị so với bản cũ trong managed_files. Ví dụ
+// thật: máy từng chạy setup --private (unit --listen 127.0.0.1), người vận
+// hành sửa tay thành 0.0.0.0 đúng như setup thường ghi; chạy lại setup báo
+// "đã đúng, bỏ qua" mà phép kiểm lệch vẫn đỏ mãi. Khoá riêng (setupKeyFile)
+// không phải *steps.File nên không vào đây, như lúc engine Apply nó.
+func recordSkippedFiles(ctx context.Context, j interface {
+	RecordFile(ctx context.Context, path, sha256Hex, jobID string) error
+}, plan engine.Plan, rep engine.Report) error {
+	for _, s := range plan.Steps {
+		f, ok := s.(*steps.File)
+		if !ok || stepOutcome(rep, "file:"+f.Path) != "skipped" {
+			continue
+		}
+		sum := sha256.Sum256(f.Content)
+		if err := j.RecordFile(ctx, f.Path, hex.EncodeToString(sum[:]), rep.Job.ID); err != nil {
+			return fmt.Errorf("ghi sha256 của %s: %w", f.Path, err)
+		}
+	}
+	return nil
 }
 
 // setupPlan là Plan của setup cùng những gì cần in sau khi chạy.

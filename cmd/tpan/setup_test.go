@@ -6,9 +6,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"math/big"
@@ -346,4 +348,43 @@ func TestSetupGiuChungChiCu(t *testing.T) {
 	if err != nil || !bytes.Equal(gotCert, certPEM) || !bytes.Equal(gotKey, keyPEM) {
 		t.Fatalf("chứng chỉ đang có bị thay: %v", err)
 	}
+}
+
+// Máy từng setup --private, rồi unit được sửa tay đúng như setup thường ghi
+// (--listen 0.0.0.0). Chạy setup: bước unit "đã đúng, bỏ qua", và managed_files
+// phải nhận bản đó làm chuẩn, không thì phép kiểm lệch đỏ mãi (máy 105, 25/11).
+func TestSetupGhiNhanFileDaDung(t *testing.T) {
+	c := newSetupCLI(t)
+	if code, _, errb := c.run("setup", "--private", "--yes"); code != 0 {
+		t.Fatalf("setup --private: %s", errb)
+	}
+	want := setupUnitFile("0.0.0.0:" + setupPort)
+	c.fake.SetFile(setupUnitPath, want, 0o644, system.Root)
+
+	code, out, errb := c.run("setup", "--yes", "--json")
+	if code != 0 {
+		t.Fatalf("setup: mã %d\n%s", code, errb)
+	}
+	if !strings.Contains(out, `"file:`+setupUnitPath+`"`) || !strings.Contains(out, `"skipped"`) {
+		t.Fatalf("bước unit phải được bỏ qua vì đã đúng:\n%s", out)
+	}
+	st, err := store.Open(context.Background(), c.db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st.Close() }()
+	files, err := st.ManagedFiles(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(want)
+	for _, f := range files {
+		if f.Path == setupUnitPath {
+			if f.SHA256 != hex.EncodeToString(sum[:]) {
+				t.Fatalf("managed_files còn sha256 cũ %s cho %s", f.SHA256, setupUnitPath)
+			}
+			return
+		}
+	}
+	t.Fatalf("managed_files không có %s", setupUnitPath)
 }
