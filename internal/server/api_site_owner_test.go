@@ -34,10 +34,8 @@ func TestDoiChuSiteAPI(t *testing.T) {
 		t.Fatal("xem trước đã đổi chủ")
 	}
 
-	got := apiDecode[SiteOwnerResult](t, e.call("POST", path, body, account.AdminName), 200)
-	if got.From != account.AdminName || got.To != m14UserB || got.Domain != m14Blog {
-		t.Errorf("kết quả: %+v", got)
-	}
+	apiDecode[JobStarted](t, e.call("POST", path, body, account.AdminName), 202)
+	e.s.api.wg.Wait()
 	if rec := e.call("GET", "/api/v1/sites/"+m14Blog, "", m14UserB); rec.Code != 200 {
 		t.Errorf("chủ mới phải thấy site: %d", rec.Code)
 	}

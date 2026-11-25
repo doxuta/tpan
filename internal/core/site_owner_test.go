@@ -41,28 +41,29 @@ func TestDoiChuSite(t *testing.T) {
 	_, err = c.PrepareSiteOwner(ctx, ow, mustDomain(t, "khong-co.example.com"), "khach_a")
 	wantRefused(t, err, "site_not_found")
 
-	// Site ngoài lồng: không có Plan, chuẩn bị không ghi gì, Apply mới ghi.
-	ch, err := c.PrepareSiteOwner(ctx, ow, d, "khach_a")
-	if err != nil || ch.Plan != nil || ch.From != account.AdminName || ch.To != "khach_a" {
-		t.Fatalf("ngoài lồng: %+v %v", ch, err)
+	// Site ngoài lồng: Plan một bước; xem trước không ghi gì, chạy mới ghi.
+	pl, err := c.PrepareSiteOwner(ctx, ow, d, "khach_a")
+	if err != nil || len(pl.Plan.Steps) != 1 || pl.Plan.Kind != "site.owner" {
+		t.Fatalf("ngoài lồng: %+v %v", pl, err)
 	}
-	if got := ownerOf(e.site(t, cgDom)); got != account.AdminName {
-		t.Fatalf("chuẩn bị đã đổi chủ thành %s", got)
-	}
-	if err := ch.Apply(ctx); err != nil {
+	if _, err := pl.Preview(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if got := ownerOf(e.site(t, cgDom)); got != account.AdminName {
+		t.Fatalf("xem trước đã đổi chủ thành %s", got)
+	}
+	cgOK(t, cgRun(t, pl))
 	if got := ownerOf(e.site(t, cgDom)); got != "khach_a" {
-		t.Fatalf("chủ sau Apply = %s", got)
+		t.Fatalf("chủ sau job = %s", got)
 	}
 
-	// Site trong lồng, gói chủ mới khác trần: một job ghi lại trần, chủ đổi theo.
+	// Site trong lồng, gói chủ mới khác trần: cùng job ghi lại trần.
 	e.enable(t, cgDom)
-	ch, err = c.PrepareSiteOwner(ctx, ow, d, "khach_nho")
-	if err != nil || ch.Plan == nil {
-		t.Fatalf("trong lồng: %+v %v", ch, err)
+	pl, err = c.PrepareSiteOwner(ctx, ow, d, "khach_nho")
+	if err != nil || len(pl.Plan.Steps) < 2 {
+		t.Fatalf("trong lồng: %+v %v", pl, err)
 	}
-	cgOK(t, cgRun(t, ch.Plan))
+	cgOK(t, cgRun(t, pl))
 	if got := ownerOf(e.site(t, cgDom)); got != "khach_nho" {
 		t.Errorf("chủ sau job = %s", got)
 	}

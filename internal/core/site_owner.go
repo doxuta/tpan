@@ -7,8 +7,11 @@ package core
 //   - sites.owner, site_names.owner, backups.owner (store.SetSiteOwner, một
 //     transaction): site, tên phụ, backup, sự cố của site hiện ở chủ mới;
 //   - trần lồng: site trong lồng dùng trần của gói chủ; gói chủ mới khác trần
-//     thì ghi lại file slice (Plan "cage.sync" cho đúng site này), chủ đổi ở
-//     móc before như đổi gói của user (Cages.PrepareUserEdit).
+//     thì cùng job đó ghi lại file slice của site (bước CageFiles).
+//
+// Luôn là một Plan "site.owner" có ít nhất một bước (ghi chủ mới), kể cả khi
+// không đụng máy: giao diện và dòng lệnh đi đúng ba chặng xem trước, chạy,
+// lịch sử như mọi thao tác khác, và job hỏng thì chủ cũ được trả lại.
 //
 // Không đổi: DB rời (thuộc user), lịch sử job cũ (thuộc người đã chạy).
 
@@ -17,8 +20,10 @@ import (
 	"fmt"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -30,31 +35,54 @@ type SiteOwnerStore interface {
 	SetSiteOwner(ctx context.Context, d validate.Domain, owner string) error
 }
 
-// SiteOwnerChange là một lần đổi chủ đã kiểm xong, chưa ghi gì.
-type SiteOwnerChange struct {
-	Domain   validate.Domain
-	From, To string
-	// Plan khác nil khi trần lồng của site phải ghi lại: chạy Plan (chủ được
-	// ghi ở móc before). nil: gọi Apply.
-	Plan  *Planned
-	apply func(ctx context.Context) error
+// siteOwnerStep ghi chủ mới của site vào bảng; Undo trả chủ cũ.
+type siteOwnerStep struct {
+	sites    SiteStore
+	ow       SiteOwnerStore
+	d        validate.Domain
+	from, to string
 }
 
-// Apply ghi chủ mới khi không có Plan.
-func (c *SiteOwnerChange) Apply(ctx context.Context) error { return c.apply(ctx) }
-
-// Title là câu mô tả cho bản xem trước.
-func (c *SiteOwnerChange) Title() i18n.Text {
-	d := c.Domain.String()
-	return i18n.T(
-		"Chuyển site "+d+" từ "+c.From+" sang "+c.To+": tên phụ và backup của site đi theo; DB rời và lịch sử job của "+c.From+" ở lại",
-		"Move site "+d+" from "+c.From+" to "+c.To+": the site's aliases and backups follow; standalone databases and job history of "+c.From+" stay")
+func (s *siteOwnerStep) Info() engine.StepInfo {
+	d := s.d.String()
+	return engine.StepInfo{
+		ID:    "site.owner:" + d,
+		Title: i18n.T("Ghi chủ mới của "+d+": "+s.from+" → "+s.to, "Record the new owner of "+d+": "+s.from+" → "+s.to),
+		Why: i18n.T(
+			"Chủ của site quyết định ai thấy và sửa được site, các tên miền phụ và bản backup của nó trên panel. File, cơ sở dữ liệu và mật khẩu của site không đổi; site không ngừng chạy.",
+			"The owner decides who can see and change the site, its alias domains and its backups in the panel. The site's files, database and passwords do not change; the site keeps running."),
+	}
 }
 
-// PrepareSiteOwner kiểm và dựng lần đổi chủ site d sang user to. Chỉ đọc.
+func (s *siteOwnerStep) Check(ctx context.Context, _ system.System) (bool, error) {
+	st, ok, err := s.sites.Site(ctx, s.d)
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		return false, fmt.Errorf("site %s không còn trong tpan", s.d)
+	}
+	return ownerOf(st) == s.to, nil
+}
+
+func (s *siteOwnerStep) Apply(ctx context.Context, _ system.System) error {
+	if err := s.ow.SetSiteOwner(ctx, s.d, s.to); err != nil {
+		return fmt.Errorf("đổi chủ site %s: %w", s.d, err)
+	}
+	return nil
+}
+
+func (s *siteOwnerStep) Undo(ctx context.Context, _ system.System) error {
+	if err := s.ow.SetSiteOwner(ctx, s.d, s.from); err != nil {
+		return fmt.Errorf("trả chủ cũ của site %s: %w", s.d, err)
+	}
+	return nil
+}
+
+// PrepareSiteOwner kiểm và dựng Plan đổi chủ site d sang user to. Chỉ đọc.
 // Từ chối: site không có, đang ở thùng rác, đang tạm khoá; chủ mới không có,
 // đang bị khoá, hết chỗ trong gói (như tạo site mới cho họ), hay trùng chủ cũ.
-func (c *Cages) PrepareSiteOwner(ctx context.Context, ow SiteOwnerStore, d validate.Domain, to string) (*SiteOwnerChange, error) {
+func (c *Cages) PrepareSiteOwner(ctx context.Context, ow SiteOwnerStore, d validate.Domain, to string) (*Planned, error) {
 	sites := &Sites{Store: c.Store, Accounts: c.Accounts, Settings: c.Settings}
 	st, err := sites.find(ctx, d)
 	if err != nil {
@@ -83,39 +111,38 @@ func (c *Cages) PrepareSiteOwner(ctx context.Context, ow SiteOwnerStore, d valid
 	if _, err := sites.newOwner(ctx, to); err != nil {
 		return nil, err
 	}
-	ch := &SiteOwnerChange{Domain: d, From: from, To: to}
-	ch.apply = func(ctx context.Context) error {
-		if err := ow.SetSiteOwner(ctx, d, to); err != nil {
-			return fmt.Errorf("đổi chủ site %s: %w", dom, err)
+	plan := engine.Plan{
+		Kind:   "site.owner",
+		Target: dom,
+		Title: i18n.T(
+			"Chuyển site "+dom+" từ "+from+" sang "+to+": tên phụ và backup của site đi theo; DB rời và lịch sử job của "+from+" ở lại",
+			"Move site "+dom+" from "+from+" to "+to+": the site's aliases and backups follow; standalone databases and job history of "+from+" stay"),
+		Steps: []engine.Step{&siteOwnerStep{sites: c.Store, ow: ow, d: d, from: from, to: to}},
+	}
+	if st.Caged && st.Status == site.Active {
+		old, err := sitePackage(ctx, c.Accounts, st)
+		if err != nil {
+			return nil, err
 		}
-		return nil
+		moved := st
+		moved.Owner = to
+		next, err := sitePackage(ctx, c.Accounts, moved)
+		if err != nil {
+			return nil, err
+		}
+		if old.Limits() != next.Limits() {
+			cfg, err := sites.stack(ctx)
+			if err != nil {
+				return nil, err
+			}
+			title := plan.Title
+			title.Vi += "; áp trần lồng của gói " + next.Name
+			title.En += "; apply the cage limits of package " + next.Name
+			sync := c.syncPlan(cfg, dom, []site.Site{st}, next.Limits(), title)
+			plan.Title = sync.Title
+			plan.Steps = append(plan.Steps, sync.Steps...)
+			plan.Verify = sync.Verify
+		}
 	}
-	if !st.Caged || st.Status != site.Active {
-		return ch, nil
-	}
-	old, err := sitePackage(ctx, c.Accounts, st)
-	if err != nil {
-		return nil, err
-	}
-	moved := st
-	moved.Owner = to
-	next, err := sitePackage(ctx, c.Accounts, moved)
-	if err != nil {
-		return nil, err
-	}
-	if old.Limits() == next.Limits() {
-		return ch, nil
-	}
-	cfg, err := sites.stack(ctx)
-	if err != nil {
-		return nil, err
-	}
-	title := ch.Title()
-	title.Vi += "; áp trần lồng của gói " + next.Name
-	title.En += "; apply the cage limits of package " + next.Name
-	plan := c.syncPlan(cfg, dom, []site.Site{st}, next.Limits(), title)
-	pl := adminOwned(newPlanned(c.Sys, c.Journal, plan, nil))
-	pl.before = ch.apply
-	ch.Plan = pl
-	return ch, nil
+	return newPlanned(c.Sys, c.Journal, plan, nil), nil
 }
