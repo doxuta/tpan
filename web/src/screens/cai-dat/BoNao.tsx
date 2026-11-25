@@ -117,6 +117,7 @@ function ConnectSteps({ modeOff }: { modeOff: boolean }) {
             <BrainLinkButton target={target} />
           </div>
         )}
+        {!modeOff && <p className="mt-0 mb-[8px] text-[13px]">{t.brainOrType}</p>}
         <CommandBlock commands={connectCommands} addSudo={false} where={t.brainConnectWhere} />
       </div>
     </div>

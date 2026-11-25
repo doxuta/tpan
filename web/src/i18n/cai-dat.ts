@@ -75,6 +75,7 @@ const vi = {
   brainConnectBody:
     "Trên Mac: cài nút một lần rồi bấm Nối bộ não, Mac tự mở Terminal chạy lệnh nối. Hoặc gõ tay trong thư mục mã nguồn TPAN: make build dựng tpan cho máy của bạn (bản phát hành chỉ có cho Linux). Gõ ở một terminal mới và để nó mở: đóng terminal là ngắt bộ não. Thấy “Bộ não: đã nối” là xong.",
   brainConnectWhere: "Chạy trên máy cá nhân của bạn (máy có Claude Code), không phải trên máy chủ. Không cần sudo.",
+  brainOrType: "Hoặc gõ tay trong một terminal và giữ nó mở:",
   brainUserLabel: "User SSH trên máy chủ",
   brainUserHint: "User bạn dùng để ssh vào máy này. Lệnh bên dưới tự điền theo.",
   brainHostLabel2: "Địa chỉ máy chủ",
@@ -212,6 +213,7 @@ export const strings = defineStrings(vi, {
   brainConnectBody:
     "On a Mac: set up the button once, then press Connect brain and the Mac opens Terminal running the connect command. Or type it in the TPAN source folder: make build builds tpan for your machine (releases only ship Linux builds). Type it in a new terminal and keep it open: closing the terminal disconnects the brain. You are done when it prints “Brain: connected”.",
   brainConnectWhere: "Runs on your own machine (the one with Claude Code), not on the server. No sudo needed.",
+  brainOrType: "Or type it in a terminal and keep that terminal open:",
   brainUserLabel: "SSH user on the server",
   brainUserHint: "The user you ssh into this machine with. The command below fills it in.",
   brainHostLabel2: "Server address",
