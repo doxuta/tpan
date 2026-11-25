@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/validate"
@@ -69,11 +70,24 @@ func (s *Server) checkDomainFree(r *http.Request, raw string) (*FieldCheck, erro
 	} else if ok && pd.String() == name {
 		return failField("domain_is_panel", i18n.T(name+" đang là tên miền của panel TPAN.", name+" is the TPAN panel's domain.")), nil
 	}
+	// Người không phải admin chỉ được biết tên đó có dùng được hay không, như
+	// lúc tạo thật (siteCreateOwner trả site_not_found): không lộ là đã có
+	// site, site đó ở thùng rác, hay tên phụ của site nào của người khác.
+	id := who(r)
 	st, ok, err := s.deps.Store.Site(ctx, d)
 	if err != nil {
 		return nil, err
 	}
 	if ok {
+		if !id.IsAdmin() {
+			owner, _, err := s.deps.Store.SiteOwner(ctx, name)
+			if err != nil {
+				return nil, err
+			}
+			if owner != id.Name {
+				return domainUnavailable(), nil
+			}
+		}
 		if st.Status == site.Trashed {
 			return failField("site_trashed", i18n.T(name+" đang nằm trong Thùng rác: khôi phục hoặc xoá hẳn ở đó trước.", name+" is in the Trash: restore it or delete it for good there first.")), nil
 		}
@@ -84,9 +98,35 @@ func (s *Server) checkDomainFree(r *http.Request, raw string) (*FieldCheck, erro
 		return nil, err
 	}
 	if ok {
+		if !id.IsAdmin() && n.Owner != id.Name {
+			return domainUnavailable(), nil
+		}
 		return failField("name_taken", i18n.T(name+" đang là tên phụ của site "+n.Site.String()+".", name+" is already an alias of the site "+n.Site.String()+".")), nil
 	}
+	// M28 P4: người không phải admin không tạo được site chung tên miền gốc với
+	// site của người khác (shop.<site của họ>). Báo sớm ở đây cho khớp lúc tạo.
+	if !id.IsAdmin() {
+		all, err := s.deps.Store.Sites(ctx)
+		if err != nil {
+			return nil, err
+		}
+		taken, err := core.RegistrableTaken(all, d, id.Name)
+		if err != nil {
+			return nil, err
+		}
+		if taken {
+			return domainUnavailable(), nil
+		}
+	}
 	return &FieldCheck{Value: name, OK: true}, nil
+}
+
+// domainUnavailable là lời chung cho người không phải admin khi tên đã thuộc
+// người khác: không nói thuộc ai, là site hay tên phụ, có ở thùng rác không.
+func domainUnavailable() *FieldCheck {
+	return failField("domain_unavailable", i18n.T(
+		"Tên miền này không dùng được. Nếu nó là của bạn, nhờ admin kiểm tra.",
+		"This domain cannot be used. If it is yours, ask the admin to check it."))
 }
 
 // validateText lấy lời của *validate.Error, không có thì dùng fallback.

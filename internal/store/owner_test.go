@@ -9,6 +9,7 @@ import (
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/validate"
 )
 
 func TestSitesOfVaSiteOwner(t *testing.T) {
@@ -326,5 +327,35 @@ func TestDBOwnerVaStandaloneDB(t *testing.T) {
 	_ = s.CreateJob(ctx, j)
 	if o, _, _ := s.JobOwner(ctx, "jd"); o != "binh" {
 		t.Errorf("owner của job trên DB rời = %q, muốn binh", o)
+	}
+}
+
+func TestSetSiteOwner(t *testing.T) {
+	s, _ := openTemp(t)
+	ctx := context.Background()
+	saveSiteOf(t, s, "a.example.com", "an")
+	d, err := validate.ParseDomain("a.example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetSiteOwner(ctx, d, "binh"); err != nil {
+		t.Fatal(err)
+	}
+	if o, ok, err := s.SiteOwner(ctx, "a.example.com"); err != nil || !ok || o != "binh" {
+		t.Errorf("SiteOwner = %q, %v, %v", o, ok, err)
+	}
+	// Tên chính trong site_names là bản chép của sites.owner: phải đổi theo.
+	if n, ok, err := s.NameSite(ctx, d); err != nil || !ok || n.Owner != "binh" {
+		t.Errorf("site_names.owner = %+v, %v, %v", n, ok, err)
+	}
+	if err := s.SetSiteOwner(ctx, d, ""); err != nil {
+		t.Fatal(err)
+	}
+	if o, _, _ := s.SiteOwner(ctx, "a.example.com"); o != "admin" {
+		t.Errorf("owner rỗng phải là admin, được %q", o)
+	}
+	none, _ := validate.ParseDomain("none.example.com")
+	if err := s.SetSiteOwner(ctx, none, "binh"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("site không có: %v", err)
 	}
 }

@@ -60,6 +60,7 @@ import { Redirects } from "./Redirects";
 import { RouteExplain } from "./RouteExplain";
 import { Legend, RouteMap, stageGroupId } from "./RouteMap";
 import { checksOfStage, routeStages, stageOrder, worstMark } from "./route";
+import { OwnerBlock } from "./OwnerBlock";
 import { SuspendBlock } from "./SuspendBlock";
 import { Traffic } from "./Traffic";
 
@@ -537,6 +538,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
           )}
 
           {info.site.status === "active" && <SuspendBlock site={info.site} admin={isAdmin} />}
+          {isAdmin && info.site.status === "active" && <OwnerBlock site={info.site} />}
 
           <Card title={t.layoutHeading} titleId="ten-duong-dan" actions={<span className="text-[13px] text-muted">{t.layoutHint}</span>}>
             <dl className="m-0">

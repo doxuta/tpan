@@ -19,7 +19,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { errorMessage, get } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
 import { useOverview } from "../../api/queries";
@@ -74,6 +74,7 @@ export default function CoSoDuLieu() {
 
   // Dung lượng, danh sách bản xuất, thùng rác và số đếm ở menu đều đổi sau job.
   const op = usePreviewedOp([databasesKey, backupsKey, trashKey]);
+  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   /** Khối đang mở dưới bảng: chọn bản nhập (DB của site) hoặc Sửa, Đổi charset. Theo tên DB để dữ liệu luôn mới. */
   const [view, setView] = useState<{ kind: "import" | "edit"; db: string } | null>(null);
@@ -145,6 +146,8 @@ export default function CoSoDuLieu() {
         { label: t.importOpen, disabled: op.pending || siteSuspended, hint: siteSuspended ? t.importBlocked : undefined, onSelect: () => open("import", r) },
         { label: t.charset, disabled: op.pending, onSelect: () => open("edit", r) },
         ...lock,
+        // DB của site không xoá riêng được (site sẽ chết): chỉ đường tới chỗ xoá cả site.
+        { label: t.trashWithSite, hint: t.trashWithSiteHint, onSelect: () => void navigate(`/sites/${encodeURIComponent(r.domain)}`) },
       ],
     );
   }

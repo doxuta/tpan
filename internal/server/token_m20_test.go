@@ -404,7 +404,7 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 			want[p] = g
 		}
 	}
-	add("sites", "GET /api/v1/sites", "GET /api/v1/site-check", "POST /api/v1/sites", "GET /api/v1/sites/{domain}", "DELETE /api/v1/sites/{domain}",
+	add("sites", "GET /api/v1/sites", "GET /api/v1/site-check", "POST /api/v1/sites", "GET /api/v1/sites/{domain}", "DELETE /api/v1/sites/{domain}", "POST /api/v1/sites/{domain}/owner",
 		"POST /api/v1/sites/{domain}/ssl", "POST /api/v1/sites/{domain}/restore", "POST /api/v1/sites/{domain}/php",
 		"POST /api/v1/sites/{domain}/htaccess", "POST /api/v1/sites/{domain}/suspend", "POST /api/v1/sites/{domain}/unsuspend",
 		"GET /api/v1/sites/{domain}/traffic", "GET /api/v1/sites/{domain}/log", "GET /api/v1/sites/{domain}/route",

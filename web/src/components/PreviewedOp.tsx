@@ -62,7 +62,8 @@ export function usePreviewedOp(invalidate: readonly QueryKey[]) {
       for (const key of invalidate) void qc.invalidateQueries({ queryKey: key });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
       // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
-      track(job.job_id);
+      // Việc chỉ ghi bảng (đổi chủ site ngoài lồng) trả kết quả, không có job.
+      if (job?.job_id) track(job.job_id);
       setOpen(null);
       setAsked(null);
     },
