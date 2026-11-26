@@ -756,8 +756,11 @@ func (p *PHP) notes(ctx context.Context, list *PHPList, def string) {
 			for _, r := range list.Versions {
 				have[r.Version] = true
 			}
-			for v := range known {
-				if !have[v] {
+			for v, sup := range known {
+				// php.net liệt kê mọi nhánh từ 3.0 (đo trên máy thật 26/11/2026), kèm
+				// state "eol" cho nhánh đã hết hạn. Chỉ mời cài nhánh còn được vá; bản
+				// cũ hơn vẫn cài được bằng cách gõ số bản (ô "Cài bản PHP khác").
+				if !have[v] && sup.State != "eol" {
 					list.Versions = append(list.Versions, PHPVersionRow{Version: v, Sites: []string{}, Source: SourceSury})
 				}
 			}

@@ -27,9 +27,9 @@ func TestRegisteredDomainTenMienDungChung(t *testing.T) {
 		"www.a.khu1.lab.example.com": "a.khu1.lab.example.com",
 		"b.khu1.lab.example.com":     "b.khu1.lab.example.com",
 		"khu1.lab.example.com":       "lỗi", // chính nó là đuôi dùng chung
-		"shop.example.com":            "shop.example.com",
-		"x.shop.example.com":          "shop.example.com",
-		"blog.example.org":            "example.org",
+		"shop.example.com":           "shop.example.com",
+		"x.shop.example.com":         "shop.example.com",
+		"blog.example.org":           "example.org",
 	} {
 		if got := root(in); got != want {
 			t.Errorf("%s: muốn %s, được %s", in, want, got)

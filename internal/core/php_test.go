@@ -138,7 +138,7 @@ func TestPHPList(t *testing.T) {
 		}
 		switch c.Args[len(c.Args)-1] {
 		case phpStatesURL:
-			return system.Result{Stdout: `{"8":{"8.3":{"state":"security","active_support_end":"2025-12-31T00:00:00+00:00","security_support_end":"2027-12-31T00:00:00+00:00"},"8.4":{"state":"stable","active_support_end":"2026-12-31T00:00:00+00:00","security_support_end":"2028-12-31T00:00:00+00:00"}}}`}
+			return system.Result{Stdout: `{"3":{"3.0":{"state":"eol","security_support_end":"2000-10-20T00:00:00+00:00"}},"7":{"7.4":{"state":"eol","active_support_end":"2021-11-28T00:00:00+00:00","security_support_end":"2022-11-28T00:00:00+00:00"}},"8":{"8.3":{"state":"security","active_support_end":"2025-12-31T00:00:00+00:00","security_support_end":"2027-12-31T00:00:00+00:00"},"8.4":{"state":"stable","active_support_end":"2026-12-31T00:00:00+00:00","security_support_end":"2028-12-31T00:00:00+00:00"}}}`}
 		case wpServeHappy + "8.3":
 			return system.Result{Stdout: `{"recommended_version":"8.3","minimum_version":"7.4","is_supported":true}`}
 		}
@@ -682,7 +682,7 @@ func TestPHPListChuaCoKhoSury(t *testing.T) {
 		}
 		switch c.Args[len(c.Args)-1] {
 		case phpStatesURL:
-			return system.Result{Stdout: `{"8":{"8.3":{"state":"security","active_support_end":"2025-12-31T00:00:00+00:00","security_support_end":"2027-12-31T00:00:00+00:00"},"8.4":{"state":"stable","active_support_end":"2026-12-31T00:00:00+00:00","security_support_end":"2028-12-31T00:00:00+00:00"},"8.5":{"state":"stable","active_support_end":"2027-12-31T00:00:00+00:00","security_support_end":"2029-12-31T00:00:00+00:00"}}}`}
+			return system.Result{Stdout: `{"3":{"3.0":{"state":"eol","security_support_end":"2000-10-20T00:00:00+00:00"}},"7":{"7.4":{"state":"eol","active_support_end":"2021-11-28T00:00:00+00:00","security_support_end":"2022-11-28T00:00:00+00:00"}},"8":{"8.3":{"state":"security","active_support_end":"2025-12-31T00:00:00+00:00","security_support_end":"2027-12-31T00:00:00+00:00"},"8.4":{"state":"stable","active_support_end":"2026-12-31T00:00:00+00:00","security_support_end":"2028-12-31T00:00:00+00:00"},"8.5":{"state":"stable","active_support_end":"2027-12-31T00:00:00+00:00","security_support_end":"2029-12-31T00:00:00+00:00"}}}`}
 		case wpServeHappy + "8.3":
 			return system.Result{Stdout: `{"recommended_version":"8.3","minimum_version":"7.4","is_supported":true}`}
 		}
@@ -703,8 +703,9 @@ func TestPHPListChuaCoKhoSury(t *testing.T) {
 	if list.SuryEnabled {
 		t.Fatal("máy thử này chưa thêm kho sury")
 	}
+	// 3.0 và 7.4 đã hết hạn (state "eol") thì không mời cài.
 	if got := versions(list); !reflect.DeepEqual(got, []string{"8.3", "8.4", "8.5"}) {
-		t.Fatalf("danh sách = %v, muốn có cả 8.4 và 8.5 để bấm cài", got)
+		t.Fatalf("danh sách = %v, muốn đúng 8.3, 8.4, 8.5 (không có nhánh đã hết hạn)", got)
 	}
 	for _, r := range list.Versions[1:] {
 		if r.Installed || r.Default || r.Source != SourceSury || r.Sites == nil || len(r.Sites) != 0 || r.Support == nil || r.Support.State != "stable" {
