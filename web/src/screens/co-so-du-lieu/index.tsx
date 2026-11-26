@@ -125,6 +125,15 @@ export default function CoSoDuLieu() {
           </span>
         );
       }
+      // M34: DB đã bị xoá ngoài TPAN. Chỉ còn một việc làm được: gỡ dòng của nó (bản sao lưu được giữ).
+      if (r.missing) {
+        return (
+          <div className="flex flex-col items-end gap-[2px]">
+            {row([button("trash", t.forget, t.forgetFor(r.db))])}
+            <span className="max-w-[260px] text-[12.5px] text-muted">{t.missingStandalone}</span>
+          </div>
+        );
+      }
       // v0.2.14: nút đầu là "Quản lý" (mở màn xem bảng, sửa dữ liệu, chạy SQL: thứ người dùng
       // chờ ở chữ "Sửa"); đổi bộ ký tự và ghi chú chuyển vào menu ba chấm.
       return row(
@@ -151,6 +160,23 @@ export default function CoSoDuLieu() {
         </div>
       );
     }
+    // M34: DB của site đã bị xoá ngoài TPAN. Hai đường có lại dữ liệu đều tạo lại DB từ file:
+    // khôi phục site từ một bản backup (màn Backup), hoặc nhập một bản xuất .sql (menu ba chấm).
+    if (r.missing) {
+      return (
+        <div className="flex flex-col items-end gap-[2px]">
+          {row(
+            [button("trash-site", t.del, t.delSiteDbFor(r.db, r.domain))],
+            [{ label: t.importOpen, disabled: op.pending || siteSuspended, hint: siteSuspended ? t.importBlocked : undefined, onSelect: () => open("import", r) }],
+          )}
+          <span className="max-w-[260px] text-[12.5px] text-muted">
+            {t.missingSiteLead}
+            <Link to="/backups">{t.missingSiteLink}</Link>
+            {t.missingSiteTail}
+          </span>
+        </div>
+      );
+    }
     return row(
       [{ label: t.manage, ariaLabel: t.manageFor(r.db), onClick: () => navigate(dbManagePath("site", r.domain)) }, button("trash-site", t.del, t.delSiteDbFor(r.db, r.domain))],
       [
@@ -173,6 +199,7 @@ export default function CoSoDuLieu() {
           <span className="flex flex-wrap items-center gap-x-[10px]">
             <MonoText>{r.db}</MonoText>
             {r.suspended && <SuspendTag how={r.suspended} />}
+            {r.missing && <Tag title={t.missingHint}>{t.missingTag}</Tag>}
           </span>
           {r.user === r.db ? <span className="text-[12.5px] text-muted">{t.sameUser}</span> : <MonoText size={12.5} muted>{r.user}</MonoText>}
           {r.note && <span className="max-w-[320px] text-[12.5px] text-muted [overflow-wrap:anywhere]">{r.note}</span>}

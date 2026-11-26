@@ -29,6 +29,7 @@ import (
 	"io/fs"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/engine"
@@ -53,25 +54,40 @@ func (d *DBs) dbsBackups() (*Backups, error) {
 	return d.Backups, nil
 }
 
+// dbsStampTries: số giây liên tiếp dbsDumpPath thử khi tên file của giây hiện
+// tại đã có.
+const dbsStampTries = 5
+
 // dbsDumpPath là file sao lưu mới của DB rời name. suffix phân biệt bản tự
-// xuất (trước khi nhập, trước khi xoá hẳn) với bản người dùng bấm, để hai bản
-// trong cùng một giây không trùng tên. File đã có thì từ chối: cột path của
-// bảng backups là UNIQUE và MariaDBDump coi file trọn vẹn sẵn có là đã xong.
+// xuất (trước khi nhập, trước khi xoá hẳn) với bản người dùng bấm.
+//
+// Tên file mang giờ tới giây. File của đúng giây này đã có (bấm sao lưu hai lần
+// liền, hoặc lịch backup chạy ngay sau một bản bấm tay) thì lấy giây kế tiếp
+// còn trống: xuất một DB nhỏ chỉ mất vài chục mili giây nên hai bản trong cùng
+// một giây là chuyện thường. Trước M34 trường hợp này bị từ chối; thử trên máy
+// ảo 26/11/2026, lịch backup hằng ngày bỏ sót đúng DB rời vừa được sao lưu tay.
+// Không ghi đè file đã có: cột path của bảng backups là UNIQUE và MariaDBDump
+// coi file trọn vẹn sẵn có là đã xong. Cột "lúc tạo" của dòng backup lấy giờ
+// thật, không lấy từ tên file.
 func (d *DBs) dbsDumpPath(name, suffix string) (string, error) {
 	if !databaseNameRe.MatchString(name) {
 		return "", dbsNotFound(name)
 	}
-	p := site.DBBackupDir(name) + "/" + name + "-db-" + d.now().UTC().Format(dbStamp) + suffix + ".sql"
-	exists, err := pathExists(d.Sys, p)
-	if err != nil {
-		return "", err
+	now := d.now().UTC()
+	p := ""
+	for i := range dbsStampTries {
+		p = site.DBBackupDir(name) + "/" + name + "-db-" + now.Add(time.Duration(i)*time.Second).Format(dbStamp) + suffix + ".sql"
+		exists, err := pathExists(d.Sys, p)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return p, nil
+		}
 	}
-	if exists {
-		return "", refuse("backup_exists", i18n.T(
-			p+" đã có (vừa sao lưu trong cùng giây này); chờ một giây rồi làm lại",
-			p+" already exists (a backup was taken this same second); wait a second and try again"))
-	}
-	return p, nil
+	return "", refuse("backup_exists", i18n.T(
+		p+" đã có (vừa có nhiều bản sao lưu liền nhau trong vài giây này); chờ vài giây rồi làm lại",
+		p+" already exists (several backups were just taken within these few seconds); wait a few seconds and try again"))
 }
 
 // dbsSpace là chặn đầy đĩa của mục 6.5 cho một bản xuất DB rời, lúc dựng Plan.
@@ -132,6 +148,10 @@ func (d *DBs) PrepareBackup(ctx context.Context, name string, reason BackupReaso
 	}
 	db, err := d.dbsActive(ctx, name)
 	if err != nil {
+		return nil, err
+	}
+	// M34: DB đã bị xoá ngoài tpan thì không có gì để xuất.
+	if err := d.dbsPresent(ctx, db.Name); err != nil {
 		return nil, err
 	}
 	if _, err := d.dbsBackups(); err != nil {
@@ -246,6 +266,11 @@ func (d *DBs) dbsBackupOwner(ctx context.Context, id string) (owner string, ok b
 func (d *DBs) PrepareImport(ctx context.Context, name, id string) (*Planned, error) {
 	db, err := d.dbsActive(ctx, name)
 	if err != nil {
+		return nil, err
+	}
+	// M34: DB đã bị xoá ngoài tpan thì bước "xuất bản hiện tại trước" lỗi giữa
+	// job. Gỡ dòng của DB rồi "Tạo lại DB" từ bản sao lưu là đường đúng.
+	if err := d.dbsPresent(ctx, db.Name); err != nil {
 		return nil, err
 	}
 	// Nhập xong ứng dụng phải dùng lại được DB; DB hay chủ đang khoá thì không.

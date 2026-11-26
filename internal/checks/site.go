@@ -671,13 +671,24 @@ func DBAccess(l site.Layout) Check {
 		recheck := ev.Command // lệnh thật đã chạy (M17: systemd-run khi site trong lồng)
 		if res.ExitCode != 0 {
 			out := ev.Output
-			if strings.Contains(out, "Access denied") || strings.Contains(out, "ERROR 1045") ||
-				strings.Contains(out, "ERROR 1044") || strings.Contains(out, "ERROR 1049") || strings.Contains(out, "Unknown database") {
+			// M34: hai nhóm lỗi có hai đường sửa khác nhau, nên tách lời chỉ
+			// đường. 1049 là user đăng nhập được mà DB không có: chỉ còn cách
+			// lấy lại DB từ file. Còn lại (1045, 1044, Access denied) là chuyện
+			// của user DB: đã bị xoá thì `tpan db passwd` tạo lại, mật khẩu lệch
+			// thì chính lệnh đó đặt lại cho khớp cả hai nơi.
+			if strings.Contains(out, "ERROR 1049") || strings.Contains(out, "Unknown database") {
 				return b.bad(Fail,
 					i18n.T("User DB của site không đăng nhập được hoặc không thấy DB: "+firstLineWith(out, "ERROR", "Error"), "The site's DB user cannot log in or cannot see its database: "+firstLineWith(out, "ERROR", "Error")),
-					i18n.T("Mật khẩu trong wp-config.php không khớp user DB, user DB bị khoá hoặc đã xoá, hoặc DB không còn. Site sẽ hiện \"Error establishing a database connection\".",
-						"The password in wp-config.php does not match the DB user, the DB user was locked or dropped, or the database is gone. The site will show \"Error establishing a database connection\"."),
-					[]string{whichDB, grants, line("tpan", "site", "add", l.Domain.String()), recheck}, ev)
+					i18n.T("DB của site không còn trong MariaDB (đã bị xoá ngoài TPAN). Site sẽ hiện \"Error establishing a database connection\". Khôi phục site từ một bản backup ở màn Backup, hoặc nhập một bản xuất DB đã có: cả hai tạo lại DB từ file.",
+						"The site's database is no longer in MariaDB (it was dropped outside TPAN). The site will show \"Error establishing a database connection\". Restore the site from a backup on the Backup screen, or import an existing database dump: both recreate the database from the file."),
+					[]string{`mariadb -e "SHOW DATABASES LIKE '` + l.DB + `'"`, line("tpan", "backup", "list", l.Domain.String()), line("tpan", "backup", "restore", l.Domain.String()), recheck}, ev)
+			}
+			if strings.Contains(out, "Access denied") || strings.Contains(out, "ERROR 1045") || strings.Contains(out, "ERROR 1044") {
+				return b.bad(Fail,
+					i18n.T("User DB của site không đăng nhập được hoặc không thấy DB: "+firstLineWith(out, "ERROR", "Error"), "The site's DB user cannot log in or cannot see its database: "+firstLineWith(out, "ERROR", "Error")),
+					i18n.T("Mật khẩu trong wp-config.php không khớp user DB, hoặc user DB bị khoá hay đã bị xoá. Site sẽ hiện \"Error establishing a database connection\". Đổi mật khẩu DB của site (màn Cơ sở dữ liệu) sửa được hai trường hợp: user đã bị xoá thì được tạo lại, mật khẩu lệch thì được đặt lại cho khớp.",
+						"The password in wp-config.php does not match the DB user, or the DB user was locked or dropped. The site will show \"Error establishing a database connection\". Changing the site's database password (Databases screen) fixes two of these: a dropped user is recreated, and a mismatched password is set again on both sides."),
+					[]string{whichDB, grants, line("tpan", "db", "passwd", l.Domain.String()), recheck}, ev)
 			}
 			return b.unknown(i18n.T("wp db query báo lỗi, chưa rõ DB có vào được không (mã "+strconv.Itoa(res.ExitCode)+": "+firstLineWith(out, "Error", "ERROR")+")",
 				"wp db query failed, so it is not known whether the DB is reachable (exit "+strconv.Itoa(res.ExitCode)+": "+firstLineWith(out, "Error", "ERROR")+")"), ev)

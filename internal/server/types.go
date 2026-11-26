@@ -360,6 +360,9 @@ type DatabaseRow struct {
 	// App (M29): loại site của DB đi kèm site ("wordpress" | "php"). Site PHP
 	// trống thì đổi mật khẩu DB trả mật khẩu mới một lần (db_secret của job).
 	App string `json:"app,omitempty"`
+	// Missing (M34): DB có trong tpan nhưng không còn trong MariaDB (bị xoá
+	// ngoài tpan). Giao diện hiện nhãn và chỉ để lại việc gỡ.
+	Missing bool `json:"missing,omitempty"`
 }
 
 // ---- health (M4) ----

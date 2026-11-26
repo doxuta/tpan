@@ -48,15 +48,15 @@ func DBExists(l site.Layout) Check {
 		case f[0] == "0":
 			return b.bad(Fail,
 				i18n.T("DB "+l.DB+" không còn trong MariaDB", "The database "+l.DB+" is no longer in MariaDB"),
-				i18n.T("DB của site đã bị xoá ngoài TPAN. Mã của site sẽ báo lỗi kết nối DB. Khôi phục từ một bản backup của site.",
-					"The site's database was dropped outside TPAN. The site's code will report a database connection error. Restore it from a backup of the site."),
-				[]string{`mariadb -e "SHOW DATABASES"`, recheck}, ev)
+				i18n.T("DB của site đã bị xoá ngoài TPAN. Mã của site sẽ báo lỗi kết nối DB. Khôi phục site từ một bản backup ở màn Backup, hoặc nhập một bản xuất DB đã có: cả hai tạo lại DB từ file.",
+					"The site's database was dropped outside TPAN. The site's code will report a database connection error. Restore the site from a backup on the Backup screen, or import an existing database dump: both recreate the database from the file."),
+				[]string{`mariadb -e "SHOW DATABASES"`, line("tpan", "backup", "list", l.Domain.String()), line("tpan", "backup", "restore", l.Domain.String()), recheck}, ev)
 		case f[1] == "0":
 			return b.bad(Fail,
 				i18n.T("User DB "+l.DB+" không còn trong MariaDB", "The DB user "+l.DB+" is no longer in MariaDB"),
-				i18n.T("User DB của site đã bị xoá ngoài TPAN. Đổi mật khẩu DB của site ở màn Cơ sở dữ liệu không tạo lại user; chạy lại tạo site để dựng lại.",
-					"The site's DB user was dropped outside TPAN. Run the site creation again to rebuild it."),
-				[]string{recheck, line("tpan", "site", "add", l.Domain.String())}, ev)
+				i18n.T("User DB của site đã bị xoá ngoài TPAN. Đổi mật khẩu DB của site ở màn Cơ sở dữ liệu để tạo lại user: user có mật khẩu mới, hiện một lần; sửa mật khẩu đó trong cấu hình của mã nguồn.",
+					"The site's DB user was dropped outside TPAN. Change the site's database password on the Databases screen to recreate the user: it gets a new password, shown once; update that password in your code's configuration."),
+				[]string{recheck, line("tpan", "db", "passwd", l.Domain.String())}, ev)
 		}
 		return b.pass(i18n.T("DB "+l.DB+" và user DB cùng tên đều còn", "The database "+l.DB+" and its DB user both exist"), ev)
 	})

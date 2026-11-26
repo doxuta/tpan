@@ -145,6 +145,15 @@ func (b *Backups) PrepareCreate(ctx context.Context, d validate.Domain, reason B
 		}
 	}
 	l := st.Layout()
+	// M34: DB của site đã bị xoá ngoài tpan thì bản backup đầy đủ không tạo
+	// được (không có gì để xuất). Chỉ chặn bản bấm tay, để người bấm nhận một
+	// lời chỉ đường; backup theo lịch và bản tự backup giữ đường cũ (job của
+	// riêng site đó báo lỗi của mariadb-dump, các site khác không bị ảnh hưởng).
+	if reason == ReasonManual {
+		if err := siteDBPresent(ctx, b.Sites.Sys, l); err != nil {
+			return nil, err
+		}
+	}
 	src := l.Dir
 	if st.Status == site.Trashed {
 		src = site.TrashDir(l)
@@ -655,6 +664,15 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 	if err := b.checkIntact(ctx, l, src); err != nil {
 		return nil, err
 	}
+	// M34: DB hoặc user DB của site đã bị xoá ngoài tpan (dbs_m34.go). Thiếu
+	// user thì kiểm chứng sau khôi phục chắc chắn hỏng: chỉ sang chỗ tạo lại
+	// user. Thiếu DB (fresh) thì khôi phục tạo lại DB từ bản backup, nhưng
+	// không có gì để tự backup hay xuất ra trước.
+	dbOK, userOK, known := siteDBState(ctx, b.Sites.Sys, l)
+	if known && !userOK {
+		return nil, siteDBUserGoneErr(l, i18n.T("khôi phục site từ backup", "restore"))
+	}
+	fresh := known && !dbOK
 	rd := site.RestoreDir(l)
 	left, err := pathExists(b.Sites.Sys, rd)
 	if err != nil {
@@ -667,8 +685,10 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 			rd+" còn sót từ một lần khôi phục trước. Xem bên trong trước (old-public có thể là mã nguồn cũ của site), rồi xoá bằng: sudo rm -r --one-file-system -- "+rd,
 			rd+" is left over from an earlier restore. Look inside first (old-public may be the site's old code), then remove it with: sudo rm -r --one-file-system -- "+rd))
 	}
-	if err := b.backupSpace(ctx, l, l.Dir, i18n.T("tự backup "+d.String()+" trước khi khôi phục", "back up "+d.String()+" before restoring")); err != nil {
-		return nil, err
+	if !fresh {
+		if err := b.backupSpace(ctx, l, l.Dir, i18n.T("tự backup "+d.String()+" trước khi khôi phục", "back up "+d.String()+" before restoring")); err != nil {
+			return nil, err
+		}
 	}
 	php := sitePHP(st, cfg)
 	others, err := b.Sites.others(ctx, d)
@@ -692,13 +712,14 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 		Title: i18n.T("Đưa mã nguồn từ bản backup vào "+l.Public, "Move the code from the backup into "+l.Public),
 		Why: i18n.T("Một lần đổi tên trên cùng phân vùng: site không bao giờ nằm ở trạng thái nửa cũ nửa mới.",
 			"One rename on the same partition: the site is never left half old, half new.")}}
+	extract := &steps.BackupExtract{Layout: l, Archive: src.Path, SHA256: src.SHA256, Dir: rd}
 	plan := engine.Plan{
 		Kind:   "backup.restore",
 		Target: dn,
 		Title:  i18n.T("Khôi phục site "+dn+" từ bản backup "+src.ID, "Restore site "+dn+" from backup "+src.ID),
 		Steps: []engine.Step{
 			pre,
-			&steps.BackupExtract{Layout: l, Archive: src.Path, SHA256: src.SHA256, Dir: rd},
+			extract,
 			setAside,
 			moveIn,
 			&steps.MariaDBDump{DB: l.DB, Path: rd + "/db-before.sql"},
@@ -706,20 +727,38 @@ func (b *Backups) PrepareRestore(ctx context.Context, d validate.Domain, id stri
 		},
 		Verify: siteChecks(cfg.Web, php, st, others, lim),
 	}
+	if fresh {
+		// Không có bước tự backup (pre) và không có bước xuất DB trước khi
+		// nhập: cả hai cần một DB để xuất. Mã nguồn đang chạy vẫn được cất sang
+		// old-public trong lúc job chạy (hoàn tác chuyển nó về), nhưng job
+		// thành công thì nó bị gỡ như mọi lần khôi phục: tiêu đề nói rõ.
+		plan.Title = i18n.T(
+			"Khôi phục site "+dn+" từ bản backup "+src.ID+". DB của site không còn trong MariaDB (đã bị xoá ngoài tpan) nên lần này KHÔNG có bản tự backup trước khi khôi phục: mã nguồn đang chạy bị thay bằng bản trong backup và không lấy lại được",
+			"Restore site "+dn+" from backup "+src.ID+". The site's database is no longer in MariaDB (it was dropped outside tpan), so this time there is NO automatic backup before the restore: the code now running is replaced by the copy in the backup and cannot be brought back")
+		plan.Steps = []engine.Step{
+			extract,
+			setAside,
+			moveIn,
+			&steps.DBImport{Layout: l, File: rd + "/db.sql", Fresh: true},
+		}
+	}
 	return newPlanned(b.Sites.Sys, b.Sites.Journal, plan, func(ctx context.Context, rep engine.Report) error {
 		var errs []error
 		protect := []string{src.ID}
-		if b.Store == nil {
-			errs = append(errs, fmt.Errorf("ghi bản tự backup %s: chưa có DB của tpan", pre.Path))
-		} else if row, err := archived(pre, d, ReasonBeforeRestore, rep.Job.ID); err != nil {
-			errs = append(errs, err)
-		} else {
-			row.Created = dbNow(b)
-			added, err := b.Store.AddBackup(ctx, row)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("ghi bản tự backup %s vào bảng backups: %w", pre.Path, err))
+		// fresh (M34): Plan không có bước tự backup, nên không có dòng nào để ghi.
+		if !fresh {
+			if b.Store == nil {
+				errs = append(errs, fmt.Errorf("ghi bản tự backup %s: chưa có DB của tpan", pre.Path))
+			} else if row, err := archived(pre, d, ReasonBeforeRestore, rep.Job.ID); err != nil {
+				errs = append(errs, err)
 			} else {
-				protect = append(protect, added.ID)
+				row.Created = dbNow(b)
+				added, err := b.Store.AddBackup(ctx, row)
+				if err != nil {
+					errs = append(errs, fmt.Errorf("ghi bản tự backup %s vào bảng backups: %w", pre.Path, err))
+				} else {
+					protect = append(protect, added.ID)
+				}
 			}
 		}
 		// Gỡ thư mục khôi phục cả khi ghi dòng lỗi: để lại thì lần khôi phục sau

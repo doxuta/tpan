@@ -316,6 +316,9 @@ func (d *DBs) PrepareCharset(ctx context.Context, name, charset, collation strin
 	if err != nil {
 		return nil, err
 	}
+	if err := d.dbsPresent(ctx, db.Name); err != nil {
+		return nil, err
+	}
 	cs, coll, err := d.dbsResolve(ctx, charset, collation)
 	if err != nil {
 		return nil, err
@@ -343,22 +346,35 @@ func (d *DBs) SetNote(ctx context.Context, name, note string) error {
 
 // PreparePassword đổi mật khẩu user DB của DB rời (chỉ trong MariaDB). Được
 // làm cả khi DB đang khoá (khoá giữ nguyên); không làm được khi ở thùng rác.
+//
+// M34: user DB đã bị xoá ngoài tpan mà DB còn thì đây là đường tạo lại user
+// (mật khẩu mới, khoá nếu DB đang tạm khoá). DB cũng mất thì từ chối, chỉ đường gỡ.
 func (d *DBs) PreparePassword(ctx context.Context, name string) (*DBPassword, error) {
 	db, err := d.dbsActive(ctx, name)
 	if err != nil {
 		return nil, err
 	}
+	dbOK, userOK, known := d.dbsState(ctx, db.Name)
+	if known && !dbOK {
+		return nil, dbsMissingErr(db.Name)
+	}
 	pw, err := sitePassword()
 	if err != nil {
 		return nil, err
 	}
-	p := newPlanned(d.Sys, d.Journal, engine.Plan{
+	plan := engine.Plan{
 		Kind:   "dbs.passwd",
 		Target: db.Name,
 		Title:  i18n.T("Đổi mật khẩu user DB "+db.Name, "Change the password of database user "+db.Name),
 		Steps:  []engine.Step{&steps.DBUserPassword{Name: db.Name, Password: pw}},
-	}, nil)
-	return &DBPassword{Planned: p, Name: db.Name, Password: pw}, nil
+	}
+	if known && !userOK {
+		plan.Title = i18n.T(
+			"Tạo lại user DB "+db.Name+" với mật khẩu mới (user đã bị xoá ngoài tpan; dữ liệu trong DB giữ nguyên)",
+			"Recreate the database user "+db.Name+" with a new password (the user was dropped outside tpan; the data in the database is kept)")
+		plan.Steps = []engine.Step{&steps.DBUserRecreate{Name: db.Name, Password: pw, Locked: db.Suspended != account.NotSuspended}}
+	}
+	return &DBPassword{Planned: newPlanned(d.Sys, d.Journal, plan, nil), Name: db.Name, Password: pw}, nil
 }
 
 // ---------------------------------------------------------------- tạm khoá
@@ -384,6 +400,14 @@ func (d *DBs) PrepareSuspend(ctx context.Context, name string) (*Planned, error)
 	// user sau này không mở DB mà admin muốn giữ khoá.
 	if db.Suspended == account.SuspendSelf {
 		return nil, dbsSuspendedErr(db.Name)
+	}
+	// M34: user DB không còn thì bước khoá coi là "đã đúng" và job báo thành
+	// công dù không khoá được gì; sau đó DB mang cờ tạm khoá mà không mở lại
+	// được. Từ chối ngay, chỉ đường theo thứ còn lại.
+	if dbOK, userOK, known := d.dbsState(ctx, db.Name); known && !dbOK {
+		return nil, dbsMissingErr(db.Name)
+	} else if known && !userOK {
+		return nil, dbsUserMissingErr(db.Name, i18n.T("khoá", "locked"))
 	}
 	return newPlanned(d.Sys, d.Journal, engine.Plan{
 		Kind:   "dbs.suspend",
@@ -418,6 +442,13 @@ func (d *DBs) PrepareUnsuspend(ctx context.Context, name string) (*Planned, erro
 			return nil, err
 		}
 	}
+	// M34: không có user DB thì không có gì để mở khoá; trước đây job chạy rồi
+	// hỏng ở bước mở khoá mà không nói phải làm gì tiếp.
+	if dbOK, userOK, known := d.dbsState(ctx, db.Name); known && !dbOK {
+		return nil, dbsMissingErr(db.Name)
+	} else if known && !userOK {
+		return nil, dbsUserMissingErr(db.Name, i18n.T("mở khoá", "unlocked"))
+	}
 	return newPlanned(d.Sys, d.Journal, engine.Plan{
 		Kind:   "dbs.unsuspend",
 		Target: db.Name,
@@ -439,10 +470,18 @@ func (d *DBs) dbsTrashDays(ctx context.Context) (int, error) {
 
 // PrepareTrash xuất DB rời ra account.DBTrashDump(name), DROP DATABASE, khoá
 // user DB; status trashed, purge_at theo trash.days. Từ chối DB đang khoá.
+//
+// M34: DB không còn trong MariaDB thì không có gì để xuất hay khôi phục, nên
+// "xoá" là gỡ hẳn dòng của nó (Plan dbs.forget, xem prepareForget). Làm được cả
+// khi DB đang tạm khoá: lý do từ chối DB đang khoá là khôi phục sẽ mở khoá lén,
+// mà ở đây không có gì để khôi phục.
 func (d *DBs) PrepareTrash(ctx context.Context, name string) (*Planned, error) {
 	db, err := d.dbsActive(ctx, name)
 	if err != nil {
 		return nil, err
+	}
+	if dbOK, userOK, known := d.dbsState(ctx, db.Name); known && !dbOK {
+		return d.prepareForget(db, userOK), nil
 	}
 	// Quyết định 7 ở docs/KE-HOACH.md mục 6.12: khôi phục mở khoá user DB, tức là mở khoá lén.
 	if db.Suspended != account.NotSuspended {
@@ -501,12 +540,22 @@ func (d *DBs) PrepareRestore(ctx context.Context, name string) (*Planned, error)
 			"file xuất "+dump+" của DB rời "+db.Name+" không còn; không khôi phục được, chỉ xoá hẳn được",
 			"the dump "+dump+" of standalone database "+db.Name+" is gone; it cannot be restored, only purged"))
 	}
-	if dbOK, _, err := steps.DBNameState(ctx, d.Sys, db.Name); err != nil {
+	dbOK, userOK, err := steps.DBNameState(ctx, d.Sys, db.Name)
+	if err != nil {
 		return nil, err
-	} else if dbOK {
+	}
+	if dbOK {
 		return nil, refuse(CodeDBExists, i18n.T(
 			"MariaDB đã có DB "+db.Name+" (tạo bằng tay sau khi xoá); tpan không nhập đè",
 			"MariaDB already has a database "+db.Name+" (created by hand after deletion); tpan does not import over it"))
+	}
+	// M34: user DB (giữ khoá trong lúc ở thùng rác) đã bị xoá ngoài tpan thì
+	// bước mở khoá cuối Plan sẽ hỏng và cả job bị hoàn tác. Đường còn lại là
+	// xoá hẳn (bản xuất cuối thành một bản sao lưu) rồi tạo lại DB từ bản đó.
+	if !userOK {
+		return nil, refuse(CodeDBUserMissing, i18n.T(
+			"user DB "+db.Name+" không còn trong MariaDB (đã bị xoá ngoài tpan) nên DB này không khôi phục lại như cũ được. Xoá hẳn nó (tpan giữ bản xuất cuối làm bản sao lưu), rồi tạo lại DB từ bản đó ở màn Backup: DB tạo lại có user và mật khẩu mới, dữ liệu như lúc vào thùng rác.",
+			"database user "+db.Name+" is no longer in MariaDB (dropped outside tpan), so this database cannot be restored as it was. Purge it (tpan keeps the last dump as a backup), then recreate the database from that backup on the Backup screen: it gets a new user and password, with the data as it was when trashed."))
 	}
 	st := []engine.Step{&steps.DBRestore{Name: db.Name, Charset: db.Charset, Collation: db.Collation}}
 	st = append(st, dbUnlockSteps(db.Name)...)
@@ -663,6 +712,11 @@ func (d *DBs) PrepareSiteDBSuspend(ctx context.Context, dom validate.Domain) (*P
 		return nil, dbsSuspendedErr("của site " + dom.String())
 	}
 	l := st.Layout()
+	// M34: user DB không còn thì bước khoá coi là "đã đúng" và job báo thành
+	// công dù không khoá được gì (như DB rời ở PrepareSuspend).
+	if err := siteDBUserPresent(ctx, d.Sys, l, i18n.T("khoá", "lock")); err != nil {
+		return nil, err
+	}
 	return newPlanned(d.Sys, d.Journal, engine.Plan{
 		Kind:   "db.suspend",
 		Target: dom.String(),
@@ -690,8 +744,15 @@ func (d *DBs) PrepareSiteDBUnsuspend(ctx context.Context, dom validate.Domain) (
 			return nil, err
 		}
 	}
+	// M34: không có user DB thì không có gì để mở khoá. DB đã mất (user còn)
+	// thì vẫn mở khoá được, chỉ bỏ kiểm chứng "site chạy lại": site chưa thể
+	// chạy cho tới khi DB được khôi phục, mà khôi phục lại cần user đã mở khoá.
+	dbOK, userOK, known := siteDBState(ctx, d.Sys, st.Layout())
+	if known && !userOK {
+		return nil, siteDBUserGoneErr(st.Layout(), i18n.T("mở khoá", "unlock"))
+	}
 	var verify []checks.Check
-	if st.Suspended == account.NotSuspended {
+	if dbGone := known && !dbOK; st.Suspended == account.NotSuspended && !dbGone {
 		verify = dbVerify(st)
 	}
 	return newPlanned(d.Sys, d.Journal, engine.Plan{
@@ -713,6 +774,10 @@ func (d *DBs) PrepareSiteDBCharset(ctx context.Context, dom validate.Domain, cha
 	}
 	cs, coll, err := d.dbsResolve(ctx, charset, collation)
 	if err != nil {
+		return nil, err
+	}
+	// M34: DB đã bị xoá ngoài tpan thì không có gì để đổi charset.
+	if err := siteDBPresent(ctx, d.Sys, st.Layout()); err != nil {
 		return nil, err
 	}
 	return newPlanned(d.Sys, d.Journal, engine.Plan{

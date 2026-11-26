@@ -202,6 +202,18 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 			l.Dir+" đã có: domain "+d.String()+" đã được tạo lại ngoài tpan sau khi vào thùng rác. tpan không đè lên nó; xem và dọn bằng tay rồi khôi phục lại.",
 			l.Dir+" already exists: domain "+d.String()+" was created again outside tpan after it went to the trash. tpan will not overwrite it; inspect and clean it up by hand, then restore again."))
 	}
+	// M34: thùng rác không có thư mục của site (thư mục đã bị xoá ngoài tpan,
+	// trước hay sau khi site vào thùng rác). Trước đây job chạy rồi dừng ở bước
+	// chuyển thư mục với "không còn gì để chuyển".
+	inTrash, err := pathExists(s.Sys, site.TrashDir(l))
+	if err != nil {
+		return nil, err
+	}
+	if !inTrash {
+		return nil, refuse(CodeSiteDirMissing, i18n.T(
+			"thùng rác không còn thư mục của site "+d.String()+" ("+site.TrashDir(l)+" đã bị xoá ngoài tpan), nên không có mã nguồn để khôi phục. Còn bản backup thì xoá hẳn site rồi tạo lại nó từ bản đó ở màn Backup; không còn bản nào thì chỉ xoá hẳn được (sudo tpan trash purge "+d.String()+").",
+			"the trash no longer has the directory of site "+d.String()+" ("+site.TrashDir(l)+" was removed outside tpan), so there is no code to restore. If the site has a backup, delete it for good and recreate it from that backup on the Backup screen; with no backup it can only be deleted for good (sudo tpan trash purge "+d.String()+")."))
+	}
 	php := sitePHP(st, cfg)
 	lim, err := siteCageLimits(ctx, s.Accounts, st)
 	if err != nil {
@@ -393,10 +405,18 @@ func (s *Sites) PreparePurge(ctx context.Context, d validate.Domain) (*SitePurge
 		bk = &purgeBackup{BackupArchive: &steps.BackupArchive{Layout: l, Src: site.TrashDir(l), Dir: site.BackupDir(l), PHPVersion: php}}
 		ss = append([]engine.Step{bk}, ss...)
 	}
+	title := i18n.T("Xoá hẳn site "+d.String(), "Permanently delete site "+d.String())
+	if !intact {
+		// M34: nói rõ lần xoá này không có bản tự backup, để người bấm biết
+		// trước khi xác nhận (thư mục của site đã mất thì không backup được).
+		title = i18n.T(
+			"Xoá hẳn site "+d.String()+" (KHÔNG có bản tự backup trước khi xoá: thư mục của site trong thùng rác hoặc DB của nó không còn đủ)",
+			"Permanently delete site "+d.String()+" (NO automatic backup before deletion: the site's directory in the trash or its database is no longer complete)")
+	}
 	return &SitePurge{Site: st, Layout: l, sites: s, backup: bk, Plan: engine.Plan{
 		Kind:   "site.purge",
 		Target: d.String(),
-		Title:  i18n.T("Xoá hẳn site "+d.String(), "Permanently delete site "+d.String()),
+		Title:  title,
 		Steps:  ss,
 	}}, nil
 }

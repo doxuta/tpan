@@ -452,11 +452,13 @@ func TestDBSuspendStandalone(t *testing.T) {
 func TestDBUnsuspendByUserRefused(t *testing.T) {
 	e := newDBsEnv(t)
 	e.store.dbs["bob_x"] = account.Database{Name: "bob_x", Owner: "bob", Status: account.DBActive, Suspended: account.SuspendByUser}
+	// DB và user DB có thật trong MariaDB (M34: dòng mà không có DB là "đã mất").
+	e.sim.dbs["bob_x"] = dbsSimDB{cs: "utf8mb4", coll: "utf8mb4_general_ci"}
+	e.sim.users["bob_x"] = dbsSimUser{locked: true}
 	if _, err := e.d.PrepareUnsuspend(ctx, "bob_x"); dbsCode(err) != CodeUserSuspended {
 		t.Errorf("mã %v, muốn user_suspended", err)
 	}
 	// Khoá riêng (self) đè lên khoá vì user thì được.
-	e.sim.users["bob_x"] = dbsSimUser{locked: true}
 	dbsExec(t)(e.d.PrepareSuspend(ctx, "bob_x"))
 	if e.store.dbs["bob_x"].Suspended != account.SuspendSelf {
 		t.Error("nguồn khoá chưa chuyển sang self")

@@ -10,6 +10,7 @@ import type { Backup, DatabaseRow, DBCharset, DBEdit, DBImportRequest } from "..
 import type { Op } from "../../components/PreviewedOp";
 import type { strings } from "../../i18n/co-so-du-lieu";
 import { backupsKey, backupsPath } from "../backup/model";
+import { trashWording } from "./missing";
 
 export const databasesKey = ["databases"] as const;
 export const databasesPath = "/api/v1/databases";
@@ -76,7 +77,8 @@ export function rowOp(t: T, action: RowAction, r: DatabaseRow, extra: { backup?:
       };
     }
     case "trash":
-      return { id, method: "DELETE", path: dbPath(r.db), warning: t.trashDbWarning(r.db), errorHeading: t.trashErrorHeading(r.db) };
+      // M34: DB đã bị xoá ngoài TPAN thì cùng đường DELETE này gỡ dòng của nó (không có gì để vào thùng rác); lời cảnh báo nói đúng việc đó.
+      return { id, method: "DELETE", path: dbPath(r.db), ...trashWording(t, r) };
     case "trash-site":
       // DB đi kèm site không xoá riêng được: xoá là đưa cả site vào thùng rác (DELETE /sites/{domain}).
       return { id, method: "DELETE", path: `/api/v1/sites/${encodeURIComponent(r.domain)}`, warning: t.trashSiteWarning(r.db, r.domain), errorHeading: t.trashSiteErrorHeading(r.domain) };

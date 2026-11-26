@@ -211,6 +211,61 @@ func TestRunNheBoChecksumVaKhongPrune(t *testing.T) {
 	}
 }
 
+// v0.2.15: site chưa từng qua một lượt đầy đủ (không có kết quả dns.a) thì
+// lần nhẹ chạy cả phép kiểm nặng của riêng nó, đúng một lần. Trước đó site tạo
+// bằng CLI (không có lượt kiểm sau job của panel) thiếu kết quả DNS tới vòng
+// đầy đủ kế tiếp, và ga DNS trên trang site hiện "chưa kiểm được".
+func TestRunNheLapChoTrongCuaSiteChuaTungKiemDayDu(t *testing.T) {
+	e := newEnv(t, true)
+	ctx := context.Background()
+	heavy := func(rep Report, d string) (n int) {
+		got := targets(t, rep)
+		for _, id := range []string{"dns.a:" + d, "wp.checksums:" + d} {
+			if _, ok := got[id]; ok {
+				n++
+			}
+		}
+		return n
+	}
+
+	// Máy chưa có kết quả nào: lần nhẹ đầu tiên lấp đủ phép nặng của cả hai site.
+	first := e.run(t, Options{})
+	if heavy(first, dA) != 2 || heavy(first, dB) != 2 {
+		t.Errorf("lần nhẹ đầu tiên: phép nặng của a = %d, của b = %d; muốn 2 và 2", heavy(first, dA), heavy(first, dB))
+	}
+	// Không phải lần đầy đủ của cả máy: không ghi last_run.
+	if v, _, _ := e.st.GetSetting(ctx, SettingLastRun); v != "" {
+		t.Errorf("lần nhẹ lấp chỗ trống mà ghi %s = %q", SettingLastRun, v)
+	}
+
+	// Đã có kết quả: lần nhẹ sau lại là nhẹ thật.
+	e.now = t0.Add(5 * time.Minute)
+	second := e.run(t, Options{})
+	if heavy(second, dA) != 0 || heavy(second, dB) != 0 {
+		t.Errorf("lần nhẹ thứ hai vẫn chạy phép nặng: a = %d, b = %d", heavy(second, dA), heavy(second, dB))
+	}
+
+	// Thêm một site (như `tpan site add` gõ tay): lần nhẹ kế tiếp chạy phép
+	// nặng của riêng site mới, không chạy lại của site cũ.
+	const dNew = "moi.example.com"
+	if err := e.st.SaveSite(ctx, site.Site{Domain: dom(t, dNew), Status: site.Active, PHPVersion: "8.3", Created: e.now}); err != nil {
+		t.Fatal(err)
+	}
+	e.now = t0.Add(10 * time.Minute)
+	third := e.run(t, Options{})
+	if heavy(third, dNew) != 2 || heavy(third, dA) != 0 {
+		t.Errorf("sau khi thêm site: phép nặng của site mới = %d (muốn 2), của site cũ = %d (muốn 0)", heavy(third, dNew), heavy(third, dA))
+	}
+	// Lượt của riêng một site (sau một job trên nó) cũng lấp như vậy.
+	const dNew2 = "moi2.example.com"
+	if err := e.st.SaveSite(ctx, site.Site{Domain: dom(t, dNew2), Status: site.Active, PHPVersion: "8.3", Created: e.now}); err != nil {
+		t.Fatal(err)
+	}
+	if one := e.run(t, Options{Domain: dNew2}); heavy(one, dNew2) != 2 {
+		t.Errorf("lượt nhẹ của riêng site mới: phép nặng = %d, muốn 2", heavy(one, dNew2))
+	}
+}
+
 func TestRunMoDongSuCo(t *testing.T) {
 	e := newEnv(t, true)
 	ctx := context.Background()
@@ -366,6 +421,14 @@ func TestSchedulerChayDayDuRoiKick(t *testing.T) {
 	one := wait(t, reps)
 	if len(one.Groups) != 1 || one.Groups[0].Target != dB {
 		t.Errorf("Kick(b) = %+v", one.Groups)
+	}
+	// Kick của riêng một site (lượt kiểm sau một job trên site đó) chạy cả phép
+	// kiểm nặng của site: không thì site vừa tạo không có kết quả DNS, và ga DNS
+	// trên trang site hiện "chưa kiểm được" tới vòng đầy đủ kế tiếp (tới 1 giờ).
+	for _, id := range []string{"dns.a:" + dB, "wp.checksums:" + dB} {
+		if _, ok := targets(t, one)[id]; !ok {
+			t.Errorf("Kick(b) thiếu phép kiểm nặng %s của chính site đó", id)
+		}
 	}
 	if v, ok, _ := e.st.GetSetting(ctx, SettingSchedulerBeat); !ok || v == "" {
 		t.Error("chưa ghi nhịp")

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/system"
 )
 
 // TestKhoiPhucChungTenMienGocB5: khôi phục từ thùng rác cũng qua luật P4. A
@@ -17,12 +18,15 @@ func TestKhoiPhucChungTenMienGocB5(t *testing.T) {
 	e, h := p4Env(t)
 	ctx := context.Background()
 	for _, d := range []string{"www.x.example.info", "solo.example.biz"} {
-		if err := e.st.SaveSite(ctx, site.Site{
+		st := site.Site{
 			Domain: apiDomain(t, d), Status: site.Trashed, PHPVersion: "8.3",
 			Created: e.now, TrashedAt: e.now, Owner: authzA,
-		}); err != nil {
+		}
+		if err := e.st.SaveSite(ctx, st); err != nil {
 			t.Fatal(err)
 		}
+		// Thư mục của site nằm trong thùng rác như trên máy thật (M34).
+		e.f.SetDir(site.TrashDir(st.Layout()), 0o750, system.Root)
 	}
 	if err := e.st.SaveSite(ctx, site.Site{Domain: apiDomain(t, "x.example.info"), Status: site.Active, PHPVersion: "8.3", Created: e.now, Owner: authzB}); err != nil {
 		t.Fatal(err)

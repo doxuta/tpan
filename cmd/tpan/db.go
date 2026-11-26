@@ -47,7 +47,7 @@ func dbCmd(e *env) *cobra.Command {
 			func(ctx context.Context, m *m13Env, n string) (*core.Planned, error) {
 				return m.dbs.PrepareUnsuspend(ctx, n)
 			}),
-		dbArgCmd(e, "rm <tên DB>", "Đưa DB rời vào thùng rác: khoá user DB, xuất .sql vào thùng rác rồi mới DROP (khôi phục bằng tpan db restore)",
+		dbArgCmd(e, "rm <tên DB>", "Đưa DB rời vào thùng rác: khoá user DB, xuất .sql vào thùng rác rồi mới DROP (khôi phục bằng tpan db restore). DB đã bị xoá ngoài tpan thì gỡ dòng của nó khỏi tpan",
 			nil, func(ctx context.Context, m *m13Env, n string) (*core.Planned, error) {
 				return m.dbs.PrepareTrash(ctx, n)
 			}),
@@ -278,8 +278,9 @@ func dbPasswdCmd(e *env) *cobra.Command {
 	var f planFlags
 	c := &cobra.Command{
 		Use: "passwd <domain|tên DB>",
-		Short: "Đổi mật khẩu user DB. DB của site: ghi vào wp-config.php, không in ra. " +
-			"DB rời: chỉ đổi trong MariaDB, in mật khẩu mới một lần",
+		Short: "Đổi mật khẩu user DB. DB của site WordPress: ghi vào wp-config.php, không in ra. " +
+			"DB rời và DB của site PHP trống: chỉ đổi trong MariaDB, in mật khẩu mới một lần. " +
+			"User DB đã bị xoá ngoài tpan thì tạo lại user, dữ liệu giữ nguyên (site WordPress: với mật khẩu đang ghi trong wp-config.php)",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			d, name, err := parseDBArg(args[0])
@@ -381,6 +382,8 @@ type dbRow struct {
 	Note      string             `json:"note,omitempty"`
 	Suspended account.Suspension `json:"suspended,omitempty"`
 	Status    string             `json:"status"`
+	// Missing (M34): DB có trong tpan nhưng không còn trong MariaDB.
+	Missing bool `json:"missing,omitempty"`
 }
 
 func dbListCmd(e *env) *cobra.Command {
@@ -407,7 +410,7 @@ func dbListCmd(e *env) *cobra.Command {
 			for i, d := range list {
 				rows[i] = dbRow{Domain: d.Domain, DB: d.DB, User: d.User, SizeBytes: d.SizeBytes, Tables: d.Tables,
 					Kind: d.Kind, Owner: d.Owner, Charset: d.Charset, Collation: d.Collation, Note: d.Note,
-					Suspended: d.Suspended, Status: d.Status}
+					Suspended: d.Suspended, Status: d.Status, Missing: d.Missing}
 			}
 			if asJSON {
 				return writeJSON(e.stdout, rows)
@@ -447,6 +450,14 @@ func printDBs(e *env, rows []dbRow) {
 		status := suspensionText(e, r.Suspended)
 		if r.Status == string(account.DBTrashed) {
 			status = e.tr("thùng rác", "trash")
+		}
+		// M34: DB có trong tpan mà MariaDB không còn. Nói ngay ở cột trạng
+		// thái, kèm việc làm được, thay cho hai dấu "?" không ai hiểu.
+		if r.Missing {
+			status = e.tr("KHÔNG CÒN trong MariaDB", "GONE from MariaDB")
+			if r.Kind == core.DBKindStandalone {
+				status += e.tr(" (gỡ: tpan db rm "+r.DB+")", " (remove: tpan db rm "+r.DB+")")
+			}
 		}
 		printf(w, "%-40s %-28s %12s %6s %-10s %-14s %-10s %s\n", dom, r.DB, size, tables, kind, r.Owner, r.Charset, status)
 	}

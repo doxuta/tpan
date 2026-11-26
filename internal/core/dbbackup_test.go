@@ -447,3 +447,114 @@ func TestCreateAllCoDBRoi(t *testing.T) {
 		t.Error("DB trong thùng rác cũng bị sao lưu theo lịch")
 	}
 }
+
+// Hai bản trong cùng một giây (bấm sao lưu rồi lịch backup chạy ngay sau): bản
+// sau lấy tên file của giây kế tiếp còn trống, không bị từ chối. Gặp thật trên
+// máy ảo 26/11/2026: lịch backup hằng ngày bỏ sót DB rời vừa được sao lưu tay,
+// vì backup một site nhỏ xong trong cùng giây đó.
+func TestDBBackupHaiBanCungGiay(t *testing.T) {
+	e := newDBkEnv(t)
+	e.add(t, "alice", "shop", "v1")
+	e.tick()
+	dbsExec(t)(e.d.PrepareBackup(ctx, "alice_shop", ReasonManual))
+	// Không tick: lịch chạy trong cùng giây với bản bấm tay.
+	res, err := e.d.BackupAll(ctx, ReasonSchedule, nil)
+	if err != nil || len(res) != 1 || res[0].Error != "" || res[0].Report.Job.Status != engine.JobSucceeded {
+		t.Fatalf("lịch backup trong cùng giây với bản bấm tay: %v %+v", err, res)
+	}
+	rows := e.rows(t, "alice_shop")
+	if len(rows) != 2 {
+		t.Fatalf("muốn 2 dòng (bấm tay, theo lịch), có %d: %+v", len(rows), rows)
+	}
+	reasons := map[BackupReason]string{}
+	for _, r := range rows {
+		reasons[r.Reason] = r.Path
+		if _, err := e.sim.Stat(r.Path); err != nil {
+			t.Errorf("file của bản %s không có: %v", r.Reason, err)
+		}
+		if !r.Created.Equal(e.now) {
+			t.Errorf("lúc tạo của bản %s = %v, muốn giờ thật %v (không lấy từ tên file)", r.Reason, r.Created, e.now)
+		}
+	}
+	stamp := func(d time.Duration) string { return e.now.Add(d).UTC().Format(dbStamp) }
+	if !strings.Contains(reasons[ReasonManual], stamp(0)) || !strings.Contains(reasons[ReasonSchedule], stamp(time.Second)) {
+		t.Errorf("tên file: bấm tay %q, theo lịch %q; muốn giây hiện tại rồi giây kế tiếp", reasons[ReasonManual], reasons[ReasonSchedule])
+	}
+
+	// Cả năm giây liên tiếp đều đã có file: lúc này mới từ chối, không ghi đè bản nào.
+	e.tick()
+	e.tick()
+	for i := range dbsStampTries {
+		p := site.DBBackupDir("alice_shop") + "/alice_shop-db-" + stamp(time.Duration(i)*time.Second) + ".sql"
+		e.sim.SetFile(p, []byte("bản có sẵn "+stamp(time.Duration(i)*time.Second)), 0o600, system.Root)
+	}
+	if _, err := e.d.PrepareBackup(ctx, "alice_shop", ReasonManual); dbkCode(err) != "backup_exists" {
+		t.Errorf("năm giây liền đều có file: %s, muốn backup_exists", dbkCode(err))
+	}
+	for i := range dbsStampTries {
+		p := site.DBBackupDir("alice_shop") + "/alice_shop-db-" + stamp(time.Duration(i)*time.Second) + ".sql"
+		if got, _ := e.sim.ReadFile(p); !strings.HasPrefix(string(got), "bản có sẵn") {
+			t.Errorf("file có sẵn %s bị ghi đè", p)
+		}
+	}
+}
+
+// M34 nối với M33: DB rời có bản sao lưu bị xoá ngoài tpan. Sao lưu mới và nhập
+// lại từ chối kèm đường đi; "xoá" gỡ dòng của DB mà giữ nguyên các bản sao lưu;
+// rồi DB tạo lại được từ bản đó, đúng chủ, đúng bộ ký tự, đủ dữ liệu.
+func TestDBRoiDaMatGoRoiTaoLaiTuBanSaoLuu(t *testing.T) {
+	e := newDBkEnv(t)
+	e.add(t, "alice", "shop", "v1")
+	bk := e.backup(t, "alice_shop")
+	e.sim.mu.Lock()
+	delete(e.sim.dbs, "alice_shop")
+	delete(e.sim.users, "alice_shop")
+	e.sim.mu.Unlock()
+
+	e.tick()
+	if _, err := e.d.PrepareBackup(ctx, "alice_shop", ReasonManual); dbkCode(err) != CodeDBMissing {
+		t.Errorf("sao lưu DB đã mất: %s, muốn db_missing", dbkCode(err))
+	}
+	if _, err := e.d.PrepareImport(ctx, "alice_shop", bk.ID); dbkCode(err) != CodeDBMissing {
+		t.Errorf("nhập vào DB đã mất: %s, muốn db_missing", dbkCode(err))
+	}
+	// Lịch backup: DB đã mất báo lỗi ở dòng của nó, không làm hỏng cả lượt.
+	res, err := e.d.BackupAll(ctx, ReasonSchedule, nil)
+	if err != nil || len(res) != 1 || !strings.Contains(res[0].Error, "không còn trong MariaDB") {
+		t.Errorf("lịch backup khi một DB đã mất: %v %+v", err, res)
+	}
+	// Đang có dòng thì chưa tạo lại được.
+	if _, err := e.d.PrepareRecreate(ctx, bk.ID); dbkCode(err) != CodeDBExists {
+		t.Errorf("tạo lại khi dòng của DB còn: %s, muốn db_exists", dbkCode(err))
+	}
+
+	p, err := e.d.PrepareTrash(ctx, "alice_shop")
+	if err != nil || p.Plan.Kind != "dbs.forget" {
+		t.Fatalf("xoá DB đã mất: %v", err)
+	}
+	dbsExec(t)(p, nil)
+	if _, ok, _ := e.st.StandaloneDB(ctx, "alice_shop"); ok {
+		t.Fatal("dòng của DB còn sau khi gỡ")
+	}
+	rows := e.rows(t, "alice_shop")
+	if len(rows) != 1 || rows[0].ID != bk.ID {
+		t.Fatalf("gỡ DB làm mất bản sao lưu: %+v", rows)
+	}
+	if _, err := e.sim.Stat(bk.Path); err != nil {
+		t.Fatalf("file sao lưu mất sau khi gỡ: %v", err)
+	}
+
+	e.tick()
+	re, err := e.d.PrepareRecreate(ctx, bk.ID)
+	if err != nil {
+		t.Fatalf("tạo lại từ bản sao lưu sau khi gỡ: %v", err)
+	}
+	dbsExec(t)(re.Planned, nil)
+	db, ok, _ := e.st.StandaloneDB(ctx, "alice_shop")
+	if !ok || db.Owner != "alice" || db.Collation != "utf8mb4_bin" || e.data("alice_shop") != "v1" {
+		t.Errorf("DB tạo lại = %+v (có=%v), dữ liệu %q", db, ok, e.data("alice_shop"))
+	}
+	if u := e.sim.users["alice_shop"]; u.pw == "" || u.pw != re.Password.Reveal() {
+		t.Error("DB tạo lại phải có user DB với mật khẩu mới trả một lần")
+	}
+}

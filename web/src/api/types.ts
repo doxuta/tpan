@@ -315,6 +315,8 @@ export type DatabaseRow = {
   status: "active" | "trashed";
   /** M29: loại site của DB đi kèm site. Site PHP trống ("php") thì mật khẩu DB mới hiện một lần sau khi đổi. */
   app?: SiteApp;
+  /** M34: TPAN còn dòng của DB này nhưng MariaDB không còn nó (bị xoá ngoài TPAN). */
+  missing?: boolean;
 };
 
 // ---- Đăng nhập, tài khoản ----

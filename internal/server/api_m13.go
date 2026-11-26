@@ -884,8 +884,20 @@ func (s *Server) handleDBUnsuspend(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleDBTrash: xuất .sql vào thùng rác rồi DROP (core.DBs.PrepareTrash).
+//
+// M34: DB đã bị xoá ngoài tpan thì PrepareTrash trả Plan gỡ dòng của nó
+// (dbs.forget). Nhật ký phải ghi đúng việc đã làm, nên tên thao tác được chọn
+// ở đây bằng cùng phép hỏi MariaDB: không thì một lần gỡ nằm trong nhật ký như
+// một lần "đưa vào thùng rác" mà thùng rác không có gì.
 func (s *Server) handleDBTrash(w http.ResponseWriter, r *http.Request) {
-	s.dbJob(w, r, "dbs.trash", (*core.DBs).PrepareTrash)
+	action := "dbs.trash"
+	if name, _ := pathDBName(r); name != "" {
+		if db, ok, err := s.deps.Store.StandaloneDB(r.Context(), name); err == nil && ok && db.Status == account.DBActive &&
+			core.DBGoneRefusal(r.Context(), s.deps.Sys, name, "") != nil {
+			action = "dbs.forget"
+		}
+	}
+	s.dbJob(w, r, action, (*core.DBs).PrepareTrash)
 }
 
 func (s *Server) handleDBRestore(w http.ResponseWriter, r *http.Request) {

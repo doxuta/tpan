@@ -37,6 +37,10 @@ type Database struct {
 	Status    string // "active" | "trashed"
 	// App (M29): loại site của DB đi kèm site ("wordpress" | "php"); DB rời để rỗng.
 	App string
+	// Missing (M34, DBs.List điền): MariaDB trả lời mà không có DB này, tức là
+	// DB đã bị xoá ngoài tpan. Không đặt cho DB rời trong thùng rác (đã DROP có
+	// chủ ý), và không đặt khi không hỏi được MariaDB (khi đó chỉ là "không rõ").
+	Missing bool
 }
 
 // databaseNameRe là lớp chặn cuối trước khi tên DB đi vào chuỗi SQL. Tên lấy
@@ -176,11 +180,20 @@ func (d *DBs) List(ctx context.Context, owner string) ([]Database, error) {
 		return out, nil
 	}
 	stats := parseDatabaseList(res.Stdout)
+	asked := map[string]bool{}
+	for _, n := range names {
+		asked[n] = true
+	}
 	for i := range out {
 		if st, ok := stats[out[i].DB]; ok {
 			out[i].Tables, out[i].SizeBytes = st.tables, st.size
 			out[i].Charset, out[i].Collation = st.charset, st.collation
+			continue
 		}
+		// M34: câu hỏi chạy được mà không có dòng của DB này thì DB không còn
+		// trong MariaDB. DB rời trong thùng rác đã DROP có chủ ý: không tính.
+		trashedStandalone := out[i].Kind == DBKindStandalone && out[i].Status == string(account.DBTrashed)
+		out[i].Missing = asked[out[i].DB] && res.ExitCode == 0 && !trashedStandalone
 	}
 	return out, nil
 }

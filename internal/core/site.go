@@ -1008,7 +1008,21 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 			"site "+d.String()+" đã ở thùng rác; xoá hẳn bằng: sudo tpan trash purge "+d.String(),
 			"site "+d.String()+" is already in the trash; delete it for good with: sudo tpan trash purge "+d.String()))
 	}
-	if st.Suspended != account.NotSuspended || st.DBSuspended != account.NotSuspended {
+	l := st.Layout()
+	// M34: thư mục của site đã bị xoá ngoài tpan (rm -rf /var/www/<site>) và
+	// cũng không nằm trong thùng rác. Trước đây bước chuyển thư mục dừng với
+	// "không còn gì để chuyển" và site không bao giờ gỡ được khỏi panel (thử
+	// trên máy ảo 26/11/2026 với v0.2.14). Giờ site vẫn vào thùng rác, chỉ bỏ
+	// bước chuyển thư mục; từ đó xoá hẳn được, còn khôi phục thì bị từ chối
+	// (PrepareRestore) vì không có mã nguồn để đưa về.
+	dirGone, err := siteDirGone(s.Sys, l)
+	if err != nil {
+		return nil, err
+	}
+	// Site đang tạm khoá mà thư mục đã mất vẫn được vào thùng rác: lý do từ
+	// chối site đang khoá là khôi phục sẽ mở khoá lén, mà site này không khôi
+	// phục được; còn mở khoá trước thì không làm nổi (kiểm chứng đòi site trả 200).
+	if !dirGone && (st.Suspended != account.NotSuspended || st.DBSuspended != account.NotSuspended) {
 		return nil, refuseSuspendedTrash(st)
 	}
 	cfg, err := s.stack(ctx)
@@ -1018,18 +1032,38 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 	if st.PHPVersion == "" {
 		return nil, fmt.Errorf("site %s trong DB không có bản PHP", d)
 	}
-	l := st.Layout()
-	ss, err := trashSteps(cfg.Web, st.PHPVersion, st)
+	ss, err := trashSteps(cfg.Web, st.PHPVersion, st, !dirGone)
 	if err != nil {
 		return nil, fmt.Errorf("dựng Plan đưa site %s vào thùng rác: %w", d, err)
+	}
+	title := i18n.T("Đưa site "+d.String()+" vào thùng rác", "Move site "+d.String()+" to the trash")
+	if dirGone {
+		title = i18n.T(
+			"Đưa site "+d.String()+" vào thùng rác. Thư mục "+l.Dir+" đã bị xoá ngoài tpan nên không còn mã nguồn để giữ: site này sẽ không khôi phục lại được, chỉ xoá hẳn được (DB của site vẫn còn cho tới lúc đó)",
+			"Move site "+d.String()+" to the trash. The directory "+l.Dir+" was removed outside tpan, so there is no code left to keep: this site cannot be restored, only deleted for good (its database stays until then)")
 	}
 	return &SiteRemove{Site: st, Layout: l, sites: s, Plan: engine.Plan{
 		Kind:   "site.rm",
 		Target: d.String(),
-		Title:  i18n.T("Đưa site "+d.String()+" vào thùng rác", "Move site "+d.String()+" to the trash"),
+		Title:  title,
 		Steps:  ss,
 		Verify: []checks.Check{siteGone(cfg.Web, l)},
 	}}, nil
+}
+
+// siteDirGone (M34): thư mục của site không có ở /var/www lẫn trong thùng rác,
+// tức là đã bị xoá ngoài tpan. Có ở thùng rác mà dòng chưa ghi trashed là một
+// lần "đưa vào thùng rác" chạy dở: MoveTree coi đó là đã chuyển, không phải mất.
+func siteDirGone(sys system.System, l site.Layout) (bool, error) {
+	here, err := pathExists(sys, l.Dir)
+	if err != nil || here {
+		return false, err
+	}
+	trashed, err := pathExists(sys, site.TrashDir(l))
+	if err != nil {
+		return false, err
+	}
+	return !trashed, nil
 }
 
 // trashSteps là các bước đưa site vào thùng rác, đúng thứ tự mục 6.4:
@@ -1050,7 +1084,9 @@ func (s *Sites) PrepareRemove(ctx context.Context, d validate.Domain) (*SiteRemo
 // thư mục. Không có pool chung để gỡ. Cron gỡ TRƯỚC hàng rào: không thì một
 // lượt cron giữa hai bước chạy `wp` dưới user của site ở ngoài lồng (soát thiết
 // kế điểm 8). Cờ caged giữ nguyên trong lúc ở thùng rác; khôi phục dựng lại lồng.
-func trashSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) {
+//
+// moveDir false (M34): thư mục của site đã mất, bỏ bước chuyển thư mục cuối cùng.
+func trashSteps(web WebServer, php string, st site.Site, moveDir bool) ([]engine.Step, error) {
 	l := st.Layout()
 	webAbsent, err := steps.SiteWebAbsent(l, string(web), php)
 	if err != nil {
@@ -1087,25 +1123,27 @@ func trashSteps(web WebServer, php string, st site.Site) ([]engine.Step, error) 
 		return nil, fmt.Errorf("bước gỡ web của %s: cần đúng %d bước (link vhost, pool khi ở ngoài lồng), có %d", d, want, len(ss))
 	}
 	if st.Caged {
-		return append(ss,
+		ss = append(ss,
 			siteCronAbsent(l),
 			&steps.CageSocket{Layout: l, PHP: php, Disable: true},
 			&steps.CageFiles{Layout: l, PHP: php, Remove: true},
 			&steps.DBUserLock{Layout: l},
 			&steps.SiteUserLock{Layout: l},
-			&steps.MoveTree{From: l.Dir, To: site.TrashDir(l),
-				Title: i18n.T("Chuyển thư mục của "+d+" vào thùng rác", "Move the directory of "+d+" to the trash")},
-		), nil
+		)
+	} else {
+		ss = append(ss,
+			&steps.DBUserLock{Layout: l},
+			&steps.SiteUserLock{Layout: l},
+			// M9: gỡ file cron trước khi chuyển thư mục, để cron không gọi
+			// `wp` vào một thư mục đang đi. Khôi phục ghi lại (restoreSteps).
+			siteCronAbsent(l),
+		)
 	}
-	return append(ss,
-		&steps.DBUserLock{Layout: l},
-		&steps.SiteUserLock{Layout: l},
-		// M9: gỡ file cron trước khi chuyển thư mục, để cron không gọi
-		// `wp` vào một thư mục đang đi. Khôi phục ghi lại (restoreSteps).
-		siteCronAbsent(l),
-		&steps.MoveTree{From: l.Dir, To: site.TrashDir(l),
-			Title: i18n.T("Chuyển thư mục của "+d+" vào thùng rác", "Move the directory of "+d+" to the trash")},
-	), nil
+	if !moveDir {
+		return ss, nil
+	}
+	return append(ss, &steps.MoveTree{From: l.Dir, To: site.TrashDir(l),
+		Title: i18n.T("Chuyển thư mục của "+d+" vào thùng rác", "Move the directory of "+d+" to the trash")}), nil
 }
 
 // Preview là bản xem trước. Chỉ đọc máy.

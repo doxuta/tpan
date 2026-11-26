@@ -78,8 +78,10 @@ type Options struct {
 	// Domain khác rỗng: chỉ kiểm site đó (không stack, không tpan, không lệch).
 	// Rỗng: mọi thứ.
 	Domain string
-	// Full: chạy cả phép kiểm nặng (wp.checksums). Lần chạy đầy đủ với Domain
-	// rỗng còn gọi Store.PruneResults và ghi SettingLastRun.
+	// Full: chạy cả phép kiểm nặng (wp.checksums, dns.a). Lần chạy đầy đủ với
+	// Domain rỗng còn gọi Store.PruneResults và ghi SettingLastRun. Lượt kiểm
+	// sau một job của một site (Scheduler.Kick với domain) là đầy đủ cho riêng
+	// site đó.
 	Full bool
 }
 
@@ -118,8 +120,9 @@ func (r Report) HasFail() bool {
 // kiểm của tpan với store.TargetTPAN), chạy (checks.RunAll), điền
 // Result.AutoFix bằng core.AutoFixName, rồi Store.RecordResults theo từng
 // target. Lần chạy nhẹ (Full false) bỏ các phép kiểm đánh dấu checks.Heavy
-// (wp.checksums) trước khi chạy. Lỗi đọc store hay settings thì trả lỗi; phép kiểm không chạy
-// được thì đã là Unknown trong Result, không phải lỗi.
+// (wp.checksums, dns.a) trước khi chạy, trừ với site chưa từng qua một lượt
+// đầy đủ (neverFull). Lỗi đọc store hay settings thì trả lỗi; phép kiểm không
+// chạy được thì đã là Unknown trong Result, không phải lỗi.
 func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 	now := r.clock()
 	rep := Report{Started: now()}
@@ -129,6 +132,24 @@ func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 		return Report{}, err
 	}
 	rep.Installed = installed
+
+	// Lần nhẹ lấp chỗ trống (v0.2.15): site chưa từng qua một lượt đầy đủ thì
+	// lượt này chạy cả phép kiểm nặng của riêng nó. Dấu nhận biết là kết quả
+	// "dns.a:<domain>": phép nặng mà site nào cũng có (core.siteEdgeChecks) và
+	// lần đầy đủ nào cũng ghi. Không lấp thì site tạo bằng CLI, hay tạo lúc
+	// tpan serve chưa chạy, thiếu kết quả DNS và wp.checksums tới vòng đầy đủ
+	// kế tiếp (tới 1 giờ), và ga DNS của nó hiện "chưa kiểm được".
+	var have map[string]bool
+	if !o.Full {
+		stored, err := r.Store.CheckResults(ctx)
+		if err != nil {
+			return Report{}, err
+		}
+		have = make(map[string]bool, len(stored))
+		for _, s := range stored {
+			have[s.ID] = true
+		}
+	}
 
 	// seen: mỗi ID chỉ ghi một lần, lần gặp đầu tiên thắng. Phép kiểm cô lập
 	// "isolation:a:b" nằm trong bộ của cả site a lẫn site b; ghi cả hai lần thì
@@ -141,7 +162,7 @@ func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 		// ponytail: phép kiểm trùng ID (cô lập) vẫn chạy hai lần rồi bỏ một
 		// kết quả, vì Check không cho biết ID trước khi chạy; nó rẻ (một lệnh test).
 		cs := g.checks
-		if !o.Full {
+		if !o.Full && !neverFull(g.target, have) {
 			cs = nil
 			for _, c := range g.checks {
 				if !checks.IsHeavy(c) {
@@ -191,6 +212,12 @@ func (r *Runner) Run(ctx context.Context, o Options) (Report, error) {
 	}
 	rep.Finished = now()
 	return rep, nil
+}
+
+// neverFull: target là một site chưa có kết quả dns.a nào trong store, tức là
+// chưa từng qua một lượt kiểm đầy đủ (xem chỗ gọi ở Run).
+func neverFull(target string, have map[string]bool) bool {
+	return target != "" && target != store.TargetTPAN && !have["dns.a:"+target]
 }
 
 // swappedKinds là các loại phép kiểm nhẹ của một site có thể biến mất khỏi bộ
@@ -321,7 +348,14 @@ func (s *Scheduler) Run(ctx context.Context) {
 			s.pending, s.hasPending = "", false
 			s.mu.Unlock()
 			if ok {
-				s.round(ctx, Options{Domain: d})
+				// Lượt kiểm sau một job của riêng một site chạy cả phép kiểm
+				// nặng của site đó (dns.a, wp.checksums, DNS của tên phụ). Trước
+				// đây nó là lượt nhẹ, nên site vừa tạo không có kết quả DNS nào
+				// và ga DNS trên trang site hiện "chưa kiểm được" tới vòng đầy đủ
+				// kế tiếp (tới 1 giờ), trông như site đang có vấn đề. Một site thì
+				// phép nặng chỉ là vài lệnh; hai đối tượng gộp lại (d rỗng, kiểm
+				// mọi thứ) thì vẫn là lượt nhẹ, phần nặng của cả máy để vòng mỗi giờ.
+				s.round(ctx, Options{Domain: d, Full: d != ""})
 			}
 		}
 	}
@@ -367,8 +401,10 @@ func (s *Scheduler) round(ctx context.Context, o Options) bool {
 	return true
 }
 
-// Kick xin một lần chạy sớm cho domain (rỗng là mọi thứ, nhẹ), ví dụ ngay sau
-// một job. Không chặn: nếu đã có yêu cầu đang chờ thì gộp lại.
+// Kick xin một lần chạy sớm, ví dụ ngay sau một job. domain khác rỗng: kiểm
+// riêng site đó, cả phép kiểm nặng của nó (DNS, wp.checksums). domain rỗng:
+// mọi thứ, lượt nhẹ. Không chặn: nếu đã có yêu cầu đang chờ thì gộp lại (hai
+// domain khác nhau gộp thành "mọi thứ").
 func (s *Scheduler) Kick(domain string) {
 	ch := s.kickChan()
 	s.mu.Lock()

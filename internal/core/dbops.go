@@ -237,34 +237,75 @@ func dbVerify(st site.Site) []checks.Check {
 	return []checks.Check{checks.DBAccess(l), dbRetry{siteHTTPCheck(st)}}
 }
 
-// PrepareDBPassword dựng Plan "db.passwd" (hợp đồng ở types_m9.go).
+// PrepareDBPassword dựng Plan "db.passwd" (hợp đồng ở types_m9.go). Site PHP
+// trống hay user DB phải tạo lại (M34) thì Plan sinh một mật khẩu mà người gọi
+// cần nhận: dùng PrepareSiteDBPassword.
 func (b *Backups) PrepareDBPassword(ctx context.Context, d validate.Domain) (*Planned, error) {
-	st, err := dbSite(ctx, b, d, false)
+	p, err := b.PrepareSiteDBPassword(ctx, d)
 	if err != nil {
 		return nil, err
 	}
-	if err := dbNotSuspended(st); err != nil {
-		return nil, err
+	return p.Planned, nil
+}
+
+// recreateSiteDBUser dựng Plan "db.passwd" khi user DB của site đã bị xoá
+// ngoài tpan (M34): "đổi mật khẩu" lúc này là tạo lại user.
+//
+//   - Site WordPress: user có lại đúng mật khẩu đang ghi trong wp-config.php
+//     (steps.SiteDBUserRestore), nên site chạy lại mà không file nào bị sửa.
+//     Mật khẩu không đổi; muốn mật khẩu mới thì bấm đổi thêm một lần.
+//   - Site PHP trống: tpan không biết mật khẩu trong mã của site, nên user có
+//     mật khẩu mới, trả cho người gọi để hiện đúng một lần.
+//
+// Làm được cả khi site hay DB của site đang tạm khoá (user tạo ra ở trạng thái
+// khoá nếu DB đang khoá: tạo lại không được là một cách mở khoá lén) và cả khi
+// DB cũng đã mất: đây là đường duy nhất để có lại user, mà mọi thao tác khác
+// của DB đều từ chối khi thiếu user. Kiểm chứng "site chạy lại" chỉ gắn khi
+// site đang ở trạng thái chạy được (còn DB, không khoá gì).
+func (b *Backups) recreateSiteDBUser(st site.Site, dbOK bool) (*DBPassword, error) {
+	l, s, d := st.Layout(), b.Sites, st.Domain.String()
+	locked := st.DBSuspended != account.NotSuspended
+	var tail i18n.Text
+	switch {
+	case !dbOK:
+		tail = i18n.T(
+			". DB của site cũng không còn: sau bước này khôi phục site từ một bản backup, hoặc nhập một bản xuất DB, để có lại dữ liệu",
+			". The site's database is gone too: after this, restore the site from a backup or import a database dump to get the data back")
+	case locked:
+		tail = i18n.T(
+			". DB của site đang tạm khoá nên user được tạo ở trạng thái khoá; mở khoá DB của site thì site mới dùng lại được",
+			". The site's database is suspended, so the user is created locked; unsuspend the site's database before the site can use it again")
 	}
 	if st.Plain() {
-		p, err := b.plainDBPassword(st)
+		pw, err := sitePassword()
 		if err != nil {
 			return nil, err
 		}
-		return p.Planned, nil
+		plan := engine.Plan{
+			Kind:   "db.passwd",
+			Target: d,
+			Title: i18n.T(
+				"Tạo lại user DB của site "+d+" với mật khẩu mới (user đã bị xoá ngoài tpan; site PHP trống: tự sửa mật khẩu trong cấu hình của mã nguồn sau khi chạy)"+tail.Vi,
+				"Recreate the database user of "+d+" with a new password (the user was dropped outside tpan; empty PHP site: update the password in your code's configuration afterwards)"+tail.En),
+			Steps: []engine.Step{&steps.DBUserRecreate{Name: l.DB, Password: pw, Locked: locked, NoDB: !dbOK}},
+		}
+		if dbOK {
+			plan.Verify = []checks.Check{checks.DBExists(l)}
+		}
+		return &DBPassword{Planned: newPlanned(s.Sys, s.Journal, plan, nil), Name: l.DB, Password: pw}, nil
 	}
-	pw, err := sitePassword()
-	if err != nil {
-		return nil, err
-	}
-	s := b.Sites
-	return newPlanned(s.Sys, s.Journal, engine.Plan{
+	plan := engine.Plan{
 		Kind:   "db.passwd",
-		Target: d.String(),
-		Title:  i18n.T("Đổi mật khẩu DB của site "+d.String(), "Change the database password of "+d.String()),
-		Steps:  []engine.Step{&steps.DBPassword{Layout: st.Layout(), Password: pw}},
-		Verify: dbVerify(st),
-	}, nil), nil
+		Target: d,
+		Title: i18n.T(
+			"Tạo lại user DB của site "+d+" với mật khẩu đang ghi trong wp-config.php (user đã bị xoá ngoài tpan; mật khẩu không đổi)"+tail.Vi,
+			"Recreate the database user of "+d+" with the password written in wp-config.php (the user was dropped outside tpan; the password does not change)"+tail.En),
+		Steps: []engine.Step{&steps.SiteDBUserRestore{Layout: l, Locked: locked}},
+	}
+	if dbOK && !locked && st.Suspended == account.NotSuspended {
+		plan.Verify = dbVerify(st)
+	}
+	return &DBPassword{Planned: newPlanned(s.Sys, s.Journal, plan, nil), Name: l.DB}, nil
 }
 
 // PrepareDBDump dựng Plan "db.dump" (hợp đồng ở types_m9.go). Tên file chọn
@@ -275,6 +316,11 @@ func (b *Backups) PrepareDBDump(ctx context.Context, d validate.Domain) (*Planne
 		return nil, err
 	}
 	l := st.Layout()
+	// M34: DB đã bị xoá ngoài tpan thì không có gì để xuất; chỉ đường thay vì
+	// để job hỏng với lỗi "Unknown database" của mariadb-dump.
+	if err := siteDBPresent(ctx, b.Sites.Sys, l); err != nil {
+		return nil, err
+	}
 	if err := dbSpaceCheck(ctx, b, l); err != nil {
 		return nil, err
 	}
@@ -352,6 +398,24 @@ func (b *Backups) PrepareDBImport(ctx context.Context, d validate.Domain, id str
 	if sum != bk.SHA256 {
 		return nil, corrupt("có sha256 khác lúc xuất (file đã bị sửa hoặc hỏng)", "has a different sha256 than when it was taken (the file was changed or damaged)")
 	}
+	s := b.Sites
+	// M34: user DB đã mất thì kiểm chứng sau khi nhập chắc chắn hỏng; DB đã mất
+	// thì không có gì để tự xuất trước, và nhập là tạo lại DB từ file.
+	dbOK, userOK, known := siteDBState(ctx, s.Sys, l)
+	if known && !userOK {
+		return nil, siteDBUserGoneErr(l, i18n.T("nhập bản xuất", "import"))
+	}
+	if known && !dbOK {
+		return newPlanned(s.Sys, s.Journal, engine.Plan{
+			Kind:   "db.import",
+			Target: d.String(),
+			Title: i18n.T(
+				"Tạo lại DB của site "+d.String()+" từ bản xuất "+id+" (DB đã bị xoá ngoài tpan, nên không có bản tự xuất trước khi nhập)",
+				"Recreate the database of "+d.String()+" from dump "+id+" (the database was dropped outside tpan, so no dump is taken before the import)"),
+			Steps:  []engine.Step{&steps.DBImport{Layout: l, File: bk.Path, Fresh: true}},
+			Verify: dbVerify(st),
+		}, nil), nil
+	}
 	if err := dbSpaceCheck(ctx, b, l); err != nil {
 		return nil, err
 	}
@@ -359,7 +423,6 @@ func (b *Backups) PrepareDBImport(ctx context.Context, d validate.Domain, id str
 	if err != nil {
 		return nil, err
 	}
-	s := b.Sites
 	return newPlanned(s.Sys, s.Journal, engine.Plan{
 		Kind:   "db.import",
 		Target: d.String(),
@@ -380,22 +443,43 @@ func (b *Backups) PrepareDBImport(ctx context.Context, d validate.Domain, id str
 // Password rỗng. Site PHP trống: tpan không biết mã của site đọc mật khẩu ở
 // đâu nên chỉ đổi trong MariaDB và trả mật khẩu để hiện đúng một lần; chủ site
 // tự sửa cấu hình của mã nguồn.
+//
+// M34: user DB đã bị xoá ngoài tpan thì Plan tạo lại user (recreateSiteDBUser);
+// DB đã mất mà user còn thì từ chối, chỉ đường có lại DB.
 func (b *Backups) PrepareSiteDBPassword(ctx context.Context, d validate.Domain) (*DBPassword, error) {
 	st, err := dbSite(ctx, b, d, false)
 	if err != nil {
 		return nil, err
 	}
-	if !st.Plain() {
-		p, err := b.PrepareDBPassword(ctx, d)
-		if err != nil {
-			return nil, err
-		}
-		return &DBPassword{Planned: p, Name: st.Layout().DB}, nil
+	l := st.Layout()
+	// Trước dbNotSuspended: site hay DB đang tạm khoá vẫn phải tạo lại được
+	// user, vì mở khoá cũng cần user đó.
+	dbOK, userOK, known := siteDBState(ctx, b.Sites.Sys, l)
+	if known && !userOK {
+		return b.recreateSiteDBUser(st, dbOK)
+	}
+	if known && !dbOK {
+		return nil, siteDBGoneErr(l.DB, d.String())
 	}
 	if err := dbNotSuspended(st); err != nil {
 		return nil, err
 	}
-	return b.plainDBPassword(st)
+	if st.Plain() {
+		return b.plainDBPassword(st)
+	}
+	pw, err := sitePassword()
+	if err != nil {
+		return nil, err
+	}
+	s := b.Sites
+	p := newPlanned(s.Sys, s.Journal, engine.Plan{
+		Kind:   "db.passwd",
+		Target: d.String(),
+		Title:  i18n.T("Đổi mật khẩu DB của site "+d.String(), "Change the database password of "+d.String()),
+		Steps:  []engine.Step{&steps.DBPassword{Layout: l, Password: pw}},
+		Verify: dbVerify(st),
+	}, nil)
+	return &DBPassword{Planned: p, Name: l.DB}, nil
 }
 
 // plainDBPassword dựng Plan "db.passwd" của một site PHP trống.

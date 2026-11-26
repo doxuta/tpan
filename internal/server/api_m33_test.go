@@ -56,7 +56,13 @@ func newM33Env(t *testing.T) (*authzEnv, http.Handler, store.Backup) {
 		case strings.Contains(sql, "information_schema.COLLATIONS"):
 			return system.Result{Stdout: "utf8mb4\tutf8mb4_general_ci\tYes\nutf8mb4\tutf8mb4_unicode_ci\t\n"}
 		case strings.Contains(sql, "mysql.global_priv") && strings.Contains(sql, "SCHEMATA"):
-			return system.Result{Stdout: "0\t0\n"} // DB và user DB đều chưa có trong MariaDB
+			// MariaDB giả đi theo bảng của tpan: DB rời còn dòng (không ở thùng
+			// rác) thì DB và user DB có trong MariaDB; đã xoá hẳn thì không.
+			// (M34: dòng mà không có DB là "DB đã bị xoá ngoài tpan".)
+			if db, ok, _ := e.st.StandaloneDB(context.Background(), authzDB); ok && db.Status == account.DBActive {
+				return system.Result{Stdout: "1\t1\n"}
+			}
+			return system.Result{Stdout: "0\t0\n"}
 		}
 		return system.Result{ExitCode: 1, Stderr: "MariaDB giả của test M33: câu lạ: " + sql}
 	})

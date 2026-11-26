@@ -31,8 +31,21 @@ func (e *apiEnv) m9Machine(t *testing.T) {
 	t.Helper()
 	e.stack(t)
 	e.f.Handle([]string{"mariadb", "-N", "-B"}, func(c system.Cmd) system.Result {
-		if strings.Contains(string(c.Stdin), "information_schema.TABLES") {
+		sql := string(c.Stdin)
+		if strings.Contains(sql, "information_schema.TABLES") {
 			return system.Result{Stdout: "1048576\n"}
+		}
+		// M34: câu "DB và user DB có trong MariaDB không" đi theo bảng sites:
+		// site có trong tpan thì DB và user DB của nó có. Trả "0 0" cho mọi
+		// tên (như trước) là nói mọi DB đã bị xoá ngoài tpan, và các thao tác
+		// sao lưu, khôi phục, nhập ở đây sẽ đi nhánh của M34.
+		if strings.Contains(sql, "mysql.global_priv") && strings.Contains(sql, "SCHEMATA") {
+			sites, _ := e.st.Sites(context.Background())
+			for _, st := range sites {
+				if strings.Contains(sql, "SCHEMA_NAME='"+st.Layout().DB+"'") {
+					return system.Result{Stdout: "1\t1\n"}
+				}
+			}
 		}
 		return system.Result{Stdout: "0\t0\n"}
 	})

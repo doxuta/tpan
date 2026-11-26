@@ -133,6 +133,11 @@ func (s *Server) handleDBDataInfo(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	// M34: DB đã bị xoá ngoài tpan thì nói rõ, đừng hiện như một DB trống.
+	if gone := core.DBGoneRefusal(r.Context(), s.deps.Sys, ref.db, ref.domain); gone != nil {
+		apiFail(w, r, gone)
+		return
+	}
 	d := s.apiDBData()
 	tables, err := d.Tables(r.Context(), ref.db)
 	if err != nil {

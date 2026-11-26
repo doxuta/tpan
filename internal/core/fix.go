@@ -169,6 +169,30 @@ func (f *Fixes) plan(ctx context.Context, name string, r checks.Result) (engine.
 			return engine.Plan{}, err
 		}
 		l := st.Layout()
+		// M34: db.access cũng Fail khi user DB hay DB của site đã bị xoá ngoài
+		// tpan, mà mở khoá thì không sửa được hai chuyện đó (trước đây job
+		// chạy rồi hỏng, không nói phải làm gì). Thiếu user: site WordPress thì
+		// tạo lại user với mật khẩu trong wp-config.php ngay tại đây; site PHP
+		// trống thì user phải có mật khẩu mới, mà job sửa không có chỗ hiện mật
+		// khẩu, nên chỉ sang Đổi mật khẩu DB. Thiếu DB: chỉ đường lấy lại DB.
+		if dbOK, userOK, known := siteDBState(ctx, f.Sys, l); known && !userOK {
+			if st.Plain() {
+				return engine.Plan{}, siteDBUserGoneErr(l, i18n.T("sửa tự động", "automatic fix"))
+			}
+			plan := engine.Plan{
+				Target: l.Domain.String(),
+				Title: i18n.T(
+					"Tạo lại user DB của "+obj+" với mật khẩu đang ghi trong wp-config.php (user đã bị xoá ngoài tpan)",
+					"Recreate the database user of "+obj+" with the password written in wp-config.php (the user was dropped outside tpan)"),
+				Steps: []engine.Step{&steps.SiteDBUserRestore{Layout: l}},
+			}
+			if dbOK {
+				plan.Verify = []checks.Check{checks.DBAccess(l)}
+			}
+			return plan, nil
+		} else if known && !dbOK {
+			return engine.Plan{}, siteDBGoneErr(l.DB, l.Domain.String())
+		}
 		return engine.Plan{
 			Target: l.Domain.String(),
 			Title:  i18n.T("Mở khoá user DB của "+obj, "Unlock the database user of "+obj),

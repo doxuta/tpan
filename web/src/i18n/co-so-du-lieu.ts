@@ -113,6 +113,19 @@ const vi = {
   inTrashDb: "Đang trong thùng rác.",
   openTrash: "Mở thùng rác",
 
+  // M34: DB có trong TPAN nhưng không còn trong MariaDB.
+  missingTag: "không còn trong MariaDB",
+  missingHint: "TPAN còn giữ dòng của cơ sở dữ liệu này, nhưng MariaDB không còn nó: nó đã bị xoá ngoài TPAN.",
+  forget: "Gỡ khỏi TPAN",
+  forgetFor: (db: string) => `Gỡ ${db} khỏi TPAN`,
+  forgetDbWarning: (db: string) =>
+    `${db} không còn trong MariaDB (đã bị xoá ngoài TPAN), nên không có dữ liệu nào để đưa vào thùng rác. Gỡ là xoá dòng của nó khỏi TPAN, cùng user DB nếu còn sót. Các bản sao lưu của ${db} được giữ: có bản nào thì tạo lại DB từ bản đó ở màn Backup.`,
+  forgetErrorHeading: (db: string) => `Chưa dựng được bản xem trước gỡ ${db}`,
+  missingStandalone: "Đã bị xoá ngoài TPAN: không còn dữ liệu để quản lý.",
+  missingSiteLead: "DB đã bị xoá ngoài TPAN. ",
+  missingSiteLink: "Khôi phục site từ một bản backup",
+  missingSiteTail: ", hoặc nhập một bản xuất .sql ở menu ba chấm: cả hai tạo lại DB từ file.",
+
   // Hộp Tạo DB
   createTitle: "Tạo DB rời",
   createDescription: "DB rời không gắn với site nào. Xem trước từng bước rồi mới tạo.",
@@ -282,6 +295,18 @@ export const strings = defineStrings(vi, {
   importBlocked: "The site is suspended, so it cannot import yet. Unsuspend the site first.",
   inTrashDb: "It is in the trash.",
   openTrash: "Open the trash",
+
+  missingTag: "gone from MariaDB",
+  missingHint: "TPAN still has a row for this database, but MariaDB no longer has it: it was dropped outside TPAN.",
+  forget: "Remove from TPAN",
+  forgetFor: (db) => `Remove ${db} from TPAN`,
+  forgetDbWarning: (db) =>
+    `${db} is no longer in MariaDB (it was dropped outside TPAN), so there is no data to move to the trash. Removing deletes its row from TPAN, and its DB user if one is left. Backups of ${db} are kept: if it has one, recreate the database from it on the Backup screen.`,
+  forgetErrorHeading: (db) => `Could not build the removal preview for ${db}`,
+  missingStandalone: "Dropped outside TPAN: there is no data left to manage.",
+  missingSiteLead: "The database was dropped outside TPAN. ",
+  missingSiteLink: "Restore the site from a backup",
+  missingSiteTail: ", or import a .sql dump from the three-dot menu: both recreate the database from the file.",
 
   createTitle: "Create a standalone DB",
   createDescription: "A standalone DB belongs to no site. You see the steps before anything is created.",

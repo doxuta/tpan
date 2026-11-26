@@ -29,6 +29,7 @@ type dbFake struct {
 	dbs    map[string]bool
 	users  map[string]string // tên user → mật khẩu
 	grants map[string]string // tên user → tên DB trong câu GRANT (đã thoát)
+	locked map[string]bool   // M34: user đang ACCOUNT LOCK
 	// failOn: câu bắt đầu bằng một trong các chuỗi này thì lỗi, stderr chép lại
 	// câu đó (giống lỗi cú pháp của MariaDB chép đoạn SQL quanh chỗ sai).
 	failOn []string
@@ -44,10 +45,11 @@ var (
 	dbFakeGrant  = regexp.MustCompile("^GRANT ALL PRIVILEGES ON `([a-z0-9_\\\\]+)`\\.\\* TO '([a-z0-9_]+)'@'localhost';$")
 	dbFakeDrUser = regexp.MustCompile(`^DROP USER IF EXISTS '([a-z0-9_]+)'@'localhost';$`)
 	dbFakeDrDB   = regexp.MustCompile("^DROP DATABASE IF EXISTS `([a-z0-9_]+)`;$")
+	dbFakeLock   = regexp.MustCompile(`^ALTER USER '([a-z0-9_]+)'@'localhost' ACCOUNT LOCK;$`)
 )
 
 func newDBFake() *dbFake {
-	f := &dbFake{FakeSystem: system.NewFake(), dbs: map[string]bool{}, users: map[string]string{}, grants: map[string]string{}}
+	f := &dbFake{FakeSystem: system.NewFake(), dbs: map[string]bool{}, users: map[string]string{}, grants: map[string]string{}, locked: map[string]bool{}}
 	fail := func(stderr string) system.Result { return system.Result{ExitCode: 1, Stderr: stderr} }
 	f.Handle([]string{"mariadb", "-N", "-B"}, func(c system.Cmd) system.Result {
 		f.mu.Lock()
@@ -82,6 +84,12 @@ func newDBFake() *dbFake {
 			} else if m := dbFakeDrUser.FindStringSubmatch(st); m != nil {
 				delete(f.users, m[1])
 				delete(f.grants, m[1])
+				delete(f.locked, m[1])
+			} else if m := dbFakeLock.FindStringSubmatch(st); m != nil {
+				if _, ok := f.users[m[1]]; !ok {
+					return fail("ERROR 1396 (HY000): Operation ALTER USER failed for '" + m[1] + "'@'localhost'")
+				}
+				f.locked[m[1]] = true
 			} else if m := dbFakeDrDB.FindStringSubmatch(st); m != nil {
 				delete(f.dbs, m[1])
 			} else {

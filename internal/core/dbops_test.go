@@ -42,6 +42,11 @@ type dbEnv struct {
 	imports  []string // file của các lần `mariadb ... -e "source <file>"`
 	http500  int      // số lần curl --resolve tiếp theo trả 500
 	curlRuns int
+	// M34: state là stdout của câu "DB và user DB có không" ("1\t0\n": DB còn,
+	// user mất). Rỗng: câu đó trả rỗng như trước, tức là không hỏi được MariaDB,
+	// và mọi thao tác giữ đường cũ. sqls: mọi lô SQL đổi trạng thái đã chạy.
+	state string
+	sqls  []string
 }
 
 // newDBEnv: setup (nếu có) chạy trước khi thay handler mariadb, để tạo hay
@@ -84,8 +89,30 @@ func newDBEnv(t *testing.T, ssl bool, setup ...func(*siteEnv)) *dbEnv {
 		switch {
 		case strings.Contains(sql, "information_schema.TABLES"):
 			return exit(0, de.dbSize, "")
-		case strings.Contains(sql, "IDENTIFIED BY"):
+		case strings.Contains(sql, "information_schema.SCHEMATA") && strings.Contains(sql, "mysql.global_priv"):
+			return exit(0, de.state, "")
+		case strings.Contains(sql, "ALTER USER") && strings.Contains(sql, "IDENTIFIED BY"):
 			de.alters = append(de.alters, sql)
+		}
+		if !strings.HasPrefix(strings.TrimSpace(sql), "SELECT") {
+			de.sqls = append(de.sqls, sql)
+			// state đi theo các câu đã chạy, từng câu theo thứ tự trong lô, để
+			// lần đọc lại sau một bước thấy đúng thứ bước đó vừa làm.
+			if f := strings.Fields(de.state); len(f) == 2 {
+				for _, stmt := range strings.SplitAfter(sql, ";\n") {
+					switch {
+					case strings.HasPrefix(stmt, "CREATE DATABASE"):
+						f[0] = "1"
+					case strings.HasPrefix(stmt, "DROP DATABASE"):
+						f[0] = "0"
+					case strings.HasPrefix(stmt, "CREATE USER"):
+						f[1] = "1"
+					case strings.HasPrefix(stmt, "DROP USER"):
+						f[1] = "0"
+					}
+				}
+				de.state = f[0] + "\t" + f[1] + "\n"
+			}
 		}
 		return exit(0, "", "")
 	})

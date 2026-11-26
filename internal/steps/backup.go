@@ -910,6 +910,13 @@ func (s *DBImport) validate() error {
 	if err := importPathOK("file nhập", s.File); err != nil {
 		return err
 	}
+	if s.Fresh {
+		// M34: DB không còn nên không có bản xuất nào để hoàn tác về.
+		if s.UndoFile != "" {
+			return fmt.Errorf("nhập vào DB đã mất (Fresh) không dùng file hoàn tác (%s)", s.UndoFile)
+		}
+		return nil
+	}
 	if err := importPathOK("file hoàn tác", s.UndoFile); err != nil {
 		return err
 	}
@@ -944,6 +951,18 @@ func (s *DBImport) load(ctx context.Context, sys system.System, file string) err
 
 func (s *DBImport) Info() engine.StepInfo {
 	l := s.Layout
+	if s.Fresh {
+		return engine.StepInfo{
+			ID:    "db.import:" + l.Domain.String(),
+			Title: i18n.T("Tạo lại DB "+l.DB+" từ "+s.File, "Recreate database "+l.DB+" from "+s.File),
+			Why: i18n.T(
+				"DB của site không còn trong MariaDB (đã bị xoá ngoài tpan). Bước này tạo lại DB rồi nhập bản xuất vào, nên DB có đúng nội dung của file. Không có bản xuất nào trước bước này để hoàn tác về: hoàn tác là xoá DB vừa tạo, tức là về đúng trạng thái trước bước (DB không có).",
+				"The site's database is no longer in MariaDB (it was dropped outside tpan). This step creates the database again and imports the dump, so it holds exactly the contents of the file. There is no earlier dump to undo to: undo drops the database just created, which is the state before this step (no database).",
+			),
+			Commands: []string{dbShow(dbStateSQL(l.DB)), dbShow(importResetSQL(l.DB)), importCmd(l.DB, s.File).String()},
+			Danger:   true,
+		}
+	}
 	return engine.StepInfo{
 		ID:    "db.import:" + l.Domain.String(),
 		Title: i18n.T("Nhập "+s.File+" vào DB "+l.DB, "Import "+s.File+" into database "+l.DB),
@@ -966,6 +985,9 @@ func (s *DBImport) Check(_ context.Context, _ system.System) (bool, error) {
 func (s *DBImport) Apply(ctx context.Context, sys system.System) error {
 	if err := s.validate(); err != nil {
 		return err
+	}
+	if s.Fresh {
+		return s.applyFresh(ctx, sys)
 	}
 	// Kiểm cả hai file TRƯỚC khi xoá DB: không có đường lùi thì không xoá gì.
 	for _, p := range []string{s.UndoFile, s.File} {
@@ -991,10 +1013,47 @@ func (s *DBImport) Undo(ctx context.Context, sys system.System) error {
 	if err := s.validate(); err != nil {
 		return err
 	}
+	if s.Fresh {
+		// Trước bước này DB không có: xoá DB vừa tạo là về đúng chỗ cũ.
+		if err := dbRun(ctx, sys, dbDropDBSQL(s.Layout.DB), "", "hoàn tác: xoá DB "+s.Layout.DB+" vừa tạo lại"); err != nil {
+			return err
+		}
+		s.applied = false
+		return nil
+	}
 	if err := s.load(ctx, sys, s.UndoFile); err != nil {
 		return fmt.Errorf("hoàn tác nhập DB: %w", err)
 	}
 	s.applied = false
+	return nil
+}
+
+// applyFresh là Apply khi DB của site không còn (M34). Đọc lại trạng thái lúc
+// chạy: Plan chờ duyệt có thể chạy sau lúc dựng hàng giờ, và nếu trong lúc đó
+// DB đã có lại (ai đó tạo tay, hay chạy lại tạo site) thì nhập kiểu này sẽ xoá
+// nó mà không có bản xuất nào để lùi. Khi đó dừng, để lần dựng Plan sau đi
+// đường thường (xuất DB trước khi nhập).
+func (s *DBImport) applyFresh(ctx context.Context, sys system.System) error {
+	db := s.Layout.DB
+	exists, _, err := SiteDBState(ctx, sys, s.Layout)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("DB %s đã có lại trong MariaDB từ lúc dựng Plan; chạy lại thao tác để tpan xuất nó ra trước khi nhập đè", db)
+	}
+	if err := s.ready(ctx, sys, s.File); err != nil {
+		return fmt.Errorf("nhập DB %s: %w", db, err)
+	}
+	if err := s.load(ctx, sys, s.File); err != nil {
+		// Engine không Undo bước có Apply lỗi: xoá DB nhập dở, về lại trạng
+		// thái trước bước (không có DB), không để một DB nửa chừng.
+		if rerr := dbRun(ctx, sys, dbDropDBSQL(db), "", "xoá DB "+db+" nhập dở"); rerr != nil {
+			return errors.Join(err, rerr)
+		}
+		return err
+	}
+	s.applied = true
 	return nil
 }
 
@@ -1081,10 +1140,16 @@ type BackupExtract struct {
 // Apply kiểm cả File lẫn UndoFile là bản xuất trọn vẹn trước khi xoá DB;
 // nhập File lỗi thì tự nhập lại UndoFile rồi mới báo lỗi (engine không Undo
 // bước có Apply lỗi).
+//
+// Fresh (M34): DB của site không còn trong MariaDB lúc dựng Plan (đã bị xoá
+// ngoài tpan). Không có gì để xuất trước nên UndoFile để trống; Apply đòi DB
+// vẫn chưa có (có lại thì dừng, không xoá đè), tạo DB rồi nhập File; nhập lỗi
+// thì xoá DB nhập dở. Undo: xoá DB vừa tạo, tức là về trạng thái trước bước.
 type DBImport struct {
 	Layout   site.Layout
 	File     string
 	UndoFile string
+	Fresh    bool
 
 	applied bool
 }

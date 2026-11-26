@@ -23,6 +23,7 @@ import (
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/system"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -37,6 +38,9 @@ func (e *apiEnv) trashSite(t *testing.T, dom string) validate.Domain {
 	if err := e.st.SaveSite(context.Background(), st); err != nil {
 		t.Fatal(err)
 	}
+	// Thư mục của site nằm trong thùng rác như trên máy thật (M34: thùng rác
+	// không còn thư mục thì khôi phục bị từ chối site_dir_missing).
+	e.f.SetDir(site.TrashDir(st.Layout()), 0o750, system.Root)
 	return d
 }
 

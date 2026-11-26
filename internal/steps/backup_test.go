@@ -42,6 +42,7 @@ type bkFake struct {
 
 	mu         sync.Mutex
 	db         string // nội dung DB của site
+	gone       bool   // M34: DB không có trong MariaDB (đã DROP mà chưa tạo lại)
 	dbSize     string // output câu đo cỡ DB
 	du         string // byte du trả về
 	wp         string // output `wp core version`
@@ -104,8 +105,14 @@ func newBkFake(t *testing.T) *bkFake {
 		switch {
 		case strings.Contains(sql, "information_schema.TABLES"):
 			return exit(0, f.dbSize+"\n", "")
+		case strings.Contains(sql, "information_schema.SCHEMATA"):
+			// Câu đọc trạng thái (M34): DB có không; user DB luôn có.
+			return exit(0, fmt.Sprintf("%d\t1\n", b2i(!f.gone)), "")
 		case strings.Contains(sql, "DROP DATABASE"):
+			// Lô "DROP ...; CREATE ...;" của bước nhập để lại một DB rỗng;
+			// một câu DROP trần thì DB không còn.
 			f.db = ""
+			f.gone = !strings.Contains(sql, "CREATE DATABASE")
 		}
 		return ok
 	})

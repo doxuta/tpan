@@ -98,6 +98,9 @@ func (r *Runner) collect(ctx context.Context, o Options) (plan []planned, instal
 		}
 		for _, d := range dbs {
 			if d.Status == account.DBActive {
+				// M34: DB rời hay user DB của nó bị xoá ngoài tpan. Đứng trước
+				// db.user_limit để người đọc gặp nguyên nhân trước hệ quả.
+				add("", checks.StandaloneDBExists(d.Name))
 				add("", checks.DBUserLimit(d.Name))
 			}
 		}

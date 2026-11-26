@@ -365,32 +365,38 @@ func (m *siteSim) sql(sql string) system.Result {
 	if g := sqlLockState.FindStringSubmatch(sql); g != nil {
 		return out(fmt.Sprintf("%d\t%d\n", b(m.dbUsers[g[1]]), b(m.dbLocked[g[1]])))
 	}
-	for _, g := range sqlLock.FindAllStringSubmatch(sql, -1) {
-		m.dbLocked[g[1]] = g[2] == "LOCK"
-	}
-	for _, g := range sqlLimit.FindAllStringSubmatch(sql, -1) {
-		if !m.dbUsers[g[1]] {
-			return system.Result{ExitCode: 1, Stderr: "ERROR 1396 (HY000): Operation ALTER USER failed\n"}
+	// Từng câu theo đúng thứ tự trong lô, như MariaDB: "DROP DATABASE ...;
+	// CREATE DATABASE ...;" của bước nhập DB phải để lại một DB đang có (trước
+	// M34 máy giả xử lý mọi câu CREATE rồi mới tới mọi câu DROP, nên sau một
+	// lần nhập nó tưởng DB đã mất).
+	for _, stmt := range strings.SplitAfter(sql, ";\n") {
+		for _, g := range sqlLock.FindAllStringSubmatch(stmt, -1) {
+			m.dbLocked[g[1]] = g[2] == "LOCK"
 		}
-		m.dbLimit[g[1]], _ = strconv.Atoi(g[2])
-	}
-	for _, g := range sqlCreateDB.FindAllStringSubmatch(sql, -1) {
-		m.dbs[g[1]] = true
-	}
-	for _, g := range sqlCreateUsr.FindAllStringSubmatch(sql, -1) {
-		m.dbUsers[g[1]] = true
-		m.dbLimit[g[1]] = 0
-		if l := sqlCreateLim.FindStringSubmatch(sql); l != nil {
-			m.dbLimit[g[1]], _ = strconv.Atoi(l[1])
+		for _, g := range sqlLimit.FindAllStringSubmatch(stmt, -1) {
+			if !m.dbUsers[g[1]] {
+				return system.Result{ExitCode: 1, Stderr: "ERROR 1396 (HY000): Operation ALTER USER failed\n"}
+			}
+			m.dbLimit[g[1]], _ = strconv.Atoi(g[2])
 		}
-	}
-	for _, g := range sqlDropUsr.FindAllStringSubmatch(sql, -1) {
-		delete(m.dbUsers, g[1])
-		delete(m.dbLocked, g[1])
-		delete(m.dbLimit, g[1])
-	}
-	for _, g := range sqlDropDB.FindAllStringSubmatch(sql, -1) {
-		delete(m.dbs, g[1])
+		for _, g := range sqlCreateDB.FindAllStringSubmatch(stmt, -1) {
+			m.dbs[g[1]] = true
+		}
+		for _, g := range sqlCreateUsr.FindAllStringSubmatch(stmt, -1) {
+			m.dbUsers[g[1]] = true
+			m.dbLimit[g[1]] = 0
+			if l := sqlCreateLim.FindStringSubmatch(stmt); l != nil {
+				m.dbLimit[g[1]], _ = strconv.Atoi(l[1])
+			}
+		}
+		for _, g := range sqlDropUsr.FindAllStringSubmatch(stmt, -1) {
+			delete(m.dbUsers, g[1])
+			delete(m.dbLocked, g[1])
+			delete(m.dbLimit, g[1])
+		}
+		for _, g := range sqlDropDB.FindAllStringSubmatch(stmt, -1) {
+			delete(m.dbs, g[1])
+		}
 	}
 	return system.Result{}
 }
@@ -1262,6 +1268,8 @@ func TestSiteRerunKeepsOwnerRefusesSuspendedM13(t *testing.T) {
 func TestSiteRemoveSuspendedM13(t *testing.T) {
 	ue := newUsrEnv(t)
 	d := mustDomain(t, "a.example.com")
+	// Thư mục của site có thật (M34: site đang khoá mà thư mục đã mất thì được vào thùng rác).
+	ue.m.SetDir(site.LayoutOf(d).Dir, 0o750, system.Root)
 	ue.site(t, "a.example.com", "bob", func(s *site.Site) { s.Suspended = account.SuspendSelf })
 	if _, err := ue.s.PrepareRemove(ctx, d); refusedCode(t, err) != CodeSiteSuspended {
 		t.Errorf("site khoá vào thùng rác: %v", err)
