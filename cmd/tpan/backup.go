@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -104,6 +105,8 @@ type backupPreviewRow struct {
 // backupAllResult là kết quả `backup create --all --json`.
 type backupAllResult struct {
 	Sites []core.BackupResult `json:"sites"`
+	// DBs (M33) là kết quả sao lưu từng DB rời (Domain mang tên DB).
+	DBs []core.BackupResult `json:"dbs"`
 	// TPANDB là bản sao tpan.db vừa ghi; rỗng khi chép lỗi (xem Error).
 	TPANDB string `json:"tpan_db,omitempty"`
 	Error  string `json:"error,omitempty"`
@@ -154,6 +157,31 @@ func backupCreateAll(cmd *cobra.Command, e *env, f *planRun, reason core.BackupR
 		}
 		rows = append(rows, row)
 	}
+	// M33: các DB rời đang có cũng được sao lưu, sau các site.
+	if b.DBs != nil && b.DBs.Store != nil {
+		dbs, err := b.DBs.Store.StandaloneDBs(ctx, "")
+		if err != nil {
+			return err
+		}
+		for _, db := range dbs {
+			if db.Status != account.DBActive {
+				continue
+			}
+			row := backupPreviewRow{Domain: db.Name}
+			p, err := b.DBs.PrepareBackup(ctx, db.Name, reason)
+			var re *core.RefusedError
+			switch {
+			case errors.As(err, &re):
+				row.Error = re
+			case err != nil:
+				return err
+			default:
+				plans[row.Domain] = p
+				all.Steps = append(all.Steps, p.Plan.Steps...)
+			}
+			rows = append(rows, row)
+		}
+	}
 	f.note = i18n.T("Sau các site: chép tpan.db vào "+site.TPANDBBackupDir+" (giữ "+strconv.Itoa(core.DefaultBackupKeep)+" bản mới nhất).",
 		"After the sites: copy tpan.db to "+site.TPANDBBackupDir+" (keeping the newest "+strconv.Itoa(core.DefaultBackupKeep)+").")
 	ok, err := f.showOrConfirm(e, func() (any, func(), error) {
@@ -170,7 +198,7 @@ func backupCreateAll(cmd *cobra.Command, e *env, f *planRun, reason core.BackupR
 		}
 		return rows, func() {
 			if len(rows) == 0 {
-				printf(e.stdout, "%s\n", e.tr("Không có site nào đang chạy.", "No site is running."))
+				printf(e.stdout, "%s\n", e.tr("Không có site hay DB rời nào đang chạy.", "No site or standalone database is running."))
 			}
 			for _, r := range rows {
 				printf(e.stdout, "== %s\n", r.Domain)
@@ -190,7 +218,7 @@ func backupCreateAll(cmd *cobra.Command, e *env, f *planRun, reason core.BackupR
 	if res == nil && err != nil {
 		return err
 	}
-	out := backupAllResult{Sites: res}
+	out := backupAllResult{Sites: []core.BackupResult{}, DBs: []core.BackupResult{}}
 	if err != nil {
 		out.Error = err.Error()
 	} else {
@@ -198,7 +226,15 @@ func backupCreateAll(cmd *cobra.Command, e *env, f *planRun, reason core.BackupR
 	}
 	failed := err != nil
 	for _, r := range res {
-		cliAudit(ctx, e, b.Sites.Store, "backup.create", r.Domain, r.Report.Job)
+		// M33: kết quả của DB rời nối sau các site, Domain mang tên DB.
+		action := "backup.create"
+		if site.IsDBBackupName(r.Domain) {
+			action = "dbs.backup"
+			out.DBs = append(out.DBs, r)
+		} else {
+			out.Sites = append(out.Sites, r)
+		}
+		cliAudit(ctx, e, b.Sites.Store, action, r.Domain, r.Report.Job)
 		if r.Error != "" || r.Report.Job.Status != engine.JobSucceeded {
 			failed = true
 		}
@@ -258,18 +294,22 @@ func newestSnapshot(e *env) string {
 func backupListCmd(e *env) *cobra.Command {
 	var asJSON, remote bool
 	c := &cobra.Command{
-		Use:   "list [<domain>] [--remote]",
-		Short: "Liệt kê bản backup (cả bản xuất DB), mới nhất trước; --remote liệt kê trên kho S3",
+		Use:   "list [<domain|tên DB rời>] [--remote]",
+		Short: "Liệt kê bản backup (cả bản xuất DB và bản sao lưu của DB rời), mới nhất trước; --remote liệt kê trên kho S3",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			dom := ""
 			if len(args) == 1 {
-				d, err := parseDomainArg(args[0])
+				// M33: không có dấu chấm là tên một DB rời (dòng của nó mang
+				// tên DB ở cột domain).
+				d, name, err := parseDBArg(args[0])
 				if err != nil {
 					return fail(e, asJSON, err)
 				}
-				dom = d.String()
+				if dom = name; !d.IsZero() {
+					dom = d.String()
+				}
 			}
 			if remote && dom != "" {
 				return fail(e, asJSON, argsInvalid("--remote liệt kê cả kho, không đi cùng tên domain",

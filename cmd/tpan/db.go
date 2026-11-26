@@ -55,19 +55,56 @@ func dbCmd(e *env) *cobra.Command {
 			nil, func(ctx context.Context, m *m13Env, n string) (*core.Planned, error) {
 				return m.dbs.PrepareRestore(ctx, n)
 			}),
-		dbArgCmd(e, "purge <tên DB>", "Xoá hẳn DB rời trong thùng rác: DROP USER và xoá bản xuất (không lấy lại được)",
+		dbArgCmd(e, "purge <tên DB>", "Xoá hẳn DB rời trong thùng rác: DROP USER; bản xuất cuối được giữ làm bản sao lưu (tạo lại bằng tpan db recreate)",
 			nil, func(ctx context.Context, m *m13Env, n string) (*core.Planned, error) {
 				return m.dbs.PreparePurge(ctx, n)
 			}),
-		dbPlanCmd(e, "dump <domain>", "Xuất DB của site ra file .sql trong thư mục backup của site", "db.dump",
+		dbPlanCmd(e, "dump <domain|tên DB>", "Xuất DB của site, hoặc sao lưu một DB rời, ra file .sql (xem bằng tpan backup list)", "db.dump",
 			func(ctx context.Context, b *core.Backups, d validate.Domain, _ string) (*core.Planned, error) {
 				return b.PrepareDBDump(ctx, d)
+			},
+			func(ctx context.Context, m *m13Env, n, _ string) (*core.Planned, error) {
+				return m.dbs.PrepareBackup(ctx, n, core.ReasonManual)
 			}),
-		dbPlanCmd(e, "import <domain> --id ID", "Nhập lại một bản xuất đã có (tự xuất bản hiện tại trước để hoàn tác được)", "db.import",
+		dbPlanCmd(e, "import <domain|tên DB> --id ID", "Nhập lại một bản xuất đã có (tự xuất bản hiện tại trước để hoàn tác được)", "db.import",
 			func(ctx context.Context, b *core.Backups, d validate.Domain, id string) (*core.Planned, error) {
 				return b.PrepareDBImport(ctx, d, id)
+			},
+			func(ctx context.Context, m *m13Env, n, id string) (*core.Planned, error) {
+				return m.dbs.PrepareImport(ctx, n, id)
 			}),
+		dbRecreateCmd(e),
 	)
+	return c
+}
+
+// dbRecreateCmd (M33): tạo lại một DB rời đã xoá hẳn từ bản sao lưu của nó.
+// User DB cũ đã bị xoá cùng DB nên mật khẩu là mật khẩu mới, in ra một lần.
+func dbRecreateCmd(e *env) *cobra.Command {
+	var (
+		f  planFlags
+		id string
+	)
+	c := &cobra.Command{
+		Use:   "recreate --id ID",
+		Short: "Tạo lại DB rời đã xoá hẳn từ một bản sao lưu của nó (đúng tên, chủ, charset cũ; mật khẩu mới, in ra một lần)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			var add *core.DBAdd
+			return runM13Plan(cmd, e, f, false, func(ctx context.Context, m *m13Env) (*core.Planned, error) {
+				var err error
+				if add, err = m.dbs.PrepareRecreate(ctx, id); err != nil {
+					return nil, err
+				}
+				return add.Planned, nil
+			}, func(rep engine.Report) any {
+				return dbSecretOut(add.DB.Name, add.Password)(rep)
+			}, func() { printDBPassword(e, add.DB.Name, add.Password) })
+		},
+	}
+	c.Flags().StringVar(&id, "id", "", "id của bản sao lưu (xem bằng: sudo tpan backup list)")
+	_ = c.MarkFlagRequired("id")
+	bindChangeFlags(c, &f)
 	return c
 }
 
@@ -418,7 +455,8 @@ func printDBs(e *env, rows []dbRow) {
 // dbPlanCmd dựng một lệnh có thay đổi trên DB của site (dump, import): kiểm
 // domain trước mọi việc khác, rồi dựng Plan và đưa cho runPlanned. --id chỉ có ở import.
 func dbPlanCmd(e *env, use, short, action string,
-	prepare func(ctx context.Context, b *core.Backups, d validate.Domain, id string) (*core.Planned, error)) *cobra.Command {
+	prepare func(ctx context.Context, b *core.Backups, d validate.Domain, id string) (*core.Planned, error),
+	forDB func(ctx context.Context, m *m13Env, name, id string) (*core.Planned, error)) *cobra.Command {
 	var (
 		f  planFlags
 		id string
@@ -429,9 +467,15 @@ func dbPlanCmd(e *env, use, short, action string,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			d, err := parseDomainArg(args[0])
+			d, name, err := parseDBArg(args[0])
 			if err != nil {
 				return fail(e, f.asJSON, err)
+			}
+			// M33: không có dấu chấm là tên DB rời.
+			if name != "" {
+				return runM13Plan(cmd, e, f, false, func(ctx context.Context, m *m13Env) (*core.Planned, error) {
+					return forDB(ctx, m, name, id)
+				}, nil, nil)
 			}
 			if err := requireRoot(e, cmd); err != nil {
 				return fail(e, f.asJSON, err)
@@ -450,7 +494,7 @@ func dbPlanCmd(e *env, use, short, action string,
 		},
 	}
 	if action == "db.import" {
-		c.Flags().StringVar(&id, "id", "", "id của bản xuất cần nhập (xem bằng: sudo tpan backup list <domain>)")
+		c.Flags().StringVar(&id, "id", "", "id của bản xuất cần nhập (xem bằng: sudo tpan backup list)")
 		_ = c.MarkFlagRequired("id")
 	}
 	bindChangeFlags(c, &f)

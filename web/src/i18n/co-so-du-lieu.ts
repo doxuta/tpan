@@ -43,6 +43,21 @@ const vi = {
   importFile: "File:",
   importPreview: "Xem trước nhập",
 
+  // ---- M33: sao lưu DB rời ----
+  backupNow: "Sao lưu ngay",
+  importOpenDb: "Nhập từ bản sao lưu",
+  importDbBlocked: "DB đang tạm khoá nên chưa nhập được. Mở khoá DB trước.",
+  importDbHeading: (n: string) => `Nhập một bản sao lưu vào ${n}`,
+  importDbHint: "Chỉ nhận bản TPAN đã sao lưu của chính DB này (TPAN kiểm sha256 trước khi nhập). TPAN xuất bản hiện tại trước, nên nhập nhầm vẫn quay lại được. User DB và mật khẩu giữ nguyên.",
+  importDbNone: (n: string) => `Chưa có bản sao lưu nào của ${n}. Bấm Sao lưu ngay ở menu ba chấm của hàng này trước.`,
+  importDbLabel: "Bản sao lưu",
+  backupDbWarning: (db: string) =>
+    `Xuất ${db} ra một file .sql trên máy chủ, xem và tải về ở màn Backup. DB vẫn dùng bình thường trong lúc xuất. TPAN giữ số bản mới nhất theo cài đặt ở màn Backup; đĩa gần đầy thì từ chối và nói rõ lý do.`,
+  importDbWarning: (db: string, when: string) =>
+    `Nhập ghi đè toàn bộ dữ liệu hiện tại của ${db} bằng bản sao lưu lúc ${when}. TPAN tự xuất bản hiện tại trước, nên bạn quay lại được bằng cách nhập lại bản đó. User DB và mật khẩu giữ nguyên.`,
+  backupDbErrorHeading: (db: string) => `Chưa dựng được bản xem trước sao lưu ${db}`,
+  importDbErrorHeading: (db: string) => `Chưa dựng được bản xem trước nhập vào ${db}`,
+
   // Lời đặt trên bản xem trước
   passwordWarning: (db: string, d: string) =>
     `Mật khẩu mới của ${db} không hiện ra ở đâu. TPAN tạo nó, ghi vào wp-config.php của ${d} và không in ra màn hình hay log; cần xem thì mở file đó trên máy. Site có thể chậm hoặc báo lỗi vài giây lúc đổi. Bước nào hỏng thì TPAN đặt lại mật khẩu cũ.`,
@@ -74,7 +89,7 @@ const vi = {
   moreFor: (db: string, items: string) => `Việc khác với ${db}: ${items}`,
   noteLabel: "Ghi chú",
   hintM13:
-    "DB rời không gắn với site nào: tên là <user>_<tên>, mật khẩu hiện một lần sau khi tạo. Xoá DB rời là đưa vào thùng rác (xuất file .sql trước), khôi phục được tới hạn xoá hẳn. Tạm khoá DB khoá user DB và ngắt các kết nối đang mở; dữ liệu giữ nguyên.",
+    "DB rời không gắn với site nào: tên là <user>_<tên>, mật khẩu hiện một lần sau khi tạo. Xoá DB rời là đưa vào thùng rác (xuất file .sql trước), khôi phục được tới hạn xoá hẳn. Tạm khoá DB khoá user DB và ngắt các kết nối đang mở; dữ liệu giữ nguyên. Bản backup của site không chứa DB rời: sao lưu DB rời bằng Sao lưu ngay ở menu ba chấm, hoặc để lịch backup hằng ngày tự làm.",
 
   edit: "Bộ ký tự và ghi chú",
   editFor: (db: string) => `Đổi bộ ký tự và ghi chú của ${db}`,
@@ -204,6 +219,20 @@ export const strings = defineStrings(vi, {
   importFile: "File:",
   importPreview: "Preview the import",
 
+  backupNow: "Back up now",
+  importOpenDb: "Import a backup",
+  importDbBlocked: "The database is suspended, so it cannot import yet. Unsuspend it first.",
+  importDbHeading: (n) => `Import a backup into ${n}`,
+  importDbHint: "Only accepts backups TPAN made of this very database (TPAN checks the sha256 before importing). TPAN exports the current database first, so a wrong import can be undone. The database user and its password stay the same.",
+  importDbNone: (n) => `There is no backup of ${n} yet. Choose Back up now in this row's menu first.`,
+  importDbLabel: "Backup",
+  backupDbWarning: (db) =>
+    `Exports ${db} to a .sql file on the server; see and download it on the Backup screen. The database stays usable during the export. TPAN keeps the newest copies as set on the Backup screen; if the disk is nearly full, it refuses and says why.`,
+  importDbWarning: (db, when) =>
+    `Importing overwrites all current data of ${db} with the backup of ${when}. TPAN exports the current database first, so you can go back by importing that copy. The database user and its password stay the same.`,
+  backupDbErrorHeading: (db) => `Could not build the backup preview for ${db}`,
+  importDbErrorHeading: (db) => `Could not build the import preview for ${db}`,
+
   passwordWarning: (db, d) =>
     `The new password of ${db} is shown nowhere. TPAN generates it, writes it to wp-config.php of ${d} and never prints it on screen or in a log; to read it, open that file on the machine. The site may be slow or show an error for a few seconds during the change. If a step fails, TPAN sets the old password back.`,
   dumpWarning: (db) => `Exports ${db} to a .sql file in the site's backup folder. The site keeps running. If the disk is nearly full, TPAN refuses and says why.`,
@@ -230,7 +259,7 @@ export const strings = defineStrings(vi, {
   moreFor: (db, items) => `More actions for ${db}: ${items}`,
   noteLabel: "Note",
   hintM13:
-    "A standalone DB belongs to no site: it is named <user>_<name> and its password shows once after creation. Deleting a standalone DB moves it to the trash (a .sql export first) and it can be restored until it is permanently deleted. Suspending a DB locks the DB user and drops open connections; the data stays.",
+    "A standalone DB belongs to no site: it is named <user>_<name> and its password shows once after creation. Deleting a standalone DB moves it to the trash (a .sql export first) and it can be restored until it is permanently deleted. Suspending a DB locks the DB user and drops open connections; the data stays. A site's backup does not contain standalone DBs: back one up with Back up now in its row menu, or let the daily backup schedule do it.",
 
   edit: "Character set and note",
   editFor: (db) => `Change the character set and note of ${db}`,

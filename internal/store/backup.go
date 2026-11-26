@@ -51,6 +51,7 @@ func backupScan(r rowScanner) (Backup, error) {
 		return Backup{}, fmt.Errorf("backup %s: %w", b.ID, err)
 	}
 	b.Local = local != 0
+	b.DB = site.IsDBBackupName(b.Domain)
 	if remoteAt != "" {
 		if b.RemoteAt, err = parseTime(remoteAt); err != nil {
 			return Backup{}, fmt.Errorf("backup %s, remote_at: %w", b.ID, err)
@@ -83,11 +84,12 @@ func (s *Store) AddBackup(ctx context.Context, b Backup) (Backup, error) {
 	b.Created = b.Created.UTC()
 	// owner (M13): chủ của site cùng domain lúc này; không có site (backup của
 	// site đã xoá, hay domain lạ) thì admin. Ghi vào dòng backup vì backup sống
-	// lâu hơn site.
+	// lâu hơn site. M33: dòng của DB rời (domain là tên DB) lấy chủ của DB đó
+	// trong bảng databases; tên DB rời không bao giờ trùng một domain.
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO backups ("+backupInsertColumns+", owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT owner FROM sites WHERE domain = ?), 'admin'))",
+		"INSERT INTO backups ("+backupInsertColumns+", owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT owner FROM sites WHERE domain = ?), (SELECT owner FROM databases WHERE name = ?), 'admin'))",
 		b.ID, b.Domain, b.Kind, b.Reason, b.Path, b.Size, b.SHA256,
-		b.WPVersion, b.PHPVersion, b.JobID, fmtTime(b.Created), b.Domain)
+		b.WPVersion, b.PHPVersion, b.JobID, fmtTime(b.Created), b.Domain, b.Domain)
 	if err != nil {
 		return Backup{}, fmt.Errorf("thêm backup %s của %s: %w", b.ID, b.Domain, err)
 	}
@@ -98,7 +100,9 @@ func (s *Store) AddBackup(ctx context.Context, b Backup) (Backup, error) {
 		names = COALESCE((SELECT group_concat(name || ':' || mode, ' ') FROM
 			(SELECT name, mode FROM site_names WHERE site = ?1 AND kind = 'alias' AND state = 'active' ORDER BY name)), ''),
 		rules = COALESCE((SELECT json_group_array(json_object('source', source, 'target', target, 'code', code, 'keep_query', keep_query)) FROM
-			(SELECT source, target, code, keep_query FROM site_redirects WHERE site = ?1 AND state = 'active' ORDER BY id)), '')
+			(SELECT source, target, code, keep_query FROM site_redirects WHERE site = ?1 AND state = 'active' ORDER BY id)), ''),
+		db_charset = COALESCE((SELECT charset FROM databases WHERE name = ?1), ''),
+		db_collation = COALESCE((SELECT collation FROM databases WHERE name = ?1), '')
 		WHERE id = ?2`, b.Domain, b.ID); err != nil {
 		return Backup{}, fmt.Errorf("ghi loại site và tên phụ vào backup %s: %w", b.ID, err)
 	}
@@ -153,6 +157,19 @@ func (s *Store) BackupsOf(ctx context.Context, owner, domain string) ([]Backup, 
 // BackupOwner trả chủ của backup (luật owner:backup của server); ok=false khi không có.
 func (s *Store) BackupOwner(ctx context.Context, id string) (owner string, ok bool, err error) {
 	return s.ownerOf(ctx, "SELECT owner FROM backups WHERE id = ?", "backup "+id, id)
+}
+
+// BackupDBCharset (M33) trả charset và collation mà bản sao lưu của một DB rời
+// nhớ lúc ghi (migration 3300). Rỗng: dòng của site, hay dòng không có.
+func (s *Store) BackupDBCharset(ctx context.Context, id string) (charset, collation string, err error) {
+	err = s.db.QueryRowContext(ctx, "SELECT db_charset, db_collation FROM backups WHERE id = ?", id).Scan(&charset, &collation)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", "", nil
+	}
+	if err != nil {
+		return "", "", fmt.Errorf("đọc charset của backup %s: %w", id, err)
+	}
+	return charset, collation, nil
 }
 
 // DeleteBackup xoá dòng; không có thì không lỗi (dọn bản cũ chạy lại được).

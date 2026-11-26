@@ -21,7 +21,7 @@ import { del, errorMessage, get, post } from "../../api/client";
 import { useWho } from "../../api/m13-users";
 import { pullPath, pushPath } from "../../api/m18-types";
 import { queryKeys, useOverview } from "../../api/queries";
-import type { Backup, BackupsOverview, BackupSettingsRequest, Preview } from "../../api/types";
+import type { Backup, BackupsOverview, BackupSettingsRequest, DatabaseRow, Preview } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { ScreenHeader } from "../../components/ScreenHeader";
@@ -29,11 +29,12 @@ import { useLang, useStrings } from "../../i18n";
 import { strings } from "../../i18n/backup";
 import { strings as khung } from "../../i18n/khung";
 import { PlanReview } from "../duyet-plan";
+import { databasesKey, databasesPath } from "../co-so-du-lieu/model";
 import { ErrorNote } from "../site/ErrorNote";
 import { formatWhen } from "../thung-rac/model";
 import { CreateNow } from "./Create";
 import { BackupList } from "./List";
-import { backupPath, backupSettingsPath, backupsKey, backupsPath, restorePath, siteBackupPath, type SiteState } from "./model";
+import { backupPath, backupSettingsPath, backupsKey, backupsPath, restoreKind, restorePath, siteBackupPath, type DbState, type SiteState } from "./model";
 import { BackupSettingsForm } from "./Settings";
 import { TargetCard } from "./Target";
 import { useStorageFlow, type Started } from "./StorageFlow";
@@ -82,6 +83,8 @@ export default function Backups() {
   const overview = useOverview();
   // Cài đặt lịch và số bản giữ (POST /backups/settings) và mọi việc với kho là route chỉ admin.
   const { isAdmin } = useWho();
+  // M33: bảng có cả bản sao lưu của DB rời; danh sách DB cho biết DB đó đang có, ở thùng rác hay đã xoá hẳn.
+  const dbs = useQuery({ queryKey: databasesKey, queryFn: () => get<DatabaseRow[]>(databasesPath) });
 
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState<{ req: Req; preview: Preview } | null>(null);
@@ -99,6 +102,7 @@ export default function Backups() {
       // Danh sách, cài đặt và số đếm ở menu đều đổi sau job.
       void qc.invalidateQueries({ queryKey: backupsKey });
       void qc.invalidateQueries({ queryKey: queryKeys.overview });
+      void qc.invalidateQueries({ queryKey: databasesKey });
       // Ở lại trang đang dùng; thẻ theo dõi ở góc dưới báo tiến độ và tải lại dữ liệu khi job xong.
       if (res.job_id) track(res.job_id);
       setOpen(null);
@@ -126,6 +130,13 @@ export default function Backups() {
     };
   }, [overview.data]);
 
+  // Chưa đọc được danh sách DB thì coi DB là đang có: nút vẫn hiện, máy chủ tự quyết nhập hay tạo lại.
+  const dbStateOf = useMemo(() => {
+    const status = dbs.data ? new Map(dbs.data.filter((r) => r.kind === "standalone").map((r) => [r.db, r.status])) : null;
+    return (name: string): DbState => (status === null ? "active" : status.get(name) === "active" ? "active" : status.get(name) === "trashed" ? "trashed" : "gone");
+  }, [dbs.data]);
+  const kindOf = (b: Backup) => restoreKind(b, stateOf(b.domain), dbStateOf(b.domain));
+
   function ask(req: Req) {
     setOpen(null);
     flow.clear();
@@ -152,7 +163,7 @@ export default function Backups() {
   const errorHeading = (r: Req): string => {
     switch (r.action) {
       case "restore":
-        return t.restoreErrorHeading(r.backup.domain);
+        return r.backup.db ? t.dbRestoreErrorHeading(r.backup.domain) : t.restoreErrorHeading(r.backup.domain);
       case "delete":
         return t.deleteErrorHeading(r.backup.domain);
       case "push":
@@ -168,10 +179,13 @@ export default function Backups() {
   /** Một dòng đậm trên bản xem trước nói việc sẽ làm với bản nào. */
   const previewLead = (r: Req): string | null => {
     switch (r.action) {
-      case "restore":
-        return stateOf(r.backup.domain) === "gone"
-          ? t.restoreRecreateWarning(r.backup.domain, formatWhen(r.backup.created, lang))
-          : t.restoreWarning(r.backup.domain, formatWhen(r.backup.created, lang));
+      case "restore": {
+        const when = formatWhen(r.backup.created, lang);
+        const kind = kindOf(r.backup);
+        if (kind === "db-import") return t.dbImportWarning(r.backup.domain, when);
+        if (kind === "db-recreate") return t.dbRecreateWarning(r.backup.domain, when);
+        return kind === "recreate" ? t.restoreRecreateWarning(r.backup.domain, when) : t.restoreWarning(r.backup.domain, when);
+      }
       case "delete":
         return t.deleteWarning(r.backup.domain, formatWhen(r.backup.created, lang), r.backup.remote === "stored");
       case "push":
@@ -208,6 +222,7 @@ export default function Backups() {
             filter={filter}
             onFilter={setFilter}
             stateOf={stateOf}
+            dbStateOf={dbStateOf}
             pending={pendingReq && (pendingReq.action === "restore" || pendingReq.action === "delete" || pendingReq.action === "push" || pendingReq.action === "pull") ? { action: pendingReq.action, id: pendingReq.backup.id } : null}
             anyPending={dry.isPending}
             onRestore={restore}

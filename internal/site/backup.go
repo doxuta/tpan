@@ -1,6 +1,9 @@
 package site
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Đường dẫn của backup và cron (mục 5, 6.5, 6.10 của docs/KE-HOACH.md, M9).
 // Tách file riêng như trash.go để Layout không phải đổi.
@@ -18,6 +21,24 @@ func BackupDir(l Layout) string {
 	}
 	return BackupRoot + "/" + l.Domain.String()
 }
+
+// DBBackupParent là thư mục cha của bản sao lưu DB rời (M33). Tên có "_" nên
+// không bao giờ trùng thư mục của một domain.
+const DBBackupParent = BackupRoot + "/_db"
+
+// DBBackupDir là thư mục sao lưu của DB rời name: DBBackupParent/<name>, root
+// 0700. name phải là tên DB đã kiểm (a-z, 0-9, "_").
+func DBBackupDir(name string) string {
+	if name == "" {
+		return ""
+	}
+	return DBBackupParent + "/" + name
+}
+
+// IsDBBackupName (M33): giá trị cột domain của một dòng backup là tên một DB
+// rời chứ không phải domain. Tên DB rời là "<owner>_<tên>" nên luôn có "_";
+// validate.Domain không bao giờ nhận "_".
+func IsDBBackupName(domain string) bool { return strings.Contains(domain, "_") }
 
 // TPANDBBackupDir giữ các bản sao của tpan.db (VACUUM INTO). Tên có "_" nên
 // không bao giờ trùng thư mục của một domain (validate.Domain chỉ nhận
@@ -121,6 +142,10 @@ type Backup struct {
 	RemoteError string `json:"remote_error,omitempty"`
 	// RemoteTries: số lần đẩy lỗi "của riêng bản" liên tiếp. Không ra JSON.
 	RemoteTries int `json:"-"`
+	// DB (M33): dòng là bản sao lưu của một DB rời; Domain khi đó là tên DB
+	// chứ không phải domain. Không lưu trong DB: store suy từ Domain lúc đọc
+	// (IsDBBackupName).
+	DB bool `json:"db,omitempty"`
 	// Location: bản nằm ở đâu (core.BackupLocation: machine, remote, both,
 	// other_target, push_failed). Không lưu trong DB: API tính lúc trả danh
 	// sách, vì giao diện không có remote_target để tự tính.

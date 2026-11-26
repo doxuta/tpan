@@ -94,6 +94,34 @@ const vi = {
   sqlRows: (n: number, ms: number) => `${n} dòng, ${ms} ms`,
   sqlTruncated: (n: number) => `Kết quả dài hơn ${n} dòng, chỉ hiện ${n} dòng đầu. Thêm LIMIT hoặc WHERE để xem phần khác.`,
   sqlResultCaption: "Kết quả của câu SQL",
+
+  // ---- bản sao lưu (M33) ----
+  bkHeading: "Bản sao lưu",
+  bkCount: (n: number) => `${n} bản`,
+  bkCaption: (db: string) => `Các bản sao lưu của ${db}`,
+  bkHintSite: (keep: number) =>
+    `Bản .sql chỉ có cơ sở dữ liệu này. Bản backup đầy đủ của site (cả mã nguồn) nằm ở màn Backup. TPAN giữ ${keep} bản .sql mới nhất trên máy chủ.`,
+  bkHintStandalone: (keep: number) =>
+    `DB rời không nằm trong bản backup của site nào, nên nó có bản sao lưu riêng ở đây. TPAN giữ ${keep} bản mới nhất trên máy chủ; lịch backup hằng ngày (nếu admin đã đặt) cũng sao lưu DB này.`,
+  bkNow: "Sao lưu ngay",
+  bkEmpty: "Chưa có bản sao lưu nào của DB này. Bấm Sao lưu ngay để tạo bản đầu tiên.",
+  bkLoadFailed: "Chưa đọc được danh sách bản sao lưu.",
+  bkColWhen: "Lúc tạo",
+  bkColReason: "Vì sao có",
+  bkColSize: "Dung lượng",
+  bkImport: "Nhập lại",
+  bkImportFor: (when: string) => `Nhập bản sao lưu lúc ${when} vào DB này`,
+  bkDownload: "Tải về máy tính",
+  bkDelete: "Xoá bản này",
+  bkMoreFor: (when: string) => `Việc khác với bản sao lưu lúc ${when}: tải về máy tính, xoá`,
+  bkNowWarning: (db: string) => `Xuất ${db} ra một file .sql trên máy chủ. DB vẫn dùng bình thường trong lúc xuất. Đĩa gần đầy thì TPAN từ chối và nói rõ lý do.`,
+  bkImportWarning: (db: string, when: string) =>
+    `Nhập ghi đè toàn bộ dữ liệu hiện tại của ${db} bằng bản lúc ${when}. TPAN tự xuất bản hiện tại trước, nên bạn quay lại được bằng cách nhập lại bản đó. User DB và mật khẩu giữ nguyên.`,
+  bkDeleteWarning: (db: string, when: string) => `Xoá bản sao lưu của ${db} lúc ${when} khỏi máy chủ. File đã xoá thì không lấy lại được.`,
+  bkNowErrorHeading: "Chưa dựng được bản xem trước sao lưu",
+  bkImportErrorHeading: "Chưa dựng được bản xem trước nhập",
+  bkDeleteErrorHeading: "Chưa dựng được bản xem trước xoá bản sao lưu",
+  bkSuspended: "DB đang tạm khoá nên chưa nhập được; sao lưu thì vẫn được.",
 };
 
 export const strings = defineStrings(vi, {
@@ -182,4 +210,30 @@ export const strings = defineStrings(vi, {
   sqlRows: (n, ms) => `${n} ${n === 1 ? "row" : "rows"}, ${ms} ms`,
   sqlTruncated: (n) => `The result has more than ${n} rows; only the first ${n} are shown. Add LIMIT or WHERE to see the rest.`,
   sqlResultCaption: "Result of the SQL statement",
+
+  bkHeading: "Backups",
+  bkCount: (n) => `${n} ${n === 1 ? "copy" : "copies"}`,
+  bkCaption: (db) => `Backups of ${db}`,
+  bkHintSite: (keep) => `A .sql copy holds this database only. Full backups of the site (code included) are on the Backup screen. TPAN keeps the ${keep} newest .sql copies on the server.`,
+  bkHintStandalone: (keep) =>
+    `A standalone DB is not part of any site's backup, so it has its own backups here. TPAN keeps the ${keep} newest on the server; the daily backup schedule (if the admin set one) backs this database up too.`,
+  bkNow: "Back up now",
+  bkEmpty: "There is no backup of this database yet. Press Back up now to make the first one.",
+  bkLoadFailed: "Could not read the list of backups.",
+  bkColWhen: "Created",
+  bkColReason: "Why it exists",
+  bkColSize: "Size",
+  bkImport: "Import",
+  bkImportFor: (when) => `Import the backup from ${when} into this database`,
+  bkDownload: "Download to this computer",
+  bkDelete: "Delete this backup",
+  bkMoreFor: (when) => `More for the backup from ${when}: download, delete`,
+  bkNowWarning: (db) => `Exports ${db} to a .sql file on the server. The database stays usable during the export. If the disk is nearly full, TPAN refuses and says why.`,
+  bkImportWarning: (db, when) =>
+    `Importing overwrites all current data of ${db} with the backup of ${when}. TPAN exports the current database first, so you can go back by importing that copy. The database user and its password stay the same.`,
+  bkDeleteWarning: (db, when) => `Deletes the backup of ${db} from ${when} from the server. A deleted file cannot be brought back.`,
+  bkNowErrorHeading: "Could not build the backup preview",
+  bkImportErrorHeading: "Could not build the import preview",
+  bkDeleteErrorHeading: "Could not build the delete preview",
+  bkSuspended: "The database is suspended, so it cannot import yet; backing up still works.",
 });

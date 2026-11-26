@@ -783,6 +783,8 @@ export type Backup = {
   remote_error?: string;
   /** Nơi bản nằm, máy chủ tính (core.BackupLocation). Không có khi setting đích hỏng. */
   location?: BackupLocation;
+  /** M33: dòng là bản sao lưu của một DB rời; `domain` khi đó là tên DB chứ không phải tên miền. */
+  db?: boolean;
 };
 
 /** core.Location*: chỉ trên máy, chỉ trên kho (đích đang đặt), cả hai, ở một đích khác, đẩy lỗi. */

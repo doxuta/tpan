@@ -234,6 +234,10 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/dbs/{name}/data/{table}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataChange},
 		{pattern: "POST /api/v1/dbs/{name}/data/{table}/maintain", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataMaintain},
 		{pattern: "POST /api/v1/dbs/{name}/sql", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataSQL},
+		// M33: sao lưu DB rời (api_m33.go). Xem, tải về, xoá bản sao lưu đi qua
+		// các đường /backups đã có.
+		{pattern: "POST /api/v1/dbs/{name}/backups", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBBackup},
+		{pattern: "POST /api/v1/dbs/{name}/import", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleStandaloneDBImport},
 		{pattern: "POST /api/v1/dbs/{name}/suspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleDBSuspend},
 		{pattern: "POST /api/v1/dbs/{name}/unsuspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleDBUnsuspend},
 		{pattern: "DELETE /api/v1/dbs/{name}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBTrash},

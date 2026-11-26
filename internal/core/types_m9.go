@@ -190,6 +190,10 @@ type Backups struct {
 	Store BackupStore
 	// Now nil thì dùng Sites.now.
 	Now func() time.Time
+	// DBs (M33) khác nil thì CreateAll sao lưu cả các DB rời, sau các site và
+	// trước khi chép tpan.db (bản sao tpan.db phải có dòng của các bản vừa ghi).
+	// Chỉ dòng lệnh đặt trường này: lịch backup hằng ngày chạy qua dòng lệnh.
+	DBs *DBs
 }
 
 // Kiểu dòng của bảng cron_runs nằm ở gói lá site (như Backup).

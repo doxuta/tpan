@@ -49,6 +49,39 @@ export function shortSha(sha: string): string {
 /** Tình trạng site của một dòng backup, tính từ overview (site đang chạy, trong thùng rác, hay không còn). */
 export type SiteState = "active" | "trashed" | "gone";
 
+// ---- DB rời (M33) ----
+
+/** Tình trạng của DB rời mà một dòng backup thuộc về (đang có, trong thùng rác, đã xoá hẳn). */
+export type DbState = "active" | "trashed" | "gone";
+
+/** Các bản sao lưu của một DB rời: dòng của nó mang tên DB ở trường domain (GET /backups?db=<tên>). */
+export const dbBackupsPath = (name: string) => `${backupsPath}?db=${encodeURIComponent(name)}`;
+export const dbBackupsKey = (name: string) => [...backupsKey, "db", name] as const;
+
+/**
+ * Các bản .sql của đúng một DB (màn quản lý DB): `id` là tên miền (DB của site) hoặc tên DB (DB rời).
+ * Lọc lại phòng máy chủ trả thừa: nhập bản của DB khác vào DB này là sai, và một dòng của site không
+ * bao giờ được tính cho DB rời trùng chuỗi (hay ngược lại).
+ */
+export function ownSqlBackups(items: Backup[], id: string, standalone: boolean): Backup[] {
+  return items.filter((b) => b.kind === "sql" && b.domain === id && Boolean(b.db) === standalone);
+}
+
+/**
+ * Nút "khôi phục" của một hàng là việc gì (máy chủ quyết theo cùng luật ở POST /backups/{id}/restore):
+ *   restore      site đang chạy, bản full: ghi đè site bằng bản đó
+ *   recreate     site đã xoá hẳn, bản full: tạo lại site rồi khôi phục
+ *   db-import    DB rời đang có: nhập bản sao lưu vào DB đó
+ *   db-recreate  DB rời đã xoá hẳn: tạo lại DB (mật khẩu mới) rồi nhập
+ *   null         không có nút: bản sql của site (nhập ở màn Cơ sở dữ liệu), site hay DB đang ở thùng rác
+ */
+export type RestoreKind = "restore" | "recreate" | "db-import" | "db-recreate" | null;
+export function restoreKind(b: Backup, site: SiteState, db: DbState): RestoreKind {
+  if (b.db) return db === "active" ? "db-import" : db === "gone" ? "db-recreate" : null;
+  if (b.kind === "sql") return null;
+  return site === "gone" ? "recreate" : site === "trashed" ? null : "restore";
+}
+
 // ---- Kho ngoài máy (M18) ----
 
 /** Việc mở từ một hàng của bảng: để khoá nút và đổi chữ nút vừa bấm. */

@@ -22,6 +22,10 @@ func openBackups(ctx context.Context, e *env, dryRun bool) (*core.Backups, func(
 	if st, ok := s.Store.(core.BackupStore); ok {
 		b.Store = st
 	}
+	// M33: `backup create --all` sao lưu cả các DB rời.
+	if st, ok := s.Store.(core.DBStore); ok {
+		b.DBs = &core.DBs{Sys: s.Sys, Settings: s.Settings, Store: st, Sites: s.Store, Accounts: s.Accounts, Journal: s.Journal, Backups: b}
+	}
 	return b, done, nil
 }
 

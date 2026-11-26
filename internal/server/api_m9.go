@@ -17,6 +17,7 @@ import (
 
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/i18n"
+	"github.com/doxuta/tpan/internal/site"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -46,6 +47,15 @@ func (s *Server) handleBackups(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		domain = d.String()
+	}
+	// M33: ?db=<tên DB rời> lọc các bản sao lưu của một DB rời (dòng của nó
+	// mang tên DB ở cột domain). Tên sai dạng thì 404 như DB không có.
+	if q := r.URL.Query().Get("db"); q != "" {
+		if !dbNamePathRe.MatchString(q) || !site.IsDBBackupName(q) || domain != "" {
+			apiFail(w, r, dbNotFound("?"))
+			return
+		}
+		domain = q
 	}
 	b := s.apiBackups()
 	set, err := b.Settings(r.Context())
@@ -135,6 +145,12 @@ func (s *Server) handleBackupRestore(w http.ResponseWriter, r *http.Request) {
 	}
 	if !ok {
 		refused(id, backupNotFound(id))
+		return
+	}
+	// M33: dòng của DB rời (cột domain mang tên DB): nhập vào DB đó, hoặc tạo
+	// lại DB đã xoá hẳn (api_m33.go).
+	if row.DB {
+		s.dbBackupRestore(w, r, row)
 		return
 	}
 	d, err := validate.ParseDomain(row.Domain)

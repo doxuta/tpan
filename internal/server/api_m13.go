@@ -39,6 +39,8 @@ func (s *Server) apiDBs() *core.DBs {
 	return &core.DBs{
 		Sys:      jobLockSystem{System: s.deps.Sys, wait: s.api.lockWait},
 		Settings: st, Store: st, Sites: st, Accounts: st, Journal: st, Now: s.now,
+		// M33: sao lưu DB rời ghi dòng vào bảng backups và dọn theo số bản giữ.
+		Backups: s.apiBackups(),
 	}
 }
 

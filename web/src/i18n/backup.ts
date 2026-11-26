@@ -22,9 +22,10 @@ const vi = {
 
   // Danh sách
   listHeading: "Các bản backup",
-  listHint: "full là cả site: thư mục mã nguồn và cơ sở dữ liệu của chính site đó. sql là bản xuất riêng cơ sở dữ liệu của site. DB rời không nằm trong bản backup nào ở đây. Bản của site đã xoá hẳn vẫn giữ ở đây.",
-  filterLabel: "Lọc theo site",
-  filterAll: "Mọi site",
+  listHint:
+    "full là cả site: thư mục mã nguồn và cơ sở dữ liệu của chính site đó. sql là riêng một cơ sở dữ liệu: của site, hoặc của một DB rời (hàng có nhãn DB rời). DB rời không nằm trong bản full của site nào: nó có bản sao lưu riêng, tạo ở màn Cơ sở dữ liệu hoặc theo lịch hằng ngày. Bản của site hay DB đã xoá hẳn vẫn giữ ở đây cho tới khi bạn xoá.",
+  filterLabel: "Lọc theo site hoặc DB rời",
+  filterAll: "Mọi site và DB rời",
   tableName: "Các bản backup",
   colDomain: "Site",
   colKind: "Loại",
@@ -98,6 +99,21 @@ const vi = {
   sqlLead: "Nhập ở màn ",
   sqlLink: "Cơ sở dữ liệu",
   sqlTail: ".",
+  // ---- M33: bản sao lưu của DB rời ----
+  dbTag: "DB rời",
+  dbGone: "DB đã xoá hẳn",
+  dbImport: "Nhập lại",
+  dbImportFor: (n: string, when: string) => `Nhập bản sao lưu lúc ${when} vào DB ${n}`,
+  dbRecreate: "Tạo lại DB",
+  dbRecreateFor: (n: string, when: string) => `Tạo lại DB ${n} từ bản sao lưu lúc ${when}`,
+  dbTrashedLead: "DB đang nằm trong thùng rác. Khôi phục nó khỏi ",
+  dbTrashedTail: " trước, rồi mới nhập bản này.",
+  dbGoneNote: "DB đã xoá hẳn. Bản này vẫn dùng được: TPAN tạo lại DB đúng tên cũ rồi nhập dữ liệu vào.",
+  dbImportWarning: (n: string, when: string) =>
+    `Nhập ghi đè toàn bộ dữ liệu hiện tại của DB ${n} bằng bản lúc ${when}. TPAN xuất bản hiện tại trước, nên nhập nhầm vẫn quay lại được. User DB và mật khẩu giữ nguyên.`,
+  dbRecreateWarning: (n: string, when: string) =>
+    `DB ${n} đã xoá hẳn. TPAN sẽ tạo lại DB đúng tên, chủ và bộ ký tự cũ rồi nhập dữ liệu của bản lúc ${when}. User DB cũ đã bị xoá cùng DB, nên DB có mật khẩu mới: mật khẩu hiện đúng một lần ở trang job sau khi chạy xong, chép ngay và sửa lại trong ứng dụng.`,
+  dbRestoreErrorHeading: (n: string) => `Chưa dựng được bản xem trước cho DB ${n}`,
   emptyAll: "Chưa có bản backup nào. Chọn site ở thẻ Backup ngay phía trên, hoặc đặt giờ backup hằng ngày ở thẻ Lịch và số bản giữ bên dưới.",
   emptyFor: (d: string) => `Chưa có bản backup nào của ${d}.`,
   restoreWarning: (d: string, when: string) =>
@@ -144,9 +160,10 @@ export const strings = defineStrings(vi, {
   overviewFailed: "Could not read the list of running sites.",
 
   listHeading: "Backups",
-  listHint: "full is the whole site: its code folder and the database of that site. sql is a separate export of the site's database. Standalone databases are not part of any backup here. Backups of permanently deleted sites stay here.",
-  filterLabel: "Filter by site",
-  filterAll: "All sites",
+  listHint:
+    "full is the whole site: its code folder and the database of that site. sql is a single database: a site's, or a standalone database (rows tagged Standalone DB). Standalone databases are not part of any site's full backup: they have their own backups, made on the Databases screen or by the daily schedule. Backups of permanently deleted sites and databases stay here until you delete them.",
+  filterLabel: "Filter by site or standalone DB",
+  filterAll: "All sites and standalone DBs",
   tableName: "Backups",
   colDomain: "Site",
   colKind: "Kind",
@@ -211,6 +228,20 @@ export const strings = defineStrings(vi, {
   sqlLead: "Import it on the ",
   sqlLink: "Databases",
   sqlTail: " screen.",
+  dbTag: "Standalone DB",
+  dbGone: "DB deleted",
+  dbImport: "Import",
+  dbImportFor: (n, when) => `Import the backup from ${when} into database ${n}`,
+  dbRecreate: "Recreate DB",
+  dbRecreateFor: (n, when) => `Recreate database ${n} from the backup of ${when}`,
+  dbTrashedLead: "The database is in the trash. Restore it from the ",
+  dbTrashedTail: " first, then import this backup.",
+  dbGoneNote: "The database was deleted for good. This backup still works: TPAN creates the database again under its old name, then imports the data.",
+  dbImportWarning: (n, when) =>
+    `Importing overwrites all current data of database ${n} with the backup of ${when}. TPAN exports the current database first, so a wrong import can be undone. The database user and its password stay the same.`,
+  dbRecreateWarning: (n, when) =>
+    `Database ${n} was deleted for good. TPAN will create it again with its old name, owner and character set, then import the data of the backup from ${when}. The old database user was removed with the database, so the database gets a new password: it is shown exactly once on the job page when the job finishes. Copy it right away and update your application.`,
+  dbRestoreErrorHeading: (n) => `Could not build the preview for database ${n}`,
   emptyAll: "There are no backups yet. Pick a site in the Back up now card above, or set a daily time in the Schedule and copies kept card below.",
   emptyFor: (d) => `There are no backups of ${d} yet.`,
   restoreWarning: (d, when) =>

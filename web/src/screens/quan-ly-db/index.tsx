@@ -5,6 +5,7 @@
 //   Bảng             danh sách bảng, mở xem dữ liệu, công cụ bảng (kiểm tra, sửa, tối ưu)
 //   Dữ liệu của bảng lưới dòng có phân trang, thêm, sửa, xoá từng dòng (bảng có khoá chính)
 //   Chạy SQL         một câu mỗi lần, kết quả hiện ngay bên dưới
+//   Bản sao lưu      (M33) sao lưu ngay, nhập lại, tải về, xoá các bản .sql của DB này
 //
 // Mọi câu chạy bằng một tài khoản MariaDB tạm chỉ có quyền trên đúng DB này
 // (internal/core/dbdata.go), nên màn này không cần và không có "bản xem trước":
@@ -28,6 +29,7 @@ import { useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/quan-ly-db";
 import { formatSize } from "../backup/model";
+import { DbBackups } from "./Backups";
 import { ResultTable } from "./ResultTable";
 import { Rows } from "./Rows";
 import { SqlBox } from "./SqlBox";
@@ -159,6 +161,9 @@ function DbManage({ kind }: { kind: DBKind }) {
           {table !== null && <Rows key={table} base={base} table={table} onClose={() => setTable(null)} />}
 
           <SqlBox base={base} maxRows={info.max_rows} maxSeconds={info.max_seconds} onDone={() => void qc.invalidateQueries({ queryKey: dbInfoKey(base) })} />
+
+          {/* M33: bản sao lưu của chính DB này (DB rời không nằm trong bản backup của site nào). */}
+          <DbBackups kind={kind} id={id} db={info.db} suspended={info.suspended} />
         </>
       )}
     </>

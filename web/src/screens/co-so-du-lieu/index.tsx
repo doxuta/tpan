@@ -4,8 +4,8 @@
 //
 //   DB của site: Đổi mật khẩu, Xuất .sql; menu ba chấm: Nhập từ bản đã xuất (M9),
 //                Đổi charset, Tạm khoá / Mở khoá (admin).
-//   DB rời:      Sửa (charset có xem trước, ghi chú lưu ngay), Đổi mật khẩu; menu
-//                ba chấm: Tạm khoá / Mở khoá (admin), Đưa vào thùng rác.
+//   DB rời:      Quản lý, Xoá; menu ba chấm: Sao lưu ngay và Nhập từ bản sao lưu (M33),
+//                Đổi mật khẩu, Sửa (charset có xem trước, ghi chú lưu ngay), Tạm khoá / Mở khoá (admin).
 //
 // Mọi việc đi đúng ba chặng như màn Thùng rác (màn mẫu để theo): bấm nút → gọi
 // ?dry_run=1 lấy bản xem trước (PlanReview) → bấm chạy → máy chủ trả job_id, ở
@@ -129,7 +129,14 @@ export default function CoSoDuLieu() {
       // chờ ở chữ "Sửa"); đổi bộ ký tự và ghi chú chuyển vào menu ba chấm.
       return row(
         [{ label: t.manage, ariaLabel: t.manageFor(r.db), onClick: () => navigate(dbManagePath("standalone", r.db)) }, button("trash", t.del, t.trashFor(r.db))],
-        [{ label: t.password, disabled: op.pending, onSelect: () => act("password", r) }, { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) }, ...lock],
+        [
+          // M33: DB rời có bản sao lưu riêng (bản backup của site không chứa nó).
+          { label: t.backupNow, disabled: op.pending, onSelect: () => act("backup", r) },
+          { label: t.importOpenDb, disabled: op.pending || Boolean(r.suspended), hint: r.suspended ? t.importDbBlocked : undefined, onSelect: () => open("import", r) },
+          { label: t.password, disabled: op.pending, onSelect: () => act("password", r) },
+          { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) },
+          ...lock,
+        ],
       );
     }
     if (trashed) {
@@ -253,10 +260,11 @@ export default function CoSoDuLieu() {
 
           {view && viewRow && !op.hasPreview && (
             <div ref={panelRef} tabIndex={-1} className="outline-offset-0">
-              {view.kind === "import" && viewRow.kind === "site" && (
+              {view.kind === "import" && (
                 <ImportPicker
-                  key={viewRow.domain}
-                  domain={viewRow.domain}
+                  key={viewRow.db}
+                  domain={viewRow.kind === "site" ? viewRow.domain : viewRow.db}
+                  standalone={viewRow.kind !== "site"}
                   pending={op.busy(`import:${viewRow.db}`)}
                   anyPending={op.pending}
                   onPreview={(backup) => act("import", viewRow, { backup })}

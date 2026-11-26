@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import type { Backup } from "../../api/types";
 import { DomainText } from "../../components/DomainText";
+import { MonoText } from "../../components/MonoText";
 import { Field, Select } from "../../components/Field";
 import { RowActions, type RowAction } from "../../components/RowActions";
 import { StatusLine } from "../../components/StatusMark";
@@ -28,7 +29,7 @@ import { useLang, useStrings } from "../../i18n";
 import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/backup";
 import { formatWhen } from "../thung-rac/model";
-import { formatSize, showWhere, storageWork, type PendingRow, type SiteState } from "./model";
+import { formatSize, restoreKind, showWhere, storageWork, type DbState, type PendingRow, type SiteState } from "./model";
 
 type Props = {
   items: Backup[];
@@ -36,6 +37,8 @@ type Props = {
   filter: string;
   onFilter: (domain: string) => void;
   stateOf: (domain: string) => SiteState;
+  /** M33: tình trạng của DB rời theo tên (dòng có `db`). */
+  dbStateOf: (name: string) => DbState;
   /** Hàng đang dựng bản xem trước: khoá mọi nút cho tới khi xong, và đổi chữ nút vừa bấm. */
   pending: PendingRow;
   anyPending: boolean;
@@ -98,7 +101,7 @@ export function Where({ b, configured }: { b: Backup; configured: boolean | unde
 /** Ghi chú của hàng, một dòng dưới tên site (site trong thùng rác, site đã xoá hẳn, bản sql). */
 const note = "block max-w-[46ch] text-[12.5px] text-muted";
 
-export function BackupList({ items, filter, onFilter, stateOf, pending, anyPending, onRestore, onDelete, isAdmin, targetConfigured, onPush, onPull }: Props) {
+export function BackupList({ items, filter, onFilter, stateOf, dbStateOf, pending, anyPending, onRestore, onDelete, isAdmin, targetConfigured, onPush, onPull }: Props) {
   const t = useStrings(strings);
   const k = useStrings(khung);
   const { lang } = useLang();
@@ -111,6 +114,20 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
 
   /** Ghi chú dưới tên site: vì sao hàng này không có nút "Khôi phục" thường, và làm gì thay vào. */
   function lead(b: Backup): ReactNode {
+    // M33: bản sao lưu của một DB rời. DB đang có thì không cần ghi chú (có nút Nhập lại).
+    if (b.db) {
+      const st = dbStateOf(b.domain);
+      if (st === "trashed") {
+        return (
+          <span className={note}>
+            {t.dbTrashedLead}
+            <Link to="/trash">{t.trashedLink}</Link>
+            {t.dbTrashedTail}
+          </span>
+        );
+      }
+      return st === "gone" ? <span className={note}>{t.dbGoneNote}</span> : null;
+    }
     if (b.kind === "sql") {
       return (
         <span className={note}>
@@ -139,15 +156,17 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
   function actions(b: Backup): ReactNode {
     const when = formatWhen(b.created, lang);
     const primary: RowAction[] = [];
-    if (b.kind !== "sql") {
-      const st = stateOf(b.domain);
-      const busy = pending?.action === "restore" && pending.id === b.id;
-      if (st === "gone") {
-        primary.push({ label: t.restoreRecreate, ariaLabel: t.restoreRecreateFor(b.domain, when), disabled: anyPending, busy, busyLabel: t.previewing, onClick: () => onRestore(b) });
-      } else if (st !== "trashed") {
-        // Bản chỉ còn trên kho vẫn có nút này: màn hỏi tải về trước (admin) hoặc nhắn nhờ admin (user thường), xem index.tsx.
-        primary.push({ label: t.restore, ariaLabel: t.restoreFor(b.domain, when), disabled: anyPending, busy, busyLabel: t.previewing, onClick: () => onRestore(b) });
-      }
+    // Luật nút nào ở hàng nào nằm trong model.ts (restoreKind) để test được. Bản chỉ còn trên kho vẫn có
+    // nút "Khôi phục": màn hỏi tải về trước (admin) hoặc nhắn nhờ admin (user thường), xem index.tsx.
+    const kind = restoreKind(b, stateOf(b.domain), dbStateOf(b.domain));
+    if (kind) {
+      const text = {
+        restore: [t.restore, t.restoreFor(b.domain, when)],
+        recreate: [t.restoreRecreate, t.restoreRecreateFor(b.domain, when)],
+        "db-import": [t.dbImport, t.dbImportFor(b.domain, when)],
+        "db-recreate": [t.dbRecreate, t.dbRecreateFor(b.domain, when)],
+      }[kind];
+      primary.push({ label: text[0], ariaLabel: text[1], disabled: anyPending, busy: pending?.action === "restore" && pending.id === b.id, busyLabel: t.previewing, onClick: () => onRestore(b) });
     }
     // Việc kho không phụ thuộc site còn hay không: file backup của site đã xoá vẫn đẩy hay tải được.
     const work = storageWork(b, isAdmin, targetConfigured);
@@ -213,10 +232,9 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
             <span className="flex flex-col gap-[4px]">
               <span className="flex flex-wrap items-center gap-x-[8px] gap-y-[4px]">
                 {/* Tên miền dài xuống dòng sau dấu chấm (DomainText) thay vì kéo rộng bảng. */}
-                <span className="font-medium">
-                  <DomainText domain={b.domain} />
-                </span>
-                {stateOf(b.domain) === "gone" && <Tag>{t.siteGone}</Tag>}
+                <span className="font-medium">{b.db ? <MonoText>{b.domain}</MonoText> : <DomainText domain={b.domain} />}</span>
+                {b.db && <Tag>{t.dbTag}</Tag>}
+                {b.db ? dbStateOf(b.domain) === "gone" && <Tag>{t.dbGone}</Tag> : stateOf(b.domain) === "gone" && <Tag>{t.siteGone}</Tag>}
               </span>
               {lead(b)}
             </span>

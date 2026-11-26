@@ -55,6 +55,8 @@ var (
 	sdbRePw      = regexp.MustCompile(`^ALTER USER '([a-z0-9_]+)'@'localhost' IDENTIFIED BY '([A-Za-z0-9]+)';$`)
 	sdbReKill    = regexp.MustCompile(`^KILL CONNECTION ([0-9]+);$`)
 	sdbReDump    = regexp.MustCompile(`^--result-file=(.+)$`)
+	// M33: đếm bảng của DB. DB giả có "bảng" khi data khác rỗng.
+	sdbReTables = regexp.MustCompile(`^SELECT COUNT\(\*\) FROM information_schema\.TABLES WHERE TABLE_SCHEMA='([a-z0-9_]+)';$`)
 )
 
 func newSDBFake() *sdbFake {
@@ -95,6 +97,8 @@ func newSDBFake() *sdbFake {
 				}
 			case sdbReMeasure.MatchString(st):
 				out.WriteString("4096\n")
+			case sdbReTables.MatchString(st):
+				fmt.Fprintf(&out, "%d\n", b2i(f.dbs[sdbReTables.FindStringSubmatch(st)[1]].data != ""))
 			case sdbReCreate.MatchString(st):
 				m := sdbReCreate.FindStringSubmatch(st)
 				if _, ok := f.dbs[m[1]]; ok {

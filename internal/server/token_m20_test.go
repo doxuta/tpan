@@ -418,7 +418,9 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"GET /api/v1/databases/{domain}/data", "GET /api/v1/databases/{domain}/data/{table}", "POST /api/v1/databases/{domain}/data/{table}",
 		"POST /api/v1/databases/{domain}/data/{table}/maintain", "POST /api/v1/databases/{domain}/sql",
 		"GET /api/v1/dbs/{name}/data", "GET /api/v1/dbs/{name}/data/{table}", "POST /api/v1/dbs/{name}/data/{table}",
-		"POST /api/v1/dbs/{name}/data/{table}/maintain", "POST /api/v1/dbs/{name}/sql")
+		"POST /api/v1/dbs/{name}/data/{table}/maintain", "POST /api/v1/dbs/{name}/sql",
+		// M33: sao lưu DB rời.
+		"POST /api/v1/dbs/{name}/backups", "POST /api/v1/dbs/{name}/import")
 	// M19: tên phụ và luật chuyển hướng là thao tác trên site, cùng nhóm sites.
 	add("sites", "GET /api/v1/sites/{domain}/names", "POST /api/v1/sites/{domain}/names",
 		"POST /api/v1/sites/{domain}/names/{name}/mode", "DELETE /api/v1/sites/{domain}/names/{name}",

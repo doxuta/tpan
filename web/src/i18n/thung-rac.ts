@@ -62,7 +62,8 @@ const vi = {
   restoreDbFor: (n: string) => `Khôi phục DB ${n}`,
   purgeDbFor: (n: string) => `Xoá hẳn DB ${n}`,
   restoreDbWarning: (n: string) => `Khôi phục ${n}: TPAN tạo lại DB, nhập lại file .sql đã xuất và mở khoá user DB. Mật khẩu user DB vẫn là mật khẩu cũ.`,
-  purgeDbWarning: (n: string) => `Xoá hẳn ${n} làm mất dữ liệu của DB và cả file .sql trong thùng rác, kèm user DB. DB rời không nằm trong bản backup của site nào, nên sau bước này panel không còn bản nào để lấy lại. Muốn giữ lại thì bấm Quay lại và chọn Khôi phục.`,
+  purgeDbWarning: (n: string) =>
+    `Xoá hẳn ${n}: xoá user DB và đưa DB ra khỏi thùng rác. TPAN giữ file .sql cuối cùng lại thành một bản sao lưu ở màn Backup (lý do "Tự backup trước khi xoá hẳn"): từ bản đó vẫn tạo lại được DB, với mật khẩu mới. Muốn dữ liệu mất hẳn thì xoá tiếp bản đó ở màn Backup.`,
   restoreDbErrorHeading: (n: string) => `Chưa dựng được bản xem trước khôi phục DB ${n}`,
   purgeDbErrorHeading: (n: string) => `Chưa dựng được bản xem trước xoá hẳn DB ${n}`,
   retentionUser: (n: number) => (n === 1 ? "Thùng rác giữ site và DB đã xoá 1 ngày." : `Thùng rác giữ site và DB đã xoá ${n} ngày.`) + " Chỉ admin đổi được số ngày này.",
@@ -124,7 +125,8 @@ const en: typeof vi = {
   restoreDbFor: (n) => `Restore the database ${n}`,
   purgeDbFor: (n) => `Permanently delete the database ${n}`,
   restoreDbWarning: (n) => `Restoring ${n}: TPAN recreates the DB, imports the exported .sql file again and unlocks the DB user. The DB user keeps its old password.`,
-  purgeDbWarning: (n) => `Permanently deleting ${n} destroys the database data, the .sql file in the trash and the DB user. A standalone database is not part of any site backup, so after this step the panel has no copy left to bring back. To keep it, press Go back and choose Restore.`,
+  purgeDbWarning: (n) =>
+    `Permanently deleting ${n} removes the database user and takes the database out of the trash. TPAN keeps the last .sql file as a backup on the Backup screen (reason "Automatic, before permanent deletion"): the database can still be recreated from it, with a new password. To destroy the data for good, delete that backup on the Backup screen as well.`,
   restoreDbErrorHeading: (n) => `Could not build the restore preview for the database ${n}`,
   purgeDbErrorHeading: (n) => `Could not build the permanent deletion preview for the database ${n}`,
   retentionUser: (n) => (n === 1 ? "The trash keeps deleted sites and databases for 1 day." : `The trash keeps deleted sites and databases for ${n} days.`) + " Only an admin can change this.",

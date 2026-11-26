@@ -54,6 +54,7 @@ var (
 	dbsReLimSt   = regexp.MustCompile(`^SELECT COUNT\(\*\), COALESCE\(MAX\(max_user_connections\), 0\) FROM mysql\.user WHERE User='(\w+)' AND Host='localhost';$`)
 	dbsReLimit   = regexp.MustCompile(`^ALTER USER '(\w+)'@'localhost' WITH MAX_USER_CONNECTIONS (\d+);$`)
 	dbsReKillU   = regexp.MustCompile(`^KILL USER '(\w+)'@'localhost';$`)
+	dbsReTables  = regexp.MustCompile(`^SELECT COUNT\(\*\) FROM information_schema\.TABLES WHERE TABLE_SCHEMA='(\w+)';$`)
 )
 
 const dbsCollationsOut = "latin1\tlatin1_bin\t\nlatin1\tlatin1_swedish_ci\tYes\n" +
@@ -88,6 +89,9 @@ func newDBsSim() *dbsSim {
 				}
 			case strings.HasPrefix(st, "SELECT COALESCE(SUM(DATA_LENGTH"):
 				out.WriteString("4096\n")
+			case match(dbsReTables):
+				// M33: DB giả có "bảng" khi đã có dữ liệu.
+				fmt.Fprintf(&out, "%d\n", b(f.dbs[m[1]].data != ""))
 			case match(dbsReState):
 				_, d := f.dbs[m[1]]
 				_, u := f.users[m[2]]

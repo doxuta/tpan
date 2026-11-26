@@ -16,8 +16,11 @@ export const databasesPath = "/api/v1/databases";
 
 export type DbOp = "password" | "dump" | "import";
 
-/** Việc trên một hàng của bảng. "dump" và "import" chỉ có với DB của site (định danh bằng domain). */
-export type RowAction = DbOp | "charset" | "suspend" | "unsuspend" | "trash" | "trash-site";
+/**
+ * Việc trên một hàng của bảng. "dump" chỉ có với DB của site (định danh bằng domain); DB rời có
+ * "backup" (M33: sao lưu ra một bản .sql). "import" có ở cả hai: nhập một bản đã xuất hay đã sao lưu.
+ */
+export type RowAction = DbOp | "backup" | "charset" | "suspend" | "unsuspend" | "trash" | "trash-site";
 
 type T = (typeof strings)["vi"];
 
@@ -41,8 +44,11 @@ export function rowOp(t: T, action: RowAction, r: DatabaseRow, extra: { backup?:
       };
     case "dump":
       return { id, method: "POST", path: dbOpPath(r.domain, "dump"), warning: t.dumpWarning(r.db), errorHeading: t.dumpErrorHeading(r.domain) };
+    case "backup":
+      return { id, method: "POST", path: dbSubPath(r.db, "backups"), warning: t.backupDbWarning(r.db), errorHeading: t.backupDbErrorHeading(r.db) };
     case "import": {
       const body: DBImportRequest = { backup_id: extra.backup?.id ?? "" };
+      if (!site) return { id, method: "POST", path: dbSubPath(r.db, "import"), body, warning: t.importDbWarning(r.db, extra.when ?? ""), errorHeading: t.importDbErrorHeading(r.db) };
       return { id, method: "POST", path: dbOpPath(r.domain, "import"), body, warning: t.importWarning(r.domain, extra.when ?? ""), errorHeading: t.importErrorHeading(r.domain) };
     }
     case "charset": {

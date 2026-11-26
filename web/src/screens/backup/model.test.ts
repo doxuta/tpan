@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Backup, BackupLocation } from "../../api/types";
-import { pullPoll, pullPollMs, pullPollWindowMs, showWhere, storageWork } from "./model.ts";
+import { ownSqlBackups, pullPoll, pullPollMs, pullPollWindowMs, restoreKind, showWhere, storageWork } from "./model.ts";
 
 const row = (id: string, location: BackupLocation | undefined, kind: Backup["kind"] = "full"): Backup => ({
   id,
@@ -79,4 +79,30 @@ test("tải lại chỉ khi đang chờ, dòng còn là kho, chưa quá hạn", 
   assert.equal(pullPoll([row("b", "remote")], watch, 500), false);
   assert.equal(pullPoll(undefined, watch, 500), false);
   assert.equal(pullPoll([row("a", "remote")], null, 500), false);
+});
+
+// ---- M33: bản sao lưu của DB rời ----
+
+const dbRow = (id: string, name = "alice_shop"): Backup => ({ ...row(id, "machine", "sql"), domain: name, db: true });
+
+test("nút khôi phục của từng loại hàng", () => {
+  // Site: bản full khôi phục được, site đã xoá hẳn thì tạo lại, site trong thùng rác thì không có nút.
+  assert.equal(restoreKind(row("a", "machine"), "active", "active"), "restore");
+  assert.equal(restoreKind(row("a", "machine"), "gone", "active"), "recreate");
+  assert.equal(restoreKind(row("a", "machine"), "trashed", "active"), null);
+  // Bản sql của site nhập ở màn Cơ sở dữ liệu, không có nút ở bảng này.
+  assert.equal(restoreKind(row("a", "machine", "sql"), "active", "active"), null);
+  // DB rời: tình trạng site của chuỗi đó không liên quan (tên DB không bao giờ là tên miền).
+  assert.equal(restoreKind(dbRow("d"), "gone", "active"), "db-import");
+  assert.equal(restoreKind(dbRow("d"), "gone", "gone"), "db-recreate");
+  assert.equal(restoreKind(dbRow("d"), "gone", "trashed"), null);
+});
+
+test("màn quản lý DB chỉ lấy bản sql của đúng DB đó", () => {
+  const items = [row("full", "machine"), row("sql", "machine", "sql"), dbRow("d1"), dbRow("d2", "alice_blog")];
+  assert.deepEqual(ownSqlBackups(items, "a.example.com", false).map((b) => b.id), ["sql"]);
+  assert.deepEqual(ownSqlBackups(items, "alice_shop", true).map((b) => b.id), ["d1"]);
+  // Cùng chuỗi nhưng khác loại thì không lẫn.
+  assert.deepEqual(ownSqlBackups(items, "alice_shop", false), []);
+  assert.deepEqual(ownSqlBackups(items, "a.example.com", true), []);
 });

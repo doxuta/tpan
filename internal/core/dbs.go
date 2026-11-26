@@ -528,22 +528,58 @@ func (d *DBs) PrepareRestore(ctx context.Context, name string) (*Planned, error)
 	}), nil
 }
 
-// PreparePurge xoá hẳn DB rời trong thùng rác: DROP USER, xoá file xuất, xoá dòng.
+// PreparePurge xoá hẳn DB rời trong thùng rác: DROP USER, xoá dòng.
+//
+// M33: file xuất ở thùng rác là bản dữ liệu cuối cùng. Có bảng backups
+// (d.Backups) và file còn thì nó được chuyển sang thư mục sao lưu và ghi thành
+// một bản before-purge (như bản tự backup trước khi xoá hẳn site): DB tạo lại
+// được từ màn Backup cho tới khi người dùng tự xoá bản đó. Dòng backup ghi
+// TRƯỚC khi xoá dòng của DB, vì store chép chủ và charset từ dòng DB sang.
+// Không có bảng backups, hoặc file đã mất hay không trọn vẹn, thì xoá hẳn như
+// trước M33.
 func (d *DBs) PreparePurge(ctx context.Context, name string) (*Planned, error) {
 	db, err := d.dbsTrashed(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	return newPlanned(d.Sys, d.Journal, engine.Plan{
+	keep := ""
+	if _, berr := d.dbsBackups(); berr == nil {
+		// Chỉ giữ bản xuất trọn vẹn: file dở không khôi phục được gì, và giữ
+		// nó thì người dùng tưởng mình còn một bản sao lưu.
+		whole, err := steps.StandaloneTrashDumpComplete(ctx, d.Sys, db.Name)
+		if err != nil {
+			return nil, err
+		}
+		if whole {
+			if keep, err = d.dbsDumpPath(db.Name, "-before-purge"); err != nil {
+				return nil, err
+			}
+		}
+	}
+	plan := engine.Plan{
 		Kind:   "dbs.purge",
 		Target: db.Name,
 		Title:  i18n.T("Xoá hẳn DB rời "+db.Name+" (không lấy lại được)", "Purge standalone database "+db.Name+" (cannot be undone)"),
 		Steps:  []engine.Step{&steps.DBUserAbsent{Name: db.Name}, &steps.DBTrashDumpAbsent{Name: db.Name}},
-	}, func(ctx context.Context, _ engine.Report) error {
-		if err := d.Store.DeleteStandaloneDB(ctx, db.Name); err != nil {
-			return fmt.Errorf("xoá dòng DB rời %s: %w", db.Name, err)
+	}
+	if keep != "" {
+		plan.Title = i18n.T(
+			"Xoá hẳn DB rời "+db.Name+" (giữ bản xuất cuối làm bản sao lưu)",
+			"Purge standalone database "+db.Name+" (the last dump is kept as a backup)")
+		// Chuyển file trước (hoàn tác được), xoá user sau (không hoàn tác được).
+		plan.Steps = []engine.Step{&steps.SDBKeepDump{Name: db.Name, To: keep}, &steps.DBUserAbsent{Name: db.Name}}
+	}
+	return newPlanned(d.Sys, d.Journal, plan, func(ctx context.Context, rep engine.Report) error {
+		var errs []error
+		if keep != "" {
+			if _, err := d.dbsRecord(ctx, db.Name, keep, ReasonBeforePurge, rep.Job.ID); err != nil {
+				errs = append(errs, fmt.Errorf("ghi bản sao lưu cuối của DB rời %s (file %s vẫn còn): %w", db.Name, keep, err))
+			}
 		}
-		return nil
+		if err := d.Store.DeleteStandaloneDB(ctx, db.Name); err != nil {
+			errs = append(errs, fmt.Errorf("xoá dòng DB rời %s: %w", db.Name, err))
+		}
+		return errors.Join(errs...)
 	}), nil
 }
 

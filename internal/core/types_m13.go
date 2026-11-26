@@ -163,6 +163,9 @@ type DBs struct {
 	Accounts AccountStore
 	Journal  engine.Journal
 	Now      func() time.Time
+	// Backups (M33) ghi và dọn dòng của bản sao lưu DB rời. nil thì không sao
+	// lưu được, và xoá hẳn không giữ lại bản xuất cuối (như trước M33).
+	Backups *Backups
 }
 
 // DBInput là đầu vào của "tạo DB rời".

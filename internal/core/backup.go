@@ -229,6 +229,19 @@ func (b *Backups) currentOwner(ctx context.Context, domain string) (owner string
 	if !can {
 		return "", false, nil
 	}
+	// M33: dòng của DB rời (domain là tên DB). Chủ hiện tại là chủ của DB rời
+	// đang mang tên đó: hai chủ khác nhau có thể sinh cùng một tên DB, và bản
+	// của chủ cũ không được tính hay dọn thay chủ mới (như B12 với site).
+	if site.IsDBBackupName(domain) {
+		dr, can := b.Store.(interface {
+			StandaloneDB(ctx context.Context, name string) (account.Database, bool, error)
+		})
+		if !can {
+			return "", false, nil
+		}
+		db, ok, err := dr.StandaloneDB(ctx, domain)
+		return db.Owner, ok, err
+	}
 	return or.SiteOwner(ctx, domain)
 }
 
@@ -371,7 +384,7 @@ func (b *Backups) removeBackupFile(p string) error {
 }
 
 // CreateAll backup lần lượt mọi site active, mỗi site một job; site lỗi không
-// chặn site sau. Cuối cùng chép tpan.db, kể cả khi không có site nào: bảng
+// chặn site sau. Rồi tới các DB rời (M33, khi có b.DBs). Cuối cùng chép tpan.db, kể cả khi không có site nào: bảng
 // backups trong đó là cách duy nhất biết file backup nào thuộc site nào.
 func (b *Backups) CreateAll(ctx context.Context, reason BackupReason, onEvent func(engine.Event)) ([]BackupResult, error) {
 	if reason != ReasonManual && reason != ReasonSchedule {
@@ -395,6 +408,15 @@ func (b *Backups) CreateAll(ctx context.Context, reason BackupReason, onEvent fu
 			r.Error = err.Error()
 		}
 		out = append(out, r)
+	}
+	// M33: các DB rời, mỗi DB một job; kết quả nối sau các site (Domain là tên
+	// DB, phân biệt bằng site.IsDBBackupName).
+	if b.DBs != nil {
+		res, err := b.DBs.BackupAll(ctx, reason, onEvent)
+		if err != nil {
+			return out, err
+		}
+		out = append(out, res...)
 	}
 	if _, err := b.SnapshotTPANDB(ctx); err != nil {
 		return out, err

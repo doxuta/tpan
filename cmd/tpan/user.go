@@ -63,6 +63,8 @@ func openM13(ctx context.Context, e *env, dryRun bool) (*m13Env, func(), error) 
 	m := &m13Env{sites: s, dbs: &core.DBs{Sys: s.Sys, Settings: s.Settings, Sites: s.Store, Accounts: s.Accounts, Journal: s.Journal}}
 	if st, ok := s.Store.(*store.Store); ok {
 		m.st, m.dbs.Store = st, st
+		// M33: sao lưu DB rời, và xoá hẳn giữ lại bản xuất cuối.
+		m.dbs.Backups = &core.Backups{Sites: s, Store: st}
 		m.acc = &core.Accounts{Sys: s.Sys, Store: st, Sites: s, DBs: m.dbs, Journal: s.Journal,
 			Hash: store.HashPasswordWait, Generate: store.GeneratePassword}
 	}
