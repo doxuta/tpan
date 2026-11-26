@@ -8,7 +8,7 @@ import (
 	"github.com/doxuta/tpan/internal/system"
 )
 
-const ipOut = `2: eth0    inet 203.0.113.74/24 brd 203.0.113.74 scope global eth0\       valid_lft forever preferred_lft forever
+const ipOut = `2: eth0    inet 203.0.113.74/24 brd 203.0.113.255 scope global eth0\       valid_lft forever preferred_lft forever
 2: eth0    inet 10.0.0.5/8 scope global secondary eth0\       valid_lft forever preferred_lft forever
 3: eth1    inet 100.64.1.2/10 scope global eth1\       valid_lft forever preferred_lft forever
 2: eth0    inet6 2001:db8::5/64 scope global \       valid_lft forever preferred_lft forever
