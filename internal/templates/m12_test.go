@@ -136,7 +136,13 @@ func TestM12KeyDirectives(t *testing.T) {
 		"Unattended-Upgrade::Origins-Pattern {\n", "    \"origin=deb.sury.org\";\n", "    \"origin=Foo Bar:1\";\n", "\n};\n")
 
 	ng, _ := NginxOrgInclude()
-	has("nginx.org", ng, "\ninclude /etc/nginx/sites-enabled/*;\n", "\nserver_names_hash_bucket_size 64;\n")
+	has("nginx.org", ng, "\ninclude /etc/nginx/sites-enabled/*;\n")
+	// v0.2.14: trần bảng tên chuyển sang conf.d/tpan-names.conf, chung cho cả gói
+	// Ubuntu. Hai file cùng đặt một chỉ thị thì nginx từ chối ("is duplicate").
+	if bytes.Contains(ng, []byte("\nserver_names_hash_bucket_size")) {
+		t.Errorf("tpan.conf của nginx.org không còn đặt server_names_hash_bucket_size:\n%s", ng)
+	}
+	has("tpan-names", NginxNames(), Header+"\n", "\nserver_names_hash_bucket_size 512;\n", "\nserver_names_hash_max_size 4096;\n")
 }
 
 // Sửa template đã có (M12): cả hai vhost nginx dùng fastcgi_params cộng dòng

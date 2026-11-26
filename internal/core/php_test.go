@@ -666,3 +666,71 @@ type statusCheck checks.Status
 func (s statusCheck) Run(context.Context, system.System) checks.Result {
 	return checks.Result{ID: "test", Status: checks.Status(s)}
 }
+
+// Máy chưa thêm kho của Ondřej Surý (máy mới cài): apt chỉ biết bản của Ubuntu.
+// Trước v0.2.14 danh sách chỉ có đúng dòng đó nên giao diện không có nút "Cài"
+// nào; giờ các nhánh php.net còn hỗ trợ được thêm vào để bấm cài. Không hỏi được
+// php.net thì danh sách vẫn như cũ (giao diện có ô gõ số bản).
+func TestPHPListChuaCoKhoSury(t *testing.T) {
+	pe := newPHPEnv(t)
+	pe.avail = []string{"8.3"}
+	pe.from = map[string]string{"8.3": "ubuntu"}
+	curlOK := true
+	pe.m.Handle([]string{"curl", "-fsS"}, func(c system.Cmd) system.Result {
+		if !curlOK {
+			return system.Result{ExitCode: 6, Stderr: "curl: (6) Could not resolve host\n"}
+		}
+		switch c.Args[len(c.Args)-1] {
+		case phpStatesURL:
+			return system.Result{Stdout: `{"8":{"8.3":{"state":"security","active_support_end":"2025-12-31T00:00:00+00:00","security_support_end":"2027-12-31T00:00:00+00:00"},"8.4":{"state":"stable","active_support_end":"2026-12-31T00:00:00+00:00","security_support_end":"2028-12-31T00:00:00+00:00"},"8.5":{"state":"stable","active_support_end":"2027-12-31T00:00:00+00:00","security_support_end":"2029-12-31T00:00:00+00:00"}}}`}
+		case wpServeHappy + "8.3":
+			return system.Result{Stdout: `{"recommended_version":"8.3","minimum_version":"7.4","is_supported":true}`}
+		}
+		return system.Result{ExitCode: 22, Stderr: "curl: (22) 404\n"}
+	})
+	versions := func(l PHPList) []string {
+		var vs []string
+		for _, r := range l.Versions {
+			vs = append(vs, r.Version)
+		}
+		return vs
+	}
+
+	list, err := pe.p.List(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if list.SuryEnabled {
+		t.Fatal("máy thử này chưa thêm kho sury")
+	}
+	if got := versions(list); !reflect.DeepEqual(got, []string{"8.3", "8.4", "8.5"}) {
+		t.Fatalf("danh sách = %v, muốn có cả 8.4 và 8.5 để bấm cài", got)
+	}
+	for _, r := range list.Versions[1:] {
+		if r.Installed || r.Default || r.Source != SourceSury || r.Sites == nil || len(r.Sites) != 0 || r.Support == nil || r.Support.State != "stable" {
+			t.Errorf("dòng bù %s = %+v (support %+v)", r.Version, r, r.Support)
+		}
+	}
+	if r := list.Versions[0]; !r.Installed || r.Source != SourceUbuntu {
+		t.Errorf("8.3 = %+v", r)
+	}
+
+	// Không hỏi được php.net: không bịa bản nào, danh sách chỉ có bản apt biết.
+	curlOK = false
+	list, err = pe.p.List(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := versions(list); !reflect.DeepEqual(got, []string{"8.3"}) {
+		t.Errorf("không ra mạng: danh sách = %v", got)
+	}
+	// Không xin ghi chú (notes=false) thì không gọi mạng và không bù.
+	curlOK = true
+	list, err = pe.p.List(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := versions(list); !reflect.DeepEqual(got, []string{"8.3"}) {
+		t.Errorf("notes=false: danh sách = %v", got)
+	}
+}

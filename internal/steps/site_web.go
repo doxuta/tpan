@@ -49,6 +49,9 @@ func webPHPCmds(v string) (test, reload *system.Cmd, err error) {
 type webVhost struct {
 	conf, link   string
 	test, reload *system.Cmd
+	// before (v0.2.14): việc đi kèm bước ghi vhost (File.Before). nginx: nới bảng
+	// tên miền để tên dài không làm `nginx -t` hỏng (nginx_names.go).
+	before func(system.System) (func() error, error)
 }
 
 func webVhostOf(l site.Layout, web string) (webVhost, error) {
@@ -59,6 +62,7 @@ func webVhostOf(l site.Layout, web string) (webVhost, error) {
 			link:   l.NginxLink,
 			test:   &system.Cmd{Name: "nginx", Args: []string{"-t"}},
 			reload: &system.Cmd{Name: "systemctl", Args: []string{"reload", "nginx"}},
+			before: EnsureNginxNames,
 		}, nil
 	case "apache":
 		return webVhost{
@@ -106,7 +110,7 @@ func SiteVhost(l site.Layout, web, phpVersion, acmeRoot string, mode site.Htacce
 	}
 	d := l.Domain.String()
 	return []engine.Step{
-		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload,
+		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload, Before: v.before,
 			Title: i18n.T("Ghi vhost "+web+" cho "+d, "Write "+web+" vhost for "+d),
 			Why: i18n.T(
 				"Vhost nói cho "+web+" biết request tới "+d+" lấy file ở đâu và chuyển .php cho pool nào. Thiếu nó thì request rơi vào site mặc định của tpan (444 hoặc 403).",

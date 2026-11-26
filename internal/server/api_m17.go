@@ -255,11 +255,11 @@ func (s *Server) handleProbeCleanup(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- gói
 
-// over dựng gói đầy đủ từ gói đang có cur: bốn giới hạn cũ luôn lấy từ thân
-// (như trước M17), bảy trường mới chỉ đổi khi có mặt. Vắng mặt là giữ nguyên,
-// để giao diện cũ không biết tới lồng mà sửa gói thì không xoá trần.
+// over dựng gói đầy đủ từ gói đang có cur: trường nào có mặt trong thân thì
+// đổi, vắng mặt là giữ nguyên. Nhờ vậy giao diện cũ không biết tới lồng mà sửa
+// gói thì không xoá trần, và lệnh gọi API chỉ sửa một trần thì không gỡ hạn mức
+// site, DB, đĩa, backup (muốn bỏ một hạn mức thì gửi rõ số 0).
 func (e PackageEdit) over(cur account.Package) account.Package {
-	cur.MaxSites, cur.MaxDBs, cur.DiskMB, cur.MaxBackups = e.MaxSites, e.MaxDBs, e.DiskMB, e.MaxBackups
 	if e.Cage != nil {
 		cur.Cage = *e.Cage
 	}
@@ -267,6 +267,7 @@ func (e PackageEdit) over(cur account.Package) account.Package {
 		in  *int
 		out *int
 	}{
+		{e.MaxSites, &cur.MaxSites}, {e.MaxDBs, &cur.MaxDBs}, {e.DiskMB, &cur.DiskMB}, {e.MaxBackups, &cur.MaxBackups},
 		{e.CPUPercent, &cur.CPUPercent}, {e.RAMMB, &cur.RAMMB}, {e.Tasks, &cur.Tasks},
 		{e.IOReadMB, &cur.IOReadMB}, {e.IOWriteMB, &cur.IOWriteMB}, {e.PHPWorkers, &cur.PHPWorkers},
 	} {

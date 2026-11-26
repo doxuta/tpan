@@ -222,13 +222,6 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 					break
 				}
 			}
-			if as.Input.App == site.AppPHP {
-				// M29: xem SitesEntry.App.
-				item, err = refusedItem(item, refuse("apply_app_unsupported", i18n.T(
-					"tpan apply chưa tạo site PHP trống. Tạo riêng site này: sudo tpan site add "+d.String()+" --app php (hoặc màn Tạo site, chọn PHP trống)",
-					"tpan apply does not create empty PHP sites yet. Create this one on its own: sudo tpan site add "+d.String()+" --app php (or the Create site screen, type Empty PHP)")))
-				break
-			}
 			var add *SiteAdd
 			// M19: apply không thêm tên www mặc định (file khai báo không
 			// mang tên phụ, S21).
@@ -306,11 +299,14 @@ func (s *Sites) applyBatch(ctx context.Context, cfg StackConfig, all []site.Site
 
 	b := engine.Batch{Kind: "apply", Parallel: applyParallel}
 	php := map[string]bool{}
-	creates, trashes := 0, 0
+	creates, trashes, wpCreates := 0, 0, 0
 	for _, u := range units {
 		switch {
 		case u.add != nil:
 			creates++
+			if !u.add.Site.Plain() {
+				wpCreates++
+			}
 			add := u.add
 			php[add.Site.PHPVersion] = true
 			var prep []engine.Step
@@ -353,7 +349,8 @@ func (s *Sites) applyBatch(ctx context.Context, cfg StackConfig, all []site.Site
 			})
 		}
 	}
-	if creates > 0 {
+	// Chỉ tải WordPress khi lô có site WordPress (lô toàn site PHP trống thì không).
+	if wpCreates > 0 {
 		version, hash := s.wordpress()
 		b.Pre = []engine.Step{&steps.WPArchive{Version: version, Hash: hash}}
 	}
@@ -454,6 +451,10 @@ type ApplySiteResult struct {
 	// AdminPassword chỉ có khi WPInstalled; JSON luôn "••••" (system.Secret),
 	// người gọi tự Reveal đúng một lần, như SiteAddResult.
 	AdminPassword system.Secret `json:"admin_password"`
+	// DBName, DBPassword: chỉ có khi site vừa tạo là site PHP trống (tpan không
+	// có wp-config.php để ghi mật khẩu DB vào, nên nó phải tới tay người tạo).
+	DBName     string        `json:"db_name,omitempty"`
+	DBPassword system.Secret `json:"db_password"`
 	// SSLError là lời từ chối của pha D cho site này (DNS chưa trỏ về máy,
 	// chưa có email cho Let's Encrypt...): job SSL không chạy, site vẫn được
 	// tạo. Job SSL đã chạy (thành hay hỏng) thì nằm ở ApplyResult.SSL.
@@ -565,6 +566,9 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 			// `wp core install` (ran = true) nhưng WordPress đó đã bị gỡ.
 			if u.add.install != nil && u.add.install.ran {
 				r.WPInstalled, r.AdminUser, r.AdminPassword = true, u.add.AdminUser, u.add.adminPassword
+			}
+			if u.add.Site.Plain() && u.add.db != nil && u.add.db.CreatedUser() {
+				r.DBName, r.DBPassword = u.add.Layout.DB, u.add.db.Password
 			}
 			rec := u.add.Site
 			rec.Created = s.now().UTC()

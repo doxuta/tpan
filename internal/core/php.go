@@ -746,6 +746,23 @@ func (p *PHP) notes(ctx context.Context, list *PHPList, def string) {
 				}
 			}
 		}
+		// Máy chưa thêm kho của Ondřej Surý thì apt chỉ biết bản của Ubuntu, nên
+		// danh sách chỉ có một dòng và không có gì để bấm "Cài" (lỗi của các bản
+		// trước v0.2.14: máy mới không cài thêm được bản PHP nào từ giao diện).
+		// Bù bằng các nhánh php.net còn hỗ trợ: cài một bản trong đó sẽ thêm kho
+		// (PrepareInstall), đúng như `tpan php install <bản>` vẫn làm.
+		if !list.SuryEnabled {
+			have := map[string]bool{}
+			for _, r := range list.Versions {
+				have[r.Version] = true
+			}
+			for v := range known {
+				if !have[v] {
+					list.Versions = append(list.Versions, PHPVersionRow{Version: v, Sites: []string{}, Source: SourceSury})
+				}
+			}
+			slices.SortFunc(list.Versions, func(a, b PHPVersionRow) int { return phpVersionCmp(a.Version, b.Version) })
+		}
 		for i := range list.Versions {
 			row := &list.Versions[i]
 			if s, ok := known[row.Version]; ok {

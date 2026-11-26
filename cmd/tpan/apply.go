@@ -329,6 +329,10 @@ func printApplyIsolation(e *env, rs []checks.Result) {
 // đúng một lần, như site add.
 func printApplyPasswords(e *env, created []core.ApplySiteResult) {
 	for _, c := range created {
+		if c.DBPassword.Reveal() != "" {
+			printf(e.stdout, "\n%s %s\n", e.tr("Site PHP trống", "Empty PHP site"), c.Domain)
+			printDBPassword(e, c.DBName, c.DBPassword)
+		}
 		if !c.WPInstalled {
 			continue
 		}

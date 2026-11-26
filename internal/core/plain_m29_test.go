@@ -194,9 +194,8 @@ func TestSiteAddPlainApacheHtaccess(t *testing.T) {
 	}
 }
 
-// sites.yaml: export ghi app: php cho site PHP trống; apply từ chối riêng dòng
-// "php" của một domain chưa có (không âm thầm tạo WordPress), site đã có thì
-// bỏ qua như mọi site.
+// sites.yaml: export ghi app: php cho site PHP trống; apply tạo đúng loại đó và
+// trả mật khẩu DB của site PHP trống; site đã có thì bỏ qua như mọi site.
 func TestSitesFilePlain(t *testing.T) {
 	se := newPlainEnv(t)
 	ctx := context.Background()
@@ -229,8 +228,25 @@ func TestSitesFilePlain(t *testing.T) {
 	for _, it := range ap.Items {
 		got[it.Domain] = it.Action
 	}
-	if got["example.com"] != ApplySkip || got["new.example.org"] != ApplyRefused || got["wp.example.org"] != ApplyCreate {
-		t.Errorf("việc của từng dòng = %v", got)
+	if got["example.com"] != ApplySkip || got["new.example.org"] != ApplyCreate || got["wp.example.org"] != ApplyCreate {
+		t.Fatalf("việc của từng dòng = %v", got)
+	}
+	res, err := ap.Execute(ctx, nil)
+	if err != nil || res.Report == nil || res.Report.Job.Status != engine.JobSucceeded {
+		t.Fatalf("apply: %v %+v", err, res.Report)
+	}
+	byDom := map[string]ApplySiteResult{}
+	for _, c := range res.Created {
+		byDom[c.Domain] = c
+	}
+	if c := byDom["new.example.org"]; c.WPInstalled || c.DBPassword.Reveal() == "" || c.DBName == "" {
+		t.Errorf("site PHP trống trong lô: %+v", c)
+	}
+	if c := byDom["wp.example.org"]; !c.WPInstalled || c.DBPassword.Reveal() != "" {
+		t.Errorf("site WordPress trong lô: wp=%v, có mật khẩu DB=%v", c.WPInstalled, c.DBPassword.Reveal() != "")
+	}
+	if st, ok, _ := se.st.Site(ctx, mustDomain(t, "new.example.org")); !ok || !st.Plain() {
+		t.Errorf("dòng sites của site PHP trống trong lô: %v %q", ok, st.App)
 	}
 	if _, err := (SitesFile{Sites: []SitesEntry{{Domain: "x.example.org", App: "drupal"}}}).Resolve(); err == nil {
 		t.Error("app lạ trong sites.yaml không bị từ chối")

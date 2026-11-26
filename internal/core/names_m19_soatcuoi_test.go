@@ -41,50 +41,51 @@ func nameOfLen(n int, suffix string) string {
 	return strings.Repeat("a", n-len(suffix)) + suffix
 }
 
-func TestAliasNameTooLong(t *testing.T) {
-	se := soatNamesEnv(t)
-	se.addSite(t, "example.com", "", WWWNone)
-	ctx := context.Background()
-	d := mustDomain(t, "example.com")
-	long := mustDomain(t, nameOfLen(site.MaxNameLen+1, ".example.com"))
-	for _, notAdmin := range []bool{false, true} {
-		se.s.NotAdmin = notAdmin
-		_, err := se.s.PrepareAliasAdd(ctx, d, long, site.ModeServe)
-		if nameCode(err) != site.CodeNameTooLong || !strings.Contains(err.Error(), "46") {
-			t.Errorf("NotAdmin=%v, tên %d byte: %v; muốn name_too_long nêu trần 46", notAdmin, len(long.String()), err)
+// v0.2.14: trần 46 byte của tên phụ đã bỏ (tpan nới bảng tên của nginx lên ô 512
+// byte, steps.EnsureNginxNames). Tên phụ 47 và 100 byte, trước đây bị từ chối
+// name_too_long, giờ thêm được, cả admin lẫn user thường.
+func TestAliasNameLongAccepted(t *testing.T) {
+	if site.MaxNameLen != 253 {
+		t.Fatalf("MaxNameLen = %d, muốn 253 (trần của DNS)", site.MaxNameLen)
+	}
+	for _, n := range []int{47, 100} {
+		for _, notAdmin := range []bool{false, true} {
+			se := soatNamesEnv(t)
+			se.addSite(t, "example.com", "", WWWNone)
+			se.s.NotAdmin = notAdmin
+			// Nhãn DNS dài tối đa 63 byte: tên 100 byte gồm hai nhãn.
+			name := mustDomain(t, nameOfLen(min(n, 60), ".example.com"))
+			if n > 60 {
+				name = mustDomain(t, strings.Repeat("b", n-61)+"."+nameOfLen(60, ".example.com"))
+			}
+			if len(name.String()) != n {
+				t.Fatalf("tên thử dài %d, muốn %d", len(name.String()), n)
+			}
+			op, err := se.s.PrepareAliasAdd(context.Background(), mustDomain(t, "example.com"), name, site.ModeServe)
+			res := execNames(t, op, err)
+			if res.Report.Job.Status != engine.JobSucceeded {
+				t.Fatalf("NotAdmin=%v, tên %d byte: %s %s", notAdmin, n, res.Report.Job.Status, res.Report.Job.Error)
+			}
+			if _, found := rowsOf(t, se, "example.com")[name.String()]; !found {
+				t.Errorf("NotAdmin=%v, tên %d byte chưa vào DB", notAdmin, n)
+			}
 		}
-	}
-	se.s.NotAdmin = false
-	ok := mustDomain(t, nameOfLen(site.MaxNameLen, ".example.com"))
-	op, err := se.s.PrepareAliasAdd(ctx, d, ok, site.ModeServe)
-	res := execNames(t, op, err)
-	if res.Report.Job.Status != engine.JobSucceeded {
-		t.Fatalf("tên 46 byte: %s %s", res.Report.Job.Status, res.Report.Job.Error)
-	}
-	if _, found := rowsOf(t, se, "example.com")[ok.String()]; !found {
-		t.Error("tên 46 byte chưa vào DB")
 	}
 }
 
-func TestSiteAddLongNameSkipsWWW(t *testing.T) {
-	// Gốc 43 byte: www.<gốc> 47 byte, quá trần; gốc 42 byte: www 46 byte, vừa.
-	for _, c := range []struct {
-		n       int
-		wantWWW bool
-	}{{site.MaxNameLen - 3, false}, {site.MaxNameLen - 4, true}} {
+// v0.2.14: gốc dài (43 hay 55 byte) vẫn có tên www mặc định; trước đây www của
+// gốc từ 43 byte trở lên bị bỏ vì quá trần 46 byte.
+func TestSiteAddLongNameKeepsWWW(t *testing.T) {
+	for _, n := range []int{42, 43, 55} {
 		se := soatNamesEnv(t)
-		dom := nameOfLen(c.n, ".example")
+		dom := nameOfLen(n, ".example")
 		res := se.addSite(t, dom, "", "")
 		www := "www." + dom
-		_, has := rowsOf(t, se, dom)[www]
-		if has != c.wantWWW || strings.Contains(vhostOf(t, se, dom), www) != c.wantWWW {
-			t.Errorf("gốc %d byte: có www = %v (vhost %v); muốn %v", c.n, has, strings.Contains(vhostOf(t, se, dom), www), c.wantWWW)
+		if _, has := rowsOf(t, se, dom)[www]; !has || !strings.Contains(vhostOf(t, se, dom), www) {
+			t.Errorf("gốc %d byte: thiếu tên www (trong DB %v, trong vhost %v)", n, has, strings.Contains(vhostOf(t, se, dom), www))
 		}
-		if !c.wantWWW && !strings.Contains(notesText(res.Notes), www) {
-			t.Errorf("gốc %d byte: thiếu ghi chú bỏ www: %v", c.n, res.Notes)
-		}
-		if c.wantWWW && len(res.Notes) != 0 {
-			t.Errorf("gốc %d byte: ghi chú thừa %v", c.n, res.Notes)
+		if len(res.Notes) != 0 {
+			t.Errorf("gốc %d byte: ghi chú thừa %v", n, res.Notes)
 		}
 	}
 }

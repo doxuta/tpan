@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/i18n"
@@ -42,9 +43,15 @@ type File struct {
 	// chưa có thì không báo lỗi: kiểm chứng của Plan tự nói socket thiếu.
 	// Reload nil (WithoutReload, pha A của job hàng loạt) thì không chờ.
 	WaitFor string
+	// Before (v0.2.14): việc phải làm ngay trước khi ghi file này, trong cùng
+	// bước, ví dụ nới bảng tên miền của nginx trước khi ghi một vhost. Trả hàm
+	// hoàn lại (nil khi không đổi gì). Test của bước kiểm cả hai; Test không đạt
+	// hoặc Undo thì hoàn lại cả hai. Hàm này không được chạy lệnh.
+	Before func(sys system.System) (restore func() error, err error)
 
-	prev    saved
-	applied bool
+	prev       saved
+	undoBefore func() error
+	applied    bool
 	// secret (M18): chỉ SecretFile đặt được; File thường từ chối ba file bí
 	// mật (IsSecretPath), vì Info của File khai nội dung mới vào bản xem trước.
 	secret bool
@@ -110,13 +117,42 @@ func (s *File) Apply(ctx context.Context, sys system.System) error {
 	if err != nil {
 		return fmt.Errorf("ghi %s: %w", s.Path, err)
 	}
+	var undoBefore func() error
+	if s.Before != nil {
+		if undoBefore, err = s.Before(sys); err != nil {
+			return fmt.Errorf("ghi %s: %w", s.Path, err)
+		}
+	}
 	if err := sys.WriteFileAtomic(s.Path, s.Content, s.Perm, normOwner(s.Owner)); err != nil {
+		if undoBefore != nil {
+			if rerr := undoBefore(); rerr != nil {
+				return fmt.Errorf("ghi %s: %w (hoàn lại việc đi kèm cũng lỗi: %v)", s.Path, err, rerr)
+			}
+		}
 		return fmt.Errorf("ghi %s: %w", s.Path, err)
 	}
 	if err := verifyOrRestore(ctx, sys, prev, s.Test, s.Reload, "ghi "+s.Path); err != nil {
-		return err
+		if undoBefore == nil {
+			return err
+		}
+		if rerr := undoBefore(); rerr != nil {
+			return fmt.Errorf("%w (hoàn lại việc đi kèm cũng lỗi: %v)", err, rerr)
+		}
+		// Việc đi kèm đụng một chỉ thị người quản trị đã tự đặt ở chỗ khác (nginx:
+		// "... directive is duplicate"): bỏ việc đi kèm, ghi lại file chính rồi
+		// kiểm lại. Lỗi khác thì báo như cũ; file chính đã được trả về.
+		if !strings.Contains(err.Error(), "is duplicate") {
+			return err
+		}
+		undoBefore = nil
+		if err := sys.WriteFileAtomic(s.Path, s.Content, s.Perm, normOwner(s.Owner)); err != nil {
+			return fmt.Errorf("ghi %s: %w", s.Path, err)
+		}
+		if err := verifyOrRestore(ctx, sys, prev, s.Test, s.Reload, "ghi "+s.Path); err != nil {
+			return err
+		}
 	}
-	s.prev, s.applied = prev, true
+	s.prev, s.undoBefore, s.applied = prev, undoBefore, true
 	if s.Reload != nil && s.WaitFor != "" {
 		waitForPath(ctx, sys, s.WaitFor)
 	}
@@ -129,6 +165,11 @@ func (s *File) Undo(ctx context.Context, sys system.System) error {
 	}
 	if err := s.prev.restore(sys); err != nil {
 		return err
+	}
+	if s.undoBefore != nil {
+		if err := s.undoBefore(); err != nil {
+			return err
+		}
 	}
 	what := "trả lại " + s.Path
 	if err := runTest(ctx, sys, s.Test, what); err != nil {

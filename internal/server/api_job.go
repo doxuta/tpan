@@ -77,6 +77,12 @@ type jobResult struct {
 	secrets []AdminSecret
 	// dbSecret: mật khẩu DB rời vừa tạo hoặc vừa đổi (M13); chỉ đặt khi job thành công.
 	dbSecret *DBSecret
+	// dbSecrets: mật khẩu DB của các site PHP trống vừa tạo trong job hàng loạt.
+	dbSecrets []DBSecret
+	// chain: id các job chạy nối tiếp sau job này trong cùng một lần bấm (tạo
+	// lại site rồi khôi phục, thêm lại tên phụ...). GET /jobs/{id} của job đầu
+	// trả chúng (JobDetail.Chain) để giao diện báo đúng kết quả của cả chuỗi.
+	chain []string
 }
 
 type jobFunc func(ctx context.Context, onEvent func(engine.Event)) (jobResult, error)
@@ -121,9 +127,10 @@ func (a *apiState) run(id string) *jobRun {
 // dòng mỗi site vừa cài WordPress). Hai trường riêng để giao diện cũ của
 // site.add vẫn đọc đúng chỗ cũ.
 type heldSecret struct {
-	one  *AdminSecret
-	many []AdminSecret
-	db   *DBSecret // M13: JobDetail.DBSecret
+	one    *AdminSecret
+	many   []AdminSecret
+	db     *DBSecret  // M13: JobDetail.DBSecret
+	dbMany []DBSecret // JobDetail.DBSecrets
 	// starterToken (M20, mục 11.3, R9): id token đã khởi job; rỗng là job do
 	// một phiên khởi.
 	starterToken string
@@ -191,8 +198,16 @@ func (s *Server) jobStart(w http.ResponseWriter, r *http.Request, o jobOpts, fn 
 		// guard: job ghi cột actor) nhưng không bị huỷ theo request.
 		res, err := fn(ar.Context(), onEvent)
 		a.mu.Lock()
-		if (res.secret != nil || len(res.secrets) > 0 || res.dbSecret != nil) && run.id != "" {
-			a.secrets[run.id] = heldSecret{one: res.secret, many: res.secrets, db: res.dbSecret, starterToken: tokenIDOf(ar.Context())}
+		if (res.secret != nil || len(res.secrets) > 0 || res.dbSecret != nil || len(res.dbSecrets) > 0) && run.id != "" {
+			a.secrets[run.id] = heldSecret{one: res.secret, many: res.secrets, db: res.dbSecret, dbMany: res.dbSecrets, starterToken: tokenIDOf(ar.Context())}
+		}
+		if len(res.chain) > 0 && run.id != "" {
+			// Chỉ trong bộ nhớ (tpan khởi động lại thì mất; các job vẫn có ở
+			// Lịch sử). Giữ số lượng có trần để không lớn mãi.
+			if len(a.chains) >= 500 {
+				a.chains = map[string][]string{}
+			}
+			a.chains[run.id] = res.chain
 		}
 		delete(a.runs, run.id)
 		a.busy = false
@@ -367,4 +382,11 @@ func (s *Server) handleSiteDelete(w http.ResponseWriter, r *http.Request) {
 		rep, err := rm.Execute(ctx, onEvent)
 		return jobResult{status: rep.Job.Status}, err
 	})
+}
+
+// chainOf trả id các job đã chạy nối tiếp sau job id (jobResult.chain).
+func (a *apiState) chainOf(id string) []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.chains[id]
 }

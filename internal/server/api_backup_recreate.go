@@ -171,6 +171,9 @@ func (s *Server) backupRecreate(w http.ResponseWriter, r *http.Request, d valida
 		// Sự kiện của job thứ hai không đưa vào luồng của job đầu (khác job id).
 		rep, err := pl.Execute(ctx, nil)
 		out := jobResult{status: rep.Job.Status}
+		if rep.Job.ID != "" {
+			out.chain = append(out.chain, rep.Job.ID)
+		}
 		// Site PHP trống tạo lại có user DB mới: mật khẩu của nó phải tới tay
 		// người bấm, kể cả khi bước khôi phục hỏng (site mới vẫn còn đó).
 		if pw := res.DBPassword.Reveal(); pw != "" {
@@ -196,6 +199,9 @@ func (s *Server) backupRecreate(w http.ResponseWriter, r *http.Request, d valida
 						result = string(nres.Report.Job.Status)
 					}
 					s.auditAs(ctx, clientIP(r), "site.alias.add", target, result, nres.Report.Job.ID)
+					if nres.Report.Job.ID != "" {
+						out.chain = append(out.chain, nres.Report.Job.ID)
+					}
 					continue
 				}
 			}
@@ -219,6 +225,9 @@ func (s *Server) backupRecreate(w http.ResponseWriter, r *http.Request, d valida
 				result = string(nres.Report.Job.Status)
 			}
 			s.auditAs(ctx, clientIP(r), "site.redirect.add", target, result, nres.Report.Job.ID)
+			if nres.Report.Job.ID != "" {
+				out.chain = append(out.chain, nres.Report.Job.ID)
+			}
 		}
 		return out, nil
 	})

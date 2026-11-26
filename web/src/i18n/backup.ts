@@ -32,8 +32,6 @@ const vi = {
   colCreated: "Tạo lúc",
   colSize: "Cỡ",
   colWhere: "Ở đâu",
-  colSha: "sha256",
-  colPath: "Đường dẫn",
   colAction: "Việc",
   // Nơi bản nằm (máy chủ tính, core.BackupLocation). push_failed không có title vì nó là dòng trạng thái kèm câu lỗi;
   // title của other_target nằm ở otherTitles, otherLocalTitles bên dưới vì nó đổi theo việc đã đặt đích chưa.
@@ -86,8 +84,6 @@ const vi = {
     "before-import": "Tự xuất trước khi nhập DB",
   },
   siteGone: "site đã xoá",
-  shaCopy: (sha: string) => `Chép sha256 đầy đủ ${sha}`,
-  shaTitle: "bấm để chép sha256 đầy đủ",
   restore: "Khôi phục",
   restoreFor: (d: string, when: string) => `Khôi phục ${d} từ bản lúc ${when}`,
   previewing: "Đang dựng bản xem trước…",
@@ -95,7 +91,7 @@ const vi = {
   trashedLink: "thùng rác",
   trashedTail: " trước.",
   goneNote: "Site đã xoá hẳn. Bản này vẫn dùng được: TPAN tạo lại site rồi khôi phục mã nguồn và DB.",
-  restoreRecreate: "Tạo lại site và khôi phục",
+  restoreRecreate: "Tạo lại site",
   restoreRecreateFor: (d: string, when: string) => `Tạo lại site ${d} và khôi phục bản backup lúc ${when}`,
   restoreRecreateWarning: (d: string, when: string) =>
     `Site ${d} đã xoá hẳn. TPAN sẽ tạo lại site này (WordPress mới, mật khẩu DB mới) rồi đưa mã nguồn và DB của bản backup lúc ${when} vào. Tên miền phụ, chứng chỉ SSL và bản PHP riêng của site cũ không tự có lại.`,
@@ -108,8 +104,10 @@ const vi = {
     `Khôi phục ${d} ghi đè file và cơ sở dữ liệu hiện tại bằng bản lúc ${when}. TPAN tự backup hiện trạng trước, nên bạn quay lại được.`,
   restoreErrorHeading: (d: string) => `Chưa dựng được bản xem trước khôi phục ${d}`,
   download: "Tải về máy tính",
+  copySha: "Chép mã sha256",
+  copyPath: "Chép đường dẫn file",
   deleteLocal: "Xoá bản này",
-  moreFor: (d: string, when: string) => `Việc khác với bản backup của ${d} lúc ${when}: tải về máy tính, xoá`,
+  moreFor: (d: string, when: string) => `Việc khác với bản backup của ${d} lúc ${when}: tải về máy tính, chép mã sha256, chép đường dẫn, xoá`,
   deleteWarning: (d: string, when: string, stored: boolean) =>
     stored
       ? `Xoá khỏi máy bản backup của ${d} lúc ${when}. Bản đã đẩy lên kho vẫn còn và tải về lại được. File trên máy xoá rồi không lấy lại được.`
@@ -156,8 +154,6 @@ export const strings = defineStrings(vi, {
   colCreated: "Created",
   colSize: "Size",
   colWhere: "Where",
-  colSha: "sha256",
-  colPath: "Path",
   colAction: "Action",
   locations: { machine: "server", remote: "storage", both: "server and storage", other_target: "other storage", push_failed: "upload failed" },
   locTitles: {
@@ -201,8 +197,6 @@ export const strings = defineStrings(vi, {
     "before-import": "Automatic export, before a DB import",
   },
   siteGone: "site deleted",
-  shaCopy: (sha) => `Copy the full sha256 ${sha}`,
-  shaTitle: "press to copy the full sha256",
   restore: "Restore",
   restoreFor: (d, when) => `Restore ${d} from the backup of ${when}`,
   previewing: "Building the preview…",
@@ -210,7 +204,7 @@ export const strings = defineStrings(vi, {
   trashedLink: "trash",
   trashedTail: " first.",
   goneNote: "The site was deleted for good. This backup still works: TPAN creates the site again, then restores its code and database.",
-  restoreRecreate: "Recreate site and restore",
+  restoreRecreate: "Recreate site",
   restoreRecreateFor: (d, when) => `Recreate site ${d} and restore the backup from ${when}`,
   restoreRecreateWarning: (d, when) =>
     `Site ${d} was deleted for good. TPAN will create it again (fresh WordPress, new database password), then put the code and database of the backup from ${when} in. The old site's alias domains, SSL certificate and own PHP version do not come back by themselves.`,
@@ -223,8 +217,10 @@ export const strings = defineStrings(vi, {
     `Restoring ${d} overwrites its current files and database with the backup of ${when}. TPAN backs up the current state first, so you can go back.`,
   restoreErrorHeading: (d) => `Could not build the restore preview for ${d}`,
   download: "Download to this computer",
+  copySha: "Copy the sha256",
+  copyPath: "Copy the file path",
   deleteLocal: "Delete this backup",
-  moreFor: (d, when) => `More for the backup of ${d} from ${when}: download, delete`,
+  moreFor: (d, when) => `More for the backup of ${d} from ${when}: download, copy the sha256, copy the path, delete`,
   deleteWarning: (d, when, stored) =>
     stored
       ? `Deletes the backup of ${d} from ${when} from this server. The copy pushed to storage stays and can be fetched again. The file on this server cannot be brought back.`

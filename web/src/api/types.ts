@@ -142,7 +142,13 @@ export type JobDetail = {
   secrets?: AdminSecret[];
   /** M13: mật khẩu DB rời vừa tạo hoặc vừa đổi. Hiện một lần. */
   db_secret?: DBSecret;
+  /** Như db_secret, cho job hàng loạt tạo site PHP trống (mỗi site một dòng). */
+  db_secrets?: DBSecret[];
+  /** Các job chạy nối tiếp sau job này trong cùng một lần bấm (tạo lại site rồi khôi phục, thêm lại tên phụ...). Có khi job đầu đã xong. */
+  chain?: ChainJob[];
 };
+
+export type ChainJob = { id: string; kind: string; title: Text; status: JobStatus; error?: string };
 
 // ---- Site (internal/site, internal/core) ----
 

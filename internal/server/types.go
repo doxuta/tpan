@@ -246,6 +246,22 @@ type JobDetail struct {
 	// DBSecret (M13): mật khẩu của DB rời vừa tạo hoặc vừa đổi mật khẩu; như
 	// Secret, chỉ ở lần GET đầu tiên sau khi job thành công.
 	DBSecret *DBSecret `json:"db_secret,omitempty"`
+	// DBSecrets: như DBSecret, cho job hàng loạt tạo site PHP trống (mỗi site
+	// một dòng). Hiện một lần rồi bỏ.
+	DBSecrets []DBSecret `json:"db_secrets,omitempty"`
+	// Chain: các job đã chạy nối tiếp sau job này trong cùng một lần bấm (ví
+	// dụ khôi phục một bản backup của site đã xoá hẳn: job này tạo lại site,
+	// chuỗi là job khôi phục và các job thêm lại tên phụ). Có khi job đầu xong.
+	Chain []ChainJob `json:"chain,omitempty"`
+}
+
+// ChainJob là một job trong JobDetail.Chain.
+type ChainJob struct {
+	ID     string           `json:"id"`
+	Kind   string           `json:"kind"`
+	Title  i18n.Text        `json:"title"`
+	Status engine.JobStatus `json:"status"`
+	Error  string           `json:"error,omitempty"`
 }
 
 type AdminSecret struct {

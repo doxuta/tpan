@@ -19,7 +19,16 @@ import { stashJobSecrets } from "../screens/lich-su/useJob";
 import { StatusMark } from "./StatusMark";
 
 /** hasSecret: job trả về một mật khẩu chỉ hiện một lần (đã cất bằng stashJobSecrets); thẻ nhắc người dùng mở chi tiết và không tự ẩn. */
-type Tracked = { id: string; title?: Text; status: JobStatus | "unknown"; error?: string; hasSecret?: boolean };
+type Tracked = {
+  id: string;
+  title?: Text;
+  status: JobStatus | "unknown";
+  error?: string;
+  hasSecret?: boolean;
+  /** Số việc chạy nối tiếp sau job này (JobDetail.chain), và việc nối tiếp đầu tiên không thành công, nếu có. */
+  chainCount?: number;
+  chainFail?: { id: string; title: Text };
+};
 
 type Ctx = {
   track: (id: string) => void;
@@ -74,12 +83,20 @@ export function JobTrackerProvider({ children }: { children: ReactNode }) {
         for (;;) {
           try {
             const d = await readJob(id);
-            setJobs((cur) => cur.map((j) => (j.id === id ? { ...j, title: d.job.title, status: d.job.status, error: d.job.error, hasSecret: j.hasSecret || d.hasSecret } : j)));
+            const bad = (d.chain ?? []).find((c) => c.status !== "succeeded");
+            setJobs((cur) =>
+              cur.map((j) =>
+                j.id === id
+                  ? { ...j, title: d.job.title, status: d.job.status, error: d.job.error, hasSecret: j.hasSecret || d.hasSecret, chainCount: d.chain?.length ?? 0, chainFail: bad ? { id: bad.id, title: bad.title } : undefined }
+                  : j,
+              ),
+            );
             if (d.job.status !== "running") {
               // Job xong: tải lại mọi dữ liệu đang hiện (bảng, số đếm ở menu, bản đồ tuyến).
               void qc.invalidateQueries();
               // Có mật khẩu chờ người dùng lấy thì thẻ ở lại cho tới khi họ đóng.
-              if (d.job.status === "succeeded" && !d.hasSecret) {
+              // Một việc nối tiếp hỏng thì thẻ cũng ở lại, như job lỗi.
+              if (d.job.status === "succeeded" && !d.hasSecret && !bad) {
                 timers.current.set(
                   id,
                   window.setTimeout(() => setJobs((cur) => cur.filter((j) => j.id !== id)), doneHideMs),
@@ -118,12 +135,18 @@ export function JobTrackerProvider({ children }: { children: ReactNode }) {
 function JobCard({ job, onClose }: { job: Tracked; onClose: () => void }) {
   const t = useStrings(strings);
   const { lang } = useLang();
-  const mark = job.status === "running" || job.status === "unknown" ? "unknown" : job.status === "succeeded" ? "pass" : "fail";
+  // Job đầu xong tốt mà một việc nối tiếp hỏng thì cả lần bấm là hỏng.
+  const chainBad = job.status === "succeeded" && job.chainFail !== undefined;
+  const mark = job.status === "running" || job.status === "unknown" ? "unknown" : job.status === "succeeded" && !chainBad ? "pass" : "fail";
   const text =
     job.status === "running" || job.status === "unknown"
       ? t.jobRunning
-      : job.status === "succeeded"
-        ? t.jobDone
+      : chainBad
+        ? t.jobChainFailed(tx(job.chainFail!.title, lang))
+        : job.status === "succeeded"
+          ? (job.chainCount ?? 0) > 0
+            ? t.jobDoneChain(job.chainCount!)
+            : t.jobDone
         : job.status === "rolled_back"
           ? t.jobRolledBack
           : t.jobUndoFailed;
@@ -140,7 +163,7 @@ function JobCard({ job, onClose }: { job: Tracked; onClose: () => void }) {
             {job.error ? `: ${job.error}` : ""}
           </p>
           {job.hasSecret && <p className="m-0 mt-[4px] text-[13px] font-medium">{t.jobSecret}</p>}
-          <Link to={`/jobs/${encodeURIComponent(job.id)}`} className="mt-[4px] inline-block text-[13px]">
+          <Link to={`/jobs/${encodeURIComponent(chainBad ? job.chainFail!.id : job.id)}`} className="mt-[4px] inline-block text-[13px]">
             {job.hasSecret ? t.jobSecretLink : t.jobDetails}
           </Link>
         </div>

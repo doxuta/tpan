@@ -82,8 +82,8 @@ func (s *Sites) aliasRefusal(err error) error {
 			"the name "+n+" is reserved for tpan's probe; choose another name"))
 	case site.CodeNameTooLong:
 		return refuse(ne.Code, i18n.T(
-			fmt.Sprintf("tên phụ %s dài %d byte; tối đa %d byte (giới hạn bảng băm tên của nginx, server_names_hash_bucket_size 64), áp cho mọi web server để máy đổi được stack", n, len(n), site.MaxNameLen),
-			fmt.Sprintf("the alias %s is %d bytes long; at most %d bytes (nginx's server name hash limit, server_names_hash_bucket_size 64), applied on every web server so the machine can switch stack", n, len(n), site.MaxNameLen)))
+			fmt.Sprintf("tên phụ %s dài %d byte; tối đa %d byte (trần độ dài tên miền của DNS)", n, len(n), site.MaxNameLen),
+			fmt.Sprintf("the alias %s is %d bytes long; at most %d bytes (the DNS limit on a domain name)", n, len(n), site.MaxNameLen)))
 	case site.CodeAliasExists:
 		return refuse(ne.Code, i18n.T("tên "+n+" đã là tên phụ của site này", "the name "+n+" is already an alias of this site"))
 	case site.CodeNameTakenSelf:

@@ -977,7 +977,7 @@ func SiteVhostSSL(l site.Layout, web, phpVersion, acmeRoot string, mode site.Hta
 	}
 	d := l.Domain.String()
 	return []engine.Step{
-		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload,
+		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload, Before: v.before,
 			Title: i18n.T("Ghi vhost "+web+" có HTTPS cho "+d, "Write "+web+" HTTPS vhost for "+d),
 			Why: i18n.T(
 				"Vhost này cho "+web+" phục vụ https://"+d+" bằng chứng chỉ vừa xin và chuyển http sang https (trừ đường thử thách của Let's Encrypt, để gia hạn vẫn chạy). Thiếu nó thì chứng chỉ nằm trên đĩa mà không ai dùng.",

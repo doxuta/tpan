@@ -69,11 +69,14 @@ type PackageEdit struct {
 	// Name: tên gói lấy từ đường dẫn. Thân trước M17 là account.Package, có
 	// "name", và giao diện cũ vẫn gửi kèm: nhận để không trả 400 vì trường lạ,
 	// nhưng phải trùng tên trên đường dẫn (handlePackageEdit).
-	Name       string `json:"name,omitempty"`
-	MaxSites   int    `json:"max_sites"`
-	MaxDBs     int    `json:"max_dbs"`
-	DiskMB     int    `json:"disk_mb"`
-	MaxBackups int    `json:"max_backups"`
+	Name string `json:"name,omitempty"`
+	// Bốn hạn mức cũ cũng là con trỏ (từ v0.2.14): vắng mặt là giữ nguyên. Trước
+	// đó vắng mặt bị hiểu là 0 (không giới hạn), nên một lệnh gọi API chỉ gửi
+	// {"ram_mb":512} đã lặng lẽ gỡ hết hạn mức site, DB, đĩa, backup của gói.
+	MaxSites   *int   `json:"max_sites,omitempty"`
+	MaxDBs     *int   `json:"max_dbs,omitempty"`
+	DiskMB     *int   `json:"disk_mb,omitempty"`
+	MaxBackups *int   `json:"max_backups,omitempty"`
 	Cage       *bool  `json:"cage,omitempty"`
 	CPUPercent *int   `json:"cpu_percent,omitempty"`
 	RAMMB      *int   `json:"ram_mb,omitempty"`

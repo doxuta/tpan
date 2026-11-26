@@ -272,6 +272,9 @@ func applyJob(ap *core.Apply) jobFunc {
 		// Kể cả khi err khác nil, mật khẩu đã có vẫn phải tới người dùng (như
 		// site.add): mất nó là mất tài khoản quản trị.
 		for _, c := range res.Created {
+			if pw := c.DBPassword.Reveal(); pw != "" {
+				out.dbSecrets = append(out.dbSecrets, DBSecret{DB: c.DBName, User: c.DBName, Password: pw})
+			}
 			if !c.WPInstalled {
 				continue
 			}

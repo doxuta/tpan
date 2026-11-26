@@ -510,18 +510,27 @@ func TestM17BangMaHTTP(t *testing.T) {
 
 func TestM17PackageEditOver(t *testing.T) {
 	cur := account.Package{Name: "p", MaxSites: 1, Cage: true, CPUPercent: 10, RAMMB: 100, Tasks: 40, IOReadMB: 2, IOWriteMB: 3, PHPWorkers: 4}
-	got := PackageEdit{MaxSites: 9}.over(cur)
+	nine, zero := 9, 0
+	got := PackageEdit{MaxSites: &nine}.over(cur)
 	want := cur
 	want.MaxSites = 9
 	if got != want {
 		t.Errorf("không có trường mới: %+v", got)
 	}
+	// Chỉ gửi trần của lồng: hạn mức site (đang 1) phải giữ nguyên, không về 0.
 	one, no := 7, false
 	got = PackageEdit{Cage: &no, RAMMB: &one, PHPWorkers: &one}.over(cur)
 	want = cur
-	want.MaxSites, want.Cage, want.RAMMB, want.PHPWorkers = 0, false, 7, 7
+	want.Cage, want.RAMMB, want.PHPWorkers = false, 7, 7
 	if got != want {
 		t.Errorf("có trường mới: %+v", got)
+	}
+	// Muốn bỏ hạn mức thì gửi rõ số 0.
+	got = PackageEdit{MaxSites: &zero}.over(cur)
+	want = cur
+	want.MaxSites = 0
+	if got != want {
+		t.Errorf("gửi 0 để bỏ hạn mức: %+v", got)
 	}
 }
 

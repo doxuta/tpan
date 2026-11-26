@@ -18,6 +18,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Code } from "../../components/MonoText";
+import { TextField } from "../../components/Field";
 import { TableList } from "../../components/TableList";
 import { Tag } from "../../components/Tag";
 import { useLang, useStrings } from "../../i18n";
@@ -59,6 +60,8 @@ function Loaded({ list }: { list: PHPList }) {
   const [open, setOpen] = useState<{ action: Action; preview: Preview } | null>(null);
   /** Các bản đang mở danh sách site. */
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  /** Ô "Cài bản PHP khác" (v0.2.14). */
+  const [other, setOther] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
 
   const dry = useMutation({
@@ -108,6 +111,8 @@ function Loaded({ list }: { list: PHPList }) {
     });
 
   const busy = dry.isPending || run.isPending;
+  // Ô "Cài bản PHP khác": cùng dạng số bản mà máy chủ nhận (checkPHPVersion); bản đã cài thì không mời cài lại.
+  const otherOk = /^[0-9]{1,2}\.[0-9]{1,2}$/.test(other.trim()) && !versions.some((v) => v.version === other.trim() && v.installed);
 
   // Ghi chú ở chân bảng: cách dùng hai nút, rồi hai lời báo khi thiếu dữ liệu ngoài.
   const notes = [
@@ -186,6 +191,27 @@ function Loaded({ list }: { list: PHPList }) {
           },
         ]}
       />
+
+      {/* v0.2.14: luôn có chỗ gõ số bản. Bảng trên chỉ có bản apt biết và bản php.net còn hỗ trợ;
+          máy không ra được mạng, hay cần một bản đã hết hỗ trợ, thì vẫn cài được từ đây. */}
+      <Card title={t.otherHeading} titleId="st-php-khac">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (otherOk) start(installAction(other.trim()));
+          }}
+        >
+          <div className="flex flex-wrap items-end gap-x-[14px] gap-y-[10px]">
+            <div className="w-[160px]">
+              <TextField id="st-php-ban" label={t.otherLabel} mono value={other} onChange={(e) => setOther(e.target.value)} invalid={other.trim() !== "" && !otherOk} inputMode="decimal" autoComplete="off" spellCheck={false} />
+            </div>
+            <Button id={`act-install-${other.trim()}`} type="submit" disabled={busy || !otherOk}>
+              {dry.isPending && dry.variables.id === `install-${other.trim()}` ? t.previewing : t.otherButton}
+            </Button>
+          </div>
+          <p className="mt-[10px] mb-0 max-w-[72ch] text-[13px] text-muted">{other.trim() !== "" && !otherOk ? t.otherInvalid : t.otherHint}</p>
+        </form>
+      </Card>
 
       {dry.isError && (
         <Card>

@@ -1523,7 +1523,7 @@ func SiteVhostCaged(l site.Layout, web, acmeRoot string, ssl bool, mode site.Hta
 		title = i18n.T("Ghi vhost "+web+" có HTTPS cho "+d+" (PHP trong lồng)", "Write "+web+" HTTPS vhost for "+d+" (caged PHP)")
 	}
 	return []engine.Step{
-		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload,
+		&File{Path: v.conf, Content: conf, Perm: 0o644, Owner: system.Root, Test: v.test, Reload: v.reload, Before: v.before,
 			Title: title,
 			Why: i18n.T(
 				"Vhost nói cho "+web+" biết request tới "+d+" lấy file ở đâu và chuyển .php tới đâu. Site ở trong lồng nên .php phải tới socket của lồng; vhost còn trỏ socket của pool chung thì site ra 502 hoặc chạy PHP ngoài lồng.",

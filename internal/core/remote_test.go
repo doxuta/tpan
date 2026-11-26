@@ -306,6 +306,32 @@ func TestDonTrenMayGiuaLucDayKhongMatBan(t *testing.T) {
 	}
 }
 
+// Người dùng XOÁ bản đang được đẩy: khác với bị dọn, object vừa tải cũng phải
+// bị xoá và dòng không được hiện lại.
+func TestXoaBanDangDayKhongHienLai(t *testing.T) {
+	e := newRtEnv(t)
+	b := e.addFull(t, "example.com", "20261121-090000", rtNow.Add(-time.Hour), ReasonManual)
+	e.obj = rtPruneDuringPush{e.mem, func() {
+		gone, err := e.st.ForgetBackupLocal(e.ctx, b.ID)
+		if err != nil || !gone {
+			t.Errorf("ForgetBackupLocal: %v %v", gone, err)
+		}
+		if err := e.st.MarkBackupDeleted(e.ctx, b.ID); err != nil {
+			t.Error(err)
+		}
+	}}
+	e.sync(t, SyncOptions{})
+	if _, ok, _ := e.st.Backup(e.ctx, b.ID); ok {
+		t.Fatal("bản người dùng đã xoá hiện lại trong bảng backups")
+	}
+	if n := len(e.mem.Objects()); n != 0 {
+		t.Fatalf("object của bản đã xoá còn trên kho: %v", e.mem.Objects())
+	}
+	if again, _ := e.st.TakeBackupDeleted(e.ctx, b.ID); again {
+		t.Error("dấu đã xoá chưa được gỡ")
+	}
+}
+
 // B2: không đánh dấu stored khi đọc lại không khớp.
 func TestDayChiDanhDauSauKhiDocLai(t *testing.T) {
 	e := newRtEnv(t)

@@ -37,17 +37,15 @@ const (
 	MaxNames = 25
 	// MaxRedirects: số luật chuyển hướng tối đa mỗi site.
 	MaxRedirects = 50
-	// MaxNameLen (soát cuối C8): số byte tối đa của một tên phụ, để nginx với
-	// server_names_hash_bucket_size 64 (nginx-org-include.conf.tmpl; gói
-	// Ubuntu mặc định bằng cache line, 64 trên amd64 và arm64) vẫn dựng được
-	// bảng băm tên. src/core/ngx_hash.c, ngx_hash_init: một tên cần
-	// NGX_HASH_ELT_SIZE = sizeof(void*) + ngx_align(len+2, sizeof(void*)) cộng
-	// thêm sizeof(void*) đánh dấu cuối bucket; máy 64 bit: 8 + align8(len+2) +
-	// 8 <= 64, tức len <= 46. Khớp số đo của soát cuối (46 byte: nginx -t đạt,
-	// 47 byte: "could not build server_names_hash"). Áp cho mọi stack: máy
-	// Apache có thể đổi sang nginx, và một tên dài làm hỏng đổi stack cả máy.
-	// Tên chính không bị luật này (hành vi trước M19 giữ nguyên).
-	MaxNameLen = 46
+	// MaxNameLen: số byte tối đa của một tên phụ. Từ v0.2.14 là trần của DNS (253).
+	//
+	// Trước đó là 46 (soát cuối C8 của M19): nginx với ô bảng tên 64 byte không
+	// dựng được bảng băm cho tên dài hơn (src/core/ngx_hash.c: một tên cần
+	// 8 + align8(len+2) + 8 byte). Luật đó chỉ chặn tên phụ, còn tên chính dài thì
+	// vẫn nhận và làm `nginx -t` hỏng lúc tạo site. v0.2.14 sửa tận gốc: tpan đặt
+	// ô 512 byte (steps.EnsureNginxNames, conf.d/tpan-names.conf), 8 + align8(253+2)
+	// + 8 = 272 <= 512, nên mọi tên DNS hợp lệ đều vừa và trần 46 không còn lý do.
+	MaxNameLen = 253
 )
 
 // Mã của NameError (mục 3.2 và 3.7).

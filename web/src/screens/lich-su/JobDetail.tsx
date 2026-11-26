@@ -9,7 +9,7 @@
 // đang đọc nó chạy); bước đã xong clamp 20 dòng.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useAi } from "../../ai/AiProvider";
 import { errorMessage } from "../../api/client";
 import { useWho } from "../../api/m13-users";
@@ -31,7 +31,7 @@ import { formatClock, formatDateTime, formatDuration } from "./format";
 import { buildView, elapsedMs, type Block, type JobView } from "./jobModel";
 import { SecretBox } from "./SecretBox";
 import { UnitTable } from "./UnitTable";
-import { useAdminSecret, useDbSecret, useJob } from "./useJob";
+import { useAdminSecret, useDbSecrets, useJob } from "./useJob";
 
 type T = (typeof strings)["vi"];
 
@@ -53,9 +53,9 @@ export function JobDetail() {
   const k = useStrings(khung);
   const { lang } = useLang();
   const { id = "" } = useParams();
-  const { query, job, events, running, stream, reconnect } = useJob(id);
+  const { query, job, chain, events, running, stream, reconnect } = useJob(id);
   const { secrets, dismiss } = useAdminSecret(id);
-  const dbSecret = useDbSecret(id);
+  const dbSecret = useDbSecrets(id);
   const view = useMemo(() => buildView(events), [events]);
   const now = useNow(running);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -117,7 +117,25 @@ export function JobDetail() {
       {secrets.map((s, i) => (
         <SecretBox key={s.url} secret={s} many={secrets.length > 1} focus={i === 0} onDismiss={() => dismiss(i)} />
       ))}
-      {dbSecret.secret && <DbSecretBox secret={dbSecret.secret} onDismiss={dbSecret.dismiss} />}
+      {dbSecret.secrets.map((s, i) => (
+        <DbSecretBox key={s.db} secret={s} focus={i === 0 && secrets.length === 0} onDismiss={() => dbSecret.dismiss(i)} />
+      ))}
+
+      {chain.length > 0 && (
+        <Card title={t.chainHeading} titleId="chain-heading">
+          <p className="m-0 mb-[10px] text-[13px] text-muted">{t.chainHint}</p>
+          <ul className="m-0 flex list-none flex-col gap-[8px] p-0">
+            {chain.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[2px]">
+                <StatusLine status={jobMark(c.status)}>{c.status in t.status ? t.status[c.status as keyof T["status"]] : c.status}</StatusLine>
+                <Link to={`/jobs/${encodeURIComponent(c.id)}`} className="[overflow-wrap:anywhere]">
+                  {tx(c.title, lang)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <Card footer={running && stream !== "lost" ? t.liveNote : undefined}>
         <dl className="m-0 grid grid-cols-2 gap-x-[16px] gap-y-[12px] sm:flex sm:flex-wrap sm:gap-x-[40px]">

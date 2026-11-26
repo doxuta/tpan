@@ -171,20 +171,23 @@ func TestRootForeign(t *testing.T) {
 	checkCode(t, "co.uk", err, CodeNamePublicSuffix)
 }
 
-// TestCheckClaimsNameTooLong (soát cuối C8): tên phụ dài hơn MaxNameLen byte bị
-// từ chối, kể cả admin; tên chính không bị luật này.
-func TestCheckClaimsNameTooLong(t *testing.T) {
-	long := func(n int) string { // n byte, đuôi .example.com (12 byte)
-		return strings.Repeat("a", n-len(".example.com")) + ".example.com"
+// TestCheckClaimsLongNames (v0.2.14): trần 46 byte của tên phụ đã bỏ, vì tpan
+// nới bảng tên của nginx. Tên phụ 47 byte và 200 byte đều qua, như tên chính.
+func TestCheckClaimsLongNames(t *testing.T) {
+	if MaxNameLen != 253 {
+		t.Fatalf("MaxNameLen = %d, muốn 253 (trần của DNS)", MaxNameLen)
 	}
-	ok46, bad47 := long(MaxNameLen), long(MaxNameLen+1)
-	if len(ok46) != 46 || len(bad47) != 47 {
-		t.Fatalf("độ dài %d %d", len(ok46), len(bad47))
+	n47 := strings.Repeat("a", 47-len(".example.com")) + ".example.com"
+	// 200 byte, mỗi nhãn không quá 63 byte.
+	n200 := strings.Repeat("b", 62) + "." + strings.Repeat("c", 62) + "." + strings.Repeat("d", 200-62-62-2-len(".example.com")) + ".example.com"
+	if len(n47) != 47 || len(n200) != 200 {
+		t.Fatalf("độ dài %d %d", len(n47), len(n200))
 	}
-	alias := claimOf(t, bad47, "a.example.com", "usera", KindAlias)
-	checkCode(t, "tên phụ 47 byte", CheckClaims([]Claim{alias}, nil), CodeNameTooLong)
-	alias.ByAdmin = true
-	checkCode(t, "tên phụ 47 byte, admin", CheckClaims([]Claim{alias}, nil), CodeNameTooLong)
-	checkCode(t, "tên phụ 46 byte", CheckClaims([]Claim{claimOf(t, ok46, "a.example.com", "usera", KindAlias)}, nil), "")
-	checkCode(t, "tên chính 47 byte", CheckClaims([]Claim{claimOf(t, bad47, bad47, "usera", KindPrimary)}, nil), "")
+	for _, n := range []string{n47, n200} {
+		alias := claimOf(t, n, "a.example.com", "usera", KindAlias)
+		checkCode(t, fmt.Sprintf("tên phụ %d byte", len(n)), CheckClaims([]Claim{alias}, nil), "")
+		alias.ByAdmin = true
+		checkCode(t, fmt.Sprintf("tên phụ %d byte, admin", len(n)), CheckClaims([]Claim{alias}, nil), "")
+		checkCode(t, fmt.Sprintf("tên chính %d byte", len(n)), CheckClaims([]Claim{claimOf(t, n, n, "usera", KindPrimary)}, nil), "")
+	}
 }

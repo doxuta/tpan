@@ -50,8 +50,17 @@ func (s *backupDeleteStep) Apply(ctx context.Context, _ system.System) error {
 	if err := s.b.removeBackupFile(s.row.Path); err != nil {
 		return err
 	}
-	if _, err := s.b.Store.ForgetBackupLocal(ctx, s.row.ID); err != nil {
+	gone, err := s.b.Store.ForgetBackupLocal(ctx, s.row.ID)
+	if err != nil {
 		return fmt.Errorf("file %s đã xoá nhưng chưa ghi được vào bảng backups: %w", s.row.Path, err)
+	}
+	// Dòng đã mất hẳn (bản chưa lên kho). Nếu một job đẩy đang tải đúng bản này
+	// thì khi xong nó sẽ không thấy dòng; dấu dưới đây bảo nó xoá object vừa tải
+	// thay vì ghi lại dòng "chỉ còn trên kho": người dùng đã bảo xoá.
+	if t, ok := s.b.Store.(backupTombstones); ok && gone {
+		if err := t.MarkBackupDeleted(ctx, s.row.ID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -86,4 +95,12 @@ func (b *Backups) PrepareDelete(ctx context.Context, id string) (*Planned, error
 	plan := engine.Plan{Kind: "backup.delete", Target: row.Domain, Title: title,
 		Steps: []engine.Step{&backupDeleteStep{b: b, row: row}}}
 	return newPlanned(b.Sites.Sys, b.Sites.Journal, plan, nil), nil
+}
+
+// backupTombstones là phần của store giữ dấu "người dùng đã xoá bản này"
+// (store.MarkBackupDeleted, TakeBackupDeleted). Tách riêng để các store giả
+// của test không phải cài.
+type backupTombstones interface {
+	MarkBackupDeleted(ctx context.Context, id string) error
+	TakeBackupDeleted(ctx context.Context, id string) (bool, error)
 }

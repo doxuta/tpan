@@ -58,26 +58,29 @@ export function useAdminSecret(id: string): { secrets: AdminSecret[]; dismiss: (
 // M13: mật khẩu DB rời vừa tạo hoặc vừa đổi (JobDetail.db_secret) cũng chỉ có ở một
 // lần GET sau khi job xong, nên giữ y như trên: ngoài cache, trong bộ nhớ của
 // module, tới khi người dùng bấm "Đã lưu, ẩn đi".
-const dbSecrets = new Map<string, DBSecret>();
+// Job hàng loạt tạo nhiều site PHP trống trả một mật khẩu DB mỗi site (db_secrets): giữ thành danh sách.
+const dbSecrets = new Map<string, DBSecret[]>();
+const noDbSecrets: DBSecret[] = [];
 
-function setDbSecret(id: string, s: DBSecret | null) {
-  if (s) dbSecrets.set(id, s);
+function setDbSecrets(id: string, list: DBSecret[]) {
+  if (list.length > 0) dbSecrets.set(id, list);
   else dbSecrets.delete(id);
   for (const l of listeners) l();
 }
 
-export function useDbSecret(id: string): { secret: DBSecret | null; dismiss: () => void } {
-  const secret = useSyncExternalStore(
+/** dismiss(i) ẩn mật khẩu DB thứ i (theo thứ tự đang hiện). */
+export function useDbSecrets(id: string): { secrets: DBSecret[]; dismiss: (index: number) => void } {
+  const list = useSyncExternalStore(
     subscribeSecrets,
-    () => dbSecrets.get(id) ?? null,
-    () => null,
+    () => dbSecrets.get(id) ?? noDbSecrets,
+    () => noDbSecrets,
   );
-  return { secret, dismiss: () => setDbSecret(id, null) };
+  return { secrets: list, dismiss: (index) => setDbSecrets(id, list.filter((_, i) => i !== index)) };
 }
 
 // ---- job ----
 
-type JobBase = Omit<JobDetail, "secret" | "secrets" | "db_secret">;
+type JobBase = Omit<JobDetail, "secret" | "secrets" | "db_secret" | "db_secrets">;
 
 export type StreamState = "idle" | "live" | "lost";
 
@@ -90,8 +93,9 @@ export type StreamState = "idle" | "live" | "lost";
 export function stashJobSecrets(id: string, d: JobDetail): boolean {
   const list = [...(d.secret ? [d.secret] : []), ...(d.secrets ?? [])];
   if (list.length > 0) setSecrets(id, list);
-  if (d.db_secret) setDbSecret(id, d.db_secret);
-  return list.length > 0 || Boolean(d.db_secret);
+  const dbs = [...(d.db_secret ? [d.db_secret] : []), ...(d.db_secrets ?? [])];
+  if (dbs.length > 0) setDbSecrets(id, dbs);
+  return list.length > 0 || dbs.length > 0;
 }
 
 /** Chờ gom sự kiện trước khi vẽ: apt in hàng nghìn dòng, vẽ từng dòng sẽ giật. */
@@ -106,7 +110,7 @@ export function useJob(id: string) {
     queryFn: async (): Promise<JobBase> => {
       const d = await get<JobDetail>(`/api/v1/jobs/${encodeURIComponent(id)}`);
       stashJobSecrets(id, d);
-      return { job: d.job, events: d.events };
+      return { job: d.job, events: d.events, chain: d.chain };
     },
     // Tiến độ đi qua SSE, không đọc lại theo thời gian hay khi chuyển tab: mỗi lần GET
     // sau job xong có thể là lần cuối còn mật khẩu để lấy.
@@ -190,5 +194,5 @@ export function useJob(id: string) {
     });
   }, [qc, key]);
 
-  return { query, job: data?.job, events, running, stream, reconnect };
+  return { query, job: data?.job, chain: data?.chain ?? [], events, running, stream, reconnect };
 }

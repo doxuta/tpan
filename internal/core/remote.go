@@ -814,6 +814,22 @@ func (r *Remote) preparePush(_ context.Context, store steps.ObjectStore, c Targe
 			// khớp là bản duy nhất còn lại: ghi lại dòng thành "chỉ còn trên
 			// kho", không xoá object. Dọn trên kho ngay sau đây quyết bản này
 			// còn được giữ không, theo cùng một luật remoteSurvives.
+			//
+			// Trừ khi dòng mất vì NGƯỜI DÙNG xoá bản này (backup.delete để lại
+			// dấu): khi đó object vừa tải cũng phải đi, không thì bản vừa xoá
+			// hiện lại thành "chỉ còn trên kho".
+			if t, ok := r.Store.(backupTombstones); ok {
+				byUser, err := t.TakeBackupDeleted(dbctx, row.ID)
+				if err != nil {
+					return err
+				}
+				if byUser {
+					if err := store.Delete(dbctx, key); err != nil {
+						return fmt.Errorf("bản %s đã bị xoá trong lúc đẩy nhưng chưa xoá được object %s trên kho: %w", row.ID, key, err)
+					}
+					return r.targetOK(dbctx)
+				}
+			}
 			if err := r.Store.AddBackupRemoteOnly(dbctx, row, key, c.ID, r.now()); err != nil {
 				return fmt.Errorf("bản %s đã bị dọn khỏi máy trong lúc đẩy; object %s còn trên kho nhưng chưa ghi lại được dòng: %w", row.ID, key, err)
 			}

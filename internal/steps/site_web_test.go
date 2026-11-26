@@ -203,7 +203,15 @@ func TestSiteWebChain(t *testing.T) {
 	if got := ranStrings(m.Ran()); !reflect.DeepEqual(got, want) {
 		t.Errorf("lệnh gỡ: %v, muốn %v", got, want)
 	}
-	if !reflect.DeepEqual(before, m.Snapshot()) {
+	// v0.2.14: gỡ site không gỡ trần bảng tên của nginx (conf.d/tpan-names.conf
+	// là của cả máy, site khác còn cần); mọi thứ khác phải về như lúc đầu.
+	after := m.Snapshot()
+	if _, ok := after[NginxNamesConf]; !ok {
+		t.Errorf("ghi vhost nginx mà không có %s", NginxNamesConf)
+	}
+	delete(after, NginxNamesConf)
+	delete(after, "/etc/nginx/conf.d")
+	if !reflect.DeepEqual(before, after) {
 		t.Error("thêm rồi gỡ mà máy khác lúc đầu")
 	}
 }

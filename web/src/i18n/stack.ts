@@ -56,6 +56,11 @@ const vi = {
   wpRecommendedTitle: "Bản PHP mà WordPress.org khuyên dùng",
   install: "Cài",
   installLabel: (version: string) => `Cài PHP ${version}`,
+  otherHeading: "Cài bản PHP khác",
+  otherLabel: "Số bản",
+  otherHint: "Gõ số bản, ví dụ 8.4 hoặc 7.4, kể cả bản không có trong bảng trên. Bản Ubuntu không có thì TPAN thêm kho của Ondřej Surý rồi cài; bản xem trước ghi rõ từng bước.",
+  otherButton: "Xem trước việc cài",
+  otherInvalid: "Số bản có dạng hai số cách nhau bằng dấu chấm, ví dụ 8.4.",
   remove: "Gỡ",
   removeLabel: (version: string) => `Gỡ PHP ${version}`,
   actionHint:
@@ -127,6 +132,11 @@ export const strings = defineStrings(vi, {
   wpRecommendedTitle: "The PHP version WordPress.org recommends",
   install: "Install",
   installLabel: (version) => `Install PHP ${version}`,
+  otherHeading: "Install another PHP version",
+  otherLabel: "Version",
+  otherHint: "Type a version, for example 8.4 or 7.4, including one that is not in the table above. If Ubuntu does not have it, TPAN adds Ondřej Surý's repository and installs it; the preview lists every step.",
+  otherButton: "Preview the install",
+  otherInvalid: "A version is two numbers separated by a dot, for example 8.4.",
   remove: "Remove",
   removeLabel: (version) => `Remove PHP ${version}`,
   actionHint:

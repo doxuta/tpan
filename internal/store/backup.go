@@ -275,6 +275,29 @@ func (s *Store) CronRuns(ctx context.Context) ([]CronRun, error) {
 	return out, nil
 }
 
+// MarkBackupDeleted ghi dấu "người dùng đã xoá bản id" (migration 2903) và bỏ
+// các dấu cũ hơn 7 ngày. Job đẩy đang tải bản đó đọc dấu này khi xong.
+func (s *Store) MarkBackupDeleted(ctx context.Context, id string) error {
+	now := s.now().UTC()
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM backup_deleted WHERE deleted_at < ?", fmtTime(now.Add(-7*24*time.Hour))); err != nil {
+		return fmt.Errorf("dọn dấu backup đã xoá: %w", err)
+	}
+	if _, err := s.db.ExecContext(ctx, "INSERT OR REPLACE INTO backup_deleted (id, deleted_at) VALUES (?, ?)", id, fmtTime(now)); err != nil {
+		return fmt.Errorf("ghi dấu đã xoá backup %s: %w", id, err)
+	}
+	return nil
+}
+
+// TakeBackupDeleted cho biết bản id có dấu "người dùng đã xoá" không, và gỡ dấu.
+func (s *Store) TakeBackupDeleted(ctx context.Context, id string) (bool, error) {
+	res, err := s.db.ExecContext(ctx, "DELETE FROM backup_deleted WHERE id = ?", id)
+	if err != nil {
+		return false, fmt.Errorf("đọc dấu đã xoá backup %s: %w", id, err)
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
+}
+
 // BackupAlias là một tên phụ site có lúc backup.
 type BackupAlias struct {
 	Name string

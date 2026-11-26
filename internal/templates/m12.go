@@ -179,3 +179,16 @@ func UnattendedUpgrades(origins []string) ([]byte, error) {
 func NginxOrgInclude() ([]byte, error) {
 	return m12Render("nginx-org-include.conf.tmpl", m12Data{Header: Header})
 }
+
+// NginxNames sinh /etc/nginx/conf.d/tpan-names.conf (v0.2.14): trần bảng tên
+// miền của nginx. Ô 512 byte chứa được tên dài nhất DNS cho phép (253 ký tự);
+// bảng 4096 ô đủ cho vài nghìn tên. Không có tham số.
+func NginxNames() []byte {
+	return []byte(Header + "\n" +
+		"#\n" +
+		"# Bảng tên miền của nginx. Mặc định mỗi ô chỉ 64 byte: tên miền dài khoảng 48\n" +
+		"# ký tự trở lên không vừa, nginx báo \"could not build server_names_hash\" và\n" +
+		"# site không tạo được. 512 byte đủ cho tên dài nhất DNS cho phép (253 ký tự).\n" +
+		"server_names_hash_bucket_size 512;\n" +
+		"server_names_hash_max_size 4096;\n")
+}

@@ -6,6 +6,8 @@ const vi = {
   title: "Lịch sử",
   summary: "Các việc đã chạy trên máy, mới nhất ở trên.",
   jobSummary: "Từng bước của job này, output và bằng chứng.",
+  chainHeading: "Việc chạy nối tiếp",
+  chainHint: "Lần bấm này gồm nhiều việc chạy lần lượt. Việc ở trang này là việc đầu; các việc sau nằm dưới đây, bấm để xem từng bước của chúng.",
   jobTitle: "Chi tiết job",
 
   // ---- danh sách ----
@@ -136,6 +138,8 @@ export const strings = defineStrings(vi, {
   title: "History",
   summary: "Jobs that ran on this machine, newest first.",
   jobSummary: "Every step of this job, its output and evidence.",
+  chainHeading: "Follow-up jobs",
+  chainHint: "This action ran several jobs in a row. This page shows the first one; the later ones are listed below, open one to see its steps.",
   jobTitle: "Job details",
 
   empty: "Nothing has run on this machine yet. The first thing you run will show up here.",

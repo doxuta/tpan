@@ -59,6 +59,8 @@ type apiState struct {
 	// GET /jobs/{id} đầu tiên sau khi job xong (mục 11, "Bí mật"). Chỉ trong
 	// bộ nhớ: không ghi DB, không log; tpan khởi động lại thì mất.
 	secrets map[string]heldSecret
+	// chains: job id → các job chạy nối tiếp sau nó (jobResult.chain).
+	chains map[string][]string
 
 	// wg đếm goroutine job nền, để test chờ chúng xong trước khi đóng DB.
 	wg sync.WaitGroup
@@ -71,6 +73,7 @@ func newAPIState(s *Server) *apiState {
 		lockWait: apiLockWait,
 		runs:     map[string]*jobRun{},
 		secrets:  map[string]heldSecret{},
+		chains:   map[string][]string{},
 	}
 }
 
@@ -384,7 +387,16 @@ func (s *Server) handleJob(w http.ResponseWriter, r *http.Request) {
 	// user (admin mở job vừa xong của A lúc đang xem như A thì A mất mật khẩu).
 	if job.Status != engine.JobRunning && !who(r).ReadOnly() {
 		sec := s.api.takeSecret(id, tokenIDOf(r.Context()))
-		d.Secret, d.Secrets, d.DBSecret = sec.one, sec.many, sec.db
+		d.Secret, d.Secrets, d.DBSecret, d.DBSecrets = sec.one, sec.many, sec.db, sec.dbMany
+	}
+	// Các job chạy nối tiếp sau job này (cùng một lần bấm). Người xem được job
+	// đầu thì xem được chuỗi của nó: cùng một người đã khởi.
+	for _, cid := range s.api.chainOf(id) {
+		cj, err := s.deps.Store.Job(r.Context(), cid)
+		if err != nil {
+			continue
+		}
+		d.Chain = append(d.Chain, ChainJob{ID: cj.ID, Kind: cj.Kind, Title: cj.Title, Status: cj.Status, Error: cj.Error})
 	}
 	writeJSON(w, http.StatusOK, d)
 }

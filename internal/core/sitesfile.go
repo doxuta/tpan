@@ -64,10 +64,9 @@ type SitesEntry struct {
 	SSL        *bool  `yaml:"ssl,omitempty" json:"ssl,omitempty"`
 	Owner      string `yaml:"owner,omitempty" json:"owner,omitempty"`
 	// App (M29): loại site, "wordpress" (mặc định khi vắng) hoặc "php" (site
-	// PHP trống). Export ghi "php" cho site PHP trống để file nói đúng máy đang
-	// có gì; apply chưa tạo site PHP trống (mật khẩu DB của nó phải tới tay
-	// người tạo, mà job hàng loạt chưa có chỗ trả), nên dòng "php" của một
-	// domain chưa có bị từ chối riêng dòng đó, không âm thầm thành WordPress.
+	// PHP trống). Export ghi "php" cho site PHP trống; apply tạo đúng loại đó
+	// và trả mật khẩu DB của từng site một lần (ApplySiteResult.DBPassword).
+	// Site PHP trống không cần admin_email.
 	App string `yaml:"app,omitempty" json:"app,omitempty"`
 }
 
