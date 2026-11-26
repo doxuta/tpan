@@ -243,7 +243,12 @@ var (
 // áp dụng. Lệnh reload trả lỗi vì trúng đúng lúc nginx đang dừng (systemd từ
 // chối reload unit không chạy) cũng được xử lý như vậy: chỉ khi thấy master
 // mới thì coi là xong, không thì trả đúng lỗi của lệnh.
+//
+// `systemctl reload php<v>-fpm` cũng chờ (v0.2.16): xem reloadFPM ở fpm_reload.go.
 func Reload(ctx context.Context, sys system.System, cmd system.Cmd) (system.Result, error) {
+	if v, ok := fpmReloadVersion(cmd); ok {
+		return reloadFPM(ctx, sys, cmd, v)
+	}
 	if cmd.Name != "systemctl" || !slices.Equal(cmd.Args, []string{"reload", "nginx"}) {
 		return sys.Run(ctx, cmd)
 	}
