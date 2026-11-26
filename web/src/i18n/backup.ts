@@ -22,7 +22,7 @@ const vi = {
 
   // Danh sách
   listHeading: "Các bản backup",
-  listHint: "full là cả site (thư mục và cơ sở dữ liệu), sql là bản xuất riêng cơ sở dữ liệu. Bản của site đã xoá hẳn vẫn giữ ở đây.",
+  listHint: "full là cả site: thư mục mã nguồn và cơ sở dữ liệu của chính site đó. sql là bản xuất riêng cơ sở dữ liệu của site. DB rời không nằm trong bản backup nào ở đây. Bản của site đã xoá hẳn vẫn giữ ở đây.",
   filterLabel: "Lọc theo site",
   filterAll: "Mọi site",
   tableName: "Các bản backup",
@@ -144,7 +144,7 @@ export const strings = defineStrings(vi, {
   overviewFailed: "Could not read the list of running sites.",
 
   listHeading: "Backups",
-  listHint: "full is the whole site (folder and database), sql is a separate export of the database. Backups of permanently deleted sites stay here.",
+  listHint: "full is the whole site: its code folder and the database of that site. sql is a separate export of the site's database. Standalone databases are not part of any backup here. Backups of permanently deleted sites stay here.",
   filterLabel: "Filter by site",
   filterAll: "All sites",
   tableName: "Backups",
