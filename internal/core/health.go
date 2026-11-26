@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+	"time"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/cage"
 	"github.com/doxuta/tpan/internal/checks"
 	"github.com/doxuta/tpan/internal/engine"
 	"github.com/doxuta/tpan/internal/site"
@@ -148,7 +150,85 @@ func (s *Sites) Checks(ctx context.Context, d validate.Domain) ([]checks.Check, 
 	if state != nil {
 		cs = append(cs, state)
 	}
+	pressure, err := s.cagePressureCheck(ctx, st)
+	if err != nil {
+		return nil, err
+	}
+	if pressure != nil {
+		cs = append(cs, pressure)
+	}
 	return cs, nil
+}
+
+// CagePressureWindow là khoảng mà cage.pressure xét (v0.2.15): có lần chạm
+// trần RAM hay trần số tiến trình trong chừng này phút vừa qua thì mở sự cố,
+// hết chừng này phút không chạm nữa thì sự cố tự đóng. 30 phút là sáu mẫu: đủ
+// dài để người quản trị kịp thấy sự cố của một lần chạm đơn lẻ, đủ ngắn để sự
+// cố không nằm lại cả ngày sau khi đã hết.
+const CagePressureWindow = 30 * time.Minute
+
+// cagePressureCheck trả checks.CagePressure của site trong lồng; nil khi site
+// ngoài lồng, đang tạm khoá (lồng đã tắt), hoặc không có bảng mẫu (dòng lệnh
+// trên máy chưa có tpan.db, test). Chỉ health gọi: không có trong kiểm chứng
+// sau thao tác.
+//
+// Số liệu là các mẫu 5 phút của bảng usage_samples trong khoảng xét, cộng một
+// lần đọc cgroup của lồng ngay lúc này làm mẫu cuối. Nhờ lần đọc đó:
+//
+//   - lần chạm trần xảy ra sau mẫu gần nhất được thấy ngay ở vòng health này,
+//     không phải chờ thêm tới 5 phút cho mẫu kế tiếp;
+//   - site vừa vào lồng (chưa có mẫu nào, bộ đếm của lồng là 0) đạt ngay, không
+//     nằm ở trạng thái "chưa kiểm được" cho tới khi có đủ hai mẫu.
+//
+// Đọc cgroup lỗi hoặc lồng không chạy thì chỉ dùng các mẫu đã lưu (lồng không
+// chạy là việc của cage.runtime, cage.socket).
+func (s *Sites) cagePressureCheck(ctx context.Context, st site.Site) (checks.Check, error) {
+	if !st.Caged || st.Suspended != account.NotSuspended || s.Samples == nil {
+		return nil, nil
+	}
+	now := s.now()
+	// Lấy thêm một nhịp trước khoảng xét: mẫu đầu của khoảng cần mẫu đứng trước để so.
+	samples, err := s.Samples.UsageSamples(ctx, st.Domain.String(), now.Add(-CagePressureWindow-UsageSampleEvery), now.Add(time.Second))
+	if err != nil {
+		return nil, fmt.Errorf("đọc số liệu lồng của %s: %w", st.Domain, err)
+	}
+	var live *cage.Sample
+	if s.Sys != nil {
+		if use, err := cage.ReadUsage(s.Sys, st.Layout(), now); err == nil && use.Running {
+			sm := cage.SampleOf(st.Domain.String(), use)
+			live = &sm
+			samples = append(samples, sm)
+		}
+	}
+	h := cageHitsOf(samples, CagePressureWindow)
+	h.NeverHit = h.Pairs == 0 && live != nil && live.OOMKills == 0 && live.TasksHits == 0
+	return checks.CagePressure(st.Layout(), h), nil
+}
+
+// cageHitsOf cộng phần tăng của hai bộ đếm (oom_kill, số lần chạm trần tiến
+// trình) qua các cặp mẫu liền nhau. Cặp cách nhau xa (bộ lấy mẫu hụt vài nhịp,
+// thường là lúc máy đang quá tải) vẫn tính: cả hai mẫu đều nằm trong khoảng đã
+// lấy, nên phần tăng giữa chúng chắc chắn xảy ra trong khoảng đó. Trần ghi lại
+// là trần của mẫu thấy bộ đếm tăng (gói có thể vừa đổi).
+func cageHitsOf(samples []cage.Sample, window time.Duration) checks.CageHits {
+	h := checks.CageHits{Window: window}
+	for i := 1; i < len(samples); i++ {
+		a, b := samples[i-1], samples[i]
+		d := deltaOf(a, b)
+		if d.dt <= 0 {
+			continue
+		}
+		h.Pairs++
+		if d.oom > 0 {
+			h.OOMKills += d.oom
+			h.MemMaxMB = b.MemMax >> 20
+		}
+		if d.tasksHits > 0 {
+			h.TasksHits += d.tasksHits
+			h.TasksMax = b.TasksMax
+		}
+	}
+	return h
 }
 
 // cageStateCheck trả checks.CageState cho site có caged=1, gói muốn lồng, hoặc

@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -504,6 +505,169 @@ func TestVerify(t *testing.T) {
 				wantEq(t, "Job.Error", r.Job.Error, "kiểm chứng k2 không đạt: kết quả k2")
 			}
 		})
+	}
+}
+
+// seqCheck trả lần lượt các trạng thái trong sts (hết thì giữ cái cuối) và đếm số lần chạy.
+type seqCheck struct {
+	id  string
+	sts []checks.Status
+	n   *int
+}
+
+func (c seqCheck) Run(context.Context, system.System) checks.Result {
+	st := c.sts[min(*c.n, len(c.sts)-1)]
+	*c.n++
+	return checks.Result{ID: c.id, Status: st, Summary: i18n.T("lần "+strconv.Itoa(*c.n)+" "+string(st), "try "+strconv.Itoa(*c.n))}
+}
+
+// retryHarness là harness có bật thử lại phép kiểm chứng (mặc định trong go test là tắt).
+func retryHarness(window, every time.Duration) *harness {
+	h := newHarness()
+	h.eng.opts.VerifyRetry, h.eng.opts.VerifyEvery = window, every
+	return h
+}
+
+// Phép kiểm chứng trượt hai lần rồi đạt (web server vừa được khởi động lại):
+// job thành công, không hoàn tác; chỉ một sự kiện check, và bằng chứng nói rõ
+// đã phải thử lại.
+func TestVerifyThuLaiRoiDat(t *testing.T) {
+	h := retryHarness(5*time.Second, time.Millisecond)
+	n := 0
+	p := plan(h.step("a"))
+	p.Verify = []checks.Check{seqCheck{id: "k", sts: []checks.Status{checks.Fail, checks.Fail, checks.Pass}, n: &n}}
+	start := time.Now()
+	r := mustExecute(t, h, p)
+	wantEq(t, "status", r.Job.Status, JobSucceeded)
+	wantEq(t, "outcomes", outcomes(r), "a=applied")
+	wantEq(t, "số lần chạy phép kiểm", n, 3)
+	if d := time.Since(start); d > time.Second {
+		t.Errorf("mất %v: đạt rồi mà còn chờ", d)
+	}
+	if len(r.Checks) != 1 || r.Checks[0].Status != checks.Pass {
+		t.Fatalf("Checks = %+v", r.Checks)
+	}
+	sum := r.Checks[0].Summary
+	if !strings.HasPrefix(sum.Vi, "lần 3 pass (lần đầu chưa đạt: lần 1 fail; đạt ở lần thử 3, sau ") || !strings.Contains(sum.En, "passed on try 3") {
+		t.Errorf("câu kết quả sau khi thử lại = %+v", sum)
+	}
+	checksSeen := 0
+	for _, e := range h.events {
+		if e.Kind == EventCheck {
+			checksSeen++
+		}
+	}
+	wantEq(t, "số sự kiện check", checksSeen, 1)
+}
+
+// Trượt mãi: hết thời gian thử lại thì vẫn là Fail và job bị hoàn tác, không treo.
+func TestVerifyThuLaiVanTruot(t *testing.T) {
+	h := retryHarness(60*time.Millisecond, 5*time.Millisecond)
+	n := 0
+	p := plan(h.step("a"))
+	p.Verify = []checks.Check{seqCheck{id: "k", sts: []checks.Status{checks.Fail}, n: &n}}
+	start := time.Now()
+	r := mustExecute(t, h, p)
+	wantEq(t, "status", r.Job.Status, JobRolledBack)
+	wantEq(t, "outcomes", outcomes(r), "a=undone")
+	if n < 3 {
+		t.Errorf("phép kiểm chỉ chạy %d lần trong thời gian thử lại", n)
+	}
+	if d := time.Since(start); d < 60*time.Millisecond || d > 2*time.Second {
+		t.Errorf("mất %v, muốn quanh 60 ms", d)
+	}
+	if len(r.Checks) != 1 || strings.Contains(r.Checks[0].Summary.Vi, "đạt ở lần thử") {
+		t.Errorf("phép kiểm trượt không được mang câu \"đạt ở lần thử\": %+v", r.Checks)
+	}
+}
+
+// Job hỏng thật, năm phép kiểm cùng trượt: thời gian thử lại là của cả lượt
+// kiểm chứng. Phép đầu dùng hết, bốn phép sau chạy đúng một lần; hoàn tác chỉ
+// chậm thêm một lần thời gian thử lại chứ không phải năm.
+func TestVerifyThuLaiDungChungMotLuong(t *testing.T) {
+	const window = 150 * time.Millisecond
+	h := retryHarness(window, 10*time.Millisecond)
+	ns := make([]int, 5)
+	p := plan(h.step("a"))
+	for i := range ns {
+		p.Verify = append(p.Verify, seqCheck{id: "k" + strconv.Itoa(i), sts: []checks.Status{checks.Fail}, n: &ns[i]})
+	}
+	start := time.Now()
+	r := mustExecute(t, h, p)
+	d := time.Since(start)
+	wantEq(t, "status", r.Job.Status, JobRolledBack)
+	wantEq(t, "số kết quả", len(r.Checks), 5)
+	if ns[0] < 3 {
+		t.Errorf("phép đầu chỉ chạy %d lần", ns[0])
+	}
+	for i, n := range ns[1:] {
+		if n != 1 {
+			t.Errorf("phép thứ %d chạy %d lần, muốn 1 (lượng thử lại đã hết)", i+2, n)
+		}
+	}
+	if d < window || d > 3*window {
+		t.Errorf("mất %v, muốn quanh %v (năm lần là %v)", d, window, 5*window)
+	}
+}
+
+// Phép đầu trượt thoáng qua rồi đạt: chỉ trừ phần đã dùng, phép sau vẫn còn
+// thời gian để thử lại.
+func TestVerifyThuLaiConLuongChoPhepSau(t *testing.T) {
+	h := retryHarness(5*time.Second, time.Millisecond)
+	n1, n2 := 0, 0
+	p := plan(h.step("a"))
+	p.Verify = []checks.Check{
+		seqCheck{id: "k1", sts: []checks.Status{checks.Fail, checks.Pass}, n: &n1},
+		seqCheck{id: "k2", sts: []checks.Status{checks.Fail, checks.Fail, checks.Fail, checks.Pass}, n: &n2},
+	}
+	r := mustExecute(t, h, p)
+	wantEq(t, "status", r.Job.Status, JobSucceeded)
+	wantEq(t, "số lần chạy phép 1", n1, 2)
+	wantEq(t, "số lần chạy phép 2", n2, 4)
+}
+
+// Mặc định trong go test (Options trống) và giá trị âm: không thử lại. Warn,
+// Unknown không phải trượt nên cũng không thử lại.
+func TestVerifyKhongThuLai(t *testing.T) {
+	for name, tc := range map[string]struct {
+		window time.Duration
+		st     checks.Status
+	}{
+		"mặc định trong go test": {0, checks.Fail},
+		"tắt":                    {-1, checks.Fail},
+		"warn":                   {time.Second, checks.Warn},
+		"unknown":                {time.Second, checks.Unknown},
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := retryHarness(tc.window, time.Millisecond)
+			n := 0
+			p := plan(h.step("a"))
+			p.Verify = []checks.Check{seqCheck{id: "k", sts: []checks.Status{tc.st}, n: &n}}
+			mustExecute(t, h, p)
+			wantEq(t, "số lần chạy phép kiểm", n, 1)
+		})
+	}
+}
+
+// Người dùng huỷ job trong lúc chờ thử lại: dừng chờ ngay, job hoàn tác.
+func TestVerifyThuLaiBiHuy(t *testing.T) {
+	h := retryHarness(time.Minute, 20*time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
+	n := 0
+	p := plan(h.step("a"))
+	p.Verify = []checks.Check{fakeCheck{id: "k", st: checks.Fail, fn: func() {
+		n++
+		cancel()
+	}}}
+	start := time.Now()
+	r, err := h.eng.Execute(ctx, p)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	wantEq(t, "status", r.Job.Status, JobRolledBack)
+	wantEq(t, "số lần chạy phép kiểm", n, 1)
+	if d := time.Since(start); d > 2*time.Second {
+		t.Errorf("mất %v: huỷ rồi mà còn chờ thử lại", d)
 	}
 }
 

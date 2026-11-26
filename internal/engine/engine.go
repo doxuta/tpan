@@ -11,11 +11,19 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/doxuta/tpan/internal/checks"
+	"github.com/doxuta/tpan/internal/i18n"
 	"github.com/doxuta/tpan/internal/sitefs"
 	"github.com/doxuta/tpan/internal/system"
+)
+
+// Mặc định của Options.VerifyRetry và VerifyEvery trên máy thật.
+const (
+	verifyRetryDefault = 6 * time.Second
+	verifyEveryDefault = 500 * time.Millisecond
 )
 
 // undoTimeout là hạn giờ hoàn tác một bước. Hoàn tác vẫn phải chạy khi ctx của
@@ -370,8 +378,10 @@ func (r *run) journalErr() error {
 // Evidence, không cần thành sự kiện command riêng.
 func (r *run) verify(ctx context.Context, list []checks.Check, rep *Report) error {
 	var failed error
+	budget, every := r.e.verifyWindow()
 	for _, c := range list {
-		res := runCheck(ctx, c, r.e.sys)
+		res, used := r.verifyOne(ctx, c, budget, every)
+		budget -= used
 		rep.Checks = append(rep.Checks, res)
 		r.add(Event{Kind: EventCheck, Check: &res})
 		if res.Status == checks.Fail && failed == nil {
@@ -387,6 +397,66 @@ func (r *run) verify(ctx context.Context, list []checks.Check, rep *Report) erro
 		return fmt.Errorf("job bị huỷ lúc kiểm chứng: %w", err)
 	}
 	return r.journalErr()
+}
+
+// verifyWindow trả thời gian thử lại của một lượt kiểm chứng (dùng chung cho
+// mọi phép kiểm của lượt) và nhịp thử (Options).
+func (e *Engine) verifyWindow() (window, every time.Duration) {
+	window, every = e.opts.VerifyRetry, e.opts.VerifyEvery
+	if window == 0 && !testing.Testing() {
+		window = verifyRetryDefault
+	}
+	if every <= 0 {
+		every = verifyEveryDefault
+	}
+	return max(window, 0), every
+}
+
+// verifyOne chạy một phép kiểm chứng. Trượt (Fail) thì chạy lại, cách nhau
+// every, cho tới khi hết Fail hoặc dùng hết budget; chỉ kết quả cuối được ghi
+// và phát sự kiện. Trả thêm thời gian đã dùng để thử lại (0 khi đạt ngay).
+//
+// Vì sao thử lại: phép kiểm chứng là thứ quyết định hoàn tác cả job, mà một lần
+// trượt có thể chỉ là máy đang chuyển trạng thái. Đo trên máy ảo 26/11/2026:
+// web server bị tiến trình khác khởi động lại (unattended-upgrades và
+// needrestart) thì dừng vài chục mili giây; phép gọi thử site rơi đúng lúc đó
+// nhận "không kết nối được" và job đã chạy đúng bị hoàn tác oan (2 trên 6 job
+// khi nginx bị khởi động lại mỗi 0,9 giây). Cùng lý do với dbRetry của core
+// (site trả 500 trong lúc opcache còn giữ file cũ), nay áp cho mọi phép kiểm
+// chứng.
+//
+// budget là của cả lượt kiểm chứng, không phải của riêng một phép kiểm (verify
+// trừ dần): job hỏng thật thường trượt nhiều phép kiểm cùng lúc (web server
+// chết thì mọi phép gọi thử đều trượt), mỗi phép chờ riêng thì hoàn tác chậm
+// thêm số phép kiểm nhân với thời gian chờ. Dùng chung thì phép trượt thật đầu
+// tiên dùng hết budget, các phép sau chạy một lần; job hỏng thật chỉ hoàn tác
+// chậm hơn đúng một lần budget.
+//
+// Phép kiểm chỉ đạt ở lần thử lại thì câu kết quả của nó nói thêm lần đầu trượt
+// vì gì và đạt sau bao lâu: người đọc job phải thấy được.
+func (r *run) verifyOne(ctx context.Context, c checks.Check, budget, every time.Duration) (checks.Result, time.Duration) {
+	res := runCheck(ctx, c, r.e.sys)
+	if res.Status != checks.Fail || budget <= 0 {
+		return res, 0
+	}
+	first, tries, start := res, 1, time.Now()
+	for res.Status == checks.Fail && time.Since(start) < budget {
+		select {
+		case <-ctx.Done():
+			return res, time.Since(start)
+		case <-time.After(every):
+		}
+		res = runCheck(ctx, c, r.e.sys)
+		tries++
+	}
+	used := time.Since(start)
+	if res.Status != checks.Fail {
+		after := used.Round(100 * time.Millisecond)
+		res.Summary = i18n.T(
+			fmt.Sprintf("%s (lần đầu chưa đạt: %s; đạt ở lần thử %d, sau %s)", res.Summary.Vi, first.Summary.Vi, tries, after),
+			fmt.Sprintf("%s (the first try failed: %s; passed on try %d, after %s)", res.Summary.En, first.Summary.En, tries, after))
+	}
+	return res, used
 }
 
 // runCheck coi một phép kiểm panic là Unknown, như mọi trường hợp "không kiểm được".

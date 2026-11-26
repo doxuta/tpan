@@ -263,4 +263,12 @@ type Options struct {
 	OnEvent func(Event)
 	// Now nil thì dùng time.Now. Test đặt để có thời điểm cố định.
 	Now func() time.Time
+	// VerifyRetry, VerifyEvery (v0.2.15): một phép kiểm chứng trượt được chạy
+	// lại, cách nhau VerifyEvery, cho tới khi đạt hoặc lượt kiểm chứng dùng hết
+	// VerifyRetry (một lượng dùng chung cho mọi phép kiểm của job, xem verifyOne
+	// ở engine.go). VerifyRetry 0 là mặc định: 6 giây trên máy thật, không thử
+	// lại trong `go test` (máy giả trả lời cố định, thử lại chỉ làm test chậm).
+	// Âm là tắt. VerifyEvery 0 là 500 ms.
+	VerifyRetry time.Duration
+	VerifyEvery time.Duration
 }
