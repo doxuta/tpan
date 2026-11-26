@@ -757,10 +757,11 @@ func (p *PHP) notes(ctx context.Context, list *PHPList, def string) {
 				have[r.Version] = true
 			}
 			for v, sup := range known {
-				// php.net liệt kê mọi nhánh từ 3.0 (đo trên máy thật 26/11/2026), kèm
-				// state "eol" cho nhánh đã hết hạn. Chỉ mời cài nhánh còn được vá; bản
+				// php.net liệt kê mọi nhánh từ 3.0 (đo 26/11/2026): nhánh hết hạn có
+				// state "eol", riêng 3.0 có state null. Vì thế chỉ nhận đúng hai state
+				// còn được vá ("stable", "security") chứ không loại trừ theo "eol"; bản
 				// cũ hơn vẫn cài được bằng cách gõ số bản (ô "Cài bản PHP khác").
-				if !have[v] && sup.State != "eol" {
+				if !have[v] && (sup.State == "stable" || sup.State == "security") {
 					list.Versions = append(list.Versions, PHPVersionRow{Version: v, Sites: []string{}, Source: SourceSury})
 				}
 			}
@@ -771,8 +772,7 @@ func (p *PHP) notes(ctx context.Context, list *PHPList, def string) {
 			if s, ok := known[row.Version]; ok {
 				row.Support = &s
 			} else if oldest != "" && phpVersionCmp(row.Version, oldest) < 0 {
-				// php.net chỉ liệt kê nhánh còn hỗ trợ: bản cũ hơn nhánh cũ nhất
-				// trong đó là đã hết hạn.
+				// Bản cũ hơn nhánh cũ nhất php.net biết thì coi là đã hết hạn.
 				row.Support = &PHPSupport{State: "eol"}
 			}
 		}
