@@ -232,13 +232,30 @@ var (
 //
 // Không đọc được PID của master (máy giả trong test, --demo, nginx chưa chạy)
 // thì không chờ.
+//
+// nginx bị tiến trình khác khởi động lại đúng lúc đó (đo trên máy ảo
+// 26/11/2026: unattended-upgrades nâng libc6, zlib, pcre2 rồi needrestart khởi
+// động lại nginx hai lần trong 3 giây, giữa một job mở khoá user): master cũ
+// mất, `ps --ppid <master cũ>` không còn dòng nào, và trước bản sửa này job chờ
+// hết 5 giây rồi hoàn tác dù nginx mới đã chạy config mới. Master mới (PID
+// khác) đọc config từ đĩa lúc khởi động, mà file đã ghi và qua `nginx -t`
+// trước khi chụp PID master cũ, nên master mới có worker là config mới đã được
+// áp dụng. Lệnh reload trả lỗi vì trúng đúng lúc nginx đang dừng (systemd từ
+// chối reload unit không chạy) cũng được xử lý như vậy: chỉ khi thấy master
+// mới thì coi là xong, không thì trả đúng lỗi của lệnh.
 func Reload(ctx context.Context, sys system.System, cmd system.Cmd) (system.Result, error) {
 	if cmd.Name != "systemctl" || !slices.Equal(cmd.Args, []string{"reload", "nginx"}) {
 		return sys.Run(ctx, cmd)
 	}
 	master, old := nginxWorkers(ctx, sys, "")
 	res, err := sys.Run(ctx, cmd)
-	if err != nil || master == "" || len(old) == 0 {
+	if master == "" || len(old) == 0 {
+		return res, err
+	}
+	if err != nil {
+		if waitNginxReload(ctx, sys, master, nil) == nil {
+			return res, nil
+		}
 		return res, err
 	}
 	return res, waitNginxReload(ctx, sys, master, old)
@@ -277,18 +294,34 @@ func nginxWorkers(ctx context.Context, sys system.System, master string) (string
 // waitNginxReload chờ tới khi có worker nhận kết nối và không worker nào trong
 // số đó thuộc tập old. Quá reloadWaitMax là lỗi: master chưa áp dụng config
 // mới (nginx chỉ ghi lý do vào error.log, systemctl vẫn báo thành công).
+//
+// Mỗi nhịp đọc lại NginxPIDFile. PID khác master: nginx vừa được khởi động lại
+// (xem Reload); master mới có worker là xong. Chưa đọc được PID (nginx đang
+// dừng giữa lần khởi động lại đó) thì chờ tiếp. old nil: lệnh reload đã lỗi,
+// chỉ master mới mới tính là xong (cùng master thì không có gì để chờ).
 func waitNginxReload(ctx context.Context, sys system.System, master string, old map[string]bool) error {
 	deadline := time.Now().Add(reloadWaitMax)
 	for {
-		_, cur := nginxWorkers(ctx, sys, master)
-		stale := false
-		for p := range cur {
-			stale = stale || old[p]
-		}
-		if len(cur) > 0 && !stale {
-			return nil
+		now, cur := nginxWorkers(ctx, sys, "")
+		switch {
+		case now == "":
+		case now != master:
+			if len(cur) > 0 {
+				return nil
+			}
+		case old != nil:
+			stale := false
+			for p := range cur {
+				stale = stale || old[p]
+			}
+			if len(cur) > 0 && !stale {
+				return nil
+			}
 		}
 		if time.Now().After(deadline) {
+			if now != master {
+				return fmt.Errorf("nginx không chạy lại sau %v: tiến trình master cũ (PID %s) đã mất mà chưa thấy master mới có worker (xem: systemctl status nginx)", reloadWaitMax, master)
+			}
 			return fmt.Errorf("nginx chưa áp dụng cấu hình mới sau %v: worker cũ vẫn nhận kết nối (xem /var/log/nginx/error.log)", reloadWaitMax)
 		}
 		select {
