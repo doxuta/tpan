@@ -267,7 +267,7 @@ func (d *DBs) PrepareAdd(ctx context.Context, in DBInput) (*DBAdd, error) {
 	if err != nil {
 		return nil, err
 	}
-	pw, err := sitePassword()
+	pw, picked, err := pickDBPassword(in.Password, name)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (d *DBs) PrepareAdd(ctx context.Context, in DBInput) (*DBAdd, error) {
 		return d.dbsSave(ctx, db)
 	})
 	p.owner = owner // dòng DB rời chỉ có sau job: store chưa suy được chủ từ Target
-	return &DBAdd{Planned: p, DB: db, Password: pw}, nil
+	return &DBAdd{Planned: p, DB: db, Password: secretUnlessChosen(pw, picked), Chosen: picked}, nil
 }
 
 func (d *DBs) dbsSave(ctx context.Context, db account.Database) error {
@@ -350,6 +350,12 @@ func (d *DBs) SetNote(ctx context.Context, name, note string) error {
 // M34: user DB đã bị xoá ngoài tpan mà DB còn thì đây là đường tạo lại user
 // (mật khẩu mới, khoá nếu DB đang tạm khoá). DB cũng mất thì từ chối, chỉ đường gỡ.
 func (d *DBs) PreparePassword(ctx context.Context, name string) (*DBPassword, error) {
+	return d.PreparePasswordWith(ctx, name, "")
+}
+
+// PreparePasswordWith là PreparePassword với mật khẩu do người dùng đặt (M36);
+// chosen rỗng thì tpan sinh. Mật khẩu tự đặt không được trả lại.
+func (d *DBs) PreparePasswordWith(ctx context.Context, name, chosen string) (*DBPassword, error) {
 	db, err := d.dbsActive(ctx, name)
 	if err != nil {
 		return nil, err
@@ -358,7 +364,7 @@ func (d *DBs) PreparePassword(ctx context.Context, name string) (*DBPassword, er
 	if known && !dbOK {
 		return nil, dbsMissingErr(db.Name)
 	}
-	pw, err := sitePassword()
+	pw, picked, err := pickDBPassword(chosen, db.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +380,7 @@ func (d *DBs) PreparePassword(ctx context.Context, name string) (*DBPassword, er
 			"Recreate the database user "+db.Name+" with a new password (the user was dropped outside tpan; the data in the database is kept)")
 		plan.Steps = []engine.Step{&steps.DBUserRecreate{Name: db.Name, Password: pw, Locked: db.Suspended != account.NotSuspended}}
 	}
-	return &DBPassword{Planned: newPlanned(d.Sys, d.Journal, plan, nil), Name: db.Name, Password: pw}, nil
+	return &DBPassword{Planned: newPlanned(d.Sys, d.Journal, plan, nil), Name: db.Name, Password: secretUnlessChosen(pw, picked), Chosen: picked}, nil
 }
 
 // ---------------------------------------------------------------- tạm khoá

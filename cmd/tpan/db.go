@@ -183,9 +183,14 @@ func dbSecretOut(name string, pw system.Secret) func(engine.Report) any {
 	}
 }
 
-// printDBPassword in mật khẩu user DB vừa đặt, một lần.
+// printDBPassword in mật khẩu user DB vừa đặt, một lần. pw rỗng (M36: người
+// dùng tự đặt mật khẩu) thì chỉ báo đã đặt, không in lại.
 func printDBPassword(e *env, name string, pw system.Secret) {
 	printf(e.stdout, "\n%-12s %s\n%-12s %s\n", "DB:", name, e.tr("User DB:", "DB user:"), name+"@localhost")
+	if pw.Reveal() == "" {
+		printf(e.stdout, "%s\n", e.tr("Mật khẩu user DB: mật khẩu bạn đã đặt (tpan không in lại).", "DB user password: the one you chose (tpan does not print it)."))
+		return
+	}
 	printOncePassword(e, e.tr("Mật khẩu user DB", "DB user password"), pw.Reveal())
 	printf(e.stdout, "%s\n", e.tr("tpan không giữ mật khẩu này và sẽ không in lại.", "tpan does not keep this password and will not show it again."))
 }
@@ -194,10 +199,12 @@ func dbAddCmd(e *env) *cobra.Command {
 	var (
 		f                               planFlags
 		owner, charset, collation, note string
+		pwStdin                         bool
 	)
 	c := &cobra.Command{
-		Use:   "add <tên> [--owner U] [--charset C] [--collation X] [--note N]",
-		Short: "Tạo DB rời <owner>_<tên> cùng user DB trùng tên; mật khẩu tạo ngẫu nhiên, in ra một lần",
+		Use: "add <tên> [--owner U] [--charset C] [--collation X] [--note N] [--password-stdin]",
+		Short: "Tạo DB rời <owner>_<tên> cùng user DB trùng tên; mật khẩu tạo ngẫu nhiên, in ra một lần " +
+			"(--password-stdin: tự đặt mật khẩu, đọc một dòng từ stdin)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			own, err := parseUserArg(owner)
@@ -216,9 +223,13 @@ func dbAddCmd(e *env) *cobra.Command {
 			if err != nil {
 				return fail(e, f.asJSON, asRefusal(err))
 			}
+			chosen, err := readChosenPassword(e, pwStdin)
+			if err != nil {
+				return fail(e, f.asJSON, err)
+			}
 			var add *core.DBAdd
 			return runM13Plan(cmd, e, f, false, func(ctx context.Context, m *m13Env) (*core.Planned, error) {
-				add, err = m.dbs.PrepareAdd(ctx, core.DBInput{Owner: own, Name: args[0], Charset: charset, Collation: collation, Note: note})
+				add, err = m.dbs.PrepareAdd(ctx, core.DBInput{Owner: own, Name: args[0], Charset: charset, Collation: collation, Note: note, Password: chosen})
 				if err != nil {
 					return nil, err
 				}
@@ -233,6 +244,7 @@ func dbAddCmd(e *env) *cobra.Command {
 	fl.StringVar(&charset, "charset", "", "charset (mặc định utf8mb4)")
 	fl.StringVar(&collation, "collation", "", "collation (mặc định: collation mặc định của charset)")
 	fl.StringVar(&note, "note", "", "ghi chú (tối đa 500 byte)")
+	fl.BoolVar(&pwStdin, "password-stdin", false, passwordStdinHelp)
 	bindChangeFlags(c, &f)
 	return c
 }
@@ -275,15 +287,23 @@ func dbEditCmd(e *env) *cobra.Command {
 }
 
 func dbPasswdCmd(e *env) *cobra.Command {
-	var f planFlags
+	var (
+		f       planFlags
+		pwStdin bool
+	)
 	c := &cobra.Command{
 		Use: "passwd <domain|tên DB>",
 		Short: "Đổi mật khẩu user DB. DB của site WordPress: ghi vào wp-config.php, không in ra. " +
 			"DB rời và DB của site PHP trống: chỉ đổi trong MariaDB, in mật khẩu mới một lần. " +
-			"User DB đã bị xoá ngoài tpan thì tạo lại user, dữ liệu giữ nguyên (site WordPress: với mật khẩu đang ghi trong wp-config.php)",
+			"User DB đã bị xoá ngoài tpan thì tạo lại user, dữ liệu giữ nguyên (site WordPress: với mật khẩu đang ghi trong wp-config.php). " +
+			"--password-stdin: tự đặt mật khẩu (DB rời, site PHP trống), đọc một dòng từ stdin",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			d, name, err := parseDBArg(args[0])
+			if err != nil {
+				return fail(e, f.asJSON, err)
+			}
+			chosen, err := readChosenPassword(e, pwStdin)
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
@@ -293,7 +313,7 @@ func dbPasswdCmd(e *env) *cobra.Command {
 				var sp *core.DBPassword
 				has := func() bool { return sp != nil && sp.Password.Reveal() != "" }
 				return runM13Plan(cmd, e, f, false, func(ctx context.Context, m *m13Env) (*core.Planned, error) {
-					sp, err = (&core.Backups{Sites: m.sites, Store: backupStore(m)}).PrepareSiteDBPassword(ctx, d)
+					sp, err = (&core.Backups{Sites: m.sites, Store: backupStore(m)}).PrepareSiteDBPasswordWith(ctx, d, chosen)
 					if err != nil {
 						return nil, err
 					}
@@ -311,7 +331,7 @@ func dbPasswdCmd(e *env) *cobra.Command {
 			}
 			var p *core.DBPassword
 			return runM13Plan(cmd, e, f, false, func(ctx context.Context, m *m13Env) (*core.Planned, error) {
-				p, err = m.dbs.PreparePassword(ctx, name)
+				p, err = m.dbs.PreparePasswordWith(ctx, name, chosen)
 				if err != nil {
 					return nil, err
 				}
@@ -321,6 +341,7 @@ func dbPasswdCmd(e *env) *cobra.Command {
 			}, func() { printDBPassword(e, name, p.Password) })
 		},
 	}
+	c.Flags().BoolVar(&pwStdin, "password-stdin", false, passwordStdinHelp)
 	bindChangeFlags(c, &f)
 	return c
 }

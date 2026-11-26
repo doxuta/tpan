@@ -191,6 +191,32 @@ const vi = {
   secretCopy: "Chép",
   secretCopyOf: (what: string) => `Chép ${what}`,
   secretDismiss: "Đã lưu, ẩn đi",
+
+  // M36: tự đặt mật khẩu DB
+  pwHeading: (db: string) => `Đổi mật khẩu của ${db}`,
+  pwIntro: "Ứng dụng đang dùng mật khẩu cũ sẽ mất kết nối tới khi bạn sửa cấu hình của nó theo mật khẩu mới. Không hoàn tác được.",
+  pwChoose: "Mật khẩu mới",
+  pwRandom: "TPAN tạo ngẫu nhiên",
+  pwRandomHint: "32 chữ cái và chữ số, hiện đúng một lần ở trang job sau khi đổi xong. Nên chọn cách này.",
+  pwChosen: "Tự đặt",
+  pwChosenHint: "Bạn gõ mật khẩu. TPAN không hiện lại và không giữ nó.",
+  pwLabel: "Mật khẩu",
+  pwRule: "12 đến 64 ký tự: chữ cái không dấu, chữ số và các dấu ! # % * + , - . / : = ? @ ^ _ ~ (không có khoảng trắng, dấu nháy, \\, $, &, ;). Có ít nhất một chữ cái và một chữ số, không chứa tên DB.",
+  pwShow: "Hiện",
+  pwHide: "Ẩn",
+  pwPreview: "Xem trước",
+  pwProblem: {
+    short: "Ngắn hơn 12 ký tự.",
+    long: "Dài hơn 64 ký tự.",
+    chars: "Có ký tự không được nhận (chữ có dấu, khoảng trắng, dấu nháy, \\, $, &, ;...).",
+    classes: "Cần ít nhất một chữ cái và một chữ số.",
+    name: "Mật khẩu không được chứa tên DB.",
+  } as Record<"short" | "long" | "chars" | "classes" | "name", string>,
+  passwordChosenWarning: (db: string) =>
+    `Đổi mật khẩu ${db} sang mật khẩu bạn vừa nhập. TPAN không hiện lại và không giữ nó. Ứng dụng còn dùng mật khẩu cũ sẽ mất kết nối cho tới khi bạn đổi theo. Không hoàn tác được.`,
+  createPasswordLabel: "Mật khẩu user DB (không bắt buộc)",
+  createPasswordLead: "Để trống: TPAN tạo mật khẩu ngẫu nhiên và hiện một lần sau khi tạo.",
+  createChosenWarning: (full: string) => `Tạo DB ${full} và user DB cùng tên với mật khẩu bạn vừa nhập. TPAN không hiện lại và không giữ mật khẩu này.`,
 };
 
 export const strings = defineStrings(vi, {
@@ -368,4 +394,29 @@ export const strings = defineStrings(vi, {
   secretCopy: "Copy",
   secretCopyOf: (what) => `Copy ${what}`,
   secretDismiss: "Saved, hide it",
+
+  pwHeading: (db) => `Change the password of ${db}`,
+  pwIntro: "An app still using the old password loses its connection until you update its configuration. It cannot be undone.",
+  pwChoose: "New password",
+  pwRandom: "TPAN generates one",
+  pwRandomHint: "32 letters and digits, shown once on the job page when the change is done. Recommended.",
+  pwChosen: "Choose my own",
+  pwChosenHint: "You type the password. TPAN does not show it again or keep it.",
+  pwLabel: "Password",
+  pwRule: "12 to 64 characters: unaccented letters, digits and ! # % * + , - . / : = ? @ ^ _ ~ (no spaces, quotes, \\, $, &, ;). At least one letter and one digit, and not the database name.",
+  pwShow: "Show",
+  pwHide: "Hide",
+  pwPreview: "Preview",
+  pwProblem: {
+    short: "Shorter than 12 characters.",
+    long: "Longer than 64 characters.",
+    chars: "It has a character that is not allowed (accented letters, spaces, quotes, \\, $, &, ;...).",
+    classes: "It needs at least one letter and one digit.",
+    name: "The password must not contain the database name.",
+  },
+  passwordChosenWarning: (db) =>
+    `Changes the password of ${db} to the one you typed. TPAN does not show it again or keep it. An app still using the old password loses its connection until you update it. It cannot be undone.`,
+  createPasswordLabel: "DB user password (optional)",
+  createPasswordLead: "Leave empty: TPAN generates a random password and shows it once after creation.",
+  createChosenWarning: (full) => `Creates the DB ${full} and a DB user with the same name, with the password you typed. TPAN does not show this password again or keep it.`,
 });

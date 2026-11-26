@@ -899,7 +899,10 @@ export type PackageRow = { package: Package; users: number };
 export type Quota = { package: Package; usage: Usage };
 
 export type Collation = { charset: string; collation: string; default: boolean };
-export type DBCreate = { owner?: string; name: string; charset?: string; collation?: string; note?: string };
+/** M36: password là mật khẩu tự đặt cho user DB; không có thì TPAN tạo và hiện một lần. */
+export type DBCreate = { owner?: string; name: string; charset?: string; collation?: string; note?: string; password?: string };
+/** M36: thân tuỳ chọn của POST .../password; không có password thì TPAN tạo. */
+export type DBPasswordRequest = { password?: string };
 export type DBEdit = { charset?: string; collation?: string; note?: string };
 export type DBCharset = { charset: string; collation: string };
 export type DBSecret = { db: string; user: string; password: string };

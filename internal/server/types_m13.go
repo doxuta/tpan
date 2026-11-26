@@ -161,6 +161,15 @@ type DBCreate struct {
 	Charset   string `json:"charset,omitempty"`
 	Collation string `json:"collation,omitempty"`
 	Note      string `json:"note,omitempty"`
+	// Password (M36): mật khẩu tự đặt cho user DB; rỗng thì tpan sinh và trả
+	// một lần. Tự đặt thì không trả lại.
+	Password string `json:"password,omitempty"`
+}
+
+// DBPasswordRequest (M36) là thân tuỳ chọn của POST .../password: Password
+// rỗng hay không gửi thân thì tpan sinh mật khẩu như trước.
+type DBPasswordRequest struct {
+	Password string `json:"password,omitempty"`
 }
 
 // DBEdit là thân của POST /api/v1/dbs/{name}. Trường nil là giữ nguyên.

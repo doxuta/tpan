@@ -6,7 +6,7 @@
 // màn invalidate backupsKey sau job, khoá này cũng được tính lại.
 
 import { dbPath, dbSubPath, siteDbCharsetPath, siteDbSuspendPath } from "../../api/m13-dbs";
-import type { Backup, DatabaseRow, DBCharset, DBEdit, DBImportRequest } from "../../api/types";
+import type { Backup, DatabaseRow, DBCharset, DBEdit, DBImportRequest, DBPasswordRequest } from "../../api/types";
 import type { Op } from "../../components/PreviewedOp";
 import type { strings } from "../../i18n/co-so-du-lieu";
 import { backupsKey, backupsPath } from "../backup/model";
@@ -30,19 +30,23 @@ type T = (typeof strings)["vi"];
  * site gọi theo domain (/databases/{domain}/...), DB rời theo tên DB (/dbs/{name}/...):
  * hai họ đường dẫn của máy chủ (internal/server/types_m13.go) nên chọn ở đúng một chỗ này.
  */
-export function rowOp(t: T, action: RowAction, r: DatabaseRow, extra: { backup?: Backup; when?: string; charset?: string; collation?: string } = {}): Op {
+export function rowOp(t: T, action: RowAction, r: DatabaseRow, extra: { backup?: Backup; when?: string; charset?: string; collation?: string; password?: string } = {}): Op {
   const site = r.kind === "site";
   const id = `${action}:${r.db}`;
   switch (action) {
-    case "password":
+    case "password": {
+      // M36: mật khẩu tự đặt đi trong thân; không có thì không gửi thân (TPAN tạo như trước).
+      const body: DBPasswordRequest | undefined = extra.password ? { password: extra.password } : undefined;
       return {
         id,
         method: "POST",
         path: site ? dbOpPath(r.domain, "password") : dbSubPath(r.db, "password"),
+        body,
         // M29: site PHP trống không có wp-config.php để TPAN ghi mật khẩu vào; mật khẩu mới hiện một lần như DB rời.
-        warning: site && r.app !== "php" ? t.passwordWarning(r.db, r.domain) : t.passwordDbWarning(r.db),
+        warning: body ? t.passwordChosenWarning(r.db) : site && r.app !== "php" ? t.passwordWarning(r.db, r.domain) : t.passwordDbWarning(r.db),
         errorHeading: site ? t.passwordErrorHeading(r.domain) : t.passwordDbErrorHeading(r.db),
       };
+    }
     case "dump":
       return { id, method: "POST", path: dbOpPath(r.domain, "dump"), warning: t.dumpWarning(r.db), errorHeading: t.dumpErrorHeading(r.domain) };
     case "backup":

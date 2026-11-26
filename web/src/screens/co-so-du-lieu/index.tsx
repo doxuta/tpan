@@ -43,6 +43,7 @@ import { backupsKey } from "../backup/model";
 import { formatWhen, trashKey } from "../thung-rac/model";
 import { CreateDialog } from "./CreateDialog";
 import { EditPanel } from "./EditPanel";
+import { PasswordPanel } from "./PasswordPanel";
 import { footerCounts, footerText } from "./footer";
 import { ImportPicker } from "./ImportPicker";
 import { databasesKey, databasesPath, rowOp, type RowAction } from "./model";
@@ -79,7 +80,7 @@ export default function CoSoDuLieu() {
   const op = usePreviewedOp([databasesKey, backupsKey, trashKey, ["sites"]]);
   const [creating, setCreating] = useState(false);
   /** Khối đang mở dưới bảng: chọn bản nhập (DB của site) hoặc Sửa, Đổi charset. Theo tên DB để dữ liệu luôn mới. */
-  const [view, setView] = useState<{ kind: "import" | "edit"; db: string } | null>(null);
+  const [view, setView] = useState<{ kind: "import" | "edit" | "password"; db: string } | null>(null);
   // Khối mở từ menu ba chấm nằm dưới bảng: vừa mở thì đưa focus vào (trình duyệt tự cuộn tới).
   // setTimeout: Radix trả focus về nút ba chấm trong một setTimeout lúc menu đóng; việc này phải chạy sau nó.
   const panelRef = useRef<HTMLDivElement>(null);
@@ -96,7 +97,12 @@ export default function CoSoDuLieu() {
     if (action !== "import") setView(null);
     void op.ask(rowOp(t, action, row, { ...extra, when: extra?.backup ? formatWhen(extra.backup.created, lang) : undefined }));
   }
-  function open(kind: "import" | "edit", row: DatabaseRow) {
+  /** M36: DB rời và DB của site PHP trống mở khối chọn mật khẩu (tạo ngẫu nhiên hoặc tự đặt); site WordPress đi thẳng xem trước như cũ. */
+  function askPassword(row: DatabaseRow) {
+    if (row.kind === "site" && row.app !== "php") act("password", row);
+    else open("password", row);
+  }
+  function open(kind: "import" | "edit" | "password", row: DatabaseRow) {
     op.close();
     setView({ kind, db: row.db });
   }
@@ -142,7 +148,7 @@ export default function CoSoDuLieu() {
           // M33: DB rời có bản sao lưu riêng (bản backup của site không chứa nó).
           { label: t.backupNow, disabled: op.pending, onSelect: () => act("backup", r) },
           { label: t.importOpenDb, disabled: op.pending || Boolean(r.suspended), hint: r.suspended ? t.importDbBlocked : undefined, onSelect: () => open("import", r) },
-          { label: t.password, disabled: op.pending, onSelect: () => act("password", r) },
+          { label: t.password, disabled: op.pending, onSelect: () => askPassword(r) },
           { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) },
           ...lock,
         ],
@@ -180,7 +186,7 @@ export default function CoSoDuLieu() {
     return row(
       [{ label: t.manage, ariaLabel: t.manageFor(r.db), onClick: () => navigate(dbManagePath("site", r.domain)) }, button("trash-site", t.del, t.delSiteDbFor(r.db, r.domain))],
       [
-        { label: t.password, disabled: op.pending, onSelect: () => act("password", r) },
+        { label: t.password, disabled: op.pending, onSelect: () => askPassword(r) },
         { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) },
         { label: t.dump, disabled: op.pending, onSelect: () => act("dump", r) },
         { label: t.importOpen, disabled: op.pending || siteSuspended, hint: siteSuspended ? t.importBlocked : undefined, onSelect: () => open("import", r) },
@@ -299,6 +305,7 @@ export default function CoSoDuLieu() {
                 />
               )}
               {view.kind === "edit" && <EditPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
+              {view.kind === "password" && <PasswordPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
             </div>
           )}
 

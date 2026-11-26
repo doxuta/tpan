@@ -4,7 +4,7 @@
 // sách máy chủ cho phép. "Xem trước" gọi POST /api/v1/dbs?dry_run=1; có bản xem
 // trước thì hộp đóng và PlanReview hiện dưới bảng (việc của màn). Lỗi (tên sai,
 // vượt gói, tên đã có...) hiện ngay trong hộp để sửa ô sai mà không mất chữ đã gõ.
-// Mật khẩu của DB mới không hiện ở đây: nó hiện một lần ở trang job (DbSecretBox).
+// Mật khẩu: để trống thì TPAN tạo và hiện một lần ở trang job (DbSecretBox); M36: tự đặt thì TPAN không hiện lại.
 
 import { useEffect, useState } from "react";
 import { dbsPath, useCollations, useIdentity } from "../../api/m13-dbs";
@@ -19,6 +19,7 @@ import { useStrings } from "../../i18n";
 import { strings } from "../../i18n/co-so-du-lieu";
 import { ErrorNote } from "../site/ErrorNote";
 import { noteTooLong } from "./EditPanel";
+import { PasswordField, passwordReady } from "./PasswordField";
 
 type Props = {
   open: boolean;
@@ -37,6 +38,9 @@ export function CreateDialog({ open, onOpenChange, op }: Props) {
   const [note, setNote] = useState("");
   const [picked, setPicked] = useState<{ charset: string; collation: string } | null>(null);
   const [missing, setMissing] = useState(false);
+  // M36: để trống là TPAN tạo ngẫu nhiên; có thì phải đúng luật.
+  const [pw, setPw] = useState("");
+  const [tried, setTried] = useState(false);
 
   // Mở lại là bắt đầu lại, không giữ chữ của lần trước.
   useEffect(() => {
@@ -47,6 +51,8 @@ export function CreateDialog({ open, onOpenChange, op }: Props) {
       setNote("");
       setPicked(null);
       setMissing(false);
+      setPw("");
+      setTried(false);
     }
   }, [open]);
 
@@ -65,13 +71,20 @@ export function CreateDialog({ open, onOpenChange, op }: Props) {
       return;
     }
     if (noteBad) return;
+    setTried(true);
+    if (!passwordReady(pw, full, true)) {
+      document.getElementById("db-mat-khau")?.focus();
+      return;
+    }
     const body: DBCreate = {
       name: name.trim(),
       ...(isAdmin && owner !== me ? { owner } : {}),
       ...(pair.charset ? { charset: pair.charset, collation: pair.collation } : {}),
       ...(note.trim() ? { note: note.trim() } : {}),
+      ...(pw ? { password: pw } : {}),
     };
-    const ok = await op.ask({ id: "create", method: "POST", path: dbsPath, body, warning: t.createWarning(full), errorHeading: t.createErrorHeading }, true);
+    const warning = pw ? t.createChosenWarning(full) : t.createWarning(full);
+    const ok = await op.ask({ id: "create", method: "POST", path: dbsPath, body, warning, errorHeading: t.createErrorHeading }, true);
     if (ok) onOpenChange(false);
   }
 
@@ -131,6 +144,8 @@ export function CreateDialog({ open, onOpenChange, op }: Props) {
         <Field label={t.noteLabel} htmlFor="db-ghi-chu" hint={t.createNoteHint} hintId="db-ghi-chu-goi-y" error={noteBad ? t.noteTooLong : undefined}>
           <Input id="db-ghi-chu" value={note} onChange={(e) => setNote(e.target.value)} aria-describedby="db-ghi-chu-goi-y" aria-invalid={noteBad ? true : undefined} autoComplete="off" />
         </Field>
+
+        <PasswordField id="db-mat-khau" label={t.createPasswordLabel} lead={t.createPasswordLead} value={pw} onChange={setPw} dbName={full} showError={tried} optional />
 
         {op.quietError !== null && <ErrorNote error={op.quietError} heading={t.createErrorHeading} checksHeading={t.checksHeading} />}
       </div>

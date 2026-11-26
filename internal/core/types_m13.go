@@ -177,6 +177,8 @@ type DBInput struct {
 	Charset   string
 	Collation string
 	Note      string
+	// Password (M36): mật khẩu người dùng tự đặt cho user DB; rỗng thì tpan sinh.
+	Password string
 }
 
 // DBAdd là "tạo DB rời" đã qua điều kiện đầu. Password là mật khẩu của user DB,
@@ -185,6 +187,8 @@ type DBAdd struct {
 	*Planned
 	DB       account.Database
 	Password system.Secret
+	// Chosen (M36): người dùng tự đặt mật khẩu; Password khi đó rỗng.
+	Chosen bool
 }
 
 // DBPassword là "đổi mật khẩu DB rời" đã qua điều kiện đầu.
@@ -192,6 +196,8 @@ type DBPassword struct {
 	*Planned
 	Name     string
 	Password system.Secret
+	// Chosen (M36): người dùng tự đặt mật khẩu; Password khi đó rỗng.
+	Chosen bool
 }
 
 // Collation là một cặp charset, collation có trong information_schema.COLLATIONS.

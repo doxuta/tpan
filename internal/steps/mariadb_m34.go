@@ -53,8 +53,8 @@ func (s *DBUserRecreate) validate() error {
 	if err := sdbCheckName(s.Name); err != nil {
 		return err
 	}
-	if !dbPasswordRe.MatchString(s.Password.Reveal()) {
-		return fmt.Errorf("mật khẩu mới của user DB %s phải gồm ít nhất 24 ký tự, chỉ chữ cái và chữ số", s.Name)
+	if !dbUserPasswordOK(s.Password.Reveal()) {
+		return fmt.Errorf("mật khẩu mới của user DB %s không đúng luật (24 ký tự trở lên chỉ chữ và số do tpan sinh, hoặc 12 đến 64 ký tự tự đặt)", s.Name)
 	}
 	return nil
 }

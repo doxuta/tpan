@@ -778,12 +778,15 @@ func (s *Server) handleDBCreate(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	in := core.DBInput{Owner: on, Name: body.Name, Charset: body.Charset, Collation: body.Collation, Note: body.Note}
+	in := core.DBInput{Owner: on, Name: body.Name, Charset: body.Charset, Collation: body.Collation, Note: body.Note, Password: body.Password}
 	dbs := s.apiDBs()
 	s.secretJob(w, r, jobOpts{action: "dbs.add", target: full}, func(ctx context.Context) (*core.Planned, *DBSecret, error) {
 		add, err := dbs.PrepareAdd(ctx, in)
 		if err != nil {
 			return nil, nil, err
+		}
+		if add.Chosen {
+			return add.Planned, nil, nil
 		}
 		return add.Planned, &DBSecret{DB: add.DB.Name, User: add.DB.Name, Password: add.Password.Reveal()}, nil
 	})
@@ -851,12 +854,19 @@ func (s *Server) handleDBEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleStandaloneDBPassword(w http.ResponseWriter, r *http.Request) {
+	var body DBPasswordRequest
+	if !apiReadOptionalJSON(w, r, &body) {
+		return
+	}
 	name, target := pathDBName(r)
 	dbs := s.apiDBs()
 	s.secretJob(w, r, jobOpts{action: "dbs.passwd", target: target}, func(ctx context.Context) (*core.Planned, *DBSecret, error) {
-		p, err := dbs.PreparePassword(ctx, name)
+		p, err := dbs.PreparePasswordWith(ctx, name, body.Password)
 		if err != nil {
 			return nil, nil, err
+		}
+		if p.Chosen {
+			return p.Planned, nil, nil
 		}
 		return p.Planned, &DBSecret{DB: p.Name, User: p.Name, Password: p.Password.Reveal()}, nil
 	})

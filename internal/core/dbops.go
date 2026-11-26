@@ -262,7 +262,7 @@ func (b *Backups) PrepareDBPassword(ctx context.Context, d validate.Domain) (*Pl
 // DB cũng đã mất: đây là đường duy nhất để có lại user, mà mọi thao tác khác
 // của DB đều từ chối khi thiếu user. Kiểm chứng "site chạy lại" chỉ gắn khi
 // site đang ở trạng thái chạy được (còn DB, không khoá gì).
-func (b *Backups) recreateSiteDBUser(st site.Site, dbOK bool) (*DBPassword, error) {
+func (b *Backups) recreateSiteDBUser(st site.Site, dbOK bool, chosen string) (*DBPassword, error) {
 	l, s, d := st.Layout(), b.Sites, st.Domain.String()
 	locked := st.DBSuspended != account.NotSuspended
 	var tail i18n.Text
@@ -277,7 +277,7 @@ func (b *Backups) recreateSiteDBUser(st site.Site, dbOK bool) (*DBPassword, erro
 			". The site's database is suspended, so the user is created locked; unsuspend the site's database before the site can use it again")
 	}
 	if st.Plain() {
-		pw, err := sitePassword()
+		pw, picked, err := pickDBPassword(chosen, l.DB)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +292,7 @@ func (b *Backups) recreateSiteDBUser(st site.Site, dbOK bool) (*DBPassword, erro
 		if dbOK {
 			plan.Verify = []checks.Check{checks.DBExists(l)}
 		}
-		return &DBPassword{Planned: newPlanned(s.Sys, s.Journal, plan, nil), Name: l.DB, Password: pw}, nil
+		return &DBPassword{Planned: newPlanned(s.Sys, s.Journal, plan, nil), Name: l.DB, Password: secretUnlessChosen(pw, picked), Chosen: picked}, nil
 	}
 	plan := engine.Plan{
 		Kind:   "db.passwd",
@@ -447,16 +447,27 @@ func (b *Backups) PrepareDBImport(ctx context.Context, d validate.Domain, id str
 // M34: user DB đã bị xoá ngoài tpan thì Plan tạo lại user (recreateSiteDBUser);
 // DB đã mất mà user còn thì từ chối, chỉ đường có lại DB.
 func (b *Backups) PrepareSiteDBPassword(ctx context.Context, d validate.Domain) (*DBPassword, error) {
+	return b.PrepareSiteDBPasswordWith(ctx, d, "")
+}
+
+// PrepareSiteDBPasswordWith là PrepareSiteDBPassword với mật khẩu do người
+// dùng đặt (M36). chosen rỗng: tpan sinh như trước. Site WordPress: từ chối
+// mật khẩu tự đặt (refuseChosenForWordPress). Mật khẩu tự đặt không được trả
+// lại trong DBPassword.Password.
+func (b *Backups) PrepareSiteDBPasswordWith(ctx context.Context, d validate.Domain, chosen string) (*DBPassword, error) {
 	st, err := dbSite(ctx, b, d, false)
 	if err != nil {
 		return nil, err
+	}
+	if chosen != "" && !st.Plain() {
+		return nil, refuseChosenForWordPress(st)
 	}
 	l := st.Layout()
 	// Trước dbNotSuspended: site hay DB đang tạm khoá vẫn phải tạo lại được
 	// user, vì mở khoá cũng cần user đó.
 	dbOK, userOK, known := siteDBState(ctx, b.Sites.Sys, l)
 	if known && !userOK {
-		return b.recreateSiteDBUser(st, dbOK)
+		return b.recreateSiteDBUser(st, dbOK, chosen)
 	}
 	if known && !dbOK {
 		return nil, siteDBGoneErr(l.DB, d.String())
@@ -465,7 +476,7 @@ func (b *Backups) PrepareSiteDBPassword(ctx context.Context, d validate.Domain) 
 		return nil, err
 	}
 	if st.Plain() {
-		return b.plainDBPassword(st)
+		return b.plainDBPassword(st, chosen)
 	}
 	pw, err := sitePassword()
 	if err != nil {
@@ -483,12 +494,12 @@ func (b *Backups) PrepareSiteDBPassword(ctx context.Context, d validate.Domain) 
 }
 
 // plainDBPassword dựng Plan "db.passwd" của một site PHP trống.
-func (b *Backups) plainDBPassword(st site.Site) (*DBPassword, error) {
-	pw, err := sitePassword()
+func (b *Backups) plainDBPassword(st site.Site, chosen string) (*DBPassword, error) {
+	l, s, d := st.Layout(), b.Sites, st.Domain.String()
+	pw, picked, err := pickDBPassword(chosen, l.DB)
 	if err != nil {
 		return nil, err
 	}
-	l, s, d := st.Layout(), b.Sites, st.Domain.String()
 	p := newPlanned(s.Sys, s.Journal, engine.Plan{
 		Kind:   "db.passwd",
 		Target: d,
@@ -498,5 +509,5 @@ func (b *Backups) plainDBPassword(st site.Site) (*DBPassword, error) {
 		Steps:  []engine.Step{&steps.DBUserPassword{Name: l.DB, Password: pw}},
 		Verify: []checks.Check{checks.DBExists(l)},
 	}, nil)
-	return &DBPassword{Planned: p, Name: l.DB, Password: pw}, nil
+	return &DBPassword{Planned: p, Name: l.DB, Password: secretUnlessChosen(pw, picked), Chosen: picked}, nil
 }

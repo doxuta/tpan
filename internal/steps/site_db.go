@@ -46,6 +46,17 @@ var dbNameRe = regexp.MustCompile(`^[a-z0-9_]{1,64}$`)
 // thì không cần thoát ký tự nào; ≥ 24 ký tự để không đoán được (core sinh 32).
 var dbPasswordRe = regexp.MustCompile(`^[A-Za-z0-9]{24,}$`)
 
+// dbChosenPasswordRe (M36): mật khẩu người dùng tự đặt cho user DB rời và user
+// DB của site PHP trống. Vẫn nằm trong '...' của câu SQL gửi qua stdin của
+// mariadb: không có nháy, backtick, gạch chéo ngược, khoảng trắng hay xuống
+// dòng nên vẫn không cần thoát ký tự nào. Phải khớp core.chosenDBPasswordRe.
+var dbChosenPasswordRe = regexp.MustCompile(`^[A-Za-z0-9!#%*+,\-./:=?@^_~]{12,64}$`)
+
+// dbUserPasswordOK: mật khẩu tpan sinh, hoặc mật khẩu tự đặt đúng luật.
+func dbUserPasswordOK(pw string) bool {
+	return dbPasswordRe.MatchString(pw) || dbChosenPasswordRe.MatchString(pw)
+}
+
 // dbMask là chỗ mật khẩu hiện ra trong Info và thông báo lỗi.
 var dbMask = system.Secret{}.String()
 
