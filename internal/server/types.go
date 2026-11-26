@@ -363,6 +363,29 @@ type DatabaseRow struct {
 	// Missing (M34): DB có trong tpan nhưng không còn trong MariaDB (bị xoá
 	// ngoài tpan). Giao diện hiện nhãn và chỉ để lại việc gỡ.
 	Missing bool `json:"missing,omitempty"`
+	// Remote (M37): các IPv4 được nối vào DB này từ ngoài (chỉ có khi máy bật
+	// kết nối DB từ xa).
+	Remote []string `json:"remote,omitempty"`
+}
+
+// DBRemoteStatus (M37) là GET /api/v1/db-remote.
+type DBRemoteStatus struct {
+	On        bool `json:"on"`
+	UFWActive bool `json:"ufw_active"`
+	// Host và Port để khách điền vào ứng dụng của họ.
+	Port string `json:"port"`
+	Max  int    `json:"max"`
+}
+
+// DBRemoteModeRequest (M37) là POST /api/v1/db-remote (admin).
+type DBRemoteModeRequest struct {
+	On bool `json:"on"`
+}
+
+// DBRemoteHostsRequest (M37) là POST .../remote: danh sách IPv4 thay toàn bộ
+// danh sách cũ; rỗng là chỉ máy chủ được nối.
+type DBRemoteHostsRequest struct {
+	Hosts []string `json:"hosts"`
 }
 
 // ---- health (M4) ----

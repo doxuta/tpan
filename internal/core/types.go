@@ -43,6 +43,9 @@ type StackConfig struct {
 	// PHPVersion là bản PHP mặc định, ví dụ "8.3". Rỗng trước khi cài: dò từ
 	// /etc/php/*/fpm sau bước cài gói rồi mới ghi (mục 6.1, bước 4).
 	PHPVersion string `json:"php_version"`
+	// DBRemote (M37): máy đang cho kết nối DB từ ngoài (steps.DBRemoteOn); cài
+	// lại stack thì giữ bind-address của chế độ đó. Không phải setting.
+	DBRemote bool `json:"-"`
 }
 
 // Tên khoá trong bảng settings. Giá trị là chuỗi.

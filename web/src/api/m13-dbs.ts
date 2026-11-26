@@ -36,7 +36,7 @@ export const siteDbCharsetPath = (domain: string) => `/api/v1/databases/${enc(do
 /** DB rời, định danh bằng tên DB. */
 export const dbPath = (name: string) => `${dbsPath}/${enc(name)}`;
 /** M33 thêm "backups" (sao lưu ngay) và "import" (nhập một bản sao lưu vào DB rời). */
-export const dbSubPath = (name: string, sub: "password" | "restore" | "suspend" | "unsuspend" | "backups" | "import") => `${dbPath(name)}/${sub}`;
+export const dbSubPath = (name: string, sub: "password" | "restore" | "suspend" | "unsuspend" | "backups" | "import" | "remote") => `${dbPath(name)}/${sub}`;
 /** Xoá hẳn một DB rời đang trong thùng rác. */
 export const trashDbPath = (name: string) => `/api/v1/trash/dbs/${enc(name)}`;
 

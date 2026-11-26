@@ -44,6 +44,7 @@ import { formatWhen, trashKey } from "../thung-rac/model";
 import { CreateDialog } from "./CreateDialog";
 import { EditPanel } from "./EditPanel";
 import { PasswordPanel } from "./PasswordPanel";
+import { RemoteMode, RemotePanel, dbRemoteKey } from "./RemotePanel";
 import { footerCounts, footerText } from "./footer";
 import { ImportPicker } from "./ImportPicker";
 import { databasesKey, databasesPath, rowOp, type RowAction } from "./model";
@@ -77,10 +78,10 @@ export default function CoSoDuLieu() {
   }, [overview.data]);
 
   // Dung lượng, danh sách bản xuất, thùng rác và số đếm ở menu đều đổi sau job.
-  const op = usePreviewedOp([databasesKey, backupsKey, trashKey, ["sites"]]);
+  const op = usePreviewedOp([databasesKey, backupsKey, trashKey, ["sites"], dbRemoteKey]);
   const [creating, setCreating] = useState(false);
   /** Khối đang mở dưới bảng: chọn bản nhập (DB của site) hoặc Sửa, Đổi charset. Theo tên DB để dữ liệu luôn mới. */
-  const [view, setView] = useState<{ kind: "import" | "edit" | "password"; db: string } | null>(null);
+  const [view, setView] = useState<{ kind: "import" | "edit" | "password" | "remote"; db: string } | null>(null);
   // Khối mở từ menu ba chấm nằm dưới bảng: vừa mở thì đưa focus vào (trình duyệt tự cuộn tới).
   // setTimeout: Radix trả focus về nút ba chấm trong một setTimeout lúc menu đóng; việc này phải chạy sau nó.
   const panelRef = useRef<HTMLDivElement>(null);
@@ -102,7 +103,7 @@ export default function CoSoDuLieu() {
     if (row.kind === "site" && row.app !== "php") act("password", row);
     else open("password", row);
   }
-  function open(kind: "import" | "edit" | "password", row: DatabaseRow) {
+  function open(kind: "import" | "edit" | "password" | "remote", row: DatabaseRow) {
     op.close();
     setView({ kind, db: row.db });
   }
@@ -150,6 +151,7 @@ export default function CoSoDuLieu() {
           { label: t.importOpenDb, disabled: op.pending || Boolean(r.suspended), hint: r.suspended ? t.importDbBlocked : undefined, onSelect: () => open("import", r) },
           { label: t.password, disabled: op.pending, onSelect: () => askPassword(r) },
           { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) },
+          { label: t.remote, disabled: op.pending, onSelect: () => open("remote", r) },
           ...lock,
         ],
       );
@@ -190,6 +192,7 @@ export default function CoSoDuLieu() {
         { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) },
         { label: t.dump, disabled: op.pending, onSelect: () => act("dump", r) },
         { label: t.importOpen, disabled: op.pending || siteSuspended, hint: siteSuspended ? t.importBlocked : undefined, onSelect: () => open("import", r) },
+        { label: t.remote, disabled: op.pending, onSelect: () => open("remote", r) },
         ...lock,
       ],
     );
@@ -290,6 +293,7 @@ export default function CoSoDuLieu() {
           </p>
           <p className="m-0 max-w-[720px] text-[13px] text-muted">{t.hint}</p>
           <p className="m-0 max-w-[720px] text-[13px] text-muted">{t.hintM13}</p>
+          <RemoteMode op={op} isAdmin={isAdmin} />
 
           {view && viewRow && !op.hasPreview && (
             <div ref={panelRef} tabIndex={-1} className="outline-offset-0">
@@ -306,6 +310,7 @@ export default function CoSoDuLieu() {
               )}
               {view.kind === "edit" && <EditPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
               {view.kind === "password" && <PasswordPanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} />}
+              {view.kind === "remote" && <RemotePanel key={viewRow.db} row={viewRow} op={op} onClose={closeAll} isAdmin={isAdmin} />}
             </div>
           )}
 

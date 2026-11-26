@@ -148,6 +148,7 @@ func (s *Stack) wpcli() (version, sha string) {
 // `tpan stack status` vẫn hiện được một cấu hình tpan chưa hỗ trợ.
 func (s *Stack) Config(ctx context.Context) (StackConfig, error) {
 	var cfg StackConfig
+	cfg.DBRemote = s.Sys != nil && steps.DBRemoteOn(s.Sys)
 	get := func(key string) (string, error) {
 		v, _, err := s.Settings.GetSetting(ctx, key)
 		if err != nil {
@@ -291,8 +292,9 @@ func installPlan(cfg StackConfig, pkgs []string, php *string, wpVersion, wpSHA s
 	ss = append(ss,
 		&steps.Service{Unit: "mariadb"},
 		&steps.File{
-			Path:    mariadbCnf,
-			Content: []byte(templates.Header + "\n[mysqld]\nbind-address = 127.0.0.1\n"),
+			Path: mariadbCnf,
+			// M37: máy đang cho kết nối DB từ ngoài thì giữ bind-address của chế độ đó.
+			Content: steps.MariaDBCnf(templates.Header, cfg.DBRemote),
 			Perm:    0o644,
 			Owner:   system.Root,
 			Reload:  &system.Cmd{Name: "systemctl", Args: []string{"restart", "mariadb"}},

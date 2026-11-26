@@ -32,7 +32,7 @@ func dbCmd(e *env) *cobra.Command {
 		Use:   "db",
 		Short: "DB của site và DB rời: xem, tạo, đổi mật khẩu, charset, tạm khoá, thùng rác, xuất và nhập .sql",
 	}
-	c.AddCommand(dbListCmd(e), dbAddCmd(e), dbEditCmd(e), dbPasswdCmd(e), dbCharsetCmd(e),
+	c.AddCommand(dbListCmd(e), dbAddCmd(e), dbEditCmd(e), dbPasswdCmd(e), dbCharsetCmd(e), dbRemoteCmd(e),
 		dbArgCmd(e, "suspend <domain|tên DB>", "Tạm khoá user DB (ACCOUNT LOCK) và cắt các kết nối đang mở",
 			func(ctx context.Context, m *m13Env, d validate.Domain) (*core.Planned, error) {
 				return m.dbs.PrepareSiteDBSuspend(ctx, d)
@@ -205,7 +205,7 @@ func dbAddCmd(e *env) *cobra.Command {
 		Use: "add <tên> [--owner U] [--charset C] [--collation X] [--note N] [--password-stdin]",
 		Short: "Tạo DB rời <owner>_<tên> cùng user DB trùng tên; mật khẩu tạo ngẫu nhiên, in ra một lần " +
 			"(--password-stdin: tự đặt mật khẩu, đọc một dòng từ stdin)",
-		Args:  cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			own, err := parseUserArg(owner)
 			if err != nil {

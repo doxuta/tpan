@@ -222,6 +222,12 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/dbs", rule: anyone, tok: apitoken.GroupDatabases, h: s.handleDBCreate},
 		{pattern: "POST /api/v1/dbs/{name}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBEdit},
 		{pattern: "POST /api/v1/dbs/{name}/password", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleStandaloneDBPassword},
+		// M37 (v0.2.17): kết nối DB từ máy khác (api_m37.go).
+		{pattern: "GET /api/v1/db-remote", rule: anyone, tok: apitoken.GroupDatabases, h: s.handleDBRemoteStatus},
+		{pattern: "POST /api/v1/db-remote", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleDBRemoteMode},
+		{pattern: "POST /api/v1/db-remote/sync", rule: adminOnly, tok: apitoken.GroupSystem, h: s.handleDBRemoteSync},
+		{pattern: "POST /api/v1/dbs/{name}/remote", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleStandaloneDBRemote},
+		{pattern: "POST /api/v1/databases/{domain}/remote", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleSiteDBRemote},
 		// M32 (v0.2.14): quản lý dữ liệu của một DB (api_m32.go). Hai họ đường dẫn
 		// cho cùng handler: DB của site theo {domain}, DB rời theo {name}.
 		{pattern: "GET /api/v1/databases/{domain}/data", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBDataInfo},

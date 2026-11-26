@@ -97,6 +97,13 @@ func PortLocalOnly(port int, stage Stage) Check {
 			}
 		}
 		recheck := line("ss", "-tln")
+		// M37: tpan đã bật kết nối DB từ máy khác thì MariaDB nghe ra ngoài là
+		// có chủ ý; lúc đó điều phải đúng là tường lửa chỉ mở 3306 cho IP đã khai.
+		if port == 3306 && len(open) > 0 {
+			if _, err := sys.Stat(DBRemoteMarker); err == nil {
+				return dbRemoteFirewall(ctx, sys, b, open, ev)
+			}
+		}
 		switch {
 		case len(open) > 0:
 			fix := []string{line("ss", "-tlnp")}
@@ -191,4 +198,49 @@ func containsInt(xs []int, x int) bool {
 		}
 	}
 	return false
+}
+
+// DBRemoteMarker phải trùng steps.DBRemoteMarker (checks không import steps:
+// steps import checks). core có phép thử so hai hằng.
+const DBRemoteMarker = "/etc/tpan/db-remote"
+
+// dbRemoteFirewall: chế độ kết nối DB từ xa (M37) đang bật. Đạt khi ufw đang
+// bật và không luật nào mở 3306 cho mọi nơi ("Anywhere"); luật cho từng IP là
+// do tpan thêm theo danh sách máy ngoài của từng DB.
+func dbRemoteFirewall(ctx context.Context, sys system.System, b base, open []string, ev Evidence) Result {
+	res, ev2, err := execCmd(ctx, sys, system.Cmd{Name: "ufw", Args: []string{"status"}})
+	if err != nil {
+		return b.cantRun(err, ev, ev2)
+	}
+	fix := []string{line("ufw", "status", "numbered"), line("tpan", "db", "remote"), line("tpan", "db", "remote", "sync")}
+	if !strings.Contains(res.Stdout, "Status: active") {
+		return b.bad(Fail,
+			i18n.T("MariaDB nghe ra ngoài (kết nối DB từ xa đang bật) mà tường lửa ufw đang tắt", "MariaDB listens outside (remote database connections are on) while the ufw firewall is off"),
+			i18n.T("Tường lửa tắt thì cổng 3306 mở cho cả internet: ai cũng dò mật khẩu DB được. Bật lại tường lửa ở màn Bảo mật, hoặc tắt kết nối từ xa: sudo tpan db remote off.",
+				"With the firewall off, port 3306 is open to the whole internet and anyone can guess database passwords. Turn the firewall back on on the Security screen, or turn remote connections off: sudo tpan db remote off."),
+			append([]string{line("tpan", "security", "ufw"), line("tpan", "db", "remote", "off")}, fix...), ev, ev2)
+	}
+	var wide []string
+	n := 0
+	for l := range strings.SplitSeq(res.Stdout, "\n") {
+		f := strings.Fields(l)
+		if len(f) < 3 || !strings.HasPrefix(f[0], "3306") {
+			continue
+		}
+		if strings.Contains(l, "Anywhere") {
+			wide = append(wide, strings.TrimSpace(l))
+		} else if strings.Contains(l, "ALLOW") {
+			n++
+		}
+	}
+	if len(wide) > 0 {
+		return b.bad(Fail,
+			i18n.T("Tường lửa mở cổng 3306 cho mọi nơi: "+strings.Join(wide, "; "), "The firewall opens port 3306 to everyone: "+strings.Join(wide, "; ")),
+			i18n.T("Kết nối DB từ xa chỉ an toàn khi cổng 3306 mở riêng cho từng IP đã khai. Luật \"Anywhere\" không do tpan thêm: xoá nó bằng ufw delete.",
+				"Remote database connections are only safe when port 3306 is opened per listed IP. The \"Anywhere\" rule was not added by tpan: remove it with ufw delete."),
+			fix, ev, ev2)
+	}
+	return b.pass(i18n.T(
+		"Cổng 3306 nghe ở "+strings.Join(open, ", ")+" theo chế độ kết nối DB từ xa; tường lửa chỉ mở cho "+strconv.Itoa(n)+" luật theo IP",
+		"Port 3306 listens on "+strings.Join(open, ", ")+" for remote database connections; the firewall opens it to "+strconv.Itoa(n)+" per-IP rules only"), ev, ev2)
 }

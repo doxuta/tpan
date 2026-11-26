@@ -89,7 +89,7 @@ export function rowOp(t: T, action: RowAction, r: DatabaseRow, extra: { backup?:
   }
 }
 
-export const dbOpPath = (domain: string, op: DbOp) => `${databasesPath}/${encodeURIComponent(domain)}/${op}`;
+export const dbOpPath = (domain: string, op: DbOp | "remote") => `${databasesPath}/${encodeURIComponent(domain)}/${op}`;
 
 export const siteBackupsKey = (domain: string) => [...backupsKey, domain] as const;
 export const siteBackupsPath = (domain: string) => `${backupsPath}?domain=${encodeURIComponent(domain)}`;

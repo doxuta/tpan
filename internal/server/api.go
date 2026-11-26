@@ -312,7 +312,7 @@ func databaseRow(d core.Database) DatabaseRow {
 	return DatabaseRow{
 		Domain: d.Domain, DB: d.DB, User: d.User, SizeBytes: d.SizeBytes, Tables: d.Tables,
 		Kind: d.Kind, Owner: d.Owner, Charset: d.Charset, Collation: d.Collation, Note: d.Note,
-		Suspended: d.Suspended, Status: d.Status, App: d.App, Missing: d.Missing,
+		Suspended: d.Suspended, Status: d.Status, App: d.App, Missing: d.Missing, Remote: d.Remote,
 	}
 }
 

@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/doxuta/tpan/internal/account"
+	"github.com/doxuta/tpan/internal/steps"
 	"github.com/doxuta/tpan/internal/system"
 )
 
@@ -41,6 +42,8 @@ type Database struct {
 	// DB đã bị xoá ngoài tpan. Không đặt cho DB rời trong thùng rác (đã DROP có
 	// chủ ý), và không đặt khi không hỏi được MariaDB (khi đó chỉ là "không rõ").
 	Missing bool
+	// Remote (M37, DBs.List điền khi máy bật kết nối từ xa): các IPv4 được nối vào DB này.
+	Remote []string
 }
 
 // databaseNameRe là lớp chặn cuối trước khi tên DB đi vào chuỗi SQL. Tên lấy
@@ -194,6 +197,15 @@ func (d *DBs) List(ctx context.Context, owner string) ([]Database, error) {
 		// trong MariaDB. DB rời trong thùng rác đã DROP có chủ ý: không tính.
 		trashedStandalone := out[i].Kind == DBKindStandalone && out[i].Status == string(account.DBTrashed)
 		out[i].Missing = asked[out[i].DB] && res.ExitCode == 0 && !trashedStandalone
+	}
+	// M37: máy ngoài của từng DB, một câu SQL cho cả danh sách. Lỗi thì bỏ qua
+	// như số liệu ở trên: danh sách DB vẫn đúng, chỉ cột này trống.
+	if steps.DBRemoteOn(d.Sys) {
+		if all, err := steps.DBRemoteAll(ctx, d.Sys); err == nil {
+			for i := range out {
+				out[i].Remote = all[out[i].DB]
+			}
+		}
 	}
 	return out, nil
 }

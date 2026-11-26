@@ -154,6 +154,12 @@ func dbRedact(err error, password string) error {
 // dbRun chạy một đoạn SQL qua stdin. password khác rỗng là mật khẩu có trong
 // sql: nó bị lọc khỏi lỗi và stdout trước khi trả ra.
 func dbRun(ctx context.Context, sys system.System, sql, password, what string) error {
+	// M37: chép câu nhắm vào 'user'@'localhost' sang account máy ngoài của user
+	// đó (db_remote_m37.go). Không ở chế độ máy ngoài thì sql giữ nguyên.
+	sql, err := dbWithRemote(ctx, sys, sql)
+	if err != nil {
+		return fmt.Errorf("%s: %w", what, err)
+	}
 	res, err := sys.Run(ctx, mariadbCmd(sql))
 	if err == nil {
 		return nil

@@ -409,10 +409,13 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"POST /api/v1/sites/{domain}/htaccess", "POST /api/v1/sites/{domain}/suspend", "POST /api/v1/sites/{domain}/unsuspend",
 		"GET /api/v1/sites/{domain}/traffic", "GET /api/v1/sites/{domain}/log", "GET /api/v1/sites/{domain}/route",
 		"GET /api/v1/trash", "DELETE /api/v1/trash/{domain}", "POST /api/v1/apply", "GET /api/v1/export", "GET /api/v1/php")
+	add("system", "POST /api/v1/db-remote", "POST /api/v1/db-remote/sync")
 	add("databases", "GET /api/v1/databases", "POST /api/v1/databases/{domain}/password", "POST /api/v1/databases/{domain}/dump",
 		"POST /api/v1/databases/{domain}/import", "POST /api/v1/databases/{domain}/charset", "POST /api/v1/databases/{domain}/suspend",
 		"POST /api/v1/databases/{domain}/unsuspend", "GET /api/v1/collations", "POST /api/v1/dbs", "POST /api/v1/dbs/{name}",
 		"POST /api/v1/dbs/{name}/password", "POST /api/v1/dbs/{name}/suspend", "POST /api/v1/dbs/{name}/unsuspend",
+		// M37: kết nối DB từ máy khác; bật, tắt chế độ của máy là việc hệ thống.
+		"GET /api/v1/db-remote", "POST /api/v1/dbs/{name}/remote", "POST /api/v1/databases/{domain}/remote",
 		"POST /api/v1/dbs/{name}/restore", "DELETE /api/v1/dbs/{name}", "DELETE /api/v1/trash/dbs/{name}",
 		// M32: quản lý dữ liệu của một DB (xem bảng, sửa dòng, công cụ bảng, chạy SQL).
 		"GET /api/v1/databases/{domain}/data", "GET /api/v1/databases/{domain}/data/{table}", "POST /api/v1/databases/{domain}/data/{table}",

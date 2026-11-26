@@ -317,7 +317,16 @@ export type DatabaseRow = {
   app?: SiteApp;
   /** M34: TPAN còn dòng của DB này nhưng MariaDB không còn nó (bị xoá ngoài TPAN). */
   missing?: boolean;
+  /** M37: các IPv4 được nối vào DB này từ ngoài (chỉ có khi máy bật kết nối DB từ xa). */
+  remote?: string[];
 };
+
+/** M37: GET /api/v1/db-remote. */
+export type DBRemoteStatus = { on: boolean; ufw_active: boolean; port: string; max: number };
+/** M37: POST /api/v1/db-remote (admin). */
+export type DBRemoteModeRequest = { on: boolean };
+/** M37: POST .../remote: danh sách thay cả danh sách cũ; rỗng là chỉ máy chủ. */
+export type DBRemoteHostsRequest = { hosts: string[] };
 
 // ---- Đăng nhập, tài khoản ----
 

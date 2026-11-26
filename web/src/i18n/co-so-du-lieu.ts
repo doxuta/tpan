@@ -217,6 +217,38 @@ const vi = {
   createPasswordLabel: "Mật khẩu user DB (không bắt buộc)",
   createPasswordLead: "Để trống: TPAN tạo mật khẩu ngẫu nhiên và hiện một lần sau khi tạo.",
   createChosenWarning: (full: string) => `Tạo DB ${full} và user DB cùng tên với mật khẩu bạn vừa nhập. TPAN không hiện lại và không giữ mật khẩu này.`,
+
+  // M37: kết nối DB từ máy khác
+  remote: "Kết nối từ xa",
+  remoteModeOn: "Kết nối DB từ máy khác: đang bật. Mỗi DB chỉ nhận các IP đã khai ở mục Kết nối từ xa của nó.",
+  remoteModeOff: "Kết nối DB từ máy khác: đang tắt. Chỉ mã chạy trên máy chủ này nối được vào DB.",
+  remoteNeedsUfw: "Cần bật tường lửa ở màn Bảo mật trước.",
+  remoteTurnOn: "Bật kết nối từ xa",
+  remoteTurnOff: "Tắt kết nối từ xa",
+  remoteOnWarning:
+    "Bật kết nối DB từ máy khác: MariaDB khởi động lại và nghe ở mọi địa chỉ, mọi site mất kết nối DB vài giây. Cổng 3306 trên tường lửa vẫn đóng cho tới khi một DB khai IP được nối vào.",
+  remoteOffWarning:
+    "Tắt kết nối DB từ máy khác: mọi máy ngoài của mọi DB bị xoá, cổng 3306 đóng, MariaDB khởi động lại và chỉ nghe 127.0.0.1. Ứng dụng đang nối từ ngoài mất kết nối.",
+  remoteOnErrorHeading: "Chưa dựng được bản xem trước bật kết nối từ xa",
+  remoteOffErrorHeading: "Chưa dựng được bản xem trước tắt kết nối từ xa",
+  remoteHeading: (db: string) => `Kết nối từ xa vào ${db}`,
+  remoteOffAdmin: "Máy chủ chưa bật kết nối DB từ máy khác. Bật ở dòng dưới bảng (cần tường lửa đang bật), rồi mở lại mục này.",
+  remoteOffUser: "Máy chủ chưa bật kết nối DB từ máy khác. Nhờ quản trị viên bật.",
+  remoteHost: "Máy chủ",
+  remoteHostValue: "địa chỉ IP công khai của máy chủ này",
+  remotePort: "Cổng",
+  remoteUser: "User",
+  remotePassword: "Mật khẩu",
+  remotePasswordValue: "mật khẩu của user DB (cùng mật khẩu ứng dụng trên máy chủ đang dùng)",
+  remoteIpsLabel: "IP được nối vào",
+  remoteIpsHint: (max: number) =>
+    `Mỗi dòng một địa chỉ IPv4 cố định của máy cần nối (không nhận dải, tên miền hay IPv6), tối đa ${max}. Danh sách này thay cả danh sách cũ; để trống là chỉ máy chủ nối được.`,
+  remoteIpBad: (what: string) => (what === "max" ? "Quá số máy cho phép." : `"${what}" không phải địa chỉ IPv4 của một máy ngoài.`),
+  remoteSetWarning: (db: string, ips: string) =>
+    `Cho ${ips} nối vào ${db} bằng user và mật khẩu của DB này. Tường lửa mở cổng 3306 cho đúng các IP đó; máy bỏ khỏi danh sách mất quyền ngay.`,
+  remoteClearWarning: (db: string) => `Bỏ mọi máy ngoài của ${db}: chỉ máy chủ nối được vào DB này.`,
+  remoteErrorHeading: (db: string) => `Chưa dựng được bản xem trước kết nối từ xa của ${db}`,
+  remoteCount: (n: number) => `${n} máy ngoài`,
 };
 
 export const strings = defineStrings(vi, {
@@ -419,4 +451,35 @@ export const strings = defineStrings(vi, {
   createPasswordLabel: "DB user password (optional)",
   createPasswordLead: "Leave empty: TPAN generates a random password and shows it once after creation.",
   createChosenWarning: (full) => `Creates the DB ${full} and a DB user with the same name, with the password you typed. TPAN does not show this password again or keep it.`,
+
+  remote: "Remote access",
+  remoteModeOn: "Database connections from other machines: on. Each database only accepts the IPs listed under its Remote access.",
+  remoteModeOff: "Database connections from other machines: off. Only code running on this server can connect to a database.",
+  remoteNeedsUfw: "Turn on the firewall on the Security screen first.",
+  remoteTurnOn: "Turn on remote access",
+  remoteTurnOff: "Turn off remote access",
+  remoteOnWarning:
+    "Turns on database connections from other machines: MariaDB restarts and listens on every address, every site loses its database connection for a few seconds. Port 3306 stays closed on the firewall until a database lists an allowed IP.",
+  remoteOffWarning:
+    "Turns off database connections from other machines: every outside machine of every database is removed, port 3306 closes, MariaDB restarts and listens on 127.0.0.1 only. Apps connecting from outside lose their connection.",
+  remoteOnErrorHeading: "Could not build the preview for turning on remote access",
+  remoteOffErrorHeading: "Could not build the preview for turning off remote access",
+  remoteHeading: (db) => `Remote access to ${db}`,
+  remoteOffAdmin: "The server has not turned on database connections from other machines. Turn it on in the line under the table (the firewall must be on), then open this again.",
+  remoteOffUser: "The server has not turned on database connections from other machines. Ask an administrator to turn it on.",
+  remoteHost: "Server",
+  remoteHostValue: "this server's public IP address",
+  remotePort: "Port",
+  remoteUser: "User",
+  remotePassword: "Password",
+  remotePasswordValue: "the database user's password (the same one the app on the server uses)",
+  remoteIpsLabel: "Allowed IPs",
+  remoteIpsHint: (max) =>
+    `One fixed IPv4 address of a machine per line (no ranges, names or IPv6), at most ${max}. This list replaces the old one; leave it empty so only the server can connect.`,
+  remoteIpBad: (what) => (what === "max" ? "Too many machines." : `"${what}" is not the IPv4 address of an outside machine.`),
+  remoteSetWarning: (db, ips) =>
+    `Lets ${ips} connect to ${db} with this database's user and password. The firewall opens port 3306 to exactly those IPs; a machine removed from the list loses access at once.`,
+  remoteClearWarning: (db) => `Removes every outside machine of ${db}: only the server can connect to this database.`,
+  remoteErrorHeading: (db) => `Could not build the remote access preview for ${db}`,
+  remoteCount: (n) => `${n} outside machine${n === 1 ? "" : "s"}`,
 });

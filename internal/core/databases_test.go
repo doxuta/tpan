@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -49,7 +50,7 @@ func TestDatabases(t *testing.T) {
 		t.Fatalf("Databases = %+v", got)
 	}
 	for i := range want {
-		if got[i] != want[i] {
+		if !reflect.DeepEqual(got[i], want[i]) {
 			t.Errorf("dòng %d = %+v, muốn %+v", i, got[i], want[i])
 		}
 	}
