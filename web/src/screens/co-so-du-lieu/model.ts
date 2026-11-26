@@ -35,7 +35,8 @@ export function rowOp(t: T, action: RowAction, r: DatabaseRow, extra: { backup?:
         id,
         method: "POST",
         path: site ? dbOpPath(r.domain, "password") : dbSubPath(r.db, "password"),
-        warning: site ? t.passwordWarning(r.db, r.domain) : t.passwordDbWarning(r.db),
+        // M29: site PHP trống không có wp-config.php để TPAN ghi mật khẩu vào; mật khẩu mới hiện một lần như DB rời.
+        warning: site && r.app !== "php" ? t.passwordWarning(r.db, r.domain) : t.passwordDbWarning(r.db),
         errorHeading: site ? t.passwordErrorHeading(r.domain) : t.passwordDbErrorHeading(r.db),
       };
     case "dump":

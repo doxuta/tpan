@@ -195,11 +195,31 @@ type Site struct {
 	// Caged: site đang ở trong lồng (M17, sites.caged). Chỉ Plan cage.enable,
 	// cage.disable đổi trường này, khi job thành công.
 	Caged bool `json:"caged"`
+	// App là thứ chạy trong site (M29, sites.app). Rỗng (bản ghi chưa lưu, mã cũ)
+	// là WordPress; chỉ đặt lúc tạo site.
+	App App `json:"app"`
 	// Names: tên phụ, luật chuyển hướng và bộ tên trong chứng chỉ, chỉ dòng
 	// active (M19, bảng site_names và site_redirects). Store điền khi đọc; vhost
 	// vẽ từ trường này. Zero (site không có tên phụ, luật) thì vhost giống bản cũ.
 	Names Names `json:"names"`
 }
+
+// App là loại ứng dụng của một site.
+type App string
+
+const (
+	// AppWordPress: TPAN cài và trông WordPress (wp-config.php, WP-CLI, cron).
+	AppWordPress App = "wordpress"
+	// AppPHP: site PHP trống. TPAN dựng user, thư mục, DB, pool PHP, vhost rồi
+	// để mã nguồn cho chủ site; không có bước hay phép kiểm nào của WordPress.
+	AppPHP App = "php"
+)
+
+// Valid: rỗng (WordPress), wordpress hoặc php.
+func (a App) Valid() bool { return a == "" || a == AppWordPress || a == AppPHP }
+
+// Plain: site không có WordPress.
+func (s Site) Plain() bool { return s.App == AppPHP }
 
 // Layout trả tên và đường dẫn của site.
 func (s Site) Layout() Layout { return LayoutOf(s.Domain) }

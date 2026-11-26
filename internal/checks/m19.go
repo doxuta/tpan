@@ -147,7 +147,19 @@ func aliasCurl(host string, https bool) system.Cmd {
 
 // aliasJudge áp luật đạt của steps.NameProbe.plan lên câu trả lời a. Trả lý do
 // (rỗng khi đạt).
-func aliasJudge(a aliasAnswer, mode site.NameMode, redirectTo string) string {
+func aliasJudge(a aliasAnswer, mode site.NameMode, redirectTo string, plain bool) string {
+	if redirectTo == "" && mode != site.ModeRedirect && plain {
+		// M29, site PHP trống: như steps.NameProbe.Plain.
+		switch {
+		case len(a.code) != 3:
+			return fmt.Sprintf("không đọc được mã trả lời (nhận %q)", a.code)
+		case a.code == "403":
+			return "trả 403: không phân biệt được với site mặc định của tpan (site chưa có index, hoặc tên chưa vào vhost của site)"
+		case a.code[0] == '2' || a.code[0] == '3' || a.code[0] == '4':
+			return ""
+		}
+		return fmt.Sprintf("mong site trả lời (mã 2xx, 3xx hay 4xx), nhận mã %q", a.code)
+	}
 	if redirectTo != "" || mode == site.ModeRedirect {
 		switch {
 		case a.code != "301":
@@ -184,6 +196,12 @@ func aliasJudge(a aliasAnswer, mode site.NameMode, redirectTo string) string {
 //
 // Một lần gọi, không thử lại: health chạy lại sau.
 func AliasHTTP(l site.Layout, host validate.Domain, mode site.NameMode, ssl bool, covered []validate.Domain) Check {
+	return AliasHTTPApp(l, host, mode, ssl, covered, false)
+}
+
+// AliasHTTPApp là AliasHTTP biết loại site: plain là site PHP trống (M29),
+// kiểu serve khi đó không đòi dấu hiệu WordPress trong trang.
+func AliasHTTPApp(l site.Layout, host validate.Domain, mode site.NameMode, ssl bool, covered []validate.Domain, plain bool) Check {
 	b := base{id: "site.alias.http:" + host.String(), stage: StageEndToEnd,
 		title: i18n.T("Tên phụ trả lời đúng kiểu khi gọi vào web server", "The alias domain answers as configured when called on the web server")}
 	bad := func(why i18n.Text) Check {
@@ -239,7 +257,7 @@ func AliasHTTP(l site.Layout, host validate.Domain, mode site.NameMode, ssl bool
 		if a.code == "" {
 			return b.unknown(i18n.T("curl không in mã trả lời", "curl printed no status code"), ev)
 		}
-		if why := aliasJudge(a, mode, redirectTo); why != "" {
+		if why := aliasJudge(a, mode, redirectTo, plain); why != "" {
 			return b.bad(Fail,
 				i18n.T(name+" trả lời sai kiểu: "+why, name+" answers the wrong way: "+why),
 				i18n.T("Vhost của site không phục vụ tên này như đã khai (kiểu "+string(mode)+"), hoặc một vhost khác đang giữ tên. Vẽ lại vhost bằng lệnh đầu, rồi kiểm lại.",

@@ -37,6 +37,11 @@ func (s *Sites) PrepareWPPassword(ctx context.Context, d validate.Domain) (*WPPa
 			"site "+dom+" đang ở thùng rác; khôi phục nó rồi mới đặt lại mật khẩu WordPress",
 			"site "+dom+" is in the trash; restore it before resetting the WordPress password"))
 	}
+	if st.Plain() {
+		return nil, refuse(CodeSiteNotWordPress, i18n.T(
+			"site "+dom+" là site PHP trống, không có WordPress để đặt lại mật khẩu quản trị",
+			"site "+dom+" is an empty PHP site; it has no WordPress admin password to reset"))
+	}
 	pw, err := sitePassword()
 	if err != nil {
 		return nil, err
@@ -54,3 +59,7 @@ func (s *Sites) PrepareWPPassword(ctx context.Context, d validate.Domain) (*WPPa
 	}
 	return &WPPasswordReset{Planned: newPlanned(s.Sys, s.Journal, plan, nil), URL: scheme + dom + "/wp-admin/", step: step}, nil
 }
+
+// CodeSiteNotWordPress: thao tác chỉ có ở site WordPress được gọi trên một
+// site PHP trống (M29).
+const CodeSiteNotWordPress = "site_not_wordpress"

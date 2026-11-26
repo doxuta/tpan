@@ -32,8 +32,9 @@ func TestKhongGoiPoolChungNgoaiHamChon(t *testing.T) {
 		"steps.PoolSuspend":   {"Sites.suspendSteps"},
 		"steps.PoolUnsuspend": {"Sites.unsuspendSteps"},
 		// Chỗ chọn bộ phép kiểm theo đường request (siteChecks gọi nó).
-		"checks.SiteChecks":    {"siteRequestChecks"},
-		"checks.SiteChecksSSL": {"siteRequestChecks"},
+		"checks.SiteChecks":      {"siteRequestChecks"},
+		"checks.SiteChecksSSL":   {"siteRequestChecks"},
+		"checks.SiteChecksPlain": {"siteRequestChecks"},
 		// Ba nhánh chỉ dành cho site ngoài lồng: nhánh DB đang khoá của
 		// siteStateChecks, sửa tự động php.restart (site trong lồng bị từ chối
 		// no_auto_fix), phép kiểm giữa chừng của php.use (site trong lồng có

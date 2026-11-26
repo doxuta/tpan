@@ -14,11 +14,15 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/doxuta/tpan/internal/account"
 	"github.com/doxuta/tpan/internal/core"
 	"github.com/doxuta/tpan/internal/engine"
+	"github.com/doxuta/tpan/internal/site"
+	"github.com/doxuta/tpan/internal/store"
 	"github.com/doxuta/tpan/internal/validate"
 )
 
@@ -62,6 +66,47 @@ func (s *Server) backupRecreate(w http.ResponseWriter, r *http.Request, d valida
 	sites := s.apiSites()
 	sites.NotAdmin = !me.IsAdmin()
 	in := core.SiteInput{Domain: d, Email: email, Owner: owner}
+	// M29: dựng lại đúng site cũ theo những gì dòng backup nhớ: loại site, bản
+	// PHP (nếu máy còn bản đó), các tên phụ. SSL không nhớ được: chứng chỉ đã
+	// bị gỡ cùng site, phải xin lại.
+	row, _, err := s.deps.Store.Backup(ctx, id)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	origin, _, err := s.deps.Store.BackupOrigin(ctx, id)
+	if err != nil {
+		apiFail(w, r, err)
+		return
+	}
+	app, aliases := origin.App, origin.Aliases
+	in.App = site.App(app)
+	phpNote := ""
+	if v := row.PHPVersion; v != "" {
+		ok, err := sites.PHPAvailable(v)
+		if err != nil {
+			apiFail(w, r, err)
+			return
+		}
+		if ok {
+			in.PHPVersion = v
+		} else {
+			phpNote = v
+		}
+	}
+	// Tên www mặc định: giữ đúng kiểu cũ, hoặc không thêm nếu site cũ không có.
+	// Dòng backup có trước M29 không ghi tên phụ nào: để mặc định như tạo site mới.
+	var extra []store.BackupAlias
+	if app != "" {
+		in.WWW = core.WWWNone
+		for _, a := range aliases {
+			if a.Name == "www."+d.String() {
+				in.WWW = site.NameMode(a.Mode)
+				continue
+			}
+			extra = append(extra, a)
+		}
+	}
 
 	if apiDryRun(r) {
 		add, err := sites.PrepareAdd(ctx, in)
@@ -75,8 +120,31 @@ func (s *Server) backupRecreate(w http.ResponseWriter, r *http.Request, d valida
 			return
 		}
 		pv.Kind = action
-		pv.Title.Vi = "Site " + d.String() + " đã xoá hẳn: tạo lại site (các bước dưới đây) rồi khôi phục mã nguồn và DB từ bản backup " + id + ". Chạy thành hai việc nối nhau, việc khôi phục hiện ở Lịch sử"
-		pv.Title.En = "Site " + d.String() + " was deleted for good: create it again (the steps below), then restore its code and database from backup " + id + ". This runs as two jobs in a row; the restore shows in History"
+		pv.Title.Vi = "Site " + d.String() + " đã xoá hẳn: tạo lại site (các bước dưới đây) rồi khôi phục mã nguồn và DB từ bản backup " + id + ". Chạy thành các việc nối nhau, việc khôi phục hiện ở Lịch sử"
+		pv.Title.En = "Site " + d.String() + " was deleted for good: create it again (the steps below), then restore its code and database from backup " + id + ". This runs as jobs in a row; the restore shows in History"
+		var backVi, backEn []string
+		if len(extra) > 0 {
+			names := make([]string, len(extra))
+			for i, a := range extra {
+				names[i] = a.Name
+			}
+			backVi = append(backVi, "tên phụ cũ ("+strings.Join(names, ", ")+")")
+			backEn = append(backEn, "the old alias domains ("+strings.Join(names, ", ")+")")
+		}
+		if n := len(origin.Rules); n > 0 {
+			backVi = append(backVi, fmt.Sprintf("%d luật chuyển hướng cũ", n))
+			backEn = append(backEn, fmt.Sprintf("%d old redirect rule(s)", n))
+		}
+		if len(backVi) > 0 {
+			pv.Title.Vi += ". Sau đó thêm lại " + strings.Join(backVi, " và ")
+			pv.Title.En += ". Then these are added back: " + strings.Join(backEn, " and ")
+		}
+		if phpNote != "" {
+			pv.Title.Vi += ". Site cũ chạy PHP " + phpNote + " nhưng máy không còn bản đó, nên site mới dùng bản mặc định"
+			pv.Title.En += ". The old site ran PHP " + phpNote + ", which this machine no longer has, so the new site uses the default version"
+		}
+		pv.Title.Vi += ". SSL không khôi phục được: xin lại ở trang site sau khi xong"
+		pv.Title.En += ". SSL cannot be restored: request it again on the site page afterwards"
 		s.writePreview(w, r, pv, d)
 		return
 	}
@@ -102,6 +170,56 @@ func (s *Server) backupRecreate(w http.ResponseWriter, r *http.Request, d valida
 		}
 		// Sự kiện của job thứ hai không đưa vào luồng của job đầu (khác job id).
 		rep, err := pl.Execute(ctx, nil)
-		return jobResult{status: rep.Job.Status}, err
+		out := jobResult{status: rep.Job.Status}
+		// Site PHP trống tạo lại có user DB mới: mật khẩu của nó phải tới tay
+		// người bấm, kể cả khi bước khôi phục hỏng (site mới vẫn còn đó).
+		if pw := res.DBPassword.Reveal(); pw != "" {
+			out.dbSecret = &DBSecret{DB: res.DBName, User: res.DBName, Password: pw}
+		}
+		if err != nil || rep.Job.Status != engine.JobSucceeded {
+			return out, err
+		}
+		// Thêm lại từng tên phụ cũ, mỗi tên một job riêng (hiện ở Lịch sử). Một
+		// tên không thêm lại được (đã thuộc site khác, vhost khác đang khai...)
+		// không làm hỏng việc khôi phục: ghi nhật ký rồi làm tên kế tiếp.
+		for _, a := range extra {
+			target := d.String() + " " + a.Name
+			n, perr := validate.ParseDomain(a.Name)
+			if perr == nil {
+				var op *core.NamesOp
+				if op, perr = sites.PrepareAliasAdd(ctx, d, n, site.NameMode(a.Mode)); perr == nil {
+					nres, xerr := op.Execute(ctx, nil)
+					result := "ok"
+					if xerr != nil {
+						result = "error"
+					} else if nres.Report.Job.Status != engine.JobSucceeded {
+						result = string(nres.Report.Job.Status)
+					}
+					s.auditAs(ctx, clientIP(r), "site.alias.add", target, result, nres.Report.Job.ID)
+					continue
+				}
+			}
+			_, body := apiErrorStatus(perr)
+			s.auditAs(ctx, clientIP(r), "site.alias.add", target, body.Error.Code, "")
+		}
+		// Rồi các luật chuyển hướng cũ, cùng cách.
+		for _, ru := range origin.Rules {
+			target := d.String() + " " + ru.Source
+			op, perr := sites.PrepareRedirectAdd(ctx, d, core.RedirectInput{Source: ru.Source, Target: ru.Target, Code: ru.Code, KeepQuery: ru.KeepQuery != 0})
+			if perr != nil {
+				_, body := apiErrorStatus(perr)
+				s.auditAs(ctx, clientIP(r), "site.redirect.add", target, body.Error.Code, "")
+				continue
+			}
+			nres, xerr := op.Execute(ctx, nil)
+			result := "ok"
+			if xerr != nil {
+				result = "error"
+			} else if nres.Report.Job.Status != engine.JobSucceeded {
+				result = string(nres.Report.Job.Status)
+			}
+			s.auditAs(ctx, clientIP(r), "site.redirect.add", target, result, nres.Report.Job.ID)
+		}
+		return out, nil
 	})
 }

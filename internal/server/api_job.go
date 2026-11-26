@@ -255,16 +255,20 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 		apiFail(w, r, err)
 		return
 	}
-	email, err := validate.ParseEmail(body.Email)
-	if err != nil {
-		apiFail(w, r, err)
-		return
+	app := site.App(body.App)
+	// M29: site PHP trống không có tài khoản quản trị nào cần email.
+	var email validate.Email
+	if body.Email != "" || app != site.AppPHP {
+		if email, err = validate.ParseEmail(body.Email); err != nil {
+			apiFail(w, r, err)
+			return
+		}
 	}
 	owner, ok := s.siteCreateOwner(w, r, d, body.Owner)
 	if !ok {
 		return
 	}
-	in := core.SiteInput{Domain: d, Title: body.Title, Email: email, Owner: owner, WWW: site.NameMode(body.WWW)}
+	in := core.SiteInput{Domain: d, Title: body.Title, Email: email, Owner: owner, WWW: site.NameMode(body.WWW), App: app, PHPVersion: body.PHP}
 	sites := s.apiSites()
 	// M19: giữ chỗ tên (ClaimNames) áp luật tên miền gốc cho người không phải admin.
 	sites.NotAdmin = !who(r).IsAdmin()
@@ -306,6 +310,10 @@ func (s *Server) handleSiteCreate(w http.ResponseWriter, r *http.Request) {
 				User:     res.AdminUser,
 				Password: res.AdminPassword.Reveal(),
 			}
+		}
+		// M29: site PHP trống thì thứ phải tới tay người tạo là mật khẩu DB.
+		if pw := res.DBPassword.Reveal(); pw != "" {
+			out.dbSecret = &DBSecret{DB: res.DBName, User: res.DBName, Password: pw}
 		}
 		return out, err
 	})

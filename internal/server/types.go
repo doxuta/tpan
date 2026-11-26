@@ -220,6 +220,11 @@ type SiteCreate struct {
 	Owner string `json:"owner,omitempty"`
 	// WWW (M19): tên www mặc định "redirect" | "serve" | "none"; rỗng là redirect.
 	WWW string `json:"www,omitempty"`
+	// App (M29): "wordpress" (mặc định khi rỗng) | "php" (site PHP trống: không
+	// cài WordPress, không cần email; mật khẩu DB trả một lần qua db_secret).
+	App string `json:"app,omitempty"`
+	// PHP (M29): bản PHP của site mới, ví dụ "8.3"; rỗng là bản mặc định của máy.
+	PHP string `json:"php,omitempty"`
 }
 
 // JobStarted: job đã bắt đầu chạy nền.
@@ -336,6 +341,9 @@ type DatabaseRow struct {
 	// Status: "active" hoặc "trashed" (DB rời trong thùng rác, hoặc DB của
 	// site đang ở thùng rác: DB còn nguyên nhưng user DB bị khoá).
 	Status string `json:"status"`
+	// App (M29): loại site của DB đi kèm site ("wordpress" | "php"). Site PHP
+	// trống thì đổi mật khẩu DB trả mật khẩu mới một lần (db_secret của job).
+	App string `json:"app,omitempty"`
 }
 
 // ---- health (M4) ----

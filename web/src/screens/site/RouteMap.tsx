@@ -46,9 +46,11 @@ type Props = {
   onSelect: (stage: Stage) => void;
   /** M13: site đang tạm khoá. Chặng không có phép kiểm nào thì xám "tạm khoá" thay vì "chưa kiểm được". */
   suspended?: boolean;
+  /** M29: site PHP trống. Ga "WordPress" khi đó mang tên "Mã nguồn" (site không có WordPress). */
+  plain?: boolean;
 };
 
-export function RouteMap({ domain, checks, selected, onSelect, suspended = false }: Props) {
+export function RouteMap({ domain, checks, selected, onSelect, suspended = false, plain = false }: Props) {
   const t = useStrings(strings);
   const k = useStrings(khung);
   const statusName = useStatusName();
@@ -68,7 +70,7 @@ export function RouteMap({ domain, checks, selected, onSelect, suspended = false
     <div className="relative -m-[4px] overflow-x-auto p-[4px]">
       <ol aria-label={t.routeLabel(domain)} className="m-0 grid min-w-[600px] list-none grid-cols-6 border-b border-hair p-0">
         {states.map((s, i) => {
-          const name = t.stages[s.stage];
+          const name = plain && s.stage === "wordpress" ? t.stageCode : t.stages[s.stage];
           const on = selected === s.stage;
           return (
             <li key={s.stage} className="min-w-0">

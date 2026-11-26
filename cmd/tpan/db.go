@@ -250,9 +250,26 @@ func dbPasswdCmd(e *env) *cobra.Command {
 				return fail(e, f.asJSON, err)
 			}
 			if !d.IsZero() {
+				// M29: site PHP trống thì in mật khẩu mới một lần (tpan không có
+				// file cấu hình nào để ghi nó vào); site WordPress thì không in.
+				var sp *core.DBPassword
+				has := func() bool { return sp != nil && sp.Password.Reveal() != "" }
 				return runM13Plan(cmd, e, f, false, func(ctx context.Context, m *m13Env) (*core.Planned, error) {
-					return (&core.Backups{Sites: m.sites, Store: backupStore(m)}).PrepareDBPassword(ctx, d)
-				}, nil, nil)
+					sp, err = (&core.Backups{Sites: m.sites, Store: backupStore(m)}).PrepareSiteDBPassword(ctx, d)
+					if err != nil {
+						return nil, err
+					}
+					return sp.Planned, nil
+				}, func(rep engine.Report) any {
+					if !has() {
+						return rep
+					}
+					return dbSecretOut(sp.Name, sp.Password)(rep)
+				}, func() {
+					if has() {
+						printDBPassword(e, sp.Name, sp.Password)
+					}
+				})
 			}
 			var p *core.DBPassword
 			return runM13Plan(cmd, e, f, false, func(ctx context.Context, m *m13Env) (*core.Planned, error) {

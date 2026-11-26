@@ -212,6 +212,12 @@ func (p *Planner) prepareSiteRepair(ctx context.Context, req PlanRequest) (*Prep
 	if err != nil {
 		return nil, err
 	}
+	if a.Site.Plain() {
+		// M29: site PHP trống không có WordPress để hỏi; Plan tạo site của nó
+		// chạy lại là đủ (user, thư mục, pool, vhost).
+		a.Plan.Title = i18n.T("Sửa site "+d.String()+" (chạy lại Plan tạo site)", "Repair site "+d.String()+" (re-run the site creation plan)")
+		return siteAddPrepared(PlanRequest{Kind: PlanSiteRepair, Domain: d.String()}, a), nil
+	}
 	ok, err := wpInstalled(ctx, p.Sites.Sys, a.Layout)
 	if err != nil {
 		return nil, err

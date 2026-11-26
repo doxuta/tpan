@@ -217,7 +217,7 @@ func (s *Sites) PrepareRestore(ctx context.Context, d validate.Domain) (*SiteRes
 	// Chế độ "tat" (M14, mục 6.13): Apache không đọc .htaccess của site,
 	// permalink nằm trong vhost, nên không ghi.
 	if cfg.Web == Apache && st.Htaccess.OrDefault() != site.HtaccessOff {
-		ht, err := htaccessIfMissing(s.Sys, l, site.TrashDir(l)+"/public")
+		ht, err := htaccessIfMissing(s.Sys, l, site.TrashDir(l)+"/public", st.Plain())
 		if err != nil {
 			return nil, err
 		}
@@ -266,9 +266,12 @@ func restoreSteps(ctx context.Context, as AccountStore, web WebServer, php strin
 	if err != nil {
 		return nil, err
 	}
-	cron, err := siteCronSteps(l)
-	if err != nil {
-		return nil, err
+	// M29: site PHP trống không có wp-config.php hay cron của WordPress.
+	var cron []engine.Step
+	if !st.Plain() {
+		if cron, err = siteCronSteps(l); err != nil {
+			return nil, err
+		}
 	}
 	d := l.Domain.String()
 	ss := []engine.Step{

@@ -13,10 +13,12 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/doxuta/tpan/internal/site"
@@ -88,6 +90,17 @@ func (s *Store) AddBackup(ctx context.Context, b Backup) (Backup, error) {
 		b.WPVersion, b.PHPVersion, b.JobID, fmtTime(b.Created), b.Domain)
 	if err != nil {
 		return Backup{}, fmt.Errorf("thêm backup %s của %s: %w", b.ID, b.Domain, err)
+	}
+	// M29: chép loại site và các tên phụ đang có vào dòng backup (backup sống
+	// lâu hơn site). Site không còn trong bảng thì để rỗng.
+	if _, err := s.db.ExecContext(ctx, `UPDATE backups SET
+		app = COALESCE((SELECT app FROM sites WHERE domain = ?1), ''),
+		names = COALESCE((SELECT group_concat(name || ':' || mode, ' ') FROM
+			(SELECT name, mode FROM site_names WHERE site = ?1 AND kind = 'alias' AND state = 'active' ORDER BY name)), ''),
+		rules = COALESCE((SELECT json_group_array(json_object('source', source, 'target', target, 'code', code, 'keep_query', keep_query)) FROM
+			(SELECT source, target, code, keep_query FROM site_redirects WHERE site = ?1 AND state = 'active' ORDER BY id)), '')
+		WHERE id = ?2`, b.Domain, b.ID); err != nil {
+		return Backup{}, fmt.Errorf("ghi loại site và tên phụ vào backup %s: %w", b.ID, err)
 	}
 	// Đọc lại từ DB để thời gian đã qua đúng vòng ghi/đọc như mọi lần sau.
 	out, _, err := s.Backup(ctx, b.ID)
@@ -260,4 +273,51 @@ func (s *Store) CronRuns(ctx context.Context) ([]CronRun, error) {
 		return nil, fmt.Errorf("đọc lần chạy cron: %w", err)
 	}
 	return out, nil
+}
+
+// BackupAlias là một tên phụ site có lúc backup.
+type BackupAlias struct {
+	Name string
+	Mode string // "serve" | "redirect"
+}
+
+// BackupRule là một luật chuyển hướng site có lúc backup.
+type BackupRule struct {
+	Source    string `json:"source"`
+	Target    string `json:"target"`
+	Code      int    `json:"code"`
+	KeepQuery int    `json:"keep_query"`
+}
+
+// BackupOrigin là những gì dòng backup nhớ về site của nó lúc tạo bản (M29),
+// để "tạo lại site rồi khôi phục" dựng lại đúng site cũ.
+type BackupOrigin struct {
+	// App: "wordpress" | "php"; rỗng là dòng có trước M29 (tức WordPress, và
+	// không ghi tên phụ hay luật nào).
+	App     string
+	Aliases []BackupAlias
+	Rules   []BackupRule
+}
+
+// BackupOrigin đọc phần đó của dòng backup id. ok=false khi không có dòng.
+func (s *Store) BackupOrigin(ctx context.Context, id string) (o BackupOrigin, ok bool, err error) {
+	var names, rules string
+	err = s.db.QueryRowContext(ctx, "SELECT app, names, rules FROM backups WHERE id = ?", id).Scan(&o.App, &names, &rules)
+	if errors.Is(err, sql.ErrNoRows) {
+		return BackupOrigin{}, false, nil
+	}
+	if err != nil {
+		return BackupOrigin{}, false, fmt.Errorf("đọc loại site của backup %s: %w", id, err)
+	}
+	for _, f := range strings.Fields(names) {
+		if n, m, found := strings.Cut(f, ":"); found {
+			o.Aliases = append(o.Aliases, BackupAlias{Name: n, Mode: m})
+		}
+	}
+	if rules != "" {
+		if err := json.Unmarshal([]byte(rules), &o.Rules); err != nil {
+			return BackupOrigin{}, false, fmt.Errorf("đọc luật chuyển hướng của backup %s: %w", id, err)
+		}
+	}
+	return o, true, nil
 }

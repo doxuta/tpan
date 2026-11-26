@@ -142,6 +142,10 @@ func (c *Cron) List(ctx context.Context) (CronOverview, error) {
 		if st.Status != site.Active && st.Status != site.Trashed {
 			continue
 		}
+		// M29: site PHP trống không có cron của WordPress.
+		if st.Plain() {
+			continue
+		}
 		l := st.Layout()
 		d := st.Domain.String()
 		e := CronEntry{

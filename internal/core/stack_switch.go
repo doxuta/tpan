@@ -283,10 +283,7 @@ func siteHTTP(st site.Site) checks.Check {
 	case st.DBSuspended != account.NotSuspended:
 		return nil
 	}
-	if st.SSL {
-		return checks.HTTPSSite(st.Layout())
-	}
-	return checks.HTTPSite(st.Layout())
+	return siteHTTPCheck(st)
 }
 
 // sitesAnswer là điều kiện đầu: mọi site active đang trả lời đúng trên web
@@ -391,7 +388,7 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 			continue
 		}
 		l := st.Layout()
-		ht, err := htaccessIfMissing(s.Sys, l, l.Public)
+		ht, err := htaccessIfMissing(s.Sys, l, l.Public, st.Plain())
 		if err != nil {
 			return nil, err
 		}
@@ -423,7 +420,10 @@ func (s *Switch) newConfig(cfg StackConfig, active []site.Site, anySSL bool) ([]
 // site đã vào thùng rác lúc còn chạy nginx (trash.go), và khi một site rời chế
 // độ .htaccess "tat" (harden_m14.go). Người gọi tự bỏ qua site ở chế độ "tat":
 // hàm này không biết chế độ của site.
-func htaccessIfMissing(sys system.System, l site.Layout, public string) (engine.Step, error) {
+//
+// plain (M29): site PHP trống thì ghi bản của site PHP trống
+// (steps.SitePlainHtaccess), không phải bản của WordPress.
+func htaccessIfMissing(sys system.System, l site.Layout, public string, plain bool) (engine.Step, error) {
 	// public trong thùng rác nằm ngoài vùng site nên không qua cửa sitefs, mà
 	// một tiến trình còn sống của site vẫn đổi được nó thành symlink: Stat bên
 	// dưới khi đó đi theo symlink và cho biết một thư mục bất kỳ có .htaccess
@@ -437,6 +437,9 @@ func htaccessIfMissing(sys system.System, l site.Layout, public string) (engine.
 	_, err := sys.Stat(public + "/.htaccess")
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
+		if plain {
+			return steps.SitePlainHtaccess(l)
+		}
 		return steps.SiteHtaccess(l)
 	case err != nil:
 		return nil, fmt.Errorf("kiểm .htaccess của %s: %w", l.Domain, err)

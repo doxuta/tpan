@@ -469,7 +469,8 @@ func siteFilesLim(cfg StackConfig, st site.Site, lim *account.Limits) ([]*steps.
 	}
 	ss = append(ss, vhost...)
 	// Chế độ "tat" (M14): tpan không ghi .htaccess cho site.
-	if cfg.Web == Apache && st.Htaccess.OrDefault() != site.HtaccessOff {
+	// Site PHP trống (M29): .htaccess là file của chủ site, tpan không đối chiếu.
+	if cfg.Web == Apache && st.Htaccess.OrDefault() != site.HtaccessOff && !st.Plain() {
 		ht, err := steps.SiteHtaccess(l)
 		if err != nil {
 			return nil, err

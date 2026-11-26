@@ -230,11 +230,11 @@ func (r dbRetry) Run(ctx context.Context, sys system.System) checks.Result {
 // nặng. DBAccess không cần thử lại: WP-CLI đọc wp-config.php mới mỗi lần.
 func dbVerify(st site.Site) []checks.Check {
 	l := st.Layout()
-	e2e := checks.HTTPSite(l)
-	if st.SSL {
-		e2e = checks.HTTPSSite(l)
+	if st.Plain() {
+		// M29: site PHP trống tự giữ mật khẩu DB; TPAN chỉ kiểm DB và user còn đó.
+		return []checks.Check{checks.DBExists(l), dbRetry{siteHTTPCheck(st)}}
 	}
-	return []checks.Check{checks.DBAccess(l), dbRetry{e2e}}
+	return []checks.Check{checks.DBAccess(l), dbRetry{siteHTTPCheck(st)}}
 }
 
 // PrepareDBPassword dựng Plan "db.passwd" (hợp đồng ở types_m9.go).
@@ -245,6 +245,13 @@ func (b *Backups) PrepareDBPassword(ctx context.Context, d validate.Domain) (*Pl
 	}
 	if err := dbNotSuspended(st); err != nil {
 		return nil, err
+	}
+	if st.Plain() {
+		p, err := b.plainDBPassword(st)
+		if err != nil {
+			return nil, err
+		}
+		return p.Planned, nil
 	}
 	pw, err := sitePassword()
 	if err != nil {
@@ -366,4 +373,46 @@ func (b *Backups) PrepareDBImport(ctx context.Context, d validate.Domain, id str
 		// Bản vừa nhập cũng được giữ: nó là trạng thái hiện tại của DB.
 		return dbRecord(ctx, b, d, undo, ReasonBeforeImport, rep.Job.ID, bk.ID)
 	}), nil
+}
+
+// PrepareSiteDBPassword là PrepareDBPassword kèm mật khẩu mới khi người gọi
+// phải tự nhận nó (M29). Site WordPress: tpan ghi mật khẩu vào wp-config.php,
+// Password rỗng. Site PHP trống: tpan không biết mã của site đọc mật khẩu ở
+// đâu nên chỉ đổi trong MariaDB và trả mật khẩu để hiện đúng một lần; chủ site
+// tự sửa cấu hình của mã nguồn.
+func (b *Backups) PrepareSiteDBPassword(ctx context.Context, d validate.Domain) (*DBPassword, error) {
+	st, err := dbSite(ctx, b, d, false)
+	if err != nil {
+		return nil, err
+	}
+	if !st.Plain() {
+		p, err := b.PrepareDBPassword(ctx, d)
+		if err != nil {
+			return nil, err
+		}
+		return &DBPassword{Planned: p, Name: st.Layout().DB}, nil
+	}
+	if err := dbNotSuspended(st); err != nil {
+		return nil, err
+	}
+	return b.plainDBPassword(st)
+}
+
+// plainDBPassword dựng Plan "db.passwd" của một site PHP trống.
+func (b *Backups) plainDBPassword(st site.Site) (*DBPassword, error) {
+	pw, err := sitePassword()
+	if err != nil {
+		return nil, err
+	}
+	l, s, d := st.Layout(), b.Sites, st.Domain.String()
+	p := newPlanned(s.Sys, s.Journal, engine.Plan{
+		Kind:   "db.passwd",
+		Target: d,
+		Title: i18n.T(
+			"Đổi mật khẩu DB của site "+d+" (site PHP trống: tự sửa mật khẩu trong cấu hình của mã nguồn sau khi đổi)",
+			"Change the database password of "+d+" (empty PHP site: update the password in your code's configuration afterwards)"),
+		Steps:  []engine.Step{&steps.DBUserPassword{Name: l.DB, Password: pw}},
+		Verify: []checks.Check{checks.DBExists(l)},
+	}, nil)
+	return &DBPassword{Planned: p, Name: l.DB, Password: pw}, nil
 }

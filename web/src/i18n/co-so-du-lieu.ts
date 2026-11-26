@@ -21,7 +21,7 @@ const vi = {
   emptyText: "Chưa có cơ sở dữ liệu nào. DB của site tạo cùng lúc với site; DB rời tạo bằng nút Tạo DB.",
   emptyLink: "Tạo site đầu tiên",
 
-  hint: "Đổi mật khẩu: TPAN tạo mật khẩu mới, đổi trong MariaDB và ghi vào wp-config.php. Xuất .sql: ghi một file .sql vào thư mục backup của site, xem ở màn Backup. Nhập: đưa một bản đã xuất vào lại cơ sở dữ liệu. Bấm là xem trước từng bước, chưa có gì đổi.",
+  hint: "Đổi mật khẩu: TPAN tạo mật khẩu mới, đổi trong MariaDB và ghi vào wp-config.php (site PHP trống không có file đó: mật khẩu mới hiện một lần sau khi đổi, bạn tự sửa trong mã nguồn). Xuất .sql: ghi một file .sql vào thư mục backup của site, xem ở màn Backup. Nhập: đưa một bản đã xuất vào lại cơ sở dữ liệu. Bấm là xem trước từng bước, chưa có gì đổi.",
 
   password: "Đổi mật khẩu",
   passwordFor: (d: string) => `Đổi mật khẩu cơ sở dữ liệu của ${d}`,
@@ -181,7 +181,7 @@ export const strings = defineStrings(vi, {
   emptyText: "No databases yet. A site database appears when you create a site; a standalone one with the Create DB button.",
   emptyLink: "Create the first site",
 
-  hint: "Change password: TPAN generates a new password, sets it in MariaDB and writes it to wp-config.php. Export .sql: writes a .sql file to the site's backup folder, see it on the Backups screen. Import: puts an exported copy back into the database. Pressing a button shows the steps first, nothing changes yet.",
+  hint: "Change password: TPAN generates a new password, sets it in MariaDB and writes it to wp-config.php (an empty PHP site has no such file: the new password is shown once after the change, and you update your code yourself). Export .sql: writes a .sql file to the site's backup folder, see it on the Backups screen. Import: puts an exported copy back into the database. Pressing a button shows the steps first, nothing changes yet.",
 
   password: "Change password",
   passwordFor: (d) => `Change the database password of ${d}`,

@@ -169,6 +169,8 @@ export type Site = {
   htaccess?: "an-toan" | "tat" | "day-du";
   /** M17: site đang ở trong lồng. Server cũ không gửi. */
   caged?: boolean;
+  /** M29: loại site. Server cũ không gửi (WordPress). */
+  app?: SiteApp;
 };
 
 export type Layout = {
@@ -205,7 +207,11 @@ export type SiteInfo = {
 };
 
 /** owner (M13): chỉ admin gửi; không có là chính người gọi. */
-export type SiteCreate = { domain: string; title: string; email: string; owner?: string };
+/** app (M29): "php" là site PHP trống (không cài WordPress, không cần email). php: bản PHP, vắng là bản mặc định của máy. */
+export type SiteCreate = { domain: string; title: string; email: string; owner?: string; app?: SiteApp; php?: string };
+
+/** M29: loại site. Server cũ không gửi: coi là WordPress. */
+export type SiteApp = "wordpress" | "php";
 
 // ---- Stack (internal/core) ----
 
@@ -301,6 +307,8 @@ export type DatabaseRow = {
   note?: string;
   suspended?: Suspension;
   status: "active" | "trashed";
+  /** M29: loại site của DB đi kèm site. Site PHP trống ("php") thì mật khẩu DB mới hiện một lần sau khi đổi. */
+  app?: SiteApp;
 };
 
 // ---- Đăng nhập, tài khoản ----

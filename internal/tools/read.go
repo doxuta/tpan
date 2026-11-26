@@ -84,11 +84,13 @@ type siteRow struct {
 	PHPVersion string      `json:"php_version"`
 	// Owner là user của panel sở hữu site (không phải bí mật); Suspended, Caged
 	// để AI trả lời được "site này của ai, có đang khoá, có trong lồng không".
-	Owner     string    `json:"owner"`
-	Suspended bool      `json:"suspended"`
-	Caged     bool      `json:"caged"`
-	SSL       bool      `json:"ssl"`
-	Created   time.Time `json:"created"`
+	Owner     string `json:"owner"`
+	Suspended bool   `json:"suspended"`
+	Caged     bool   `json:"caged"`
+	// App (M29): "wordpress" hoặc "php" (site PHP trống, không có WordPress).
+	App     string    `json:"app"`
+	SSL     bool      `json:"ssl"`
+	Created time.Time `json:"created"`
 }
 
 func listSites(ctx context.Context, c *call, _ noArgs, _ validate.Domain) (any, error) {
@@ -103,7 +105,7 @@ func listSites(ctx context.Context, c *call, _ noArgs, _ validate.Domain) (any, 
 			owner = account.AdminName
 		}
 		out[i] = siteRow{Domain: x.Domain.String(), Status: x.Status, PHPVersion: x.PHPVersion, SSL: x.SSL, Created: x.Created,
-			Owner: owner, Suspended: x.Suspended != account.NotSuspended, Caged: x.Caged}
+			Owner: owner, Suspended: x.Suspended != account.NotSuspended, Caged: x.Caged, App: appOf(x)}
 	}
 	return out, nil
 }
@@ -563,4 +565,12 @@ func textPreview(pv engine.Preview) previewText {
 		out.Steps[i] = st
 	}
 	return out
+}
+
+// appOf là loại site cho AI đọc: dòng có trước M29 không ghi loại, tức WordPress.
+func appOf(s site.Site) string {
+	if s.Plain() {
+		return string(site.AppPHP)
+	}
+	return string(site.AppWordPress)
 }

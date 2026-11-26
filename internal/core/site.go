@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -156,6 +157,12 @@ type SiteInput struct {
 	// site đã có thì bỏ qua (không đổi chủ ở đây). Kiểm hạn mức gói của Owner
 	// khi Sites.Accounts khác nil.
 	Owner string
+	// App (M29): loại site mới; rỗng là WordPress. Chạy lại một site đã có thì
+	// bỏ qua (loại không đổi sau khi tạo).
+	App site.App
+	// PHPVersion: bản PHP cho site mới; rỗng, hoặc bản chưa cài, là bản mặc định
+	// của máy. Dùng khi tạo lại site từ bản backup (bản PHP site cũ đã chạy).
+	PHPVersion string
 	// WWW (M19): kiểu của tên phụ mặc định (www.<gốc> cho tên gốc, <gốc> cho
 	// www.<gốc>): "" là redirect, WWWNone là không thêm. Chỉ cho site mới.
 	WWW site.NameMode
@@ -335,10 +342,10 @@ func siteChecks(web WebServer, php string, st site.Site, others []site.Site, lim
 	cs = append(cs, siteHardeningChecks(web, l, st.Htaccess)...)
 	for _, o := range others {
 		if !st.Caged {
-			cs = append(cs, checks.Isolated(l, o.Layout()))
+			cs = append(cs, checks.IsolatedTo(l, o.Layout(), o.Plain()))
 		}
 		if !o.Caged {
-			cs = append(cs, checks.Isolated(o.Layout(), l))
+			cs = append(cs, checks.IsolatedTo(o.Layout(), l, st.Plain()))
 		}
 	}
 	return cs
@@ -352,6 +359,15 @@ func siteChecks(web WebServer, php string, st site.Site, others []site.Site, lim
 func siteRequestChecks(web WebServer, php string, st site.Site, lim *account.Limits) []checks.Check {
 	l := st.Layout()
 	switch {
+	case st.Plain() && st.Caged:
+		var want account.Limits
+		if lim != nil {
+			want = *lim
+		}
+		return checks.SiteChecksPlainCaged(string(web), l, want, st.SSL)
+	case st.Plain():
+		// M29, site PHP trống: cùng các chặng, không có phép kiểm của WordPress.
+		return checks.SiteChecksPlain(string(web), php, l, st.SSL)
 	case st.Caged:
 		var want account.Limits
 		if lim != nil {
@@ -423,6 +439,7 @@ type SiteAdd struct {
 	Notes []i18n.Text
 
 	sites         *Sites
+	db            *steps.SiteDB // bước tạo DB của Plan (M29: lấy mật khẩu DB của site PHP trống)
 	adminPassword system.Secret
 	install       *wpInstallStep
 	// claims (M19): tên giữ chỗ ở Execute (tên chính và tên www của site mới);
@@ -442,6 +459,10 @@ type SiteAddResult struct {
 	// AdminPassword chỉ có khi WPInstalled. JSON của nó luôn là "••••": người
 	// gọi muốn hiện cho người dùng thì tự gọi Reveal, đúng một lần.
 	AdminPassword system.Secret `json:"admin_password"`
+	// DBName, DBPassword (M29): chỉ có khi lần chạy này tạo một site PHP trống
+	// và tạo user DB của nó. Tên user DB trùng tên DB.
+	DBName     string        `json:"db_name,omitempty"`
+	DBPassword system.Secret `json:"db_password"`
 	// M17 (mục 3.6, bảng "Ghép"): lần tạo đầu thành công và gói của chủ bật
 	// lồng thì Execute chạy tiếp job cage.enable. CageJob là báo cáo của job đó
 	// khi nó đã chạy (thành hay hỏng); CageError là lời từ chối khi job không
@@ -469,6 +490,11 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 			"tên miền "+d.String()+" dành cho phép thử tấn công của tpan (tpan-probe-a|b-<12 hex>.test); chọn tên khác",
 			"the domain "+d.String()+" is reserved for tpan's attack probe (tpan-probe-a|b-<12 hex>.test); choose another name"))
 	}
+	if !in.App.Valid() {
+		return nil, refuse("app_invalid", i18n.T(
+			"loại site phải là wordpress hoặc php (nhận được \""+string(in.App)+"\")",
+			"the site type must be wordpress or php (got \""+string(in.App)+"\")"))
+	}
 	title := in.Title
 	if title == "" {
 		title = d.String()
@@ -492,7 +518,25 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	}
 	var claims []site.Claim
 	var notes []i18n.Text
-	rec := site.Site{Domain: d, Slug: l.Slug, Status: site.Active, PHPVersion: cfg.PHPVersion, Htaccess: site.HtaccessSafe}
+	rec := site.Site{Domain: d, Slug: l.Slug, Status: site.Active, PHPVersion: cfg.PHPVersion, Htaccess: site.HtaccessSafe, App: in.App}
+	if rec.App == "" {
+		rec.App = site.AppWordPress
+	}
+	if v := in.PHPVersion; v != "" && v != cfg.PHPVersion && !found {
+		if err := checkPHPVersion(v); err != nil {
+			return nil, err
+		}
+		ok, err := s.PHPAvailable(v)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, refuse("php_not_installed", i18n.T(
+				"PHP "+v+" chưa được cài trên máy; chọn bản khác, hoặc nhờ quản trị cài bằng: sudo tpan php install "+v,
+				"PHP "+v+" is not installed on this machine; choose another version, or have the admin install it with: sudo tpan php install "+v))
+		}
+		rec.PHPVersion = v
+	}
 	if found {
 		switch old.Status {
 		case site.Trashed:
@@ -517,8 +561,11 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		}
 		rec = old
 		rec.Status = site.Active
-		if err := s.drift(ctx, l); err != nil {
-			return nil, err
+		// Site PHP trống (M29) không có wp-config.php để so với user DB.
+		if !rec.Plain() {
+			if err := s.drift(ctx, l); err != nil {
+				return nil, err
+			}
 		}
 		// Chạy lại không cần email: WordPress đã cài thì bước cài được bỏ qua và
 		// email không dùng tới. Điền tạm admin@<domain> cho đủ kiểu; nếu hoá ra
@@ -544,7 +591,7 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 		if err := refuseSlugTaken(all, d); err != nil {
 			return nil, err
 		}
-		if in.Email.IsZero() {
+		if in.Email.IsZero() && !rec.Plain() {
 			return nil, refuse(validate.CodeEmailInvalid, i18n.T("thiếu email quản trị (--email): site mới cần email cho tài khoản quản trị WordPress", "the admin email is missing (--email): a new site needs an email for its WordPress admin account"))
 		}
 		if err := RefusePanelDomain(ctx, s.Settings, d); err != nil {
@@ -588,10 +635,14 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if rec.SSL {
 		scheme = "https://"
 	}
-	install := &wpInstallStep{emailGuessed: emailGuessed, WPInstall: &steps.WPInstall{
-		Layout: l, URL: scheme + d.String(), Title: title,
-		AdminUser: siteAdminUser, AdminEmail: in.Email, AdminPassword: adminPw,
-	}}
+	// Site PHP trống (M29) không có bước cài WordPress: install là nil.
+	var install *wpInstallStep
+	if !rec.Plain() {
+		install = &wpInstallStep{emailGuessed: emailGuessed, WPInstall: &steps.WPInstall{
+			Layout: l, URL: scheme + d.String(), Title: title,
+			AdminUser: siteAdminUser, AdminEmail: in.Email, AdminPassword: adminPw,
+		}}
+	}
 	// M17: chạy lại site add của một site trong lồng ra bước của lồng và vhost
 	// của lồng, với trần của gói (site mới: Caged false, lim nil, như trước).
 	lim, err := siteCageLimits(ctx, s.Accounts, rec)
@@ -606,6 +657,31 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	if err != nil {
 		return nil, err
 	}
+	// M29: site PHP trống MỚI trên Apache nhận .htaccess chuyển mọi đường dẫn
+	// không có file về index.php (như try_files của vhost nginx). Chạy lại thì
+	// không: .htaccess của site PHP trống là file của chủ site.
+	if rec.Plain() && found {
+		// Chạy lại (sửa chỗ lệch) không đặt lại trang mẫu: public là của chủ
+		// site, có thể họ cố ý không để index.php (trang chủ nằm ở file khác).
+		plan.Steps = slices.DeleteFunc(plan.Steps, func(st engine.Step) bool {
+			_, ok := st.(*steps.PlainIndex)
+			return ok
+		})
+	}
+	if rec.Plain() && !found && cfg.Web == Apache && rec.Htaccess.OrDefault() != site.HtaccessOff {
+		ht, err := htaccessIfMissing(s.Sys, l, l.Public, true)
+		if err != nil {
+			return nil, err
+		}
+		if ht != nil {
+			for i, st := range plan.Steps {
+				if _, ok := st.(*steps.PlainIndex); ok {
+					plan.Steps = slices.Insert(plan.Steps, i+1, ht)
+					break
+				}
+			}
+		}
+	}
 	if !found { // M20: kiểm lại tên panel dưới khoá (panel_m20.go)
 		plan.Steps = append([]engine.Step{&siteNotPanel{settings: s.Settings, d: d}}, plan.Steps...)
 	}
@@ -614,13 +690,19 @@ func (s *Sites) PrepareAdd(ctx context.Context, in SiteInput) (*SiteAdd, error) 
 	// WordPress (kiểu serve cần WordPress trả lời).
 	for _, c := range claims {
 		if c.Kind == site.KindAlias {
-			plan.Steps = append(plan.Steps, &steps.NameProbe{Layout: l, Host: c.Name, Mode: c.Mode})
+			plan.Steps = append(plan.Steps, &steps.NameProbe{Layout: l, Host: c.Name, Mode: c.Mode, Plain: rec.Plain()})
 		}
 	}
-	return &SiteAdd{
+	add := &SiteAdd{
 		Site: rec, Layout: l, Rerun: found, AdminUser: siteAdminUser, Plan: plan, Notes: notes,
 		sites: s, adminPassword: adminPw, install: install, claims: claims,
-	}, nil
+	}
+	for _, st := range plan.Steps {
+		if db, ok := st.(*steps.SiteDB); ok {
+			add.db = db
+		}
+	}
+	return add, nil
 }
 
 // newOwner chọn và kiểm chủ của một site mới (M13): rỗng là admin; chủ phải
@@ -679,6 +761,23 @@ func addPlanSite(rec site.Site, cfg StackConfig, lim account.Limits, dbPw system
 		return engine.Plan{}, wrap(err)
 	}
 	ss = append(ss, pool...)
+	if rec.Plain() {
+		// M29, site PHP trống: không WordPress, không wp-config.php, không cron
+		// của WordPress, không .htaccess của WordPress. Trang mẫu rồi vhost.
+		ss = append(ss, &steps.PlainIndex{Layout: l})
+		vhost, err := siteVhost(rec, cfg)
+		if err != nil {
+			return engine.Plan{}, wrap(err)
+		}
+		ss = append(ss, vhost...)
+		d := l.Domain.String()
+		return engine.Plan{
+			Kind:   "site.add",
+			Target: d,
+			Title:  i18n.T("Tạo site PHP trống "+d+" (không cài WordPress)", "Create empty PHP site "+d+" (no WordPress)"),
+			Steps:  ss,
+		}, nil
+	}
 	// Bước 6, 7: WordPress từ cache, rồi wp-config.php.
 	archive := &steps.WPArchive{Version: wpVersion, Hash: wpHash}
 	ss = append(ss, archive,
@@ -806,8 +905,13 @@ func (a *SiteAdd) Execute(ctx context.Context, onEvent func(engine.Event)) (Site
 	if rep.Job.Status != engine.JobSucceeded {
 		return res, release(nil)
 	}
-	if a.install.ran {
+	if a.install != nil && a.install.ran {
 		res.WPInstalled, res.AdminPassword = true, a.adminPassword
+	}
+	// Site PHP trống: mật khẩu DB không nằm trong wp-config.php nào cả, nên
+	// đưa cho người tạo đúng một lần (chỉ khi lần chạy này tạo user DB).
+	if a.Site.Plain() && a.db != nil && a.db.CreatedUser() {
+		res.DBName, res.DBPassword = a.Layout.DB, a.db.Password
 	}
 	if res.Site.Created.IsZero() {
 		res.Site.Created = time.Now().UTC()
@@ -1100,4 +1204,26 @@ func (s *Sites) health(ctx context.Context, d validate.Domain) (Health, site.Sit
 	}
 	h.Results = checks.RunAll(ctx, s.Sys, siteHealthChecks(st, cfg, others, lim, vers))
 	return h, st, nil
+}
+
+// siteHTTPCheck là phép kiểm đầu cuối của site st: bản https khi có SSL, bản
+// không đòi WordPress khi là site PHP trống.
+func siteHTTPCheck(st site.Site) checks.Check {
+	l := st.Layout()
+	switch {
+	case st.Plain():
+		return checks.HTTPPlain(l, st.SSL)
+	case st.SSL:
+		return checks.HTTPSSite(l)
+	}
+	return checks.HTTPSite(l)
+}
+
+// PHPAvailable: bản PHP v đúng dạng và đã cài trên máy (M29: chọn bản PHP lúc
+// tạo site, và lúc tạo lại site từ bản backup).
+func (s *Sites) PHPAvailable(v string) (bool, error) {
+	if err := checkPHPVersion(v); err != nil {
+		return false, nil
+	}
+	return phpIsInstalled(s.Sys, v)
 }

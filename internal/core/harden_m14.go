@@ -86,7 +86,7 @@ func (s *Sites) PrepareHtaccess(ctx context.Context, d validate.Domain, mode sit
 	// nên thiếu file này thì mọi permalink /%postname%/ là 404. Ghi trước vhost
 	// để lúc vhost mới được nạp file đã nằm đó. Có rồi thì để nguyên.
 	if cur == site.HtaccessOff {
-		ht, err := htaccessIfMissing(s.Sys, l, l.Public)
+		ht, err := htaccessIfMissing(s.Sys, l, l.Public, st.Plain())
 		if err != nil {
 			return nil, err
 		}
@@ -413,10 +413,10 @@ func (s *Security) PrepareHarden(ctx context.Context) (*Harden, error) {
 				continue
 			}
 			if !st.Caged {
-				verify = append(verify, checks.Soft(checks.Isolated(l, o.Layout())))
+				verify = append(verify, checks.Soft(checks.IsolatedTo(l, o.Layout(), o.Plain())))
 			}
 			if !o.Caged {
-				verify = append(verify, checks.Soft(checks.Isolated(o.Layout(), l)))
+				verify = append(verify, checks.Soft(checks.IsolatedTo(o.Layout(), l, st.Plain())))
 			}
 		}
 	}

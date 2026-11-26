@@ -344,10 +344,7 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 	if err != nil {
 		return nil, err
 	}
-	http := checks.HTTPSite(l)
-	if st.SSL {
-		http = checks.HTTPSSite(l)
-	}
+	http := siteHTTPCheck(st)
 	// Kiểm socket trước khi sửa vhost (mục 6.11 ý 3). `systemctl reload
 	// php<bản>-fpm` chỉ gửi USR2 rồi trả về ngay; socket của pool mới chỉ có
 	// khi master đã nạp lại xong. Trên máy ảo M12, php-fpm8.4 của kho sury mất
@@ -405,15 +402,12 @@ func (p *PHP) PrepareUse(ctx context.Context, d validate.Domain, version string)
 // lồng: đây là Plan của chủ site, site tự làm hỏng thì chỉ hỏng việc của mình.
 // Hỏng thì đường trả lại của CageFiles ghi lại file cũ và chạy lại bản cũ.
 func phpUseCaged(cfg StackConfig, next site.Site, old string, lim account.Limits) (engine.Plan, error) {
-	l, version, dom := next.Layout(), next.PHPVersion, next.Domain.String()
+	version, dom := next.PHPVersion, next.Domain.String()
 	ss, err := sitePHPSteps(next, cfg, lim)
 	if err != nil {
 		return engine.Plan{}, err
 	}
-	http := checks.HTTPSite(l)
-	if next.SSL {
-		http = checks.HTTPSSite(l)
-	}
+	http := siteHTTPCheck(next)
 	// Chỉ CageFiles: socket của lồng đang bật (site active, không tạm khoá),
 	// bước CageSocket bật không có gì để làm ở Plan này.
 	return engine.Plan{

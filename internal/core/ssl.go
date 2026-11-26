@@ -390,8 +390,11 @@ func sslPlan(stack StackConfig, php string, st site.Site, email validate.Email, 
 	}
 	ss = append(ss, def...)
 	ss = append(ss, vhost...)
+	// M29: site PHP trống không có địa chỉ site trong DB để đổi sang https.
+	if !st.Plain() {
+		ss = append(ss, &steps.WPSiteURL{Layout: l, URL: "https://" + d})
+	}
 	ss = append(ss,
-		&steps.WPSiteURL{Layout: l, URL: "https://" + d},
 		&steps.File{
 			Path: RenewHookPath, Content: hook, Perm: 0o755, Owner: system.Root,
 			Title: i18n.T("Ghi hook gia hạn chứng chỉ", "Write the certificate renewal hook"),
@@ -531,7 +534,7 @@ func (i *SSLIssue) redrawVhost(ctx context.Context, added []validate.Domain, onE
 		if slices.Contains(next.Names.Serve, a) {
 			m = site.ModeServe
 		}
-		ss = append(ss, &steps.NameProbe{Layout: next.Layout(), Host: a, Mode: m, SSL: next.SSL, Covered: next.Names.Covered})
+		ss = append(ss, &steps.NameProbe{Layout: next.Layout(), Host: a, Mode: m, SSL: next.SSL, Covered: next.Names.Covered, Plain: next.Plain()})
 	}
 	d := next.Domain.String()
 	// ponytail: không Verify riêng; bước File kiểm cú pháp, NameProbe gọi thật

@@ -173,20 +173,22 @@ export function Backups({ domain, active, restoreBlocked }: { domain: string; ac
                 const label = t.bkRestoreFor(formatWhen(x.created, lang));
                 return (
                   <RowActions
-                    moreLabel={label}
+                    moreLabel={t.bkMoreFor(formatWhen(x.created, lang))}
                     primary={[
                       {
                         label: t.bkRestore,
                         ariaLabel: label,
                         title: restoreBlocked,
                         disabled: dry.isPending || restoreBlocked !== undefined,
-                        // Tab này không có nút "Tải về máy": bản xem trước tải về (sau hộp hỏi) đổi chữ
+                        // Tab này không có nút "Tải về máy" (kéo bản từ kho về máy chủ): bản xem trước tải về (sau hộp hỏi) đổi chữ
                         // của chính nút Khôi phục đã bấm, để người dùng biết vì sao mọi nút bị khoá.
                         busy: pending !== null && pending.action !== "create" && pending.backup.id === x.id,
                         busyLabel: t.bkPreviewing,
                         onClick: () => restore(x),
                       },
                     ]}
+                    // Tải file backup về máy tính của người dùng: trình duyệt tự lưu (máy chủ trả Content-Disposition: attachment).
+                    more={x.local ? [{ label: t.bkDownload, onSelect: () => window.location.assign(`/api/v1/backups/${encodeURIComponent(x.id)}/download`) }] : []}
                   />
                 );
               },

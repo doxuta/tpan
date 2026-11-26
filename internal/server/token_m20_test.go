@@ -419,7 +419,7 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"POST /api/v1/sites/{domain}/names/{name}/mode", "DELETE /api/v1/sites/{domain}/names/{name}",
 		"GET /api/v1/sites/{domain}/redirects", "POST /api/v1/sites/{domain}/redirects",
 		"DELETE /api/v1/sites/{domain}/redirects/{id}", "GET /api/v1/domains")
-	add("backups", "GET /api/v1/backups", "DELETE /api/v1/backups/{id}", "POST /api/v1/sites/{domain}/backups", "POST /api/v1/backups/{id}/restore",
+	add("backups", "GET /api/v1/backups", "DELETE /api/v1/backups/{id}", "GET /api/v1/backups/{id}/download", "POST /api/v1/sites/{domain}/backups", "POST /api/v1/backups/{id}/restore",
 		"POST /api/v1/backups/settings", "POST /api/v1/backups/{id}/push", "POST /api/v1/backups/{id}/pull", "GET /api/v1/backups/remote")
 	add("cron", "GET /api/v1/cron")
 	add("jobs", "GET /api/v1/jobs", "GET /api/v1/jobs/{id}", "GET /api/v1/jobs/{id}/events")

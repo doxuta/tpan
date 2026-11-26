@@ -139,7 +139,16 @@ export function SiteList() {
         );
       },
     },
-    { header: t.colPhp, cell: (r) => <Code>{r.site.php_version}</Code> },
+    {
+      header: t.colPhp,
+      cell: (r) => (
+        <span className="inline-flex items-center gap-[8px]">
+          <Code>{r.site.php_version}</Code>
+          {/* M29: site PHP trống, không có WordPress. */}
+          {r.site.app === "php" && <Tag tone="surface">{t.plainTag}</Tag>}
+        </span>
+      ),
+    },
     { header: t.colCreated, className: "tabular-nums", cell: (r) => formatDate(r.site.created, lang) },
     ...(isAdmin
       ? [
@@ -393,7 +402,11 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
 
   const vhost = info.web === "nginx" ? info.layout.nginx_conf : info.web === "apache" ? info.layout.apache_conf : "";
   const l = info.layout;
+  const plainSite = info.site.app === "php";
+  // M29: site PHP trống không có WordPress; chặng đó (quyền file, cô lập giữa các site) mang tên "Mã nguồn".
+  const stageName = (s: Stage): string => (plainSite && s === "wordpress" ? t.stageCode : t.stages[s]);
   const layoutRows: Array<[string, string]> = [
+    [t.layout.app, plainSite ? t.layout.appPhp : t.layout.appWordPress],
     [t.layout.user, l.user],
     [t.layout.db, l.db],
     [t.layout.dir, l.dir],
@@ -402,7 +415,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
     // Layout không còn trường socket từ M12 (socket mang số bản PHP); lấy từ SiteInfo.socket.
     [t.layout.socket, info.socket ?? ""],
     [t.layout.vhost, vhost],
-    [t.layout.wpConfig, l.wp_config],
+    // M29: site PHP trống không có wp-config.php.
+    ...(plainSite ? [] : ([[t.layout.wpConfig, l.wp_config]] as Array<[string, string]>)),
     [t.layout.logDir, l.log_dir],
     [t.layout.phpErrorLog, l.php_error_log],
   ];
@@ -417,6 +431,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
           <>
             {info.web && <Tag tone="surface">{info.web}</Tag>}
             <Tag tone="surface">{k.php(info.site.php_version)}</Tag>
+            {info.site.app === "php" && <Tag tone="surface">{t.plainTag}</Tag>}
             {isAdmin && <Tag tone="surface">{m.ownerLabel(info.site.owner)}</Tag>}
             {info.site.suspended && <SuspendTag how={info.site.suspended} tone="surface" />}
             {info.site.db_suspended && <SuspendTag how={info.site.db_suspended} label={m.dbLocked} tone="surface" />}
@@ -428,9 +443,9 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
       <Tabs label={t.tabsLabel} value={tab} onValueChange={setTab} tabs={visible.map((v) => ({ value: v, label: t.tabs[v] }))}>
         <TabPanel value="tong-quan">
           <Card title={t.routeHeading} titleId="tuyen" actions={<Legend />}>
-            <RouteMap domain={domain} checks={checks} selected={selected} onSelect={select} suspended={siteSuspended} />
+            <RouteMap domain={domain} checks={checks} selected={selected} onSelect={select} suspended={siteSuspended} plain={plainSite} />
             {firstFail?.c && (
-              <p className="mt-[10px] mb-0 text-[13px] font-medium text-fail-text">{t.failedAt(t.stages[firstFail.s], tx(firstFail.c.summary, lang))}</p>
+              <p className="mt-[10px] mb-0 text-[13px] font-medium text-fail-text">{t.failedAt(stageName(firstFail.s), tx(firstFail.c.summary, lang))}</p>
             )}
             {/* Site tạm khoá: một dòng xám (không đỏ) nói các chặng xám là do khoá, không phải do hỏng. */}
             {siteSuspended && !firstFail?.c && <p className="mt-[10px] mb-0 text-[13px] text-muted">{t.suspendedLine}</p>}
@@ -479,7 +494,7 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
                       <span className="flex h-[20px] w-[20px] items-center justify-center">
                         <StatusMark status={mark.status} />
                       </span>
-                      {t.stages[stage]}
+                      {stageName(stage)}
                       <span className="sr-only">: {statusName(mark.status, mark.suspended)}</span>
                     </h3>
                     {list.length === 0 ? (
@@ -539,7 +554,8 @@ function SiteView({ domain, info, updatedAt }: { domain: string; info: SiteInfo;
           )}
 
           {info.site.status === "active" && <SuspendBlock site={info.site} admin={isAdmin} />}
-          {info.site.status === "active" && <WpPasswordBlock site={info.site} />}
+          {/* M29: site PHP trống không có tài khoản quản trị WordPress nào để đặt lại. */}
+          {info.site.status === "active" && info.site.app !== "php" && <WpPasswordBlock site={info.site} />}
           {isAdmin && info.site.status === "active" && <OwnerBlock site={info.site} />}
 
           <Card title={t.layoutHeading} titleId="ten-duong-dan" actions={<span className="text-[13px] text-muted">{t.layoutHint}</span>}>

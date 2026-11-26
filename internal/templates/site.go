@@ -115,6 +115,25 @@ func WPHtaccess() []byte {
 	return out
 }
 
+// PlainHtaccess trả .htaccess đặt cho một site PHP trống mới trên Apache (M29):
+// đưa mọi đường dẫn không trùng file hay thư mục nào về index.php, như
+// try_files của vhost nginx. Khác bản của WordPress: file này là của chủ site,
+// tpan không ghi đè và không đối chiếu, và lời chú thích nói đúng điều đó.
+func PlainHtaccess() []byte {
+	return []byte(`# TPAN đặt file này lúc tạo site PHP trống. Nó là của bạn: sửa hay xoá tuỳ ý,
+# TPAN không ghi đè và không đối chiếu.
+#
+# Các dòng dưới đưa mọi đường dẫn không trùng file hay thư mục nào về
+# index.php (front controller). Mã của bạn không cần thì xoá đi.
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+`)
+}
+
 func siteVhostData(l site.Layout, php, acmeRoot string) (siteData, error) {
 	d, err := siteDataOf(l, php)
 	if err != nil {

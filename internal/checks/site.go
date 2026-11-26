@@ -445,6 +445,15 @@ type isoProbe struct {
 // M14; thiếu đích của phép 2 đến 5 (site tạm khoá không có socket) thì bỏ riêng
 // phép đó và để lại một dòng bằng chứng nói vì sao bỏ.
 func Isolated(from, to site.Layout) Check {
+	return IsolatedTo(from, to, false)
+}
+
+// IsolatedTo là Isolated biết site đích là loại gì (M29). toPlain: site đích
+// là site PHP trống, không có wp-config.php. Khi đó phép 1 được bỏ như các
+// phép thiếu đích khác (một dòng bằng chứng nói vì sao) thay vì cả phép kiểm
+// thành "chưa kiểm được": phép 2 (không vào được thư mục site) đã chứng minh
+// không file nào của site đích đọc được.
+func IsolatedTo(from, to site.Layout, toPlain bool) Check {
 	fromDom, toDom := from.Domain.String(), to.Domain.String()
 	b := base{id: "isolation:" + fromDom + ":" + toDom, stage: StageWordPress,
 		title: i18n.T("Site "+fromDom+" không chạm được vào file, log và socket của site "+toDom,
@@ -542,7 +551,7 @@ func Isolated(from, to site.Layout) Check {
 			if err != nil {
 				return siteStatUnknown(b, p.target, err, append(evs, statEv)...)
 			}
-			if missing && i == 0 {
+			if missing && i == 0 && !toPlain {
 				return b.unknown(i18n.T("site "+toDom+" chưa có wp-config.php nên không thử được", "site "+toDom+" has no wp-config.php yet, so there is nothing to try reading"), statEv)
 			}
 			if missing {

@@ -63,6 +63,12 @@ type SitesEntry struct {
 	AdminEmail string `yaml:"admin_email,omitempty" json:"admin_email,omitempty"`
 	SSL        *bool  `yaml:"ssl,omitempty" json:"ssl,omitempty"`
 	Owner      string `yaml:"owner,omitempty" json:"owner,omitempty"`
+	// App (M29): loại site, "wordpress" (mặc định khi vắng) hoặc "php" (site
+	// PHP trống). Export ghi "php" cho site PHP trống để file nói đúng máy đang
+	// có gì; apply chưa tạo site PHP trống (mật khẩu DB của nó phải tới tay
+	// người tạo, mà job hàng loạt chưa có chỗ trả), nên dòng "php" của một
+	// domain chưa có bị từ chối riêng dòng đó, không âm thầm thành WordPress.
+	App string `yaml:"app,omitempty" json:"app,omitempty"`
 }
 
 // MaxSitesFile: trần kích thước file và số dòng, để một file lạ không làm
@@ -260,8 +266,13 @@ func (f SitesFile) Resolve() ([]ApplySite, error) {
 			}
 			owner = e.Owner
 		}
+		if !site.App(e.App).Valid() {
+			return nil, sitesFileErr(
+				fmt.Sprintf("%s: app phải là wordpress hoặc php", where),
+				fmt.Sprintf("line %d (%s): app must be wordpress or php", n, d))
+		}
 		out = append(out, ApplySite{
-			Input: SiteInput{Domain: d, Title: e.Title, Email: email, Owner: owner},
+			Input: SiteInput{Domain: d, Title: e.Title, Email: email, Owner: owner, App: site.App(e.App)},
 			SSL:   ssl,
 		})
 	}
@@ -310,6 +321,9 @@ func (s *Sites) ExportScope(ctx context.Context, scope string) (SitesFile, error
 		e := SitesEntry{Domain: st.Domain.String()}
 		if o := ownerOf(st); o != account.AdminName {
 			e.Owner = o
+		}
+		if st.Plain() {
+			e.App = string(site.AppPHP)
 		}
 		if st.SSL {
 			t := true // chỉ ghi khi true: false là mặc định, ghi ra chỉ thêm nhiễu

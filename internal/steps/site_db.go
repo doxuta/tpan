@@ -344,3 +344,7 @@ func (s *SiteDBAbsent) Apply(ctx context.Context, sys system.System) error {
 }
 
 func (s *SiteDBAbsent) Undo(context.Context, system.System) error { return nil }
+
+// CreatedUser: lần Apply này đã tạo user DB (tức là Password đang là mật khẩu
+// thật của user đó). false khi user có sẵn: bước không đổi mật khẩu của nó.
+func (s *SiteDB) CreatedUser() bool { return s.createdUser }

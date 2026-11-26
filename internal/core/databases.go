@@ -35,6 +35,8 @@ type Database struct {
 	Note      string
 	Suspended account.Suspension
 	Status    string // "active" | "trashed"
+	// App (M29): loại site của DB đi kèm site ("wordpress" | "php"); DB rời để rỗng.
+	App string
 }
 
 // databaseNameRe là lớp chặn cuối trước khi tên DB đi vào chuỗi SQL. Tên lấy
@@ -143,6 +145,7 @@ func (d *DBs) List(ctx context.Context, owner string) ([]Database, error) {
 			out = append(out, Database{
 				Domain: st.Domain.String(), DB: l.DB, User: l.DB, SizeBytes: -1, Tables: -1,
 				Kind: DBKindSite, Owner: st.Owner, Suspended: st.DBSuspended, Status: string(st.Status),
+				App: string(st.App),
 			})
 		}
 	}

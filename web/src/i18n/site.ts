@@ -4,9 +4,11 @@
 import { defineStrings } from "./index";
 
 const vi = {
+  plainTag: "PHP trống",
+  stageCode: "Mã nguồn",
   // ---- danh sách /sites ----
   listTitle: "Site",
-  listSummary: "Các site WordPress trên máy này.",
+  listSummary: "Các site trên máy này: WordPress và PHP trống.",
   create: "Tạo site",
   count: (n: number) => `${n} site`,
   unitSite: "site",
@@ -115,6 +117,9 @@ const vi = {
     pool: "Pool PHP",
     socket: "Socket PHP",
     vhost: "Vhost",
+    app: "Loại site",
+    appWordPress: "WordPress",
+    appPhp: "PHP trống (không cài WordPress)",
     wpConfig: "wp-config.php",
     logDir: "Thư mục log",
     phpErrorLog: "Log lỗi PHP",
@@ -179,6 +184,8 @@ const vi = {
   bkEmpty: "Chưa có bản backup nào của site này. Bấm Backup ngay để tạo bản đầu tiên.",
   bkEmptyTrashed: "Chưa có bản backup nào của site này.",
   bkRestore: "Khôi phục",
+  bkDownload: "Tải về máy tính",
+  bkMoreFor: (when: string) => `Việc khác với bản backup lúc ${when}: tải về máy tính`,
   bkRestoreFor: (when: string) => `Khôi phục site từ bản backup lúc ${when}`,
   bkSqlLead: "Nhập ở màn ",
   bkSqlLink: "Cơ sở dữ liệu",
@@ -311,8 +318,10 @@ const vi = {
 };
 
 export const strings = defineStrings(vi, {
+  plainTag: "plain PHP",
+  stageCode: "Code",
   listTitle: "Sites",
-  listSummary: "The WordPress sites on this machine.",
+  listSummary: "The sites on this machine: WordPress and plain PHP.",
   create: "Create a site",
   count: (n) => `${n} ${n === 1 ? "site" : "sites"}`,
   unitSite: "site(s)",
@@ -416,6 +425,9 @@ export const strings = defineStrings(vi, {
     pool: "PHP pool",
     socket: "PHP socket",
     vhost: "Vhost",
+    app: "Site type",
+    appWordPress: "WordPress",
+    appPhp: "Empty PHP (no WordPress)",
     wpConfig: "wp-config.php",
     logDir: "Log directory",
     phpErrorLog: "PHP error log",
@@ -477,6 +489,8 @@ export const strings = defineStrings(vi, {
   bkEmpty: "There are no backups of this site yet. Press Back up now to make the first one.",
   bkEmptyTrashed: "There are no backups of this site yet.",
   bkRestore: "Restore",
+  bkDownload: "Download to this computer",
+  bkMoreFor: (when) => `More for the backup from ${when}: download`,
   bkRestoreFor: (when) => `Restore the site from the backup of ${when}`,
   bkSqlLead: "Import it on the ",
   bkSqlLink: "Databases",

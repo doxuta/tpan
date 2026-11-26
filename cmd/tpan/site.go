@@ -221,12 +221,13 @@ func (f *planRun) progress(e *env, p engine.Plan) *progress {
 func siteAddCmd(e *env) *cobra.Command {
 	var (
 		title, email, owner, www string
+		app, php                 string
 		withSSL                  bool
 		f                        planRun
 	)
 	c := &cobra.Command{
-		Use:   "add <domain> [--email E] [--title T] [--ssl] [--owner U] [--www redirect|serve|none]",
-		Short: "Tạo một site WordPress (chạy lại cho domain đã có thì sửa chỗ lệch)",
+		Use:   "add <domain> [--app wordpress|php] [--email E] [--title T] [--php V] [--ssl] [--owner U] [--www redirect|serve|none]",
+		Short: "Tạo một site WordPress, hoặc site PHP trống với --app php (chạy lại cho domain đã có thì sửa chỗ lệch)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
@@ -263,7 +264,7 @@ func siteAddCmd(e *env) *cobra.Command {
 			}
 			defer done()
 
-			add, err := s.PrepareAdd(ctx, core.SiteInput{Domain: d, Title: title, Email: em, Owner: owner, WWW: wwwMode})
+			add, err := s.PrepareAdd(ctx, core.SiteInput{Domain: d, Title: title, Email: em, Owner: owner, WWW: wwwMode, App: site.App(app), PHPVersion: php})
 			if err != nil {
 				return fail(e, f.asJSON, err)
 			}
@@ -287,6 +288,9 @@ func siteAddCmd(e *env) *cobra.Command {
 				// In mật khẩu quản trị TRƯỚC khi chạy SSL: SSL hỏng cũng không làm mất nó.
 				printReport(e, res.Report)
 				printAdminPassword(e, res)
+				if pw := res.DBPassword.Reveal(); pw != "" {
+					printDBPassword(e, res.DBName, res.DBPassword)
+				}
 			}
 			siteOK := err == nil && res.Report.Job.Status == engine.JobSucceeded
 			var sslErr error
@@ -319,7 +323,9 @@ func siteAddCmd(e *env) *cobra.Command {
 		},
 	}
 	fl := c.Flags()
-	fl.StringVar(&email, "email", "", "email của tài khoản quản trị WordPress (bắt buộc với site mới)")
+	fl.StringVar(&app, "app", "", "loại site mới: wordpress (mặc định) hoặc php (site PHP trống, không cài WordPress; mật khẩu DB in ra một lần)")
+	fl.StringVar(&php, "php", "", "bản PHP của site mới, ví dụ 8.3 (mặc định là bản mặc định của máy)")
+	fl.StringVar(&email, "email", "", "email của tài khoản quản trị WordPress (bắt buộc với site WordPress mới)")
 	fl.StringVar(&title, "title", "", "tiêu đề site (mặc định là domain)")
 	fl.BoolVar(&withSSL, "ssl", false, "tạo xong thì xin luôn chứng chỉ Let's Encrypt (email SSL chưa đặt thì dùng --email)")
 	fl.StringVar(&owner, "owner", "", "user chủ của site mới (mặc định admin; kiểm hạn mức gói của user đó)")
@@ -338,6 +344,10 @@ type siteAddJSON struct {
 	WPInstalled   bool          `json:"wp_installed"`
 	AdminUser     string        `json:"admin_user,omitempty"`
 	AdminPassword string        `json:"admin_password,omitempty"`
+	// DB, DBUser, DBPassword (M29): chỉ có khi vừa tạo một site PHP trống.
+	DB         string `json:"db,omitempty"`
+	DBUser     string `json:"db_user,omitempty"`
+	DBPassword string `json:"db_password,omitempty"`
 	// SSL là báo cáo job SSL khi có --ssl và Plan SSL đã chạy; SSLError là lời
 	// từ chối của nó (ví dụ DNS chưa trỏ về máy). Site vẫn được tạo trong cả hai trường hợp.
 	SSL      *engine.Report     `json:"ssl,omitempty"`
@@ -348,6 +358,9 @@ func siteAddJSONOf(res core.SiteAddResult) siteAddJSON {
 	out := siteAddJSON{Report: res.Report, Site: res.Site, WPInstalled: res.WPInstalled}
 	if res.WPInstalled {
 		out.AdminUser, out.AdminPassword = res.AdminUser, res.AdminPassword.Reveal()
+	}
+	if pw := res.DBPassword.Reveal(); pw != "" {
+		out.DB, out.DBUser, out.DBPassword = res.DBName, res.DBName, pw
 	}
 	return out
 }

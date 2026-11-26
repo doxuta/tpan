@@ -234,8 +234,18 @@ func (s *Server) handleDBPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b := s.apiBackups()
-	s.planJobKick(w, r, jobOpts{action: "db.passwd", target: d.String(), kick: d.String()}, func(ctx context.Context) (apiPlan, error) {
-		return b.PrepareDBPassword(ctx, d)
+	// M29: site PHP trống thì mật khẩu mới được giữ cho lần GET /jobs/{id} đầu
+	// tiên (tpan không có file cấu hình nào để ghi nó vào); site WordPress thì
+	// sec là nil, như trước.
+	s.secretJob(w, r, jobOpts{action: "db.passwd", target: d.String(), kick: d.String()}, func(ctx context.Context) (*core.Planned, *DBSecret, error) {
+		p, err := b.PrepareSiteDBPassword(ctx, d)
+		if err != nil {
+			return nil, nil, err
+		}
+		if pw := p.Password.Reveal(); pw != "" {
+			return p.Planned, &DBSecret{DB: p.Name, User: p.Name, Password: pw}, nil
+		}
+		return p.Planned, nil, nil
 	})
 }
 

@@ -153,6 +153,11 @@ type NameProbe struct {
 	Mode    site.NameMode
 	SSL     bool
 	Covered []validate.Domain
+	// Plain (M29): site PHP trống, trang của nó không mang dấu hiệu WordPress.
+	// Kiểu serve khi đó đạt với mọi mã 2xx, 3xx, 4xx trừ 403: vhost mặc định
+	// của tpan đóng kết nối (nginx) hoặc trả 403 (Apache), nên 403 không phân
+	// biệt được với "tên chưa vào site" và bị coi là hỏng.
+	Plain bool
 
 	passed bool
 }
@@ -197,6 +202,9 @@ func (s *NameProbe) plan() (system.Cmd, func(nameAnswer) error) {
 	cmd := nameCurl(host, s.SSL)
 	if s.Mode == site.ModeRedirect {
 		return cmd, redirect(scheme + "://" + primary + "/")
+	}
+	if s.Plain {
+		return cmd, plainServeAnswer
 	}
 	return cmd, func(a nameAnswer) error {
 		switch a.code {
@@ -439,3 +447,17 @@ func (s *RedirectProbe) Apply(ctx context.Context, sys system.System) error {
 
 // Undo không làm gì (xem NoUndo trong Info).
 func (s *RedirectProbe) Undo(context.Context, system.System) error { return nil }
+
+// plainServeAnswer là điều kiện đạt của kiểu serve cho site PHP trống (M29),
+// xem NameProbe.Plain.
+func plainServeAnswer(a nameAnswer) error {
+	switch {
+	case len(a.code) != 3:
+		return fmt.Errorf("không đọc được mã trả lời (nhận %q)", a.code)
+	case a.code == "403":
+		return errors.New("trả 403: không phân biệt được với site mặc định của tpan (site chưa có index, hoặc tên chưa vào vhost của site). Đặt index.php hay index.html vào public rồi thử lại")
+	case a.code[0] == '2' || a.code[0] == '3' || a.code[0] == '4':
+		return nil
+	}
+	return fmt.Errorf("mong site trả lời (mã 2xx, 3xx hay 4xx), nhận mã %q", a.code)
+}

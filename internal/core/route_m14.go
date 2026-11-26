@@ -145,10 +145,8 @@ func (s *Sites) routeTrace(ctx context.Context, st site.Site, alias *site.Name) 
 	case alias != nil:
 		tr.Hops = append(tr.Hops, routeAliasHTTPHop(ctx, s.Sys, host, ssl))
 		return tr, nil
-	case st.SSL:
-		probe = checks.HTTPSSite(l)
 	default:
-		probe = checks.HTTPSite(l)
+		probe = siteHTTPCheck(st)
 	}
 	tr.Hops = append(tr.Hops, routeFromCheck(HopHTTP, routeURL(host, ssl), probe.Run(ctx, s.Sys)))
 	return tr, nil

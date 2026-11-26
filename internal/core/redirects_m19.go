@@ -205,7 +205,7 @@ func (s *Sites) PrepareRedirectRemove(ctx context.Context, siteD validate.Domain
 	next := st
 	next.Names.Rules = slices.Delete(slices.Clone(st.Names.Rules), i, i+1)
 	op := &NamesOp{sites: s, op: opRedirectRm, site: st, next: next, rs: rs, rule: r}
-	probe := &steps.NameProbe{Layout: st.Layout(), Host: st.Domain, Mode: site.ModeServe, SSL: st.SSL, Covered: st.Names.Covered}
+	probe := &steps.NameProbe{Layout: st.Layout(), Host: st.Domain, Mode: site.ModeServe, SSL: st.SSL, Covered: st.Names.Covered, Plain: st.Plain()}
 	return op, op.build(ctx, cfg, nil, probe, i18n.T(
 		fmt.Sprintf("Gỡ luật chuyển hướng số %d (%s) khỏi %s", id, r.Source, siteD),
 		fmt.Sprintf("Remove redirect %d (%s) from %s", id, r.Source, siteD)))

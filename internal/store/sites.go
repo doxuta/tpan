@@ -15,7 +15,7 @@ import (
 	"github.com/doxuta/tpan/internal/validate"
 )
 
-const siteColumns = "domain, status, php_version, ssl, created_at, trashed_at, purge_at, owner, suspended, suspended_at, db_suspended, htaccess, caged"
+const siteColumns = "domain, status, php_version, ssl, created_at, trashed_at, purge_at, owner, suspended, suspended_at, db_suspended, htaccess, caged, app"
 
 // siteScan đọc một dòng sites. Dữ liệu DB cũng không tin mù: domain đi lại
 // qua validate.ParseDomain, slug suy lại từ domain (cột slug chỉ để DB chặn
@@ -24,10 +24,11 @@ func siteScan(r rowScanner) (site.Site, error) {
 	var (
 		domain, status, php, created string
 		owner, susp, dbSusp, htacc   string
+		app                          string
 		ssl, caged                   int
 		trashed, purge, suspAt       sql.NullString
 	)
-	if err := r.Scan(&domain, &status, &php, &ssl, &created, &trashed, &purge, &owner, &susp, &suspAt, &dbSusp, &htacc, &caged); err != nil {
+	if err := r.Scan(&domain, &status, &php, &ssl, &created, &trashed, &purge, &owner, &susp, &suspAt, &dbSusp, &htacc, &caged, &app); err != nil {
 		return site.Site{}, err
 	}
 	d, err := validate.ParseDomain(domain)
@@ -45,6 +46,7 @@ func siteScan(r rowScanner) (site.Site, error) {
 		DBSuspended: account.Suspension(dbSusp),
 		Htaccess:    site.HtaccessMode(htacc),
 		Caged:       caged != 0,
+		App:         site.App(app),
 	}
 	if suspAt.Valid {
 		if s.SuspendedAt, err = parseTime(suspAt.String); err != nil {
@@ -160,6 +162,11 @@ func (s *Store) SaveSite(ctx context.Context, st site.Site) error {
 	if owner == "" {
 		owner = adminName
 	}
+	// App rỗng (mã có từ trước M29) là WordPress.
+	app := string(st.App)
+	if app == "" {
+		app = string(site.AppWordPress)
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("lưu site %s: %w", st.Domain, err)
@@ -167,18 +174,18 @@ func (s *Store) SaveSite(ctx context.Context, st site.Site) error {
 	defer func() { _ = tx.Rollback() }()
 	_, err = tx.ExecContext(ctx,
 		`INSERT INTO sites (domain, slug, status, php_version, ssl, created_at, trashed_at, purge_at,
-		                    owner, suspended, suspended_at, db_suspended, htaccess, caged)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		                    owner, suspended, suspended_at, db_suspended, htaccess, caged, app)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT (domain) DO UPDATE SET
 		   slug = excluded.slug, status = excluded.status, php_version = excluded.php_version,
 		   ssl = excluded.ssl, created_at = excluded.created_at, trashed_at = excluded.trashed_at,
 		   purge_at = excluded.purge_at, owner = excluded.owner, suspended = excluded.suspended,
 		   suspended_at = excluded.suspended_at, db_suspended = excluded.db_suspended,
-		   htaccess = excluded.htaccess, caged = excluded.caged`,
+		   htaccess = excluded.htaccess, caged = excluded.caged, app = excluded.app`,
 		st.Domain.String(), validate.SlugOf(st.Domain).String(), string(st.Status), st.PHPVersion,
 		siteBool(st.SSL), fmtTime(st.Created), nullTime(st.TrashedAt), nullTime(st.PurgeAt),
 		owner, string(st.Suspended), nullTime(st.SuspendedAt), string(st.DBSuspended),
-		string(st.Htaccess.OrDefault()), siteBool(st.Caged))
+		string(st.Htaccess.OrDefault()), siteBool(st.Caged), app)
 	if err != nil {
 		return fmt.Errorf("lưu site %s: %w", st.Domain, err)
 	}

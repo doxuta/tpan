@@ -320,7 +320,7 @@ func (s *Sites) PrepareAliasAdd(ctx context.Context, siteD, name validate.Domain
 	op := &NamesOp{sites: s, ns: ns, op: opAliasAdd, site: st, next: next, name: name, mode: m, claim: &claim,
 		needsCert: st.SSL}
 	guard := &declaredGuard{sites: s, web: cfg.Web, l: st.Layout(), name: name}
-	return op, op.build(ctx, cfg, guard, &steps.NameProbe{Layout: st.Layout(), Host: name, Mode: m, SSL: st.SSL, Covered: st.Names.Covered},
+	return op, op.build(ctx, cfg, guard, &steps.NameProbe{Layout: st.Layout(), Host: name, Mode: m, SSL: st.SSL, Covered: st.Names.Covered, Plain: st.Plain()},
 		i18n.T("Thêm tên phụ "+name.String()+" cho "+siteD.String(), "Add alias "+name.String()+" to "+siteD.String()))
 }
 
@@ -372,7 +372,7 @@ func (s *Sites) PrepareAliasMode(ctx context.Context, siteD, name validate.Domai
 	next.Names = withName(st.Names, name, m)
 	op := &NamesOp{sites: s, ns: ns, op: opAliasMode, site: st, next: next, name: name, mode: m,
 		needsCert: st.SSL && !slices.Contains(st.Names.Covered, name)}
-	return op, op.build(ctx, cfg, nil, &steps.NameProbe{Layout: st.Layout(), Host: name, Mode: m, SSL: st.SSL, Covered: st.Names.Covered},
+	return op, op.build(ctx, cfg, nil, &steps.NameProbe{Layout: st.Layout(), Host: name, Mode: m, SSL: st.SSL, Covered: st.Names.Covered, Plain: st.Plain()},
 		i18n.T("Đổi kiểu tên phụ "+name.String()+" sang "+string(m), "Change alias "+name.String()+" to "+string(m)))
 }
 

@@ -165,7 +165,13 @@ export function BackupList({ items, filter, onFilter, stateOf, pending, anyPendi
       primary.push({ label: push ? t.push : t.pull, ariaLabel: label, disabled: anyPending, busy: pending?.action === work && pending.id === b.id, busyLabel: t.previewing, onClick: () => (push ? onPush(b) : onPull(b)) });
     }
     // Xoá: chỉ bản còn file trên máy (bản chỉ còn trên kho do kho tự dọn).
-    const more = b.local ? [{ label: t.deleteLocal, danger: true, disabled: anyPending, onSelect: () => onDelete(b) }] : [];
+    // Tải về máy tính: trình duyệt tự lưu file (máy chủ trả Content-Disposition: attachment).
+    const more = b.local
+      ? [
+          { label: t.download, onSelect: () => window.location.assign(`/api/v1/backups/${encodeURIComponent(b.id)}/download`) },
+          { label: t.deleteLocal, danger: true, disabled: anyPending, onSelect: () => onDelete(b) },
+        ]
+      : [];
     if (primary.length === 0 && more.length === 0) return lead;
     const buttons = <RowActions moreLabel={t.moreFor(b.domain, when)} primary={primary} more={more} />;
     if (!lead) return buttons;

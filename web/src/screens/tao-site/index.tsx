@@ -12,15 +12,15 @@
 // tối đa 560 px. Giữ nguyên id các ô (#o-domain, #o-title, #o-email, #o-owner)
 // và nút gửi là `form button[type=submit]`: script chụp và e2e dùng.
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { ApiError, post } from "../../api/client";
+import { ApiError, get, post } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
 import { useUsers } from "../../api/m13-users";
 import { queryKeys } from "../../api/queries";
 import { useSiteCheck } from "../../api/site-check";
-import type { JobStarted, Preview, SiteCreate } from "../../api/types";
+import type { JobStarted, PHPList, Preview, SiteApp, SiteCreate } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Field, Input, Select } from "../../components/Field";
@@ -32,6 +32,7 @@ import { strings as khung } from "../../i18n/khung";
 import { strings } from "../../i18n/tao-site";
 import { PlanReview } from "../duyet-plan";
 import { ErrorNote } from "../site/ErrorNote";
+import { phpKey } from "../stack/model";
 import { DanhSach } from "./DanhSach";
 
 type Mode = "one" | "list";
@@ -59,7 +60,7 @@ export default function TaoSite() {
   );
 }
 
-type FieldName = "domain" | "title" | "email" | "owner";
+type FieldName = "domain" | "title" | "email" | "owner" | "php";
 
 // Mã lỗi của máy chủ ứng với ô nhập nào. Mã khác (stack chưa cài, job đang
 // chạy, điều kiện chưa đạt...) không thuộc ô nào nên hiện cạnh nút.
@@ -69,6 +70,8 @@ const fieldOfCode: Record<string, FieldName> = {
   site_trashed: "domain",
   title_invalid: "title",
   email_invalid: "email",
+  php_not_installed: "php",
+  php_version_invalid: "php",
   // M13: chủ không có hoặc đang bị khoá. Hạn mức gói (quota_*) không thuộc ô nào nên hiện cạnh nút, kèm câu từ chối của máy chủ.
   user_not_found: "owner",
   user_suspended: "owner",
@@ -83,6 +86,12 @@ function OneSite() {
   const [domain, setDomain] = useState("");
   const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
+  // M29: loại site và bản PHP. Site PHP trống không có tiêu đề hay email quản trị.
+  const [app, setApp] = useState<SiteApp>("wordpress");
+  const plain = app === "php";
+  const [php, setPhp] = useState("");
+  const phpList = useQuery({ queryKey: phpKey, queryFn: () => get<PHPList>("/api/v1/php") });
+  const phpOptions = (phpList.data?.versions ?? []).filter((v) => v.installed).map((v) => v.version);
   // M13: chỉ admin chọn chủ. Rỗng là chính mình; user thường không có ô này và máy chủ tự đặt chủ là người gọi.
   const { isAdmin, name: me } = useIdentity();
   const users = useUsers(isAdmin);
@@ -138,15 +147,22 @@ function OneSite() {
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const body: SiteCreate = { domain: domain.trim(), title: title.trim(), email: email.trim(), ...(isAdmin && owner !== me ? { owner } : {}) };
-    const empty: FieldName | null = body.domain === "" ? "domain" : body.email === "" ? "email" : null;
+    const body: SiteCreate = {
+      domain: domain.trim(),
+      title: plain ? "" : title.trim(),
+      email: plain ? "" : email.trim(),
+      ...(isAdmin && owner !== me ? { owner } : {}),
+      ...(plain ? { app } : {}),
+      ...(php !== "" ? { php } : {}),
+    };
+    const empty: FieldName | null = body.domain === "" ? "domain" : !plain && body.email === "" ? "email" : null;
     setMissing(empty);
     if (empty) {
       document.getElementById(`o-${empty}`)?.focus();
       return;
     }
     // Ô đang báo sai thì khỏi gọi xem trước: câu lỗi đã nằm ngay dưới ô.
-    const bad = live.domain.status === "fail" ? "domain" : live.email.status === "fail" ? "email" : null;
+    const bad = live.domain.status === "fail" ? "domain" : !plain && live.email.status === "fail" ? "email" : null;
     if (bad) {
       document.getElementById(`o-${bad}`)?.focus();
       return;
@@ -164,7 +180,7 @@ function OneSite() {
   };
 
   // Một ô một dòng: nhãn, ô, gợi ý, câu lỗi. Câu lỗi mang id e-<ô> để ô trỏ aria-describedby tới.
-  const field = (f: Exclude<FieldName, "owner">, label: string, hint: string, value: string, set: (v: string) => void, extra: Omit<InputHTMLAttributes<HTMLInputElement>, "className">, after?: ReactNode) => {
+  const field = (f: Exclude<FieldName, "owner" | "php">, label: string, hint: string, value: string, set: (v: string) => void, extra: Omit<InputHTMLAttributes<HTMLInputElement>, "className">, after?: ReactNode) => {
     const err = fieldError(f);
     const liveId = after ? ` l-${f}` : "";
     return (
@@ -185,12 +201,27 @@ function OneSite() {
   };
 
   const ownerErr = fieldError("owner");
+  const phpErr = fieldError("php");
 
   return (
     <>
       <form onSubmit={onSubmit} noValidate className="max-w-[560px]">
         <Card title={t.formHeading} titleId="moi">
           <div className="flex flex-col gap-[20px]">
+            <div className="flex flex-col gap-[6px]">
+              <SegmentButton<SiteApp>
+                label={t.appLabel}
+                value={app}
+                onChange={(v) => edit(() => setApp(v), "email")("")}
+                options={[
+                  { value: "wordpress", label: t.appWordPress },
+                  { value: "php", label: t.appPhp },
+                ]}
+              />
+              <p id="h-app" className="m-0 text-[13px] text-muted">
+                {plain ? t.appHintPhp : t.appHintWordPress}
+              </p>
+            </div>
             {field("domain", t.domainLabel, t.domainHint, domain, setDomain, {
               type: "text",
               inputMode: "url",
@@ -198,13 +229,27 @@ function OneSite() {
               autoCapitalize: "none",
               placeholder: "shop.example.com",
             }, <LiveCheck id="l-domain" state={live.domain} okText={t.liveDomainOk} checkingText={t.liveChecking} />)}
-            {field("title", t.titleLabel, t.titleHint, title, setTitle, { type: "text" })}
-            {field("email", t.emailLabel, t.emailHint, email, setEmail, {
-              type: "email",
-              spellCheck: false,
-              autoCapitalize: "none",
-              placeholder: "admin@example.com",
-            }, <LiveCheck id="l-email" state={live.email} okText={t.liveEmailOk} checkingText={t.liveChecking} />)}
+            {!plain && field("title", t.titleLabel, t.titleHint, title, setTitle, { type: "text" })}
+            {!plain &&
+              field("email", t.emailLabel, t.emailHint, email, setEmail, {
+                type: "email",
+                spellCheck: false,
+                autoCapitalize: "none",
+                placeholder: "admin@example.com",
+              }, <LiveCheck id="l-email" state={live.email} okText={t.liveEmailOk} checkingText={t.liveChecking} />)}
+            {/* Chỉ một bản đã cài thì không có gì để chọn: ẩn ô. */}
+            {phpOptions.length > 1 && (
+              <Field label={t.phpLabel} htmlFor="o-php" hint={t.phpHint} hintId="h-php" error={phpErr && <span id="e-php">{phpErr}</span>}>
+                <Select id="o-php" name="php" value={php} onChange={(e) => edit(setPhp, "php")(e.target.value)} aria-describedby={`h-php${phpErr ? " e-php" : ""}`} aria-invalid={phpErr ? true : undefined}>
+                  <option value="">{t.phpDefault}</option>
+                  {phpOptions.map((v) => (
+                    <option key={v} value={v}>
+                      PHP {v}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
             {isAdmin && (
               <Field label={t.ownerLabel} htmlFor="o-owner" hint={t.ownerHint} hintId="h-owner" error={ownerErr && <span id="e-owner">{ownerErr}</span>}>
                 <Select

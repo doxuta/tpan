@@ -260,20 +260,22 @@ func siteStateChecks(st site.Site, cfg StackConfig, others []site.Site, lim *acc
 		} else {
 			cs = append(cs, checks.PoolSocket(l, php))
 		}
-		cs = append(cs,
-			checks.Heavy(checks.WPChecksums(l)),
-			checks.WPConfigPerm(l),
-		)
+		if !st.Plain() {
+			cs = append(cs,
+				checks.Heavy(checks.WPChecksums(l)),
+				checks.WPConfigPerm(l),
+			)
+		}
 		cs = append(cs, siteHardeningChecks(cfg.Web, l, st.Htaccess)...)
 		hold(checks.StageDB, true)
 		hold(checks.StageEndToEnd, true)
 		// Cùng luật với siteChecks (M17): không sinh Isolated từ site trong lồng.
 		for _, o := range others {
 			if !st.Caged {
-				cs = append(cs, checks.Isolated(l, o.Layout()))
+				cs = append(cs, checks.IsolatedTo(l, o.Layout(), o.Plain()))
 			}
 			if !o.Caged {
-				cs = append(cs, checks.Isolated(o.Layout(), l))
+				cs = append(cs, checks.IsolatedTo(o.Layout(), l, st.Plain()))
 			}
 		}
 		return cs
@@ -331,10 +333,10 @@ func siteAliasHTTPChecks(st site.Site) []checks.Check {
 	var cs []checks.Check
 	l := st.Layout()
 	for _, n := range st.Names.Serve {
-		cs = append(cs, checks.Heavy(checks.AliasHTTP(l, n, site.ModeServe, st.SSL, st.Names.Covered)))
+		cs = append(cs, checks.Heavy(checks.AliasHTTPApp(l, n, site.ModeServe, st.SSL, st.Names.Covered, st.Plain())))
 	}
 	for _, n := range st.Names.Redirect {
-		cs = append(cs, checks.Heavy(checks.AliasHTTP(l, n, site.ModeRedirect, st.SSL, st.Names.Covered)))
+		cs = append(cs, checks.Heavy(checks.AliasHTTPApp(l, n, site.ModeRedirect, st.SSL, st.Names.Covered, st.Plain())))
 	}
 	return cs
 }

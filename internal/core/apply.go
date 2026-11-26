@@ -222,6 +222,13 @@ func (s *Sites) PrepareApply(ctx context.Context, in ApplyInput) (*Apply, error)
 					break
 				}
 			}
+			if as.Input.App == site.AppPHP {
+				// M29: xem SitesEntry.App.
+				item, err = refusedItem(item, refuse("apply_app_unsupported", i18n.T(
+					"tpan apply chưa tạo site PHP trống. Tạo riêng site này: sudo tpan site add "+d.String()+" --app php (hoặc màn Tạo site, chọn PHP trống)",
+					"tpan apply does not create empty PHP sites yet. Create this one on its own: sudo tpan site add "+d.String()+" --app php (or the Create site screen, type Empty PHP)")))
+				break
+			}
 			var add *SiteAdd
 			// M19: apply không thêm tên www mặc định (file khai báo không
 			// mang tên phụ, S21).
@@ -311,7 +318,7 @@ func (s *Sites) applyBatch(ctx context.Context, cfg StackConfig, all []site.Site
 				// WPArchive lên Pre (một lần cho cả lô: trùng StepID giữa các
 				// unit thì engine từ chối); cài WordPress xuống pha C, sau khi
 				// web server đã nạp vhost ở pha B.
-				if _, ok := st.(*steps.WPArchive); ok || st == engine.Step(add.install) {
+				if _, ok := st.(*steps.WPArchive); ok || (add.install != nil && st == engine.Step(add.install)) {
 					continue
 				}
 				prep = append(prep, st)
@@ -323,10 +330,16 @@ func (s *Sites) applyBatch(ctx context.Context, cfg StackConfig, all []site.Site
 			if err != nil {
 				return engine.Batch{}, err
 			}
+			// Site PHP trống (M29, chỉ gặp khi chạy lại một site đã có): không có
+			// bước cài WordPress ở pha C.
+			var finish []engine.Step
+			if add.install != nil {
+				finish = []engine.Step{add.install}
+			}
 			b.Units = append(b.Units, engine.Unit{
 				Target:  l.Domain.String(),
 				Prepare: applySerial(mu, prep),
-				Finish:  []engine.Step{add.install},
+				Finish:  finish,
 				Verify:  siteChecks(cfg.Web, add.Site.PHPVersion, add.Site, others, lim),
 			})
 		default:
@@ -550,7 +563,7 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 		if status == engine.UnitSucceeded {
 			// Chỉ unit succeeded: unit bị hoàn tác ở pha C có thể đã chạy
 			// `wp core install` (ran = true) nhưng WordPress đó đã bị gỡ.
-			if u.add.install.ran {
+			if u.add.install != nil && u.add.install.ran {
 				r.WPInstalled, r.AdminUser, r.AdminPassword = true, u.add.AdminUser, u.add.adminPassword
 			}
 			rec := u.add.Site
@@ -576,7 +589,7 @@ func (a *Apply) Execute(ctx context.Context, onEvent func(engine.Event)) (ApplyR
 	for _, x := range made {
 		for _, y := range made {
 			if x.k != y.k {
-				iso = append(iso, checks.Isolated(x.u.add.Layout, y.u.add.Layout))
+				iso = append(iso, checks.IsolatedTo(x.u.add.Layout, y.u.add.Layout, y.u.add.Site.Plain()))
 			}
 		}
 	}

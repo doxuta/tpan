@@ -107,8 +107,9 @@ const vi = {
   restoreWarning: (d: string, when: string) =>
     `Khôi phục ${d} ghi đè file và cơ sở dữ liệu hiện tại bằng bản lúc ${when}. TPAN tự backup hiện trạng trước, nên bạn quay lại được.`,
   restoreErrorHeading: (d: string) => `Chưa dựng được bản xem trước khôi phục ${d}`,
+  download: "Tải về máy tính",
   deleteLocal: "Xoá bản này",
-  moreFor: (d: string, when: string) => `Việc khác với bản backup của ${d} lúc ${when}: xoá`,
+  moreFor: (d: string, when: string) => `Việc khác với bản backup của ${d} lúc ${when}: tải về máy tính, xoá`,
   deleteWarning: (d: string, when: string, stored: boolean) =>
     stored
       ? `Xoá khỏi máy bản backup của ${d} lúc ${when}. Bản đã đẩy lên kho vẫn còn và tải về lại được. File trên máy xoá rồi không lấy lại được.`
@@ -221,8 +222,9 @@ export const strings = defineStrings(vi, {
   restoreWarning: (d, when) =>
     `Restoring ${d} overwrites its current files and database with the backup of ${when}. TPAN backs up the current state first, so you can go back.`,
   restoreErrorHeading: (d) => `Could not build the restore preview for ${d}`,
+  download: "Download to this computer",
   deleteLocal: "Delete this backup",
-  moreFor: (d, when) => `More for the backup of ${d} from ${when}: delete`,
+  moreFor: (d, when) => `More for the backup of ${d} from ${when}: download, delete`,
   deleteWarning: (d, when, stored) =>
     stored
       ? `Deletes the backup of ${d} from ${when} from this server. The copy pushed to storage stays and can be fetched again. The file on this server cannot be brought back.`

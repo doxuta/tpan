@@ -127,6 +127,16 @@ func SiteHtaccess(l site.Layout) (engine.Step, error) {
 		Owner: system.Owner{User: l.User, Group: site.WebGroup}}, nil
 }
 
+// SitePlainHtaccess (chỉ Apache, M29) ghi .htaccess của một site PHP trống:
+// templates.PlainHtaccess, cùng chủ và quyền với bản của WordPress.
+func SitePlainHtaccess(l site.Layout) (engine.Step, error) {
+	if err := webCheckLayout(l); err != nil {
+		return nil, fmt.Errorf("dựng bước .htaccess: %w", err)
+	}
+	return &File{Path: l.Public + "/.htaccess", Content: templates.PlainHtaccess(), Perm: 0o640,
+		Owner: system.Owner{User: l.User, Group: site.WebGroup}}, nil
+}
+
 // SiteWebAbsent gỡ link vhost, file vhost, rồi pool. Vhost gỡ trước để không
 // lúc nào web server trỏ vào socket của một pool đã mất (khách sẽ thấy 502).
 // Mỗi bước Absent của M1 giữ nội dung cũ nên Undo trả lại được.

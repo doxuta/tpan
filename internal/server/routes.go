@@ -190,6 +190,7 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/sites/{domain}/backups", rule: ownerSite, tok: apitoken.GroupBackups, h: s.handleSiteBackup},
 		{pattern: "POST /api/v1/backups/{id}/restore", rule: ownerBackup, tok: apitoken.GroupBackups, h: s.handleBackupRestore},
 		{pattern: "DELETE /api/v1/backups/{id}", rule: ownerBackup, tok: apitoken.GroupBackups, h: s.handleBackupDelete},
+		{pattern: "GET /api/v1/backups/{id}/download", rule: ownerBackup, tok: apitoken.GroupBackups, h: s.handleBackupDownload},
 		{pattern: "POST /api/v1/backups/settings", rule: adminOnly, tok: apitoken.GroupBackups, h: s.handleBackupSettings},
 		{pattern: "GET /api/v1/cron", rule: anyone, tok: apitoken.GroupCron, h: s.handleCron},
 		{pattern: "POST /api/v1/databases/{domain}/password", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBPassword},
