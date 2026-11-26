@@ -413,7 +413,12 @@ func TestNhomTokenCuaRoute(t *testing.T) {
 		"POST /api/v1/databases/{domain}/import", "POST /api/v1/databases/{domain}/charset", "POST /api/v1/databases/{domain}/suspend",
 		"POST /api/v1/databases/{domain}/unsuspend", "GET /api/v1/collations", "POST /api/v1/dbs", "POST /api/v1/dbs/{name}",
 		"POST /api/v1/dbs/{name}/password", "POST /api/v1/dbs/{name}/suspend", "POST /api/v1/dbs/{name}/unsuspend",
-		"POST /api/v1/dbs/{name}/restore", "DELETE /api/v1/dbs/{name}", "DELETE /api/v1/trash/dbs/{name}")
+		"POST /api/v1/dbs/{name}/restore", "DELETE /api/v1/dbs/{name}", "DELETE /api/v1/trash/dbs/{name}",
+		// M32: quản lý dữ liệu của một DB (xem bảng, sửa dòng, công cụ bảng, chạy SQL).
+		"GET /api/v1/databases/{domain}/data", "GET /api/v1/databases/{domain}/data/{table}", "POST /api/v1/databases/{domain}/data/{table}",
+		"POST /api/v1/databases/{domain}/data/{table}/maintain", "POST /api/v1/databases/{domain}/sql",
+		"GET /api/v1/dbs/{name}/data", "GET /api/v1/dbs/{name}/data/{table}", "POST /api/v1/dbs/{name}/data/{table}",
+		"POST /api/v1/dbs/{name}/data/{table}/maintain", "POST /api/v1/dbs/{name}/sql")
 	// M19: tên phụ và luật chuyển hướng là thao tác trên site, cùng nhóm sites.
 	add("sites", "GET /api/v1/sites/{domain}/names", "POST /api/v1/sites/{domain}/names",
 		"POST /api/v1/sites/{domain}/names/{name}/mode", "DELETE /api/v1/sites/{domain}/names/{name}",

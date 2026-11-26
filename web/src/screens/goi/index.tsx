@@ -114,7 +114,7 @@ export default function Packages() {
         <TableList
           label={t.tableName}
           caption={t.tableName}
-          minWidth={1100}
+          minWidth={860}
           rows={q.data}
           rowKey={(r) => r.package.name}
           empty={t.empty}
@@ -137,15 +137,12 @@ export default function Packages() {
             { header: t.colCage, cell: (r) => (r.package.cage ? t.cageYes : <span className="text-muted">{t.cageNo}</span>) },
             {
               header: t.colLimits,
-              // Chữ một dòng: dài thì cắt bằng dấu ba chấm, đủ chữ nằm ở title.
+              // v0.2.14: chữ được xuống dòng thay vì một dòng dài cắt ba chấm, để bảng vừa khung ở 1280 px.
+              nowrap: false,
+              className: "min-w-[200px]",
               cell: (r) => {
                 if (!r.package.cage) return <span className="text-muted">{t.noLimits}</span>;
-                const text = limitSummary(r.package, t.sum);
-                return (
-                  <span title={text} className="block max-w-[320px] truncate">
-                    {text}
-                  </span>
-                );
+                return <span className="block max-w-[280px] text-[13px]">{limitSummary(r.package, t.sum)}</span>;
               },
             },
             {

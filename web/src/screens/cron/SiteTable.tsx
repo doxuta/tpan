@@ -8,6 +8,7 @@
 
 import { Link } from "react-router";
 import type { CronEntry, Suspension } from "../../api/types";
+import { DomainText } from "../../components/DomainText";
 import { Button } from "../../components/Button";
 import { Code, MonoText } from "../../components/MonoText";
 import { StatusMark } from "../../components/StatusMark";
@@ -65,7 +66,7 @@ export function CronSiteTable({ items, trashed, suspended, openDomain, onToggle 
       title={t.sitesHeading}
       titleId="cron-sites"
       caption={t.tableName}
-      minWidth={960}
+      minWidth={860}
       rows={items}
       rowKey={(c) => c.domain}
       above={<p className="m-0 max-w-[72ch] px-[16px] py-[12px] text-[13px] text-muted">{t.sitesHint}</p>}
@@ -79,10 +80,12 @@ export function CronSiteTable({ items, trashed, suspended, openDomain, onToggle 
       columns={[
         {
           header: t.colSite,
+          // v0.2.14: tên miền dài xuống dòng sau dấu chấm thay vì kéo rộng bảng.
+          nowrap: false,
+          className: "min-w-[180px] max-w-[240px]",
           cell: (c) => (
-            // Tên miền dài nằm một dòng, cắt bằng dấu ba chấm; đủ chữ trong title.
-            <span title={c.domain} className="inline-block max-w-[280px] truncate align-bottom font-medium">
-              {c.domain}
+            <span className="font-medium">
+              <DomainText domain={c.domain} />
             </span>
           ),
         },
@@ -140,7 +143,7 @@ export function CronSiteTable({ items, trashed, suspended, openDomain, onToggle 
         {
           header: t.colFile,
           nowrap: false,
-          className: "min-w-[240px]",
+          className: "min-w-[200px]",
           cell: (c) => {
             const how = suspended.get(c.domain);
             if (c.enabled) {

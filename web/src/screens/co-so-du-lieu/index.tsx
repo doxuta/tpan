@@ -19,11 +19,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { dbManagePath } from "../../api/m32";
 import { errorMessage, get } from "../../api/client";
 import { useIdentity } from "../../api/m13-dbs";
 import { useOverview } from "../../api/queries";
 import type { Backup, DatabaseRow } from "../../api/types";
+import { DomainText } from "../../components/DomainText";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { MonoText } from "../../components/MonoText";
@@ -55,6 +57,7 @@ function formatSize(bytes: number, lang: Lang): string {
 
 export default function CoSoDuLieu() {
   const t = useStrings(strings);
+  const navigate = useNavigate();
   const k = useStrings(khung);
   const m = useStrings(chung);
   const { lang } = useLang();
@@ -122,10 +125,11 @@ export default function CoSoDuLieu() {
           </span>
         );
       }
-      // Sửa và Xoá là hai việc người dùng tìm đầu tiên: để thành nút, không giấu trong menu ba chấm.
+      // v0.2.14: nút đầu là "Quản lý" (mở màn xem bảng, sửa dữ liệu, chạy SQL: thứ người dùng
+      // chờ ở chữ "Sửa"); đổi bộ ký tự và ghi chú chuyển vào menu ba chấm.
       return row(
-        [{ label: t.edit, ariaLabel: t.editFor(r.db), disabled: op.pending, onClick: () => open("edit", r) }, button("trash", t.del, t.trashFor(r.db))],
-        [{ label: t.password, disabled: op.pending, onSelect: () => act("password", r) }, ...lock],
+        [{ label: t.manage, ariaLabel: t.manageFor(r.db), onClick: () => navigate(dbManagePath("standalone", r.db)) }, button("trash", t.del, t.trashFor(r.db))],
+        [{ label: t.password, disabled: op.pending, onSelect: () => act("password", r) }, { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) }, ...lock],
       );
     }
     if (trashed) {
@@ -141,9 +145,10 @@ export default function CoSoDuLieu() {
       );
     }
     return row(
-      [{ label: t.edit, ariaLabel: t.editFor(r.db), disabled: op.pending, onClick: () => open("edit", r) }, button("trash-site", t.del, t.delSiteDbFor(r.db, r.domain))],
+      [{ label: t.manage, ariaLabel: t.manageFor(r.db), onClick: () => navigate(dbManagePath("site", r.domain)) }, button("trash-site", t.del, t.delSiteDbFor(r.db, r.domain))],
       [
         { label: t.password, disabled: op.pending, onSelect: () => act("password", r) },
+        { label: t.edit, disabled: op.pending, onSelect: () => open("edit", r) },
         { label: t.dump, disabled: op.pending, onSelect: () => act("dump", r) },
         { label: t.importOpen, disabled: op.pending || siteSuspended, hint: siteSuspended ? t.importBlocked : undefined, onSelect: () => open("import", r) },
         ...lock,
@@ -157,7 +162,7 @@ export default function CoSoDuLieu() {
       header: t.colDbUser,
       nowrap: false,
       cell: (r) => (
-        <div className="flex min-w-[220px] flex-col gap-[2px]">
+        <div className="flex min-w-[190px] flex-col gap-[2px]">
           <span className="flex flex-wrap items-center gap-x-[10px]">
             <MonoText>{r.db}</MonoText>
             {r.suspended && <SuspendTag how={r.suspended} />}
@@ -169,11 +174,13 @@ export default function CoSoDuLieu() {
     },
     {
       header: t.colOfSite,
+      // v0.2.14: tên miền dài xuống dòng sau dấu chấm (DomainText) thay vì kéo rộng bảng.
+      nowrap: false,
+      className: "min-w-[180px] max-w-[260px]",
       cell: (r) =>
         r.kind === "site" ? (
-          // Tên miền dài (44 ký tự trở lên) nằm một dòng, cắt bằng dấu ba chấm; đủ chữ trong title.
-          <Link to={`/sites/${encodeURIComponent(r.domain)}`} title={r.domain} className="inline-block max-w-[320px] truncate align-bottom no-underline hover:underline">
-            {r.domain}
+          <Link to={`/sites/${encodeURIComponent(r.domain)}`} className="no-underline hover:underline">
+            <DomainText domain={r.domain} />
           </Link>
         ) : (
           <Tag>{t.kindStandalone}</Tag>
@@ -185,14 +192,15 @@ export default function CoSoDuLieu() {
       cell: (r) => (r.charset ? <span title={r.collation}>{r.charset}</span> : <span className="text-muted">{t.none}</span>),
     },
     {
+      // v0.2.14: số bảng nằm dưới cỡ, một cột thay vì hai, để bảng vừa khung ở 1280 px.
       header: t.colSize,
       align: "right",
-      cell: (r) => (r.size_bytes < 0 ? <Unreadable label={t.unreadable} /> : formatSize(r.size_bytes, lang)),
-    },
-    {
-      header: t.colTables,
-      align: "right",
-      cell: (r) => (r.tables < 0 ? <Unreadable label={t.unreadable} /> : r.tables),
+      cell: (r) => (
+        <span className="flex flex-col items-end">
+          <span>{r.size_bytes < 0 ? <Unreadable label={t.unreadable} /> : formatSize(r.size_bytes, lang)}</span>
+          {r.tables >= 0 && <span className="text-[12.5px] text-muted">{t.tablesCount(r.tables)}</span>}
+        </span>
+      ),
     },
     { header: t.colAction, align: "right", nowrap: false, cell: actions },
   ];
@@ -225,7 +233,7 @@ export default function CoSoDuLieu() {
           <TableList
             label={t.tableName}
             caption={t.tableName}
-            minWidth={960}
+            minWidth={860}
             rows={rows}
             rowKey={(r) => r.db}
             empty={

@@ -189,7 +189,7 @@ export function Addresses({ domain, suspended }: Props) {
         ),
     },
     { header: t.colThen, className: "min-w-[240px]", nowrap: false, cell: thenCell },
-    { header: t.colState, nowrap: false, cell: stateCell },
+    { header: t.colState, className: "min-w-[230px]", nowrap: false, cell: stateCell },
     { header: t.colAction, align: "right", cell: actionCell },
   ];
 

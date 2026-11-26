@@ -73,15 +73,15 @@ type PackageEdit struct {
 	// Bốn hạn mức cũ cũng là con trỏ (từ v0.2.14): vắng mặt là giữ nguyên. Trước
 	// đó vắng mặt bị hiểu là 0 (không giới hạn), nên một lệnh gọi API chỉ gửi
 	// {"ram_mb":512} đã lặng lẽ gỡ hết hạn mức site, DB, đĩa, backup của gói.
-	MaxSites   *int   `json:"max_sites,omitempty"`
-	MaxDBs     *int   `json:"max_dbs,omitempty"`
-	DiskMB     *int   `json:"disk_mb,omitempty"`
-	MaxBackups *int   `json:"max_backups,omitempty"`
-	Cage       *bool  `json:"cage,omitempty"`
-	CPUPercent *int   `json:"cpu_percent,omitempty"`
-	RAMMB      *int   `json:"ram_mb,omitempty"`
-	Tasks      *int   `json:"tasks,omitempty"`
-	IOReadMB   *int   `json:"io_read_mb,omitempty"`
-	IOWriteMB  *int   `json:"io_write_mb,omitempty"`
-	PHPWorkers *int   `json:"php_workers,omitempty"`
+	MaxSites   *int  `json:"max_sites,omitempty"`
+	MaxDBs     *int  `json:"max_dbs,omitempty"`
+	DiskMB     *int  `json:"disk_mb,omitempty"`
+	MaxBackups *int  `json:"max_backups,omitempty"`
+	Cage       *bool `json:"cage,omitempty"`
+	CPUPercent *int  `json:"cpu_percent,omitempty"`
+	RAMMB      *int  `json:"ram_mb,omitempty"`
+	Tasks      *int  `json:"tasks,omitempty"`
+	IOReadMB   *int  `json:"io_read_mb,omitempty"`
+	IOWriteMB  *int  `json:"io_write_mb,omitempty"`
+	PHPWorkers *int  `json:"php_workers,omitempty"`
 }

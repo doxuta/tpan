@@ -14,7 +14,7 @@ const vi = {
   sameUser: "user cùng tên",
   colSite: "Site",
   colSize: "Cỡ",
-  colTables: "Số bảng",
+  tablesCount: (n: number) => `${n} bảng`,
   colAction: "Việc",
   unreadable: "không đọc được",
 
@@ -76,8 +76,10 @@ const vi = {
   hintM13:
     "DB rời không gắn với site nào: tên là <user>_<tên>, mật khẩu hiện một lần sau khi tạo. Xoá DB rời là đưa vào thùng rác (xuất file .sql trước), khôi phục được tới hạn xoá hẳn. Tạm khoá DB khoá user DB và ngắt các kết nối đang mở; dữ liệu giữ nguyên.",
 
-  edit: "Sửa",
-  editFor: (db: string) => `Sửa ${db}`,
+  edit: "Bộ ký tự và ghi chú",
+  editFor: (db: string) => `Đổi bộ ký tự và ghi chú của ${db}`,
+  manage: "Quản lý",
+  manageFor: (db: string) => `Quản lý ${db}: xem bảng, sửa dữ liệu, chạy SQL`,
   charset: "Đổi charset",
   charsetFor: (d: string) => `Đổi bộ ký tự của cơ sở dữ liệu của ${d}`,
   passwordForDb: (db: string) => `Đổi mật khẩu của ${db}`,
@@ -174,7 +176,7 @@ export const strings = defineStrings(vi, {
   sameUser: "user has the same name",
   colSite: "Site",
   colSize: "Size",
-  colTables: "Tables",
+  tablesCount: (n) => `${n} ${n === 1 ? "table" : "tables"}`,
   colAction: "Action",
   unreadable: "cannot be read",
 
@@ -230,8 +232,10 @@ export const strings = defineStrings(vi, {
   hintM13:
     "A standalone DB belongs to no site: it is named <user>_<name> and its password shows once after creation. Deleting a standalone DB moves it to the trash (a .sql export first) and it can be restored until it is permanently deleted. Suspending a DB locks the DB user and drops open connections; the data stays.",
 
-  edit: "Edit",
-  editFor: (db) => `Edit ${db}`,
+  edit: "Character set and note",
+  editFor: (db) => `Change the character set and note of ${db}`,
+  manage: "Manage",
+  manageFor: (db) => `Manage ${db}: browse tables, edit data, run SQL`,
   charset: "Change charset",
   charsetFor: (d) => `Change the charset of the database of ${d}`,
   passwordForDb: (db) => `Change the password of ${db}`,

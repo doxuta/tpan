@@ -114,9 +114,9 @@ export function RouteMap({ o }: { o: Overview }) {
     <Card title={t.mapTitle} titleId="bdk-ban-do" actions={<Legend />}>
       {/* Khung cuộn ngang riêng: cả trang không bao giờ cuộn ngang. */}
       {/* relative: span sr-only của dòng request không thoát khỏi khung cuộn; -m/p 4 px: chừa chỗ cho viền focus ở mép khung. */}
-      {/* min-w 720 px: mỗi ga còn đủ chỗ cho nhãn "WordPress" và "Web server"; hẹp hơn thì khung này cuộn, không phải cả trang. */}
+      {/* min-w 560 px (v0.2.14, trước là 720): vừa thẻ nửa trang ở 1280 px nên không còn cuộn ngang trên máy tính; hẹp hơn nữa thì khung này cuộn, không phải cả trang. */}
       <div className="@container relative -m-[4px] overflow-x-auto p-[4px]">
-        <div className="min-w-[720px] border-b border-hair">
+        <div className="min-w-[560px] border-b border-hair">
           <div aria-hidden="true" className="flex items-end pb-[8px] text-[12px] font-medium text-muted">
             <div className={nameCol}>{t.colSite}</div>
             <div className="grid min-w-0 flex-1 grid-cols-6 text-center leading-[1.3]">

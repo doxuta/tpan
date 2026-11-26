@@ -85,6 +85,9 @@ const table = [
     // hàng đang chạy của màn Cơ sở dữ liệu. Server cũ không gửi thì không hiện số.
     menu: { label: "databases", group: "chinh", icon: "database", count: (o) => o.db_count },
   },
+  // M32 (v0.2.14): quản lý dữ liệu của một DB. :id là tên miền (DB của site) hoặc tên DB (DB rời).
+  { path: "/databases/site/:id", load: () => import("./screens/quan-ly-db").then((m) => m.DbManageSite) },
+  { path: "/databases/db/:id", load: () => import("./screens/quan-ly-db").then((m) => m.DbManageStandalone) },
   {
     path: "/ssl",
     load: () => import("./screens/ssl").then((m) => m.default),

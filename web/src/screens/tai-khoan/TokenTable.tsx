@@ -54,6 +54,8 @@ export function TokenTable({ rows, scope, title, titleId, id, caption, actions, 
     { header: t.colExpires, cell: (r) => fmtDate(r.expires, lang) },
     {
       header: t.colLastUsed,
+      nowrap: false,
+      className: "min-w-[150px]",
       cell: (r) =>
         r.last_used ? (
           <span>
@@ -79,7 +81,7 @@ export function TokenTable({ rows, scope, title, titleId, id, caption, actions, 
 
   return (
     <>
-      <TableList title={title} titleId={titleId} id={id} caption={caption} minWidth={showOwner ? 1000 : 900} actions={actions} above={above} rows={rows} rowKey={(r) => r.id} columns={columns} empty={t.tokEmpty} />
+      <TableList title={title} titleId={titleId} id={id} caption={caption} minWidth={showOwner ? 880 : 820} actions={actions} above={above} rows={rows} rowKey={(r) => r.id} columns={columns} empty={t.tokEmpty} />
       {asking && (
         <Dialog
           open

@@ -149,7 +149,7 @@ func (e *authzEnv) fakeRoutes() (http.Handler, []route) {
 // trị bất kỳ cho các luật khác. missing: giá trị không có thật (để so 404).
 func (e *authzEnv) fill(t *testing.T, rt route, path string, missing bool) string {
 	t.Helper()
-	val := map[string]string{"domain": authzSite, "name": authzA, "id": "x1", "seq": "1"}
+	val := map[string]string{"domain": authzSite, "name": authzA, "id": "x1", "seq": "1", "table": "wp_posts"}
 	if rt.rule.kind == ruleOwner {
 		switch rt.rule.obj {
 		case objJob:
@@ -162,7 +162,7 @@ func (e *authzEnv) fill(t *testing.T, rt route, path string, missing bool) strin
 			val["name"] = authzDB
 		}
 		if missing {
-			val = map[string]string{"domain": "none.example.com", "id": "999999", "name": "userb_none"}
+			val = map[string]string{"domain": "none.example.com", "id": "999999", "name": "userb_none", "table": "wp_posts"}
 		}
 	}
 	for strings.Contains(path, "{") {

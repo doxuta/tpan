@@ -222,6 +222,18 @@ func (s *Server) routes(dist fs.FS) []route {
 		{pattern: "POST /api/v1/dbs", rule: anyone, tok: apitoken.GroupDatabases, h: s.handleDBCreate},
 		{pattern: "POST /api/v1/dbs/{name}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBEdit},
 		{pattern: "POST /api/v1/dbs/{name}/password", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleStandaloneDBPassword},
+		// M32 (v0.2.14): quản lý dữ liệu của một DB (api_m32.go). Hai họ đường dẫn
+		// cho cùng handler: DB của site theo {domain}, DB rời theo {name}.
+		{pattern: "GET /api/v1/databases/{domain}/data", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBDataInfo},
+		{pattern: "GET /api/v1/databases/{domain}/data/{table}", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBDataRows},
+		{pattern: "POST /api/v1/databases/{domain}/data/{table}", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBDataChange},
+		{pattern: "POST /api/v1/databases/{domain}/data/{table}/maintain", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBDataMaintain},
+		{pattern: "POST /api/v1/databases/{domain}/sql", rule: ownerSite, tok: apitoken.GroupDatabases, h: s.handleDBDataSQL},
+		{pattern: "GET /api/v1/dbs/{name}/data", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataInfo},
+		{pattern: "GET /api/v1/dbs/{name}/data/{table}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataRows},
+		{pattern: "POST /api/v1/dbs/{name}/data/{table}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataChange},
+		{pattern: "POST /api/v1/dbs/{name}/data/{table}/maintain", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataMaintain},
+		{pattern: "POST /api/v1/dbs/{name}/sql", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBDataSQL},
 		{pattern: "POST /api/v1/dbs/{name}/suspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleDBSuspend},
 		{pattern: "POST /api/v1/dbs/{name}/unsuspend", rule: adminOnly, tok: apitoken.GroupDatabases, h: s.handleDBUnsuspend},
 		{pattern: "DELETE /api/v1/dbs/{name}", rule: ownerDB, tok: apitoken.GroupDatabases, h: s.handleDBTrash},

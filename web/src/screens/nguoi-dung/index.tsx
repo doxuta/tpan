@@ -110,12 +110,9 @@ export default function Users() {
     }
     return (
       <RowActions
-        primary={[
-          { label: t.edit, ariaLabel: t.forUser(t.edit, n), disabled: busy, onClick: () => setDialog({ kind: "edit", row: r }) },
-          { label: t.password, ariaLabel: t.forUser(t.password, n), disabled: busy, onClick: () => setDialog({ kind: "password", row: r }) },
-        ]}
-        more={more}
-        moreLabel={t.moreFor(n, more.map((m) => m.label.toLowerCase()).join(", "))}
+        primary={[{ label: t.edit, ariaLabel: t.forUser(t.edit, n), disabled: busy, onClick: () => setDialog({ kind: "edit", row: r }) }]}
+        more={[{ label: t.password, disabled: busy, onSelect: () => setDialog({ kind: "password", row: r }) }, ...more]}
+        moreLabel={t.moreFor(n, [t.password, ...more.map((m) => m.label)].map((x) => x.toLowerCase()).join(", "))}
       />
     );
   };
@@ -182,7 +179,7 @@ export default function Users() {
         <TableList
           label={t.tableName}
           caption={t.tableName}
-          minWidth={900}
+          minWidth={820}
           rows={rows}
           rowKey={(r) => r.user.name}
           empty={t.empty}
@@ -219,6 +216,7 @@ export default function Users() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-x-[8px]">
                         <span className="font-semibold [overflow-wrap:anywhere]">{r.user.name}</span>
+                        {r.user.role === "admin" && <Tag>{t.roleName.admin}</Tag>}
                         {r.user.name === who.name && <Tag>{t.you}</Tag>}
                       </div>
                       {sub && <div className="text-[12.5px] text-muted [overflow-wrap:anywhere]">{sub}</div>}
@@ -227,7 +225,6 @@ export default function Users() {
                 );
               },
             },
-            { header: t.colRole, cell: (r) => t.roleName[r.user.role] },
             {
               header: t.colPackage,
               cell: (r) => (
